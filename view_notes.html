@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text file viewer</title>
+  <link rel="icon" href="images/pencil.png" type="image/png">
+  <base target="_blank">
+  <style>
+	:root {
+		interpolate-size: allow-keywords; /* for animating details open and close */
+	}
+	/* Box sizing rules */
+	*,
+	*::before,
+	*::after {
+	  box-sizing: border-box;
+	}*/
+    button {font: inherit;}
+	img {max-width: 100%;
+		padding: 10px;
+		display: block;
+		margin-inline: auto}
+	table {
+		border-collapse: collapse; /* Collapse borders into a single line */
+		width: 100%; /* Adjust width as needed */
+	}
+	th, td {
+		border: 1px solid black; /* Set border style, width, and color */
+		padding: 8px; /* Add some padding for better readability */
+		text-align: left; /* Align text as needed */
+	}
+	body {		
+		font-family: Arial, Helvetica, sans-serif;		
+		
+		--colour-neutral: WhiteSmoke; /* bg */ /*white? #F6FFFC #80AAFF*/
+		--colour-neutral-alt: white; /* card bg */
+		--colour-contr: DarkSlateGray; /* text */
+		--colour-contr-emph: RoyalBlue;  /* h1 */
+
+		--colour-compl: PaleTurquoise;  /* btn */
+		--colour-compl-emph-light: LightYellow;  /* btn hover */
+		--colour-compl-emph: #FFD480; /* btn select */ /*gold*/
+		--colour-compl-contr: DarkSlateGray; /* btn text */
+		--colour-compl-emph-contr: DarkSlateGray; /* btn select text */	
+
+		--colour-compl-alt: PaleTurquoise; /* tag */
+		--colour-compl-alt-emph-light: MistyRose; /* tag hover */ 
+		--colour-compl-alt-emph: #FF80AA; /* tag select */ /*Pink*/
+		--colour-compl-alt-contr: DarkSlateGray; /* tag text */ /*MediumVioletRed*/
+		--colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */	
+		}
+	
+	body:has(input[type="radio"]#funcheck:checked) {		
+		--colour-neutral: DarkSlateGray; /* bg */
+		--colour-neutral-alt: Black; /* card bg */
+		--colour-contr: aquamarine; /* text */
+		--colour-contr-emph: hotpink;  /* h1 */
+
+		--colour-compl: DarkCyan;  /* btn */ 
+		--colour-compl-emph-light: LightYellow;  /* btn hover */
+		--colour-compl-emph: #FFD480; /* btn select */ /* GOLD */
+		--colour-compl-contr: aquamarine; /* btn text */
+		--colour-compl-emph-contr: DarkSlateGray; /* btn select text */	
+
+		--colour-compl-alt: DarkCyan; /* tag */
+		--colour-compl-alt-emph-light: MistyRose; /* tag hover */ 
+		--colour-compl-alt-emph: #FF80AA; /* tag select */ /* PINK */
+		--colour-compl-alt-contr: aquamarine; /* tag text */
+		--colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */	
+	}
+		
+	body {
+		background-color: var(--colour-neutral);
+		color: var(--colour-contr);
+	}
+	
+	/* ########   BLOCKQUOTE FORMATING START   ######## */
+	blockquote {
+		border-left: 2px solid var(--colour-contr-emph);
+		padding-left: 0.5em;
+		display: inline-block;
+	}
+	blockquote > :first-child {
+		margin-top: 0px;
+		&::before {
+			content: "\0275D";
+		}
+		&::first-letter {
+			color:var(--colour-contr-emph);
+			float: left; 
+			font-size: 4em;
+			margin-right: 0.1em;
+			margin-top: 0.3em;
+			line-height: 0.2em;
+		}
+	}
+	blockquote > :last-child {
+		margin-bottom: 0px;
+	}
+	blockquote > blockquote { /* this is to easily create a ref for a blockquote in markdown with double blockquote >> */
+		border-left: none;
+		padding-left: 0em;
+		margin-top:0em;
+	}
+	blockquote > blockquote > :first-child {
+		&::before {
+			content: "🔗 ";
+		}
+		&::first-letter {
+			color:var(--colour-contr);
+			float: left; 
+			font-size: 1em;
+			margin-right: 0em;
+			margin-top: 0em;
+			line-height: 1em;
+		}
+	font-style: italic;
+	}
+	/* ########   BLOCKQUOTE FORMATING END   ######## */
+	
+	details.note {
+		--note-padding-sides: 20px;
+		--note-width: 70ch;
+		--note-border-thickness: 2px;
+		--note-border-radius: 6px;
+		--summary-width: 400px;
+		--summary-offset: 10px;
+		break-inside: avoid; /* for use in column layout */
+		margin-bottom: 10px;
+		
+		padding-left: var(--summary-offset);
+		flex-basis: var(--summary-width); /* note that can't really transition width as flex box makes things jump around anyway */
+		summary { /* background-color: var(--colour-neutral-alt);*/
+			--color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
+			background-color: attr(data-color type(<color>), var(--colour-neutral-alt));
+			color: var(--color-mono-contr);
+			border-radius: var(--note-border-radius);
+			padding: 10px;
+			padding-left: 20px;
+			margin-left: calc(var(--summary-offset) * -1); /* to line up text with summary elem */
+			cursor:row-resize
+		}
+		&[open] {
+			padding-left: 0; /* not sure why I need this... aligns notes when details open */
+			min-width: calc(100% - var(--summary-width)); /* to force other details elements to a new line*/
+			margin-inline: auto;
+			summary {
+				max-width: calc(var(--note-width) + var(--note-padding-sides) * 2 + var(--note-border-thickness) * 2); /* faffing around here due to border box sizing css above*/
+				margin-inline: auto;
+				border: var(--note-border-thickness) solid var(--colour-contr); /* could mess around with box shadows instead to prevent v small layout shift when borders applied. Bit tricky though */
+				border-bottom: 0; /* want to draw a box round details contents element too*/
+				border-bottom-right-radius: 0;
+				border-bottom-left-radius: 0; */				
+				padding-inline: var(--note-padding-sides); 
+			}
+		}
+		
+		&::details-content {
+			transition: height 0.2s linear, content-visibility 0.2s ease allow-discrete; /* BUG animation jump at start and end, something to do with open / close padding or margin */
+			height: 0px;
+			overflow-y: clip;
+			max-width: var(--note-width); /* constrain text line length */
+			margin-inline: auto;
+			padding: 0px var(--note-padding-sides) 0px var(--note-padding-sides);
+		}
+		&[open]::details-content {
+			height: max-content;
+			border: var(--note-border-thickness) solid var(--colour-contr);
+			border-top: 0; /* want to draw a box round summary element too*/
+			border-radius: var(--note-border-radius);
+			border-top-right-radius: 0;
+			border-top-left-radius: 0;
+			padding-bottom: 10px;
+		}
+		summary + * {margin:0;padding:10px} /* stops the details content from floating away from the summary which means the border doesn't go all the way around! */
+		
+	}
+
+	#output {
+		column-width: 500px; /* decided to go with a multi column approach. Looks better, biggest problem is opening a summary note can cause reflow and note to move to end of previous column */
+		column-gap: 10px;
+		column-count: auto;	
+	/*	display: flex; /* don't need this stuff right now */
+		align-items: flex-start;
+		flex-direction: column;
+		flex-wrap: wrap;
+		gap: 10px; */
+	}
+	/* #output > * {
+		flex-grow: 1;
+	} */
+
+	/* ### START OF TAG TAXONOMY CSS */
+	#tag_output {
+	  display: flex;
+	  align-items: flex-start;
+	  flex-wrap: wrap;
+	  gap: 10px;
+	  padding: 10px 0 20px 0;
+	  details {
+		flex-grow: 1;
+		background-color: var(--colour-neutral-alt);
+		border-radius: 6px;
+		padding: 4px;
+		max-width: 200px;
+	  }
+	  summary {
+		cursor:pointer;
+		&::marker {
+		  content: "+ ";
+		}
+	  }
+	  details[open] {
+		flex-basis: 100%;
+		flex-grow: 1;
+		margin-left: 150px;
+		padding: 0px;
+		max-width: 100%;
+		order: 2;
+	  }
+
+	  details[open] summary {
+		margin-left: -150px;
+		background-color: var(--colour-neutral-alt);
+		border-radius: 6px;
+		padding: 4px;
+		&::marker {
+		  content: "- ";
+		}
+	  }
+	  details[open]::details-content {
+		margin-top: -27px;
+		padding: 4px;
+		border-radius: 6px;
+	  }
+	  details.details_divider {
+		background-color: var(--colour-neutral);
+		order: 1;
+		min-width: calc(100% - 20px); 
+		
+		summary {
+		  cursor: default;
+		  &::marker {
+			content: "";
+		  }
+		}
+		&[open] {min-width: calc(100% - 150px - 20px); /* allow for summary offset when open and body margin */
+		}
+		&[open] summary {
+		  background-color: var(--colour-neutral);
+		}
+		&[open]::details-content {
+		  margin-top: 0;
+		  padding:0;
+		}
+	  }
+	}
+	/* ### END OF TAG TAXONOMY CSS */		
+	.border-rounded {
+		border: 1px solid var(--colour-contr);
+		border-radius: 6px;
+		padding: 10px;
+	}
+	
+	.copyhighlight { border-radius: 20px;
+		padding: 4px 10px;
+		&:has(.copyflag:hover){outline:1px solid var(--colour-contr)}
+		}
+	h1, h2, h3, h4 {color: var(--colour-contr-emph);
+	}
+	.tag {color:var(--colour-compl-contr);
+		background-color: var(--colour-compl);
+		padding: 1px 4px 1px 4px;
+		border-radius: 4px;}
+	.tag:hover {
+		background-color: var(--colour-compl-emph-light);
+		color: var(--colour-compl-emph-contr);
+		cursor:pointer;}
+	.tagselected {
+		background-color: var(--colour-compl-emph);
+		color: var(--colour-compl-emph-contr);}
+	.tag_cat {
+		color: var(--colour-contr);
+		background-color: var(--colour-compl);
+		padding: 1px 4px 1px 4px;
+		border-radius: 4px;
+		margin-right: 4px;}
+	
+	details.hider:not(:has(.tagselected)) {display:none;} /* hides details elems if their tags are not selected, if the hider class is present (added after first tag click to all details elems). The OR filter */
+	body:has(#and_filter:checked) {
+		details.and_hider {display:none} /* hides details elems if the and_hider class is present. The AND filter */
+		.tag:hover {
+			background-color: var(--colour-compl-alt-emph-light);
+			color: var(--colour-compl-alt-emph-contr);}
+		.tagselected {
+			background-color: var(--colour-compl-alt-emph);
+			color: var(--colour-compl-alt-emph-contr)}
+	}
+		
+	.copyflag {border-radius: 20px;
+		cursor:pointer;
+		&.copied {color:var(--colour-compl-alt-contr);}
+		} /* css name needs to match js const COPYTHIS */
+
+	/* The switch - the box around the slider */
+	.switch {
+	  position: relative;
+	  display: inline-block;
+	  width: 30px;
+	  height: 17px;
+	}
+	/* Hide default HTML checkbox */
+	.switch input {
+	  opacity: 0;
+	  width: 0;
+	  height: 0;
+	}
+	/* The slider */
+	.slider {
+	  position: absolute;
+	  cursor: pointer;
+	  inset: 0;
+	  background-color: var(--colour-compl-emph);
+	  transition: .4s;
+	  border-radius: 17px;
+	}
+
+	.slider:before {
+	  position: absolute;
+	  content: "";
+	  height: 13px;
+	  width: 13px;
+	  left: 2px;
+	  bottom: 2px;
+	  background-color: var(--colour-neutral);
+	  transition: .1s;
+	  border-radius: 50%;
+	}
+	.switch:hover .slider:before {
+	background-color: var(--colour-compl);
+	}
+	input:checked + .slider {background-color: var(--colour-compl-alt-emph);}
+	.label_group:has(input:focus-visible) {
+      outline: 2px solid var(--colour-contr);
+	  border-radius: 6px;
+	}
+	input:checked + .slider:before {transform: translateX(13px);}
+	.flex-row {
+	  display: flex;
+	  align-items: center;
+	  padding: 4px;
+	}
+	.flexgrow {flex-grow: 1}
+	.flex-row > .ANDOR_label {
+	  padding-inline: 4px;
+	}
+	.flex-row > .showall {
+	  cursor:pointer;
+	  color: var(--colour-contr);
+	  margin-left:40px;
+	  background-color:var(--colour-neutral);
+	  border: 2px solid var(--colour-compl-emph);
+	  border-radius: 6px;
+	  &:hover {
+		color: var(--colour-compl-emph-contr);
+		background-color: var(--colour-compl-emph-light);
+	  }
+	}
+	.stick-top {
+		position:sticky;
+		top: 0px;
+		background-color: var(--colour-neutral);
+	}
+	  
+	body:has(#and_filter:checked) .showall {border: 2px solid var(--colour-compl-alt-emph);
+	  &:hover {
+		  background-color:var(--colour-compl-alt-emph-light);
+		  color: var(--colour-compl-emph-contr);
+	  }
+    }
+</style>
+</head>
+<body class="funmode">
+
+  <input type="file" id="fileInput" accept=".txt" multiple onchange="loadFile()">
+  <br><br>
+
+  <main>
+  <div class="border-rounded">
+  <b>Tag categories</b>
+  <div id="tag_output"></div>
+  </div>
+
+  <p><b>Text files</b></p>
+  <div class="flex-row stick-top">
+	<div class="ANDOR_label">Filter</div>
+	<div class="flex-row label_group">
+		<div class="ANDOR_label">OR</div>
+		<label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"><span class="slider"></span></label> 
+		<div class="ANDOR_label">AND</div>
+		<button class="showall">clear filters</button>
+	</div>
+	<div class="flexgrow"></div>
+	<label class="formcontrol"><input type="radio" name="radio" checked />Snow</label>
+	<label class="formcontrol"><input type="radio" name="radio" id="funcheck" />Glow</label>
+  </div>
+  
+
+  <div id="output"></div>
+  </main>
+  <script src="public/marked.min.js"></script>
+  <script>
+ 
+    function loadFile() {
+		const input = document.getElementById('fileInput');
+		let data = [];
+		let data_tags = []; // to store a list of tags across all files
+		let taxon_array = [];
+		const TAG_JOINER = " "; // previously " | "
+		const TAGGER = "tagselected";
+		const HIDER = "hider";
+		const AND_HIDER = "and_hider";
+		const NOTE = "note";
+		const COPYTHIS = "copyflag";
+		const COPYATTR = "filename";
+		let filter_counter = 0;
+
+		// creates an object that I don't use but might come in handy in future iterations
+		function Data(filename, title, date_modified, mycontent, mytags) {
+		  this.filename = filename;
+		  this.title = title;
+		  this.date_modified = date_modified;
+		  this.mycontent = mycontent;
+		  this.tags = mytags;
+		}
+
+
+		function allFilesLoaded() {
+		// do stuff after all files have been loaded, called in last file load below
+
+			function clickHandler(evt){
+
+				function clearFilters() {
+					filter_counter=0;
+					document.querySelectorAll(`.${NOTE}`).forEach(el => el.classList.remove(HIDER, AND_HIDER));
+
+					document.querySelectorAll(`.${TAGGER}`).forEach(el => el.classList.remove(TAGGER));
+				}
+				
+			
+				// TAG CLICK EVENT
+				if(evt.target.classList.contains("tag")) {
+				
+					evt.preventDefault(); // stops the details div opening
+					const targetTag = evt.target.classList[0] + " " + evt.target.classList[1]; // ie all elements with class "tag" and "some tag name". BETTER WAY OF DOING THIS? BIT ROPEY
+					
+					const matchTagElements = document.getElementsByClassName(targetTag);
+					
+					// highlights selected tags through css class
+					for (let q = 0; q < matchTagElements.length; q++ ) {
+						let onOff = matchTagElements[q].classList.toggle(TAGGER);
+						if (onOff == true && q==0) {	
+							filter_counter ++;
+						//	console.log(onOff + " index:" + q + "counter: " + filter_counter);
+						} else if (onOff == false && q==0) {
+							filter_counter --;
+						//	console.log(onOff + " index:" + q + "counter: " + filter_counter);
+							
+						}
+					}
+					
+					const notesNodes = document.querySelectorAll(`.${NOTE}`);
+
+					for (const elem of notesNodes) {
+						const ANDcount = elem.querySelectorAll(`summary .${TAGGER}`).length; // count tag matches
+						elem.classList.add(HIDER); // hides notes without selected tags through css. Applied here not onload so you can see all notes at start
+
+						if (ANDcount < filter_counter) {
+							elem.classList.add(AND_HIDER);
+						} else {
+							elem.classList.remove(AND_HIDER);
+						}
+						
+					};
+					
+					if (filter_counter === 0) {clearFilters()};
+	
+	
+				// CLEAR FILTERS CLICK EVENT	
+				} else if (evt.target.classList.contains("showall")) {
+
+					clearFilters()
+
+					
+				// COPY FILENAME CLICK EVENT	
+				} else if (evt.target.classList.contains(COPYTHIS)) {
+					evt.preventDefault(); // stops the details div opening
+					const COPYTEXT = evt.target.dataset[COPYATTR]
+					navigator.clipboard.writeText(COPYTEXT);
+					evt.target.classList.toggle("copied");
+				}
+				//console.log("counter evt end: " + filter_counter);
+			}
+			
+			// STUFF HAPPENS HERE AFTER ALL FILES LOAD, above is evt handlers
+
+			///////////// START Build up tag data /////////////
+			
+			data_tags = data_tags.sort();
+			
+			// count how instances of each item in array and return as object of unique names and count
+			const occurrences = data_tags.reduce(function (acc, curr) {
+				return acc[curr] ? ++acc[curr] : acc[curr] = 1, acc
+			}, {});
+			
+			// turn back into two arrays, one for tag name and the other for count values
+			data_tags = Object.keys(occurrences).map((key) => key); // names only
+			let data_tags_freq = Object.keys(occurrences).map((key) => [key,occurrences[key]]); // names and values
+			
+			// create html to show all tags
+			let data_tags_html = [];
+			for (let r = 0; r < data_tags_freq.length; r++) {
+				data_tags_html[r] = `<code><span class='tag ${data_tags_freq[r][0]}'>${data_tags_freq[r][0]}&nbsp;(${data_tags_freq[r][1]})</span></code>`
+			}
+			
+			///////////// END Build up tag data /////////////
+			
+			///////////// START Build up tag taxonomy data /////////////
+			
+			taxon_array = taxon_array.sort();
+
+			// change taxonomy array to a better shape we can iterate over
+			const objtemp = {};
+			for (const [parent, child] of taxon_array) {
+				if (!objtemp[parent]) {
+					objtemp[parent] = [];
+				}
+				// only push if parent child not already included
+				if (!objtemp[parent].includes(child)) {
+					objtemp[parent].push(child);
+				}
+			}
+
+			// Flatten the values of objtemp into a single array
+			const objtemp_values = Object.values(objtemp).flat();
+			// Find items in data_tags that are not present in objtemp_values
+			const newItems = data_tags.filter(item => !objtemp_values.includes(item));
+			// Add the new items to objtemp under a new key
+			objtemp.orphan_tags = newItems;
+			
+			// create array from the object above for tag taxonomy
+			let taxon_array_filter = Object.entries(objtemp).map(([parent, children]) => [parent, children]);
+
+			// use the count tags info derived above to add a tag frequency array. generated this using google gemini so the ?.[1] ?? null is an incantation to me
+			let taxon_array_freq = taxon_array_filter.map(([taxon, tags]) => {
+				const freqs = tags.map(name =>
+					data_tags_freq.find(([tag]) => tag === name)?.[1] ?? null 
+				);
+			return [taxon, tags, freqs];
+			});
+
+			let taxonomy_html = [];
+			let taxonomy_tags = [];
+			for (let r = 0; r < taxon_array_freq.length; r++ ) {
+				taxonomy_tags = []
+				taxonomy_html.push(`<details class="taxon"><summary><code>${taxon_array_freq[r][0]}</code></summary>`);
+				for (let s = 0; s < taxon_array_freq[r][1].length; s++ ) {
+					taxonomy_tags[s] = (`<code><span class='tag ${taxon_array_freq[r][1][s]}'>${taxon_array_freq[r][1][s]}\u00A0(${taxon_array_freq[r][2][s]})</span></code>`);
+				}
+				let taxonomy_tag_string = taxonomy_tags.join(TAG_JOINER);
+				taxonomy_html.push(taxonomy_tag_string);
+				taxonomy_html.push(`</details>`);
+			}
+			taxonomy_html.push(`<details class="details_divider"><summary>selected categories</summary></details>`)	
+			
+			///////////// END Build up tag taxonomy data /////////////			
+
+			
+			// put all tags at top of the page
+			let data_tags_string = data_tags_html.join(TAG_JOINER);
+			taxonomy_html.push(`<details class="taxon"><summary><code>all tags</code></summary>`);		
+			taxonomy_html.push(data_tags_string);
+			let taxonomy_html_string = taxonomy_html.join("");			
+			
+			document.getElementById('tag_output').innerHTML = taxonomy_html_string 
+			
+		//	document.addEventListener('pointerdown', clickHandler, true); // captures touch but prevent default only works erratically! Also doesn't distinguish between left and right clicks
+			document.addEventListener("click", clickHandler);
+			
+		}
+		
+		// load in all the files...
+		for (let i = 0; i < input.files.length; i++) {
+		
+			let file = input.files[i];
+
+			if (file) {
+
+				let reader = new FileReader();
+				
+				let myfilename = input.files[i].name;
+				let lastModDate = input.files[i].lastModifiedDate;
+				
+				// this is the async function will runs each time a file is finished loading
+				reader.onload = function(e) {
+
+					const fileContent = e.target.result;	
+					
+					let mytitle = "";
+					const regex_title = /(?<=^# ).*$/gm;
+					let checktitle = fileContent.match(regex_title);
+					if (checktitle != null){mytitle = checktitle[0];}
+					
+					// find all the tags used in the files
+					const regex_tag = /(?<=#)(\w+)\b(?!\/)|#(\w+)\/(\w*\b)/g;   // Note "# Title" with a space is <h1>; #tag with no space is a tag [old (?<=#)\w*\b - no taxonomy]
+					let matchAll = fileContent.matchAll(regex_tag);
+					let matchAll_arr = Array.from(matchAll);
+					let tagarray = [];
+					let tag_html = [];
+					let parent = "";
+					let child= "";
+					
+					for (let p=0; p < matchAll_arr.length; p++) {
+					
+						for (let u=1; u === 1 || u === 3; u+=2) { // only have two capturing groups to test for tag matches (note that with matchAll array[0] will be the match which we don't want, we want grp 1 and grp 3)
+							if (typeof matchAll_arr[p][u] != 'undefined') {
+								const tagvalue = matchAll_arr[p][u].toLowerCase();
+								if (!tagarray.includes(tagvalue)) { // check we don't have the same tag twice in this file
+									tagarray[p] = tagvalue;
+									tag_html[p] = `<code><span class="tag ${tagarray[p]}">${tagarray[p]}</span></code>`
+								}
+								
+								data_tags.push(tagvalue); // retain duplicates here to allow later count
+							}
+						}
+						
+						// BUG - NEED TO AMEND BELOW TO NOT STORE DUPLICATE TAGS OR PARENTS
+						for (let u=2; u === 2 || u === 3; u++) { // now getting capturing grp 2 and grp 3 for parent child relationships
+						const string = matchAll_arr[p][u];
+							if (typeof string != 'undefined') {
+								if (u==2) {parent = string.toLowerCase();}
+								if (u==3) {child = string.toLowerCase();}
+							}
+						}
+						if (parent != "" && child != "") {taxon_array.push([parent, child]);}
+						
+					}
+
+					// this is to allow users to select a color by applying a color tag to the file
+					let summary_color = "";
+					const regex_color = /#color\/(\w+)/m; // note that this works because it doesn't have the global g flag
+					let checkcolor = fileContent.match(regex_color);
+					if (checkcolor != null){summary_color = checkcolor[1];}
+
+					
+					let tag_html_output = tag_html.join(TAG_JOINER); // to show in summary element
+					let tag_classes = tagarray.join(" "); // to include in details element class list
+
+
+
+					
+					
+					// object not being used right now
+					data.push(new Data(input.files[i].name, mytitle, input.files[i].lastModifiedDate, fileContent, tagarray));
+
+					const outputDiv = document.getElementById('output');
+					let parsedText = markdownParser(fileContent); // this has been demoted to tag rendering!
+					parsedText = marked.parse(parsedText);
+					
+					// BUG FILE CLASS IS KINDA REDUNDANT BUT NEED TO TIDY UP CSS DETAILS BEFORE REMOVING
+					// build the details element for the file loaded
+					const file_html = `<details class="${NOTE} ${tag_classes}">
+					<summary data-color="${summary_color}"><span class="copyhighlight"><span class="${COPYTHIS}" title='copy filename to clipboard' data-${COPYATTR}='${myfilename}'>©</span> ${myfilename}</span><br>
+					${tag_html_output}
+					</summary>
+					${parsedText}<br><br><br>
+					</details>`;
+					
+					outputDiv.appendChild(new DOMParser().parseFromString(file_html, 'text/html').body.firstChild
+);
+					
+					// if it is the last file, do stuff after it is all loaded
+					if (i + 1 === input.files.length) {
+						allFilesLoaded();
+					}
+
+				};
+			
+			reader.readAsText(file); // this calls the async reader.onload function so don't put anything after this
+			
+			}
+		}
+
+	}
+
+const markdownParser = (text) => {
+
+	// used in the tag parse below because I wanted to get lower case class names but keep text as user had written it
+	function tagreplacer(match, p1, p2, p3, p4, offset, string) {
+	//	console.log("p1:" + p1+ " p2:" +p2+ " p3:" +p3+ " p4:" +p4)
+		if (typeof p2 != 'undefined') {
+			// for when we have #tag match (group 1 = #) (group 2 = tag)
+			const p2_lower = p2.toLowerCase()
+			return `<span class='tag ${p2_lower}'>${p1}${p2}</span>`;
+		} else if (typeof p4 != 'undefined') {
+			// for when we have a #something/childtag match (group 3 = #something/) (group 4 = childtag)
+			const p4_lower = p4.toLowerCase();
+			return `<span class='tag_cat'>${p3}</span><span class='tag ${p4_lower}'>${p4}</span>`;
+		} else {
+			console.log("no tag matches found for " + string);
+		}
+		
+	}
+	const toHTML = text
+	/*	.replace(/^\d+(\. )(.*$)/gim, '<li>$2</li>') // ordered lists tag of format "1. "
+		.replace(/((<li>.*<\/li>\r?\n){1,})/g, '<ol>$1</ol>') // lists ordered outer tag
+		.replace(/((^- .*\r?\n){1,})/gim, '<ul>\n$1</ul>') // lists unordered outer tags
+		.replace(/^- (.*$)/gim, '<li>$1</li>') // lists unordered inner tag
+		.replace(/^#### (.*$)/gim, '<h4>$1</h4>') // h4 tag		
+		.replace(/^### (.*$)/gim, '<h3>$1</h3>') // h3 tag
+		.replace(/^## (.*$)/gim, '<h2>$1</h2>') // h2 tag
+		.replace(/^# (.*$)/gim, '<h1>$1</h1>') // h1 tag */
+	//	.replace(/\*\*(.*)\*\*/gim, '<b>$1</b>') // bold text double asterisk
+	//	.replace(/\*(.*)\*/gim, '<i>$1</i>') // italic text single asterisk
+	/*	.replace(/\_\_(.*?)\_\_/gim, '<b>$1</b>') // bold text double _
+		.replace(/\_(.*?)\_/gim, '<i>$1</i>') // italic text single _
+		.replace(/!\[([^\]]*)\]\(([^)]+?)\)/g, '<img src="$2" title="$1" alt="$1">') // show images
+		.replace(/^(?!.*!\[)(.*?)\[([^\]]+)\]\(([^)]+?)\)/gm, '$1<a href="$3" target="_blank">$2</a>') // show links, note that it doesn't support titles, also opens in new tab */
+		.replace(/(#)(\w+)\b(?!\/)|(#\w+\/)(\w+)\b/gm, tagreplacer); // tag finder, replace with replacer function
+	//	.replace(/\n(\w.*)/g, '<p>$1</p>'); // replace paras with <p> tags. Note fails on first line!
+	return toHTML.trim(); // using trim method to remove whitespace
+}
+  </script>
+
+</body>
+</html>
