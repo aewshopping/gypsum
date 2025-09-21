@@ -1,0 +1,372 @@
+:root {
+		interpolate-size: allow-keywords; /* for animating details open and close */
+	}
+	/* Box sizing rules */
+	*,
+	*::before,
+	*::after {
+	  box-sizing: border-box;
+	}*/
+    button {font: inherit;}
+	img {max-width: 100%;
+		padding: 10px;
+		display: block;
+		margin-inline: auto}
+	table {
+		border-collapse: collapse; /* Collapse borders into a single line */
+		width: 100%; /* Adjust width as needed */
+	}
+	th, td {
+		border: 1px solid black; /* Set border style, width, and color */
+		padding: 8px; /* Add some padding for better readability */
+		text-align: left; /* Align text as needed */
+	}
+	body {
+		font-family: Arial, Helvetica, sans-serif;
+
+		--colour-neutral: WhiteSmoke; /* bg */ /*white? #F6FFFC #80AAFF*/
+		--colour-neutral-alt: white; /* card bg */
+		--colour-contr: DarkSlateGray; /* text */
+		--colour-contr-emph: RoyalBlue;  /* h1 */
+
+		--colour-compl: PaleTurquoise;  /* btn */
+		--colour-compl-emph-light: LightYellow;  /* btn hover */
+		--colour-compl-emph: #FFD480; /* btn select */ /*gold*/
+		--colour-compl-contr: DarkSlateGray; /* btn text */
+		--colour-compl-emph-contr: DarkSlateGray; /* btn select text */
+
+		--colour-compl-alt: PaleTurquoise; /* tag */
+		--colour-compl-alt-emph-light: MistyRose; /* tag hover */
+		--colour-compl-alt-emph: #FF80AA; /* tag select */ /*Pink*/
+		--colour-compl-alt-contr: DarkSlateGray; /* tag text */ /*MediumVioletRed*/
+		--colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
+		}
+
+	body:has(input[type="radio"]#funcheck:checked) {
+		--colour-neutral: DarkSlateGray; /* bg */
+		--colour-neutral-alt: Black; /* card bg */
+		--colour-contr: aquamarine; /* text */
+		--colour-contr-emph: hotpink;  /* h1 */
+
+		--colour-compl: DarkCyan;  /* btn */
+		--colour-compl-emph-light: LightYellow;  /* btn hover */
+		--colour-compl-emph: #FFD480; /* btn select */ /* GOLD */
+		--colour-compl-contr: aquamarine; /* btn text */
+		--colour-compl-emph-contr: DarkSlateGray; /* btn select text */
+
+		--colour-compl-alt: DarkCyan; /* tag */
+		--colour-compl-alt-emph-light: MistyRose; /* tag hover */
+		--colour-compl-alt-emph: #FF80AA; /* tag select */ /* PINK */
+		--colour-compl-alt-contr: aquamarine; /* tag text */
+		--colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
+	}
+
+	body {
+		background-color: var(--colour-neutral);
+		color: var(--colour-contr);
+	}
+
+	/* ########   BLOCKQUOTE FORMATING START   ######## */
+	blockquote {
+		border-left: 2px solid var(--colour-contr-emph);
+		padding-left: 0.5em;
+		display: inline-block;
+	}
+	blockquote > :first-child {
+		margin-top: 0px;
+		&::before {
+			content: "\0275D";
+		}
+		&::first-letter {
+			color:var(--colour-contr-emph);
+			float: left;
+			font-size: 4em;
+			margin-right: 0.1em;
+			margin-top: 0.3em;
+			line-height: 0.2em;
+		}
+	}
+	blockquote > :last-child {
+		margin-bottom: 0px;
+	}
+	blockquote > blockquote { /* this is to easily create a ref for a blockquote in markdown with double blockquote >> */
+		border-left: none;
+		padding-left: 0em;
+		margin-top:0em;
+	}
+	blockquote > blockquote > :first-child {
+		&::before {
+			content: "🔗 ";
+		}
+		&::first-letter {
+			color:var(--colour-contr);
+			float: left;
+			font-size: 1em;
+			margin-right: 0em;
+			margin-top: 0em;
+			line-height: 1em;
+		}
+	font-style: italic;
+	}
+	/* ########   BLOCKQUOTE FORMATING END   ######## */
+
+	details.note {
+		--note-padding-sides: 20px;
+		--note-width: 70ch;
+		--note-border-thickness: 2px;
+		--note-border-radius: 6px;
+		--summary-width: 400px;
+		--summary-offset: 10px;
+		break-inside: avoid; /* for use in column layout */
+		margin-bottom: 10px;
+
+		padding-left: var(--summary-offset);
+		flex-basis: var(--summary-width); /* note that can't really transition width as flex box makes things jump around anyway */
+		summary { /* background-color: var(--colour-neutral-alt);*/
+			--color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
+			background-color: attr(data-color type(<color>), var(--colour-neutral-alt));
+			color: var(--color-mono-contr);
+			border-radius: var(--note-border-radius);
+			padding: 10px;
+			padding-left: 20px;
+			margin-left: calc(var(--summary-offset) * -1); /* to line up text with summary elem */
+			cursor:row-resize
+		}
+		&[open] {
+			padding-left: 0; /* not sure why I need this... aligns notes when details open */
+			min-width: calc(100% - var(--summary-width)); /* to force other details elements to a new line*/
+			margin-inline: auto;
+			summary {
+				max-width: calc(var(--note-width) + var(--note-padding-sides) * 2 + var(--note-border-thickness) * 2); /* faffing around here due to border box sizing css above*/
+				margin-inline: auto;
+				border: var(--note-border-thickness) solid var(--colour-contr); /* could mess around with box shadows instead to prevent v small layout shift when borders applied. Bit tricky though */
+				border-bottom: 0; /* want to draw a box round details contents element too*/
+				border-bottom-right-radius: 0;
+				border-bottom-left-radius: 0; */
+				padding-inline: var(--note-padding-sides);
+			}
+		}
+
+		&::details-content {
+			transition: height 0.2s linear, content-visibility 0.2s ease allow-discrete; /* BUG animation jump at start and end, something to do with open / close padding or margin */
+			height: 0px;
+			overflow-y: clip;
+			max-width: var(--note-width); /* constrain text line length */
+			margin-inline: auto;
+			padding: 0px var(--note-padding-sides) 0px var(--note-padding-sides);
+		}
+		&[open]::details-content {
+			height: max-content;
+			border: var(--note-border-thickness) solid var(--colour-contr);
+			border-top: 0; /* want to draw a box round summary element too*/
+			border-radius: var(--note-border-radius);
+			border-top-right-radius: 0;
+			border-top-left-radius: 0;
+			padding-bottom: 10px;
+		}
+		summary + * {margin:0;padding:10px} /* stops the details content from floating away from the summary which means the border doesn't go all the way around! */
+
+	}
+
+	#output {
+		column-width: 500px; /* decided to go with a multi column approach. Looks better, biggest problem is opening a summary note can cause reflow and note to move to end of previous column */
+		column-gap: 10px;
+		column-count: auto;
+	/*	display: flex; /* don't need this stuff right now */
+		align-items: flex-start;
+		flex-direction: column;
+		flex-wrap: wrap;
+		gap: 10px; */
+	}
+	/* #output > * {
+		flex-grow: 1;
+	} */
+
+	/* ### START OF TAG TAXONOMY CSS */
+	#tag_output {
+	  display: flex;
+	  align-items: flex-start;
+	  flex-wrap: wrap;
+	  gap: 10px;
+	  padding: 10px 0 20px 0;
+	  details {
+		flex-grow: 1;
+		background-color: var(--colour-neutral-alt);
+		border-radius: 6px;
+		padding: 4px;
+		max-width: 200px;
+	  }
+	  summary {
+		cursor:pointer;
+		&::marker {
+		  content: "+ ";
+		}
+	  }
+	  details[open] {
+		flex-basis: 100%;
+		flex-grow: 1;
+		margin-left: 150px;
+		padding: 0px;
+		max-width: 100%;
+		order: 2;
+	  }
+
+	  details[open] summary {
+		margin-left: -150px;
+		background-color: var(--colour-neutral-alt);
+		border-radius: 6px;
+		padding: 4px;
+		&::marker {
+		  content: "- ";
+		}
+	  }
+	  details[open]::details-content {
+		margin-top: -27px;
+		padding: 4px;
+		border-radius: 6px;
+	  }
+	  details.details_divider {
+		background-color: var(--colour-neutral);
+		order: 1;
+		min-width: calc(100% - 20px);
+
+		summary {
+		  cursor: default;
+		  &::marker {
+			content: "";
+		  }
+		}
+		&[open] {min-width: calc(100% - 150px - 20px); /* allow for summary offset when open and body margin */
+		}
+		&[open] summary {
+		  background-color: var(--colour-neutral);
+		}
+		&[open]::details-content {
+		  margin-top: 0;
+		  padding:0;
+		}
+	  }
+	}
+	/* ### END OF TAG TAXONOMY CSS */
+	.border-rounded {
+		border: 1px solid var(--colour-contr);
+		border-radius: 6px;
+		padding: 10px;
+	}
+
+	.copyhighlight { border-radius: 20px;
+		padding: 4px 10px;
+		&:has(.copyflag:hover){outline:1px solid var(--colour-contr)}
+		}
+	h1, h2, h3, h4 {color: var(--colour-contr-emph);
+	}
+	.tag {color:var(--colour-compl-contr);
+		background-color: var(--colour-compl);
+		padding: 1px 4px 1px 4px;
+		border-radius: 4px;}
+	.tag:hover {
+		background-color: var(--colour-compl-emph-light);
+		color: var(--colour-compl-emph-contr);
+		cursor:pointer;}
+	.tagselected {
+		background-color: var(--colour-compl-emph);
+		color: var(--colour-compl-emph-contr);}
+	.tag_cat {
+		color: var(--colour-contr);
+		background-color: var(--colour-compl);
+		padding: 1px 4px 1px 4px;
+		border-radius: 4px;
+		margin-right: 4px;}
+
+	details.hider:not(:has(.tagselected)) {display:none;} /* hides details elems if their tags are not selected, if the hider class is present (added after first tag click to all details elems). The OR filter */
+	body:has(#and_filter:checked) {
+		details.and_hider {display:none} /* hides details elems if the and_hider class is present. The AND filter */
+		.tag:hover {
+			background-color: var(--colour-compl-alt-emph-light);
+			color: var(--colour-compl-alt-emph-contr);}
+		.tagselected {
+			background-color: var(--colour-compl-alt-emph);
+			color: var(--colour-compl-alt-emph-contr)}
+	}
+
+	.copyflag {border-radius: 20px;
+		cursor:pointer;
+		&.copied {color:var(--colour-compl-alt-contr);}
+		} /* css name needs to match js const COPYTHIS */
+
+	/* The switch - the box around the slider */
+	.switch {
+	  position: relative;
+	  display: inline-block;
+	  width: 30px;
+	  height: 17px;
+	}
+	/* Hide default HTML checkbox */
+	.switch input {
+	  opacity: 0;
+	  width: 0;
+	  height: 0;
+	}
+	/* The slider */
+	.slider {
+	  position: absolute;
+	  cursor: pointer;
+	  inset: 0;
+	  background-color: var(--colour-compl-emph);
+	  transition: .4s;
+	  border-radius: 17px;
+	}
+
+	.slider:before {
+	  position: absolute;
+	  content: "";
+	  height: 13px;
+	  width: 13px;
+	  left: 2px;
+	  bottom: 2px;
+	  background-color: var(--colour-neutral);
+	  transition: .1s;
+	  border-radius: 50%;
+	}
+	.switch:hover .slider:before {
+	background-color: var(--colour-compl);
+	}
+	input:checked + .slider {background-color: var(--colour-compl-alt-emph);}
+	.label_group:has(input:focus-visible) {
+      outline: 2px solid var(--colour-contr);
+	  border-radius: 6px;
+	}
+	input:checked + .slider:before {transform: translateX(13px);}
+	.flex-row {
+	  display: flex;
+	  align-items: center;
+	  padding: 4px;
+	}
+	.flexgrow {flex-grow: 1}
+	.flex-row > .ANDOR_label {
+	  padding-inline: 4px;
+	}
+	.flex-row > .showall {
+	  cursor:pointer;
+	  color: var(--colour-contr);
+	  margin-left:40px;
+	  background-color:var(--colour-neutral);
+	  border: 2px solid var(--colour-compl-emph);
+	  border-radius: 6px;
+	  &:hover {
+		color: var(--colour-compl-emph-contr);
+		background-color: var(--colour-compl-emph-light);
+	  }
+	}
+	.stick-top {
+		position:sticky;
+		top: 0px;
+		background-color: var(--colour-neutral);
+	}
+
+	body:has(#and_filter:checked) .showall {border: 2px solid var(--colour-compl-alt-emph);
+	  &:hover {
+		  background-color:var(--colour-compl-alt-emph-light);
+		  color: var(--colour-compl-emph-contr);
+	  }
+    }
