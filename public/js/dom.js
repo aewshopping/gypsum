@@ -8,9 +8,11 @@ export const qs = (selector) => document.querySelector(selector);
 export const qsa = (selector) => document.querySelectorAll(selector);
 
 export function createFileElement(fileData, myfilename, tag_html_output, tag_classes) {
-    let parsedText = markdownParser(fileData.fileContent);
+    let parsedText = markdownParser(fileData.fileContent); // this has been demoted to tag rendering!
     parsedText = marked.parse(parsedText);
 
+    // BUG FILE CLASS IS KINDA REDUNDANT BUT NEED TO TIDY UP CSS DETAILS BEFORE REMOVING
+    // build the details element for the file loaded
     const file_html = `<details class="${NOTE} ${tag_classes}">
         <summary data-color="${fileData.summary_color}"><span class="copyhighlight"><span class="${COPYTHIS}" title='copy filename to clipboard' data-${COPYATTR}='${myfilename}'>©</span> ${myfilename}</span><br>
         ${tag_html_output}

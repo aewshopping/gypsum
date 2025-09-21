@@ -1,4 +1,4 @@
-export const TAG_JOINER = " ";
+export const TAG_JOINER = " "; // previously " | "
 export const TAGGER = "tagselected";
 export const HIDER = "hider";
 export const AND_HIDER = "and_hider";
