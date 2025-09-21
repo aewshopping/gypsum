@@ -1,6 +1,6 @@
 # Gypsum
 
-A browser based view of text files saved on your computer. It is named Gypsum because it is a flakier, softer version of Obsidian.  
+A browser based view of text files saved on your computer. I named it Gypsum because it is a flakier, less robustversion of Obsidian.  
 
 ## What's the point of it?
 
