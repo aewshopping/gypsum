@@ -20,7 +20,7 @@ jobs:
         run: npm install esbuild
 
       - name: Run esbuild to bundle the app
-        run: npx esbuild index.js --bundle --outfile=dist/bundle.js
+        run: npx esbuild public/js/main.js --bundle --outfile=dist/bundle.js
 
       - name: Upload bundled artifact
         uses: actions/upload-artifact@v4
