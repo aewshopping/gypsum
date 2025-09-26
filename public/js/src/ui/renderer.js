@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { TAG_JOINER } from './constants.js';
+import { state } from '../services/store.js';
+import { TAG_JOINER } from '../constants.js';
 
 export function processTags() {
     // STUFF HAPPENS HERE AFTER ALL FILES LOAD, above is evt handlers

@@ -1,6 +1,6 @@
-import { state } from './state.js';
-import { TAGGER, HIDER, AND_HIDER, NOTE, COPYTHIS, COPYATTR } from './constants.js';
-import { qsa, getById } from './dom.js';
+import { state } from '../services/store.js';
+import { TAGGER, HIDER, AND_HIDER, NOTE, COPYTHIS, COPYATTR } from '../constants.js';
+import { qsa, getById } from './dom-elements.js';
 
 function clearFilters() {
     state.filter_counter = 0;
