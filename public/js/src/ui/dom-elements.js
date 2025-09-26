@@ -1,5 +1,5 @@
-import { NOTE, COPYTHIS, COPYATTR } from './constants.js';
-import { markdownParser } from './markdown-parser.js';
+import { NOTE, COPYTHIS, COPYATTR } from '../constants.js';
+import { markdownParser } from '../services/file-parser.js';
 
 export const getById = (id) => document.getElementById(id);
 
