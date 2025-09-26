@@ -1,0 +1,43 @@
+/* ########   BLOCKQUOTE FORMATING START   ######## */
+	blockquote {
+		border-left: 2px solid var(--colour-contr-emph);
+		padding-left: 0.5em;
+		display: inline-block;
+	}
+	blockquote > :first-child {
+		margin-top: 0px;
+		&::before {
+			content: "\0275D";
+		}
+		&::first-letter {
+			color:var(--colour-contr-emph);
+			float: left;
+			font-size: 4em;
+			margin-right: 0.1em;
+			margin-top: 0.3em;
+			line-height: 0.2em;
+		}
+	}
+	blockquote > :last-child {
+		margin-bottom: 0px;
+	}
+	blockquote > blockquote { /* this is to easily create a ref for a blockquote in markdown with double blockquote >> */
+		border-left: none;
+		padding-left: 0em;
+		margin-top:0em;
+	}
+	blockquote > blockquote > :first-child {
+		&::before {
+			content: "🔗 ";
+		}
+		&::first-letter {
+			color:var(--colour-contr);
+			float: left;
+			font-size: 1em;
+			margin-right: 0em;
+			margin-top: 0em;
+			line-height: 1em;
+		}
+	font-style: italic;
+	}
+	/* ########   BLOCKQUOTE FORMATING END   ######## */
