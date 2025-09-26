@@ -1,8 +1,8 @@
-import { state, resetState, Data } from './state.js';
-import { processTags } from './tags.js';
-import { addClickHandlers } from './events.js';
-import { createFileElement, clearOutput, getById } from './dom.js';
-import { TAG_JOINER } from './constants.js';
+import { state, resetState, Data } from './store.js';
+import { processTags } from '../ui/renderer.js';
+import { addClickHandlers } from '../ui/event-listeners.js';
+import { createFileElement, clearOutput, getById } from '../ui/dom-elements.js';
+import { TAG_JOINER } from '../constants.js';
 
 function parseFileContent(fileContent, filename) {
     let mytitle = "";
