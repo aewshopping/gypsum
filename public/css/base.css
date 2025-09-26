@@ -1,0 +1,27 @@
+/* Box sizing rules */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+button {font: inherit;}
+img {max-width: 100%;
+    padding: 10px;
+    display: block;
+    margin-inline: auto}
+table {
+    border-collapse: collapse; /* Collapse borders into a single line */
+    width: 100%; /* Adjust width as needed */
+}
+th, td {
+    border: 1px solid black; /* Set border style, width, and color */
+    padding: 8px; /* Add some padding for better readability */
+    text-align: left; /* Align text as needed */
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: var(--colour-neutral);
+    color: var(--colour-contr);
+}
+h1, h2, h3, h4 {color: var(--colour-contr-emph);
+}

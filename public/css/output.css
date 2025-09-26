@@ -1,0 +1,13 @@
+#output {
+		column-width: 500px; /* decided to go with a multi column approach. Looks better, biggest problem is opening a summary note can cause reflow and note to move to end of previous column */
+		column-gap: 10px;
+		column-count: auto;
+	/*	display: flex; /* don't need this stuff right now */
+		align-items: flex-start;
+		flex-direction: column;
+		flex-wrap: wrap;
+		gap: 10px; */
+	}
+	/* #output > * {
+		flex-grow: 1;
+	} */
