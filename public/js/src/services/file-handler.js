@@ -1,5 +1,7 @@
 import { appState } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
+import { getUniqueTagsSortedWithCount } from './file-parsing/tag-count.js';
+import { createParentChildTagStructure } from './file-parsing/tag-taxon.js';
 
 export async function loadFileHandles() {
 
@@ -23,8 +25,11 @@ export async function loadFileHandles() {
 
     appState.myFiles = filesWithMetadata;
 
-    console.log(appState.myFiles);
-
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);
 
+    appState.myTags = getUniqueTagsSortedWithCount(appState.myFiles);
+
+    appState.myTaxonomy = createParentChildTagStructure(appState.myFiles, appState.myTags);
+
+    console.log(appState.myTaxonomy);
 }

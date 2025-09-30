@@ -13,7 +13,7 @@ export async function getFileDataAndMetadata(handle) {
     name: file.name,
     sizeInBytes: file.size,
     title: tagData.titleFirst,
-    tag_parents: tagData.parentArray,
+    tags_parent: tagData.parentArray,
     tags: tagData.childArray,
     lastModified: new Date(file.lastModified),
     content_properties: yamlData

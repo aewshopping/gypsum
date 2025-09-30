@@ -24,5 +24,7 @@ export function resetState() {
 ///// new state below
 
 export const appState = {
-  myFiles: []
+  myFiles: [],
+  myTags: [],
+  myTaxonomy: []
 }
