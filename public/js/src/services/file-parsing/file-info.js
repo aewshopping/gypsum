@@ -1,11 +1,13 @@
 import { regex_title, regex_tag } from '../../constants.js';
+import { parseYaml } from '../yaml-slop.js'
 
 export async function getFileDataAndMetadata(handle) {
 
     const file = await handle.getFile();
     const content = await file.text();
     const tagData = parseFileContent(content);
-    
+    const yamlData = parseYaml(content);
+
     return {
     handle: handle,
     name: file.name,
@@ -13,7 +15,8 @@ export async function getFileDataAndMetadata(handle) {
     title: tagData.titleFirst,
     tag_parents: tagData.parentArray,
     tags: tagData.childArray,
-    lastModified: new Date(file.lastModified)
+    lastModified: new Date(file.lastModified),
+    content_properties: yamlData
     };
 }
 
