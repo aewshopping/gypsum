@@ -1,28 +1,49 @@
+import { regex_title, regex_tag } from '../../constants.js';
+
 export async function getFileDataAndMetadata(handle) {
 
     const file = await handle.getFile();
     const content = await file.text();
-    parseFileContent(content);
+    const tagData = parseFileContent(content);
     
     return {
     handle: handle,
     name: file.name,
     sizeInBytes: file.size,
+    title: tagData.titleFirst,
+    tag_parents: tagData.parentArray,
+    tags: tagData.childArray,
     lastModified: new Date(file.lastModified)
     };
 }
 
+// this function goes through the text of the file and finds any titles (starting with '# '), tags (ie #tag) and tag taxonomy (ie '#parent/tag')
 function parseFileContent(fileContent) {
 
-    // match the text on a line that starts with '# ' - grp 1
-    const regex_title = /(?<=^# )(.*$)/;
-    // grp 1 - the whole #string, grp 2 - the parent text (if exists), grp 3 - the tag text
-    const regex_tag = /(#(?:(\w+)\/)?(\w+))/;
     const regex_pattern = `${regex_title.source}|${regex_tag.source}`;
     const regex_all = new RegExp(regex_pattern, "gm");
-    console.log(regex_all);
 
     const matchAll = fileContent.matchAll(regex_all);
-    console.log(Array.from(matchAll));
-    console.log("hi");
+    const matchAllArray = Array.from(matchAll);
+
+    let titleFirst = null;
+    const parentArray = [];
+    const childArray = [];
+
+    // using above regex 0 = match, 1 = grp(# title), 2 = grp(#all), 3 = grp(parent), 4 = grp(child)
+    // skipping 0 and 2 as not needed below (needed elsewhere tho so still in regex) 
+    for (const [, titleValue, , parentValue, childValue] of matchAllArray) {
+
+        if (titleFirst === null && titleValue) {
+            titleFirst = titleValue;
+        }
+
+        if (childValue) {
+            
+            parentArray.push(parentValue || "orphan"); // <-- if no parent captured use "orphan"
+            childArray.push(childValue);
+        }
+    }
+
+    return{titleFirst, parentArray, childArray}
 }

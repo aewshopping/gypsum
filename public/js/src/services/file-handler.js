@@ -23,6 +23,8 @@ export async function loadFileHandles() {
 
     appState.myFiles = filesWithMetadata;
 
+    console.log(appState.myFiles);
+
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);
 
 }
