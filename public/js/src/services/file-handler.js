@@ -1,14 +1,5 @@
 import { appState } from './store.js';
-
-async function getFileDataAndMetadata(handle) {
-    const file = await handle.getFile();
-    return {
-    handle: handle,
-    name: file.name,
-    sizeInBytes: file.size,
-    lastModified: new Date(file.lastModified)
-    };
-}
+import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 
 export async function loadFileHandles() {
 
