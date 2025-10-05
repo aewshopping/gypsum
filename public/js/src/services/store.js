@@ -20,3 +20,11 @@ export function resetState() {
     state.taxon_array = [];
     state.filter_counter = 0;
 }
+
+///// new state below
+
+export const appState = {
+  myFiles: [],
+  myTags: [],
+  myTaxonomy: []
+}

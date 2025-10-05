@@ -1,5 +1,6 @@
 import { NOTE, COPYTHIS, COPYATTR } from '../constants.js';
 import { markdownParser } from '../services/file-parser.js';
+import { marked }  from '../services/marked.eos.js';
 
 export const getById = (id) => document.getElementById(id);
 

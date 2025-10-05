@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text file viewer</title>
-  <link rel="icon" href="images/pencil.png" type="image/png">
+  <link rel="icon" href="public/images/pencil.png" type="image/png">
   <base target="_blank">
   <link rel="stylesheet" href="public/style.css">
 </head>
 <body class="funmode">
 
   <input type="file" id="fileInput" accept=".txt" multiple>
+  <button id="btn_loadFileHandles">Handle files</button>
   <br><br>
 
   <main>
@@ -36,8 +37,7 @@
 
   <div id="output"></div>
   </main>
-  <script src="public/marked.min.js"></script>
-  <script type="module" src="public/js/src/main.js"></script>
 
 </body>
+<script type="module" src="public/main.js"></script>
 </html>
