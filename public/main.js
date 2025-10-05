@@ -1,6 +1,7 @@
 import { loadFile } from './js/src/services/file-reader.js';
 import { getById } from './js/src/ui/dom-elements.js';
 import { loadFileHandles } from './js/src/services/file-handler.js';
+import { renderTagTaxonomy } from './js/src/ui/new/render-tag-taxonmy.js';
 
 const fileInput = getById('fileInput');
 fileInput.addEventListener('change', () => {
@@ -8,4 +9,9 @@ fileInput.addEventListener('change', () => {
 });
 
 const button = document.getElementById('btn_loadFileHandles');
-button.addEventListener('click', loadFileHandles);
+button.addEventListener('click', conductor);
+
+async function conductor() {
+    await loadFileHandles();
+    renderTagTaxonomy();
+}   

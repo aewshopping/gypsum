@@ -31,5 +31,4 @@ export async function loadFileHandles() {
 
     appState.myTaxonomy = createParentChildTagStructure(appState.myFiles, appState.myTags);
 
-    console.log(appState.myTaxonomy);
 }

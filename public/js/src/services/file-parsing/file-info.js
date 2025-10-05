@@ -43,8 +43,8 @@ function parseFileContent(fileContent) {
 
         if (childValue) {
             
-            parentArray.push(parentValue || "orphan"); // <-- if no parent captured use "orphan"
-            childArray.push(childValue);
+            parentArray.push((parentValue || "orphan").toLowerCase()); // <-- if no parent captured use "orphan"
+            childArray.push(childValue.toLowerCase());
         }
     }
 

@@ -62,6 +62,24 @@ export function createParentChildTagStructure(data, childtagsandcounts) {
         // Format as [parenttag, [child tags and counts array]]
         result.push([parentTag, childTagsAndCounts]);
     }
+    result.sort((a, b) => {
+        // a[0] and b[0] are the parent tag strings to compare (ignore children)
+        return a[0].localeCompare(b[0]);
+    });
+
+    // Move the "orphan" parent array to the end
+    const orphanIndex = result.findIndex(item => item[0] === "orphan");
+
+    if (orphanIndex !== -1) {
+        // Splice removes the item at orphanIndex and returns it as an array ([orphanEntry]).
+        // We take the first element of that returned array ([0])
+        const orphanEntry = result.splice(orphanIndex, 1)[0];
+        // Then we push the removed entry onto the end of the array.
+        result.push(orphanEntry);
+    }
+
+    // finally put all the tags at the end under an "all" parent
+    result.push(["all", childtagsandcounts]);
 
     return result;
 }
