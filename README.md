@@ -30,5 +30,5 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 1. Modal text file view rather than using details. I realised that I rarely need multiple notes open at once and this will be more scalable.
   - Note that to implement this I am going to use showOpenFilePicker() which only works on Chrome and Edge (ie not Safari) at the time of writing. But it means I don't have to save the content of the file I can just load it later without requiring the user to re-click ok. Plus it just works very nicely.
-3. Table view of the notes, with tags and note properties as column headers, which also allow filtering and sorting. Almost certainly using tabulator js.
-4. Virtual DOM that destroy and creates html elements depending on scroll position to avoid having too many html elements at once. Tabulator js does this for you so would be relevant for grid view. Or maybe just pagination in the first instance!
+2. Table view of the notes, with tags and note properties as column headers, which also allow filtering and sorting. Almost certainly using tabulator js.
+3. Virtual DOM that destroy and creates html elements depending on scroll position to avoid having too many html elements at once. Tabulator js does this for you so would be relevant for grid view. Or maybe just pagination in the first instance!
