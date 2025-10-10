@@ -1,3 +1,4 @@
+// the reason for using these constants is so that can be confident in using the same names in the css
 export const TAG_JOINER = " "; // previously " | "
 export const TAGGER = "tagselected";
 export const HIDER = "hider";

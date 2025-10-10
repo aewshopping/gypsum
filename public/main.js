@@ -2,7 +2,8 @@ import { loadFile } from './js/src/services/file-reader.js';
 import { getById } from './js/src/ui/dom-elements.js';
 import { loadFileHandles } from './js/src/services/file-handler.js';
 import { renderTagTaxonomy } from './js/src/ui/new/render-tag-taxonmy.js';
-import { renderFileList } from './js/src/ui/new/render-file-list.js';
+import { renderFileList_details } from './js/src/ui/new/render-file-list.js';
+import { addClickHandlers } from './js/src/ui/new/event-listeners-add.js';
 
 const fileInput = getById('fileInput');
 fileInput.addEventListener('change', () => {
@@ -15,5 +16,6 @@ button.addEventListener('click', conductor);
 async function conductor() {
     await loadFileHandles();
     renderTagTaxonomy();
-    renderFileList();
+    renderFileList_details();
+    addClickHandlers();
 }   
