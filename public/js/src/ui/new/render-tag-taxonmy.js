@@ -2,7 +2,7 @@ import { appState } from '../../services/store.js';
 
 export function renderTagTaxonomy() {
 
-    console.log(appState.myTaxonomy);
+//    console.log(appState.myTaxonomy);
 
     const arr = appState.myTaxonomy
     let taxon_html= "";
