@@ -16,7 +16,7 @@ export function renderTagTaxonomy() {
 
         for (const child of parent[1]) {
     
-            taxon_html +=`<code><span class="tag ${child[0]} data-action="tag-filter"">${child[0]}&nbsp;(${child[1]})</span></code> ` // unfortunately I need this to be one long line so that the whitespace at the end renders properly and seperates the tags...!
+            taxon_html +=`<code><span class="tag ${child[0]}" data-action="tag-filter">${child[0]}&nbsp;(${child[1]})</span></code> ` // unfortunately I need this to be one long line so that the whitespace at the end renders properly and seperates the tags...!
         }
 
         taxon_html += `</details>`

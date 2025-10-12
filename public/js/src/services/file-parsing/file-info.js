@@ -10,7 +10,7 @@ export async function getFileDataAndMetadata(handle) {
 
     return {
     handle: handle,
-    name: file.name,
+    filename: file.name,
     sizeInBytes: file.size,
     title: tagData.titleFirst,
     tags_parent: tagData.parentArray,

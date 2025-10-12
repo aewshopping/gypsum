@@ -1,0 +1,6 @@
+.note-grid {
+    border: 1px solid red;
+    border-radius: 4px;
+    padding: 10px;
+    overflow-x:hidden;
+}

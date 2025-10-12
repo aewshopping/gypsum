@@ -28,14 +28,14 @@ export async function renderFileList_details() {
         // construct the html for the file as a whole, pulling in file content and tag pills from above. note still need to implement data-color functionality
         const tag_list = file.tags.join(" ");
         file_html += `
-        <details class="note ${tag_list}">
+        <details class="note-details ${tag_list}">
 
             <summary data-color="">
             <span class="copyhighlight">
 
-                <span class="copyflag" data-action="copy-filename" title="copy filename to clipboard" data-filename=${file.name}>©</span>
+                <span class="copyflag" data-action="copy-filename" title="copy filename to clipboard" data-filename=${file.filename}>©</span>
 
-                ${file.name}
+                ${file.filename}
 
             </span>
             <br>

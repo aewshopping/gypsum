@@ -1,4 +1,4 @@
-#output {
+.list-details {
 		column-width: 500px; /* decided to go with a multi column approach. Looks better, biggest problem is opening a summary note can cause reflow and note to move to end of previous column */
 		column-gap: 10px;
 		column-count: auto;
@@ -11,3 +11,9 @@
 	/* #output > * {
 		flex-grow: 1;
 	} */
+
+.list-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* min width of cols is 350px and stretch to fill width of screen */
+	gap: 10px;
+}
