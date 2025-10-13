@@ -1,6 +1,7 @@
 import { handleCopyClick } from './ui-functions/copy-click.js';
 import { handleTagClick } from './ui-functions/tag-click.js';
 import { handleClearFilters } from './ui-functions/clear-filters.js';
+import { closeModal, handleOpenFileContent } from './ui-functions/open-file-content.js';
 
 export function addClickHandlers() {
     document.addEventListener("click", dataActionDelegate);
@@ -11,6 +12,8 @@ const actionHandlers = {
     'tag-filter': handleTagClick,
     'copy-filename': handleCopyClick,
     'clear-filters': handleClearFilters,
+    'open-file-content-modal': handleOpenFileContent,
+    'close-file-content-modal': closeModal,
 };
 
 function dataActionDelegate(evt) {
