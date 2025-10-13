@@ -1,19 +1,25 @@
 import { appState } from '../../../services/store.js';
 import { marked }  from '../../../services/marked.eos.js';
 
-        const modal = document.getElementById('simpleModal');
-		const modal_content = document.getElementById('modalContent'); // so we can simulate injecting dynamic text
+const modal = document.getElementById('simpleModal');
+const modal_content = document.getElementById('modalContent'); // so we can simulate injecting dynamic text
 
-		let modal_default_style;
+let fileToOpen = "";
+let modal_default_style;
 
 export async function handleOpenFileContent(event, target) {
+    
+    fileToOpen = ""; //make sure it is empty at the start....
 
     console.log("opening file content");
+    fileToOpen = target.dataset.filename
+    console.log(fileToOpen);
 
-        openModal(event, target);
-        await moveModal();
-        loadContentModal(); // wait until in position
-    }
+    openModal(event, target);
+    await moveModal();
+    loadContentModal(); // wait until in position
+
+}
     
     function openModal(event, target) {
         const rect = target.getBoundingClientRect(); // get clicker element co-ordinates
@@ -54,9 +60,11 @@ export async function handleOpenFileContent(event, target) {
     async function loadContentModal () {
         modal.classList.add('dialog-full-height'); // so we can animate / transition the height
         
-        const filechosen = appState.myFiles[1] // TO DO need to match file to clicked element, not just load the first one...
-        const file_handle = await filechosen.handle.getFile();
-        const file_content = await file_handle.text();
+        // look up filehandle from Map
+        const file_handle = appState.myFileHandlesMap.get(fileToOpen);
+
+        const file_chosen = await file_handle.getFile();
+        const file_content = await file_chosen.text();
         const file_content_parsed = marked(file_content);
         
         modal_content.innerHTML = file_content_parsed; // TO-DO - make the text arrive nicely, not all at once (alth prob not worth it)

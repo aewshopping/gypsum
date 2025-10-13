@@ -7,6 +7,7 @@
     border-radius: 4px;
     padding: 10px;
     overflow-x:hidden;
+    cursor: default;
 
     &:hover {
         border: var(--border-width) solid var(--colour-contr);

@@ -23,15 +23,13 @@ export async function renderFileList_grid() {
         // construct the html for the file as a whole, pulling in file content and tag pills from above. note still need to implement data-color functionality
         const tag_list = file.tags.join(" ");
         file_html += `
-        <div class="note-grid ${tag_list}" data-color="" data-action="open-file-content-modal">
+        <div class="note-grid ${tag_list}" data-color="" data-filename="${file.filename}" data-action="open-file-content-modal">
 
             <span class="copyhighlight">
 
-                <span class="copyflag" data-action="copy-filename" title="copy filename to clipboard" data-filename=${file.filename}>©</span>&nbsp;${file.filename}
+                <i><span class="copyflag" data-action="copy-filename" title="copy filename to clipboard" data-filename=${file.filename}>©</span>&nbsp;${file.filename}</i>
 
                 </span>
-
-            <br>
 
             <p>${file.title}</p>
 

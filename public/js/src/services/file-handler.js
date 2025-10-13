@@ -23,6 +23,14 @@ export async function loadFileHandles() {
     // Await all promises to resolve concurrently (quicker than loading one by one)
     const filesWithMetadata = await Promise.all(filePromises);
 
+    const fileHandleMap = filesWithMetadata.reduce((map, fileObject) => {
+        // fileObject.filename is the key
+        // fileObject.handle is the value
+        map.set(fileObject.filename, fileObject.handle); 
+        return map;
+    }, new Map()); 
+
+    appState.myFileHandlesMap = fileHandleMap; // to allow later speedy loookup of file using filename
     appState.myFiles = filesWithMetadata;
 
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);

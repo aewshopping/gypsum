@@ -10,7 +10,7 @@ dialog {
         top calc(1s / var(--modal-open-speed)),
         height calc(0.7s / var(--modal-open-speed)) ease-in-out,
         left calc(1s / var(--modal-open-speed)),
-        background-color calc(6s / var(--modal-open-speed)),
+        background-color calc(1s / var(--modal-open-speed)),
         width calc(1s / var(--modal-open-speed)),
         padding calc(1s / var(--modal-open-speed)),
         transform calc(1s / var(--modal-open-speed)),
@@ -20,16 +20,20 @@ dialog {
 
 .dialog-in-centre {
     margin:0; /* very necessary, not sure why, see below on width */
-    padding:10px;
-    height: 50px;
-    width: 550px; /* acts like max-width on dialog and allows transition so all good. requires margin to be 0, not sure why... */
+    padding:20px;
+    height: 95vh; /* 50px;*/
+    width: 600px; /* acts like max-width on dialog and allows transition so all good. requires margin to be 0, not sure why... */
     top:20px;
     left:50%;
     transform: translateX(-50%); /* putting in middle like this means we can animate with transition */
-    background-color: attr(data-color type(<color>), var(--colour-neutral-alt));
+    background-color: attr(data-color type(<color>), var(--colour-neutral));
     border-radius: 10px
 }
 
-.dialog-full-height { /*separate class so we can easily animate after dialog is in center. Needs to be after .dialog-in-centre for cascade to work */
-    height:90vh;
+.dialog-full-height { /*separate class so we can easily animate after dialog is in center. Needs to be after .dialog-in-centre for cascade to work. ACTUALLY decided I don't need this so will go full height straight away, but keeping it in case I want to utilise later */
+    height:95vh;
+}
+
+::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
 }
