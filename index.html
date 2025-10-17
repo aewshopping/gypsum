@@ -10,12 +10,14 @@
 </head>
 <body class="funmode">
 
-  <dialog closedby="any" id="simpleModal">
-
+<dialog id="file-content-modal" closedby="any">
+  <!-- The inner element which is tracked by the view-transition-name -->
+  <div id="moving-file-content">
     <button data-action="close-file-content-modal">close</button>
-    <p id="modalContent"></p>
-      
-  </dialog>
+    <div id="modal-content">
+    </div>
+  </div>
+</dialog>
 
   <input type="file" id="fileInput" accept=".txt" multiple>
   <button id="btn_loadFileHandles">Handle files</button>

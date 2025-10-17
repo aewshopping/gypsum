@@ -1,7 +1,7 @@
 import { handleCopyClick } from './ui-functions/copy-click.js';
 import { handleTagClick } from './ui-functions/tag-click.js';
 import { handleClearFilters } from './ui-functions/clear-filters.js';
-import { closeModal, handleOpenFileContent } from './ui-functions/open-file-content.js';
+import { handleCloseModal, handleOpenFileContent } from './ui-functions/open-file-content-view-trans.js';
 
 export function addClickHandlers() {
     document.addEventListener("click", dataActionDelegate);
@@ -13,7 +13,7 @@ const actionHandlers = {
     'copy-filename': handleCopyClick,
     'clear-filters': handleClearFilters,
     'open-file-content-modal': handleOpenFileContent,
-    'close-file-content-modal': closeModal,
+    'close-file-content-modal': handleCloseModal,
 };
 
 function dataActionDelegate(evt) {

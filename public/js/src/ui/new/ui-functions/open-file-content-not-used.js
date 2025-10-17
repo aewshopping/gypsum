@@ -1,3 +1,5 @@
+// not currently used but kept the file in case I want the callback / resolved promise pattern later for something else
+
 import { appState } from '../../../services/store.js';
 import { marked }  from '../../../services/marked.eos.js';
 

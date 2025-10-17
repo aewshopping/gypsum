@@ -1,39 +1,77 @@
-dialog {
-    background-color: var(--colour-neutral-alt); /* starting colour */
-    color: inherit;
-    margin:0; /* set to zero so we can overlay required shape */
-    padding:0;
-    border:none;
-
-    --modal-open-speed: 3;
-    transition: /* apply to anything that changes... */
-        top calc(1s / var(--modal-open-speed)),
-        height calc(0.7s / var(--modal-open-speed)) ease-in-out,
-        left calc(1s / var(--modal-open-speed)),
-        background-color calc(1s / var(--modal-open-speed)),
-        width calc(1s / var(--modal-open-speed)),
-        padding calc(1s / var(--modal-open-speed)),
-        transform calc(1s / var(--modal-open-speed)),
-        border-radius calc(1s / var(--modal-open-speed))
-        ;
+#file-content-modal {
+  /* Remove default centering and ensure it covers the viewport for correct positioning */
+  position: fixed;
+  border: none;
+  margin: 0px;
+  top: 0px;
+  left: 0px;
+  height: 100vh;
+  width: 100vw;
+  background: transparent;
+  /* Clicks pass through the dialog container, but the backdrop still works */
+  pointer-events: none;
 }
 
-.dialog-in-centre {
-    margin:0; /* very necessary, not sure why, see below on width */
-    padding:20px;
-    height: 95vh; /* 50px;*/
-    width: 600px; /* acts like max-width on dialog and allows transition so all good. requires margin to be 0, not sure why... */
-    top:20px;
-    left:50%;
-    transform: translateX(-50%); /* putting in middle like this means we can animate with transition */
-    background-color: attr(data-color type(<color>), var(--colour-neutral));
-    border-radius: 10px
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
-.dialog-full-height { /*separate class so we can easily animate after dialog is in center. Needs to be after .dialog-in-centre for cascade to work. ACTUALLY decided I don't need this so will go full height straight away, but keeping it in case I want to utilise later */
-    height:95vh;
+#moving-file-content {
+  /* Mandatory CSS property */
+  view-transition-name: moving-box-element;
+  position: fixed;
+
+  background-color: var(--colour-neutral-alt);
+  border-radius: 10px;
+  max-height: 95vh;
+  overflow-y: auto;
+  color: #5b21b6;
+  pointer-events: auto;
+  /* stuff below to blend in scroll bar*/
+  padding: 0px 20px 0px 20px;
+  border-top: solid 2px var(--colour-neutral-alt);
+  border-right: solid 2px var(--colour-neutral-alt);
+  border-radius: 8px;
 }
 
-::backdrop {
-    background-color: rgba(0, 0, 0, 0.5);
+html {
+  --file-content-transition-speed: 4;
+}
+
+::view-transition-group(moving-box-element) {
+  animation-duration: calc(2s / var(--file-content-transition-speed));
+  animation-timing-function: ease-in-out;
+}
+
+::view-transition-new(moving-box-element),
+::view-transition-old(moving-box-element) {
+  opacity: 1; /* allegedly needed for smooth transition but don't see it myself */
+  transform: none; /* allegedly needed for smooth transition but don't see it myself */
+  height: 100%; /* to make sure size doesn't jump */
+  width: 100%;
+  object-fit: fill;
+  animation-duration: calc(
+    0.7s / var(--file-content-transition-speed)
+  ); /* makes content switch over more quickly if shorter than group duration */
+}
+
+.moving-file-content-state-one {
+  background-color: var(--colour-neutral-alt); /* starting colour */
+  color: inherit;
+  top: 4rem;
+  left: 1rem;
+  width: 80px;
+  height: 150px;  
+}
+
+.moving-file-content-state-two {
+  --modal-margin: 10px;
+  background-color: var(--colour-neutral-alt); /* starting colour */
+  color: inherit;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 20px;
+  width: 550px;
+  max-width:calc(100% - (2 * var(--modal-margin)));*/
+  height: 95vh;
 }
