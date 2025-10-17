@@ -45,7 +45,7 @@ export async function handleOpenFileContent(event, target) {
             const handleTransitionEnd = () => {
                 // Remove the listener to prevent issues on subsequent calls
                 modal.removeEventListener('transitionend', handleTransitionEnd);
-                    
+
                 // Resolve the Promise, telling 'await' that we are done
                 resolve();
             };

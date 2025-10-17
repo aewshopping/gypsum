@@ -25,7 +25,6 @@ dialog::backdrop {
   border-radius: 10px;
   max-height: 95vh;
   overflow-y: auto;
-  color: #5b21b6;
   pointer-events: auto;
   /* stuff below to blend in scroll bar*/
   padding: 0px 20px 0px 20px;
@@ -58,10 +57,10 @@ html {
 .moving-file-content-state-one {
   background-color: var(--colour-neutral-alt); /* starting colour */
   color: inherit;
-  top: 4rem;
+/*  top: 4rem;
   left: 1rem;
   width: 80px;
-  height: 150px;  
+  height: 150px; */
 }
 
 .moving-file-content-state-two {

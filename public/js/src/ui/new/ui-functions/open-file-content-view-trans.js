@@ -8,29 +8,38 @@ const box = document.getElementById("moving-file-content");
 const textbox = document.getElementById('modal-content');
 
 let fileToOpen = "";
-let modal_default_style;
+let modal_start_style_position;
+let rect;
+let file_box; // so we can access the target on close modal too
 
-// TO DO - position modal over target box for startposition
+function startposition(event, target) {
+  file_box = target;
+  rect = file_box.getBoundingClientRect(); // get clicker element co-ordinates
+  textbox.innerHTML = file_box.innerHTML; // target file box content to morph from
+  
+  // position the modal over the clicker element
+  box.style.left = `${rect.left}px`;
+  box.style.top = `${rect.top}px`;
+  box.style.width = `${rect.width}px`;
+  box.style.height = `${rect.height}px`;
 
-function startposition() {
+  modal_start_style_position = box.style;
+
   box.classList.add("moving-file-content-state-one");
   box.classList.remove("moving-file-content-state-two");
-  console.log("startp");
-  textbox.innerHTML = `<p>testing</p>`;
 }
 
 function endposition() {
-  box.classList.remove("moving-file-content-state-one");
-  box.classList.add("moving-file-content-state-two");
-  console.log("endp");
-  textbox.innerHTML = `<p>testing</p>`;
+  box.removeAttribute('style');
+  box.classList.remove("moving-file-content-state-one"); // applies colours only I believe
+  box.classList.add("moving-file-content-state-two"); // positions in the centre, also colours
 }
 
 // Handles opening and auto-moving
 export function handleOpenFileContent(event, target) {
   fileToOpen = target.dataset.filename;
 
-  startposition();
+  startposition(event, target);
   dialog.showModal();
 
   // 3. Animate the move (State 1 -> State 2)
@@ -42,10 +51,25 @@ export function handleOpenFileContent(event, target) {
 
 // Handles closing the dialog. Don't know how to fade out on outside modal click - ?
 export function handleCloseModal() {
-  document.startViewTransition(function () {
-    dialog.close();
-    box.classList.remove("moving-file-content-state-one", "moving-file-content-state-two");
+  
+  const transition = document.startViewTransition(function () {
+  box.classList.remove("moving-file-content-state-one", "moving-file-content-state-two");
+
+  rect = file_box.getBoundingClientRect(); // get clicker element co-ordinates again in case it has changed position
+
+  // position the modal over the clicker element
+  box.style.left = `${rect.left}px`;
+  box.style.top = `${rect.top}px`;
+  box.style.width = `${rect.width}px`;
+  box.style.height = `${rect.height}px`;
+
+  textbox.innerHTML = file_box.innerHTML; // morph to target file box content
   });
+
+transition.finished.then(() => {
+    dialog.close();
+  });
+
 }
 
 async function loadContentModal () {
