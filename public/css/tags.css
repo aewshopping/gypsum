@@ -82,9 +82,9 @@
     border-radius: 4px;
     margin-right: 4px;}
 
-details.hider:not(:has(.tagselected)) {display:none;} /* hides details elems if their tags are not selected, if the hider class is present (added after first tag click to all details elems). The OR filter */
+.hider:not(:has(.tagselected)) {display:none;} /* hides details elems if their tags are not selected, if the hider class is present (added after first tag click to all details elems). The OR filter */
 body:has(#and_filter:checked) {
-    details.and_hider {display:none} /* hides details elems if the and_hider class is present. The AND filter */
+    .and_hider {display:none} /* hides details elems if the and_hider class is present. The AND filter */
     .tag:hover {
         background-color: var(--colour-compl-alt-emph-light);
         color: var(--colour-compl-alt-emph-contr);}

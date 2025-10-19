@@ -25,14 +25,12 @@ function startposition(event, target) {
 
   modal_start_style_position = box.style;
 
-  box.classList.add("moving-file-content-state-one");
   box.classList.remove("moving-file-content-state-two");
 }
 
 function endposition() {
   box.removeAttribute('style');
-  box.classList.remove("moving-file-content-state-one"); // applies colours only I believe
-  box.classList.add("moving-file-content-state-two"); // positions in the centre, also colours
+  box.classList.add("moving-file-content-state-two"); // positions in the centre
 }
 
 // Handles opening and auto-moving
@@ -62,7 +60,7 @@ export function handeCloseModalOutside(event, target) {
 export function handleCloseModal() {
   
   const transition = document.startViewTransition(function () {
-  box.classList.remove("moving-file-content-state-one", "moving-file-content-state-two");
+  box.classList.remove("moving-file-content-state-two");
 
   rect = file_box.getBoundingClientRect(); // get clicker element co-ordinates again in case it has changed position
 

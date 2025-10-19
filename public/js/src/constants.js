@@ -3,7 +3,7 @@ export const TAG_JOINER = " "; // previously " | "
 export const TAGGER = "tagselected";
 export const HIDER = "hider";
 export const AND_HIDER = "and_hider";
-export const NOTE = "note";
+export const NOTE = "note-grid";
 export const COPYTHIS = "copyflag";
 export const COPYATTR = "filename";
 
@@ -12,3 +12,5 @@ export const COPYATTR = "filename";
 export const regex_title = /(?<=^# )(.*$)/;
 // grp 1 - the whole #string, grp 2 - the parent text (if exists), grp 3 - the tag text
 export const regex_tag = /(#(?:(\w+)\/)?(\w+))/;
+// grp 1 - the colour match
+export const regex_color = /@color\/(\w+)/;

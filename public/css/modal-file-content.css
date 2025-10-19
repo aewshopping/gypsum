@@ -7,9 +7,8 @@
   left: 0px;
   height: 100vh;
   width: 100vw;
+  color: var(--colour-contr);
   background: transparent;
-  /* Clicks pass through the dialog container, but the backdrop still works */
-  /*pointer-events: none;*/
 }
 
 dialog::backdrop {
@@ -53,15 +52,9 @@ html {
   ); /* makes content switch over more quickly if shorter than group duration */
 }
 
-.moving-file-content-state-one {
-  background-color: var(--colour-neutral-alt); /* starting colour */
-  color: inherit;
-}
-
 .moving-file-content-state-two {
   --modal-margin: 10px;
   background-color: var(--colour-neutral-alt); /* starting colour */
-  color: inherit;
   left: 50%;
   transform: translateX(-50%);
   top: 20px;
