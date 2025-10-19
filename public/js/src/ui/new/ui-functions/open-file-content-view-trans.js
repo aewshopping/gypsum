@@ -49,6 +49,15 @@ export function handleOpenFileContent(event, target) {
   });
 }
 
+// to allow click outside the modal to close with animation (closedby="any" on html element triggers immediate close)
+export function handeCloseModalOutside(event, target) {
+
+  if (event.target === dialog) {
+    handleCloseModal();
+  }
+
+}
+
 // Handles closing the dialog. Don't know how to fade out on outside modal click - ?
 export function handleCloseModal() {
   

@@ -9,7 +9,7 @@
   width: 100vw;
   background: transparent;
   /* Clicks pass through the dialog container, but the backdrop still works */
-  pointer-events: none;
+  /*pointer-events: none;*/
 }
 
 dialog::backdrop {
@@ -20,7 +20,6 @@ dialog::backdrop {
   /* Mandatory CSS property */
   view-transition-name: moving-box-element;
   position: fixed;
-
   background-color: var(--colour-neutral-alt);
   border-radius: 10px;
   max-height: 95vh;
@@ -57,10 +56,6 @@ html {
 .moving-file-content-state-one {
   background-color: var(--colour-neutral-alt); /* starting colour */
   color: inherit;
-/*  top: 4rem;
-  left: 1rem;
-  width: 80px;
-  height: 150px; */
 }
 
 .moving-file-content-state-two {
