@@ -12,5 +12,3 @@ export const COPYATTR = "filename";
 export const regex_title = /(?<=^# )(.*$)/;
 // grp 1 - the whole #string, grp 2 - the parent text (if exists), grp 3 - the tag text
 export const regex_tag = /(#(?:(\w+)\/)?(\w+))/;
-// grp 1 - the colour match
-export const regex_color = /@color\/(\w+)/;
