@@ -1,6 +1,7 @@
 // This function replicates the details / summary approach where all text content is rendered immediately to the page. This option is intended to be superseded by a grid layout which then calls the file content and renders to a modal. 
 
 import { appState } from '../../services/store.js';
+import { renderFilename } from './ui-functions/render-filename.js';
 
 export async function renderFileList_grid() {
 
@@ -21,14 +22,11 @@ export async function renderFileList_grid() {
 
         // construct the html for the file as a whole, pulling in file content and tag pills from above. note still need to implement data-color functionality
         const tag_list = file.tags.join(" ");
+        const filename_html = renderFilename(file.filename);
         file_html += `
         <div class="note-grid ${tag_list}" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
 
-            <span class="copyhighlight">
-
-                <i><span class="copyflag" data-action="copy-filename" title="copy filename to clipboard" data-filename=${file.filename}>©</span>&nbsp;${file.filename}</i>
-
-                </span>
+            ${filename_html}
 
             <p>${file.title}</p>
 

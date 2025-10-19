@@ -39,7 +39,6 @@ function parseFileContent(fileContent) {
 
     // using above regex 0 = match, 1 = grp(# title), 2 = grp(#all), 3 = grp(parent), 4 = grp(child)
     // skipping 0 and 2 as not needed below (needed elsewhere tho so still in regex)
-    console.log(matchAllArray);
 
     for (const [, titleValue, , parentValue, childValue] of matchAllArray) {
 

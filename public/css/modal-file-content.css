@@ -9,26 +9,26 @@
   width: 100vw;
   color: var(--colour-contr);
   background: transparent;
+  --modal-footer-height: 50px;
 }
 
 dialog::backdrop {
   background-color: rgba(0, 0, 0, 0.5);
 }
 
-#moving-file-content {
+#moving-file-content-container {
   /* Mandatory CSS property */
   view-transition-name: moving-box-element;
   position: fixed;
   background-color: var(--colour-neutral-alt);
   border-radius: 10px;
-  max-height: 95vh;
-  overflow-y: auto;
+/*  max-height: 95vh;*/
   pointer-events: auto;
   /* stuff below to blend in scroll bar*/
-  padding: 0px 20px 0px 20px;
   border-top: solid 2px var(--colour-neutral-alt);
   border-right: solid 2px var(--colour-neutral-alt);
   border-radius: 8px;
+  overflow: hidden;
 }
 
 html {
@@ -42,8 +42,8 @@ html {
 
 ::view-transition-new(moving-box-element),
 ::view-transition-old(moving-box-element) {
-  opacity: 1; /* allegedly needed for smooth transition but don't see it myself */
-  transform: none; /* allegedly needed for smooth transition but don't see it myself */
+/*  opacity: 1; /* allegedly needed for smooth transition but don't see it myself */
+/*  transform: none; /* allegedly needed for smooth transition but don't see it myself */
   height: 100%; /* to make sure size doesn't jump */
   width: 100%;
   object-fit: fill;
@@ -60,5 +60,12 @@ html {
   top: 20px;
   width: 550px;
   max-width:calc(100% - (2 * var(--modal-margin)));*/
-  height: 95vh;
+/*  height: 95vh;*/
+}
+
+#modal-content {
+  overflow-y: scroll;
+  height:calc(95vh - var(--modal-footer-height)); /* leave room for footer */
+  padding: 0px 20px 0px 20px;
+  margin-bottom: var(--modal-footer-height); /* leave room for footer */
 }

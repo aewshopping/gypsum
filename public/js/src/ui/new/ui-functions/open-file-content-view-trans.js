@@ -2,10 +2,12 @@
 
 import { appState } from '../../../services/store.js';
 import { marked }  from '../../../services/marked.eos.js';
+import { renderFilename } from './render-filename.js';
 
 const dialog = document.getElementById('file-content-modal');
-const box = document.getElementById("moving-file-content");
+const box = document.getElementById("moving-file-content-container");
 const textbox = document.getElementById('modal-content');
+const filenamebox = document.getElementById('file-content-filename');
 
 let fileToOpen = "";
 let modal_start_style_position;
@@ -16,7 +18,7 @@ function startposition(event, target) {
   file_box = target;
   rect = file_box.getBoundingClientRect(); // get clicker element co-ordinates
   textbox.innerHTML = file_box.innerHTML; // target file box content to morph from
-  
+
   // position the modal over the clicker element
   box.style.left = `${rect.left}px`;
   box.style.top = `${rect.top}px`;
@@ -43,6 +45,7 @@ export function handleOpenFileContent(event, target) {
   // 3. Animate the move (State 1 -> State 2)
   document.startViewTransition(function () {
     endposition();
+    filenamebox.innerHTML = renderFilename(target.dataset.filename);
     loadContentModal();
   });
 }
