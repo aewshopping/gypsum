@@ -47,3 +47,7 @@ body:has(#and_filter:checked) .showall {border: 2px solid var(--colour-compl-alt
 		color: var(--colour-compl-emph-contr);
 	}
 }
+
+.opacity-0 {
+	opacity:0;
+}

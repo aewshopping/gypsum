@@ -18,7 +18,7 @@ dialog::backdrop {
 
 #moving-file-content-container {
   /* Mandatory CSS property */
-  view-transition-name: moving-box-element;
+/*  view-transition-name: moving-box-element;*/
   position: fixed;
   background-color: var(--colour-neutral-alt);
   border-radius: 10px;
@@ -29,6 +29,14 @@ dialog::backdrop {
   border-right: solid 2px var(--colour-neutral-alt);
   border-radius: 8px;
   overflow: hidden;
+  --modal-margin: 10px;
+  background-color: var(--colour-neutral-alt); /* starting colour */
+  left: 50%;
+  transform: translateX(-50%);
+  top: 20px;
+  width: 550px;
+  max-width:calc(100% - (2 * var(--modal-margin)));*/
+/*  height: 95vh;*/
 }
 
 html {
@@ -42,25 +50,19 @@ html {
 
 ::view-transition-new(moving-box-element),
 ::view-transition-old(moving-box-element) {
-/*  opacity: 1; /* allegedly needed for smooth transition but don't see it myself */
-/*  transform: none; /* allegedly needed for smooth transition but don't see it myself */
+  opacity: 1; /* allegedly needed for smooth transition but don't see it myself */
+  transform: none; /* allegedly needed for smooth transition but don't see it myself */
   height: 100%; /* to make sure size doesn't jump */
   width: 100%;
-  object-fit: fill;
+/*  object-fit: fill;*/
   animation-duration: calc(
     0.7s / var(--file-content-transition-speed)
   ); /* makes content switch over more quickly if shorter than group duration */
 }
 
-.moving-file-content-state-two {
-  --modal-margin: 10px;
-  background-color: var(--colour-neutral-alt); /* starting colour */
-  left: 50%;
-  transform: translateX(-50%);
-  top: 20px;
-  width: 550px;
-  max-width:calc(100% - (2 * var(--modal-margin)));*/
-/*  height: 95vh;*/
+/* by applying first to target element then to modal we can animate from one to the other  */
+.moving-file-content-view {
+  view-transition-name: moving-box-element;
 }
 
 #modal-content {

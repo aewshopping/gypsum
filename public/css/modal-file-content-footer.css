@@ -1,7 +1,8 @@
 #file-content-footer {
     display: flex;
     flex-direction: row;
-    border: 2px solid orange;
+    align-items: center;
+    border: 2px solid yellow;
     position:absolute;
     bottom:0;
     left: 0;

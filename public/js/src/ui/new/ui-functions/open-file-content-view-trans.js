@@ -5,51 +5,40 @@ import { marked }  from '../../../services/marked.eos.js';
 import { renderFilename } from './render-filename.js';
 
 const dialog = document.getElementById('file-content-modal');
-const box = document.getElementById("moving-file-content-container");
+const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const textbox = document.getElementById('modal-content');
 const filenamebox = document.getElementById('file-content-filename');
 
-let fileToOpen = "";
-let modal_start_style_position;
-let rect;
+let file_to_open = "";
 let file_box; // so we can access the target on close modal too
 
-function startposition(event, target) {
-  file_box = target;
-  rect = file_box.getBoundingClientRect(); // get clicker element co-ordinates
-  textbox.innerHTML = file_box.innerHTML; // target file box content to morph from
 
-  // position the modal over the clicker element
-  box.style.left = `${rect.left}px`;
-  box.style.top = `${rect.top}px`;
-  box.style.width = `${rect.width}px`;
-  box.style.height = `${rect.height}px`;
 
-  modal_start_style_position = box.style;
 
-  box.classList.remove("moving-file-content-state-two");
-}
-
-function endposition() {
-  box.removeAttribute('style');
-  box.classList.add("moving-file-content-state-two"); // positions in the centre
-}
-
-// Handles opening and auto-moving
+// Handles opening and animation
 export function handleOpenFileContent(event, target) {
-  fileToOpen = target.dataset.filename;
+  file_to_open = target.dataset.filename;
+  file_box = target;
+  movingbox.classList.add("opacity-0"); // so it doesn't flash up on first open
 
-  startposition(event, target);
+  file_box.classList.add("moving-file-content-view"); // animate *from* this element
   dialog.showModal();
 
   // 3. Animate the move (State 1 -> State 2)
   document.startViewTransition(function () {
-    endposition();
+
+    movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
+    movingbox.classList.remove("opacity-0"); // so you can now see it
+    file_box.classList.remove("moving-file-content-view");
+
     filenamebox.innerHTML = renderFilename(target.dataset.filename);
     document.getElementById('file-content-footer').dataset.color = target.dataset.color; 
     loadContentModal();
   });
 }
+
+
+
 
 // to allow click outside the modal to close with animation (closedby="any" on html element triggers immediate close)
 export function handeCloseModalOutside(event, target) {
@@ -57,36 +46,40 @@ export function handeCloseModalOutside(event, target) {
   if (event.target === dialog) {
     handleCloseModal();
   }
-
 }
 
-// Handles closing the dialog. Don't know how to fade out on outside modal click - ?
+
+
+
+// Handles closing the dialog. 
 export function handleCloseModal() {
-  
+
+  movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view
+  movingbox.classList.remove("opacity-0"); // and you can see it
+
   const transition = document.startViewTransition(function () {
-  box.classList.remove("moving-file-content-state-two");
 
-  rect = file_box.getBoundingClientRect(); // get clicker element co-ordinates again in case it has changed position
+    movingbox.classList.remove("moving-file-content-view");
+    file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
+    movingbox.classList.add("opacity-0"); // hide modal otherwise it stays onscreen during animation
 
-  // position the modal over the clicker element
-  box.style.left = `${rect.left}px`;
-  box.style.top = `${rect.top}px`;
-  box.style.width = `${rect.width}px`;
-  box.style.height = `${rect.height}px`;
-
-  textbox.innerHTML = file_box.innerHTML; // morph to target file box content
   });
 
-transition.finished.then(() => {
+  transition.finished.then(() => {
     dialog.close();
+    file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
+    movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
   });
 
 }
+
+
+
 
 async function loadContentModal () {
     
     // look up filehandle from Map
-    const file_handle = appState.myFileHandlesMap.get(fileToOpen);
+    const file_handle = appState.myFileHandlesMap.get(file_to_open);
 
     const file_chosen = await file_handle.getFile();
     const file_content = await file_chosen.text();
