@@ -1,4 +1,6 @@
-// note if you have lots of html elements on the page (say > 400!) this slows down the view transition
+// This file will handle open and closing of modal, and displaying file content within it
+// - the key reason it is so long is because it is controlling a view transition 
+// - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
 import { appState } from '../../../services/store.js';
 import { marked }  from '../../../services/marked.eos.js';
