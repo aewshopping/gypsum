@@ -1,9 +1,6 @@
 .note-grid {
     --border-width: 1px;
     border: var(--border-width) solid transparent;
-    --color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
-    background-color: attr(data-color type(<color>), var(--colour-neutral-alt));
-    color: var(--color-mono-contr); /* if null fall back will be color set elsewhere */
     border-radius: 4px;
     padding: 10px;
     overflow-x:hidden;

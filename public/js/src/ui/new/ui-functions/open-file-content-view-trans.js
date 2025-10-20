@@ -46,6 +46,7 @@ export function handleOpenFileContent(event, target) {
   document.startViewTransition(function () {
     endposition();
     filenamebox.innerHTML = renderFilename(target.dataset.filename);
+    document.getElementById('file-content-footer').dataset.color = target.dataset.color; 
     loadContentModal();
   });
 }
