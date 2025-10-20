@@ -14,6 +14,7 @@
 
 dialog::backdrop {
   background-color: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.5s ease-in-out;
 }
 
 #moving-file-content-container {
