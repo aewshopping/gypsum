@@ -35,11 +35,11 @@ function parseFileContent(fileContent) {
     let titleFirst = null;
     const parentArray = [];
     const childArray = [];
+    const childSet = new Set(); // so that only unique tags are used per file
     let colorFirst = null;
 
     // using above regex 0 = match, 1 = grp(# title), 2 = grp(#all), 3 = grp(parent), 4 = grp(child)
     // skipping 0 and 2 as not needed below (needed elsewhere tho so still in regex)
-
     for (const [, titleValue, , parentValue, childValue] of matchAllArray) {
 
         if (titleFirst === null && titleValue) {
@@ -47,18 +47,22 @@ function parseFileContent(fileContent) {
         }
 
         if (childValue) {
+
+            // check that the current tag hasn't been used before for this file. If it is new the set will increase in size by 1, if it is not unique it will not increase in size, and tag won't be added. All tags are lowercased.
+            childSet.add(childValue.toLowerCase());
+            if (childSet.size - 1 == childArray.length ) {
             
-            parentArray.push((parentValue || "orphan").toLowerCase()); // <-- if no parent captured use "orphan"
-            childArray.push(childValue.toLowerCase());
+                parentArray.push((parentValue || "orphan").toLowerCase()); // <-- if no parent captured use "orphan"
+                childArray.push(childValue.toLowerCase());
 
-            if (parentValue === "color" || parentValue ==="colour") {
-                const mycolor = childValue;
+                if (parentValue === "color" || parentValue ==="colour") {
+                    const mycolor = childValue;
 
-                // just get the first color value per file if more than one
-                if (colorFirst === null && mycolor) {
-                    colorFirst = mycolor;
+                    // just get the first color value per file if more than one
+                    if (colorFirst === null && mycolor) {
+                        colorFirst = mycolor;
+                    }
                 }
-
             }
         }
     }
