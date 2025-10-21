@@ -12,10 +12,6 @@
   --modal-footer-height: 50px;
 }
 
-dialog::backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
 #moving-file-content-container {
   /* Mandatory CSS property */
 /*  view-transition-name: moving-box-element;*/
