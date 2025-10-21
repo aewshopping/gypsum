@@ -17,7 +17,7 @@
 .flex-row {
 	display: flex;
 	align-items: center;
-	padding: 4px;
+	/*padding: 4px;*/
 }
 .flexgrow {flex-grow: 1}
 .flex-row > .ANDOR_label {
@@ -50,4 +50,5 @@ body:has(#and_filter:checked) .showall {border: 2px solid var(--colour-compl-alt
 
 .opacity-0 {
 	opacity:0;
+	/* visibility: hidden */ /* <-- more performant? */
 }

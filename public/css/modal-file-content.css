@@ -9,7 +9,8 @@
   width: 100vw;
   color: var(--colour-contr);
   background: transparent;
-  --modal-footer-height: 50px;
+  --modal-footer-height: 0px; /* nothing in here yet but later will be set to 50px and have an option to show plaintext or markdown */
+  --modal-header-height: 40px;
 }
 
 #moving-file-content-container {
@@ -21,8 +22,8 @@
 /*  max-height: 95vh;*/
   pointer-events: auto;
   /* stuff below to blend in scroll bar*/
-  border-top: solid 2px var(--colour-neutral-alt);
-  border-right: solid 2px var(--colour-neutral-alt);
+/*  border-top: solid 2px var(--colour-neutral-alt);
+  border-right: solid 2px var(--colour-neutral-alt);*/
   border-radius: 8px;
   overflow: hidden;
   --modal-margin: 10px;
@@ -63,7 +64,8 @@ html {
 
 #modal-content {
   overflow-y: scroll;
-  height:calc(95vh - var(--modal-footer-height)); /* leave room for footer */
+  height:calc(95vh - var(--modal-footer-height) - var(--modal-header-height)); /* leave room for footer */
   padding: 0px 20px 0px 20px;
   margin-bottom: var(--modal-footer-height); /* leave room for footer */
+  margin-top: var(--modal-header-height); /* leave room for footer */
 }

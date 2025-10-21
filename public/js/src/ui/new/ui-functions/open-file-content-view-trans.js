@@ -5,10 +5,11 @@
 import { appState } from '../../../services/store.js';
 import { marked }  from '../../../services/marked.eos.js';
 import { renderFilename } from './render-filename.js';
+import { tagParser } from '../../../services/file-tagparser.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
-const textbox = document.getElementById('modal-content');
+const textbox = document.getElementById('modal-content-text');
 const filenamebox = document.getElementById('file-content-filename');
 
 let file_to_open = "";
@@ -29,12 +30,13 @@ export function handleOpenFileContent(event, target) {
   // 3. Animate the move (State 1 -> State 2)
   document.startViewTransition(function () {
 
+    dialog.classList.add("dialog-view"); // backdrop fade in
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
     movingbox.classList.remove("opacity-0"); // so you can now see it
     file_box.classList.remove("moving-file-content-view");
 
     filenamebox.innerHTML = renderFilename(target.dataset.filename);
-    document.getElementById('file-content-footer').dataset.color = target.dataset.color; 
+    document.getElementById('file-content-header').dataset.color = target.dataset.color; 
     loadContentModal();
   });
 }
@@ -61,6 +63,7 @@ export function handleCloseModal() {
 
   const transition = document.startViewTransition(function () {
 
+    dialog.classList.remove("dialog-view"); // backdrop fade out
     movingbox.classList.remove("moving-file-content-view");
     file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
     movingbox.classList.add("opacity-0"); // hide modal otherwise it stays onscreen during animation
@@ -85,7 +88,8 @@ async function loadContentModal () {
 
     const file_chosen = await file_handle.getFile();
     const file_content = await file_chosen.text();
-    const file_content_parsed = marked(file_content);
+    const file_content_tagged =  tagParser(file_content); // need to tagparse before marked parse to avoid parse clash!
+    const file_content_tagged_parsed = marked(file_content_tagged);
     
-    textbox.innerHTML = file_content_parsed;
+    textbox.innerHTML = file_content_tagged_parsed;
 }

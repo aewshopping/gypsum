@@ -13,9 +13,16 @@
 <dialog id="file-content-modal" data-action="close-file-content-outside">
   <!-- The inner element which is tracked by the view-transition-name -->
   <div id="moving-file-content-container">
-    <div id="modal-content"></div>
-    <div data-color="" id="file-content-footer" class="color-dynamic">
-      <div id="file-content-filename">filename</div><div class="flexgrow"></div><button data-action="close-file-content-modal">close</button>
+    <div id="modal-content">
+      <div class="color-dynamic" id="file-content-header" data-color="">
+        <div id="file-content-filename">filename</div>
+        <div class="flexgrow"></div>
+        <button data-action="close-file-content-modal">✕</button>
+      </div>
+      <div id="modal-content-text"></div>
+    </div>
+    <div id="file-content-footer">
+      <div class="flexgrow"></div>
     </div>
   </div>
 </dialog>

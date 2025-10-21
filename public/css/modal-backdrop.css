@@ -1,44 +1,17 @@
-/* NOTE haven't figured out how to fade in and out backdrop as part of view transition doing it here instead. Would be better to build into view transition later */
-
-/* fade-in backdrop, doesn't fade out */ 
-/*dialog::backdrop { 
+/* "from" state */
+dialog::backdrop {
+  background: transparent;
+}
+.dialog-view {
+  view-transition-name: dialog-backdrop;
+}
+/* "to" state */
+.dialog-view::backdrop {
   background-color: rgba(0, 0, 0, 0.5);
-
-  transition:
-    opacity 0.5s ease-in;
-
-  @starting-style {
-    opacity:0;
-  }
-}*/
-
-/* fade-in backdrop *and* fade out, however fades out after view transition animation */ 
-[popover], dialog, ::backdrop {
-  transition: 
-    display 0.3s allow-discrete, 
-    overlay 0.3s allow-discrete, 
-    opacity 0.3s;
-  opacity: 0;
 }
-
-/* On Stage */
-:popover-open,
-:popover-open::backdrop,
-[open],
-[open]::backdrop {
-  opacity: 1;
-}
-
-/* Off Stage */
-@starting-style {
-  :popover-open,
-  :popover-open::backdrop,
-  [open],
-  [open]::backdrop {
-    opacity: 0;
-  }
-}
-
-::backdrop {
-  background-color: rgba(0, 0, 0, 0.612);
+/* to target backdrop, not sure why can't target any other way... works on both fade in and out! */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: calc(2s / var(--file-content-transition-speed));
+  animation-timing-function: ease-in-out;
 }

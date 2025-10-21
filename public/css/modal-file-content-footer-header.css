@@ -1,0 +1,23 @@
+/* footer height currently set to zero but can inflate an add content later! */
+#file-content-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    position:absolute;
+    bottom:0;
+    left: 0;
+    right: 0;
+    height:var(--modal-footer-height);
+}
+
+#file-content-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    position:absolute;
+    top:0;
+    left: 0;
+    right: 0;
+    height:var(--modal-header-height);
+    padding-inline: 10px;
+}
