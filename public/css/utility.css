@@ -39,6 +39,8 @@
 	position:sticky;
 	top: 0px;
 	background-color: var(--colour-neutral);
+	padding-top: 5px;
+	padding-bottom: 5px;
 }
 
 body:has(#and_filter:checked) .showall {border: 2px solid var(--colour-compl-alt-emph);
