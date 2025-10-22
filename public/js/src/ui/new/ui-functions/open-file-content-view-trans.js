@@ -20,19 +20,17 @@ let file_box; // so we can access the target on close modal too
 
 // Handles opening and animation
 export function handleOpenFileContent(event, target) {
+
   file_to_open = target.dataset.filename;
   file_box = target;
-  movingbox.classList.add("opacity-0"); // so it doesn't flash up on first open
-
   file_box.classList.add("moving-file-content-view"); // animate *from* this element
-  dialog.showModal();
-
+  
   // 3. Animate the move (State 1 -> State 2)
   document.startViewTransition(function () {
 
+    dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
-    movingbox.classList.remove("opacity-0"); // so you can now see it
     file_box.classList.remove("moving-file-content-view");
 
     filenamebox.innerHTML = renderFilename(target.dataset.filename);
@@ -59,7 +57,6 @@ export function handeCloseModalOutside(event, target) {
 export function handleCloseModal() {
 
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view
-  movingbox.classList.remove("opacity-0"); // and you can see it
 
   const transition = document.startViewTransition(function () {
 
@@ -72,8 +69,10 @@ export function handleCloseModal() {
 
   transition.finished.then(() => {
     dialog.close();
+
     file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
+    movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
   });
 
 }
