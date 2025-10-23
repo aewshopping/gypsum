@@ -26,7 +26,6 @@ jobs:
         run: npx esbuild public/style.css --bundle --outfile=dist/css_bundle.css
 
       - name: Run the inlining script
-        working-directory: ${{ github.workspace }}
         run: node inline-scripts-from-files.js
 
       - name: Upload bundled artifact
