@@ -1,17 +1,24 @@
+// javascript
 const fs = require('fs');
 const path = require('path');
 
-// Define Directory Paths (created by ESbuild at prior step in github actions)
-const distDir = path.join(__dirname, 'dist'); 
+// --- CRITICAL CHANGE: Use GITHUB_WORKSPACE instead of __dirname ---
+// This variable reliably points to the repository root: /home/runner/work/gypsum/
+const REPO_ROOT = process.env.GITHUB_WORKSPACE || __dirname; 
+
+// Define Directory Paths
+// distDir now reliably uses the repository root
+const distDir = path.join(REPO_ROOT, 'dist'); 
 
 // Define File Paths
-// INPUT FILES created inside 'dist' by ESbuild as prior step in github action
+// INPUT FILES are inside 'dist' relative to the REPO_ROOT
 const jsFile = path.join(distDir, 'bundle.js');
 const cssFile = path.join(distDir, 'bundle.css'); 
 
-const htmlFile = path.join(__dirname, 'index.html'); 
+// The HTML template is assumed to be at the repository root
+const htmlFile = path.join(REPO_ROOT, 'index.html'); 
 
-// OUTPUT FILE path will be saved inside 'dist', for later artefact upload
+// OUTPUT FILE path is inside 'dist'
 const outputFile = path.join(distDir, 'view-notes.html');
 
 try {
@@ -42,6 +49,5 @@ try {
   console.log(`Successfully created ${outputFile} and removed source bundles.`);
   
 } catch (error) {
-  // If reading or writing fails, the error will be caught here
   console.error('An error occurred:', error.message);
 }
