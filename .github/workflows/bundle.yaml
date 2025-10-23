@@ -25,6 +25,9 @@ jobs:
       - name: Run esbuild to bundle css
         run: npx esbuild public/style.css --bundle --outfile=dist/css_bundle.css
 
+      - name: Run the inlining script
+        run: node inline-scripts-from-files.js
+
       - name: Upload bundled artifact
         uses: actions/upload-artifact@v4
         with:
