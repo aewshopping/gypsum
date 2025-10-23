@@ -23,7 +23,7 @@ jobs:
         run: npx esbuild public/main.js --bundle --outfile=dist/js_bundle.js
 
       - name: Run esbuild to bundle css
-        run: npx esbuild public/style.css --bundle --outfile=dist/css_bundle.js
+        run: npx esbuild public/style.css --bundle --outfile=dist/css_bundle.css
 
       - name: Upload bundled artifact
         uses: actions/upload-artifact@v4
