@@ -6,8 +6,8 @@ const distDir = path.join(__dirname, 'dist');
 
 // Define File Paths
 // INPUT FILES created inside 'dist' by ESbuild as prior step in github action
-const jsFile = path.join(distDir, 'bundle.js');
-const cssFile = path.join(distDir, 'bundle.css'); 
+const jsFile = path.join(distDir, 'css_bundle.js');
+const cssFile = path.join(distDir, 'js_bundle.css'); 
 
 const htmlFile = path.join(__dirname, 'index.html'); 
 
