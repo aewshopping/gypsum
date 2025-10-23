@@ -30,7 +30,7 @@ details.note-details {
 				border: var(--note-border-thickness) solid var(--colour-contr); /* could mess around with box shadows instead to prevent v small layout shift when borders applied. Bit tricky though */
 				border-bottom: 0; /* want to draw a box round details contents element too*/
 				border-bottom-right-radius: 0;
-				border-bottom-left-radius: 0; */
+				border-bottom-left-radius: 0;
 				padding-inline: var(--note-padding-sides);
 			}
 		}
