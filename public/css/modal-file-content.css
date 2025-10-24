@@ -31,7 +31,7 @@
   left: 50%;
   transform: translateX(-50%);
   top: 20px;
-  width: 550px;
+  width: 65ch;
   max-width:calc(100% - (2 * var(--modal-margin)));
 /*  height: 95vh;*/
 }
@@ -64,7 +64,7 @@ html {
 
 #modal-content {
   overflow-y: scroll;
-  height:calc(95vh - var(--modal-footer-height) - var(--modal-header-height)); /* leave room for footer */
+  height:calc(95dvh - var(--modal-footer-height) - var(--modal-header-height)); /* leave room for footer */
   padding: 0px 20px 0px 20px;
   margin-bottom: var(--modal-footer-height); /* leave room for footer */
   margin-top: var(--modal-header-height); /* leave room for footer */

@@ -34,6 +34,7 @@ export async function loadFileHandles() {
     appState.myFiles = filesWithMetadata;
 
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);
+    document.getElementById('fileCountElement').innerText = appState.myFiles.length;
 
     appState.myTags = getUniqueTagsSortedWithCount(appState.myFiles);
 
