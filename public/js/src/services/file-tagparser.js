@@ -8,7 +8,7 @@ export function tagParser(text) {
 	//	console.log("p1:" + p1+ " p2:" +p2+ " p3:" +p3+ " p4:" +p4)
 		if (typeof p2 != 'undefined') {
 			// for when we have #tag match (group 1 = #) (group 2 = tag)
-			const p2_lower = p2.toLowerCase()
+			const p2_lower = p2.toLowerCase();
 			return `<span class='tag ${p2_lower}' data-action='tag-filter'>${p1}${p2}</span>`;
 		} else if (typeof p4 != 'undefined') {
 			// for when we have a #something/childtag match (group 3 = #something/) (group 4 = childtag)

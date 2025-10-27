@@ -2,6 +2,7 @@
 
 import { appState } from '../../services/store.js';
 import { renderFilename } from './ui-functions/render-filename.js';
+import { renderTags } from './ui-functions/render-tags.js';
 
 export async function renderFileList_grid() {
 
@@ -13,11 +14,12 @@ export async function renderFileList_grid() {
         // construct the html for the array of tags for this file
         let tag_pills_html = ""
         for (const tag of file.tags) {
-            tag_pills_html += `
-                <code>
-                    <span class="tag ${tag}" data-action="tag-filter">${tag}</span>
-                </code>
-            `
+            tag_pills_html += renderTags(tag);
+          //  `
+          //      <code>
+          //          <span class="tag ${tag}" data-action="tag-filter">${tag}</span>
+          //      </code>
+          //  `
         }
 
         // construct the html for the file as a whole, pulling in file content and tag pills from above. note still need to implement data-color functionality

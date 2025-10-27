@@ -127,8 +127,8 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState) {
     let finalTitle = initialTitle;
 
     if (finalTitle === null) {
-        // No markdown H1 found, fallback to the first line of the file
-        finalTitle = fileContent.split(/\r?\n/)[0].trim();
+        // No markdown H1 found, fallback to the first line of the file, maxed out at 100 characters
+        finalTitle = fileContent.split(/\r?\n/)[0].trim().substring(0, 180);
     } else {
         // Markdown H1 *was* found. Check it for tags.
         const titleTagMatches = finalTitle.matchAll(regex_tag_match);
