@@ -18,7 +18,7 @@ export async function loadFileHandles() {
     });
 
     // Map file handles to promises the function above
-    const filePromises = fileHandles.map(getFileDataAndMetadata);
+    const filePromises = fileHandles.map((handle, index) => getFileDataAndMetadata(handle, index));
 
     // Await all promises to resolve concurrently (quicker than loading one by one)
     const filesWithMetadata = await Promise.all(filePromises);
