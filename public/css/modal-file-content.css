@@ -37,12 +37,12 @@
 }
 
 html {
-  --file-content-transition-speed: 4;
+  --file-content-transition-speed: 2;
 }
 
 ::view-transition-group(moving-box-element) {
   animation-duration: calc(2s / var(--file-content-transition-speed));
-  animation-timing-function: ease-in-out;
+  animation-timing-function: linear(0, 0.03 1.1%, 0.124 2.4%, 0.889 9.8%, 1.031 12.4%, 1.094 15.2%, 1.101 16.6%, 1.096 18.1%, 1.014 26.1%, 0.991 31.7%, 1.001 48.1%, 1);
 }
 
 ::view-transition-new(moving-box-element),
