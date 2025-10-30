@@ -17,7 +17,7 @@ export async function getFileDataAndMetadata(handle) {
         tags: tagData.childArray,
         color: tagData.colorFirst,
         lastModified: new Date(file.lastModified),
-        content_properties: yamlData,
+        ...(yamlData),
         show: true
     };
 
