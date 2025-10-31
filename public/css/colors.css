@@ -19,7 +19,7 @@ body {
 
 body:has(input[type="radio"]#funcheck:checked) {
     --colour-neutral: DarkSlateGray; /* bg */
-    --colour-neutral-alt: Black; /* card bg */
+    --colour-neutral-alt: #0b6f6f; /* card bg */
     --colour-contr: aquamarine; /* text */
     --colour-contr-emph: hotpink;  /* h1 */
 
