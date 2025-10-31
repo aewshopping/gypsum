@@ -1,8 +1,8 @@
 // This function replicates the details / summary approach where all text content is rendered immediately to the page. This option is intended to be superseded by a grid layout which then calls the file content and renders to a modal. 
 
-import { appState } from '../../services/store.js';
-import { renderFilename } from './ui-functions/render-filename.js';
-import { renderTags } from './ui-functions/render-tags.js';
+import { appState } from '../services/store.js';
+import { renderFilename } from './ui-functions-render/render-filename.js';
+import { renderTags } from './ui-functions-render/render-tags.js';
 
 export async function renderFileList_grid() {
 

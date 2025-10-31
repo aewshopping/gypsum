@@ -2,10 +2,10 @@
 // - the key reason it is so long is because it is controlling a view transition 
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
-import { appState } from '../../../services/store.js';
-import { marked }  from '../../../services/marked.eos.js';
-import { renderFilename } from './render-filename.js';
-import { tagParser } from '../../../services/file-tagparser.js';
+import { appState } from '../../services/store.js';
+import { marked }  from '../../services/marked.eos.js';
+import { renderFilename } from '../ui-functions-render/render-filename.js';
+import { tagParser } from '../../services/file-tagparser.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly

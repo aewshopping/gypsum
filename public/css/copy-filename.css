@@ -1,0 +1,10 @@
+/* designed to operate with js to copy-click.js */
+.copyhighlight { border-radius: 20px;
+	padding: 4px 10px;
+	&:has(.copyflag:hover){outline:1px solid var(--colour-contr)}
+}
+
+.copyflag {border-radius: 20px;
+	cursor:pointer;
+	&.copied {color:var(--colour-compl-alt-contr);}
+} /* css class name copyflag needs to match js const COPYTHIS */

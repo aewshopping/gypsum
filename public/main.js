@@ -1,7 +1,7 @@
 import { loadFileHandles } from './js/src/services/file-handler.js';
-import { renderTagTaxonomy } from './js/src/ui/new/render-tag-taxonmy.js';
-import { renderFileList_grid } from './js/src/ui/new/render-file-list-grid.js';
-import { addClickHandlers } from './js/src/ui/new/event-listeners-add.js';
+import { renderTagTaxonomy } from './js/src/ui/render-tag-taxonmy.js';
+import { renderFileList_grid } from './js/src/ui/render-file-list-grid.js';
+import { addClickHandlers } from './js/src/ui/event-listeners-add.js';
 import { sortAppStateFiles } from './js/src/services/file-object-sort.js';
 
 document.addEventListener('DOMContentLoaded', function() {

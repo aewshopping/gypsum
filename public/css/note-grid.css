@@ -1,3 +1,9 @@
+.list-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* min width of cols is 350px and stretch to fill width of screen */
+	gap: 10px;
+}
+
 .note-grid {
     --border-width: 2px;
     border: var(--border-width) solid transparent;

@@ -1,7 +1,7 @@
 // This is designed to work with CSS doing the heavy lifting of hiding and showing. Will need a rewrite when no longer rendereing everything on one page.
 
-import { NOTE, TAGGER, HIDER, AND_HIDER } from '../../../constants.js';
-import { state } from '../../../services/store.js';
+import { NOTE, TAGGER, HIDER, AND_HIDER } from '../../constants.js';
+import { appState } from '../../services/store.js';
 import { handleClearFilters } from './clear-filters.js';
 
 export function handleTagClick(evt, target) {
@@ -15,11 +15,11 @@ export function handleTagClick(evt, target) {
     for (let q = 0; q < matchTagElements.length; q++) {
         let onOff = matchTagElements[q].classList.toggle(TAGGER);
         if (onOff === true && q === 0) {
-            state.filter_counter++;
-            // console.log(onOff + " index:" + q + "counter: " + state.filter_counter);
+            appState.filter_counter++;
+            // console.log(onOff + " index:" + q + "counter: " + appState.filter_counter);
         } else if (onOff === false && q === 0) {
-            state.filter_counter--;
-            // console.log(onOff + " index:" + q + "counter: " + state.filter_counter);
+            appState.filter_counter--;
+            // console.log(onOff + " index:" + q + "counter: " + appState.filter_counter);
         }
     }
 
@@ -28,14 +28,14 @@ export function handleTagClick(evt, target) {
         const ANDcount = elem.querySelectorAll(`.${NOTE} .${TAGGER}`).length; // count tag matches
         elem.classList.add(HIDER); // hides notes without selected tags through css. Applied here not onload so you can see all notes at start
 
-        if (ANDcount < state.filter_counter) {
+        if (ANDcount < appState.filter_counter) {
             elem.classList.add(AND_HIDER);
         } else {
             elem.classList.remove(AND_HIDER);
         }
     }
 
-    if (state.filter_counter === 0) {
+    if (appState.filter_counter === 0) {
         handleClearFilters();
     }
 

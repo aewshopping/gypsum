@@ -1,69 +1,3 @@
-/* ### START OF TAG TAXONOMY CSS */
-#tag_output {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 10px 0 20px 0;
-  details {
-    flex-grow: 1;
-    background-color: var(--colour-neutral-alt);
-    border-radius: 6px;
-    padding: 4px;
-    max-width: 200px;
-  }
-  summary {
-    cursor:pointer;
-    &::marker {
-      content: "+ ";
-    }
-  }
-  details[open] {
-    flex-basis: 100%;
-    flex-grow: 1;
-    margin-left: 150px;
-    padding: 0px;
-    max-width: 100%;
-    order: 2;
-  }
-
-  details[open] summary {
-    margin-left: -150px;
-    background-color: var(--colour-neutral-alt);
-    border-radius: 6px;
-    padding: 4px;
-    &::marker {
-      content: "- ";
-    }
-  }
-  details[open]::details-content {
-    margin-top: -27px;
-    padding: 4px;
-    border-radius: 6px;
-  }
-  details.details_divider {
-    background-color: var(--colour-neutral);
-    order: 1;
-    min-width: calc(100% - 20px);
-
-    summary {
-      cursor: default;
-      &::marker {
-        content: "";
-      }
-    }
-    &[open] {min-width: calc(100% - 150px - 20px); /* allow for summary offset when open and body margin */
-    }
-    &[open] summary {
-      background-color: var(--colour-neutral);
-    }
-    &[open]::details-content {
-      margin-top: 0;
-      padding:0;
-    }
-  }
-}
-/* ### END OF TAG TAXONOMY CSS */
 .tag {color:var(--colour-compl-contr);
     background-color: var(--colour-compl);
     padding: 1px 4px 1px 4px;
@@ -82,9 +16,16 @@
     border-radius: 4px;
     margin-right: 4px;}
 
+/* BEHAVIOUR CSS */ 
 .hider:not(:has(.tagselected)) {display:none;} /* hides details elems if their tags are not selected, if the hider class is present (added after first tag click to all details elems). The OR filter */
+
+/* BEHAVIOUR CSS */
 body:has(#and_filter:checked) {
     .and_hider {display:none} /* hides details elems if the and_hider class is present. The AND filter */
+}
+
+/* STYLE CSS (for AND filter) */
+body:has(#and_filter:checked) {/* if AND filter applied, colours here override OR colours above */
     .tag:hover {
         background-color: var(--colour-compl-alt-emph-light);
         color: var(--colour-compl-alt-emph-contr);}

@@ -1,5 +1,5 @@
-import { appState } from '../../services/store.js';
-import { renderTags } from './ui-functions/render-tags.js';
+import { appState } from '../services/store.js';
+import { renderTags } from './ui-functions-render/render-tags.js';
 
 export function renderTagTaxonomy() {
 

@@ -4,6 +4,11 @@
 *::after {
   box-sizing: border-box;
 }
+
+:root {
+	interpolate-size: allow-keywords; /* for animating details open and close */
+}
+
 button {font: inherit;}
 img {max-width: 100%;
     padding: 10px;
