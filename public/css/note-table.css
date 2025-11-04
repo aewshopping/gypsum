@@ -1,0 +1,26 @@
+.list-table {
+	display: grid;
+	grid-template-columns: repeat(3, 350px);
+    gap: 10px;
+}
+
+.note-table {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    --border-width: 2px;
+    border: var(--border-width) solid transparent;
+    border-radius: 4px;
+    padding: 6px;
+    overflow: hidden;
+    height: 35px;
+    cursor: default;
+
+    &:hover {
+        border: var(--border-width) solid var(--colour-contr);
+    }
+}
+
+.note-table-cell {
+    overflow: hidden;
+}
