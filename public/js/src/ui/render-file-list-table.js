@@ -1,8 +1,14 @@
 import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
+import { arrTableViewHide } from '../constants.js';
 
 export async function renderFileList_table() {
+
+    // delete the items in array from the Set 
+    arrTableViewHide.forEach(item => {
+    appState.myFilesProperties.delete(item);
+    });
 
     let file_html = `
             <div class="note-table">

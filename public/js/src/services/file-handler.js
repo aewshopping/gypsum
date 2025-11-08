@@ -2,6 +2,7 @@ import { appState } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { getUniqueTagsSortedWithCount } from './file-parsing/tag-count.js';
 import { createParentChildTagStructure } from './file-parsing/tag-taxon.js';
+import { updateMyFileProperties } from './file-props.js';
 
 export async function loadFileHandles() {
 
@@ -17,7 +18,7 @@ export async function loadFileHandles() {
     ],
     });
 
-    // Map file handles to promises the function above
+    // Map file handles to promises from the function above
     const filePromises = fileHandles.map((handle, index) => getFileDataAndMetadata(handle, index));
 
     // Await all promises to resolve concurrently (quicker than loading one by one)
@@ -28,10 +29,11 @@ export async function loadFileHandles() {
         // fileObject.handle is the value
         map.set(fileObject.filename, fileObject.handle); 
         return map;
-    }, new Map()); 
+    }, new Map());
 
     appState.myFileHandlesMap = fileHandleMap; // to allow later speedy loookup of file using filename
     appState.myFiles = filesWithMetadata;
+    updateMyFileProperties(appState.myFiles[0]); // // to build table view, with columns showing file properties
 
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);
     document.getElementById('fileCountElement').innerText = appState.myFiles.length;

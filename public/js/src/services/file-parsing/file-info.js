@@ -1,5 +1,7 @@
 import { regex_title, regex_tag } from '../../constants.js';
-import { parseYaml } from '../yaml-slop.js'
+import { parseYaml } from '../yaml-slop.js';
+import { updateMyFileProperties } from '../file-props.js';
+
 
 export async function getFileDataAndMetadata(handle, loadOrder) {
 
@@ -7,7 +9,8 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
     const content = await file.text();
     const tagData = parseFileContent(content);
     const yamlData = parseYaml(content);
-        
+    updateMyFileProperties(yamlData,2);
+
     return {
         handle: handle,
         filename: file.name,
