@@ -9,7 +9,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
     const content = await file.text();
     const tagData = parseFileContent(content);
     const yamlData = parseYaml(content);
-    updateMyFileProperties(yamlData,2);
+    updateMyFileProperties(yamlData, 2);
 
     return {
         handle: handle,

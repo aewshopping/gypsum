@@ -33,7 +33,7 @@ export async function loadFileHandles() {
 
     appState.myFileHandlesMap = fileHandleMap; // to allow later speedy loookup of file using filename
     appState.myFiles = filesWithMetadata;
-    updateMyFileProperties(appState.myFiles[0]); // // to build table view, with columns showing file properties
+    updateMyFileProperties(appState.myFiles[0], 1); // // to build table view, with columns showing file properties
 
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);
     document.getElementById('fileCountElement').innerText = appState.myFiles.length;

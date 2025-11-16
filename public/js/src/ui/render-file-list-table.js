@@ -2,14 +2,22 @@ import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 import { arrTableViewHide } from '../constants.js';
+import { reOrderMap } from './ui-functions-render/reorder-fileprops.js';
+
 
 export async function renderFileList_table() {
 
-    // delete the items in array from the Set 
+
+    // delete the "items to delete" in the constant array from the Set of columns
     arrTableViewHide.forEach(item => {
     appState.myFilesProperties.delete(item);
     });
 
+    // Convert map to array, reorder by "order" then update the map with this order
+    reOrderMap();
+
+
+    // set the header row...
     let file_html = `
             <div class="note-table">
 
