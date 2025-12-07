@@ -11,6 +11,7 @@ const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const textbox = document.getElementById('modal-content-text');
 const filenamebox = document.getElementById('file-content-filename');
+const scrollingContent = document.getElementById("modal-content");
 
 let file_to_open = "";
 let file_box; // so we can access the target on close modal too
@@ -36,6 +37,7 @@ export function handleOpenFileContent(event, target) {
     filenamebox.innerHTML = renderFilename(target.dataset.filename);
     document.getElementById('file-content-header').dataset.color = target.dataset.color; 
     loadContentModal();
+    scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
   });
 }
 
