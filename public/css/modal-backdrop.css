@@ -15,3 +15,13 @@ dialog::backdrop {
   animation-duration: calc(2s / var(--file-content-transition-speed));
   animation-timing-function: ease-in-out;
 }
+
+/* prevent document body scroll when dialog open */
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+/* preserve space for scroll bar on main page to avoid layout shift */
+html {
+  scrollbar-gutter: stable;
+}
