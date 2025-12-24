@@ -4,6 +4,7 @@ import { renderFileList_grid } from './js/src/ui/render-file-list-grid.js';
 import { addActionHandlers } from './js/src/ui/event-listeners-add.js';
 import { sortAppStateFiles } from './js/src/services/file-object-sort.js';
 import { renderFileList_table } from './js/src/ui/render-file-list-table.js';
+import { renderActiveTags } from './js/src/ui/ui-functions-render/render-active-tags.js';
 import { appState } from './js/src/services/store.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -24,10 +25,12 @@ async function loadData() {
     sortAppStateFiles("filename", "string", "desc");
 }
 
+// should move most of this off to the render-all-files module later!
 export function renderData() {
     const myView = document.getElementById("view-select");
     renderSelected(myView);
     addActionHandlers();
+    renderActiveTags();
 }
 
 

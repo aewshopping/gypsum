@@ -9,6 +9,7 @@ export async function renderFileList_grid() {
     let file_html = ""
 
     for (const file of appState.myFiles) {
+        if (file.show === true) {
      //   console.log(file);
 
         // construct the html for the array of tags for this file
@@ -31,6 +32,7 @@ export async function renderFileList_grid() {
 
         </div>
         `
+       }
     }
 
     document.getElementById('output').innerHTML = file_html;

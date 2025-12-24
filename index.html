@@ -9,7 +9,7 @@
   <base target="_blank">
   <link rel="stylesheet" href="public/style.css">
 </head>
-<body class="funmode">
+<body>
 
 <dialog id="file-content-modal" data-action="close-file-content-outside">
   <!-- The inner element which is tracked by the view-transition-name -->
@@ -44,7 +44,7 @@
 
   	<div class="ANDOR_label">filter</div>
 		<div class="ANDOR_label">OR</div>
-		<label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"><span class="slider"></span></label> 
+		<label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter" data-action="toggle-filter-mode"><span class="slider"></span></label> 
 		<div class="ANDOR_label">AND</div>
 
   </div>
@@ -64,7 +64,7 @@
 
 	<div class="flexgrow"></div>
 	<label class="formcontrol"><input type="radio" name="radio" checked />Snow</label>
-	<label class="formcontrol"><input type="radio" name="radio" id="funcheck" checked />Glow</label>
+	<label class="formcontrol"><input type="radio" name="radio" id="funcheck" />Glow</label>
   </div>
 
   <div id="output" class="list-grid"></div>

@@ -1,5 +1,6 @@
 import { handleCopyClick } from './ui-functions-click/copy-click.js';
-import { handleTagClick } from './ui-functions-click/tag-click.js';
+import { handleTagClick } from './ui-functions-click/filter-files.js';
+import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.js';
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
@@ -22,6 +23,7 @@ const actionHandlers = {
 const changeActionHandlers = {
     // Only elements that emit a change event should use these data-actions
     'view-select': handleViewSelect,
+    'toggle-filter-mode': handleFilterModeToggle,
 };
 
 // Delegate function for CLICK events

@@ -24,10 +24,16 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 3. It only takes the notes in the top level of a folder, it doesn't use sub folders.
 4. Only one level of tag classifcation allowed. Ie `#that/this` is fine `#that/this/them` isn't.
 
+## Immediate to do list
+
+- Sort out the redundant tag-click.js which is no longer used.
+- Tidy up the tag highlighting in the css which now just relies on TAGGER to highlight but doesn't do any showing and hiding (all js render now)
+- Move render function out of main to render-all-files.js
+
 ## Roadmap
 
 1. IN PROGRESS - Table view of the notes, with tags and note properties as column headers, which also allow filtering and sorting. This will be implemented as a css grid with css sub grid, *not* an actual html table.
-2. Ability to switch between table and wall of notes views of the files. Currently the wall of notes views is coded up but is not a selectable option.
+2. Table filtering is now active for tags... but not for other properties - also doesn't show properties. Low hanging fruit is implementing sort by existing columns.
 3. A way of toggling between markdown (ie rendered html) view and plain text view in the show text modal.
 4. Before pagination will need to implement a js based system of show and hiding files.
 5. Alongside this some sort of very simple DOM diffing process can be considered.
