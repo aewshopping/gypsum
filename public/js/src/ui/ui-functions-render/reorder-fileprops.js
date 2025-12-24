@@ -1,5 +1,18 @@
 import { appState } from '../../services/store.js';
 
+/**
+ * Re-orders entries in `appState.myFilesProperties` by their `order` property.
+ *
+ * Converts the Map to an array, sorts it ascending by `order`, clears the Map,
+ * re-inserts entries in sorted order and normalizes `order` values to 1-based
+ * sequential indices (1, 2, ...).
+ *
+ * Side effects: mutates `appState.myFilesProperties`
+ *
+ * @function reOrderMap
+ * @returns {void}
+ */
+
 export function reOrderMap() {
 
     const filePropertiesMap = appState.myFilesProperties;

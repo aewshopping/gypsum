@@ -4,6 +4,18 @@ import { getUniqueTagsSortedWithCount } from './file-parsing/tag-count.js';
 import { createParentChildTagStructure } from './file-parsing/tag-taxon.js';
 import { updateMyFileProperties } from './file-props.js';
 
+/**
+ * Asynchronously opens a file picker for `.txt` and `.md` files, reads metadata for selected files,
+ * stores file handles and file metadata in `appState`, computes tags/taxonomy, updates the UI file count,
+ * and initializes the file properties table for the first file.
+ *
+ * Side effects: mutates `appState`, updates the DOM (`#fileCountElement`), and logs to the console.
+ *
+ * @async
+ * @function loadFileHandles
+ * @returns {Promise<void>} Resolves when files are loaded and app state/UI are updated.
+ */
+
 export async function loadFileHandles() {
 
     console.log("working");
