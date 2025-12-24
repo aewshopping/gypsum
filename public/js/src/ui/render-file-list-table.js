@@ -19,7 +19,7 @@ export async function renderFileList_table() {
 
     // set the header row...
     let file_html = `
-            <div class="note-table">
+            <div class="note-table-header">
 
             <div class="note-table-cell">filename</div>
 
