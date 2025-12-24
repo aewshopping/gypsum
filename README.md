@@ -16,6 +16,7 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 3. You use tags like `#this` to easily associate text files.
 4. You can filter notes based on selected tags, either with an `and` filter or an `or` filter.
 5. Add a tag of the format `#color/red` (ie `#color/[color]`) and it will use this colour in the file viewer for that file, assuming it is a valid html color name.
+6. You can add simple YAML properties in front matter (ie key value pairs below one `---`and above another `---`). Currently you can't actually _see_ these properties though, they are just part of the file object. Work in progress.
 
 ## Limitations
 
@@ -32,9 +33,8 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 ## Roadmap
 
-1. IN PROGRESS - Table view of the notes, with tags and note properties as column headers, which also allow filtering and sorting. This will be implemented as a css grid with css sub grid, *not* an actual html table.
+1. IN PROGRESS - Table view of the notes, with tags and custom note properties as column headers, which also allow filtering and sorting. This will be implemented as a css grid with css sub grid, *not* an actual html table.
 2. Table filtering is now active for tags... but not for other properties - also doesn't show properties. Low hanging fruit is implementing sort by existing columns.
 3. A way of toggling between markdown (ie rendered html) view and plain text view in the show text modal.
-4. Before pagination will need to implement a js based system of show and hiding files.
-5. Alongside this some sort of very simple DOM diffing process can be considered.
+5. Alongside this some sort of very simple DOM diffing process might be considered.
 6. Pagination of rendered files to cope with large numbers of files. In future this could be implemented by a virtual DOM that destroy and creates html elements depending on scroll position but not in the immediate plans.
