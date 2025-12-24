@@ -40,19 +40,34 @@
 
   <p><b>Text files</b></p>
   <div class="flex-row stick-top">
-	<div class="ANDOR_label">Filter</div>
-	<div class="flex-row label_group">
+  <div class="flex-row label_group">
+
+  	<div class="ANDOR_label">filter</div>
 		<div class="ANDOR_label">OR</div>
 		<label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"><span class="slider"></span></label> 
 		<div class="ANDOR_label">AND</div>
-		<button class="showall" data-action="clear-filters">clear filters</button>
-	</div>
+
+  </div>
+
+  <button class="showall" data-action="clear-filters">clear filters</button>
+
+  <label class="select-label" for="view-select">view
+  <select id="view-select" data-action="view-select">
+    <option value="">--view options--</option>
+    <option value="table">table</option>
+    <option value="cards" selected>cards</option>
+  </select>
+  </label>
+
+
+
+
 	<div class="flexgrow"></div>
 	<label class="formcontrol"><input type="radio" name="radio" checked />Snow</label>
 	<label class="formcontrol"><input type="radio" name="radio" id="funcheck" checked />Glow</label>
   </div>
 
-  <div id="output" class="list-table"></div>
+  <div id="output" class="list-grid"></div>
   </main>
 
 </body>

@@ -1,3 +1,8 @@
+/* this surrounds the whole switch to allow has focus to draw a box round it */
+.label_group {
+	margin-right:10px;
+}
+
 /* The switch - the box around the slider */
 	.switch {
 	  position: relative;

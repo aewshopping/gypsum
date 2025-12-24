@@ -27,6 +27,8 @@ export async function renderFileList_table() {
 
             <div class="note-table-cell">tags</div>
 
+            <div class="note-table-cell">date modified</div>
+
         </div>
     `
 
@@ -42,6 +44,7 @@ export async function renderFileList_table() {
         // construct the html for the file as a whole, pulling in file content and tag pills from above.
         const tag_list = file.tags.join(" ");
         const filename_html = renderFilename(file.filename);
+        const date_mod = file.lastModified ? new Date(file.lastModified).toLocaleDateString() : 'N/A';
         file_html += `
         <div class="note-table ${tag_list} color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
 
@@ -50,6 +53,8 @@ export async function renderFileList_table() {
             <div class="note-table-cell">${file.title}</div>
 
             <div class="note-table-cell">${tag_pills_html}</div>
+
+            <div class="note-table-cell">${date_mod}</div>
 
         </div>
         `

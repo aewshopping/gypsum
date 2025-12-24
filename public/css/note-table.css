@@ -1,6 +1,6 @@
 .list-table {
 	display: grid;
-	grid-template-columns: repeat(5, 350px);
+	grid-template-columns: 350px 550px 250px 150px;
     gap: 10px;
 }
 
@@ -13,7 +13,7 @@
     border-radius: 4px;
     padding: 6px;
     overflow: hidden;
-    height: 35px;
+    height: 35px; /* deleting height line means rows expand vertically to fit content */
     cursor: default;
 
     &:hover {

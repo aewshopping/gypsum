@@ -1,7 +1,7 @@
 .showall {
 	cursor:pointer;
 	color: var(--colour-contr);
-	margin-left:40px;
+	margin-inline:10px;
 	background-color:var(--colour-neutral);
 	border: 2px solid var(--colour-compl-emph);
 	border-radius: 6px;
