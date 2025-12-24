@@ -5,8 +5,8 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 ## What's the point of it?
 
 - Because it works client side in the browser you can use it on any computer. Unlike Obsidian you don't need to download an application.
-- You can also download the html files and use it offline. It does have depencencies (for example `marked.js`) but those are included as bundled files rather than using the official cdn.
-- Actually this is not quite true - because I decided to ES Modules the html file will not work on the file system. I am therefore bundling the js with a github action and saving as an artefact. This can then be used with index.html as long as you update the script tag! At some point I will do a proper bundling exercise and commit a single file html app to the repo, again as a github action.
+- You can also download the html files and use it offline. It does have depencencies (for example `marked.js`) but those are included as bundled files rather than using the official cdn. Ie no *remote* dependencies allowed.
+- Because I decided to ES Modules the downloaded files and directories will not work directly on the file system. I am therefore bundling the js with a github action and saving as an artefact. The artefact bundles all js and css into a single file that can be downloaded.
 - It is also intended to be simple enough for me to understand not only now but in the future too, so that it is easier to modify and muck around with.
 
 ## What can you do with it?
@@ -20,15 +20,15 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 ## Limitations
 
 1. There are many limitations, but perhaps the biggest one is the number of files it can cope with. Probably no more than a thousand before the browser starts complaining.
-  - Every text file is turned into an expandable `details` element, which when expanded shows the content of that file.
-  - This is obviously a bad idea with lots and lots of files because your DOM will get overloaded.
 2. You can't edit the files. (There is a handy 'copy file name' bit of functionality though which I use to easily open the required file in my text files folder on windows explorer).
 3. It only takes the notes in the top level of a folder, it doesn't use sub folders.
 4. Only one level of tag classifcation allowed. Ie `#that/this` is fine `#that/this/them` isn't.
 
 ## Roadmap
 
-1. Modal text file view rather than using details. I realised that I rarely need multiple notes open at once and this will be more scalable.
-  - Note that to implement this I am going to use showOpenFilePicker() which only works on Chrome and Edge (ie not Safari) at the time of writing. But it means I don't have to save the content of the file I can just load it later without requiring the user to re-click ok. Plus it just works very nicely.
-2. Table view of the notes, with tags and note properties as column headers, which also allow filtering and sorting. Almost certainly using tabulator js.
-3. Virtual DOM that destroy and creates html elements depending on scroll position to avoid having too many html elements at once. Tabulator js does this for you so would be relevant for grid view. Or maybe just pagination in the first instance!
+1. IN PROGRESS - Table view of the notes, with tags and note properties as column headers, which also allow filtering and sorting. This will be implemented as a css grid with css sub grid, *not* an actual html table.
+2. Ability to switch between table and wall of notes views of the files. Currently the wall of notes views is coded up but is not a selectable option.
+3. A way of toggling between markdown (ie rendered html) view and plain text view in the show text modal.
+4. Before pagination will need to implement a js based system of show and hiding files.
+5. Alongside this some sort of very simple DOM diffing process can be considered.
+6. Pagination of rendered files to cope with large numbers of files. In future this could be implemented by a virtual DOM that destroy and creates html elements depending on scroll position but not in the immediate plans.
