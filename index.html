@@ -1,75 +1,80 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text file viewer</title>
   <!-- inlining icon as part of single file app approach. This is the twemoji pencil icon -->
-  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAsVBMVEVHcEzZnoLZnoLZnoLM1t3qWW7ZnoL/zE3qWW7ZnoLZnoKZqrWisbzZnoLZnoLZnoLqWW4pLzMpLzMpLzPZnoLqWW7qWW7ZnoLZnoLqWW4pLzPqWW7qWW67x9DV1MUpLzPqWW4pLzPZnoLZnoIpLzPZnoLM1t0pLzOZqrXqWW7J09ujsr3/zE3nr27DkHjCztb8zVacrbi5xs7W1MLfiJg0NjhKREKXdGQ/PT1rWVF2YFZwkFC4AAAAJXRSTlMA7yAQYGBgYBDPgGBgcL/fgIBwz49wIJ9Q799Qn2BgYM8gQDAQun1/XwAAAWBJREFUeNrt0GdywlAMRWG5Aqb3DiGJCyW9Z/8LSygzF2eCxnryT58FfCNdOm/Qb7W8Mmkrz9b7xlOtc7U+5akdSCoHvbo5OVHk5uRED9WcnKcEks5JknlOzjN2UjrRpiaDZpecrWynwWUnSSQ39RlnuxHs1OKcKFoIIM55eSxlhTze2e2ySuUx72SXpqwjkTzGEUqMI5NcxhFKjCOTqowjlBhHJs0ZR7hTytFINcaR7gRHeRMcpeTCUUoLOEqptCukQiqkQsog3Y1UEpzQcjQSnDAMSCPBCZtkLME55KskOGGDDCU4p2yVBCesk4EEB1XIRIKDbDMJDn4zkOCgBplIcJBjIsFBPhlIcNCQpBKcVBaJJTipbsTSyPoXCkicEzT/Kvff7xMyyW+knI+3OI6XZJTda+KevRN3yTS7XjlCX/GhFZnn+MPf6T+PUId0XfcmR6hN6pZdXKRs1Wm3b38Ai5w9ZKhA8zsAAAAASUVORK5CYII=">
+  <link rel="icon" type="image/png"
+    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAsVBMVEVHcEzZnoLZnoLZnoLM1t3qWW7ZnoL/zE3qWW7ZnoLZnoKZqrWisbzZnoLZnoLZnoLqWW4pLzMpLzMpLzPZnoLqWW7qWW7ZnoLZnoLqWW4pLzPqWW7qWW67x9DV1MUpLzPqWW4pLzPZnoLZnoIpLzPZnoLM1t0pLzOZqrXqWW7J09ujsr3/zE3nr27DkHjCztb8zVacrbi5xs7W1MLfiJg0NjhKREKXdGQ/PT1rWVF2YFZwkFC4AAAAJXRSTlMA7yAQYGBgYBDPgGBgcL/fgIBwz49wIJ9Q799Qn2BgYM8gQDAQun1/XwAAAWBJREFUeNrt0GdywlAMRWG5Aqb3DiGJCyW9Z/8LSygzF2eCxnryT58FfCNdOm/Qb7W8Mmkrz9b7xlOtc7U+5akdSCoHvbo5OVHk5uRED9WcnKcEks5JknlOzjN2UjrRpiaDZpecrWynwWUnSSQ39RlnuxHs1OKcKFoIIM55eSxlhTze2e2ySuUx72SXpqwjkTzGEUqMI5NcxhFKjCOTqowjlBhHJs0ZR7hTytFINcaR7gRHeRMcpeTCUUoLOEqptCukQiqkQsog3Y1UEpzQcjQSnDAMSCPBCZtkLME55KskOGGDDCU4p2yVBCesk4EEB1XIRIKDbDMJDn4zkOCgBplIcJBjIsFBPhlIcNCQpBKcVBaJJTipbsTSyPoXCkicEzT/Kvff7xMyyW+knI+3OI6XZJTda+KevRN3yTS7XjlCX/GhFZnn+MPf6T+PUId0XfcmR6hN6pZdXKRs1Wm3b38Ai5w9ZKhA8zsAAAAASUVORK5CYII=">
   <base target="_blank">
   <link rel="stylesheet" href="public/style.css">
 </head>
+
 <body>
 
-<dialog id="file-content-modal" data-action="close-file-content-outside">
-  <!-- The inner element which is tracked by the view-transition-name -->
-  <div id="moving-file-content-container">
-    <div id="modal-content" tabindex="0">
-      <div class="color-dynamic" id="file-content-header" data-color="">
-        <div id="file-content-filename">filename</div>
-        <div class="flexgrow"></div>
-        <button data-action="close-file-content-modal">✕</button>
+  <dialog id="file-content-modal" data-action="close-file-content-outside">
+    <!-- The inner element which is tracked by the view-transition-name -->
+    <div id="moving-file-content-container">
+      <div id="modal-content" tabindex="0">
+        <div class="color-dynamic" id="file-content-header" data-color="">
+          <div id="file-content-filename">filename</div>
+          <div class="flexgrow"></div>
+          <button data-action="close-file-content-modal">✕</button>
+        </div>
+        <div id="modal-content-text"></div>
       </div>
-      <div id="modal-content-text"></div>
+      <div id="file-content-footer">
+        <div class="flexgrow"></div>
+      </div>
     </div>
-    <div id="file-content-footer">
-      <div class="flexgrow"></div>
-    </div>
-  </div>
-</dialog>
+  </dialog>
 
   <button id="btn_loadFileHandles" data-click-loadfiles>Handle files</button>
   <span id=fileCountElement>No</span> files loaded
   <br><br>
 
   <main>
-  <div class="border-rounded">
-  <b>Tag categories</b>
-  <div id="tag_output"></div>
-  </div>
+    <div class="border-rounded">
+      <b>Tag categories</b>
+      <div id="tag_output"></div>
+    </div>
 
-  <p><b>Text files</b></p>
-  <div class="flex-row stick-top">
-  <div class="flex-row label_group">
+    <p><b>Text files</b></p>
+    <div class="flex-row flex-wrap stick-top">
+      <div class="flex-row label_group">
 
-  	<div class="ANDOR_label">filter</div>
-		<div class="ANDOR_label">OR</div>
-		<label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter" data-action="toggle-filter-mode"><span class="slider"></span></label> 
-		<div class="ANDOR_label">AND</div>
+        <div class="ANDOR_label">filter</div>
+        <div class="ANDOR_label">OR</div>
+        <label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"
+            data-action="toggle-filter-mode"><span class="slider"></span></label>
+        <div class="ANDOR_label">AND</div>
 
-  </div>
+      </div>
 
-  <button class="showall" data-action="clear-filters">clear filters</button>
+      <button class="showall" data-action="clear-filters">clear filters</button>
 
-  <label class="select-label" for="view-select">view
-  <select id="view-select" data-action="view-select">
-    <option value="">--view options--</option>
-    <option value="table">table</option>
-    <option value="cards" selected>cards</option>
-  </select>
-  </label>
-
-
+      <label class="select-label" for="view-select">view
+        <select id="view-select" data-action="view-select">
+          <option value="">--view options--</option>
+          <option value="table">table</option>
+          <option value="cards" selected>cards</option>
+        </select>
+      </label>
 
 
-	<div class="flexgrow"></div>
-	<label class="formcontrol"><input type="radio" name="radio" checked />Snow</label>
-	<label class="formcontrol"><input type="radio" name="radio" id="funcheck" />Glow</label>
-  </div>
 
-  <div id="output" class="list-grid"></div>
+
+      <div class="flexgrow"></div>
+      <label class="formcontrol"><input type="radio" name="radio" checked />Snow</label>
+      <label class="formcontrol"><input type="radio" name="radio" id="funcheck" />Glow</label>
+    </div>
+
+    <div id="output" class="list-grid"></div>
   </main>
 
 </body>
 <script type="module" src="public/main.js"></script>
+
 </html>
