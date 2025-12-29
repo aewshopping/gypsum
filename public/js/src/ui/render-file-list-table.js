@@ -17,19 +17,23 @@ export async function renderFileList_table() {
     reOrderMap();
 
 
+
     // set the header row...
     let file_html = `
+
+        <div class="list-table">
+
             <div class="note-table-header">
 
-            <div class="note-table-cell">filename</div>
+                <div class="note-table-cell">filename</div>
 
-            <div class="note-table-cell">title</div>
+                <div class="note-table-cell">title</div>
 
-            <div class="note-table-cell">tags</div>
+                <div class="note-table-cell">tags</div>
 
-            <div class="note-table-cell">date modified</div>
+                <div class="note-table-cell">date modified</div>
 
-        </div>
+            </div>
     `
 
     for (const file of appState.myFiles) {
@@ -61,6 +65,8 @@ export async function renderFileList_table() {
         `
         }
     }
+
+    file_html += "</div>" // close the list table div
 
     document.getElementById('output').innerHTML = file_html;
 

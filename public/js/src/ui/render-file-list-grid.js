@@ -6,7 +6,7 @@ import { renderTags } from './ui-functions-render/render-tags.js';
 
 export async function renderFileList_grid() {
 
-    let file_html = ""
+    let file_html = `<div class="list-grid">`
 
     for (const file of appState.myFiles) {
         if (file.show === true) {
@@ -34,6 +34,8 @@ export async function renderFileList_grid() {
         `
        }
     }
+
+    file_html += "</div>" // closing the list-grid div
 
     document.getElementById('output').innerHTML = file_html;
 

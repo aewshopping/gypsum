@@ -38,21 +38,14 @@ export function renderData() {
 // is there a better way to do this? Feels pretty hacky.
 function renderSelected(element) {
     const outputElement = document.getElementById("output");
-    const viewClasses = ['list-grid', 'list-table'];
     switch(element.value) {
         case 'cards':
-            outputElement.classList.remove(...viewClasses);
-            outputElement.classList.add('list-grid');
             renderFileList_grid();
             break;
         case 'table':
-            outputElement.classList.remove(...viewClasses);
-            outputElement.classList.add('list-table');
             renderFileList_table();
             break;
         default:
-            outputElement.classList.remove(...viewClasses);
-            outputElement.classList.add('list-grid');
             renderFileList_grid();
             break;
     }
