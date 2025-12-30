@@ -1,6 +1,6 @@
 import { TAGGER } from '../../constants.js'; // Still used for visual highlighting in the current DOM
 import { appState } from '../../services/store.js';
-import { renderAllFiles } from '../ui-functions-render/render-all-files.js';
+import { renderData } from '../ui-functions-render/render-all-files.js';
 import { renderActiveTags } from '../ui-functions-render/render-active-tags.js';
 
 /**
@@ -51,7 +51,7 @@ export function updateMyFilesShowState() {
     });
 
     // 3. Trigger the UI to re-render or update based on the new 'show' state.
-    renderAllFiles();
+    renderData();
 }
 
 

@@ -1,11 +1,9 @@
 import { loadFileHandles } from './js/src/services/file-handler.js';
 import { renderTagTaxonomy } from './js/src/ui/render-tag-taxonmy.js';
-import { renderFileList_grid } from './js/src/ui/render-file-list-grid.js';
-import { addActionHandlers } from './js/src/ui/event-listeners-add.js';
 import { sortAppStateFiles } from './js/src/services/file-object-sort.js';
-import { renderFileList_table } from './js/src/ui/render-file-list-table.js';
-import { renderActiveTags } from './js/src/ui/ui-functions-render/render-active-tags.js';
 import { appState } from './js/src/services/store.js';
+import { renderData } from './js/src/ui/ui-functions-render/render-all-files.js';
+import { addActionHandlers } from './js/src/ui/event-listeners-add.js';
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -22,39 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
 async function conductor() {
     await loadData();
     renderData();
+    addActionHandlers();
 }
 
 async function loadData() {
     await loadFileHandles();
     renderTagTaxonomy();
     sortAppStateFiles("filename", "string", "desc");
-}
-
-// should move most of this off to the render-all-files module later!
-export function renderData() {
-    const myView = document.getElementById("view-select");
-    renderSelected(myView);
-    addActionHandlers();
-    renderActiveTags();
-}
-
-
-
-// is there a better way to do this? Feels pretty hacky.
-function renderSelected(element) {
-    const viewSelectElem = document.querySelector('[data-action="view-select"]');
-    appState.viewState = viewSelectElem.value;
-
-    const outputElement = document.getElementById("output");
-    switch(appState.viewState) {
-        case 'cards':
-            renderFileList_grid();
-            break;
-        case 'table':
-            renderFileList_table();
-            break;
-        default:
-            renderFileList_grid();
-            break;
-    }
 }

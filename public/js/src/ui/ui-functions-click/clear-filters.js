@@ -1,6 +1,6 @@
 import { NOTE, TAGGER, HIDER, AND_HIDER } from '../../constants.js';
 import { appState } from '../../services/store.js';
-import { renderAllFiles } from '../ui-functions-render/render-all-files.js';
+import { renderData } from '../ui-functions-render/render-all-files.js';
 
 
 export function handleClearFilters() {
@@ -13,7 +13,7 @@ export function handleClearFilters() {
         file.show = true;
     });    
 
-    renderAllFiles();
+    renderData();
     
     document.querySelectorAll(`.${NOTE}`).forEach(el => el.classList.remove(HIDER, AND_HIDER));
 

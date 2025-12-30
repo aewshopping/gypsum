@@ -1,8 +1,26 @@
-import { renderData } from "../../../../main.js";
 import { renderActiveTags } from "./render-active-tags.js";
+import { appState } from "../../services/store.js";
+import { renderFileList_grid } from "../render-file-list-grid.js";
+import { renderFileList_table} from "../render-file-list-table.js";
 
-export function renderAllFiles() {
-    console.log("Rendering all files based on current filter settings.");
-    renderData();
+export function renderData() {
+    renderActiveFiles();
+//    addActionHandlers();
     renderActiveTags();
+}
+
+function renderActiveFiles() {
+
+    const outputElement = document.getElementById("output");
+    switch(appState.viewState) {
+        case 'cards':
+            renderFileList_grid();
+            break;
+        case 'table':
+            renderFileList_table();
+            break;
+        default:
+            renderFileList_grid();
+            break;
+    }
 }
