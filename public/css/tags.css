@@ -16,14 +16,6 @@
     border-radius: 4px;
     margin-right: 4px;}
 
-/* BEHAVIOUR CSS */ 
-.hider:not(:has(.tagselected)) {display:none;} /* hides details elems if their tags are not selected, if the hider class is present (added after first tag click to all details elems). The OR filter */
-
-/* BEHAVIOUR CSS */
-body:has(#and_filter:checked) {
-    .and_hider {display:none} /* hides details elems if the and_hider class is present. The AND filter */
-}
-
 /* STYLE CSS (for AND filter) */
 body:has(#and_filter:checked) {/* if AND filter applied, colours here override OR colours above */
     .tag:hover {
