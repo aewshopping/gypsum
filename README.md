@@ -4,9 +4,9 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 ## What's the point of it?
 
-- Because it works client side in the browser you can use it on any computer. Unlike Obsidian you don't need to download an application.
-- You can also download the html files and use it offline. It does have depencencies (for example `marked.js`) but those are included as bundled files rather than using the official cdn. Ie no *remote* dependencies allowed.
-- Because I decided to ES Modules the downloaded files and directories will not work directly on the file system. I am therefore bundling the js with a github action and saving as an artefact. The artefact bundles all js and css into a single file that can be downloaded.
+- Because it works client side in the browser you can use it on any computer. Either served as a normal webpage or just download the single bundled html file. Unlike Obsidian you don't need to download a desktop application.
+- It does have depencencies (for example `marked.js`) but those are included as bundled files rather than using the official cdn. Ie no *remote* dependencies are used.
+- Because I decided to ES Modules the downloaded files and directories will not work directly on the file system. I am therefore bundling the js with a github action and saving as a artefact. The artefact bundles all js and css into a single file that can be downloaded.
 - It is also intended to be simple enough for me to understand not only now but in the future too, so that it is easier to modify and muck around with.
 
 ## What can you do with it?
@@ -20,14 +20,13 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 ## Limitations
 
-1. There are many limitations, but perhaps the biggest one is the number of files it can cope with. Probably no more than a thousand before the browser starts complaining.
+1. There are many limitations, but perhaps the biggest one is the number of files it can cope with. Probably no more than a thousand before the browser starts complaining. This can be relatively easily rectified with selective rendering of files (eg pagination) but this is not yet implemented.
 2. You can't edit the files. (There is a handy 'copy file name' bit of functionality though which I use to easily open the required file in my text files folder on windows explorer).
 3. It only takes the notes in the top level of a folder, it doesn't use sub folders.
-4. Only one level of tag classifcation allowed. Ie `#that/this` is fine `#that/this/them` isn't.
+4. For tag hierarchies only one level of tag classifcation is allowed. Ie `#that/this` is fine `#that/this/them` isn't.
 
 ## Immediate to do list
 
-- Sort out the redundant tag-click.js which is no longer used.
 - Tidy up the tag highlighting in the css which now just relies on TAGGER to highlight but doesn't do any showing and hiding (all js render now)
 - Move render function out of main to render-all-files.js
 

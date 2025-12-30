@@ -1,8 +1,6 @@
 // the reason for using these constants is so that can be confident in using the same names in the css
 export const TAG_JOINER = " "; // previously " | "
-export const TAGGER = "tagselected";
-export const HIDER = "hider";
-export const AND_HIDER = "and_hider";
+export const TAGGER = "tagselected"; // to link with css tag highlighting
 export const NOTE = "note-table";
 export const COPYTHIS = "copyflag";
 export const COPYATTR = "filename";
