@@ -77,30 +77,10 @@ export function handleTagClick(evt) {
         appState.filterTags.add(tagName);
     }
 
-    // 2. **VISUAL UPDATE FOR CURRENT DOM**
-    // Apply the TAGGER class to all instances of the tags for visual highlighting.
-    // This part provides immediate feedback and sets the state for the current DOM.
-    renderActiveTags();
-/*    // First, remove the TAGGER class from *all* elements to ensure a clean slate.
-    // (This is often faster than checking individual elements)
-    document.querySelectorAll(`.${TAGGER}`).forEach(el => {
-        el.classList.remove(TAGGER);
-    });
-
-    // Then, iterate through the authoritative list (appState.filterTags) 
-    // and apply the highlight only to the tags that should be selected.
-    appState.filterTags.forEach(selectedTagName => {
-        const matchingTags = document.querySelectorAll(`.tag.${selectedTagName}`);
-        matchingTags.forEach(tagElem => {
-            tagElem.classList.add(TAGGER);
-        });
-    });*/
+    // 2. Provides immediate feedback if needed for future debugging
+    // renderActiveTags();
     
     // 3. Update the core application state for filtering the notes.
     updateMyFilesShowState();
     
-    // 4. Handle clearance if no tags are selected
-  /*  if (appState.filterTags.size === 0) {
-        handleClearFilters();
-    }*/
 }
