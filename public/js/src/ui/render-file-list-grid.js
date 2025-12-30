@@ -6,7 +6,18 @@ import { renderTags } from './ui-functions-render/render-tags.js';
 
 export async function renderFileList_grid() {
 
-    let file_html = `<div class="list-grid">`
+    // set the header card
+    let file_html = `
+        <div class="list-grid">
+
+            <div class="note-grid-header">
+
+                <div><i>filename</i></div>
+                <p>file title</p>
+                <code>file tags</code>
+
+            </div>`
+
 
     for (const file of appState.myFiles) {
         if (file.show === true) {

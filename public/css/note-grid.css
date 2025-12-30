@@ -16,3 +16,12 @@
         border: var(--border-width) solid var(--colour-contr);
     }
 }
+
+.note-grid-header {
+    background-color: var(--colour-neutral-alt);
+    --border-width: 2px;
+    border: var(--border-width) solid transparent;
+    border-radius: 4px;
+    padding: 10px;
+    overflow-x:hidden;
+}
