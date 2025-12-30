@@ -27,8 +27,7 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 ## Immediate to do list
 
-- Tidy up the tag highlighting in the css which now just relies on TAGGER to highlight but doesn't do any showing and hiding (all js render now)
-- Move render function out of main to render-all-files.js
+- Allow sorting by property on both table and grid view.
 
 ## Roadmap
 
