@@ -8,10 +8,15 @@ import { renderActiveTags } from './js/src/ui/ui-functions-render/render-active-
 import { appState } from './js/src/services/store.js';
 
 document.addEventListener('DOMContentLoaded', function() {
+
     const loadFilesButton = document.querySelector('[data-click-loadfiles]');
     loadFilesButton.addEventListener('click', function() {
         conductor();
     });
+
+    const viewSelectElem = document.querySelector('[data-action="view-select"]');
+    viewSelectElem.value = appState.viewState
+
 });
 
 async function conductor() {
@@ -37,8 +42,11 @@ export function renderData() {
 
 // is there a better way to do this? Feels pretty hacky.
 function renderSelected(element) {
+    const viewSelectElem = document.querySelector('[data-action="view-select"]');
+    appState.viewState = viewSelectElem.value;
+
     const outputElement = document.getElementById("output");
-    switch(element.value) {
+    switch(appState.viewState) {
         case 'cards':
             renderFileList_grid();
             break;
