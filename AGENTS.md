@@ -16,8 +16,17 @@ This is a web application for viewing local text files in the browser. It is wri
 2.  **Make changes:** Modify the source files in the `public` directory.
 3.  **Test in the browser:** Open the application in your browser to test your changes.
 
+## Codebase Structure
+
+### CSS
+The CSS is located in `public/css` and is structured in a modular way. Each file is responsible for styling a specific component (e.g., `modal-file-content.css`, `note-grid.css`) or providing utility styles (e.g., `colors.css`, `utility.css`). All these files are imported into `public/style.css`.
+
+### JavaScript
+The JavaScript source code is in `public/js`. The entry point is `public/main.js`. The rest of the code is organized within `public/js/src` and follows a separation of concerns:
+- `public/js/src/services`: Contains the business logic of the application, such as file handling and data management.
+- `public/js/src/ui`: Contains the code responsible for rendering the user interface and handling user interactions.
+
 ## Important Notes
 
-- Do not edit the files in the `dist` directory. These are build artifacts.
 - When adding new JavaScript files, make sure to use the `.js` extension and import them as ES modules.
 - The application state is managed in the `public/js/src/services/store.js` file.
