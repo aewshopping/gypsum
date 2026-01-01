@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', function () {
         viewSelectElem.appendChild(option);
     }
 
-    viewSelectElem.value = appState.viewState
+    viewSelectElem.value = appState.viewState;
+    addActionHandlers();
 
 });
 
