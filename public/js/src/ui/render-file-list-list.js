@@ -13,7 +13,19 @@ export async function renderFileList_list() {
                         <summary>${filename_html}</summary>
                         <ul>`;
             for (const key in file) {
-                file_html += `<li><strong>${key}:</strong> ${file[key]}</li>`;
+                const value = file[key];
+                // Skip properties that we don't want to display
+                if (key === 'handle' || key === 'show') continue;
+
+                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                    file_html += `<li><strong>${key}:</strong><ul>`;
+                    for (const subKey in value) {
+                        file_html += `<li><strong>${subKey}:</strong> ${value[subKey]}</li>`;
+                    }
+                    file_html += `</ul></li>`;
+                } else {
+                    file_html += `<li><strong>${key}:</strong> ${value}</li>`;
+                }
             }
             file_html += `
                         </ul>
