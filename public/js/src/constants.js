@@ -12,3 +12,9 @@ export const regex_title = /(?<=^# )(.*$)/;
 export const regex_tag = /#(?!([0-9a-fA-F]{3}){1,2}\b)(?:(\w+)\/)?(\w+)/;
 
 export const arrTableViewHide = ['tags_parent', 'color', 'handle']
+
+export const VIEWS = {
+    TABLE: { value: "table", label: "table" },
+    CARDS: { value: "cards", label: "cards" },
+    LIST: { value: "list", label: "list" }
+};
