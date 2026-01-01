@@ -4,15 +4,24 @@ import { sortAppStateFiles } from './js/src/services/file-object-sort.js';
 import { appState } from './js/src/services/store.js';
 import { renderData } from './js/src/ui/ui-functions-render/render-all-files.js';
 import { addActionHandlers } from './js/src/ui/event-listeners-add.js';
+import { VIEWS } from './js/src/constants.js';
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
 
     const loadFilesButton = document.querySelector('[data-click-loadfiles]');
-    loadFilesButton.addEventListener('click', function() {
+    loadFilesButton.addEventListener('click', function () {
         conductor();
     });
 
     const viewSelectElem = document.querySelector('[data-action="view-select"]');
+
+    for (const key in VIEWS) {
+        const option = document.createElement('option');
+        option.value = VIEWS[key].value;
+        option.textContent = VIEWS[key].label;
+        viewSelectElem.appendChild(option);
+    }
+
     viewSelectElem.value = appState.viewState
 
 });
