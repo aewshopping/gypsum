@@ -29,7 +29,7 @@ export const FILE_PROPERTIES = {
 };
 
 // defines the columns that will be shown in the table view
-export const TABLE_VIEW_COLUMNS = {
-  hidden_always: ['fileHandle', 'show', 'content'],
-  hidden_at_start: ['id', 'tags_parent'],
+export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
+  hidden_always: ['handle', 'show', 'content'],
+  hidden_at_start: ['id', 'tags_parent'], // could in future add check box functionality to show current cols ticked and these cols unticked
 };
