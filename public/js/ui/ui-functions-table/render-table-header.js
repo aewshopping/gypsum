@@ -7,8 +7,9 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
  * @returns {string} The HTML string for the table header.
  */
 export function renderTableHeader() {
-    // Get the default columns to display
-    const columnsToShow = [...TABLE_VIEW_COLUMNS.default];
+    // Dynamically determine columns to show
+    const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
+    const columnsToShow = Object.keys(FILE_PROPERTIES).filter(prop => !hiddenColumns.has(prop));
 
     // Sort columns based on the display_order defined in FILE_PROPERTIES
     columnsToShow.sort((a, b) => {

@@ -32,5 +32,4 @@ export const FILE_PROPERTIES = {
 export const TABLE_VIEW_COLUMNS = {
   hidden_always: ['fileHandle', 'show', 'content'],
   hidden_at_start: ['id', 'tags_parent'],
-  default: ['filename', 'title', 'tags', 'lastModified', 'sizeInBytes', 'color'],
 };
