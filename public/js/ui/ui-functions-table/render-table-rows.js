@@ -57,7 +57,7 @@ export function renderTableRows(columnsToShow) {
             // this is the "wrapper" div that contains the table row elements rendered above
             const tagList = file.tags ? file.tags.join(" ") : "";
             rowsHtml += `
-                <div class="note-table note-table-row ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
+                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
                     ${cellsHtml}
                 </div>
             `;
