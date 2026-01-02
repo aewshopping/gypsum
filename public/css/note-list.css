@@ -11,8 +11,6 @@
 .list-file-open {
     --border-width: 2px;
     border: var(--border-width) solid transparent;
-    color:var(--colour-contr);
-    background-color: var(--colour-neutral-alt);
     padding: 1px 12px 1px 12px;
     border-radius: 4px;
     cursor:pointer;

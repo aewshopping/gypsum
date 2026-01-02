@@ -18,6 +18,7 @@
 
     &:hover {
         background-color: var(--colour-neutral-alt);
+        color: var(--colour-contr);
     }
 }
 

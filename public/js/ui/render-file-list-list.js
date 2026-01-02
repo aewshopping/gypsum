@@ -20,7 +20,7 @@ export async function renderFileList_list() {
                     <details>
                         <summary>${filename_html} ${tag_pills_html}</summary>
                         <ul>
-                        <li><span class="list-file-open" data-filename="${file.filename}" data-action="open-file-content-modal">${file.title}</span> &#8592; show file content</li>
+                        <li><strong>show file content &#8594; </strong><span class="list-file-open color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">${file.title}</span></li>
                         `;
             for (const key in file) {
                 const value = file[key];
