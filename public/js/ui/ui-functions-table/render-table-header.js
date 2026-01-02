@@ -1,4 +1,4 @@
-import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 
 /**
  * Renders the header for the table view.
@@ -7,9 +7,9 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
  * @returns {string} The HTML string for the table header.
  */
 export function renderTableHeader() {
-    // Dynamically determine columns to show
+    // Dynamically determine columns to show from myFilesProperties
     const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
-    const columnsToShow = Object.keys(FILE_PROPERTIES).filter(prop => !hiddenColumns.has(prop));
+    const columnsToShow = [...appState.myFilesProperties.keys()].filter(prop => !hiddenColumns.has(prop));
 
     // Sort columns based on the display_order defined in FILE_PROPERTIES
     columnsToShow.sort((a, b) => {

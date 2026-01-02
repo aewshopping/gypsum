@@ -10,9 +10,9 @@ import { renderTags } from '../ui-functions-render/render-tags.js';
 export function renderTableRows() {
     let rowsHtml = '';
 
-    // Dynamically determine columns to show
+    // Dynamically determine columns to show from myFilesProperties
     const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
-    const columnsToShow = Object.keys(FILE_PROPERTIES).filter(prop => !hiddenColumns.has(prop));
+    const columnsToShow = [...appState.myFilesProperties.keys()].filter(prop => !hiddenColumns.has(prop));
 
     columnsToShow.sort((a, b) => {
         const orderA = FILE_PROPERTIES[a]?.display_order ?? 99;
