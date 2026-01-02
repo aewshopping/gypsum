@@ -1,4 +1,4 @@
-import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 
 /**
  * Renders the header for the table view.
@@ -7,8 +7,11 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
  * @returns {string} The HTML string for the table header.
  */
 export function renderTableHeader() {
-    // Get the default columns to display
-    const columnsToShow = [...TABLE_VIEW_COLUMNS.default];
+    // Dynamically determine columns to show from myFilesProperties
+    const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
+    const columnsToShow = [...appState.myFilesProperties.keys()].filter(prop => !hiddenColumns.has(prop));
+
+console.log(appState.myFilesProperties);
 
     // Sort columns based on the display_order defined in FILE_PROPERTIES
     columnsToShow.sort((a, b) => {
@@ -26,7 +29,7 @@ export function renderTableHeader() {
     const columnWidths = columnsToShow
         .map(propName => {
             const width = FILE_PROPERTIES[propName]?.column_width;
-            return width ? `${width}px` : 'auto'; // Default to 'auto' if width is not defined
+            return width ? `${width}px` : '100px'; // Default to '100px' if width is not defined, noting 'auto' doesn't work!
         })
         .join(' ');
 
