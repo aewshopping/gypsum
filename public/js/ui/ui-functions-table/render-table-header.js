@@ -1,4 +1,4 @@
-import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { appState, FILE_PROPERTIES } from '../../services/store.js';
 
 /**
  * Renders the header for the table view.

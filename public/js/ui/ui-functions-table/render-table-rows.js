@@ -1,4 +1,4 @@
-import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { appState, FILE_PROPERTIES } from '../../services/store.js';
 import { renderFilename } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 

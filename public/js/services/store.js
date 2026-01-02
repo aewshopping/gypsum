@@ -7,8 +7,11 @@ export const appState = {
   filterMode: 'OR', // 'AND' or 'OR'
   filterTags: new Set(),
   myTaxonomy: [],
-  viewState: VIEWS.CARDS.value
+  viewState: VIEWS.CARDS.value,
+  sortState: { property: 'filename', direction: 'desc'}
 }
+
+export const propertySortMap = new Map();
 
 // defines the properties of the file objects
 export const FILE_PROPERTIES = {

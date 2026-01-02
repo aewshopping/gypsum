@@ -10,7 +10,8 @@ import { appState } from './store.js';
  */
 export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
   let dataArray = appState.myFiles;
-   console.log(`sorting by ${property}, type ${dataType}, order ${sortOrder}`);
+
+  // console.log(`sorting by ${property}, type ${dataType}, order ${sortOrder}`);
 
   if (!dataArray || !Array.isArray(dataArray)) {
     console.error("Error: appState.myFiles is not defined or is not an array.");
