@@ -11,6 +11,8 @@ export function renderTableHeader() {
     const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
     const columnsToShow = [...appState.myFilesProperties.keys()].filter(prop => !hiddenColumns.has(prop));
 
+console.log(appState.myFilesProperties);
+
     // Sort columns based on the display_order defined in FILE_PROPERTIES
     columnsToShow.sort((a, b) => {
         const orderA = FILE_PROPERTIES[a]?.display_order ?? 99;
@@ -27,7 +29,7 @@ export function renderTableHeader() {
     const columnWidths = columnsToShow
         .map(propName => {
             const width = FILE_PROPERTIES[propName]?.column_width;
-            return width ? `${width}px` : 'auto'; // Default to 'auto' if width is not defined
+            return width ? `${width}px` : '100px'; // Default to '100px' if width is not defined, noting 'auto' doesn't work!
         })
         .join(' ');
 
