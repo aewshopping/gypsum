@@ -13,7 +13,7 @@ export function renderData() {
 
 function renderActiveFiles() {
 
-    const outputElement = document.getElementById("output");
+//    const outputElement = document.getElementById("output");
     switch(appState.viewState) {
         case VIEWS.CARDS.value:
             renderFileList_grid();

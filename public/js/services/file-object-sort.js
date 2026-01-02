@@ -9,18 +9,19 @@ import { appState } from './store.js';
  * @returns {void} The function sorts the globalData array in place.
  */
 export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
-  const dataArray = appState.myFiles;
+  let dataArray = appState.myFiles;
+   console.log(`sorting by ${property}, type ${dataType}, order ${sortOrder}`);
 
   if (!dataArray || !Array.isArray(dataArray)) {
     console.error("Error: appState.myFiles is not defined or is not an array.");
     return;
   }
 
-  const orderMultiplier = (sortOrder === 'desc' ? -1 : 1);
+  let orderMultiplier = (sortOrder === 'desc' ? -1 : 1);
 
   dataArray.sort((a, b) => {
     // Helper function to extract the value for comparison
-    const extractValue = (obj) => {
+    let extractValue = (obj) => {
       let value = obj[property];
       
       // Use length if the value is an array ***
@@ -35,7 +36,7 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
     let comparison = 0;
     
     // Determine the effective data type for comparison
-    const effectiveDataType = Array.isArray(a[property]) ? 'number' : dataType;
+    let effectiveDataType = Array.isArray(a[property]) ? 'number' : dataType;
 
 
     if (effectiveDataType === 'number') {

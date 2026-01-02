@@ -4,6 +4,7 @@ import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
+import { handleSortObject } from './ui-functions-click/sort-object.js';
 
 export function addActionHandlers() {
     document.addEventListener("click", clickDelegate);
@@ -18,6 +19,7 @@ const actionHandlers = {
     'open-file-content-modal': handleOpenFileContent,
     'close-file-content-modal': handleCloseModal,
     'close-file-content-outside': handeCloseModalOutside,
+    'sort-object': handleSortObject,
 };
 
 const changeActionHandlers = {

@@ -41,3 +41,9 @@ body:has(input[type="radio"]#funcheck:checked) {
     background-color: attr(data-color type(<color>), var(--colour-neutral-alt));
     color: var(--color-mono-contr); /* if null fall back will be color set elsewhere */
 }
+
+.color-dynamic-transparent-fallback {
+    --color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
+    background-color: attr(data-color type(<color>));
+    color: var(--color-mono-contr); /* if null fall back no color will be set ie transparent */
+}

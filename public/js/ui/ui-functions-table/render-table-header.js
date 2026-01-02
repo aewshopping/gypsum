@@ -17,7 +17,7 @@ export function renderTableHeader(columnsToShow) {
 
     // Generate the header cell HTML
     const headerCellsHtml = columnsToShow
-        .map(propName => `<div class="note-table-cell">${propName}</div>`)
+        .map(propName => `<div class="note-table-cell-header flex-row">${propName}<span class="flexgrow"> </span><span data-property="${propName}" data-action="sort-object" class="sort-by-prop-trigger">˅</span></div>`)
         .join('');
 
     // Generate the grid-template-columns value for the CSS

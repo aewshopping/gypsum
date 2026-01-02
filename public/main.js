@@ -36,5 +36,5 @@ async function conductor() {
 async function loadData() {
     await loadFileHandles();
     renderTagTaxonomy();
-    sortAppStateFiles("filename", "string", "desc");
+    sortAppStateFiles("title", "string", "desc");
 }
