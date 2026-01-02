@@ -16,7 +16,7 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 3. You use tags like `#this` to easily associate text files.
 4. You can filter notes based on selected tags, either with an `and` filter or an `or` filter.
 5. Add a tag of the format `#color/red` (ie `#color/[color]`) and it will use this colour in the file viewer for that file, assuming it is a valid html color name.
-6. You can add simple YAML properties in front matter (ie key value pairs below one `---`and above another `---`). Currently you can't actually _see_ these properties though, they are just part of the file object. Work in progress.
+6. You can add simple YAML properties in front matter (ie key value pairs below one `---`and above another `---`). These are visible as columns in the table view.
 
 ## Limitations
 
@@ -27,12 +27,17 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 ## Immediate to do list
 
-- Allow sorting by property on both table and grid view.
+- For table view, add a way of easily scrolling horizontally to the left and the right, without requiring going right to the bottom of the element to find the scroll bar as you currently need to.
+- For table view is there a better way to deal with overflow-y on the table cells? Currently hover reveals a tiny scrollbar.
+- Update file-object-sort.js file to allow sorting by a date property type. (This looks like a job for AI)
+- For table view, add a visual indicator of the column that currently has sorting applied, and the direction of sort.
+- For table view, allow columns to be selected and de-selected, and then shown or not. The js is simple here, just needs an update to the `store.js` --> `hidden_at_start` array, then render. So challenge is finding a nice visual way that allow this to be updated in the UI. Popup?
+- For grid view, allow sorting by property on both grid view as well? Main issue here is how to visually make this work.
 
 ## Roadmap
 
-1. IN PROGRESS - Table view of the notes, with tags and custom note properties as column headers, which also allow filtering and sorting. This will be implemented as a css grid with css sub grid, *not* an actual html table.
-2. Table filtering is now active for tags... but not for other properties - also doesn't show properties. Low hanging fruit is implementing sort by existing columns.
-3. A way of toggling between markdown (ie rendered html) view and plain text view in the show text modal.
+1. A way of toggling between markdown (ie rendered html) view and plain text view in the show text modal.
+2. When showing file content, exclude any YAML front matter from markdown processing.
+3. Table filtering is now active for tags... but could do this for other properties too. Not sure how useful this will be as currently you can ctrl+F everything.
+4. Pagination of rendered files to cope with large numbers of files. In future this could be implemented by a virtual DOM that destroy and creates html elements depending on scroll position but not in the immediate plans.
 5. Alongside this some sort of very simple DOM diffing process might be considered.
-6. Pagination of rendered files to cope with large numbers of files. In future this could be implemented by a virtual DOM that destroy and creates html elements depending on scroll position but not in the immediate plans.
