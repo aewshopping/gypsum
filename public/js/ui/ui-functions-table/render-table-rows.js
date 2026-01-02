@@ -29,7 +29,7 @@ export function renderTableRows() {
                 switch (property?.type) {
                     case 'string':
                         if (propName === 'filename') {
-                            cellContent = renderFilename(value || '');
+                            cellContent = renderFilename(value || ''); // so that it shows the "copy filename" thing
                         } else {
                             cellContent = value || '';
                         }
@@ -40,7 +40,7 @@ export function renderTableRows() {
                     case 'array':
                         if (Array.isArray(value)) {
                              if (propName === 'tags') {
-                                cellContent = value.map(tag => renderTags(tag)).join('');
+                                cellContent = value.map(tag => renderTags(tag)).join(''); // to make the tags clickable filters
                              } else {
                                 cellContent = value.join(', ');
                              }
@@ -56,6 +56,7 @@ export function renderTableRows() {
                 return `<div class="note-table-cell">${cellContent}</div>`;
             }).join('');
 
+            // this is the "wrapper" div that contains the table row elements rendered above
             const tagList = file.tags ? file.tags.join(" ") : "";
             rowsHtml += `
                 <div class="note-table ${tagList} color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
