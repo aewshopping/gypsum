@@ -2,9 +2,14 @@ import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { renderData } from '../ui-functions-render/render-all-files.js';
 import { appState, FILE_PROPERTIES, propertySortMap } from '../../services/store.js';
 
+// this function is fired by clicking on an element that also has a data-property="something" on that element.
+// it looks up the property type (defaulting to string if property not in the FILE_PROPERTIES object), and also figures out the sort direction.
+// then calls the sort myFiles object function with these parameters, then finally calls a re-render of the page.
+// stores the property that has just been sorted and a direction in a map, so that it can be referenced in future to flip the sort direction (ie if you click the same property again).
+
 export function handleSortObject(evt, element){
 
-    const sortProp = element.dataset["property"];
+    const sortProp = element.dataset.property;
     const sortType = FILE_PROPERTIES[sortProp]?.type ?? "string"; // string as default for undefined properties
     let sortDirection = "";
 
