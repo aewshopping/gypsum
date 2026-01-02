@@ -1,10 +1,10 @@
-import { loadFileHandles } from './js/src/services/file-handler.js';
-import { renderTagTaxonomy } from './js/src/ui/render-tag-taxonmy.js';
-import { sortAppStateFiles } from './js/src/services/file-object-sort.js';
-import { appState } from './js/src/services/store.js';
-import { renderData } from './js/src/ui/ui-functions-render/render-all-files.js';
-import { addActionHandlers } from './js/src/ui/event-listeners-add.js';
-import { VIEWS } from './js/src/constants.js';
+import { loadFileHandles } from './js/services/file-handler.js';
+import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
+import { sortAppStateFiles } from './js/services/file-object-sort.js';
+import { appState } from './js/services/store.js';
+import { renderData } from './js/ui/ui-functions-render/render-all-files.js';
+import { addActionHandlers } from './js/ui/event-listeners-add.js';
+import { VIEWS } from './js/constants.js';
 
 document.addEventListener('DOMContentLoaded', function () {
 
