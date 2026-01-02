@@ -20,6 +20,7 @@ export const FILE_PROPERTIES = {
   title: { type: 'string', column_width: 350, display_order: 2 },
   filename: { type: 'string', column_width: 250, display_order: 1 },
   lastModified: { type: 'date', column_width: 150, display_order: 4 },
+  modified: { type: 'date', column_width: 150, display_order: 4 },
   tags: { type: 'array', column_width: 200, display_order: 3 },
   tags_parent: { type: 'array', column_width: 250, display_order: 10 },
   date: { type: 'date', column_width: 150, display_order: 5 },

@@ -4,7 +4,7 @@ import { appState } from './store.js';
  * Sorts the globalData array (appState.myFiles) based on a specified property and data type.
  *
  * @param {string} property. The property name within the objects to sort by (e.g., 'name', 'score').
- * @param {('string'|'number')} dataType. The data type of the property's value ('string' or 'number').
+ * @param {('string'|'number'|'date')} dataType. The data type of the property's value ('string', 'number' or 'date').
  * @param {('asc'|'desc')} [sortOrder='asc'] The direction to sort: 'asc' (ascending, default) or 'desc' (descending).
  * @returns {void} The function sorts the globalData array in place.
  */
@@ -46,6 +46,8 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
       if (typeof valA === 'string' && typeof valB === 'string') {
         comparison = valA.localeCompare(valB);
       }
+    } else if (effectiveDataType === 'date') {
+      comparison = new Date(valA) - new Date(valB);
     }
 
     // Apply the multiplier for sort order
