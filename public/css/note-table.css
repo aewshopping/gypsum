@@ -1,6 +1,6 @@
 .list-table {
 	display: grid;
-	grid-template-columns: 350px 550px 250px 150px; /* these are placeholder values as they will get dynamically overwritten by js depending on columns rendered and column widths specified in store.js */
+	grid-template-columns: var(--grid-columns); /* css property is created dynamically by js */
     gap: 10px;
     max-width: 100vw;
     overflow-x: auto;

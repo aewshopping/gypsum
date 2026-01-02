@@ -7,12 +7,8 @@ import { renderTags } from '../ui-functions-render/render-tags.js';
  * Iterates through the files in the appState and generates the HTML for each row.
  * @returns {string} The HTML string for all table rows.
  */
-export function renderTableRows() {
+export function renderTableRows(columnsToShow) {
     let rowsHtml = '';
-
-    // Dynamically determine columns to show from myFilesProperties
-    const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
-    const columnsToShow = [...appState.myFilesProperties.keys()].filter(prop => !hiddenColumns.has(prop));
 
     columnsToShow.sort((a, b) => {
         const orderA = FILE_PROPERTIES[a]?.display_order ?? 99;
