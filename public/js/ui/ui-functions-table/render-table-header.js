@@ -8,13 +8,6 @@ import { appState, FILE_PROPERTIES } from '../../services/store.js';
  */
 export function renderTableHeader(columnsToShow) {
 
-    // Sort columns based on the display_order defined in FILE_PROPERTIES
-    columnsToShow.sort((a, b) => {
-        const orderA = FILE_PROPERTIES[a]?.display_order ?? 99;
-        const orderB = FILE_PROPERTIES[b]?.display_order ?? 99;
-        return orderA - orderB;
-    });
-
     // Generate the header cell HTML
     const headerCellsHtml = columnsToShow
         .map(propName => `<div class="note-table-cell-header flex-row">${propName}<span class="flexgrow"> </span><span data-property="${propName}" data-action="sort-object" class="sort-by-prop-trigger">˅</span></div>`)

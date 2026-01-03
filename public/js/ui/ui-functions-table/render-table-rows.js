@@ -10,12 +10,6 @@ import { renderTags } from '../ui-functions-render/render-tags.js';
 export function renderTableRows(columnsToShow) {
     let rowsHtml = '';
 
-    columnsToShow.sort((a, b) => {
-        const orderA = FILE_PROPERTIES[a]?.display_order ?? 99;
-        const orderB = FILE_PROPERTIES[b]?.display_order ?? 99;
-        return orderA - orderB;
-    });
-
     for (const file of appState.myFiles) {
         if (file.show === true) {
             const cellsHtml = columnsToShow.map(propName => {

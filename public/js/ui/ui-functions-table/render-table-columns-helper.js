@@ -1,4 +1,4 @@
-import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/store.js';
 
 export function tableColumns() {
 
@@ -7,6 +7,13 @@ export function tableColumns() {
 
     const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
     const columnsToShow = [...appState.myFilesProperties.keys()].filter(prop => !hiddenColumns.has(prop));
+
+    // Sort columns based on the display_order defined in FILE_PROPERTIES
+    columnsToShow.sort((a, b) => {
+        const orderA = FILE_PROPERTIES[a]?.display_order ?? 99;
+        const orderB = FILE_PROPERTIES[b]?.display_order ?? 99;
+        return orderA - orderB;
+    });
 
     return columnsToShow;
 
