@@ -28,3 +28,20 @@ export async function renderFileList_table() {
     // Set the final HTML to the output element
     document.getElementById('output').innerHTML = tableHtml;
 }
+
+// for sort operation where we want to keep the header row so we don't lose horizontal scroll place
+export function renderTableRowsOnly() {
+
+    const rowElementsToDelete = document.querySelectorAll(".note-table");
+
+    for (const element of rowElementsToDelete) {
+        element.remove();
+    }
+
+    const columnsToShow = tableColumns();
+    const rowsHtml = renderTableRows(columnsToShow);
+
+    const headerElement = document.querySelector(".note-table-header");
+    headerElement.insertAdjacentHTML('afterend', rowsHtml);
+
+}
