@@ -2,6 +2,7 @@ import { renderTableHeader } from './ui-functions-table/render-table-header.js';
 import { renderTableRows } from './ui-functions-table/render-table-rows.js';
 import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
+import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
 
 /**
  * Orchestrates the rendering of the table view.
@@ -12,11 +13,17 @@ export async function renderFileList_table() {
 
     const columnsToShow = tableColumns();
 
+    // Create a detailed properties array for the current columns
+    TABLE_VIEW_COLUMNS.current_props = columnsToShow.map(propName => ({
+        name: propName,
+        ...FILE_PROPERTIES[propName]
+    }));
+
     // Generate the dynamic header
-    const headerHtml = renderTableHeader(columnsToShow);
+    const headerHtml = renderTableHeader(TABLE_VIEW_COLUMNS.current_props);
 
     // Generate the dynamic rows
-    const rowsHtml = renderTableRows(columnsToShow);
+    const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
 
     // Combine header and rows within the main table container
     const tableHtml = `
@@ -48,8 +55,7 @@ export function renderTableRowsOnly() {
         element.remove();
     }
 
-    const columnsToShow = tableColumns();
-    const rowsHtml = renderTableRows(columnsToShow);
+    const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
 
     const headerElement = document.querySelector(".note-table-header");
     headerElement.insertAdjacentHTML('afterend', rowsHtml);

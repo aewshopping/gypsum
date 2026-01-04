@@ -1,4 +1,4 @@
-import { appState, FILE_PROPERTIES } from '../../services/store.js';
+import { appState } from '../../services/store.js';
 import { renderFilenamePlusOpenBtn } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 
@@ -7,19 +7,13 @@ import { renderTags } from '../ui-functions-render/render-tags.js';
  * Iterates through the files in the appState and generates the HTML for each row.
  * @returns {string} The HTML string for all table rows.
  */
-export function renderTableRows(columnsToShow) {
+export function renderTableRows(current_props) {
     let rowsHtml = '';
-
-    // Pre-fetch column properties to avoid repeated lookups in the loop
-    const columnProperties = columnsToShow.map(propName => ({
-        name: propName,
-        ...FILE_PROPERTIES[propName]
-    }));
 
     for (const file of appState.myFiles) {
         if (file.show === true) {
 
-            const cellsHtml = columnProperties.map(prop => {
+            const cellsHtml = current_props.map(prop => {
                 const value = file[prop.name];
                 let cellContent = '';
 
