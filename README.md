@@ -27,9 +27,7 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 ## Immediate to do list
 
-- For table view, add a way of easily scrolling horizontally to the left and the right, without requiring going right to the bottom of the element to find the scroll bar as you currently need to.
-- For table view is there a better way to deal with overflow-y on the table cells? Currently hover reveals a tiny scrollbar.
-- Update file-object-sort.js file to allow sorting by a date property type. (This looks like a job for AI)
+- For table view, make header row and top horizontal scrollbar sticky to top of page.
 - For table view, add a visual indicator of the column that currently has sorting applied, and the direction of sort.
 - For table view, allow columns to be selected and de-selected, and then shown or not. The js is simple here, just needs an update to the `store.js` --> `hidden_at_start` array, then render. So challenge is finding a nice visual way that allow this to be updated in the UI. Popup?
 - For grid view, allow sorting by property on both grid view as well? Main issue here is how to visually make this work.
