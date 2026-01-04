@@ -1,0 +1,12 @@
+#top-scrollbar-container {
+  /* Set a fixed height for the scrollbar element */
+  height: 15px;
+  overflow-x: scroll; /* Crucial: This generates the top scrollbar */
+  overflow-y: hidden; /* Hide vertical scrolling on the top bar */
+  margin-bottom: 0px; /* Pull the container up to reduce visual gap */
+}
+
+/* This element's width will determine the scroll width of the top container */
+#top-scrollbar-content {
+  height: 1px;
+}

@@ -1,8 +1,11 @@
+.table-wrapper {
+    max-width: 100vw;
+}
+
 .list-table {
 	display: grid;
 	grid-template-columns: var(--grid-columns); /* css property is created dynamically by js */
     gap: 0px;
-    max-width: 100vw;
     overflow-x: auto;
 }
 
