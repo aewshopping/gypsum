@@ -8,9 +8,9 @@
         margin-bottom: 10px;
 }
 
-.list-file-open {
+.show-content-tag {
     --border-width: 2px;
-    border: var(--border-width) solid transparent;
+    border: var(--border-width) solid var(--colour-neutral-alt);
     padding: 1px 12px 1px 12px;
     border-radius: 4px;
     cursor:pointer;
