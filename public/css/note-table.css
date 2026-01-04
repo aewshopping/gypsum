@@ -20,6 +20,10 @@
         background-color: var(--colour-neutral-alt);
         color: var(--colour-contr);
     }
+
+    &:focus-within {
+        height:auto;
+    }
 }
 
 .note-table-cell {
@@ -27,10 +31,6 @@
     border-top: 1px solid var(--colour-contr);
     border-right: 1px solid var(--colour-contr);
     padding: 6px;
-
-    &:hover {
-        overflow-y: visible;
-    }
 }
 
 .note-table-header {
