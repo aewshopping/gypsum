@@ -36,6 +36,7 @@
     padding: 6px;
 }
 
+/* TODO - make table header sticky at top */
 .note-table-header {
     display: grid;
     grid-template-columns: subgrid;

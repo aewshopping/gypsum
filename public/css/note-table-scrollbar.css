@@ -1,12 +1,12 @@
+/* TODO - make scrollbar container sticky at top */
 #top-scrollbar-container {
   /* Set a fixed height for the scrollbar element */
   height: 15px;
   overflow-x: scroll; /* Crucial: This generates the top scrollbar */
-  overflow-y: hidden; /* Hide vertical scrolling on the top bar */
-  margin-bottom: 0px; /* Pull the container up to reduce visual gap */
+  overflow-y: hidden; /* Hide vertical scrolling on the top bar */  
 }
 
-/* This element's width will determine the scroll width of the top container */
+/* This element's width will determine the scroll width of the top container. Needed for js to work */
 #top-scrollbar-content {
   height: 1px;
 }
