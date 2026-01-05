@@ -1,22 +1,20 @@
-import { appState, FILE_PROPERTIES } from '../../services/store.js';
-
 /**
  * Renders the header for the table view.
  * Dynamically creates column headers based on specified properties
  * and injects CSS for column widths.
  * @returns {string} The HTML string for the table header.
  */
-export function renderTableHeader(columnsToShow) {
+export function renderTableHeader(current_props) {
 
     // Generate the header cell HTML
-    const headerCellsHtml = columnsToShow
-        .map(propName => `<div class="note-table-cell-header flex-row">${propName}<span class="flexgrow"> </span><span data-property="${propName}" data-action="sort-object" class="sort-by-prop-trigger">˅</span></div>`)
+    const headerCellsHtml = current_props
+        .map(prop => `<div class="note-table-cell-header flex-row">${prop.name}<span class="flexgrow"> </span><span data-property="${prop.name}" data-action="sort-object" class="sort-by-prop-trigger">˅</span></div>`)
         .join('');
 
     // Generate the grid-template-columns value for the CSS
-    const columnWidths = columnsToShow
-        .map(propName => {
-            const width = FILE_PROPERTIES[propName]?.column_width;
+    const columnWidths = current_props
+        .map(prop => {
+            const width = prop.column_width;
             return width ? `${width}px` : '100px'; // Default to '100px' if width is not defined, noting 'auto' doesn't work!
         })
         .join(' ');

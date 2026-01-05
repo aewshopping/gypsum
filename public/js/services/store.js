@@ -35,4 +35,5 @@ export const FILE_PROPERTIES = {
 export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
   hidden_always: ['handle', 'show', 'content'],
   hidden_at_start: ['id', 'tags_parent'], // could in future add check box functionality to show current cols ticked and these cols unticked
+  current_props: [],
 };
