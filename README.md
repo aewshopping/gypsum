@@ -35,7 +35,6 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 ## Roadmap
 
 1. A way of toggling between markdown (ie rendered html) view and plain text view in the show text modal.
-2. When showing file content, exclude any YAML front matter from markdown processing.
-3. Table filtering is now active for tags... but could do this for other properties too. Not sure how useful this will be as currently you can ctrl+F everything.
-4. Pagination of rendered files to cope with large numbers of files. In future this could be implemented by a virtual DOM that destroy and creates html elements depending on scroll position but not in the immediate plans.
-5. Alongside this some sort of very simple DOM diffing process might be considered.
+2. Table filtering is now active for tags... but could do this for other properties too. Not sure how useful this will be as currently you can ctrl+F everything.
+3. Pagination of rendered files to cope with large numbers of files. In future this could be implemented by a virtual DOM that destroy and creates html elements depending on scroll position but not in the immediate plans.
+4. Alongside this some sort of very simple DOM diffing process might be considered.
