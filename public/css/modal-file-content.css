@@ -9,7 +9,7 @@
   width: 100vw;
   color: var(--colour-contr);
   background: transparent;
-  --modal-footer-height: 0px; /* nothing in here yet but later will be set to 50px and have an option to show plaintext or markdown */
+  --modal-footer-height: 30px; /* nothing in here yet but later will be set to 50px and have an option to show plaintext or markdown */
   --modal-header-height: 40px;
 }
 
@@ -64,8 +64,8 @@ html {
 
 #modal-content {
   overflow-y: scroll;
-  height:calc(95dvh - var(--modal-footer-height) - var(--modal-header-height)); /* leave room for footer */
+  height:calc(95dvh - var(--modal-footer-height) - var(--modal-header-height) + var(--modal-footer-height) ); /* currently footer cancels out */
   padding: 0px 20px 0px 20px;
-  margin-bottom: var(--modal-footer-height); /* leave room for footer */
+  margin-bottom: calc( var(--modal-footer-height) - var(--modal-footer-height)) ; /* leave room for footer */
   margin-top: var(--modal-header-height); /* leave room for footer */
 }

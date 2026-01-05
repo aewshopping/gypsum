@@ -2,28 +2,20 @@
 // - the key reason it is so long is because it is controlling a view transition 
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
-import { appState } from '../../services/store.js';
-import { marked }  from '../../services/marked.eos.js';
 import { renderFilename } from '../ui-functions-render/render-filename.js';
-import { tagParser } from '../../services/file-tagparser.js';
-import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatter.js';
+import { loadContentModal } from './load-file-content.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
-const textbox = document.getElementById('modal-content-text');
 const filenamebox = document.getElementById('file-content-filename');
 const scrollingContent = document.getElementById("modal-content");
 
-let file_to_open = "";
 let file_box; // so we can access the target on close modal too
-
-
-
 
 // Handles opening and animation
 export function handleOpenFileContent(event, target) {
 
-  file_to_open = target.dataset.filename;
+  const file_to_open = target.dataset.filename;
   file_box = target;
   file_box.classList.add("moving-file-content-view"); // animate *from* this element
   
@@ -37,7 +29,7 @@ export function handleOpenFileContent(event, target) {
 
     filenamebox.innerHTML = renderFilename(target.dataset.filename);
     document.getElementById('file-content-header').dataset.color = target.dataset.color; 
-    loadContentModal();
+    loadContentModal(file_to_open);
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
   });
 }
@@ -78,21 +70,4 @@ export function handleCloseModal() {
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
   });
 
-}
-
-
-
-
-async function loadContentModal () {
-    
-    // look up filehandle from Map
-    const file_handle = appState.myFileHandlesMap.get(file_to_open);
-
-    const file_chosen = await file_handle.getFile();
-    const file_content = await file_chosen.text();
-    const file_content_yamlwrapped = wrapFrontMatter(file_content, "<pre><code>", "</code></pre>");
-    const file_content_tagged =  tagParser(file_content_yamlwrapped); // need to tagparse before marked parse to avoid parse clash!
-    const file_content_tagged_parsed = marked(file_content_tagged);
-
-    textbox.innerHTML = file_content_tagged_parsed;
 }

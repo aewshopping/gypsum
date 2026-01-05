@@ -1,7 +1,14 @@
 /* styled with YAML frontmatter in mind */
 pre {
     white-space: pre-wrap;
+}
+
+.pre-bg {
     border-radius: 4px;
     background-color: var(--colour-neutral);
     padding-inline: 10px;
+}
+
+.pre-text-enlarge {
+    font-size: 1.2em;
 }

@@ -26,14 +26,12 @@ export const FILE_PROPERTIES = {
   phone: { type: 'array', column_width: 200, display_order: 8 },
   email: { type: 'array', column_width: 200, display_order: 7 },
   color: { type: 'string', column_width: 0, display_order: 11 },
-  fileHandle: { type: 'object', column_width: 0, display_order: 99 },
-  show: { type: 'boolean', column_width: 0, display_order: 99 },
-  content: { type: 'string', column_width: 0, display_order: 99 },
+  person: { type: 'array', column_width: 200, display_order: 9}
 };
 
 // defines the columns that will be shown in the table view
 export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
   hidden_always: ['handle', 'show', 'content'],
-  hidden_at_start: ['id', 'tags_parent'], // could in future add check box functionality to show current cols ticked and these cols unticked
+  hidden_at_start: ['id', 'tags_parent', 'color'], // could in future add check box functionality to show current cols ticked and these cols unticked
   current_props: [],
 };

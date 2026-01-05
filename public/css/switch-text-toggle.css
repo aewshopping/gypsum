@@ -1,0 +1,53 @@
+/* this surrounds the whole switch to allow has focus to draw a box round it */
+.label_group_text_toggle {
+	padding:8px 10px 10px 10px;
+	background-color: var(--colour-neutral);
+	width:fit-content;
+	border-top-left-radius: 16px;
+	color: var(--colour-contr);
+
+/* The switch - the box around the slider */
+	.switch {
+	  position: relative;
+	  display: inline-block;
+	  width: 30px;
+	  height: 17px;
+	  margin-inline: 4px;
+	}
+	/* Hide default HTML checkbox */
+	.switch input {
+	  opacity: 0;
+	  width: 0;
+	  height: 0;
+	}
+	/* The slider */
+	.slider {
+	  position: absolute;
+	  cursor: pointer;
+	  inset: 0;
+	  background-color: var(--colour-compl); /* bg to slider */
+	  transition: .4s;
+	  border-radius: 17px;
+	}
+
+	.slider:before {
+	  position: absolute;
+	  content: "";
+	  height: 13px;
+	  width: 13px;
+	  left: 2px;
+	  bottom: 2px;
+	  background-color: var(--colour-neutral); /* slider "button" */
+	  transition: .1s;
+	  border-radius: 50%;
+	}
+	.switch:hover .slider:before {
+	background-color: var(--colour-neutral-alt); /* slider "button" when hovered */
+	}
+
+	.label_group:has(input:focus-visible) {
+      outline: 2px solid var(--colour-contr);
+	  border-radius: 6px;
+	}
+	input:checked + .slider:before {transform: translateX(13px);}
+}

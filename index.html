@@ -26,7 +26,16 @@
         <div id="modal-content-text"></div>
       </div>
       <div id="file-content-footer">
+
         <div class="flexgrow"></div>
+
+        <div class="flex-row label_group_text_toggle">
+          <div>html</div>
+          <label for="render_toggle" class="switch"><input type="checkbox" id="render_toggle" name="render_toggle"
+              data-action="toggle-render-text"><span class="slider"></span></label>
+          <div>txt</div>
+        </div>
+
       </div>
     </div>
   </dialog>
@@ -43,7 +52,7 @@
 
     <p><b>Text files</b></p>
     <div class="flex-row flex-wrap stick-top">
-      <div class="flex-row label_group">
+      <div class="flex-row label_group_filter_toggle">
 
         <div class="ANDOR_label">filter</div>
         <div class="ANDOR_label">OR</div>

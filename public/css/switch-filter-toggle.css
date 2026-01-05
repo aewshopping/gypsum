@@ -1,7 +1,6 @@
 /* this surrounds the whole switch to allow has focus to draw a box round it */
-.label_group {
+.label_group_filter_toggle {
 	margin-right:10px;
-}
 
 /* The switch - the box around the slider */
 	.switch {
@@ -46,3 +45,4 @@
 	  border-radius: 6px;
 	}
 	input:checked + .slider:before {transform: translateX(13px);}
+}
