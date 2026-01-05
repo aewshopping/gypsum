@@ -6,6 +6,7 @@ import { appState } from '../../services/store.js';
 import { marked }  from '../../services/marked.eos.js';
 import { renderFilename } from '../ui-functions-render/render-filename.js';
 import { tagParser } from '../../services/file-tagparser.js';
+import { extractYamlFrontMatter } from '../../services/file-parsing/yaml-front-matter.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -89,8 +90,18 @@ async function loadContentModal () {
 
     const file_chosen = await file_handle.getFile();
     const file_content = await file_chosen.text();
-    const file_content_tagged =  tagParser(file_content); // need to tagparse before marked parse to avoid parse clash!
+
+    const { yamlBlock, remainingContent } = extractYamlFrontMatter(file_content);
+
+    let finalHtml = '';
+    if (yamlBlock) {
+        finalHtml += `<pre><code>${yamlBlock}</code></pre>`;
+    }
+
+    const file_content_tagged =  tagParser(remainingContent); // need to tagparse before marked parse to avoid parse clash!
     const file_content_tagged_parsed = marked(file_content_tagged);
     
-    textbox.innerHTML = file_content_tagged_parsed;
+    finalHtml += file_content_tagged_parsed;
+
+    textbox.innerHTML = finalHtml;
 }

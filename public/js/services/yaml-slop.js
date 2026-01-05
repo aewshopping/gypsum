@@ -17,18 +17,24 @@
 export const parseYaml = (yamlString) => {
   let lines = yamlString.split("\n");
     const separator = "---";
+
     const firstSeparatorIndex = lines.findIndex((line) => line.trim() === separator);
+
     if (firstSeparatorIndex === -1 || firstSeparatorIndex > 4) {
       return {};
     }
+
     const secondSeparatorIndex = lines.findIndex(
       (line, index) => index > firstSeparatorIndex && line.trim() === separator
     );
-    if (secondSeparatorIndex !== -1) {
-      lines = lines.slice(firstSeparatorIndex + 1, secondSeparatorIndex);
-    } else {
-      lines = lines.slice(firstSeparatorIndex + 1);
+
+    // Check if the separators are on the first and subsequent lines.
+    if (firstSeparatorIndex !== 0 || secondSeparatorIndex === -1) {
+      return {};
     }
+
+    lines = lines.slice(firstSeparatorIndex + 1, secondSeparatorIndex);
+
     const root = {};
     const stack = [{ object: root, indent: -1, key: null }];
 	const coerceValue = (value) => {
