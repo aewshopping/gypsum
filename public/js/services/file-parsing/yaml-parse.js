@@ -1,8 +1,8 @@
-import { getFrontMatterLines } from "./file-parsing/yaml-block-extract.js";
+import { getFrontMatterLines } from "./yaml-block-extract.js";
 
 /**
  * Simple YAML Parser - vibe coded by google gemini 30 Sept 2025
- * A lightweight YAML parser for basic front-matter extraction.
+ * A lightweight YAML parser for basic front-matter data extraction.
  *
  * @param {string} yamlString - The raw YAML content.
  * @returns {object} The parsed JavaScript object.
