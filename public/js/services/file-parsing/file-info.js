@@ -1,5 +1,5 @@
 import { regex_title, regex_tag } from '../../constants.js';
-import { parseYaml } from '../yaml-slop.js';
+import { parseYaml } from '../yaml-parse.js';
 import { updateMyFileProperties } from '../file-props.js';
 
 

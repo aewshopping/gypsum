@@ -7,6 +7,7 @@ import { marked }  from '../../services/marked.eos.js';
 import { renderFilename } from '../ui-functions-render/render-filename.js';
 import { tagParser } from '../../services/file-tagparser.js';
 import { extractYamlFrontMatter } from '../../services/file-parsing/yaml-front-matter.js';
+import { getFrontMatterLines } from '../../services/file-parsing/yaml-block-extract.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -92,6 +93,7 @@ async function loadContentModal () {
     const file_content = await file_chosen.text();
 
     const { yamlBlock, remainingContent } = extractYamlFrontMatter(file_content);
+
 
     let finalHtml = '';
     if (yamlBlock) {
