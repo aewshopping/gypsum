@@ -4,7 +4,7 @@ import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
-export async function renderFileList_grid() {
+export function renderFileList_grid() {
 
     // set the header card
     let file_html = `

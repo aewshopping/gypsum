@@ -5,13 +5,13 @@ import { renderFileList_table } from "../render-file-list-table.js";
 import { renderFileList_list } from "../render-file-list-list.js";
 import { VIEWS } from "../../constants.js";
 
-export function renderData() {
-    renderActiveFiles();
+export function renderData(fullRender = true) {
+    renderActiveFiles(fullRender);
 //    addActionHandlers();
     renderActiveTags();
 }
 
-function renderActiveFiles() {
+function renderActiveFiles(fullRender = true) {
 
 //    const outputElement = document.getElementById("output");
     switch(appState.viewState) {
@@ -19,7 +19,7 @@ function renderActiveFiles() {
             renderFileList_grid();
             break;
         case VIEWS.TABLE.value:
-            renderFileList_table();
+            renderFileList_table(fullRender);
             break;
         case VIEWS.LIST.value:
             renderFileList_list();

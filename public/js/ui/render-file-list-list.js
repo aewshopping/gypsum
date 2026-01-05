@@ -2,7 +2,7 @@ import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
-export async function renderFileList_list() {
+export function renderFileList_list() {
     let file_html = `<ol class="list-view">`; 
 
     for (const file of appState.myFiles) {

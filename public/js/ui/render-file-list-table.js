@@ -9,7 +9,7 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
  * It clears the output, generates the table container,
  * and then calls the header and row rendering functions.
  */
-export async function renderFileList_table() {
+export function renderFileList_table(fullRender = true) {
 
     const columnsToShow = tableColumns();
 
@@ -19,41 +19,59 @@ export async function renderFileList_table() {
         ...FILE_PROPERTIES[propName]
     }));
 
-    // Generate the dynamic header
-    const headerHtml = renderTableHeader(TABLE_VIEW_COLUMNS.current_props);
+    if (fullRender) {
+        // Where we want to generate full table including headers and scroll bar
 
-    // Generate the dynamic rows
-    const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
+        // Generate the dynamic header
+        const headerHtml = renderTableHeader(TABLE_VIEW_COLUMNS.current_props);
 
-    // Combine header and rows within the main table container
-    const tableHtml = `
-    <div class="table-wrapper">
-        <div id="top-scrollbar-container">
-        <div id="top-scrollbar-content"></div>
+        // Generate the dynamic rows
+        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
+
+        // Combine header and rows within the main table container
+        const tableHtml = `
+        <div class="table-wrapper">
+            <div id="top-scrollbar-container">
+            <div id="top-scrollbar-content"></div>
+            </div>
+            <div class="list-table">
+                ${headerHtml}
+                ${rowsHtml}
+            </div>
         </div>
-        <div class="list-table">
-            ${headerHtml}
-            ${rowsHtml}
-        </div>
-    </div>
-    `;
+        `;
 
-    // Set the final HTML to the output element
-    document.getElementById('output').innerHTML = tableHtml;
+        // Set the final HTML to the output element
+        document.getElementById('output').innerHTML = tableHtml;
 
-    // sync up the top horizontal scroll bar
-    initialScrollSync();
+        // sync up the top horizontal scroll bar
+        initialScrollSync();
 
+    } else {
+        // for sort or filter operations where we want to keep the header row so we don't lose horizontal scroll place
+        
+        const rowElementsToDelete = document.querySelectorAll(".note-table");
+
+        for (const element of rowElementsToDelete) {
+            element.remove();
+        }
+
+        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
+
+        const headerElement = document.querySelector(".note-table-header");
+        headerElement.insertAdjacentHTML('afterend', rowsHtml);
+
+    }
 }
 
-// for sort operation where we want to keep the header row so we don't lose horizontal scroll place
+// for sort or filter operations where we want to keep the header row so we don't lose horizontal scroll place
 export function renderTableRowsOnly() {
 
     const rowElementsToDelete = document.querySelectorAll(".note-table");
 
-    for (const element of rowElementsToDelete) {
-        element.remove();
-    }
+        for (const element of rowElementsToDelete) {
+            element.remove();
+        }
 
     const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
 

@@ -50,8 +50,8 @@ export function updateMyFilesShowState() {
 
     });
 
-    // 3. Trigger the UI to re-render or update based on the new 'show' state.
-    renderData();
+    // 3. Trigger the UI to re-render or update based on the new 'show' state. For the table view we only want to render rows not re-render header hence the "fullRender" = false arg. Does nothing for other views.
+    renderData(false);
 }
 
 
