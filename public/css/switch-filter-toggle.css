@@ -1,6 +1,13 @@
 /* this surrounds the whole switch to allow has focus to draw a box round it */
 .label_group_filter_toggle {
-	margin-right:10px;
+  margin-right: 10px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+
+  /* apply focus style on keyboard focus but not mouseclick focus */
+  &:has(:focus-visible) {
+	border: 2px solid var(--colour-contr);
+  }
 
 /* The switch - the box around the slider */
 	.switch {
