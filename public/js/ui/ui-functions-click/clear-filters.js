@@ -11,6 +11,6 @@ export function handleClearFilters() {
         file.show = true;
     });    
 
-    renderData();
+    renderData(false); // full render = false for table view where we only want to re render rows not header
     
 }

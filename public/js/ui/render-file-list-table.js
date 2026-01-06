@@ -63,19 +63,3 @@ export function renderFileList_table(fullRender = true) {
 
     }
 }
-
-// for sort or filter operations where we want to keep the header row so we don't lose horizontal scroll place
-export function renderTableRowsOnly() {
-
-    const rowElementsToDelete = document.querySelectorAll(".note-table");
-
-        for (const element of rowElementsToDelete) {
-            element.remove();
-        }
-
-    const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
-
-    const headerElement = document.querySelector(".note-table-header");
-    headerElement.insertAdjacentHTML('afterend', rowsHtml);
-
-}
