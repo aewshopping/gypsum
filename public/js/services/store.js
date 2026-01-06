@@ -26,7 +26,7 @@ export const FILE_PROPERTIES = {
   phone: { type: 'array', column_width: 200, display_order: 8 },
   email: { type: 'array', column_width: 200, display_order: 7 },
   color: { type: 'string', column_width: 0, display_order: 11 },
-  person: { type: 'array', column_width: 200, display_order: 9}
+  people: { type: 'array', column_width: 250, display_order: 9}
 };
 
 // defines the columns that will be shown in the table view
