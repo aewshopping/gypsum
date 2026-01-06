@@ -26,7 +26,6 @@
         .show-content-tag {
             background-color: var(--colour-neutral);
             color: var(--colour-contr);
-            border: var(--border-width) solid var(--colour-neutral);
         }
     }
 
