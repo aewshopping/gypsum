@@ -61,5 +61,7 @@ export function renderFileList_table(fullRender = true) {
         const headerElement = document.querySelector(".note-table-header");
         headerElement.insertAdjacentHTML('afterend', rowsHtml);
 
+        
+
     }
 }
