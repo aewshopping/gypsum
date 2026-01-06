@@ -22,10 +22,29 @@
     &:hover {
         background-color: var(--colour-neutral-alt);
         color: var(--colour-contr);
+
+        .show-content-tag {
+            background-color: var(--colour-neutral);
+            color: var(--colour-contr);
+            border: var(--border-width) solid var(--colour-neutral);
+        }
     }
 
     &:focus-within {
         height:auto;
+    }
+}
+
+/* Also used in list view */
+.show-content-tag {
+    --border-width: 2px;
+    border: var(--border-width) solid var(--colour-neutral-alt);
+    padding: 1px 12px 1px 12px;
+    border-radius: 4px;
+    cursor:pointer;
+
+    &:hover {
+        border: var(--border-width) solid var(--colour-contr);
     }
 }
 
@@ -68,3 +87,4 @@
     padding:6px;
     visibility: hidden;
 }
+
