@@ -1,4 +1,4 @@
-body {
+:root {
     --colour-neutral: WhiteSmoke; /* bg */ /*white? #F6FFFC #80AAFF*/
     --colour-neutral-alt: white; /* card bg */
     --colour-contr: DarkSlateGray; /* text */
@@ -17,7 +17,7 @@ body {
     --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
     }
 
-body:has(input[type="radio"]#funcheck:checked) {
+:root:has(input[type="radio"]#funcheck:checked) {
     --colour-neutral: DarkSlateGray; /* bg */
     --colour-neutral-alt: #0b6f6f; /* card bg */
     --colour-contr: aquamarine; /* text */

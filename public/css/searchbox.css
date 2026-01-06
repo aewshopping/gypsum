@@ -1,0 +1,14 @@
+#searchbox{
+    background-color: var(--colour-neutral-alt);
+    color: var(--colour-contr);
+	font:1.1em monospace;
+    border: 1px solid var(--colour-contr);
+    border-radius:4px;
+    margin-inline: 10px;
+    max-width: 400px;
+    height: 24px;
+
+    &::placeholder {
+        color: color-mix(in srgb, var(--colour-contr) 60%, transparent);
+    }
+}

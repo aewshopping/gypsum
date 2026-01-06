@@ -15,7 +15,8 @@
 	gap:5px;
 }
 
-.flexgrow {flex-grow: 1}
+.flexgrow {flex-grow: 10}
+.flexgrow-weak {flex-grow: 1}
 
 .flex-row > .ANDOR_label {
 	padding-inline: 4px;
