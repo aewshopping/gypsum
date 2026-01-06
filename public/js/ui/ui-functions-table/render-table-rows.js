@@ -34,7 +34,9 @@ export function renderTableRows(current_props) {
                             if (prop.name === 'tags') {
                                 cellContent = value.map(tag => renderTags(tag)).join(''); // to make the tags clickable filters
                             } else {
-                                cellContent = value.join(', ');
+                                // Renders other arrays as an unordered list (<ul>)
+                                const listItems = value.map(item => `<li>${item}</li>`).join('');
+                                cellContent = `<ul class="table-view-array-list">${listItems}</ul>`;
                             }
                         }
                         break;

@@ -88,3 +88,8 @@
     visibility: hidden;
 }
 
+.table-view-array-list{
+    list-style-type: "- ";
+    padding-left:12px;
+    margin:0px;
+}
