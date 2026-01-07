@@ -1,5 +1,6 @@
 import { appState } from '../../services/store.js';
 import { renderData } from '../ui-functions-render/render-all-files.js';
+import { highlightSearchResults } from '../ui-functions-search/search-highlight.js';
 
 const DEBOUNCE_DELAY_MS = 200;
 export const debouncedSearchHandler = debounce(handleSearchFiles, DEBOUNCE_DELAY_MS);
@@ -65,6 +66,8 @@ function handleSearchFiles(event) {
 
         renderData(false);
 
+            highlightSearchResults(searchTerm);
+
     } else {
         // If the search term is empty or too short, reset all files to show=true.
         // TODO think about how this should integrate with tag selection!
@@ -74,6 +77,7 @@ function handleSearchFiles(event) {
                 file.show = true;
             });
             renderData(false);
+            highlightSearchResults("");
         } else {
             console.log(`No files loaded) so not searching yet.`);
         }
