@@ -7,6 +7,7 @@
 	color: var(--colour-contr);
 	border: 2px solid transparent;
 	margin-right:-2px;
+	font: 1.1em monospace;
   
 	/* apply focus style on keyboard focus but not mouseclick focus */
 	&:has(:focus-visible) {

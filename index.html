@@ -40,8 +40,20 @@
     </div>
   </dialog>
 
-  <button id="btn_loadFileHandles" data-click-loadfiles>Handle files</button>
-  <span id=fileCountElement>No</span> files loaded
+  <div class="flex-row">
+	  <div>
+    	  <button id="btn_loadFileHandles" data-click-loadfiles>Handle files</button>
+	      <span id=fileCountElement>No</span> files loaded
+	  </div>
+	  
+	  <div class="flexgrow"></div>
+
+	  <div class="color-select-radio">
+	    <label class="formcontrol"><input type="radio" name="radio" checked />snow</label>
+	    <label class="formcontrol"><input type="radio" name="radio" id="funcheck" />glow</label>
+	  </div>
+  </div>
+  
   <br><br>
 
   <main>
@@ -52,22 +64,6 @@
 
     <p><b>Text files</b></p>
     <div class="flex-row flex-wrap stick-top">
-      <div class="flex-row label_group_filter_toggle">
-
-        <div class="ANDOR_label">filter</div>
-        <div class="ANDOR_label">OR</div>
-        <label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"
-            data-action="toggle-filter-mode"><span class="slider"></span></label>
-        <div class="ANDOR_label">AND</div>
-
-      </div>
-
-      <button class="showall" data-action="clear-filters">clear filters</button>
-
-      <label class="select-label" for="view-select">view
-        <select id="view-select" data-action="view-select">
-        </select>
-      </label>
 
       <input class="flexgrow"
         data-action="search-files"
@@ -78,11 +74,26 @@
         minlength="3"
         maxlength="100"
         placeholder="type to search..." />	
+		
+      <div class="flex-row label_group_filter_toggle">
 
-        <div class="flexgrow-weak"></div>
+        <div class="ANDOR_label"></div>
+        <div class="ANDOR_label">OR</div>
+        <label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"
+            data-action="toggle-filter-mode"><span class="slider"></span></label>
+        <div class="ANDOR_label">AND</div>
 
-      <label class="formcontrol"><input type="radio" name="radio" checked />Snow</label>
-      <label class="formcontrol"><input type="radio" name="radio" id="funcheck" />Glow</label>
+      </div>		
+
+      <button class="showall" data-action="clear-filters">clear</button>
+
+	  <div class="flexgrow-weak"></div>
+
+      <label class="select-label" for="view-select">
+        <select id="view-select" data-action="view-select">
+        </select>
+      </label>
+
     </div>
 
     <div id="output"></div>

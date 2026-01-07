@@ -3,6 +3,7 @@
   margin-right: 10px;
   border: 2px solid transparent;
   border-radius: 4px;
+  font: 1.1em monospace;
 
   /* apply focus style on keyboard focus but not mouseclick focus */
   &:has(:focus-visible) {
@@ -44,7 +45,7 @@
 	  border-radius: 50%;
 	}
 	.switch:hover .slider:before {
-	background-color: var(--colour-compl);
+	background-color: var(--colour-neutral-alt);
 	}
 	input:checked + .slider {background-color: var(--colour-compl-alt-emph);}
 	.label_group:has(input:focus-visible) {
