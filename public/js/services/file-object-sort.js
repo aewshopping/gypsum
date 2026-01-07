@@ -6,7 +6,8 @@ import { appState } from './store.js';
  * Returns NaN if the input is missing or results in an Invalid Date.
  */
 function getTimestamp(dateValue) {
-    if (dateValue === null || dateValue === undefined) {
+    if (dateValue === null || dateValue === undefined || dateValue === '') {
+        // Treat empty string ('') as missing data for dates
         return NaN;
     }
     // Date constructor handles the parsing; getTime() returns milliseconds or NaN if invalid.
@@ -14,8 +15,8 @@ function getTimestamp(dateValue) {
 }
 
 /**
- * Sorts the appState.myFiles array based on a property, ensuring null/undefined/invalid data 
- * is consistently sorted to the end of the array.
+ * Sorts the appState.myFiles array based on a property, ensuring null/undefined/empty string/invalid date 
+ * data is consistently sorted to the end of the array, regardless of sort order (asc/desc).
  */
 export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
     const dataArray = appState.myFiles;
@@ -39,35 +40,56 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
         
         switch (dataType) {
             case 'date':
-                // Use helper to handle null/undefined and Invalid Date strings, normalizing them to NaN
+                // Use helper to handle null/undefined/empty string and Invalid Date strings, normalizing them to NaN
                 normA = getTimestamp(valA);
                 normB = getTimestamp(valB);
                 break;
             default:
-                // For all other types, null/undefined is the only 'missing' state
+                // For all other types, null/undefined/empty string are considered 'missing'
                 normA = valA;
                 normB = valB;
                 break;
         }
 
-        // --- 2. Consistent Missing Data Check (Nulls/Undefineds/NaN go to the end) ---
-        const isMissingA = normA === null || normA === undefined || (dataType === 'date' && isNaN(normA));
-        const isMissingB = normB === null || normB === undefined || (dataType === 'date' && isNaN(normB));
+        // --- 2. Consistent Missing Data Check (Nulls/Undefineds/Empty Strings/NaN go to the end) ---
+        
+        // Helper function to check for missing/invalid data, including empty strings for non-date types
+        const isMissing = (value, type) => {
+            // Check for explicit missing values
+            if (value === null || value === undefined) return true;
+            
+            // Check for empty string specifically
+            if (typeof value === 'string' && value === '') return true; 
 
-        if (isMissingA && isMissingB) return 0;
-        if (isMissingA) return 1 * orderMultiplier;  // B is valid, A is missing: B wins (A goes to end)
-        if (isMissingB) return -1 * orderMultiplier; // A is valid, B is missing: A wins (B goes to end)
+            // Check for invalid date (NaN timestamp)
+            if (type === 'date' && isNaN(value)) return true;
+            
+            return false;
+        };
+
+        const isMissingA = isMissing(normA, dataType);
+        const isMissingB = isMissing(normB, dataType);
+
+        if (isMissingA && isMissingB) return 0; // Keep their relative order
+        
+        // *** CRITICAL CHANGE: Always return 1 or -1 for missing data (NO multiplier) ***
+        // 1 means A goes after B (A to the end)
+        if (isMissingA) return 1; 
+        
+        // -1 means A goes before B (B to the end)
+        if (isMissingB) return -1; 
 
         // --- 3. Data Type Value Comparison (Only for valid values) ---
         switch (dataType) {
             case 'string':
+                // We already handled empty string, so now only compare valid strings.
                 // Case- and accent-insensitive sort
-                comparison = normA.localeCompare(normB, undefined, { sensitivity: 'base' });
+                comparison = String(normA).localeCompare(String(normB), undefined, { sensitivity: 'base' });
                 break;
 
             case 'number':
             case 'date':
-                // Comparison works for both numbers and date timestamps
+                // Comparison works for both numbers and date timestamps (non-NaN)
                 comparison = normA - normB; 
                 break;
                 
@@ -80,6 +102,6 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
                 break;
         }
 
-        return comparison * orderMultiplier;
+        return comparison * orderMultiplier; // Apply sort direction for valid comparisons
     });
 }
