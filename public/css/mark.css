@@ -1,10 +1,8 @@
 mark {
-/*    color: var(--colour-compl-contr);
-    background-color: var(--colour-compl-emph); */
     background-color: color-mix(in srgb, var(--colour-compl-emph) 30%, transparent);
     color: inherit;
     border-radius: 4px;
-    padding-block:1px;
+    /* padding-block:1px; does this triggers layout reflow when highlighting applied? I say no by AI says yes. Don't really need it anyway */
     text-decoration-line: underline;
     text-decoration-style: dotted;
     text-underline-offset: 4px;
@@ -13,6 +11,5 @@ mark {
 }
 
 body:has(#and_filter:checked) mark {
-	/*	background-color:var(--colour-compl-alt-emph);
-		color: var(--colour-compl-emph-contr); */
+    background-color: color-mix(in srgb, var(--colour-compl-alt-emph) 30%, transparent);
 	}
