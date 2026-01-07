@@ -22,6 +22,10 @@ body:has(dialog[open]) {
 }
 
 /* preserve space for scroll bar on main page to avoid layout shift */
-html {
-  scrollbar-gutter: stable;
+/* if screen bigger than X stable at all times */
+  html {scrollbar-gutter: stable;}
+
+@media (max-width: 600px) {
+  /* to allow open dialog to take up fall screen space on small screens, does mean a layout shift when dialog closes so don't want to do on larger screens where screen real estate less critical */
+  html:has(dialog[open]) {scrollbar-gutter: auto;}
 }

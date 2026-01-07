@@ -21,3 +21,8 @@
     height:var(--modal-header-height);
     padding-inline: 10px;
 }
+
+#file-content-filename {
+    /* allows flex sub-container to shrink even below length of filename string so that you never lose sight of the close model button even on small screens */
+    min-width:0px;
+}

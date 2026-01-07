@@ -13,6 +13,17 @@
   --modal-header-height: 40px;
 }
 
+body{
+--modal-top-bottom-margin: 20px;
+
+  @media (max-width: 600px) {
+    /* to allow open dialog to take up fall screen space on small screens */
+    /* note 600px figure also used on scrollbar-gutter but can't put css vars in media queries so hard coded */
+    --modal-top-bottom-margin: 0px;
+  }
+}
+
+
 #moving-file-content-container {
   /* Mandatory CSS property */
 /*  view-transition-name: moving-box-element;*/
@@ -26,13 +37,12 @@
   border-right: solid 2px var(--colour-neutral-alt);*/
   border-radius: 8px;
   overflow: hidden;
-  --modal-margin: 10px;
   background-color: var(--colour-neutral-alt); /* starting colour */
   left: 50%;
   transform: translateX(-50%);
-  top: 20px;
+  top: var(--modal-top-bottom-margin);
   width: 65ch;
-  max-width:calc(100% - (2 * var(--modal-margin)));
+  max-width:100%;
 /*  height: 95vh;*/
 }
 
@@ -64,7 +74,7 @@ html {
 
 #modal-content {
   overflow-y: scroll;
-  height:calc(95dvh - var(--modal-footer-height) - var(--modal-header-height) + var(--modal-footer-height) ); /* currently footer cancels out */
+  height:calc(100dvh - var(--modal-header-height) - calc(2 * var(--modal-top-bottom-margin)) ); /* if modal footer takes up space later will need to minus var(--modal-footer-height) */
   padding: 0px 20px 0px 20px;
   margin-bottom: calc( var(--modal-footer-height) - var(--modal-footer-height)) ; /* leave room for footer */
   margin-top: var(--modal-header-height); /* leave room for footer */
