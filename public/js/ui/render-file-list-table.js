@@ -11,6 +11,7 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
  */
 export function renderFileList_table(fullRender = true) {
 
+    TABLE_VIEW_COLUMNS.current_props.length = 0;
     const columnsToShow = tableColumns();
 
     // Create a detailed properties array for the current columns

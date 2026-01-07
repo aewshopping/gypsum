@@ -1,4 +1,4 @@
-import { appState } from './store.js';
+import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { getUniqueTagsSortedWithCount } from './file-parsing/tag-count.js';
 import { createParentChildTagStructure } from './file-parsing/tag-taxon.js';
@@ -19,6 +19,11 @@ import { updateMyFileProperties } from './file-props.js';
 export async function loadFileHandles() {
 
     console.log("working");
+
+    // delete table properties object in preparation for new file props (this gets built once per data load then used to populate myFilesProperties)
+    TABLE_VIEW_COLUMNS.current_props.length = 0;
+    // build once per data load then used to generate property values in different views
+    appState.myFilesProperties.clear();
 
     const fileHandles = await window.showOpenFilePicker({
     multiple: true,
