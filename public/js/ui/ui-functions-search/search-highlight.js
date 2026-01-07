@@ -1,83 +1,85 @@
 // javascript
 /**
  * Spiders through the DOM, highlights instances of the search string,
- * and clears previous highlights.
- * * @param {string} searchString - The text to search for and highlight.
+ * and clears previous highlights within the specified root element.
+ * @param {string} searchString - The text to search for and highlight.
+ * @param {string} [elementRoot="body"] - A CSS selector (e.g., '#myId', '.my-class', or 'body') to define the scope of highlighting.
+ * @param {string[]} [excludeClasses=[]] - An array of class names to exclude from highlighting.
  */
-export function highlightSearchResults(searchString) {
-    // 1. Clear existing <mark> highlights
-    // This is crucial if the function is called repeatedly with different search terms.
-    document.querySelectorAll('mark').forEach(mark => {
-        // Replace the mark element with its own contents (unwrapping it)
+export function highlightSearchResults(searchString, elementRoot = "body", excludeClasses = []) {
+    
+    const root = document.querySelector(elementRoot);
+
+    if (!root) {
+        console.error(`Root element not found for selector: ${elementRoot}`);
+        return;
+    }
+    // ------------------------------------------------------------------
+
+    // 1. Clear existing <mark> highlights ONLY within the specified root.
+    root.querySelectorAll('mark').forEach(mark => {
         mark.replaceWith(...mark.childNodes);
     });
+    // ------------------------------------------------------------------
 
     if (!searchString || searchString.trim() === '') {
         return;
     }
 
-    // 2. Prepare the regular expression for case-insensitive and global matching
-    // Escape special regex characters in the search string
+    // 2. Prepare the regular expression, escape any regex characters
     const escapedSearchString = searchString.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    // The capture group ( ) is essential for the $1 replacement
     const regex = new RegExp(`(${escapedSearchString})`, 'gi');
     const replaceTemplate = '<mark>$1</mark>';
 
     // 3. Set up the TreeWalker
-    // We target only the body, which should contain all rendered page content.
-    const root = document.body;
-
-    // Collect text nodes that need modification
     const nodesToReplace = [];
+    
+    const defaultExclusions = 'script, style, textarea, pre, code';
+    const classExclusionSelector = excludeClasses.map(c => `.${c}`).join(', ');
+    const combinedExclusions = classExclusionSelector 
+        ? `${defaultExclusions}, ${classExclusionSelector}` 
+        : defaultExclusions;
 
     // Use a custom filter to ensure we only target valid text nodes
     const walker = document.createTreeWalker(
         root,
-        NodeFilter.SHOW_TEXT, // Only interested in Text Nodes
+        NodeFilter.SHOW_TEXT,
         {
             acceptNode: function(node) {
-                // Skip if the parent element is a script, style, textarea, pre, or code block
-                // (These contain raw data that should not be manipulated)
                 const parent = node.parentElement;
-                if (parent && parent.matches('script, style, textarea, pre, code')) {
+                
+                if (parent && parent.matches(combinedExclusions)) {
                     return NodeFilter.FILTER_SKIP;
                 }
                 
-                // Only accept nodes that contain the search string
-                if (regex.test(node.nodeValue)) {
-                    return NodeFilter.FILTER_ACCEPT;
-                }
-                
-                return NodeFilter.FILTER_SKIP;
+                return NodeFilter.FILTER_ACCEPT;
             }
         }
     );
+    // --------------------------------------------------------------------------
 
     let node;
     while (node = walker.nextNode()) {
         nodesToReplace.push(node);
     }
 
-    // 4. Replace Text Nodes with highlighted content
+    // 4. Replace Text Nodes with highlighted content (Unchanged logic)
     nodesToReplace.forEach(textNode => {
-        // Create a temporary element to parse the HTML string
+        const originalText = textNode.nodeValue;
+        const replacedHTML = originalText.replace(regex, replaceTemplate);
+
+        if (originalText === replacedHTML) {
+            return;
+        }
+
         const tempDiv = document.createElement('div');
-        
-        // Replace the matched text with the <mark> wrapped version
-        const replacedHTML = textNode.nodeValue.replace(regex, replaceTemplate);
-
         tempDiv.innerHTML = replacedHTML;
-
-        // Create a DocumentFragment to hold the new DOM structure (for performance)
         const fragment = document.createDocumentFragment();
 
-        // Append the children of the temporary div (which are the new nodes) to the fragment
-        // This moves the nodes, emptying the tempDiv
         while (tempDiv.firstChild) {
             fragment.appendChild(tempDiv.firstChild);
         }
 
-        // Replace the original text node with the fragment
         textNode.replaceWith(fragment);
     });
 }
