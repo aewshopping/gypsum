@@ -11,7 +11,7 @@
 export function highlightSearchResults(searchString, elementRoot = "body", excludedSelectors = []) {
 
     // --- UPDATED PLACEMENT AND ADDITION HERE ---
-    // Define elements that should never be processed for text replacement, 
+    // Define elements that should never be processed for text replacement,
     // as it can corrupt the element's internal structure or presentation.
     const defaultExclusions = 'script, style, textarea, pre, code, svg';
     // ---------------------------------------------
@@ -44,8 +44,8 @@ export function highlightSearchResults(searchString, elementRoot = "body", exclu
     const nodesToReplace = [];
 
     // Combine the default exclusions with the user-provided selectors
-    const customExclusionSelector = excludedSelectors.join(', '); 
-    
+    const customExclusionSelector = excludedSelectors.join(', ');
+
     const combinedExclusions = customExclusionSelector
         ? `${defaultExclusions}, ${customExclusionSelector}`
         : defaultExclusions;
