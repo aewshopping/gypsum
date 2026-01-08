@@ -9,7 +9,9 @@ export function handleClearFilters() {
     appState.myFiles.forEach((file) => {
         file.show = true;
     });
-    renderData(false);
 
     searchBox.value = "";
+
+    renderData(false);
+
 }
