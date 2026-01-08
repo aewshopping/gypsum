@@ -35,7 +35,7 @@ export function highlightSearchResults(searchString, elementRoot = "body", exclu
     }
 
     // 2. Prepare the regular expression, escape any regex characters
-    const escapedSearchString = searchString.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const escapedSearchString = searchString.replace(/[-\/\\^$*+?.()|[\]{}]/g, (match) => '\\' + match); // using this slightly non standard match syntax as with more concise syntax ESBuild was replacing it with a script tag
     const regex = new RegExp(`(${escapedSearchString})`, 'gi');
     const replaceTemplate = '<mark>$1</mark>';
 
