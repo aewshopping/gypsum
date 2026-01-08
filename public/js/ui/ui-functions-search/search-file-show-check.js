@@ -1,5 +1,7 @@
 import { checkTagMatch } from "./search-tag-match.js";
 import { checkStringMatch } from "./search-string-match.js";
+import { checkStringQueryMatch } from "./search-stringquery-match.js";
+import { appState } from "../../services/store.js";
 
 
 // --- Core Filtering Logic Per File ---
@@ -13,15 +15,16 @@ import { checkStringMatch } from "./search-string-match.js";
 export function shouldFileBeShown(file, filters) {
     const { 
         filterTags, 
-        lowerFilterString, 
+        arrayTokenObjects, 
         filterMode, 
         hasTagFilters, 
         hasStringFilter, 
         requiredTotalFilters 
     } = filters;
-    
-    const isStringMatch = checkStringMatch(file, lowerFilterString);
+
+//    const isStringMatch = checkStringMatch(file, arrayTokenObjects); // can use for simple string match if desired, just change reference below
     const tagMatchCount = checkTagMatch(file, filterTags);
+    const isStringQueryMatch = checkStringQueryMatch(file, arrayTokenObjects, appState.myFilesProperties);
 
     if (filterMode === 'AND') {
         let actualMatchCount = 0;
@@ -35,7 +38,7 @@ export function shouldFileBeShown(file, filters) {
         }
         
         // Check 2: String Filter Requirement
-        if (hasStringFilter && isStringMatch) {
+        if (hasStringFilter && isStringQueryMatch) {
             actualMatchCount++;
         }
         
@@ -43,8 +46,16 @@ export function shouldFileBeShown(file, filters) {
         return actualMatchCount === requiredTotalFilters;
 
     } else if (filterMode === 'OR') {
-        // OR mode: The file must satisfy AT LEAST ONE individual condition (tag match OR string match).
-        return tagMatchCount >= 1 || isStringMatch;
+
+        // 1. Condition for Tag Match: The file must match AT LEAST ONE selected tag.
+        //    (This implicitly relies on hasTagFilters, as tagMatchCount will be 0 if no tags are selected)
+        const matchesTag = tagMatchCount >= 1;
+        
+        // 2. Condition for String Match: The file must match the query AND the query must be ACTIVE.
+        const matchesString = hasStringFilter && isStringQueryMatch;
+
+        // Show file if AT LEAST ONE of the conditions is met.
+        return matchesTag || matchesString;
 
     } else {
         // Fallback for invalid mode

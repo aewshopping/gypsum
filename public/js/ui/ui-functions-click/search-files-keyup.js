@@ -1,5 +1,6 @@
 import { appState } from '../../services/store.js';
 import { updateMyFilesShowState } from '../ui-functions-search/filter-files.js';
+import { getStringTokens } from '../ui-functions-search/search-tokenise-string.js';
 
 const DEBOUNCE_DELAY_MS = 200;
 export const debouncedSearchHandler = debounce(handleSearchFiles, DEBOUNCE_DELAY_MS);
@@ -33,10 +34,7 @@ function handleSearchFiles(event) {
     // --- Logic for when the search term is long enough and array exists ---
     if (searchTerm.length >= minLength && appState.myFiles.length > 0) {
 
-        appState.filterString = ""; // if later want to allow searching by multiple strings need some way of pushing current string onto an array of search terms
-        appState.filterString = searchTerm;
-
-        // console.log(`Search for: "${searchTerm}", in object properties`);
+        appState.filterString = getStringTokens(searchTerm); // saved so don't have to recalc later plus to use by highlight function 
 
         updateMyFilesShowState();
 
@@ -44,7 +42,6 @@ function handleSearchFiles(event) {
     } else {
         // If the search term is empty or too short, reset all files to show=true.
         if (appState.myFiles.length > 0) {
-            // console.log(`Search term too short at (${searchTerm.length} chars).
 
             appState.filterString = "";
 
@@ -56,5 +53,4 @@ function handleSearchFiles(event) {
         }
     }
 
-    console.log(appState.filterString)
 }

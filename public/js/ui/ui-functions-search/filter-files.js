@@ -18,6 +18,7 @@ export function updateMyFilesShowState() {
         appState.myFiles.forEach(file => {
             file.show = true;
         });
+        console.log("no tags or search string, all files set to show");
         renderData(false);
         return;
     }

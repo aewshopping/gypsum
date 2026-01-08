@@ -6,7 +6,7 @@ import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
 import { fileContentRender } from './ui-functions-click/load-file-content.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
-import { debouncedSearchHandler } from './ui-functions-click/search-files.js';
+import { debouncedSearchHandler } from './ui-functions-click/search-files-keyup.js';
 
 export function addActionHandlers() {
     document.addEventListener("click", clickDelegate);
