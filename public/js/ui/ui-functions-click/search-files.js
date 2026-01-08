@@ -66,7 +66,7 @@ function handleSearchFiles(event) {
 
         renderData(false);
 
-            highlightSearchResults(searchTerm, "#output", ["tag"]); // second arg is the section of the dom to highlight, third argument is an array of classes - any element with these classes will not be highlighted.
+            highlightSearchResults(searchTerm, "#output"); // second arg is the section of the dom to highlight, third argument is an array of classes - any element with these classes will not be highlighted.
 
     } else {
         // If the search term is empty or too short, reset all files to show=true.
