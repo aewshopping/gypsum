@@ -25,7 +25,7 @@ export function renderFileList_list() {
             for (const key in file) {
                 const value = file[key];
                 // Skip properties that we don't want to display
-                if (key === 'handle' || key === 'show') continue;
+                if (key === 'handle' ) continue; // || key === 'show'
 
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                     file_html += `<li><strong>${key}:</strong><ul>`;

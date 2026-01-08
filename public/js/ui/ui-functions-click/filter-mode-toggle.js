@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { updateMyFilesShowState } from "./filter-files.js";
+import { updateMyFilesShowState } from "../ui-functions-search/filter-files.js";
 
 export function handleFilterModeToggle(event) {
 

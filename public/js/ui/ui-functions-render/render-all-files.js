@@ -3,12 +3,16 @@ import { appState } from "../../services/store.js";
 import { renderFileList_grid } from "../render-file-list-grid.js";
 import { renderFileList_table } from "../render-file-list-table.js";
 import { renderFileList_list } from "../render-file-list-list.js";
+import { highlightSearchResults } from "../ui-functions-search/search-highlight.js";
 import { VIEWS } from "../../constants.js";
 
 export function renderData(fullRender = true) {
+    const searchString = appState.filterString;
     renderActiveFiles(fullRender);
 //    addActionHandlers();
     renderActiveTags();
+
+    highlightSearchResults(searchString, "#output");
 }
 
 function renderActiveFiles(fullRender = true) {

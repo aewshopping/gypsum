@@ -1,5 +1,5 @@
 import { handleCopyClick } from './ui-functions-click/copy-click.js';
-import { handleTagClick } from './ui-functions-click/filter-files.js';
+import { handleTagClick } from './ui-functions-click/tag-filter-click.js';
 import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.js';
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';

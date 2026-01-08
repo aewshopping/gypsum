@@ -1,7 +1,7 @@
 #searchbox{
     background-color: var(--colour-neutral-alt);
     --colour-highlight: var(--colour-compl-emph);
-    --radius: 8px;
+    --radius: 10px;
     --offset: 4px;
     --offset-negative: calc( var(--offset) * -1 );
     text-shadow:

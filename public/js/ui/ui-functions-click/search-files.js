@@ -1,6 +1,5 @@
 import { appState } from '../../services/store.js';
-import { renderData } from '../ui-functions-render/render-all-files.js';
-import { highlightSearchResults } from '../ui-functions-search/search-highlight.js';
+import { updateMyFilesShowState } from '../ui-functions-search/filter-files.js';
 
 const DEBOUNCE_DELAY_MS = 200;
 export const debouncedSearchHandler = debounce(handleSearchFiles, DEBOUNCE_DELAY_MS);
@@ -31,55 +30,31 @@ function handleSearchFiles(event) {
     const searchTerm = event.target.value.toLowerCase().trim();
     const minLength = 3;
 
-    // Define properties to exclude from the search
-    const excludedKeys = ['handle', 'show'];
-
     // --- Logic for when the search term is long enough and array exists ---
     if (searchTerm.length >= minLength && appState.myFiles.length > 0) {
-        console.log(`--- Searching for: "${searchTerm}" (Actual search executed) ---`);
 
-        // Iterate over each file object in the array
-        appState.myFiles.forEach(file => {
-            let matchFound = false;
+        appState.filterString = ""; // if later want to allow searching by multiple strings need some way of pushing current string onto an array of search terms
+        appState.filterString = searchTerm;
 
-            // Loop through each property (key) in the current file object
-            for (const key in file) {
-                // Check if the property is a direct property of the object (not inherited) and if the property key is NOT in our excluded list
-                if (Object.prototype.hasOwnProperty.call(file, key) && !excludedKeys.includes(key)) {
+        // console.log(`Search for: "${searchTerm}", in object properties`);
 
-                    // Check if the property value (converted to string and lowercase contains the search term.
-                    const propertyValue = String(file[key]).toLowerCase();
+        updateMyFilesShowState();
 
-                    if (propertyValue.includes(searchTerm)) {
-                        matchFound = true;
-                        // Break the inner loop (for keys) since a match was found for this file.
-                        break;
-                    }
-                }
-            }
-
-            // 3. Update the 'show' property based on the match result
-            file.show = matchFound;
-        });
-
-        console.log(`Search for: "${searchTerm}", in object properties, setting show to true where found.`);
-
-        renderData(false);
-
-            highlightSearchResults(searchTerm, "#output"); // second arg is the section of the dom to highlight, third argument is an array of classes - any element with these classes will not be highlighted.
 
     } else {
         // If the search term is empty or too short, reset all files to show=true.
-        // TODO think about how this should integrate with tag selection!
         if (appState.myFiles.length > 0) {
-            console.log(`Search term too short at (${searchTerm.length} chars). Setting visibility on all files to true.`);
-            appState.myFiles.forEach(file => {
-                file.show = true;
-            });
-            renderData(false);
-            highlightSearchResults("");
+            // console.log(`Search term too short at (${searchTerm.length} chars).
+
+            appState.filterString = "";
+
+            updateMyFilesShowState();
+
+            
         } else {
-            console.log(`No files loaded) so not searching yet.`);
+          //  console.log(`No files loaded) so not searching yet.`);
         }
     }
+
+    console.log(appState.filterString)
 }

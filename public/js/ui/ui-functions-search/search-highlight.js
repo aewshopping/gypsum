@@ -39,6 +39,7 @@ export function highlightSearchResults(searchString, elementRoot = "body", exclu
     const regex = new RegExp(`(${escapedSearchString})`, 'gi');
     const replaceTemplate = '<mark>$1</mark>';
 
+    // console.log("highlighting");
     // 3. Set up the TreeWalker
     const nodesToReplace = [];
 

@@ -6,8 +6,9 @@ export const appState = {
   myTags: [],
   filterMode: 'OR', // 'AND' or 'OR'
   filterTags: new Set(),
+  filterString: "",
   myTaxonomy: [],
-  viewState: VIEWS.TABLE.value, // sets initial view state
+  viewState: VIEWS.CARDS.value, // sets initial view state
   sortState: { property: 'filename', direction: 'desc'}
 }
 
