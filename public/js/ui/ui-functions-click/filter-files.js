@@ -13,6 +13,8 @@ export function updateMyFilesShowState() {
     const requiredMatchCount = selectedTags.size;
 
     const currentMode = appState.filterMode; // 'AND' or 'OR'
+
+    // console.log(`tags: ${selectedTags}, count: ${requiredMatchCount}, mode: ${currentMode}`)
     
     // 2. Iterate through appState.myFiles and apply the filtering logic.
     appState.myFiles.forEach(file => {
@@ -69,6 +71,8 @@ export function handleTagClick(evt, target) {
         console.error("Clicked element does not have a tag class at index 1.");
         return;
     }
+
+    // console.log(`tag name: ${tagName}`);
 
     // 1. Update appState.filterTags (The Source of Truth)
     if (appState.filterTags.has(tagName)) {
