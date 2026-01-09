@@ -1,6 +1,16 @@
+/**
+ * @file This file is responsible for rendering the tag taxonomy in the UI.
+ */
+
 import { appState } from '../services/store.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
+/**
+ * Renders the tag taxonomy as a series of `<details>` elements.
+ * Each parent tag is a `<summary>`, and the child tags are rendered within the `<details>` block.
+ * This function iterates through the `myTaxonomy` array in the `appState`,
+ * creates an HTML string for the taxonomy, and then sets the innerHTML of the 'tag_output' element.
+ */
 export function renderTagTaxonomy() {
 
 //    console.log(appState.myTaxonomy);
