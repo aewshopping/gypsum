@@ -79,3 +79,7 @@ html {
   margin-bottom: calc( var(--modal-footer-height) - var(--modal-footer-height)) ; /* leave room for footer */
   margin-top: var(--modal-header-height); /* leave room for footer */
 }
+
+#modal-content-text {
+  margin-bottom: 200px; /* to allow scrolling below last bit of text for easier reading */
+}

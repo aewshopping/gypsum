@@ -19,7 +19,7 @@ export async function loadContentModal (file_to_open) {
     file_content = await file_chosen.text();
     const file_content_yamlwrapped = wrapFrontMatter(file_content, yamlWrapBefore, yamlWrapAfter);
     const file_content_tagged =  tagParser(file_content_yamlwrapped); // need to tagparse before marked parse to avoid parse clash!
-    file_content_tagged_parsed = marked(file_content_tagged)+"<br><br><br><br></br>"; // the br x 4 will do for now
+    file_content_tagged_parsed = marked(file_content_tagged)
 
     fileContentRender();
  //   textbox.innerHTML = file_content_tagged_parsed;
@@ -34,7 +34,12 @@ export function fileContentRender() {
     const isChecked = renderToggle.checked;
 
     if (isChecked) {
-      textbox.innerHTML = `<pre class="pre-text-enlarge">${file_content}<br><br><br><br></pre>`; // the br x 4 will do for now
+      textbox.innerHTML = '';
+      const preElement = document.createElement('pre');
+      preElement.classList.add('pre-text-enlarge');
+      preElement.textContent = file_content; // Safe escaping - hence can't use template literal sadly
+      textbox.appendChild(preElement);
+      // textbox.innerHTML = `<pre class="pre-text-enlarge">${file_content}<br><br><br><br></pre>`;
     } else {
       textbox.innerHTML = file_content_tagged_parsed;
     }
