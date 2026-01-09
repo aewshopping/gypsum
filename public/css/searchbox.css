@@ -19,6 +19,7 @@
 
     &::placeholder {
         color: color-mix(in srgb, var(--colour-contr) 60%, transparent);
+        text-shadow: none;
     }
 }
 
