@@ -3,7 +3,8 @@ import { appState } from './store.js';
 
 /**
  * Converts a date string into a numerical timestamp.
- * Returns NaN if the input is missing or results in an Invalid Date.
+ * @param {string | Date} dateValue The date string or Date object to convert.
+ * @returns {number} The numerical timestamp (milliseconds since epoch) or NaN if invalid.
  */
 function getTimestamp(dateValue) {
     if (dateValue === null || dateValue === undefined || dateValue === '') {
@@ -15,8 +16,12 @@ function getTimestamp(dateValue) {
 }
 
 /**
- * Sorts the appState.myFiles array based on a property, ensuring null/undefined/empty string/invalid date 
- * data is consistently sorted to the end of the array, regardless of sort order (asc/desc).
+ * Sorts the `appState.myFiles` array in place based on a specified property and data type.
+ * Ensures that missing or invalid data (null, undefined, empty strings, invalid dates)
+ * is consistently moved to the end of the array, regardless of sort order.
+ * @param {string} property The name of the property on the file objects to sort by.
+ * @param {string} dataType The data type of the property ('string', 'number', 'date', 'array').
+ * @param {string} [sortOrder='asc'] The sort order, either 'asc' for ascending or 'desc' for descending.
  */
 export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
     const dataArray = appState.myFiles;

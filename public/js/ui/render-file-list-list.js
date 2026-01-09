@@ -1,7 +1,18 @@
+/**
+ * @file This file is responsible for rendering the file list in a list view.
+ */
+
 import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
+/**
+ * Renders the list of files as an ordered list.
+ * Each list item is a `<details>` element, with the filename and tags in the `<summary>`.
+ * The content of the `<details>` element is a nested list of the file's properties.
+ * This function iterates through the files in the `appState`, creates an HTML string for each file,
+ * and then sets the innerHTML of the 'output' element to the generated string.
+ */
 export function renderFileList_list() {
     let file_html = `<ol class="list-view">`; 
 

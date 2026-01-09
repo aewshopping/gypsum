@@ -1,9 +1,17 @@
-// This function replicates the details / summary approach where all text content is rendered immediately to the page. This option is intended to be superseded by a grid layout which then calls the file content and renders to a modal. 
+/**
+ * @file This file is responsible for rendering the file list in a grid view.
+ */
 
 import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
+/**
+ * Renders the list of files as a grid of cards.
+ * Each card displays the file's title, filename, and tags.
+ * The function iterates through the files in the `appState`, creates an HTML string for each file,
+ * and then sets the innerHTML of the 'output' element to the generated string.
+ */
 export function renderFileList_grid() {
 
     // set the header card

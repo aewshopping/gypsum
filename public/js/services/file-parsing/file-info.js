@@ -2,7 +2,18 @@ import { regex_title, regex_tag } from '../../constants.js';
 import { parseYaml } from './yaml-parse.js';
 import { updateMyFileProperties } from '../file-props.js';
 
+/**
+ * @file Extracts metadata from file content, including title, tags, and YAML front matter.
+ */
 
+/**
+ * Processes a file handle to extract its content and metadata.
+ * It reads the file, parses its content for tags and YAML front matter,
+ * and constructs a file object with all the relevant information.
+ * @param {FileSystemFileHandle} handle The file handle to process.
+ * @param {number} loadOrder The order in which the file was loaded.
+ * @returns {Promise<object>} A promise that resolves to an object containing the file's metadata.
+ */
 export async function getFileDataAndMetadata(handle, loadOrder) {
 
     const file = await handle.getFile();
