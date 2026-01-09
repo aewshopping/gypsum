@@ -53,7 +53,7 @@ export async function loadFileHandles() {
     updateMyFileProperties(appState.myFiles[0], 1); // // to build table view, with columns showing file properties
 
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);
-    document.getElementById('fileCountElement').innerText = appState.myFiles.length;
+    document.getElementById('fileCountElement').innerContent = appState.myFiles.length;
 
     appState.myTags = getUniqueTagsSortedWithCount(appState.myFiles);
 
