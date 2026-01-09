@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { marked }  from '../../services/marked.eos.js';
 import { tagParser } from '../../services/file-tagparser.js';
 import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatter.js';
+import { highlightSearchResults } from '../ui-functions-search/search-highlight.js';
 
 
 let file_content; // so we can access the raw file content multiple times without looking it up again
@@ -34,15 +35,19 @@ export function fileContentRender() {
     const isChecked = renderToggle.checked;
 
     if (isChecked) {
+
       textbox.innerHTML = '';
       const preElement = document.createElement('pre');
       preElement.classList.add('pre-text-enlarge');
       preElement.textContent = file_content; // Safe escaping - hence can't use template literal sadly
       textbox.appendChild(preElement);
-      // textbox.innerHTML = `<pre class="pre-text-enlarge">${file_content}<br><br><br><br></pre>`;
+
     } else {
+
       textbox.innerHTML = file_content_tagged_parsed;
+
     }
 
-    
+    highlightSearchResults(appState.filterString,"#moving-file-content-container");
+
 }

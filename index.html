@@ -19,7 +19,7 @@
     <div id="moving-file-content-container">
       <div id="modal-content" tabindex="0">
         <div class="color-dynamic" id="file-content-header" data-color="">
-          <div id="file-content-filename">filename</div>
+          <div id="file-content-filename" data-prop="filename">filename</div>
           <div class="flexgrow"></div>
           <button data-action="close-file-content-modal">✕</button>
         </div>
@@ -73,7 +73,11 @@
         size="10"
         minlength="3"
         maxlength="100"
-        placeholder=' search... "with space or" property:value ' />	
+        placeholder=' search... "with space or" property:value ' />
+
+      <label>
+        <input type="checkbox" name="contentsearch" id="contentsearch" data-action="toggle-content-search">
+      </label>
 		
       <div class="flex-row label_group_filter_toggle">
 
