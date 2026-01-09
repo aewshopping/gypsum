@@ -6,6 +6,8 @@ export function handleClearFilters() {
     const searchBox = document.getElementById("searchbox");
 
     appState.filterTags.clear();
+    appState.filterString = "";
+
     appState.myFiles.forEach((file) => {
         file.show = true;
     });
