@@ -1,40 +1,53 @@
-// javascript
 /**
  * Spiders through the DOM, highlights instances of the search strings (token values),
- * and clears previous highlights within the specified root element.
- * * @param {string | Array<Object>} input - The text to search for (string) OR an array 
- * of search token objects (from getStringTokens).
+ * respecting the data-prop attribute for property-specific tokens in ancestors.
+ * * * @param {string | Array<Object>} input - The text to search for (string) OR an array 
+ * of search token objects (from getTwoTypeTokens).
  * @param {string} [elementRoot="body"] - A CSS selector to define the scope of highlighting.
  * @param {string[]} [excludedSelectors=[]] - An array of CSS selector strings listing elements to exclude.
  */
 export function highlightSearchResults(input, elementRoot = "body", excludedSelectors = []) {
 
     let tokens;
+    let propertyTokenMap = new Map();
+    let genericTerms = [];
 
-    // --- INPUT NORMALIZATION ---
+    // --- 1. INPUT NORMALIZATION AND TOKEN AGGREGATION ---
     if (Array.isArray(input)) {
-        // Case 1: Already a tokens array (from structured search)
         tokens = input;
     } else if (typeof input === 'string' && input.trim() !== '') {
-        // Case 2: A simple string was passed. Treat it as a single generic token.
+        // Simple string input is treated as a single generic token
         tokens = [{ type: 'generic', value: input }];
     } else {
-        // Case 3: Invalid or empty input
         tokens = [];
     }
-    // ----------------------------
-
-
-    // 1. STREAMLINED TOKEN AGGREGATION
-    // Extract non-empty search strings from the normalized tokens array.
-    const searchTerms = tokens
-        .map(token => token.value)
-        .filter(value => value && value.trim() !== '');
     
-    const root = document.querySelector(elementRoot);
+    // Aggregate terms into a Generic list and a Property Map for easy lookup
+    tokens.forEach(token => {
+        // Escape any special regex characters in the term value
+        const escapedTerm = token.value.replace(/[-\/\\^$*+?.()|[\]{}]/g, (match) => '\\' + match);
 
+        if (token.type === 'property') {
+            const propKey = token.property;
+            if (!propertyTokenMap.has(propKey)) {
+                propertyTokenMap.set(propKey, []);
+            }
+            propertyTokenMap.get(propKey).push(escapedTerm);
+        } else {
+            // All generic terms are added to a single list
+            genericTerms.push(escapedTerm);
+        }
+    });
+    
+    // Create the global generic pattern (only needs to be built once)
+    const genericRegexPattern = genericTerms.length > 0 
+        ? `(${genericTerms.join('|')})` 
+        : null;
+    // --------------------------------------------------------
+
+    const root = document.querySelector(elementRoot);
     if (!root) {
-        console.log(`Root element not found for selector: ${elementRoot}`);
+        console.error(`Root element not found for selector: ${elementRoot}`);
         return;
     }
 
@@ -44,31 +57,16 @@ export function highlightSearchResults(input, elementRoot = "body", excludedSele
     });
     
     // Stop if no valid terms are left to highlight
-    if (searchTerms.length === 0) {
+    if (genericTerms.length === 0 && propertyTokenMap.size === 0) {
         return;
     }
 
-    // 2. Prepare the regular expression adding in the token search string at this stage
-    
-    const escapedTerms = searchTerms.map(term => 
-        term.replace(/[-\/\\^$*+?.()|[\]{}]/g, (match) => '\\' + match)
-    );
-
-    const regexPattern = `(${escapedTerms.join('|')})`;
-    const regex = new RegExp(regexPattern, 'gi');
-    const replaceTemplate = '<mark>$1</mark>';
-    // ------------------------------------------------------------------
-
-    // 3. Set up the TreeWalker
+    // 2. Set up the TreeWalker (unchanged)
     const nodesToReplace = [];
-    
     const defaultExclusions = 'script, style, textarea, pre, code, svg';
-    const customExclusionSelector = excludedSelectors.join(', ');
-
-    const combinedExclusions = customExclusionSelector
-        ? `${defaultExclusions}, ${customExclusionSelector}`
+    const combinedExclusions = excludedSelectors.length 
+        ? `${defaultExclusions}, ${excludedSelectors.join(', ')}`
         : defaultExclusions;
-
 
     const walker = document.createTreeWalker(
         root,
@@ -89,15 +87,47 @@ export function highlightSearchResults(input, elementRoot = "body", excludedSele
         nodesToReplace.push(node);
     }
 
-    // 4. Replace Text Nodes with highlighted content
+    // 3. Conditional Replacement Logic
     nodesToReplace.forEach(textNode => {
         const originalText = textNode.nodeValue;
-        const replacedHTML = originalText.replace(regex, replaceTemplate);
+        const parent = textNode.parentElement;
+        
+        // --- Traverse up to find the element with data-prop ---
+        const propElement = parent ? parent.closest('[data-prop]') : null;
+        const propKey = propElement ? propElement.dataset.prop : null;
+        // --------------------------------------------------------
+        
+        let combinedPatterns = [];
+        
+        // A. Always check for generic terms
+        if (genericRegexPattern) {
+            combinedPatterns.push(genericRegexPattern);
+        }
+
+        // B. Check for property-specific terms ONLY if data-prop is found and matches
+        if (propKey && propertyTokenMap.has(propKey)) {
+            const propTerms = propertyTokenMap.get(propKey).join('|');
+            // Wrap in parentheses for the OR operation
+            combinedPatterns.push(`(${propTerms})`); 
+        }
+
+        if (combinedPatterns.length === 0) {
+            return; // Nothing to highlight in this specific node
+        }
+
+        // Build the local regex for this node
+        const localRegexPattern = combinedPatterns.join('|');
+        const localRegex = new RegExp(localRegexPattern, 'gi');
+        const replaceTemplate = '<mark>$1</mark>';
+        
+        // Perform the replacement
+        const replacedHTML = originalText.replace(localRegex, replaceTemplate);
 
         if (originalText === replacedHTML) {
             return;
         }
-
+        
+        // 4. Standard DOM replacement
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = replacedHTML;
         const fragment = document.createDocumentFragment();

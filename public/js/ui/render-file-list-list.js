@@ -29,7 +29,7 @@ export function renderFileList_list() {
             file_html += `
                 <li>
                     <details>
-                        <summary>${filename_html} ${tag_pills_html}</summary>
+                        <summary data-prop="filename">${filename_html} ${tag_pills_html}</summary>
                         <ul>
                         <li><span class="show-content-tag color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">open</span></li>
                         `;
@@ -45,7 +45,7 @@ export function renderFileList_list() {
                     }
                     file_html += `</ul></li>`;
                 } else {
-                    file_html += `<li><strong>${key}:</strong> ${value}</li>`;
+                    file_html += `<li><strong>${key}:</strong><span data-prop="${key}"> ${value}</span></li>`;
                 }
             }
             file_html += `

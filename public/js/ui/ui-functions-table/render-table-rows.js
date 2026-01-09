@@ -47,7 +47,7 @@ export function renderTableRows(current_props) {
                         cellContent = value || '';
                         break;
                 }
-                return `<div class="note-table-cell">${cellContent}</div>`;
+                return `<div class="note-table-cell" data-prop="${prop.name}">${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

@@ -43,11 +43,11 @@ export function renderFileList_grid() {
         file_html += `
         <div class="note-grid ${tag_list} color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
 
-            ${filename_html}
+            <div data-prop="filename">${filename_html}</div>
 
-            <p>${file.title}</p>
+            <p data-prop="title">${file.title}</p>
 
-            ${tag_pills_html}
+            <div data-prop="tags">${tag_pills_html}</div>
 
         </div>
         `
