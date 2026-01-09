@@ -30,9 +30,10 @@ function handleSearchFiles(event) {
     // 1. Get the current search term and convert to lowercase for case-insensitive matching
     const searchTerm = event.target.value.toLowerCase().trim();
     const minLength = 3;
+    const stringLengthOk = validateString(searchTerm, minLength); // also testing where we are searching a prop with "property:value", here value must be >= min length
 
     // --- Logic for when the search term is long enough and array exists ---
-    if (searchTerm.length >= minLength && appState.myFiles.length > 0) {
+    if (stringLengthOk && appState.myFiles.length > 0) {
 
         appState.filterString = getStringTokens(searchTerm); // saved so don't have to recalc later plus to use by highlight function 
 
@@ -53,4 +54,14 @@ function handleSearchFiles(event) {
         }
     }
 
+}
+
+function validateString(s, x) {
+  // Check 1: Total length < x
+  if (s.length < x) return false;
+
+  const i = s.indexOf(':');
+
+  // Check 2: If no colon then i = -1 so true. OR: if colon i <> -1, but IF string length after colon >= x then true.
+  return i === -1 || (s.length - (i + 1)) >= x;
 }
