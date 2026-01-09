@@ -11,7 +11,7 @@ import { updateMyFilesShowState } from "../ui-functions-search/filter-files.js";
 export function handleTagClick(evt, target) {
 
 // this isn't checking for tag in classList[0] as it should be...
-    const tagName = target.classList[1];
+    const tagName = target.dataset.tag; //target.classList[1];
     if (!tagName) {
         console.error("Clicked element does not have a tag class at index 1.");
         return;

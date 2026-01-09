@@ -11,7 +11,7 @@ document.querySelectorAll(`.${TAGGER}`).forEach(el => {
 // Then, iterate through the authoritative list (appState.filterTags) 
 // and apply the highlight only to the tags that should be selected.
 appState.filterTags.forEach(selectedTagName => {
-    const matchingTags = document.querySelectorAll(`.tag.${selectedTagName}`);
+    const matchingTags = document.querySelectorAll(`[data-tag="${selectedTagName}"]`);
     matchingTags.forEach(tagElem => {
         tagElem.classList.add(TAGGER);
     });
