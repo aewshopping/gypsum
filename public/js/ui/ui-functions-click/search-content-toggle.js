@@ -1,14 +1,20 @@
+import { appState } from '../../services/store.js';
+
 export function handleContentSearchToggle(evt, target) {
     
     const searchbox = document.getElementById("searchbox");
 
     if (target.checked) {
         console.log("on");
-        searchbox.placeholder = " search... file content (slow) "
+        const searchMode = "allContent";
+        appState.search.mode = searchMode;
+        searchbox.placeholder = appState.search.prompt[searchMode];
 
     } else {
 
         console.log("off");
-        searchbox.placeholder=' search... "with space or" property:value '
+        const searchMode = "onlyProperties";
+        appState.search.mode = searchMode;
+        searchbox.placeholder = appState.search.prompt[searchMode];
     }
 }

@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     viewSelectElem.value = appState.viewState;
+
+    const searchbox = document.getElementById("searchbox");
+    searchbox.placeholder = appState.search.prompt[appState.search.mode];
+
     addActionHandlers();
 
 });

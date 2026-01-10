@@ -25,6 +25,13 @@ export const appState = {
   filterMode: 'OR', // 'AND' or 'OR'
   filterTags: new Set(),
   filterString: "",
+  search: {
+    mode: 'onlyProperties', // allContent or onlyProperties
+    prompt: {
+      allContent: ' search... file content (slow) ',
+      onlyProperties: ' search... "with space or" property:value '
+    },
+  },
   myTaxonomy: [],
   viewState: VIEWS.CARDS.value, // sets initial view state
   sortState: { property: 'filename', direction: 'desc'}
