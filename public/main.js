@@ -1,5 +1,5 @@
 import { loadFileHandles } from './js/services/file-handler.js';
-import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
+import { renderTagTaxonomy } from './js/ui/render-tag-taxonomy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
 import { renderData } from './js/ui/ui-functions-render/render-all-files.js';
@@ -27,12 +27,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
+/**
+ * Orchestrates the main application flow after files are selected.
+ * It calls functions to load the data, render the initial view, and re-attach event handlers.
+ */
 async function conductor() {
     await loadData();
     renderData();
     addActionHandlers();
 }
 
+/**
+ * Asynchronously loads file data, processes it, and performs the initial sort.
+ * It calls functions to open the file picker, build the tag taxonomy,
+ * and sort the files based on the default initial state.
+ */
 async function loadData() {
 
     await loadFileHandles();

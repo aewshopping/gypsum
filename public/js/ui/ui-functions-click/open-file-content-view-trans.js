@@ -12,7 +12,13 @@ const scrollingContent = document.getElementById("modal-content");
 
 let file_box; // so we can access the target on close modal too
 
-// Handles opening and animation
+/**
+ * Handles the opening of the file content modal with a view transition.
+ * It captures the target element for the animation, initiates a view transition,
+ * shows the modal, loads the file content, and resets the scroll position.
+ * @param {Event} event - The click event object.
+ * @param {HTMLElement} target - The element that was clicked, triggering the modal opening.
+ */
 export function handleOpenFileContent(event, target) {
 
   const file_to_open = target.dataset.filename;
@@ -37,7 +43,13 @@ export function handleOpenFileContent(event, target) {
 
 
 
-// to allow click outside the modal to close with animation (closedby="any" on html element triggers immediate close)
+/**
+ * Handles clicks outside the modal to close it.
+ * It checks if the click event's target is the dialog backdrop itself,
+ * and if so, triggers the standard close modal procedure.
+ * @param {Event} event - The click event object.
+ * @param {HTMLElement} target - The element that was clicked.
+ */
 export function handeCloseModalOutside(event, target) {
 
   if (event.target === dialog) {
@@ -48,7 +60,11 @@ export function handeCloseModalOutside(event, target) {
 
 
 
-// Handles closing the dialog. 
+/**
+ * Handles the closing of the file content modal with a view transition.
+ * It initiates a view transition to animate the modal back to its origin element,
+ * closes the dialog, and cleans up CSS classes used for the animation.
+ */
 export function handleCloseModal() {
 
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view

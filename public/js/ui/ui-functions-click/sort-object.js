@@ -3,11 +3,14 @@ import { appState, FILE_PROPERTIES, propertySortMap } from '../../services/store
 import { renderFileList_table } from '../render-file-list-table.js';
 import { renderData } from '../ui-functions-render/render-all-files.js';
 
-// this function is fired by clicking on an element that also has a data-property="something" on that element.
-// it looks up the property type (defaulting to string if property not in the FILE_PROPERTIES object), and also figures out the sort direction.
-// then calls the sort myFiles object function with these parameters, then finally calls a re-render of the page.
-// stores the property that has just been sorted and a direction in a map, so that it can be referenced in future to flip the sort direction (ie if you click the same property again).
-
+/**
+ * Handles the sorting of the main file list based on a clicked property.
+ * It determines the property to sort by from a `data-property` attribute,
+ * figures out the data type, and toggles the sort direction (asc/desc)
+ * based on the previous sort state. After sorting, it re-renders the view.
+ * @param {Event} evt The click event object.
+ * @param {HTMLElement} element The element that was clicked, containing the sort property.
+ */
 export function handleSortObject(evt, element){
 
     const sortProp = element.dataset.property;
