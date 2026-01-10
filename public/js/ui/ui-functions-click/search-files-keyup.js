@@ -6,8 +6,11 @@ const DEBOUNCE_DELAY_MS = 200;
 export const debouncedSearchHandler = debounce(handleSearchFiles, DEBOUNCE_DELAY_MS);
 
 /**
- * Debounces a function call, ensuring it is only executed once 
- * after a specified delay since the last time it was called.
+ * Creates a debounced version of a function that delays its execution until after a specified wait time
+ * has elapsed since the last time it was invoked.
+ * @param {Function} func The function to debounce.
+ * @param {number} delay The number of milliseconds to delay.
+ * @returns {Function} Returns the new debounced function.
  */
 function debounce(func, delay) {
     let timeoutId;
@@ -22,9 +25,11 @@ function debounce(func, delay) {
 }
 
 /**
- * Executes the file search logic. 
- * This function is the one that gets debounced.
- * @param {Event} event - The keyup event object.
+ * Handles the logic for searching files based on user input from a search box.
+ * It validates the search term length, tokenizes the string, updates the application state,
+ * and triggers a re-render of the file list. This function is debounced to prevent
+ * excessive re-rendering during rapid typing.
+ * @param {Event} event - The keyup event object from the search input field.
  */
 function handleSearchFiles(event) {
     // 1. Get the current search term and convert to lowercase for case-insensitive matching
@@ -56,6 +61,14 @@ function handleSearchFiles(event) {
 
 }
 
+/**
+ * Validates a search string based on a minimum length requirement.
+ * If the string contains a colon (':'), it checks that the part *after* the colon
+ * meets the minimum length. Otherwise, it checks the entire string's length.
+ * @param {string} s The search string to validate.
+ * @param {number} x The minimum required length.
+ * @returns {boolean} True if the string is valid, false otherwise.
+ */
 function validateString(s, x) {
   // Check 1: Total length < x
   if (s.length < x) return false;

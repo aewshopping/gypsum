@@ -8,6 +8,12 @@ import { highlightSearchResults } from '../ui-functions-search/search-highlight.
 let file_content; // so we can access the raw file content multiple times without looking it up again
 let file_content_tagged_parsed; // // so we can access the rendered file content multiple times
 
+/**
+ * Asynchronously loads and processes the content of a selected file into the modal.
+ * It retrieves the file handle, reads the text content, wraps any YAML front matter,
+ * parses for tags, converts Markdown to HTML, and then calls the rendering function.
+ * @param {string} file_to_open - The filename of the file to be loaded.
+ */
 export async function loadContentModal (file_to_open) {
 
     const yamlWrapBefore = "<pre class='pre-bg'><code>";
@@ -27,6 +33,12 @@ export async function loadContentModal (file_to_open) {
 
 }
 
+/**
+ * Renders the content of the currently loaded file into the modal's text area.
+ * It checks the state of a toggle switch to determine whether to display
+ * the raw, unformatted text or the fully parsed and formatted HTML content.
+ * After rendering, it applies search result highlighting.
+ */
 export function fileContentRender() {
 
     const textbox = document.getElementById('modal-content-text');
