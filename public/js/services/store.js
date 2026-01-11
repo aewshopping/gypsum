@@ -28,7 +28,7 @@ export const appState = {
   search: {
     mode: 'onlyProperties', // allContent or onlyProperties
     prompt: {
-      allContent: ' search... file content (slow) ',
+      allContent: ' content search... (slow) ',
       onlyProperties: ' search... "with space or" property:value '
     },
   },

@@ -1,6 +1,7 @@
 import { appState } from '../../services/store.js';
 import { updateMyFilesShowState } from '../ui-functions-search/filter-files.js';
 import { getStringTokens } from '../ui-functions-search/search-tokenise-string.js';
+import { searchAllFileContent } from '../ui-functions-search/search-full-content.js';
 
 const DEBOUNCE_DELAY_MS = 200;
 export const debouncedSearchHandler = debounce(handleSearchFiles, DEBOUNCE_DELAY_MS);
@@ -37,8 +38,11 @@ function handleSearchFiles(event) {
 
         appState.filterString = getStringTokens(searchTerm); // saved so don't have to recalc later plus to use by highlight function 
 
-        updateMyFilesShowState();
-
+        if (appState.search.mode === "allContent") {
+            searchAllFileContent();
+        } else {
+            updateMyFilesShowState();
+        }
 
     } else {
         // If the search term is empty or too short, reset all files to show=true.
