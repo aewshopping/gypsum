@@ -9,10 +9,13 @@ import { appState } from "../../services/store.js";
  * @returns {object} An object containing the current filter state and its derived properties.
  */
 export function getFilterParameters() {
+
+    
     const filterString = appState.filterString; // already been tokenised and lowercased...
     const arrayTokenObjects = filterString ? filterString : '';
     const hasTagFilters = appState.filterTags.size > 0;
     const hasStringFilter = !!arrayTokenObjects;
+    const filterStringRaw = document.getElementById("searchbox").value;
     
     // The total number of required filter *types* (Tag filter is one, String filter is one)
     const requiredTotalFilters = (hasTagFilters ? 1 : 0) + (hasStringFilter ? 1 : 0);
@@ -26,6 +29,7 @@ export function getFilterParameters() {
         arrayTokenObjects: arrayTokenObjects,
         hasTagFilters: hasTagFilters,
         hasStringFilter: hasStringFilter,
-        requiredTotalFilters: requiredTotalFilters
+        requiredTotalFilters: requiredTotalFilters,
+        filterStringRaw: filterStringRaw
     };
 }

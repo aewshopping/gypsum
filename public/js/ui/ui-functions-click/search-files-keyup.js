@@ -1,5 +1,6 @@
 import { appState } from '../../services/store.js';
 import { updateMyFilesShowState } from '../ui-functions-search/filter-files.js';
+import { updateMyFilesState } from '../ui-functions-search/search-file-show-check.js';
 import { getStringTokens } from '../ui-functions-search/search-tokenise-string.js';
 import { searchAllFileContent } from '../ui-functions-search/search-full-content.js';
 
@@ -38,11 +39,7 @@ function handleSearchFiles(event) {
 
         appState.filterString = getStringTokens(searchTerm); // saved so don't have to recalc later plus to use by highlight function 
 
-        if (appState.search.mode === "allContent") {
-            searchAllFileContent();
-        } else {
-            updateMyFilesShowState();
-        }
+        updateMyFilesState();
 
     } else {
         // If the search term is empty or too short, reset all files to show=true.

@@ -1,27 +1,29 @@
-import { appState } from "../../services/store.js";
+// import { appState } from "../../services/store.js"; // No longer needed inside the function
 
 /**
- * Reads the content of all file handles in parallel and runs a search handler
- * on each file's content.
+ * Executes rich content search concurrently on a subset of files.
  *
- * @param {object} appState - The application state containing the myFiles array.
- * @param {function} debouncedSearchHandler - The function to call with the content of each file.
- * @returns {Promise<Array<any>>} A promise that resolves with an array of the results 
- * from the debouncedSearchHandler for each file.
+ * @param {Array<object>} filesToSearch - The subset of file objects to perform the search on.
+ * @param {string} searchString - The simple string to search for (derived from tokens in the caller).
+ * @returns {Promise<Array<{file: object, richResults: object}>>} A promise that resolves with an array of
+ * the original file object and its rich search results.
  */
-export async function searchAllFileContent() {
-    if (!appState.myFiles || appState.myFiles.length === 0) {
-        console.warn("appState.myFiles is empty or undefined. No files to search.");
+export async function searchAllFileContent(filesToSearch, searchString) {
+    if (!filesToSearch || filesToSearch.length === 0) {
         return [];
     }
+    
+    // Define parameters once
+    const MAX_SNIPPETS = 5; 
+    const SNIPPET_TOTAL_LENGTH = 80;
 
     // 1. Create an array of Promises for concurrent file reading.
-    const readPromises = appState.myFiles.map(async fileObject => {
+    const searchPromises = filesToSearch.map(async fileObject => {
         try {
-            // Define your required parameters here
-            const MAX_SNIPPETS = 5; 
-            const SNIPPET_TOTAL_LENGTH = 80;
-            const searchString = document.getElementById("searchbox").value;
+            // Check for handle existence
+            if (!fileObject.handle) {
+                 throw new Error("File object is missing a handle property.");
+            }
             
             // 1. Read File Content (Async I/O)
             const fileContent = await fileObject.handle.getFile().then(f => f.text());
@@ -34,25 +36,29 @@ export async function searchAllFileContent() {
                 SNIPPET_TOTAL_LENGTH
             );
             
-            return richResults;
+            // CRITICAL FIX: Return the file object along with the rich results
+            return { file: fileObject, richResults };
 
         } catch (error) {
-            console.error("Error reading file or running rich search:", error);
-            // Return a failed/empty result object on error
+            console.error(`Error reading file ${fileObject.name || fileObject.handle.name} or running rich search:`, error);
+            
+            // CRITICAL FIX: Always return a consistent structure on failure
             return {
-                hasMatch: false,
-                matchCount: 0,
-                snippets: []
+                file: fileObject,
+                richResults: {
+                    hasMatch: false,
+                    matchCount: 0,
+                    snippets: []
+                }
             };
-        }        
+        }
     });
 
-    // 2. Wait for all files to be read concurrently.
-    const allFileContents = await Promise.all(readPromises);
+    // 2. Wait for all Promises to be read concurrently.
+    // This resolves to an ARRAY of the objects returned in the map callback.
+    const allSearchResults = await Promise.all(searchPromises);
 
-    console.log(allFileContents[0]);
-    
-
+    return allSearchResults;
 }
 
 
