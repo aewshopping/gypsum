@@ -11,7 +11,7 @@
     color: var(--colour-compl-emph-contr);}
 .tag_cat {
     color: var(--colour-contr);
-    background-color: var(--colour-compl);
+    background-color: color-mix(in srgb, var(--colour-compl) 60%, transparent);
     padding: 1px 4px 1px 4px;
     border-radius: 4px;
     margin-right: 4px;}
