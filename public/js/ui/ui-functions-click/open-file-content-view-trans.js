@@ -29,6 +29,7 @@ export function handleOpenFileContent(event, target) {
 
     filenamebox.innerHTML = renderFilename(target.dataset.filename);
     document.getElementById('file-content-header').dataset.color = target.dataset.color; 
+    scrollingContent.dataset.color=target.dataset.color;
     loadContentModal(file_to_open);
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
   });

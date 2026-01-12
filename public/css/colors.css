@@ -47,3 +47,8 @@
     background-color: attr(data-color type(<color>));
     color: var(--color-mono-contr); /* if null fall back no color will be set ie transparent */
 }
+
+.color-dynamic-fade {
+  --colour-bg: attr(data-color type(<color>));
+  background-color: color-mix(in oklch, var(--colour-bg) 40%, var(--colour-neutral));
+}
