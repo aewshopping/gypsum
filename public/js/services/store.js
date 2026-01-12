@@ -22,15 +22,22 @@ export const appState = {
   myFiles: [],
   myFilesProperties: new Map(), // to build table view, with columns including yaml data
   myTags: [],
-  filterMode: 'OR', // 'AND' or 'OR'
-  filterTags: new Set(),
-  filterString: "",
+  filterMode: 'OR', // 'AND' or 'OR' // **REMOVE LATER**
+  filterTags: new Set(), // **REMOVE LATER**
+  filterString: "", // **REMOVE LATER**
   search: {
-    mode: 'onlyProperties', // allContent or onlyProperties
-    prompt: {
-      allContent: ' content search... (slow) ',
-      onlyProperties: ' search... "with space or" property:value '
+    mode: 'onlyProperties', // allContent or onlyProperties // **REMOVE LATER**
+    filterLogic: {
+      ANDmode: false
     },
+    depth: {
+      fullContent: true,
+      prompt: {
+        fullContent: " content search... (slower) ",
+        onlyProperties: " search... with text or property:value "
+      }
+    },
+    filters: []
   },
   myTaxonomy: [],
   viewState: VIEWS.CARDS.value, // sets initial view state

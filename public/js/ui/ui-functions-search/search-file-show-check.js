@@ -1,3 +1,5 @@
+// **REMOVE LATER**
+
 import { getFilterParameters } from "./search-filter-prep.js";
 import { searchAllFileContent } from "./search-full-content.js";
 import { checkTagMatch } from "./search-tag-match.js";

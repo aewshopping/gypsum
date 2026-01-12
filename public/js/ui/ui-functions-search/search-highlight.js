@@ -1,3 +1,5 @@
+// **REMOVE LATER** ???
+
 /**
  * Spiders through the DOM, highlights instances of the search strings (token values),
  * respecting the data-prop attribute for property-specific tokens in ancestors.
