@@ -14,6 +14,7 @@ import { handleSortObject } from './ui-functions-click/sort-object.js';
 import { debouncedSearchHandler } from './ui-functions-click/search-files-keyup.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
+import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -35,6 +36,7 @@ const actionHandlers = {
     'close-file-content-outside': handeCloseModalOutside,
     'sort-object': handleSortObject,
     'toggle-render-text': fileContentRender,
+    'searchbox-search': handleSearchBoxClick,
 };
 
 const changeActionHandlers = {
@@ -47,7 +49,7 @@ const changeActionHandlers = {
 
 const keyUpActionHandlers = {
     // Only elements that emit a change event should use these data-actions
-    'search-files': debouncedSearchHandler,
+    'search-files': handleSearchBoxEnterPress,
 };
 
 /**
