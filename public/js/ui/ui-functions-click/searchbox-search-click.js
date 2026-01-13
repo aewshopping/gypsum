@@ -46,7 +46,12 @@ export function handleSearchBoxClick() {
     // 2. look up prop type, or check uses special props of allProps or content
     propertyExists = appState.myFilesProperties.has(searchObject.property);
     if (propertyExists) {
-        propertyType = appState.myFilesProperties.get(searchObject.property).type;
+  //      propertyType = appState.myFilesProperties.get(searchObject.property).search_type || appState.myFilesProperties.get(searchObject.property).type;
+
+
+const propObj = appState.myFilesProperties.get(searchObject.property);
+propertyType = propObj?.search_type || propObj?.type;
+
     } else {
 
         switch (searchObject.property) {
