@@ -29,7 +29,7 @@ export const appState = {
   search: {
     mode: 'onlyProperties', // allContent or onlyProperties // **REMOVE LATER**
     filterLogic: {
-      filterMode: 'OR', // 'AND' or 'OR' // **REMOVE LATER**
+      filterMode: 'OR', // 'AND' or 'OR'
     },
     depth: {
       searchMode: "onlyProperties",
@@ -38,7 +38,9 @@ export const appState = {
         onlyProperties: " search... with text or property:value "
       }
     },
-    filters: new Map()
+    excludedProperties: ["handle", "show"],
+    filters: new Map(),
+    results: new Map()
   },
 
   viewState: VIEWS.CARDS.value, // sets initial view state
@@ -55,6 +57,7 @@ export const propertySortMap = new Map();
 /**
  * Defines metadata for known - or potential - file object properties.
  * This is used to assign values to properties later (ie for sorting or rendering).
+ * Should probably change this to an object so it is easier to load in new values later
  * @type {Map<string, {type: string, column_width: number, display_order: number}>}
  */
 export const FILE_PROPERTIES = new Map([
@@ -69,7 +72,7 @@ export const FILE_PROPERTIES = new Map([
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
   ['color', { type: 'string', column_width: 0, display_order: 11 }],
-  ['people', { type: 'array', column_width: 250, display_order: 9 }]
+  ['people', { type: 'array', sort_type: 'string', column_width: 250, display_order: 9 }]
 ]);
 
 /**

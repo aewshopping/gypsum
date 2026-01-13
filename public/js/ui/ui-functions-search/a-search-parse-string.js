@@ -10,7 +10,7 @@ export function parseSearchString(searchString, propOverride = "") {
   
   if (propOverride) {
     return {
-      property: "content",
+      property: propOverride,
       value: searchString,
       operator: ":"
     }

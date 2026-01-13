@@ -1,4 +1,6 @@
 import { appState } from "../../services/store.js";
+import { searchOrchestrator } from "../ui-functions-search/a-search-orchestrator.js";
+import { parseSearchString } from "../ui-functions-search/a-search-parse-string.js";
 import { updateMyFilesShowState } from "../ui-functions-search/filter-files.js";
 
 
@@ -10,12 +12,15 @@ import { updateMyFilesShowState } from "../ui-functions-search/filter-files.js";
  */
 export function handleTagClick(evt, target) {
 
-// this isn't checking for tag in classList[0] as it should be...
-    const tagName = target.dataset.tag; //target.classList[1];
+    const tagName = target.dataset.tag;
     if (!tagName) {
         console.error("Clicked element does not have a tag class at index 1.");
         return;
     }
+
+    const searchObject = parseSearchString(tagName, "tags"); 
+
+    searchOrchestrator(searchObject);
 
     // console.log(`tag name: ${tagName}`);
 
