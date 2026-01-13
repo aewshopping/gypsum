@@ -4,10 +4,18 @@
  * @param {string} parseSearchString - The string to be parsed.
  * @returns {object} - { property, value, operator }
  */
-export function parseSearchString(searchString) {
+export function parseSearchString(searchString, propOverride = "") {
   // Array of possible operators for future expansion
   const operators = [':', "="];
   
+  if (propOverride) {
+    return {
+      property: "content",
+      value: searchString,
+      operator: ":"
+    }
+  }
+
   let foundOperator = null;
   let firstIndex = -1;
 
@@ -26,7 +34,7 @@ export function parseSearchString(searchString) {
     return {
       property: "allProps",
       value: searchString,
-      operator: ":"
+      operator: ":" // default
     };
   }
 
