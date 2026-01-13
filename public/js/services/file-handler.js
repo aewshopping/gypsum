@@ -2,7 +2,7 @@ import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { getUniqueTagsSortedWithCount } from './file-parsing/tag-count.js';
 import { createParentChildTagStructure } from './file-parsing/tag-taxon.js';
-import { updateMyFileProperties } from './file-props.js';
+import { updateMyFilesProperties } from './file-props.js';
 
 /**
  * Asynchronously opens a file picker for `.txt` and `.md` files, reads metadata for selected files,
@@ -50,7 +50,7 @@ export async function loadFileHandles() {
 
     appState.myFileHandlesMap = fileHandleMap; // to allow later speedy loookup of file using filename
     appState.myFiles = filesWithMetadata;
-    updateMyFileProperties(appState.myFiles[0], 1); // // to build table view, with columns showing file properties
+    updateMyFilesProperties(appState.myFiles[0], 1); // // to build table view, with columns showing file properties
 
     console.log(`Saved metadata for ${appState.myFiles.length} files.`);
     document.getElementById('fileCountElement').innerContent = appState.myFiles.length;

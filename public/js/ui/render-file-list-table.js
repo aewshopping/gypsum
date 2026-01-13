@@ -17,7 +17,7 @@ export function renderFileList_table(fullRender = true) {
     // Create a detailed properties array for the current columns
     TABLE_VIEW_COLUMNS.current_props = columnsToShow.map(propName => ({
         name: propName,
-        ...FILE_PROPERTIES[propName]
+        ...FILE_PROPERTIES.get(propName)
     }));
 
     if (fullRender) {

@@ -11,7 +11,7 @@ import { renderData } from '../ui-functions-render/render-all-files.js';
 export function handleSortObject(evt, element){
 
     const sortProp = element.dataset.property;
-    const sortType = FILE_PROPERTIES[sortProp]?.type ?? "string"; // string as default for undefined properties
+    const sortType = FILE_PROPERTIES.get(sortProp)?.type ?? "string"; // string as default for undefined properties
     let sortDirection = "";
 
     // get the currentSort for later updating

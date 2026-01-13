@@ -1,6 +1,6 @@
 import { regex_title, regex_tag } from '../../constants.js';
 import { parseYaml } from './yaml-parse.js';
-import { updateMyFileProperties } from '../file-props.js';
+import { updateMyFilesProperties } from '../file-props.js';
 
 /**
  * @file Extracts metadata from file content, including title, tags, and YAML front matter.
@@ -20,7 +20,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
     const content = await file.text();
     const tagData = parseFileContent(content);
     const yamlData = parseYaml(content);
-    updateMyFileProperties(yamlData, 2);
+    updateMyFilesProperties(yamlData, 2);
 
     return {
         handle: handle,

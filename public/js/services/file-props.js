@@ -1,4 +1,5 @@
-import { appState } from './store.js';
+import { appState, FILE_PROPERTIES } from './store.js';
+
 
 /**
  * Add property keys from `myObject` into `appState.myFilesProperties`.
@@ -14,18 +15,30 @@ import { appState } from './store.js';
  * @returns {void}
  */
 
-export function updateMyFileProperties(myObject, order=1) {
-
+export function updateMyFilesProperties(myObject, order = 1) {
     const newKeys = Object.keys(myObject);
+    const currentProperties = appState.myFilesProperties;
 
-    // only update for new items
     newKeys.forEach(key => {
-        if (!appState.myFilesProperties.has(key)) {
-            appState.myFilesProperties.set(key, { 
-                name: key, // Using the key as a placeholder name
-                order: order 
-            });
+        // Only proceed if the key is not already present
+        if (!currentProperties.has(key)) {
+            
+            // check if the property is in the loopkup table... if it is load up all the keys and values to myFilesProperties
+            if (FILE_PROPERTIES.has(key)) {
+                // Get the existing property object
+                const propObject = FILE_PROPERTIES.get(key);
+                
+                // Use spread syntax to copy all properties into a new object
+                const subItems = { ...propObject };
+
+                currentProperties.set(key, subItems);
+            } else {
+                // Fallback: Add the default entry if not found in FILE_PROPERTIES
+                currentProperties.set(key, {
+                    name: key,
+                    order: order
+                });
+            }
         }
     });
-
 }

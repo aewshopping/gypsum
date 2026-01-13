@@ -10,8 +10,8 @@ export function tableColumns() {
 
     // Sort columns based on the display_order defined in FILE_PROPERTIES
     columnsToShow.sort((a, b) => {
-        const orderA = FILE_PROPERTIES[a]?.display_order ?? 99;
-        const orderB = FILE_PROPERTIES[b]?.display_order ?? 99;
+        const orderA = FILE_PROPERTIES.get(a)?.display_order ?? 99;
+        const orderB = FILE_PROPERTIES.get(b)?.display_order ?? 99;
         return orderA - orderB;
     });
 

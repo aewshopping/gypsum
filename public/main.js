@@ -45,7 +45,7 @@ async function loadData() {
     renderTagTaxonomy();
 
     const sortProp = appState.sortState.property
-    const sortType = FILE_PROPERTIES[sortProp].type;
+    const sortType = FILE_PROPERTIES.get(sortProp).type;
     const sortDirection = appState.sortState.direction
 
     sortAppStateFiles(sortProp, sortType, sortDirection);
