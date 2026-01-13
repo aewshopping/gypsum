@@ -25,11 +25,8 @@ document.addEventListener('DOMContentLoaded', function () {
     viewSelectElem.value = appState.viewState;
 
     const searchbox = document.getElementById("searchbox");
-    if (appState.search.depth.fullContent) {
-        searchbox.placeholder = appState.search.depth.prompt.fullContent;    
-    } else {
-        searchbox.placeholder = appState.search.depth.prompt.onlyProperties;
-    }
+    const searchmode = appState.search.depth.searchMode;
+    searchbox.placeholder = appState.search.depth.prompt[searchmode];    
 
     addActionHandlers();
 

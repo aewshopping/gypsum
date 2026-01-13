@@ -28,10 +28,10 @@ export const appState = {
   search: {
     mode: 'onlyProperties', // allContent or onlyProperties // **REMOVE LATER**
     filterLogic: {
-      ANDmode: false
+      filterMode: 'OR', // 'AND' or 'OR' // **REMOVE LATER**
     },
     depth: {
-      fullContent: true,
+      searchMode: "onlyProperties",
       prompt: {
         fullContent: " content search... (slower) ",
         onlyProperties: " search... with text or property:value "

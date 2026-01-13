@@ -6,14 +6,14 @@ export function handleContentSearchToggle(evt, target) {
 
     if (target.checked) {
         
-        const searchMode = "allContent"; // **REMOVE LATER**
-        appState.search.mode = searchMode; // **REMOVE LATER**
-        searchbox.placeholder = appState.search.depth.prompt.fullContent;
+        const searchMode = "fullContent";
+        appState.search.depth.searchMode = searchMode;
+        searchbox.placeholder = appState.search.depth.prompt[searchMode];
 
     } else {
 
-        const searchMode = "onlyProperties"; // **REMOVE LATER**
-        appState.search.mode = searchMode; // **REMOVE LATER**
-        searchbox.placeholder = appState.search.depth.prompt.onlyProperties;
+        const searchMode = "onlyProperties";
+        appState.search.depth.searchMode = searchMode;
+        searchbox.placeholder = appState.search.depth.prompt[searchMode];
     }
 }
