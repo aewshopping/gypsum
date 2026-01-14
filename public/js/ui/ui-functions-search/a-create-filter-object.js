@@ -23,7 +23,7 @@ export function createFilterObject(searchObject) {
             default:
                 // TODO provide some indication to the reader that the search has been aborted!
                 console.log("no such property, search aborted");
-                return;
+                throw new Error("TRY AGAIN PLEASE");
         }
     }
 

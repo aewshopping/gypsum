@@ -6,6 +6,8 @@ export function searchOrchestrator(searchObject) {
 
     const filterId = createFilterObject(searchObject);
 
+    console.log(searchObject);
+
     searchFiles(filterId);
 
     console.log(appState.search.results);
