@@ -44,9 +44,12 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
 function searchStringProperty(filterId, searchValueLower, property, type, operator) {
     for (const file of appState.myFiles) {
 
-        // Ensure the property exists and is an array to prevent errors
-        const item = file[property];
-        if (typeof item !== 'string') continue;
+
+const item = file[property];
+
+        // Don't check property exists and is a string because some other types may be processed like a string (eg array of search_type set to string. This is to allow a contains match rather than exact match
+        
+  //      if (typeof item !== 'string') continue;
 
         if (item.toLowerCase().includes(searchValueLower)) {
             // Get the existing array or an empty array if it doesn't exist
