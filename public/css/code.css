@@ -5,7 +5,7 @@ pre {
 
 .pre-bg {
     border-radius: 4px;
-    background-color: var(--colour-neutral);
+    background-color: color-mix(in oklch, var(--colour-neutral) 50%, transparent);
     padding-inline: 10px;
 }
 
