@@ -1,44 +1,64 @@
 import { appState } from "../../services/store.js";
 
+//TODO see if we can use these helper function across property search
+//TODO split into separate files
 /**
- * Performs a parallel search across all file handles in appState.
+ * Helper: Standardizes the Map retrieval
  */
-export async function searchContent(filterId, searchValue, property, type, operator) {
+function getFilterMap(filterId) {
+    let map = appState.search.results.get(filterId);
+    return (map instanceof Map) ? map : new Map();
+}
 
+/**
+ * Helper: Standardizes the data structure added to the results map.
+ * Now accepts a 'details' object to handle matches, snippets, etc.
+ */
+function recordMatch(map, filename, details) {
+    if (details && details.count > 0) {
+        map.set(filename, details);
+    }
+}
+
+/**
+ * Helper: Finalizes the state update
+ */
+function updateSearchState(filterId, resultsMap) {
+    if (resultsMap.size > 0) {
+        appState.search.results.set(filterId, resultsMap);
+        console.log(`Search complete. Results for ${filterId} updated.`);
+    }
+}
+
+export async function searchContent(filterId, searchValue, property, type, operator) {
     const MAX_SNIPPETS = 5;
     const SNIPPET_TOTAL_LENGTH = 80;
-    const allFiles = appState.myFiles;
-    const keyedResults = new Map();
+    const keyedResults = getFilterMap(filterId);
 
     try {
-        // 1. Create the array of promises
-        const processingPromises = allFiles.map(async (fileObject) => {
+        const processingPromises = appState.myFiles.map(async (fileObject) => {
             try {
                 const file = await fileObject.handle.getFile();
                 const text = await file.text();
 
-                const matches = performSearch(text, searchValue, MAX_SNIPPETS, SNIPPET_TOTAL_LENGTH);
+                // Logic to find matches
+                const result = findContentMatches(
+                    text, 
+                    searchValue, 
+                    MAX_SNIPPETS, 
+                    SNIPPET_TOTAL_LENGTH
+                );
 
-                // create results map
-                keyedResults.set(fileObject.filename, {
-                    matches: matches,
-                    count: matches.length
-                });
+                // Use the standardized record helper
+                recordMatch(keyedResults, fileObject.filename, result);
+
             } catch (fileErr) {
                 console.error(`Failed to process file: ${fileObject.filename}`, fileErr);
-                // Assign error info to the map so the UI can show it
-                keyedResults.set(fileObject.filename, { matches: [], count: 0, error: fileErr.message });
             }
         });
 
-        // 2. Wait for ALL parallel operations to complete
         await Promise.all(processingPromises);
-
-        // 3. Batch Update
-        // TO DO need to change other map values to also be keys
-        appState.search.results.set(filterId, keyedResults);
-
-        console.log("Search complete. Results updated in appState.");
+        updateSearchState(filterId, keyedResults);
 
     } catch (error) {
         console.error("Critical error during batch search:", error);
@@ -46,23 +66,57 @@ export async function searchContent(filterId, searchValue, property, type, opera
 }
 
 /**
- * Helper function to find matches and create snippets
+ * Processes content. Returns an object with count and matches, or null.
+ * I removed the internal Map creation to keep it focused strictly on finding data.
  */
-// TODO - update DUMMY FUNCTION
-function performSearch(text, term, max, length) {
-    if (!term) return [];
+export function findContentMatches(content, searchValue, MAX_SNIPPETS, SNIPPET_TOTAL_LENGTH) {
+    const searchLower = searchValue.toLowerCase();
+    const contentLower = content.toLowerCase();
+    let position = contentLower.indexOf(searchLower);
 
-    const results = [];
-    const regex = new RegExp(term, 'gi');
-    let match;
+    if (position === -1) return null;
 
-    while ((match = regex.exec(text)) !== null && results.length < max) {
-        const start = Math.max(0, match.index - length / 2);
-        const snippet = text.substring(start, start + length).replace(/\n/g, ' ');
-        results.push({
-            index: match.index,
-            snippet: `...${snippet}...`
-        });
+    const matches = [];
+    let totalCount = 0;
+
+    while (position !== -1) {
+        totalCount++;
+        if (matches.length < MAX_SNIPPETS) {
+            matches.push({
+                position: position,
+                snippet: getCleanSnippet(content, position, searchValue.length, SNIPPET_TOTAL_LENGTH)
+            });
+        }
+        position = contentLower.indexOf(searchLower, position + 1);
     }
-    return results;
+
+    return {
+        count: totalCount,
+        matches: matches
+    };
+}
+
+/**
+ * Helper to extract context and snap to whole words.
+ */
+function getCleanSnippet(content, index, searchLen, targetLen = 80) {
+    const contextLen = Math.floor((targetLen - searchLen) / 2);
+    let start = Math.max(0, index - contextLen);
+    let end = Math.min(content.length, index + searchLen + contextLen);
+
+    if (start > 0) {
+        const nextSpace = content.indexOf(' ', start);
+        if (nextSpace !== -1 && nextSpace < index) {
+            start = nextSpace + 1;
+        }
+    }
+
+    if (end < content.length) {
+        const lastSpace = content.lastIndexOf(' ', end);
+        if (lastSpace !== -1 && lastSpace > (index + searchLen)) {
+            end = lastSpace;
+        }
+    }
+
+    return content.substring(start, end).trim();
 }
