@@ -38,7 +38,7 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
         const resultObject = buildMatchResultObject(matchCount, property, type, operator);
 
         // 2. Record the match into the results map
-        recordMatch(filterResultsMap, file.id, resultObject);
+        recordMatch(filterResultsMap, file.id.toString(), resultObject);
     }
 
     updateSearchState(filterId, filterResultsMap);
@@ -60,7 +60,7 @@ function searchStringProperty(filterId, searchValueLower, property, type, operat
             const resultObject = buildMatchResultObject(occurrences, property, type, operator);
             
             // 2. Pass the object to the record function
-            recordMatch(filterResultsMap, file.id, resultObject);
+            recordMatch(filterResultsMap, file.id.toString(), resultObject);
         }
     }
 

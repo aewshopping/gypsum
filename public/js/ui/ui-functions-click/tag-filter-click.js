@@ -1,5 +1,5 @@
 import { appState } from "../../services/store.js";
-import { searchOrchestrator } from "../ui-functions-search/a-search-orchestrator.js";
+import { addFilterThenFindMatches } from "../ui-functions-search/a-search-orchestrator.js";
 import { parseSearchString } from "../ui-functions-search/a-search-parse-string.js";
 import { updateMyFilesShowState } from "../ui-functions-search/filter-files.js";
 
@@ -20,7 +20,7 @@ export function handleTagClick(evt, target) {
 
     const searchObject = parseSearchString(tagName, "tags"); 
 
-    searchOrchestrator(searchObject);
+    addFilterThenFindMatches(searchObject);
 
     // console.log(`tag name: ${tagName}`);
 

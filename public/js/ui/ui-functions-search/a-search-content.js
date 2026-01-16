@@ -26,7 +26,7 @@ export async function searchContent(filterId, searchValue, property, type, opera
                 );
 
                 // Use the standardized record helper
-                recordMatch(keyedResults, fileObject.id, result);
+                recordMatch(keyedResults, fileObject.id.toString(), result);
 
             } catch (fileErr) {
                 console.error(`Failed to process file: ${fileObject.filename}`, fileErr);

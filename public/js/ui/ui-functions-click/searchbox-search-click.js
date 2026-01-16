@@ -1,6 +1,6 @@
 import { appState } from '../../services/store.js';
 import { parseSearchString } from '../ui-functions-search/a-search-parse-string.js';
-import { searchOrchestrator } from '../ui-functions-search/a-search-orchestrator.js';
+import { addFilterThenFindMatches } from '../ui-functions-search/a-search-orchestrator.js';
 
 /**
  * @fileoverview UI handlers for the search box (click and Enter key).
@@ -41,5 +41,5 @@ export function handleSearchBoxClick() {
         searchObject = parseSearchString(searchString);
     }
 
-    searchOrchestrator(searchObject);
+    addFilterThenFindMatches(searchObject);
 }

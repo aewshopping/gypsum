@@ -1,8 +1,10 @@
 import { appState } from "../../services/store.js";
 import { createFilterObject } from "./a-create-filter-object.js";
 import { searchFiles } from "./a-search-files.js";
+import { invertSearchResults } from "./a-search-invertmap.js";
+import { updateFilterCountFileMatches } from "./a-search-filtercountfilematches.js";
 
-export function searchOrchestrator(searchObject) {
+export function addFilterThenFindMatches(searchObject) {
 
     const filterIdandCheck = createFilterObject(searchObject);
 
@@ -25,7 +27,11 @@ export function searchOrchestrator(searchObject) {
 
     searchFiles(filterId);
 
-
     console.log(appState.search.results);
+    
+    updateFilterCountFileMatches(appState.search); // mutates appState.search.filters to include count of matches
+
+    console.log(appState.search.filters);
+//    console.log(invertSearchResults(appState.search.results)) // returns an inverted set of results - fileids then filterIds, then result objects. if thismap.has(fileId) then is an OR match/ if thismap.get(fileId).values.size === count of active filters then AND match
 
 }
