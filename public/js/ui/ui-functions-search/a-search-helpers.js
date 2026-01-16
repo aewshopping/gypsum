@@ -26,12 +26,9 @@ export function updateSearchState(filterId, resultsMap) {
 /**
  * Helper: Records a result object into the provided Map if the count is valid.
  */
-export function recordMatch(map, filename, resultObject) {
- //   console.log("filename: " + filename);
- //   console.log(resultObject);
- //  console.log(map);
+export function recordMatch(map, fileId, resultObject) {
     if (resultObject && resultObject.count > 0) {
-        map.set(filename, resultObject);
+        map.set(fileId, resultObject);
     }
 }
 
