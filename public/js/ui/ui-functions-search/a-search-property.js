@@ -1,4 +1,9 @@
 import { appState } from "../../services/store.js";
+import { getFilterMap } from "./a-search-helpers.js";
+import { updateSearchState } from "./a-search-helpers.js";
+import { recordMatch } from "./a-search-helpers.js";
+import { buildMatchResultObject } from "./a-search-helpers.js";
+
 
 export function searchProperty(filterId, searchValue, property, type, operator) {
     const searchValueLower = searchValue.toLowerCase();
@@ -13,31 +18,6 @@ export function searchProperty(filterId, searchValue, property, type, operator) 
     }
 }
 
-/**
- * Helper: Standardizes the data structure added to the results map
- */
-function recordMatch(map, filename, count) {
-    if (count > 0) {
-        map.set(filename, { count: count });
-    }
-}
-
-/**
- * Helper: Standardizes the Map retrieval
- */
-function getFilterMap(filterId) {
-    let map = appState.search.results.get(filterId);
-    return (map instanceof Map) ? map : new Map();
-}
-
-/**
- * Helper: Finalizes the state update
- */
-function updateSearchState(filterId, resultsMap) {
-    if (resultsMap.size > 0) {
-        appState.search.results.set(filterId, resultsMap);
-    }
-}
 
 
 function searchArrayProperty(filterId, searchValueLower, property, type, operator) {
@@ -54,13 +34,15 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
             }
         }
 
-        // Standardized record keeping
-        recordMatch(filterResultsMap, file.filename, matchCount);
+        // 1. Build the independent result object
+        const resultObject = buildMatchResultObject(matchCount, property, type, operator);
+
+        // 2. Record the match into the results map
+        recordMatch(filterResultsMap, file.filename, resultObject);
     }
 
     updateSearchState(filterId, filterResultsMap);
 }
-
 
 function searchStringProperty(filterId, searchValueLower, property, type, operator) {
     const filterResultsMap = getFilterMap(filterId);
@@ -73,12 +55,14 @@ function searchStringProperty(filterId, searchValueLower, property, type, operat
 
         if (textToSearch.includes(searchValueLower)) {
             const occurrences = textToSearch.split(searchValueLower).length - 1;
+
+            // 1. Build the independent result object
+            const resultObject = buildMatchResultObject(occurrences, property, type, operator);
             
-            // Standardized record keeping
-            recordMatch(filterResultsMap, file.filename, occurrences);
+            // 2. Pass the object to the record function
+            recordMatch(filterResultsMap, file.filename, resultObject);
         }
     }
 
     updateSearchState(filterId, filterResultsMap);
 }
-
