@@ -1,6 +1,6 @@
 import { appState } from "../../services/store.js";
 
-export function createFilterObject(searchObject) {   
+export function createFilterObject(searchObject) {
     let propertyExists = false;
     let propertyType = "string"; // default
 
@@ -23,9 +23,7 @@ export function createFilterObject(searchObject) {
                 propertyExists = true;
                 break;
             default:
-                // TODO provide some indication to the reader that the search has been aborted!
                 console.log("no such property, search aborted");
-                throw new Error("TRY AGAIN PLEASE");
         }
     }
 
@@ -43,11 +41,20 @@ export function createFilterObject(searchObject) {
         timestamp: timeNow
     }
 
+    let filterExists = false;
+    const currentFilters = appState.search.filters;
+
     // 5. add object to searchfilter map
-    appState.search.filters.set(uniqueId, filterObj);
+    if (currentFilters.get(uniqueId)) {
+        filterExists = true;
+    } else {
+        currentFilters.set(uniqueId, filterObj);
+    }
 
-
-    console.log(appState.search.filters.set(uniqueId, filterObj));
-    return(uniqueId); // for use later in the orchestrator function
+    return {
+        uniqueId: uniqueId,
+        propertyExists: propertyExists,
+        filterExists: filterExists
+    }; // for use later in the orchestrator function
 
 }
