@@ -6,7 +6,8 @@
  */
 export function parseSearchString(searchString, propOverride = "") {
   // Array of possible operators for future expansion
-  const operators = [':', "="];
+  const operators = [':', '=']; // in future this will be a longer list
+  const containsOperators = [':', '=']; // so we can normalise to a consistent ":""
   
   if (propOverride) {
     return {
@@ -38,9 +39,14 @@ export function parseSearchString(searchString, propOverride = "") {
     };
   }
 
+  // Normalization logic: if the found operator is a "contains" type ie "=" or ":", convert to ":"
+  const normalizedOperator = containsOperators.includes(foundOperator) 
+    ? ":" 
+    : foundOperator;
+
   return {
     property: searchString.substring(0, firstIndex),
     value: searchString.substring(firstIndex + foundOperator.length),
-    operator: foundOperator
+    operator: normalizedOperator
   };
 }

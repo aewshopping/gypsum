@@ -4,11 +4,13 @@ export function createFilterObject(searchObject) {
     let propertyExists = false;
     let propertyType = "string"; // default
 
+    const { property, operator, value } = searchObject;
+
     // 2. look up prop type, or check uses special props of allProps or content. Note the property search is case sensitive which needs some thinking about.
-    propertyExists = appState.myFilesProperties.has(searchObject.property);
+    propertyExists = appState.myFilesProperties.has(property);
     if (propertyExists) {
 
-        const propertyObj = appState.myFilesProperties.get(searchObject.property);
+        const propertyObj = appState.myFilesProperties.get(property);
         propertyType = propertyObj?.search_type || propertyObj?.type;
 
     } else {
@@ -28,18 +30,24 @@ export function createFilterObject(searchObject) {
     }
 
     // 3. create id for searchfilter
-    const myId = Date.now(); // get a timestamp
+    let uniqueId = `${property}-${operator}-${value}`;
+
+    let timeNow = Date.now(); // get a timestamp just in case we get confused about the order in which filters were created
 
     // 4. creater filter object
     const filterObj = {
-        searchValue: searchObject.value,
-        operator: searchObject.operator,
+        searchValue: value,
+        operator: operator,
         type: propertyType,
-        property: searchObject.property,
+        property: property,
+        timestamp: timeNow
     }
 
     // 5. add object to searchfilter map
-    appState.search.filters.set(myId, filterObj);
+    appState.search.filters.set(uniqueId, filterObj);
 
-    return(myId);
+
+    console.log(appState.search.filters.set(uniqueId, filterObj));
+    return(uniqueId); // for use later in the orchestrator function
+
 }
