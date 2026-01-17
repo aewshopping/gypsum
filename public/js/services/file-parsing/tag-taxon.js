@@ -1,5 +1,10 @@
 
 
+/**
+ * @file This file contains functions for creating a hierarchical structure of tags from a flat list of files.
+ * It groups tags by their parent tags, calculates counts, and handles special cases like "orphan" tags.
+ */
+
 // Define the key strings once for consistency
 const ORPHAN_TAG_KEY = "orphan";
 const ALL_TAG_KEY = "all"; // Implemented the constant for the "all" parent tag
@@ -8,15 +13,15 @@ const ALL_TAG_KEY = "all"; // Implemented the constant for the "all" parent tag
  * Stage 1: Iterates through the data to establish unique parent-child relationships
  * and track non-orphan children.
  *
- * @param {object} data The object containing the 'fileobject' array.
- * @returns {{parentToChildrenMap: Map<string, Set<string>>, nonOrphanChildTags: Set<string>}}
+ * @param {Array<object>} data An array of file objects.
+ * @returns {{parentToChildrenMap: Map<string, Set<string>>, nonOrphanChildTags: Set<string>}} An object containing a map of parent tags to their children and a set of non-orphan child tags.
  */
 function mapRelationshipsAndTrackExclusivity(data) {
     // NOTE: This function's logic relies entirely on the positional mapping 
     // assumption between 'file.tags_parent' and 'file.tags'.
 
     const parentToChildrenMap = new Map();
-    const nonOrphanChildTags = new Set(); 
+    const nonOrphanChildTags = new Set();
 
     for (const file of data) {
         const parentTags = file.tags_parent || [];
@@ -53,14 +58,14 @@ function filterExclusiveOrphanTags(parentToChildrenMap, nonOrphanChildTags) {
     if (parentToChildrenMap.has(ORPHAN_TAG_KEY)) {
         const orphanChildTagSet = parentToChildrenMap.get(ORPHAN_TAG_KEY);
         const exclusiveOrphanChildTags = new Set();
-        
+
         for (const childTag of orphanChildTagSet) {
             // Retain only child tags NOT associated with any non-orphan parent.
             if (!nonOrphanChildTags.has(childTag)) {
                 exclusiveOrphanChildTags.add(childTag);
             }
         }
-        
+
         // Update the map with the new, exclusive set.
         parentToChildrenMap.set(ORPHAN_TAG_KEY, exclusiveOrphanChildTags);
     }
@@ -87,15 +92,15 @@ function structureAndSortResult(parentToChildrenMap, childCountMap, allChildTags
 
         // Sort the child tags alphabetically (as requested by the user)
         childTagsArray.sort((a, b) => a.localeCompare(b));
-        
+
         for (const childTag of childTagsArray) {
-            const count = childCountMap.get(childTag) || 0; 
+            const count = childCountMap.get(childTag) || 0;
             childTagsAndCounts.push([childTag, count]);
         }
 
         result.push([parentTag, childTagsAndCounts]);
     }
-    
+
     // Initial sort alphabetically by parent tag
     result.sort((a, b) => a[0].localeCompare(b[0]));
 
@@ -117,7 +122,7 @@ function structureAndSortResult(parentToChildrenMap, childCountMap, allChildTags
  * Orchestrator: Creates an array structure grouped by unique parent tags, using a pre-counted
  * array for the child tag counts.
  *
- * @param {object} data The object containing the 'fileobject' array.
+ * @param {Array<object>} data An array of file objects.
  * @param {Array<Array<string | number>>} childtagsandcounts Array of [childtag, count].
  * @returns {Array<[string, Array<[string, number]>]>} An array in the format:
  * [parenttag, [[childtag1, count], [childtag2, count], ...]]
