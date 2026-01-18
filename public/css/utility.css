@@ -6,8 +6,14 @@
 
 .flex-row {
 	display: flex;
-	align-items: center;
+	align-items:end;
 	/*padding: 4px;*/
+}
+
+.flex-column {
+	display: flex;
+	flex-direction: column;
+	align-items: left;
 }
 
 .flex-wrap {
@@ -18,9 +24,7 @@
 .flexgrow {flex-grow: 10}
 .flexgrow-weak {flex-grow: 1}
 
-.flex-row > .ANDOR_label {
-	padding-inline: 4px;
-}
+
 
 .stick-top {
 	position:sticky;
@@ -34,4 +38,8 @@
 .opacity-0 {
 	opacity:0;
 	/* visibility: hidden */ /* <-- more performant? */
+}
+
+.test-outline > * {
+border: 1px solid red;
 }

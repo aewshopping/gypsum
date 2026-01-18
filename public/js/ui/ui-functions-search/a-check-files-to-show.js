@@ -1,0 +1,27 @@
+import { appState } from "../../services/store.js";
+
+const search = appState.search;
+
+export function checkFilesToShow(fileId) {
+
+//    console.log("checking files to show" + fileId);
+
+    if (search.matchingFiles.has(fileId)) {
+
+        if (search.filterMode === 'OR') {
+            return true;
+        }
+
+        const fileMap = search.matchingFiles.get(fileId);
+        const filterCount = search.filters.size;
+        const matchCount = fileMap.size;
+
+        if (search.filterMode === 'AND' && matchCount === filterCount) {
+            return true
+        }
+        return false
+    }
+
+    return false
+
+}

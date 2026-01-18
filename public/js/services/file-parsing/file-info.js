@@ -31,7 +31,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         tags: tagData.childArray,
         color: tagData.colorFirst,
         lastModified: new Date(file.lastModified),
-        id: loadOrder,
+        id: "a" + loadOrder.toString(),
         ...(yamlData),
         show: true
     };

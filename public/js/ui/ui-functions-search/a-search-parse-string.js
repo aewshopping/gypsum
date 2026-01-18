@@ -33,7 +33,7 @@ export function parseSearchString(searchString, propOverride = "") {
   // Fallback if no operator is found or if it was at the very start
   if (foundOperator === null) {
     return {
-      property: "allProps",
+      property: "allProperties",
       value: searchString,
       operator: ":" // default
     };

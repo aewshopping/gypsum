@@ -1,6 +1,7 @@
 
 
 export function updateFilterCountFileMatches(search) {
+  console.log("counting ")
   // Loop through each entry in the filters Map
   // filterId is the key, filterObj is the object value
   for (const [filterId, filterObj] of search.filters) {
@@ -11,10 +12,10 @@ export function updateFilterCountFileMatches(search) {
     // Check if the sub-map exists
     if (subMap) {
       // Set the 'count' property to the number of entries (fileIds) in the sub-map
-      filterObj.count = subMap.size;
+      filterObj.matchCount = subMap.size;
     } else {
       // If no results exist for this filter, initialize count to 0
-      filterObj.count = 0;
+      filterObj.matchCount = 0;
     }
   }
 }

@@ -1,0 +1,19 @@
+#filter-box{
+    border: 1px solid var(--colour-compl-emph);
+    border-radius: 6px;
+    padding: 16px 10px 10px 10px;
+    position: relative;
+    min-width: 250px;
+    min-height: 20px;
+    margin-top:20px;
+    margin-left:10px;
+}
+
+body:has(#and_filter:checked) #filter-box{
+    border: 1px solid var(--colour-compl-alt-emph);
+}
+
+#search-and-filters {
+    flex-grow: 10;
+    max-width: 1000px;
+}

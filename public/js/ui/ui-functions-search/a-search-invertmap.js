@@ -1,5 +1,5 @@
 
-export function invertSearchResults(searchResults) {
+export function invertSearchResultsMap(searchResults) {
   const invertedMap = new Map();
 
   // Iterate through the outer map (filterId)

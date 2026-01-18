@@ -28,9 +28,7 @@ export const appState = {
   filterString: "", // **REMOVE LATER**
   search: {
     mode: 'onlyProperties', // allContent or onlyProperties // **REMOVE LATER**
-    filterLogic: {
-      filterMode: 'OR', // 'AND' or 'OR'
-    },
+    filterMode: 'OR', // 'AND' or 'OR'
     depth: {
       searchMode: "onlyProperties",
       prompt: {
@@ -40,7 +38,8 @@ export const appState = {
     },
     excludedProperties: ["handle", "show"],
     filters: new Map(),
-    results: new Map()
+    results: new Map(),
+    matchingFiles: new Map()
   },
 
   viewState: VIEWS.CARDS.value, // sets initial view state

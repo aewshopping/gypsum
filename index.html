@@ -41,23 +41,23 @@
   </dialog>
 
   <div class="flex-row">
-	  <div>
-    	  <button id="btn_loadFileHandles" data-click-loadfiles>Handle files</button>
-	      <span id=fileCountElement>No</span> files loaded
-	  </div>
-	  
-	  <div class="flexgrow"></div>
+    <div>
+      <button id="btn_loadFileHandles" data-click-loadfiles>Handle files</button>
+      <span id=fileCountElement>No</span> files loaded
+    </div>
+
+    <div class="flexgrow"></div>
 
     <label>
       <input type="checkbox" name="fullscreen" id="fullscreen" data-action="toggle-fullscreen">
     </label>
 
-	  <div class="color-select-radio">
-	    <label class="formcontrol"><input type="radio" name="radio" checked />snow</label>
-	    <label class="formcontrol"><input type="radio" name="radio" id="funcheck" />glow</label>
-	  </div>
+    <div class="color-select-radio">
+      <label class="formcontrol"><input type="radio" name="radio" checked />snow</label>
+      <label class="formcontrol"><input type="radio" name="radio" id="funcheck" />glow</label>
+    </div>
   </div>
-  
+
   <br><br>
 
   <main>
@@ -67,39 +67,38 @@
     </div>
 
     <p><b>Text files</b></p>
-    <div class="flex-row flex-wrap stick-top">
+    <div class="flex-row flex-wrap stick-top  ">
 
-      <input class="flexgrow"
-        data-action="search-files"
-        type="text"
-        id="searchbox"
-        name="searchbox"
-        size="10"
-        minlength="3"
-        maxlength="100"
-        placeholder='' />
-      
-      <button id="btn_search" data-action="searchbox-search">↵</button>
+      <div id="search-and-filters" class="flex-column">
+        <div id="search-box" class="flex-row">
+          <input class="flexgrow" data-action="search-files" type="text" id="searchbox" name="searchbox" size="10"
+            minlength="3" maxlength="100" placeholder='' />
 
-      <label>
-        <input type="checkbox" name="contentsearch" id="contentsearch" data-action="toggle-content-search">
-      </label>
-		
-      <div class="flex-row label_group_filter_toggle">
+          <button id="btn_search" data-action="searchbox-search">↵</button>
 
-        <div class="ANDOR_label"></div>
-        <div class="ANDOR_label">OR</div>
-        <label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"
-            data-action="toggle-filter-mode"><span class="slider"></span></label>
-        <div class="ANDOR_label">AND</div>
+          <label>
+            <input type="checkbox" name="contentsearch" id="contentsearch" data-action="toggle-content-search">
+          </label>
+        </div>
 
-      </div>		
+        <div id="filter-box">
+          <div class="flex-row label_group_filter_toggle">
 
-      <button class="showall" data-action="clear-filters">clear</button>
+            <div class="ANDOR_label">OR</div>
+            <label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"
+                data-action="toggle-filter-mode"><span class="slider"></span></label>
+            <div class="ANDOR_label">AND</div>
 
-      <div id="filter-output"></div>
+          </div>
 
-	    <div class="flexgrow-weak"></div>
+          <div id="filter-output"></div>
+
+          <button class="showall" data-action="clear-filters">clear</button>
+
+        </div>
+      </div>
+
+      <div class="flexgrow-weak"></div>
 
       <label class="select-label" for="view-select">
         <select id="view-select" data-action="view-select">

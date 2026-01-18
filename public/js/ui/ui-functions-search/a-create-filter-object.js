@@ -19,7 +19,7 @@ export function createFilterObject(searchObject) {
             case "content":
                 propertyExists = true;
                 break;
-            case "allProps":
+            case "allProperties":
                 propertyExists = true;
                 break;
             default:
