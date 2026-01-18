@@ -14,7 +14,7 @@ export function renderFilters() {
             operator = filterObj.operator;
         }
 
-            filterhtml += `<code><span class="tag" data-filterId="${filterId}" data-action="delete-filter">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})</span></code> `; // note the (deliberate!) whitespace at the end which seperates the tags when joined together...
+            filterhtml += `<code><span class="tag" data-filterId="${filterId}" data-action="cache-filter">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})<button class="btn-delete-filter" data-filterId="${filterId}" data-action="delete-filter">✕</button></span></code> `; // note the (deliberate!) whitespace at the end which seperates the tags when joined together...
     }
 
     outputElement.innerHTML = filterhtml;

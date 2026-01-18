@@ -17,3 +17,14 @@ body:has(#and_filter:checked) #filter-box{
     flex-grow: 10;
     max-width: 1000px;
 }
+
+.btn-delete-filter {
+    border: none;
+    background-color: transparent;
+    font-size:0.5 em;
+    padding:0px 2px 0px 4px;
+    margin:0px;
+    &:hover{
+        color:red;
+    }
+}

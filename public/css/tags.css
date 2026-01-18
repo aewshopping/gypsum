@@ -1,7 +1,14 @@
 .tag {color:var(--colour-compl-contr);
     background-color: var(--colour-compl);
+    border: 1px solid transparent;
     padding: 1px 4px 1px 4px;
-    border-radius: 4px;}
+    border-radius: 4px;
+
+    &:has(.btn-delete-filter:hover){
+        border: 1px solid red;
+    }
+}
+
 .tag:hover {
     background-color: var(--colour-compl-emph-light);
     color: var(--colour-compl-emph-contr);
@@ -25,3 +32,4 @@ body:has(#and_filter:checked) {/* if AND filter applied, colours here override O
         background-color: var(--colour-compl-alt-emph);
         color: var(--colour-compl-alt-emph-contr)}
 }
+
