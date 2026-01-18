@@ -7,10 +7,19 @@
     min-height: 20px;
     margin-top:20px;
     margin-left:10px;
+
+        &:has(.showall:hover){
+        border: 1px solid var(--colour-contr-warning);
+    }
 }
 
 body:has(#and_filter:checked) #filter-box{
     border: 1px solid var(--colour-compl-alt-emph);
+
+    &:has(.showall:hover){
+        border: 1px solid var(--colour-contr-warning);
+    }
+
 }
 
 #search-and-filters {
@@ -25,6 +34,6 @@ body:has(#and_filter:checked) #filter-box{
     padding:0px 2px 0px 4px;
     margin:0px;
     &:hover{
-        color:red;
+        color:var(--colour-contr-warning);
     }
 }

@@ -3,6 +3,7 @@
     --colour-neutral-alt: white; /* card bg */
     --colour-contr: DarkSlateGray; /* text */
     --colour-contr-emph: RoyalBlue;  /* h1 */
+    --colour-contr-warning: #cd3158;
 
     --colour-compl: PaleTurquoise;  /* btn */
     --colour-compl-emph-light: LightYellow;  /* btn hover */
@@ -22,6 +23,7 @@
     --colour-neutral-alt: #0b6f6f; /* card bg */
     --colour-contr: aquamarine; /* text */
     --colour-contr-emph: hotpink;  /* h1 */
+    --colour-contr-warning: #cd3158;
 
     --colour-compl: DarkCyan;  /* btn */
     --colour-compl-emph-light: LightYellow;  /* btn hover */

@@ -5,7 +5,7 @@
     border-radius: 4px;
 
     &:has(.btn-delete-filter:hover){
-        border: 1px solid red;
+        border: 1px solid var(--colour-contr-warning);
     }
 }
 

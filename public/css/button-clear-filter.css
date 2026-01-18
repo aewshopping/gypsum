@@ -10,6 +10,7 @@
 	&:hover {
 		color: var(--colour-compl-emph-contr);
 		background-color: var(--colour-compl-emph-light);
+		border: 2px solid var(--colour-contr-warning);
 	}
 }
 
@@ -17,5 +18,6 @@ body:has(#and_filter:checked) .showall {border: 2px solid var(--colour-compl-alt
 	&:hover {
 		background-color:var(--colour-compl-alt-emph-light);
 		color: var(--colour-compl-emph-contr);
+		border: 2px solid var(--colour-contr-warning);
 	}
 }
