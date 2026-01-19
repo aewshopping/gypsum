@@ -38,7 +38,8 @@ export function createFilterObject(searchObject) {
         operator: operator,
         type: propertyType,
         property: property,
-        timestamp: timeNow
+        timestamp: timeNow,
+        active: true // not currently used but later will allow me to cache search results
     }
 
     let filterExists = false;
