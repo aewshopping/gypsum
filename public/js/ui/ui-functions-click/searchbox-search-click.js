@@ -24,8 +24,8 @@ export function handleSearchBoxEnterPress(target) {
  * @returns {void}
  */
 export function handleSearchBoxClick() {
-    if (appState.myFiles.length === 0) {
-        console.log("no files to search");
+    if (appState.myFiles.length === 0 || searchBox.value.length < 2) {
+        console.log("no files to search, or search string less than two characters");
         return;
     }
 
