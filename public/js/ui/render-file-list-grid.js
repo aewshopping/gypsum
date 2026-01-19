@@ -30,10 +30,7 @@ export function renderFileList_grid() {
 
     for (const file of appState.myFiles) {
 
-        // this will be the show checker test
-      //  console.log(checkFilesToShow(file.id));
-
-        if (file.show === true) {
+        if (checkFilesToShow(file.id) === true || appState.search.filters.size === 0) {
      //   console.log(file);
 
         // construct the html for the array of tags for this file

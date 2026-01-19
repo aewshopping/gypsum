@@ -53,6 +53,6 @@ export function processSeachResults() {
     updateFilterCountFileMatches(appState.search);
 
     renderFilters();
-//    renderFiles();
+    renderFiles();
 
 }

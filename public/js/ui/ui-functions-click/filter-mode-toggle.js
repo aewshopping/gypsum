@@ -9,9 +9,11 @@ export function handleFilterModeToggle(event) {
     
     // 1. Update the state
     if (isChecked) {
-        appState.filterMode = 'AND';
+        appState.filterMode = 'AND'; // TO REMOVE
+        appState.search.filterMode = 'AND';
     } else {
-        appState.filterMode = 'OR';
+        appState.filterMode = 'OR'; // TO REMOVE
+        appState.search.filterMode = 'OR';
     }
 
     // 2. Re-run the main filtering function
