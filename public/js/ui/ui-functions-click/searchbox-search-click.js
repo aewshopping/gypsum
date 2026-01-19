@@ -42,4 +42,6 @@ export function handleSearchBoxClick() {
     }
 
     addFilterThenFindMatches(searchObject);
+
+//    searchBox.value="";
 }

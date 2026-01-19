@@ -8,6 +8,7 @@ import { renderFilters} from "../ui-functions-render/a-render-filter.js";
 
 export async function addFilterThenFindMatches(searchObject) {
 
+    // mutates appState.search.filters to add a filter to the search.filters map with the value being some search info as an object. Also directly returns the id of the new filter and booleans for whether property exists and whether the filter has already been created before.
     const filterIdandCheck = createFilterObject(searchObject);
 
     if(!filterIdandCheck.propertyExists) {
@@ -27,18 +28,18 @@ export async function addFilterThenFindMatches(searchObject) {
 
     const filterId = filterIdandCheck.uniqueId
 
-    // save search results into search.results map (with filterId as key)
+    // do the search and save search results into search.results map (with filterId as key)
     await searchFiles(filterId);
 
 
     console.log(appState.search.results);
 
+    // move to next stage...
     processSeachResults();
 }
 
 
-function processSeachResults() {
-
+export function processSeachResults() {
 
     // returns an inverted set of results - fileids then filterIds, then result objects. if thismap.has(fileId) then is an OR match/ if thismap.get(fileId).values.size === count of active filters then AND match
     const fileMatchResultsMap = invertSearchResultsMap(appState.search.results);
@@ -47,7 +48,6 @@ function processSeachResults() {
 
     // mutates appState.search.filters to include count of matches
     updateFilterCountFileMatches(appState.search);
-
 
     renderFilters();
 //    renderFiles();

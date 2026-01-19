@@ -15,6 +15,7 @@ import { debouncedSearchHandler } from './ui-functions-click/search-files-keyup.
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
 import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
+import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -27,7 +28,7 @@ export function addActionHandlers() {
 }
 
 // Map 'data-action' names from html to their handler functions.
-const actionHandlers = {
+const clickActionHandlers = {
     'tag-filter': handleTagClick,
     'copy-filename': handleCopyClick,
     'clear-filters': handleClearFilters,
@@ -37,6 +38,7 @@ const actionHandlers = {
     'sort-object': handleSortObject,
     'toggle-render-text': fileContentRender,
     'searchbox-search': handleSearchBoxClick,
+    'delete-filter': handleDeleteFilter,
 };
 
 const changeActionHandlers = {
@@ -63,7 +65,7 @@ function clickDelegate(evt) {
 
     if (actionElement) {
         const actionName = actionElement.dataset.action;
-        const handler = actionHandlers[actionName];
+        const handler = clickActionHandlers[actionName];
 
         if (handler) {
             handler(evt, actionElement); // Calls the specific handler
