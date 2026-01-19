@@ -15,7 +15,7 @@ export async function addFilterThenFindMatches(searchObject) {
     // if property doesn't exist then exit, nothing to search!
     // doubles up on warning in createFilterObject
         console.log("please try searching another property");
-        return 
+        return
     }
 
     if(filterIdandCheck.filterExists) {
@@ -25,6 +25,9 @@ export async function addFilterThenFindMatches(searchObject) {
         console.log("filter already searched");
         return
     }
+
+    // clear the searchbox ready for next search
+    document.getElementById("searchbox").value = ""
 
     const filterId = filterIdandCheck.uniqueId
 

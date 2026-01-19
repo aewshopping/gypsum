@@ -4,7 +4,7 @@
     padding: 16px 10px 10px 10px;
     position: relative;
     min-width: 250px;
-    min-height: 20px;
+    min-height: 46px;
     margin-top:20px;
     margin-left:10px;
 
@@ -28,6 +28,7 @@ body:has(#and_filter:checked) #filter-box{
 }
 
 .btn-delete-filter {
+    color:var(--colour-contr);
     border: none;
     background-color: transparent;
     font-size:0.5 em;
