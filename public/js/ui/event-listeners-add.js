@@ -11,7 +11,6 @@ import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
 import { fileContentRender } from './ui-functions-click/load-file-content.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
-import { debouncedSearchHandler } from './ui-functions-click/search-files-keyup.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
 import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';

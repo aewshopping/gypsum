@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { updateMyFilesShowState } from "../ui-functions-search/filter-files.js";
+import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
 
 export function handleFilterModeToggle(event) {
 
@@ -16,8 +16,8 @@ export function handleFilterModeToggle(event) {
         appState.search.filterMode = 'OR';
     }
 
-    // 2. Re-run the main filtering function
+    // 2. Re-run the file filter results
     // This immediately applies the new 'AND' or 'OR' logic to all visible notes.
-    updateMyFilesShowState();
+    processSeachResults();
 
 }
