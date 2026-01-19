@@ -5,7 +5,13 @@ import { processSeachResults } from '../ui-functions-search/a-search-orchestrato
 export function handleDeleteFilter(evt, target) {
 
     const filterId = target.dataset.filterid;
-//    console.log("deleting filter " + filterId);
+    //    console.log("deleting filter " + filterId);
+
+    deleteFilterAndResults(filterId);
+
+}
+
+export function deleteFilterAndResults(filterId) {
 
     const allFilters = appState.search.filters;
     const allResults = appState.search.results;
@@ -14,4 +20,5 @@ export function handleDeleteFilter(evt, target) {
     allFilters.delete(filterId);
 
     processSeachResults();
+
 }

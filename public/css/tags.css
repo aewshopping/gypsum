@@ -16,6 +16,11 @@
 .tagselected {
     background-color: var(--colour-compl-emph);
     color: var(--colour-compl-emph-contr);}
+
+.tag[data-active="true"]{
+    background-color: var(--colour-compl-emph);
+    color: var(--colour-compl-emph-contr);
+}
 .tag_cat {
     color: var(--colour-contr);
     background-color: color-mix(in srgb, var(--colour-compl) 60%, transparent);

@@ -2,6 +2,7 @@ import { appState } from "../../services/store.js";
 import { addFilterThenFindMatches } from "../ui-functions-search/a-search-orchestrator.js";
 import { parseSearchString } from "../ui-functions-search/a-search-parse-string.js";
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
+import { deleteFilterAndResults } from "./filter-delete.js";
 
 
 /**
@@ -18,10 +19,19 @@ export function handleTagClick(evt, target) {
         return;
     }
 
-    const searchObject = parseSearchString(tagName, "tags"); 
+    if (target.dataset.active === "false") { // need to ADD search filter
 
-    addFilterThenFindMatches(searchObject);
+        const searchObject = parseSearchString(tagName, "tags");
 
-    processSeachResults();
-    
+        addFilterThenFindMatches(searchObject); // creates the filter.results map with matches
+
+        processSeachResults(); // renders files
+
+    } else if (target.dataset.active === "true"){ // need to DELETE search filter
+        
+        const filterId = target.dataset.filterkey; // filterId is saved on the elem when highlighted
+
+        deleteFilterAndResults(filterId); // use this filterId to delete the filter and rerender
+    }
+
 }
