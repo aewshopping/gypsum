@@ -36,5 +36,9 @@ body:has(#and_filter:checked) {/* if AND filter applied, colours here override O
     .tagselected {
         background-color: var(--colour-compl-alt-emph);
         color: var(--colour-compl-alt-emph-contr)}
+    .tag[data-active="true"]{
+        background-color: var(--colour-compl-alt-emph);
+        color: var(--colour-compl-alt-emph-contr);
+    }    
 }
 
