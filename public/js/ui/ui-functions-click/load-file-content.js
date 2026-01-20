@@ -2,7 +2,7 @@ import { appState } from '../../services/store.js';
 import { marked }  from '../../services/marked.eos.js';
 import { tagParser } from '../../services/file-tagparser.js';
 import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatter.js';
-import { highlightSearchResults } from '../ui-functions-search/search-highlight.js';
+import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 
 
 let file_content; // so we can access the raw file content multiple times without looking it up again
@@ -48,6 +48,6 @@ export function fileContentRender() {
 
     }
 
-    highlightSearchResults(appState.filterString,"#moving-file-content-container");
+    highlightPropMatches();
 
 }

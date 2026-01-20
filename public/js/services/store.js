@@ -23,11 +23,7 @@ export const appState = {
   myFilesProperties: new Map(), // to build table view, with columns including yaml data. Only includes *actual* props from files hence different to FILE_PROPERTIES map
   myTags: [],
   myTaxonomy: [],
-  filterMode: 'OR', // 'AND' or 'OR' // **REMOVE LATER**
-  filterTags: new Set(), // **REMOVE LATER**
-  filterString: "", // **REMOVE LATER**
   search: {
-    mode: 'onlyProperties', // allContent or onlyProperties // **REMOVE LATER**
     filterMode: 'OR', // 'AND' or 'OR'
     depth: {
       searchMode: "onlyProperties",

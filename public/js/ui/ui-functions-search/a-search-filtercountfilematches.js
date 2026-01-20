@@ -1,7 +1,7 @@
 
 
 export function updateFilterCountFileMatches(search) {
-  console.log("counting ")
+
   // Loop through each entry in the filters Map
   // filterId is the key, filterObj is the object value
   for (const [filterId, filterObj] of search.filters) {

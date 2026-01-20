@@ -3,7 +3,7 @@ import { appState } from "../../services/store.js";
 export function renderFilters() {
     const outputElement = document.getElementById("filter-output");
 
-    console.log(appState.search.filters);
+    // console.log(appState.search.filters);
 
     let filterhtml = "";
     for (const [filterId, filterObj] of appState.search.filters) {

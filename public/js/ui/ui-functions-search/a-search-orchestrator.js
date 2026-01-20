@@ -5,7 +5,7 @@ import { invertSearchResultsMap } from "./a-search-invertmap.js";
 import { updateFilterCountFileMatches } from "./a-search-filtercountfilematches.js";
 import { renderFiles } from "../ui-functions-render/a-render-all-files.js";
 import { renderFilters } from "../ui-functions-render/a-render-filter.js";
-import { tagsHighlight } from "../ui-functions-highlight/tags-highlight.js";
+import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 
 export async function addFilterThenFindMatches(searchObject) {
 
@@ -35,9 +35,6 @@ export async function addFilterThenFindMatches(searchObject) {
     // do the search and save search results into search.results map (with filterId as key)
     await searchFiles(filterId);
 
-
-    console.log(appState.search.results);
-
     // move to next stage...
     processSeachResults();
 }
@@ -56,24 +53,6 @@ export function processSeachResults() {
     renderFilters();
     renderFiles();
 
-    highlightMatches();
-
-}
-
-export function highlightMatches() {
-
-    for (const [key, filter] of appState.search.filters) {
-
-        if (filter.property === "tags")
-            if (filter.active === true) {
-
-                tagsHighlight(filter.searchValue, "true", key); // need to switch tags to true as well, so they are highlighted
-
-            } else if (filter.active === false) {
-
-                tagsHighlight(filter.searchValue, "false"); // set tags to false so they are not highlighted
-
-            }
-    }
+    applyHighlights();
 
 }

@@ -1,4 +1,4 @@
-mark {
+::highlight(match) {
     background-color: color-mix(in srgb, var(--colour-compl-emph) 30%, transparent);
     color: inherit;
     border-radius: 4px;
@@ -10,7 +10,7 @@ mark {
     text-decoration-thickness: 3px;
 }
 
-body:has(#and_filter:checked) mark {
+body:has(#and_filter:checked) ::highlight(match) {
     background-color: color-mix(in srgb, var(--colour-compl-alt-emph) 30%, transparent);
     text-decoration-color: var(--colour-compl-alt-emph);
-	}
+}

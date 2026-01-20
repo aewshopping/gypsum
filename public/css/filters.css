@@ -27,15 +27,3 @@ body:has(#and_filter:checked) #filter-box{
     max-width: 800px;
     width: 100%;
 }
-
-.btn-delete-filter {
-    color:var(--colour-contr);
-    border: none;
-    background-color: transparent;
-    font-size:0.5 em;
-    padding:0px 2px 0px 4px;
-    margin:0px;
-    &:hover{
-        color:var(--colour-contr-warning);
-    }
-}

@@ -1,10 +1,11 @@
-.tag {color:var(--colour-compl-contr);
+.tag {
+    color: var(--colour-compl-contr);
     background-color: var(--colour-compl);
     border: 1px solid transparent;
     padding: 1px 4px 1px 4px;
     border-radius: 4px;
 
-    &:has(.btn-delete-filter:hover){
+    &:has(.btn-delete-filter:hover) {
         border: 1px solid var(--colour-contr-warning);
     }
 }
@@ -12,33 +13,55 @@
 .tag:hover {
     background-color: var(--colour-compl-emph-light);
     color: var(--colour-compl-emph-contr);
-    cursor:pointer;}
-.tagselected {
-    background-color: var(--colour-compl-emph);
-    color: var(--colour-compl-emph-contr);}
+    cursor: pointer;
 
-.tag[data-active="true"]{
+    .btn-delete-filter {
+        color: var(--colour-compl-emph-contr);
+    }
+}
+
+.tag[data-active="true"] {
     background-color: var(--colour-compl-emph);
     color: var(--colour-compl-emph-contr);
+
+    .btn-delete-filter {
+        color: var(--colour-compl-emph-contr);
+    }
 }
+
 .tag_cat {
     color: var(--colour-contr);
     background-color: color-mix(in srgb, var(--colour-compl) 60%, transparent);
     padding: 1px 4px 1px 4px;
     border-radius: 4px;
-    margin-right: 4px;}
-
-/* STYLE CSS (for AND filter) */
-body:has(#and_filter:checked) {/* if AND filter applied, colours here override OR colours above */
-    .tag:hover {
-        background-color: var(--colour-compl-alt-emph-light);
-        color: var(--colour-compl-alt-emph-contr);}
-    .tagselected {
-        background-color: var(--colour-compl-alt-emph);
-        color: var(--colour-compl-alt-emph-contr)}
-    .tag[data-active="true"]{
-        background-color: var(--colour-compl-alt-emph);
-        color: var(--colour-compl-alt-emph-contr);
-    }    
+    margin-right: 4px;
 }
 
+.btn-delete-filter {
+    color: var(--colour-contr);
+    border: none;
+    background-color: transparent;
+    font-size: 0.5 em;
+    padding: 0px 2px 0px 4px;
+    margin: 0px;
+
+    &:hover {
+        color: var(--colour-contr-warning) !important;
+    }
+}
+
+
+/* STYLE CSS (for AND filter) */
+body:has(#and_filter:checked) {
+
+    /* if AND filter applied, colours here override OR colours above */
+    .tag:hover {
+        background-color: var(--colour-compl-alt-emph-light);
+        color: var(--colour-compl-alt-emph-contr);
+    }
+
+    .tag[data-active="true"] {
+        background-color: var(--colour-compl-alt-emph);
+        color: var(--colour-compl-alt-emph-contr);
+    }
+}
