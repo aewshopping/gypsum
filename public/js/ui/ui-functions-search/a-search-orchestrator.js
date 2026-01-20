@@ -46,7 +46,7 @@ export async function addFilterThenFindMatches(searchObject) {
 export function processSeachResults() {
 
     // returns an inverted set of results - fileids then filterIds, then result objects. if thismap.has(fileId) then is an OR match/ if thismap.get(fileId).values.size === count of active filters then AND match
-    const fileMatchResultsMap = invertSearchResultsMap(appState.search.results);
+    const fileMatchResultsMap = invertSearchResultsMap();
 
     appState.search.matchingFiles = fileMatchResultsMap;
 

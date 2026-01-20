@@ -9,7 +9,7 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
  * It clears the output, generates the table container,
  * and then calls the header and row rendering functions.
  */
-export function renderFileList_table(fullRender = true) {
+export function renderFileList_table(renderEverything, fullRender = true) {
 
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     const columnsToShow = tableColumns();
@@ -27,7 +27,7 @@ export function renderFileList_table(fullRender = true) {
         const headerHtml = renderTableHeader(TABLE_VIEW_COLUMNS.current_props);
 
         // Generate the dynamic rows
-        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
+        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
 
         // Combine header and rows within the main table container
         const tableHtml = `

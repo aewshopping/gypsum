@@ -14,11 +14,12 @@ import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js
  * This function iterates through the files in the `appState`, creates an HTML string for each file,
  * and then sets the innerHTML of the 'output' element to the generated string.
  */
-export function renderFileList_list() {
+export function renderFileList_list(renderEverything) {
     let file_html = `<ol class="list-view">`; 
 
     for (const file of appState.myFiles) {
-        if (checkFilesToShow(file.id) === true || appState.search.filters.size === 0) {
+        if (checkFilesToShow(file.id) === true || renderEverything === true ) {
+
             const filename_html = renderFilename(file.filename);
 
             // construct the html for the array of tags for this file

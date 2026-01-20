@@ -1,4 +1,5 @@
 import { appState } from "../../services/store.js";
+import { countActiveFilters } from "./a-count-activefilters.js";
 
 const search = appState.search;
 
@@ -13,7 +14,7 @@ export function checkFilesToShow(fileId) {
         }
 
         const fileMap = search.matchingFiles.get(fileId);
-        const filterCount = search.filters.size;
+        const filterCount = countActiveFilters(); // search.filters.size;
         const matchCount = fileMap.size;
 
         if (search.filterMode === 'AND' && matchCount === filterCount) {

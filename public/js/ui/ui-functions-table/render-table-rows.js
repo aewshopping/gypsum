@@ -8,11 +8,11 @@ import { checkFilesToShow } from '../ui-functions-search/a-check-files-to-show.j
  * Iterates through the files in the appState and generates the HTML for each row.
  * @returns {string} The HTML string for all table rows.
  */
-export function renderTableRows(current_props) {
+export function renderTableRows(current_props, renderEverything) {
     let rowsHtml = '';
 
     for (const file of appState.myFiles) {
-        if (checkFilesToShow(file.id) === true || appState.search.filters.size === 0) {
+        if (checkFilesToShow(file.id) === true || renderEverything === true ) {
 
             const cellsHtml = current_props.map(prop => {
                 const value = file[prop.name];

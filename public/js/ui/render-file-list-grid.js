@@ -13,7 +13,7 @@ import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js
  * The function iterates through the files in the `appState`, creates an HTML string for each file,
  * and then sets the innerHTML of the 'output' element to the generated string.
  */
-export function renderFileList_grid() {
+export function renderFileList_grid(renderEverything) {
 
     // set the header card
     let file_html = `
@@ -30,7 +30,7 @@ export function renderFileList_grid() {
 
     for (const file of appState.myFiles) {
 
-        if (checkFilesToShow(file.id) === true || appState.search.filters.size === 0) {
+        if (checkFilesToShow(file.id) === true || renderEverything===true ) {
      //   console.log(file);
 
         // construct the html for the array of tags for this file
