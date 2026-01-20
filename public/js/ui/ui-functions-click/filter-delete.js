@@ -21,4 +21,6 @@ export function deleteFilterAndResults(filterId) {
 
     processSeachResults();
 
+    // TODO if tags also need to go through tag taxon and remove data-active="true" from the query selector tags 
+
 }

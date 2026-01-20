@@ -19,7 +19,7 @@ export async function loadContentModal (file_to_open) {
     const file_chosen = await file_handle.getFile();
     file_content = await file_chosen.text();
     const file_content_yamlwrapped = wrapFrontMatter(file_content, yamlWrapBefore, yamlWrapAfter);
-    const file_content_tagged =  tagParser(file_content_yamlwrapped); // need to tagparse before marked parse to avoid parse clash!
+    const file_content_tagged =  tagParser(file_content_yamlwrapped); // need to tagparse before marked parse to avoid parse clash! Also passing target elem in case we can figure out which tags are active...
     file_content_tagged_parsed = marked(file_content_tagged)
 
     fileContentRender();

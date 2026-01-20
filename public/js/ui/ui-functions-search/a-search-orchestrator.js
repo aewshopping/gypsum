@@ -51,8 +51,7 @@ export function processSeachResults() {
     updateFilterCountFileMatches(appState.search);
 
     renderFilters();
-    renderFiles();
 
-    applyHighlights();
+    renderFiles(); // note that highlihgts appluied within the renderFiles function
 
 }

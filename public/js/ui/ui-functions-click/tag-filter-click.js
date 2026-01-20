@@ -21,6 +21,8 @@ export function handleTagClick(evt, target) {
 
     if (target.dataset.active === "false") { // need to ADD search filter
 
+        target.dataset.active=true; // because not all tags will be re-rendered (for eg in taxon or in modal)
+
         const searchObject = parseSearchString(tagName, "tags");
 
         addFilterThenFindMatches(searchObject); // creates the filter.results map with matches
@@ -28,6 +30,8 @@ export function handleTagClick(evt, target) {
         processSeachResults(); // renders files
 
     } else if (target.dataset.active === "true"){ // need to DELETE search filter
+
+        target.dataset.active=false; // because not all tags will be re-rendered (for eg in taxon or in modal)
         
         const filterId = target.dataset.filterkey; // filterId is saved on the elem when highlighted
 
