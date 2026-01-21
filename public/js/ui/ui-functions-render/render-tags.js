@@ -1,4 +1,6 @@
-export function renderTags(tagname, tagcount = null, type="code") {
+
+// there are lots of arguments so we can render tags that already represent an active filter
+export function renderTags(tagname, tagcount = null, hash = "nohash", type = "code", active = false, filterId = "") {
 
     let tagcounter = "";
 
@@ -6,15 +8,18 @@ export function renderTags(tagname, tagcount = null, type="code") {
         tagcounter = `&nbsp;(${tagcount})`;
     }
 
-    const tagnamehash = (type === "span") ? "#" + tagname : tagname; // for when we want to render tags inside the modal, need to show the # in front
+    let filterId_data = "";
+    if (active) { filterId_data = `data-filterkey="${filterId}"` }
 
-    const spanhtml = `<span class="tag" data-tag="${tagname}" data-action="tag-filter" data-active="false">${tagnamehash}${tagcounter}</span>`;
+    const tagnamehash = (hash === "showhash") ? "#" + tagname : tagname; // for when we want to render tags inside the modal, need to show the # in front
+
+    const spanhtml = `<span class="tag" data-tag="${tagname}" data-action="tag-filter" ${filterId_data} data-active="${active}">${tagnamehash}${tagcounter}</span>`;
 
     const codehtml = `<code>${spanhtml}</code> `; // note the (deliberate!) whitespace at the end which seperates the tags when joined together...
 
-    if (type==="span") {
+    if (type === "span") {
         return spanhtml;
     } else {
-    return codehtml;
+        return codehtml;
     }
 }
