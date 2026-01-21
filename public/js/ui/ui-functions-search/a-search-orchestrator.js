@@ -52,6 +52,6 @@ export function processSeachResults() {
 
     renderFilters();
 
-    renderFiles(); // note that highlihgts appluied within the renderFiles function
+    renderFiles(); // note that highlihgts applied within the renderFiles function
 
 }

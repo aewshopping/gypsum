@@ -21,18 +21,37 @@ export function handleTagClick(evt, target) {
 
     if (target.dataset.active === "false") { // need to ADD search filter
 
-        target.dataset.active=true; // because not all tags will be re-rendered (for eg in taxon or in modal)
+        const filters = appState.search.filters;
+        const filterid = target.dataset.filterkey;
+        console.log(filterid);
 
-        const searchObject = parseSearchString(tagName, "tags");
+        // check if filter already created but currently inactive (which it must be if dataset.active===false)
+        if (filters.has(filterid)) {
+            console.log("filter detected");
 
-        addFilterThenFindMatches(searchObject); // creates the filter.results map with matches
+            // set active status to true, so it will reactivate on rerender
+            filters.get(filterid).active = true;
 
+        // no filter already created so we can go ahead and create a new one
+        // (if we had tried to create a new one with an identical filter already in existence, 
+        // even if it wasn't active, the filter creation would just fail)
+        } else {
+
+            target.dataset.active = true; // because not all tags will be re-rendered (for eg in taxon or in modal)
+            const searchObject = parseSearchString(tagName, "tags");
+            addFilterThenFindMatches(searchObject); // creates the filter.results map with matches
+
+        }
+
+        // in both cases we now need to re render files
         processSeachResults(); // renders files
 
-    } else if (target.dataset.active === "true"){ // need to DELETE search filter
 
-        target.dataset.active=false; // because not all tags will be re-rendered (for eg in taxon or in modal)
-        
+
+    } else if (target.dataset.active === "true") { // need to DELETE search filter
+
+        target.dataset.active = false; // because not all tags will be re-rendered (for eg in taxon or in modal)
+
         const filterId = target.dataset.filterkey; // filterId is saved on the elem when highlighted
 
         deleteFilterAndResults(filterId); // use this filterId to delete the filter and rerender

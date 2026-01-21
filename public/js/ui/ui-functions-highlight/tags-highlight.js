@@ -8,7 +8,6 @@ export function tagsHighlight(tagName, status, key="") {
     for (const tagElem of tagElems) {
 
         tagElem.dataset.active = status.toString(); // activates / deactivates the css styling based on data-active=true
-        tagElem.dataset.filterkey = key; // 
 
     }
 }

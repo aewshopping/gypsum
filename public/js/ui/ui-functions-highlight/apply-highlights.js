@@ -16,7 +16,7 @@ function highlightTagMatches() {
         if (filter.property === "tags")
             if (filter.active === true) {
 
-                tagsHighlight(filter.searchValue, "true", key); // need to switch tags to true as well, so they are highlighted
+                tagsHighlight(filter.searchValue, "true"); // need to switch tags to true as well, so they are highlighted
 
             } else if (filter.active === false) {
 

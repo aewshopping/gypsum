@@ -40,10 +40,10 @@ export function renderFileList_grid(renderEverything) {
         }
 
         // construct the html for the file as a whole, pulling in file content and tag pills from above.
-        const tag_list = file.tags.join(" ");
+  //      const tag_list = file.tags.join(" ");
         const filename_html = renderFilename(file.filename);
         file_html += `
-        <div class="note-grid ${tag_list} color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
+        <div class="note-grid color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
 
             <div data-prop="filename">${filename_html}</div>
 
