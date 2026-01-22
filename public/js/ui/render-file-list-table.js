@@ -57,7 +57,7 @@ export function renderFileList_table(renderEverything, fullRender = true) {
             element.remove();
         }
 
-        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props);
+        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
 
         const headerElement = document.querySelector(".note-table-header");
         headerElement.insertAdjacentHTML('afterend', rowsHtml);
