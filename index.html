@@ -71,14 +71,16 @@
 
       <div id="search-and-filters" class="flex-column">
         <div id="search-box" class="flex-row">
+
+          <label>
+            <input type="checkbox" name="contentsearch" id="contentsearch" data-action="toggle-content-search">
+          </label>
+
           <input class="flexgrow" data-action="search-files" type="text" id="searchbox" name="searchbox" size="10"
             minlength="3" maxlength="100" placeholder='' />
 
           <button id="btn_search" data-action="searchbox-search">↵</button>
 
-          <label>
-            <input type="checkbox" name="contentsearch" id="contentsearch" data-action="toggle-content-search">
-          </label>
         </div>
 
         <div id="filter-box">

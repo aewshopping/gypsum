@@ -52,7 +52,7 @@ export async function loadFileHandles() {
 
     appState.myFileHandlesMap = fileHandleMap; // to allow later speedy loookup of file using filename
     appState.myFiles = filesWithMetadata;
-    updateMyFilesProperties(appState.myFiles[0], 1); // // to build table view, with columns showing file properties
+    updateMyFilesProperties(appState.myFiles[0], 1); // to build table view, with columns showing file properties
 
     appState.myTags = getUniqueTagsSortedWithCount(appState.myFiles);
 
