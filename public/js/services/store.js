@@ -68,7 +68,7 @@ export const FILE_PROPERTIES = new Map([
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
   ['color', { type: 'string', column_width: 0, display_order: 11 }],
-  ['people', { type: 'array', sort_type: 'string', column_width: 250, display_order: 9 }]
+  ['people', { type: 'array', search_type: 'string', column_width: 250, display_order: 9 }]
 ]);
 
 /**

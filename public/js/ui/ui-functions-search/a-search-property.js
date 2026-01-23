@@ -44,6 +44,7 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
     updateSearchState(filterId, filterResultsMap);
 }
 
+
 function searchStringProperty(filterId, searchValueLower, property, type, operator) {
     const filterResultsMap = getFilterMap(filterId);
 

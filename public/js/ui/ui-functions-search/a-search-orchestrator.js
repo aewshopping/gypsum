@@ -51,6 +51,6 @@ export function processSeachResults() {
 
     renderFilters();
 
-    renderFiles(); // note that highlihgts applied within the renderFiles function
+    renderFiles(); // note that highlights applied within the renderFiles function
 
 }
