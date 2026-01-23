@@ -32,8 +32,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         color: tagData.colorFirst,
         lastModified: new Date(file.lastModified),
         id: "a" + loadOrder.toString(),
-        ...(yamlData),
-        show: true
+        ...(yamlData)
     };
 
 }

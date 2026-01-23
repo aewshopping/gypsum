@@ -4,12 +4,22 @@ export function createFilterObject(searchObject) {
     let propertyExists = false;
     let propertyType = "string"; // default
 
-    const { property, operator, value } = searchObject;
+    let { property, operator, value } = searchObject;
 
-    // 2. look up prop type, or check uses special props of allProps or content. Note the property search is case sensitive which needs some thinking about.
-    propertyExists = appState.myFilesProperties.has(property);
+    // Look up prop type, then check if uses special props of allProps or content.
+    // Iterating over map keys and **not** using map.has because we need property search to be case insensitive. Allowing case insentive prop seearches is most of the complexity in this function...
+    let actualPropertyName = null;
+    for (const key of appState.myFilesProperties.keys()) {
+        if (key.toLowerCase() === property.toLowerCase()) {
+            actualPropertyName = key;
+            break; // Stop looking once we find it
+        }
+    }
+    propertyExists = !!actualPropertyName; // ie if actualPropertyName is something returns true, otherwise false
+
     if (propertyExists) {
 
+        property = actualPropertyName;// Overwrite the input property with the actual case sensitive prop name found in the Map
         const propertyObj = appState.myFilesProperties.get(property);
         propertyType = propertyObj?.search_type || propertyObj?.type;
 
@@ -39,8 +49,10 @@ export function createFilterObject(searchObject) {
         type: propertyType,
         property: property,
         timestamp: timeNow,
-        active: true // not currently used but later will allow me to cache search results
+        active: true
     }
+
+    console.log(filterObj);
 
     let filterExists = false;
     const currentFilters = appState.search.filters;

@@ -8,13 +8,22 @@ import { buildMatchResultObject } from "./a-search-helpers.js";
 export function searchProperty(filterId, searchValue, property, type, operator) {
     const searchValueLower = searchValue.toLowerCase();
 
+    // Find the actual case property key once before starting any loops, checking the keys (properties) of myFilesProperties to see what the real casing is. So iff you have searched 'sizeinbytes' it will use the actual prop name which could be 'sizeInBytes'
+    let actualCasePropertyName = property; // Fallback to input if not found
+    for (const key of appState.myFilesProperties.keys()) {
+        if (key.toLowerCase() === property.toLowerCase()) {
+            actualCasePropertyName = key;
+            break; // stop when found
+        }
+    }
+
     // TODO build in case number and date
     switch (type) {
         case 'array':
-            searchArrayProperty(filterId, searchValueLower, property, type, operator);
+            searchArrayProperty(filterId, searchValueLower, actualCasePropertyName, type, operator);
             break;
         default:
-            searchStringProperty(filterId, searchValueLower, property, type, operator);
+            searchStringProperty(filterId, searchValueLower, actualCasePropertyName, type, operator);
     }
 }
 
@@ -49,6 +58,8 @@ function searchStringProperty(filterId, searchValueLower, property, type, operat
     const filterResultsMap = getFilterMap(filterId);
 
     for (const file of appState.myFiles) {
+
+        //  const actualKey = Object.keys(file).find(key => key.toLowerCase() === property.toLowerCase());
         const item = file[property];
         if (item == null) continue;
 
@@ -59,7 +70,7 @@ function searchStringProperty(filterId, searchValueLower, property, type, operat
 
             // 1. Build the independent result object
             const resultObject = buildMatchResultObject(occurrences, property, type, operator);
-            
+
             // 2. Pass the object to the record function
             recordMatch(filterResultsMap, file.id.toString(), resultObject);
         }

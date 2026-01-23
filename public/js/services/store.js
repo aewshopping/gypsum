@@ -35,7 +35,6 @@ export const appState = {
     excludedProperties: ["handle", "show"],
     filters: new Map(),
     results: new Map(),
-    resultsCache: new Map(),
     matchingFiles: new Map()
   },
 
