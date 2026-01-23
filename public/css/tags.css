@@ -4,10 +4,16 @@
     border: 1px solid transparent;
     padding: 1px 4px 1px 4px;
     border-radius: 4px;
+    display: inline-block;
 
     &:has(.btn-delete-filter:hover) {
         border: 1px solid var(--colour-contr-warning);
     }
+}
+
+.tag-pill {
+    font: 0.9em monospace;
+    margin: 2px;
 }
 
 .tag:hover {
