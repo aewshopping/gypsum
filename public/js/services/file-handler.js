@@ -35,6 +35,8 @@ export async function loadFileHandles() {
     ],
     });
 
+    const startTime = performance.now();
+
     // Map file handles to promises from the function above
     const filePromises = fileHandles.map((handle, index) => getFileDataAndMetadata(handle, index));
 
@@ -52,11 +54,16 @@ export async function loadFileHandles() {
     appState.myFiles = filesWithMetadata;
     updateMyFilesProperties(appState.myFiles[0], 1); // // to build table view, with columns showing file properties
 
-    console.log(`Saved metadata for ${appState.myFiles.length} files.`);
-    document.getElementById('fileCountElement').innerContent = appState.myFiles.length;
-
     appState.myTags = getUniqueTagsSortedWithCount(appState.myFiles);
 
     appState.myTaxonomy = createParentChildTagStructure(appState.myFiles, appState.myTags);
+
+    const endTime = performance.now();
+    const timeTaken = endTime - startTime; 
+    const durationSec = (timeTaken / 1000).toFixed(2);
+
+    const fileCount = appState.myFiles.length;
+    console.log(`Saved metadata for ${fileCount} files.`);
+    document.getElementById('fileCountElement').textContent = `${fileCount} files loaded, in ${durationSec} seconds`;
 
 }

@@ -5,7 +5,6 @@ import { invertSearchResultsMap } from "./a-search-invertmap.js";
 import { updateFilterCountFileMatches } from "./a-search-filtercountfilematches.js";
 import { renderFiles } from "../ui-functions-render/a-render-all-files.js";
 import { renderFilters } from "../ui-functions-render/a-render-filter.js";
-import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 
 export async function addFilterThenFindMatches(searchObject) {
 
