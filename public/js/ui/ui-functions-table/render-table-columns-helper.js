@@ -1,5 +1,10 @@
 import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/store.js';
 
+/**
+ * Determines which columns to show in the table view.
+ *
+ * @returns {Array<string>} An array of property names to show as columns.
+ */
 export function tableColumns() {
 
     // Dynamically determine columns to show from myFilesProperties

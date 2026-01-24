@@ -5,6 +5,15 @@ import { updateSearchState } from "./a-search-helpers.js";
 import { recordMatch } from "./a-search-helpers.js";
 
 
+/**
+ * Searches the content of all files for a given search value.
+ *
+ * @param {string} filterId The ID of the filter.
+ * @param {string} searchValue The value to search for.
+ * @param {string} property The property to search within (e.g., "content").
+ * @param {string} type The type of the property.
+ * @param {string} operator The search operator.
+ */
 export async function searchContent(filterId, searchValue, property, type, operator) {
     const MAX_SNIPPETS = 5;
     const SNIPPET_TOTAL_LENGTH = 80;

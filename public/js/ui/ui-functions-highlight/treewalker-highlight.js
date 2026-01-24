@@ -1,5 +1,12 @@
 
 
+/**
+ * Searches a container element for a search term and adds the ranges of any matches to an array.
+ *
+ * @param {HTMLElement} container The container element to search.
+ * @param {string} searchTerm The term to search for.
+ * @param {Array<Range>} ranges An array to store the ranges of any matches.
+ */
 export function searchContainer(container, searchTerm, ranges) {
     // Safety check: if there's no search term, there's nothing to find
     if (!searchTerm || searchTerm === "") return;
@@ -11,6 +18,13 @@ export function searchContainer(container, searchTerm, ranges) {
     }
 }
 
+/**
+ * Finds all occurrences of a search term in a text node and adds the ranges to an array.
+ *
+ * @param {Node} node The text node to search.
+ * @param {string} searchTerm The term to search for.
+ * @param {Array<Range>} ranges An array to store the ranges of any matches.
+ */
 function findRangesInNode(node, searchTerm, ranges) {
     const text = node.nodeValue;
 // Check if node has text content

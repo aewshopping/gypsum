@@ -1,5 +1,10 @@
 
 
+/**
+ * Updates the match count for each filter in the search state.
+ *
+ * @param {object} search The search state object.
+ */
 export function updateFilterCountFileMatches(search) {
 
   // Loop through each entry in the filters Map

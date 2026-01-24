@@ -3,6 +3,12 @@ import { countActiveFilters } from "./a-count-activefilters.js";
 
 const search = appState.search;
 
+/**
+ * Checks if a file should be shown based on the current filter mode and matching files.
+ *
+ * @param {string} fileId The ID of the file to check.
+ * @returns {boolean} Whether the file should be shown.
+ */
 export function checkFilesToShow(fileId) {
 
 //    console.log("checking files to show" + fileId);

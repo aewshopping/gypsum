@@ -6,6 +6,9 @@ import { checkFilesToShow } from '../ui-functions-search/a-check-files-to-show.j
 /**
  * Renders the rows for the table view.
  * Iterates through the files in the appState and generates the HTML for each row.
+ *
+ * @param {Array<string>} current_props An array of the current properties being displayed.
+ * @param {boolean} renderEverything Whether to render all files or only the ones that match the current filters.
  * @returns {string} The HTML string for all table rows.
  */
 export function renderTableRows(current_props, renderEverything) {

@@ -5,6 +5,15 @@ import { recordMatch } from "./a-search-helpers.js";
 import { buildMatchResultObject } from "./a-search-helpers.js";
 
 
+/**
+ * Searches a property of all files for a given search value.
+ *
+ * @param {string} filterId The ID of the filter.
+ * @param {string} searchValue The value to search for.
+ * @param {string} property The property to search within.
+ * @param {string} type The type of the property.
+ * @param {string} operator The search operator.
+ */
 export function searchProperty(filterId, searchValue, property, type, operator) {
     const searchValueLower = searchValue.toLowerCase();
 
@@ -29,6 +38,15 @@ export function searchProperty(filterId, searchValue, property, type, operator) 
 
 
 
+/**
+ * Searches an array property of all files for a given search value.
+ *
+ * @param {string} filterId The ID of the filter.
+ * @param {string} searchValueLower The lowercase value to search for.
+ * @param {string} property The property to search within.
+ * @param {string} type The type of the property.
+ * @param {string} operator The search operator.
+ */
 function searchArrayProperty(filterId, searchValueLower, property, type, operator) {
     const filterResultsMap = getFilterMap(filterId);
 
@@ -54,6 +72,15 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
 }
 
 
+/**
+ * Searches a string property of all files for a given search value.
+ *
+ * @param {string} filterId The ID of the filter.
+ * @param {string} searchValueLower The lowercase value to search for.
+ * @param {string} property The property to search within.
+ * @param {string} type The type of the property.
+ * @param {string} operator The search operator.
+ */
 function searchStringProperty(filterId, searchValueLower, property, type, operator) {
     const filterResultsMap = getFilterMap(filterId);
 
