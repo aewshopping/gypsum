@@ -3,6 +3,11 @@ import { searchProperty } from "./a-search-property.js";
 import { searchEveryProperty } from "./a-search-every-property.js";
 import { searchContent } from "./a-search-content.js";
 
+/**
+ * Searches files based on a filter.
+ *
+ * @param {string} filterId The ID of the filter to use for the search.
+ */
 export async function searchFiles(filterId) {
 
     if (!appState.search.filters.has(filterId)) {

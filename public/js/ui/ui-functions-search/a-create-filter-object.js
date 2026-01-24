@@ -1,5 +1,11 @@
 import { appState } from "../../services/store.js";
 
+/**
+ * Creates a filter object and adds it to the app state.
+ *
+ * @param {object} searchObject An object containing the property, operator, and value for the filter.
+ * @returns {{uniqueId: string, propertyExists: boolean, filterExists: boolean}} An object containing the unique ID of the filter, whether the property exists, and whether the filter already exists.
+ */
 export function createFilterObject(searchObject) {
     let propertyExists = false;
     let propertyType = "string"; // default

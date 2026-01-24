@@ -1,3 +1,8 @@
+/**
+ * Synchronizes the width of the top scrollbar with the width of the table.
+ *
+ * @param {object} elements An object containing the table header and top scrollbar content elements.
+ */
 function syncWidth(elements) {
 // The content inside the top scrollbar must match the width of the table.
 // Using the header's scrollWidth as the reference for the full width.
@@ -10,6 +15,9 @@ function syncWidth(elements) {
   elements.topScrollContent.style.width = contentWidth + 'px';
 }
 
+/**
+ * Initializes the scrollbar synchronization.
+ */
 export function initialScrollSync() {
 
     const topScrollbar = document.getElementById('top-scrollbar-container');
@@ -32,6 +40,11 @@ export function initialScrollSync() {
     addScrollEventListeners(elements)
 }
 
+/**
+ * Adds scroll event listeners to the top scrollbar and table wrapper to keep them in sync.
+ *
+ * @param {object} elements An object containing the top scrollbar and table wrapper elements.
+ */
 function addScrollEventListeners(elements) {
 
     const topScrollbar = elements.topScrollbar;

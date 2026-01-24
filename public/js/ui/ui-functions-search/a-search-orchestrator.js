@@ -6,6 +6,11 @@ import { updateFilterCountFileMatches } from "./a-search-filtercountfilematches.
 import { renderFiles } from "../ui-functions-render/a-render-all-files.js";
 import { renderFilters } from "../ui-functions-render/a-render-filter.js";
 
+/**
+ * Adds a filter and then finds the matching files.
+ *
+ * @param {object} searchObject An object containing the property, operator, and value for the filter.
+ */
 export async function addFilterThenFindMatches(searchObject) {
 
     // mutates appState.search.filters to add a filter to the search.filters map with the value being some search info as an object. Also directly returns the id of the new filter and booleans for whether property exists and whether the filter has already been created before.
@@ -39,6 +44,9 @@ export async function addFilterThenFindMatches(searchObject) {
 }
 
 
+/**
+ * Processes the search results, updates the UI, and renders the files.
+ */
 export function processSeachResults() {
 
     // returns an inverted set of results - fileids then filterIds, then result objects. if thismap.has(fileId) then is an OR match/ if thismap.get(fileId).values.size === count of active filters then AND match
