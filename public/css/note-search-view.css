@@ -1,0 +1,22 @@
+.search-results-view {
+	display: grid;
+    grid-template-columns: minmax(150px, 400px) 2fr; /* fixed width first col */
+/*    grid-template-columns: minmax(150px, 1fr) 2fr;*/ /* flex width first col */
+    gap: 10px;
+    width:100%;
+    overflow-x: auto;
+}
+
+/* force to one column approach if screen width too small */
+@media (max-width: 800px) {
+  .search-results-view {
+    grid-template-columns: 1fr;
+  }
+}
+
+.search-view-item {
+    display: grid; 
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+
+}

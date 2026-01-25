@@ -60,9 +60,9 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
                 matchCount++;
             }
         }
-
+        
         // 1. Build the independent result object
-        const resultObject = buildMatchResultObject(matchCount, property, type, operator);
+        const resultObject = buildMatchResultObject(matchCount, property, type, operator, null, searchValueLower);
 
         // 2. Record the match into the results map
         recordMatch(filterResultsMap, file.id.toString(), resultObject);
@@ -96,7 +96,7 @@ function searchStringProperty(filterId, searchValueLower, property, type, operat
             const occurrences = textToSearch.split(searchValueLower).length - 1;
 
             // 1. Build the independent result object
-            const resultObject = buildMatchResultObject(occurrences, property, type, operator);
+            const resultObject = buildMatchResultObject(occurrences, property, type, operator, null, searchValueLower);
 
             // 2. Pass the object to the record function
             recordMatch(filterResultsMap, file.id.toString(), resultObject);

@@ -25,7 +25,7 @@ export function findContentMatches(content, searchValue, property, type, operato
         position = contentLower.indexOf(searchLower, position + 1);
     }
 
-    return buildMatchResultObject(totalCount, property, type, operator, matches);
+    return buildMatchResultObject(totalCount, property, type, operator, matches, searchValue);
 }
 
 /**

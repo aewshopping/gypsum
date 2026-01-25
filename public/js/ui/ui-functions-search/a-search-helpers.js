@@ -36,12 +36,13 @@ export function recordMatch(map, fileId, resultObject) {
  * Helper function to construct the match result object for content searches
  * (with text match snippets)
  */
-export function buildMatchResultObject(count, property, type, operator, matches) {
+export function buildMatchResultObject(count, property, type, operator, matches, searchValueLower) {
     const result = {
         count: count,
         property_match: property,
         property_type: type,
-        search_operator: operator
+        search_operator: operator,
+        searchValue: searchValueLower
     };
 
     // Check if matches is provided and has content (e.g., a non-empty array)

@@ -1,6 +1,8 @@
 
 import { appState } from '../services/store.js';
 import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js';
+import { renderFilename } from './ui-functions-render/render-filename.js';
+import { renderTags } from './ui-functions-render/render-tags.js';
 
 /**
  * Renders the file list as a search result.
@@ -8,34 +10,55 @@ import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js
  */
 export function renderFileList_search(renderEverything) {
     const outputElement = document.getElementById("output");
-    outputElement.innerHTML = ''; // clear the output element first
+    //   outputElement.innerHTML = ''; // clear the output element first
 
-    let file_html = `<div class="search-results-view">`;
+    let file_html = `
+            <div class="search-results-view">`;
 
     for (const file of appState.myFiles) {
         if (checkFilesToShow(file.id) === true || renderEverything === true) {
-            file_html += `
-                <div class="search-result-item">
-                    <h3>${file.filename}</h3>
-                    <p>${file.title}</p>
-                    <ul>`;
 
-            const matchingFilters = appState.search.matchingFiles.get(file.id);
-            if (matchingFilters) {
-                for (const [filterId, resultsObj] of matchingFilters) {
-                    const filter = appState.search.filters.get(filterId);
-                    if (filter) {
-                        file_html += `<li><strong>${filter.property}:</strong> ${filter.value}</li>`;
-                    }
-                }
+            const filename_html = renderFilename(file.filename);
+
+            // construct the html for the array of tags for this file
+            let tag_pills_html = ""
+            for (const tag of file.tags) {
+                tag_pills_html += renderTags(tag);
             }
 
             file_html += `
-                    </ul>
-                </div>`;
+                <div class="search-view-item test-outline">
+
+                    <div class="search-view-fileinfo">
+                        <div data-prop="filename">${filename_html}</div>
+                        <p data-prop="title">${file.title}</p>
+                        <div data-prop="tags">${tag_pills_html}</div>
+                    </div>`;
+
+            const matchingFilters = appState.search.matchingFiles.get(file.id);
+
+            console.log(matchingFilters);
+
+            file_html += `
+                    <div class="search-view-matches flex-column test-outline">`
+            if (matchingFilters) {
+                for (const [filterId, resultsObj] of matchingFilters) {
+//                    if (resultsObj.property_match="content"... TODO add in this bit to iterate over match snippets
+                    file_html +=
+                        `<div class="search-view-matches-item">
+                            <strong>${resultsObj.property_match}:</strong>
+                            <span data-prop="${resultsObj.property_match}"> ${resultsObj.searchValue}</span>
+                        </div>`;
+                }
+            }
+            file_html += `
+                    </div>
+                </div>`; // close the item div
         }
     }
 
-    file_html += `</div>`;
+    file_html += `
+            </div>`; // close the overall search view output div
+
     outputElement.innerHTML = file_html;
 }

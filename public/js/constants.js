@@ -15,5 +15,5 @@ export const VIEWS = {
     TABLE: { value: "table", label: "table view" },
     CARDS: { value: "cards", label: "cards view" },
     LIST: { value: "list", label: "list view" },
-    SEARCH: { value: "search", label: "search results view" }
+    SEARCH: { value: "search", label: "search view" }
 };
