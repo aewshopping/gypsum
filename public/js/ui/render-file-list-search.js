@@ -43,22 +43,36 @@ export function renderFileList_search(renderEverything) {
                     <div class="search-view-matches flex-column test-outline">`
             if (matchingFilters) {
                 for (const [filterId, resultsObj] of matchingFilters) {
-//                    if (resultsObj.property_match="content"... TODO add in this bit to iterate over match snippets
-                    file_html +=
-                        `<div class="search-view-matches-item">
-                            <strong>${resultsObj.property_match}:</strong>
-                            <span data-prop="${resultsObj.property_match}"> ${resultsObj.searchValue}</span>
+                    let matchHtml = "";
+
+                    if (resultsObj.property_match === "content") {
+                        const matches = resultsObj.matches;
+
+                        console.log(resultsObj);
+                        for (const match of matches) {
+                            matchHtml += `<p data-prop="content">${match.snippet}</p>`;
+                        }
+                        console.log(matchHtml);
+                    }
+
+                        file_html +=
+                            `<div class="search-view-matches-item">
+                            <p>
+                                <strong>${resultsObj.property_match}:</strong>
+                                <span data-prop="${resultsObj.property_match}"> ${resultsObj.searchValue}</span>
+                            </p>
+                            ${matchHtml}
                         </div>`;
+                    }
                 }
-            }
-            file_html += `
+                file_html += `
                     </div>
                 </div>`; // close the item div
+            }
         }
-    }
 
-    file_html += `
+        file_html += `
             </div>`; // close the overall search view output div
 
-    outputElement.innerHTML = file_html;
-}
+        outputElement.innerHTML = file_html;
+    }
