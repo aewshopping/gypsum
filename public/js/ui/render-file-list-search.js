@@ -27,12 +27,14 @@ export function renderFileList_search(renderEverything) {
             }
 
             file_html += `
-                <div class="search-view-item test-outline">
+                <div class="search-view-item">
 
                     <div class="search-view-fileinfo">
-                        <div data-prop="filename">${filename_html}</div>
-                        <p data-prop="title">${file.title}</p>
-                        <div data-prop="tags">${tag_pills_html}</div>
+                        <div class="note-search color-dynamic-neutral-fallback" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
+                            <div data-prop="filename">${filename_html}</div>
+                            <p data-prop="title">${file.title}</p>
+                            <div data-prop="tags">${tag_pills_html}</div>
+                        </div>
                     </div>`;
 
             const matchingFilters = appState.search.matchingFiles.get(file.id);
@@ -40,17 +42,22 @@ export function renderFileList_search(renderEverything) {
             console.log(matchingFilters);
 
             file_html += `
-                    <div class="search-view-matches flex-column test-outline">`
+                    <div class="search-view-matches flex-column">`
             if (matchingFilters) {
                 for (const [filterId, resultsObj] of matchingFilters) {
                     let matchHtml = "";
+                    let contentInfo = "";
 
                     if (resultsObj.property_match === "content") {
                         const matches = resultsObj.matches;
+                        const match_count = resultsObj.count;
+                        const snippet_count = resultsObj.matches.length;
+
+                        contentInfo = `<span><i>(showing ${snippet_count} of ${match_count} matches)</i></span>`
 
                         console.log(resultsObj);
                         for (const match of matches) {
-                            matchHtml += `<p data-prop="content">${match.snippet}</p>`;
+                            matchHtml += `<pre class="pre-bg snippet" data-prop="content">...${match.snippet}...</pre>`;
                         }
                         console.log(matchHtml);
                     }
@@ -58,8 +65,7 @@ export function renderFileList_search(renderEverything) {
                         file_html +=
                             `<div class="search-view-matches-item">
                             <p>
-                                <strong>${resultsObj.property_match}:</strong>
-                                <span data-prop="${resultsObj.property_match}"> ${resultsObj.searchValue}</span>
+                                <i>${resultsObj.property_match}</i>:<span data-prop="${resultsObj.property_match}"> ${resultsObj.searchValue}</span> ${contentInfo}
                             </p>
                             ${matchHtml}
                         </div>`;

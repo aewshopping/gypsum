@@ -1,0 +1,5 @@
+.snippet {
+    background-color: var(--colour-neutral-alt);
+    padding: 6px;
+    display:block;
+}

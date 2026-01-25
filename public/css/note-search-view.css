@@ -1,10 +1,10 @@
 .search-results-view {
-	display: grid;
-    grid-template-columns: minmax(150px, 400px) 2fr; /* fixed width first col */
-/*    grid-template-columns: minmax(150px, 1fr) 2fr;*/ /* flex width first col */
-    gap: 10px;
-    width:100%;
-    overflow-x: auto;
+  display: grid;
+ /* grid-template-columns: minmax(150px, 400px) 2fr; /* fixed width first col */
+  grid-template-columns: minmax(150px, 1fr) 2fr; /* flex width first col */
+  gap: 10px;
+  width: 100%;
+  overflow-x: auto;
 }
 
 /* force to one column approach if screen width too small */
@@ -15,8 +15,40 @@
 }
 
 .search-view-item {
-    display: grid; 
-    grid-template-columns: subgrid;
-    grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  border-radius: 6px;
+  padding: 10px;
+  background-color: var(--colour-neutral-alt)
+    /* color-mix(in oklab, var(--colour-neutral-alt) 50%, transparent 50%);*/
+}
 
+.search-view-matches {
+  background-color: color-mix(in oklab, var(--colour-neutral) 50%, transparent 50%);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.search-view-matches-item {
+  padding-inline: 10px;
+
+  &:not(:first-child) {
+    border-top: 4px solid var(--colour-neutral-alt);
+  }
+}
+
+.note-search {
+  --border-width: 2px;
+  border: var(--border-width) solid transparent;
+  border-radius: 4px;
+/*  background-color: color-mix(in oklab, var(--colour-neutral) 50%, transparent 50%);*/
+  padding: 10px;
+  margin-bottom: 8px;
+  overflow-x: hidden;
+  cursor: default;
+
+  &:hover {
+    border: var(--border-width) solid var(--colour-contr);
+  }
 }
