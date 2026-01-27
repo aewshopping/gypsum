@@ -38,7 +38,7 @@ export function renderFileList_search(renderEverything) {
 
             const matchingFilters = appState.search.matchingFiles.get(file.id);
 
-            console.log(matchingFilters);
+            //  console.log(matchingFilters);
 
             file_html += `
                     <div class="search-view-matches flex-column color-dynamic" data-color="${file.color}">`
@@ -47,6 +47,7 @@ export function renderFileList_search(renderEverything) {
                     let matchHtml = "";
                     let contentInfo = "";
 
+
                     if (resultsObj.property_match === "content") {
                         const matches = resultsObj.matches;
                         const match_count = resultsObj.count;
@@ -54,30 +55,43 @@ export function renderFileList_search(renderEverything) {
 
                         contentInfo = `<span><i>(showing ${snippet_count} of ${match_count} matches)</i></span>`
 
-                        console.log(resultsObj);
+                        //   console.log(resultsObj);
                         for (const match of matches) {
                             matchHtml += `<pre class="snippet color-dynamic-fade" data-color="${file.color}" data-prop="content">...${match.snippet}...</pre>`;
                         }
-                        console.log(matchHtml);
-                    }
 
                         file_html +=
                             `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
                             <p>
-                                <i>${resultsObj.property_match}</i>:<span data-prop="${resultsObj.property_match}"> ${resultsObj.searchValue}</span> ${contentInfo}
+                                <i>${resultsObj.property_match}</i>:<span"> ${resultsObj.searchValue}</span> ${contentInfo}
                             </p>
                             ${matchHtml}
                         </div>`;
+
+                    } else {
+                        let propertyValue = resultsObj.property_match;
+                        console.log(file[propertyValue]);
+
+                        file_html +=
+                            `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
+                            <p>
+                                <i>${resultsObj.property_match}</i>:<span data-prop="${resultsObj.property_match}"> ${file[propertyValue]}</span>
+                            </p>
+                        </div>`;
+
                     }
+
+
                 }
-                file_html += `
+            }
+            file_html += `
                     </div>
                 </div>`; // close the item div
-            }
         }
+    }
 
-        file_html += `
+    file_html += `
             </div>`; // close the overall search view output div
 
-        outputElement.innerHTML = file_html;
-    }
+    outputElement.innerHTML = file_html;
+}

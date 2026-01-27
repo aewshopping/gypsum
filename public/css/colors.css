@@ -1,6 +1,6 @@
 :root {
     --colour-neutral: ivory; /* bg */ /*WhiteSmoke #F6FFFC #80AAFF*/
-    --colour-neutral-alt: palegoldenrod; /* card bg */ /* white */
+    --colour-neutral-alt: lightgoldenrodyellow; /* card bg */ /* white / palegoldenrod */
     --colour-contr: DarkSlateGray; /* text */
     --colour-contr-emph: RoyalBlue;  /* h1 */
     --colour-contr-warning: #cd3158;

@@ -1,5 +1,5 @@
 ::highlight(match) {
-    background-color: color-mix(in srgb, var(--colour-compl-emph) 30%, transparent);
+    background-color: color-mix(in srgb, var(--colour-compl-emph) 60%, transparent);
     color: inherit;
     border-radius: 4px;
     /* padding-block:1px; does this triggers layout reflow when highlighting applied? I say no by AI says yes. Don't really need it anyway */

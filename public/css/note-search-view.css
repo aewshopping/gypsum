@@ -1,15 +1,13 @@
 .search-results-view {
   display: grid;
   /* grid-template-columns: minmax(150px, 400px) 2fr; /* fixed width first col */
-  grid-template-columns: minmax(150px, 1fr) 2fr;
-  /* flex width first col */
+  grid-template-columns: minmax(150px, 1fr) 2fr; /* flex width first col */
   gap: 10px;
   width: 100%;
+  max-width: 1300px;
   overflow-x: auto;
-  padding-right: 3px;
-  /* allows space for box shadow to show! */
-  padding-bottom: 3px;
-  /* allows space for box shadow to show! */
+  padding-right: 3px; /* allows space for box shadow to show! */
+  padding-bottom: 3px; /* allows space for box shadow to show! */
 }
 
 
@@ -31,6 +29,7 @@
   border-radius: 6px;
   padding-inline: 10px;
   color: var(--colour-contr);
+  overflow-x: auto;
 }
 
 .search-view-matches-item {
