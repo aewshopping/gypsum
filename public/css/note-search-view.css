@@ -5,6 +5,7 @@
   gap: 10px;
   width: 100%;
   max-width: 1300px;
+  margin-inline: auto;
   overflow-x: auto;
   padding-right: 3px; /* allows space for box shadow to show! */
   padding-bottom: 3px; /* allows space for box shadow to show! */

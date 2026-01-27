@@ -52,7 +52,7 @@
 }
 
 .color-dynamic-fade {
-  --colour-bg: attr(data-color type(<color>));
+  --colour-bg: attr(data-color type(<color>), var(--colour-neutral-alt)); /* include fallback when no data-color */
   --colour-dynamic-fade: color-mix(in oklch, var(--colour-bg) 60%, var(--colour-neutral));
   background-color: var(--colour-dynamic-fade);
   border-color: var(--colour-bg);

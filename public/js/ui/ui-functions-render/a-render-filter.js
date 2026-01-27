@@ -20,7 +20,7 @@ export function renderFilters() {
             operator = filterObj.operator;
         }
 
-            filterhtml += `<code><span class="tag" data-filterid="${filterId}" data-action="filter-toggleactive" data-active="${isActive}">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})<button class="btn-delete-filter" data-filterid="${filterId}" data-action="delete-filter">✕</button></span></code> `; // note the (deliberate!) whitespace at the end which seperates the tags when joined together...
+            filterhtml += `<span class="tag filter-pill" data-filterid="${filterId}" data-action="filter-toggleactive" data-active="${isActive}">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})<button class="btn-delete-filter" data-filterid="${filterId}" data-action="delete-filter">✕</button></span>`; 
     }
 
     outputElement.innerHTML = filterhtml;

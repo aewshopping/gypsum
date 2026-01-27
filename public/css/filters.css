@@ -13,6 +13,11 @@
     }
 }
 
+.filter-pill {
+    font: 0.9em monospace;
+    margin: 2px;
+}
+
 body:has(#and_filter:checked) #filter-box{
     border: 1px solid var(--colour-compl-alt-emph);
 
