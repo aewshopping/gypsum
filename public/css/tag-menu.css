@@ -6,19 +6,32 @@
   flex-wrap: wrap;
   gap: 10px;
   padding: 10px 0 20px 0;
+
   details {
     flex-grow: 1;
     background-color: var(--colour-neutral-alt);
     border-radius: 6px;
     padding: 4px;
     max-width: 200px;
+    border: 2px solid transparent;
   }
+
   summary {
-    cursor:pointer;
+    cursor: pointer;
+
     &::marker {
       content: "+ ";
     }
   }
+
+  details:not([open]):not(.details_divider) {
+    &:hover {
+      border: 2px solid var(--colour-contr);
+      box-shadow: 3px 3px 0px 0px var(--colour-contr);
+      /* TO ADD */
+    }
+  }
+
   details[open] {
     flex-basis: 100%;
     flex-grow: 1;
@@ -33,15 +46,18 @@
     background-color: var(--colour-neutral-alt);
     border-radius: 6px;
     padding: 4px;
+
     &::marker {
       content: "- ";
     }
   }
+
   details[open]::details-content {
     margin-top: -27px;
     padding: 4px;
     border-radius: 6px;
   }
+
   details.details_divider {
     background-color: var(--colour-neutral);
     order: 1;
@@ -49,19 +65,26 @@
 
     summary {
       cursor: default;
+
       &::marker {
         content: "";
       }
     }
-    &[open] {min-width: calc(100% - 150px - 20px); /* allow for summary offset when open and body margin */
+
+    &[open] {
+      min-width: calc(100% - 150px - 20px);
+      /* allow for summary offset when open and body margin */
     }
+
     &[open] summary {
       background-color: var(--colour-neutral);
     }
+
     &[open]::details-content {
       margin-top: 0;
-      padding:0;
+      padding: 0;
     }
   }
 }
+
 /* ### END OF TAG TAXONOMY CSS */

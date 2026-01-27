@@ -17,16 +17,7 @@ export function renderFileList_grid(renderEverything) {
 
     // set the header card
     let file_html = `
-        <div class="list-grid">
-
-            <div class="note-grid-header">
-
-                <div><i>filename</i></div>
-                <p>file title</p>
-                <code>file tags</code>
-
-            </div>`
-
+        <div class="list-grid">`
 
     for (const file of appState.myFiles) {
 

@@ -1,7 +1,8 @@
 .list-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* min width of cols is 350px and stretch to fill width of screen */
-	gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    /* min width of cols is 350px and stretch to fill width of screen */
+    gap: 10px;
 }
 
 .note-grid {
@@ -9,11 +10,12 @@
     border: var(--border-width) solid transparent;
     border-radius: 4px;
     padding: 10px;
-    overflow-x:hidden;
+    overflow-x: hidden;
     cursor: default;
 
     &:hover {
         border: var(--border-width) solid var(--colour-contr);
+        box-shadow: 3px 3px 0px 0px var(--colour-contr);
     }
 }
 
@@ -23,5 +25,5 @@
     border: var(--border-width) solid transparent;
     border-radius: 4px;
     padding: 10px;
-    overflow-x:hidden;
+    overflow-x: hidden;
 }

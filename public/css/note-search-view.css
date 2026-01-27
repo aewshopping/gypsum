@@ -1,54 +1,62 @@
 .search-results-view {
   display: grid;
- /* grid-template-columns: minmax(150px, 400px) 2fr; /* fixed width first col */
-  grid-template-columns: minmax(150px, 1fr) 2fr; /* flex width first col */
+  /* grid-template-columns: minmax(150px, 400px) 2fr; /* fixed width first col */
+  grid-template-columns: minmax(150px, 1fr) 2fr;
+  /* flex width first col */
   gap: 10px;
   width: 100%;
   overflow-x: auto;
+  padding-right: 3px;
+  /* allows space for box shadow to show! */
+  padding-bottom: 3px;
+  /* allows space for box shadow to show! */
 }
 
-/* force to one column approach if screen width too small */
-@media (max-width: 800px) {
-  .search-results-view {
-    grid-template-columns: 1fr;
-  }
-}
+
 
 .search-view-item {
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
   border-radius: 6px;
-  padding: 10px;
-  background-color: var(--colour-neutral-alt)
-    /* color-mix(in oklab, var(--colour-neutral-alt) 50%, transparent 50%);*/
+  border: 2px solid transparent;
+
+  &:hover {
+    border: 2px solid var(--colour-contr);
+    box-shadow: 3px 3px 0px 0px var(--colour-contr);
+  }
 }
 
 .search-view-matches {
-  background-color: color-mix(in oklab, var(--colour-neutral) 50%, transparent 50%);
   border-radius: 6px;
-  margin-bottom: 8px;
+  padding-inline: 10px;
+  color: var(--colour-contr);
 }
 
 .search-view-matches-item {
   padding-inline: 10px;
 
   &:not(:first-child) {
-    border-top: 4px solid var(--colour-neutral-alt);
+    border-top-style: solid;
+    border-top-width: 1px;
   }
 }
 
 .note-search {
-  --border-width: 2px;
-  border: var(--border-width) solid transparent;
   border-radius: 4px;
-/*  background-color: color-mix(in oklab, var(--colour-neutral) 50%, transparent 50%);*/
   padding: 10px;
   margin-bottom: 8px;
   overflow-x: hidden;
   cursor: default;
+}
 
-  &:hover {
-    border: var(--border-width) solid var(--colour-contr);
+/* force to one column approach if screen width too small */
+@media (max-width: 800px) {
+  .search-results-view {
+    grid-template-columns: 100%;
+  }
+  .search-view-matches-item {
+	  border-top-style: solid;
+	  border-top-width: 1px;
   }
 }

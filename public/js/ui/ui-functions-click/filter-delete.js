@@ -2,14 +2,26 @@ import { appState } from '../../services/store.js';
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
 
 
+
 export function handleDeleteFilter(evt, target) {
 
     const filterId = target.dataset.filterid;
     //    console.log("deleting filter " + filterId);
 
+    // put search string from filter in the searchbox to allow edit
+	const searchBox = document.getElementById("searchbox");
+	const filterIdObj = appState.search.filters.get(filterId);
+	searchBox.value = `${filterIdObj.property}${filterIdObj.operator}${filterIdObj.searchValue}`;
+	
+	// untick "content search" option
+	const contentSearchCheckBox = document.getElementById("contentsearch");
+	contentSearchCheckBox.checked = false;
+
     deleteFilterAndResults(filterId);
 
 }
+
+
 
 export function deleteFilterAndResults(filterId) {
 

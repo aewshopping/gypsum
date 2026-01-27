@@ -1,6 +1,6 @@
 :root {
-    --colour-neutral: WhiteSmoke; /* bg */ /*white? #F6FFFC #80AAFF*/
-    --colour-neutral-alt: white; /* card bg */
+    --colour-neutral: ivory; /* bg */ /*WhiteSmoke #F6FFFC #80AAFF*/
+    --colour-neutral-alt: palegoldenrod; /* card bg */ /* white */
     --colour-contr: DarkSlateGray; /* text */
     --colour-contr-emph: RoyalBlue;  /* h1 */
     --colour-contr-warning: #cd3158;
@@ -42,12 +42,7 @@
     --color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
     background-color: attr(data-color type(<color>), var(--colour-neutral-alt)); 
     color: var(--color-mono-contr); /* if null fall back will be color set elsewhere */
-}
-
-.color-dynamic-neutral-fallback {
-    --color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
-    background-color: attr(data-color type(<color>), color-mix(in oklab, var(--colour-neutral) 50%, transparent 50%)); 
-    color: var(--color-mono-contr); /* if null fall back will be --color-neutral */
+    border-color: var(--color-mono-contr);
 }
 
 .color-dynamic-transparent-fallback {
@@ -58,5 +53,7 @@
 
 .color-dynamic-fade {
   --colour-bg: attr(data-color type(<color>));
-  background-color: color-mix(in oklch, var(--colour-bg) 40%, var(--colour-neutral));
+  --colour-dynamic-fade: color-mix(in oklch, var(--colour-bg) 60%, var(--colour-neutral));
+  background-color: var(--colour-dynamic-fade);
+  border-color: var(--colour-bg);
 }

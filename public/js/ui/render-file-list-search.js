@@ -10,7 +10,6 @@ import { renderTags } from './ui-functions-render/render-tags.js';
  */
 export function renderFileList_search(renderEverything) {
     const outputElement = document.getElementById("output");
-    //   outputElement.innerHTML = ''; // clear the output element first
 
     let file_html = `
             <div class="search-results-view">`;
@@ -27,13 +26,13 @@ export function renderFileList_search(renderEverything) {
             }
 
             file_html += `
-                <div class="search-view-item">
+                <div class="search-view-item color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
 
                     <div class="search-view-fileinfo">
-                        <div class="note-search color-dynamic-neutral-fallback" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
-                            <div data-prop="filename">${filename_html}</div>
-                            <p data-prop="title">${file.title}</p>
-                            <div data-prop="tags">${tag_pills_html}</div>
+                        <div class="note-search" data-color="${file.color}">
+                            <div>${filename_html}</div>
+                            <p>${file.title}</p>
+                            <div>${tag_pills_html}</div>
                         </div>
                     </div>`;
 
@@ -42,7 +41,7 @@ export function renderFileList_search(renderEverything) {
             console.log(matchingFilters);
 
             file_html += `
-                    <div class="search-view-matches flex-column">`
+                    <div class="search-view-matches flex-column color-dynamic" data-color="${file.color}">`
             if (matchingFilters) {
                 for (const [filterId, resultsObj] of matchingFilters) {
                     let matchHtml = "";
@@ -57,13 +56,13 @@ export function renderFileList_search(renderEverything) {
 
                         console.log(resultsObj);
                         for (const match of matches) {
-                            matchHtml += `<pre class="pre-bg snippet" data-prop="content">...${match.snippet}...</pre>`;
+                            matchHtml += `<pre class="snippet color-dynamic-fade" data-color="${file.color}" data-prop="content">...${match.snippet}...</pre>`;
                         }
                         console.log(matchHtml);
                     }
 
                         file_html +=
-                            `<div class="search-view-matches-item">
+                            `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
                             <p>
                                 <i>${resultsObj.property_match}</i>:<span data-prop="${resultsObj.property_match}"> ${resultsObj.searchValue}</span> ${contentInfo}
                             </p>

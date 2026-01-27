@@ -1,5 +1,6 @@
 .snippet {
-    background-color: var(--colour-neutral-alt);
-    padding: 6px;
-    display:block;
+  padding: 6px;
+  display: block;
+  border-radius: 4px;
+  padding-inline: 10px;
 }
