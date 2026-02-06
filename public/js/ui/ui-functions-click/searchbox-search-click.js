@@ -9,6 +9,11 @@ import { addFilterThenFindMatches } from '../ui-functions-search/a-search-orches
 const searchBox = document.getElementById("searchbox");
 const contentSearch = document.getElementById("contentsearch");
 
+/**
+ * Handles the keyup event in the search box, triggering a search if Enter is pressed.
+ * @param {KeyboardEvent} target - The keyup event.
+ * @returns {void}
+ */
 export function handleSearchBoxEnterPress(target) {
     if (target.key === "Enter") {
         handleSearchBoxClick();

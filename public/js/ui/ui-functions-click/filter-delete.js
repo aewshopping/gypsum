@@ -3,6 +3,14 @@ import { processSeachResults } from '../ui-functions-search/a-search-orchestrato
 
 
 
+/**
+ * Handles the click event to delete a filter.
+ * It populates the search box with the filter's value for potential editing,
+ * unchecks the content search option, and calls the deletion helper.
+ * @param {Event} evt - The click event.
+ * @param {HTMLElement} target - The element that triggered the delete action.
+ * @returns {void}
+ */
 export function handleDeleteFilter(evt, target) {
 
     const filterId = target.dataset.filterid;
@@ -23,6 +31,12 @@ export function handleDeleteFilter(evt, target) {
 
 
 
+/**
+ * Helper function to delete a filter and its associated results from the app state.
+ * It also handles unhighlighting tags in the taxonomy and triggers a re-render.
+ * @param {string} filterId - The ID of the filter to delete.
+ * @returns {void}
+ */
 export function deleteFilterAndResults(filterId) {
 
     unhighlightTaxonomyTags(filterId);
@@ -37,7 +51,12 @@ export function deleteFilterAndResults(filterId) {
 
 }
 
-// for the tags in the main bit of the page we don't need to bother unhiglight them as they will get re-rendered with the data-active="true/false" status set according to appState.search.filters values. But the tag taxonomy doesn't get re-rendered so we need to manually go through and change the relevant data-actives to "false".
+/**
+ * Manually unhighlights tags in the tag taxonomy UI when a tag filter is deleted.
+ * Unlike other tags, the taxonomy is not fully re-rendered on filter changes.
+ * @param {string} filterId - The ID of the deleted filter.
+ * @returns {void}
+ */
 function unhighlightTaxonomyTags(filterId) {
 
     const property = appState.search.filters.get(filterId).property;

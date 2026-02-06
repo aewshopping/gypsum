@@ -8,6 +8,12 @@ import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights
 let file_content; // so we can access the raw file content multiple times without looking it up again
 let file_content_tagged_parsed; // // so we can access the rendered file content multiple times
 
+/**
+ * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
+ * @async
+ * @param {string} file_to_open - The name of the file to load content for.
+ * @returns {Promise<void>}
+ */
 export async function loadContentModal (file_to_open) {
 
     const yamlWrapBefore = "<pre class='pre-bg'><code>";
@@ -27,6 +33,11 @@ export async function loadContentModal (file_to_open) {
 
 }
 
+/**
+ * Renders the loaded file content into the modal text area.
+ * Can toggle between rendered markdown and raw text.
+ * @returns {void}
+ */
 export function fileContentRender() {
 
     const textbox = document.getElementById('modal-content-text');

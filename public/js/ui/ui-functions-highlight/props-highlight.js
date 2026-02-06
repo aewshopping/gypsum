@@ -1,6 +1,13 @@
 import { appState } from "../../services/store.js";
 import { searchContainer } from "./treewalker-highlight.js";
 
+/**
+ * Updates CSS Custom Highlights for properties based on active filters.
+ * It clears existing highlights and then iterates through specified elements,
+ * searching for matches based on active filter properties and search values.
+ * @param {string[]} elementIds - An array of element IDs to search for highlights within.
+ * @returns {void}
+ */
 export function updatePropHighlights(elementIds) {
     // Clear all existing highlights for a fresh start
     CSS.highlights.clear();

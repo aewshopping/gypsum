@@ -2,7 +2,15 @@ import { buildMatchResultObject } from "./a-search-helpers.js";
 
 
 /**
- * Processes content. Returns an object with count and matches, or null.
+ * Searches a file's content for a search value and returns a standardized result object with snippets.
+ * @param {string} content - The file content to search.
+ * @param {string} searchValue - The value to search for.
+ * @param {string} property - The property name (typically "content").
+ * @param {string} type - The property type.
+ * @param {string} operator - The search operator.
+ * @param {number} MAX_SNIPPETS - The maximum number of snippets to extract.
+ * @param {number} SNIPPET_TOTAL_LENGTH - The target total length for each snippet.
+ * @returns {object|null} A result object containing match counts and snippets, or null if no match is found.
  */
 export function findContentMatches(content, searchValue, property, type, operator, MAX_SNIPPETS, SNIPPET_TOTAL_LENGTH) {
     const searchLower = searchValue.toLowerCase();
@@ -29,7 +37,12 @@ export function findContentMatches(content, searchValue, property, type, operato
 }
 
 /**
- * Helper to extract context and snap to whole words.
+ * Extracts a snippet of text around a match, attempting to snap to whole words.
+ * @param {string} content - The full text content.
+ * @param {number} index - The starting position of the match.
+ * @param {number} searchLen - The length of the search term.
+ * @param {number} [targetLen=80] - The desired total length of the snippet.
+ * @returns {string} The extracted and cleaned snippet.
  */
 function getCleanSnippet(content, index, searchLen, targetLen = 80) {
     const contextLen = Math.floor((targetLen - searchLen) / 2);

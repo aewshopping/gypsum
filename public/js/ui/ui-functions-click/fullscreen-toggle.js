@@ -1,5 +1,11 @@
 
 
+/**
+ * Handles the toggle event for entering or exiting fullscreen mode.
+ * @param {Event} evt - The change event.
+ * @param {HTMLInputElement} target - The checkbox element.
+ * @returns {void}
+ */
 export function handleFullscreenToggle(evt, target) {
 
     console.log("fullscreen");
