@@ -3,12 +3,21 @@ import { tagsHighlight } from "./tags-highlight.js";
 import { updatePropHighlights } from "./props-highlight.js";
 
 
+/**
+ * Orchestrates the application of highlights for both tags and properties.
+ * This is typically called after rendering the file list.
+ * @returns {void}
+ */
 export function applyHighlights() {
 
     highlightTagMatches();
     highlightPropMatches();
 }
 
+/**
+ * Iterates through active tag filters and applies highlights to matching tags in the UI.
+ * @returns {void}
+ */
 function highlightTagMatches() {
 
     for (const [key, filter] of appState.search.filters) {
@@ -27,6 +36,10 @@ function highlightTagMatches() {
 
 }
 
+/**
+ * Triggers the update of property highlights for the main output and the file content modal.
+ * @returns {void}
+ */
 export function highlightPropMatches() {
 
     // we need to pass all elements every time because the function clears CSS.highlights at the start

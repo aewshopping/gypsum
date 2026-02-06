@@ -1,8 +1,9 @@
 /**
- * Parses a string using basic string methods.
- * Ensures the operator is at index 1 or later (2nd position or later).
- * @param {string} parseSearchString - The string to be parsed.
- * @returns {object} - { property, value, operator }
+ * Parses a search string into a property, an operator, and a search value.
+ * Supports an optional property override (e.g., when searching for a specific tag).
+ * @param {string} searchString - The raw search string from the UI.
+ * @param {string} [propOverride=""] - An optional property to force (e.g., "tags" or "content").
+ * @returns {{property: string, value: string, operator: string}} An object containing the parsed search components.
  */
 export function parseSearchString(searchString, propOverride = "") {
   // Array of possible operators for future expansion

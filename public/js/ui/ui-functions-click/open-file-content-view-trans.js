@@ -12,7 +12,12 @@ const scrollingContent = document.getElementById("modal-content");
 
 let file_box; // so we can access the target on close modal too
 
-// Handles opening and animation
+/**
+ * Handles the click event to open the file content modal with a view transition.
+ * @param {Event} event - The click event.
+ * @param {HTMLElement} target - The element that triggered the modal opening.
+ * @returns {void}
+ */
 export function handleOpenFileContent(event, target) {
 
   const file_to_open = target.dataset.filename;
@@ -38,7 +43,12 @@ export function handleOpenFileContent(event, target) {
 
 
 
-// to allow click outside the modal to close with animation (closedby="any" on html element triggers immediate close)
+/**
+ * Handles clicks outside the modal to trigger the close animation.
+ * @param {Event} event - The click event.
+ * @param {HTMLElement} target - The element that was clicked.
+ * @returns {void}
+ */
 export function handeCloseModalOutside(event, target) {
 
   if (event.target === dialog) {
@@ -49,7 +59,10 @@ export function handeCloseModalOutside(event, target) {
 
 
 
-// Handles closing the dialog. 
+/**
+ * Handles closing the file content modal with a view transition.
+ * @returns {void}
+ */
 export function handleCloseModal() {
 
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view

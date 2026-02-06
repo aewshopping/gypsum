@@ -7,7 +7,10 @@
 import { appState } from "../../services/store.js";
 
 /**
- * Helper: Standardizes the Map retrieval
+ * Retrieves the results Map for a given filter ID from the app state.
+ * If no such Map exists, a new one is returned.
+ * @param {string} filterId - The unique ID of the filter.
+ * @returns {Map<string, object>} The Map of results for the specified filter.
  */
 export function getFilterMap(filterId) {
     let map = appState.search.results.get(filterId);
@@ -15,7 +18,10 @@ export function getFilterMap(filterId) {
 }
 
 /**
- * Helper: Finalizes the state update
+ * Stores a results Map for a filter ID in the app state if the Map is not empty.
+ * @param {string} filterId - The unique ID of the filter.
+ * @param {Map<string, object>} resultsMap - The Map containing search results.
+ * @returns {void}
  */
 export function updateSearchState(filterId, resultsMap) {
     if (resultsMap.size > 0) {
@@ -24,7 +30,11 @@ export function updateSearchState(filterId, resultsMap) {
 }
 
 /**
- * Helper: Records a result object into the provided Map if the count is valid.
+ * Records a match result object into a results Map if it indicates at least one match.
+ * @param {Map<string, object>} map - The results Map to update.
+ * @param {string} fileId - The ID of the file where the match was found.
+ * @param {object} resultObject - The result object containing match information.
+ * @returns {void}
  */
 export function recordMatch(map, fileId, resultObject) {
     if (resultObject && resultObject.count > 0) {
@@ -33,8 +43,14 @@ export function recordMatch(map, fileId, resultObject) {
 }
 
 /**
- * Helper function to construct the match result object for content searches
- * (with text match snippets)
+ * Constructs a standardized match result object.
+ * @param {number} count - The number of matches found.
+ * @param {string} property - The property where the matches were found.
+ * @param {string} type - The data type of the property.
+ * @param {string} operator - The search operator used.
+ * @param {Array<object>|null} matches - An optional array of detailed match information (e.g., snippets).
+ * @param {string} searchValueLower - The search value used, in lowercase.
+ * @returns {object} The constructed match result object.
  */
 export function buildMatchResultObject(count, property, type, operator, matches, searchValueLower) {
     const result = {

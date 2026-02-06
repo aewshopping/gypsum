@@ -1,6 +1,13 @@
 import { COPYATTR } from '../../constants.js';
 
-// because we are bubbling up the evt listenner need to specify target not use evt.target. This is because if the evt was triggered by a child element it would be the child element that would be targeted with evt.parent not the event that is actually associated with the listener
+/**
+ * Handles the click event for copying text to the clipboard.
+ * Prevents the default action, reads the text from the target's dataset,
+ * writes it to the clipboard, and toggles a 'copied' class for visual feedback.
+ * @param {Event} evt - The click event.
+ * @param {HTMLElement} target - The element that triggered the copy action.
+ * @returns {void}
+ */
 export function handleCopyClick(evt, target) {
 
     evt.preventDefault(); // stops the details div opening

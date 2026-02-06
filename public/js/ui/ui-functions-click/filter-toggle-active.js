@@ -1,6 +1,12 @@
 import { appState } from "../../services/store.js";
 import { processSeachResults } from "../ui-functions-search/a-search-orchestrator.js";
 
+/**
+ * Handles the click event to toggle the active status of a filter pill.
+ * @param {Event} evt - The click event.
+ * @param {HTMLElement} target - The filter pill element.
+ * @returns {void}
+ */
 export function handleFilterToggleActive(evt, target){
 
 console.log("toggle active now")

@@ -1,6 +1,12 @@
 import { appState } from '../../services/store.js';
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
 
+/**
+ * Handles the toggle event for the filter mode (AND/OR).
+ * Updates the app state and re-processes search results.
+ * @param {Event} event - The change event from the toggle checkbox.
+ * @returns {void}
+ */
 export function handleFilterModeToggle(event) {
 
     console.log("Toggling filter mode based on checkbox state.");
