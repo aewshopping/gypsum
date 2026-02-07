@@ -12,6 +12,7 @@ import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js
  * Each card displays the file's title, filename, and tags.
  * The function iterates through the files in the `appState`, creates an HTML string for each file,
  * and then sets the innerHTML of the 'output' element to the generated string.
+ * @param {boolean} renderEverything - A flag to render all files or only the filtered ones.
  */
 export function renderFileList_grid(renderEverything) {
 

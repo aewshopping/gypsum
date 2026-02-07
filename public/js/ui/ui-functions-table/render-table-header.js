@@ -2,6 +2,7 @@
  * Renders the header for the table view.
  * Dynamically creates column headers based on specified properties
  * and injects CSS for column widths.
+ * @param {Array<object>} current_props - The properties to render as column headers.
  * @returns {string} The HTML string for the table header.
  */
 export function renderTableHeader(current_props) {

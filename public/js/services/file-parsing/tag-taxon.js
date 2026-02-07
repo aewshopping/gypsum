@@ -8,6 +8,7 @@ const ALL_TAG_KEY = "all"; // Implemented the constant for the "all" parent tag
  * Stage 1: Iterates through the data to establish unique parent-child relationships
  * and track non-orphan children.
  *
+ * @function mapRelationshipsAndTrackExclusivity
  * @param {object} data The object containing the 'fileobject' array.
  * @returns {{parentToChildrenMap: Map<string, Set<string>>, nonOrphanChildTags: Set<string>}}
  */
@@ -46,8 +47,10 @@ function mapRelationshipsAndTrackExclusivity(data) {
  * Stage 2: Filters the 'orphan' parent tag's children to ensure only tags 
  * exclusive to the 'orphan' category remain.
  *
+ * @function filterExclusiveOrphanTags
  * @param {Map<string, Set<string>>} parentToChildrenMap Map of parentTag -> Set<childTag>.
  * @param {Set<string>} nonOrphanChildTags Set of all child tags with a non-orphan parent.
+ * @returns {void}
  */
 function filterExclusiveOrphanTags(parentToChildrenMap, nonOrphanChildTags) {
     if (parentToChildrenMap.has(ORPHAN_TAG_KEY)) {
@@ -70,6 +73,7 @@ function filterExclusiveOrphanTags(parentToChildrenMap, nonOrphanChildTags) {
  * Stage 3: Constructs the final result array by merging relationships with counts
  * and applying final sorting and placement rules.
  *
+ * @function structureAndSortResult
  * @param {Map<string, Set<string>>} parentToChildrenMap Map of parentTag -> Set<childTag>.
  * @param {Map<string, number>} childCountMap Map of childTag -> count.
  * @param {Array<Array<string | number>>} allChildTagsAndCounts Original array for the 'all' category.

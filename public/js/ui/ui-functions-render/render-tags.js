@@ -1,5 +1,14 @@
 
-// there are lots of arguments so we can render tags that already represent an active filter
+/**
+ * Renders a tag as an HTML `<span>` element.
+ * Supports various options for showing counts, hashes, and active status.
+ * @param {string} tagname - The name of the tag.
+ * @param {number|null} [tagcount=null] - The optional count of occurrences for the tag.
+ * @param {string} [hash="nohash"] - Whether to show a '#' before the tag name ('showhash' or 'nohash').
+ * @param {string} [type="tag-pill"] - The type of tag element to render, used for styling ('tag-pill' or 'span').
+ * @param {boolean} [active=false] - Whether the tag is currently active as a filter.
+ * @returns {string} The HTML string for the rendered tag.
+ */
 export function renderTags(tagname, tagcount = null, hash = "nohash", type = "tag-pill", active = false) {
 
     let tagcounter = "";
