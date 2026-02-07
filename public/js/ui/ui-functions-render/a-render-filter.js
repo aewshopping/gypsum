@@ -1,5 +1,9 @@
 import { appState } from "../../services/store.js";
 
+/**
+ * Renders the active search filters as a series of pills in the UI.
+ * @returns {void}
+ */
 export function renderFilters() {
     const outputElement = document.getElementById("filter-output");
 

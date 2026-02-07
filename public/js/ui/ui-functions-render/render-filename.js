@@ -1,3 +1,8 @@
+/**
+ * Renders a filename with a copy-to-clipboard button.
+ * @param {string} filename - The filename to render.
+ * @returns {string} The HTML string for the rendered filename.
+ */
 export function renderFilename(filename) {
 
 return `<span class="copyhighlight">
@@ -9,6 +14,12 @@ return `<span class="copyhighlight">
   </span>`;
 }
 
+/**
+ * Renders a filename with a copy-to-clipboard button and an "open" button.
+ * @param {string} filename - The filename to render.
+ * @param {string} color - The color associated with the file.
+ * @returns {string} The HTML string for the rendered filename and buttons.
+ */
 export function renderFilenamePlusOpenBtn(filename, color) {
 
 return `<span class="show-content-tag color-dynamic" data-color="${color}" data-filename="${filename}" data-action="open-file-content-modal">open</span><span class="copyhighlight"><i><span class="copyflag" 

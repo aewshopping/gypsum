@@ -7,12 +7,22 @@ import { countActiveFilters } from "../ui-functions-search/a-count-activefilters
 import { VIEWS } from "../../constants.js";
 import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 
+/**
+ * Triggers the rendering of the file list.
+ * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render or just update rows (for table view).
+ * @returns {void}
+ */
 export function renderData(fullRender = true) {
 
     renderFiles(fullRender);
 
 }
 
+/**
+ * Orchestrates the rendering of files based on the current view state and active filters.
+ * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render.
+ * @returns {void}
+ */
 export function renderFiles(fullRender = true) {
 
     // check if no active filters applied

@@ -19,6 +19,12 @@ export const parseYaml = (yamlString) => {
     const root = {};
     const stack = [{ object: root, indent: -1, key: null }];
     
+    /**
+     * Coerces a string value into its appropriate JavaScript type (null, boolean, number, or string).
+     * Handles quoted strings to preserve them as strings.
+     * @param {string} value The string value to coerce.
+     * @returns {null|boolean|number|string} The coerced value.
+     */
     const coerceValue = (value) => {
         let trimmed = value.trim();
 

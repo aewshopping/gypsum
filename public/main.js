@@ -32,12 +32,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
+/**
+ * Orchestrates the data loading and initial rendering process.
+ * This function is called when the "Load Files" button is clicked.
+ * @async
+ * @function conductor
+ * @returns {Promise<void>}
+ */
 async function conductor() {
     await loadData();
     renderData();
     addActionHandlers();
 }
 
+/**
+ * Loads file data, processes tags/taxonomy, and sorts the files based on the initial state.
+ * @async
+ * @function loadData
+ * @returns {Promise<void>}
+ */
 async function loadData() {
 
     await loadFileHandles();

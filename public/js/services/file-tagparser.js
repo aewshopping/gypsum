@@ -33,6 +33,7 @@ export function tagParser(text) {
  * A replacer function for `String.prototype.replace()` to transform matched tags into HTML.
  * It handles both simple tags (`#tag`) and categorized tags (`#category/tag`).
  *
+ * @function tagreplacer
  * @param {string} match The entire matched string (e.g., "#tag" or "#category/tag").
  * @param {string} p1 For simple tags, this is the '#' character.
  * @param {string} p2 For simple tags, this is the tag name (e.g., "tag").
@@ -65,6 +66,12 @@ function tagreplacer(match, p1, p2, p3, p4) {
 }
 
 
+/**
+ * Populates the internal `tagSet` with the search values of all currently active tag filters.
+ * This is used to identify which tags should be highlighted in the UI.
+ * @function returnActiveTags
+ * @returns {void}
+ */
 function returnActiveTags() {
 	// First get a list of active tags - we need to check if any rendered tags in the modal need to be active
 	const filters = appState.search.filters;
