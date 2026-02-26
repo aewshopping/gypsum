@@ -11,6 +11,7 @@ const contentSearch = document.getElementById("contentsearch");
 
 /**
  * Handles the keyup event in the search box, triggering a search if Enter is pressed.
+ * @function handleSearchBoxEnterPress
  * @param {KeyboardEvent} target - The keyup event.
  * @returns {void}
  */
@@ -26,6 +27,7 @@ export function handleSearchBoxEnterPress(target) {
  * Parses the search string, validates the property against available file properties,
  * constructs a filter object and stores it in appState.search.filters.
  *
+ * @function handleSearchBoxClick
  * @returns {void}
  */
 export function handleSearchBoxClick() {

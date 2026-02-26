@@ -4,6 +4,7 @@ import { processSeachResults } from '../ui-functions-search/a-search-orchestrato
 /**
  * Handles the toggle event for the filter mode (AND/OR).
  * Updates the app state and re-processes search results.
+ * @function handleFilterModeToggle
  * @param {Event} event - The change event from the toggle checkbox.
  * @returns {void}
  */

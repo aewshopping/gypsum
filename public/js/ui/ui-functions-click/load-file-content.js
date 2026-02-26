@@ -11,6 +11,7 @@ let file_content_tagged_parsed; // // so we can access the rendered file content
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
  * @async
+ * @function loadContentModal
  * @param {string} file_to_open - The name of the file to load content for.
  * @returns {Promise<void>}
  */
@@ -36,6 +37,7 @@ export async function loadContentModal (file_to_open) {
 /**
  * Renders the loaded file content into the modal text area.
  * Can toggle between rendered markdown and raw text.
+ * @function fileContentRender
  * @returns {void}
  */
 export function fileContentRender() {

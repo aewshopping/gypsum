@@ -13,6 +13,7 @@ import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js
  * The content of the `<details>` element is a nested list of the file's properties.
  * This function iterates through the files in the `appState`, creates an HTML string for each file,
  * and then sets the innerHTML of the 'output' element to the generated string.
+ * @function renderFileList_list
  * @param {boolean} renderEverything - A flag to render all files or only the filtered ones.
  */
 export function renderFileList_list(renderEverything) {

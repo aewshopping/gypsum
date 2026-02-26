@@ -4,6 +4,7 @@ import { getFrontMatterLines } from "./yaml-block-extract.js";
  * Simple YAML Parser - vibe coded by google gemini 30 Sept 2025
  * A lightweight YAML parser for basic front-matter data extraction.
  *
+ * @function parseYaml
  * @param {string} yamlString - The raw YAML content.
  * @returns {object} The parsed JavaScript object.
  */
@@ -22,6 +23,7 @@ export const parseYaml = (yamlString) => {
     /**
      * Coerces a string value into its appropriate JavaScript type (null, boolean, number, or string).
      * Handles quoted strings to preserve them as strings.
+     * @function coerceValue
      * @param {string} value The string value to coerce.
      * @returns {null|boolean|number|string} The coerced value.
      */

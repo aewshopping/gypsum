@@ -1,6 +1,7 @@
 /**
  * Parses a search string into a property, an operator, and a search value.
  * Supports an optional property override (e.g., when searching for a specific tag).
+ * @function parseSearchString
  * @param {string} searchString - The raw search string from the UI.
  * @param {string} [propOverride=""] - An optional property to force (e.g., "tags" or "content").
  * @returns {{property: string, value: string, operator: string}} An object containing the parsed search components.

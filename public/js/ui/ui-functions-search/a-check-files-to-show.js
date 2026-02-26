@@ -6,6 +6,7 @@ const search = appState.search;
 /**
  * Checks if a file should be shown based on the current filter mode and matching files.
  *
+ * @function checkFilesToShow
  * @param {string} fileId The ID of the file to check.
  * @returns {boolean} Whether the file should be shown.
  */

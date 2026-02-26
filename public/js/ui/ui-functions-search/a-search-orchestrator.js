@@ -9,6 +9,8 @@ import { renderFilters } from "../ui-functions-render/a-render-filter.js";
 /**
  * Adds a filter and then finds the matching files.
  *
+ * @async
+ * @function addFilterThenFindMatches
  * @param {object} searchObject An object containing the property, operator, and value for the filter.
  */
 export async function addFilterThenFindMatches(searchObject) {
@@ -46,6 +48,7 @@ export async function addFilterThenFindMatches(searchObject) {
 
 /**
  * Processes the search results, updates the UI, and renders the files.
+ * @function processSeachResults
  */
 export function processSeachResults() {
 

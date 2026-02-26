@@ -11,6 +11,7 @@ const tagSet = new Set();
  * Parses a string of text, finds tags (e.g., #tag, #category/tag), and wraps them in HTML `<span>` elements
  * for styling and interaction. It temporarily replaces hex color codes to avoid accidentally parsing them as tags.
  *
+ * @function tagParser
  * @param {string} text The input text to parse for tags.
  * @returns {string} The text with tags replaced by HTML `<span>` elements.
  */

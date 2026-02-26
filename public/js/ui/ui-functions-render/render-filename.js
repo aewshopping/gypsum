@@ -1,5 +1,6 @@
 /**
  * Renders a filename with a copy-to-clipboard button.
+ * @function renderFilename
  * @param {string} filename - The filename to render.
  * @returns {string} The HTML string for the rendered filename.
  */
@@ -16,6 +17,7 @@ return `<span class="copyhighlight">
 
 /**
  * Renders a filename with a copy-to-clipboard button and an "open" button.
+ * @function renderFilenamePlusOpenBtn
  * @param {string} filename - The filename to render.
  * @param {string} color - The color associated with the file.
  * @returns {string} The HTML string for the rendered filename and buttons.

@@ -8,6 +8,7 @@ import { buildMatchResultObject } from "./a-search-helpers.js";
 /**
  * Searches a property of all files for a given search value.
  *
+ * @function searchProperty
  * @param {string} filterId The ID of the filter.
  * @param {string} searchValue The value to search for.
  * @param {string} property The property to search within.
@@ -41,6 +42,7 @@ export function searchProperty(filterId, searchValue, property, type, operator) 
 /**
  * Searches an array property of all files for a given search value.
  *
+ * @function searchArrayProperty
  * @param {string} filterId The ID of the filter.
  * @param {string} searchValueLower The lowercase value to search for.
  * @param {string} property The property to search within.
@@ -75,6 +77,7 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
 /**
  * Searches a string property of all files for a given search value.
  *
+ * @function searchStringProperty
  * @param {string} filterId The ID of the filter.
  * @param {string} searchValueLower The lowercase value to search for.
  * @param {string} property The property to search within.

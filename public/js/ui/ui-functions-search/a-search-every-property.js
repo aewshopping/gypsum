@@ -5,6 +5,7 @@ import { searchProperty } from "./a-search-property.js";
 /**
  * Searches every property of every file for a given search value.
  *
+ * @function searchEveryProperty
  * @param {string} filterId The ID of the filter.
  * @param {string} searchValue The value to search for.
  * @param {string} property The property to search within (e.g., "allProperties").

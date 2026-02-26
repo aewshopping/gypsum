@@ -3,6 +3,7 @@
 /**
  * Searches a container element for a search term and adds the ranges of any matches to an array.
  *
+ * @function searchContainer
  * @param {HTMLElement} container The container element to search.
  * @param {string} searchTerm The term to search for.
  * @param {Array<Range>} ranges An array to store the ranges of any matches.
@@ -21,6 +22,7 @@ export function searchContainer(container, searchTerm, ranges) {
 /**
  * Finds all occurrences of a search term in a text node and adds the ranges to an array.
  *
+ * @function findRangesInNode
  * @param {Node} node The text node to search.
  * @param {string} searchTerm The term to search for.
  * @param {Array<Range>} ranges An array to store the ranges of any matches.

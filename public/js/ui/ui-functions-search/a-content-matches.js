@@ -3,6 +3,7 @@ import { buildMatchResultObject } from "./a-search-helpers.js";
 
 /**
  * Searches a file's content for a search value and returns a standardized result object with snippets.
+ * @function findContentMatches
  * @param {string} content - The file content to search.
  * @param {string} searchValue - The value to search for.
  * @param {string} property - The property name (typically "content").
@@ -38,6 +39,7 @@ export function findContentMatches(content, searchValue, property, type, operato
 
 /**
  * Extracts a snippet of text around a match, attempting to snap to whole words.
+ * @function getCleanSnippet
  * @param {string} content - The full text content.
  * @param {number} index - The starting position of the match.
  * @param {number} searchLen - The length of the search term.

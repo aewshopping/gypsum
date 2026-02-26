@@ -4,6 +4,7 @@ import { processSeachResults } from '../ui-functions-search/a-search-orchestrato
 
 /**
  * Clears all active search filters and results, resets the search box, and re-renders the data.
+ * @function handleClearFilters
  * @returns {void}
  */
 export function handleClearFilters() {

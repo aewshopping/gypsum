@@ -3,6 +3,7 @@ import { processSeachResults } from "../ui-functions-search/a-search-orchestrato
 
 /**
  * Handles the click event to toggle the active status of a filter pill.
+ * @function handleFilterToggleActive
  * @param {Event} evt - The click event.
  * @param {HTMLElement} target - The filter pill element.
  * @returns {void}

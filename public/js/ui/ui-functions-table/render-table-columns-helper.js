@@ -3,6 +3,7 @@ import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/st
 /**
  * Determines which columns to show in the table view.
  *
+ * @function tableColumns
  * @returns {Array<string>} An array of property names to show as columns.
  */
 export function tableColumns() {

@@ -2,6 +2,7 @@
 /**
  * Renders a tag as an HTML `<span>` element.
  * Supports various options for showing counts, hashes, and active status.
+ * @function renderTags
  * @param {string} tagname - The name of the tag.
  * @param {number|null} [tagcount=null] - The optional count of occurrences for the tag.
  * @param {string} [hash="nohash"] - Whether to show a '#' before the tag name ('showhash' or 'nohash').

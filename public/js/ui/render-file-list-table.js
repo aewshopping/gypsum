@@ -8,6 +8,7 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
  * Orchestrates the rendering of the table view.
  * It clears the output, generates the table container,
  * and then calls the header and row rendering functions.
+ * @function renderFileList_table
  * @param {boolean} renderEverything - A flag to render all files or only the filtered ones.
  * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render (including headers) or just update rows.
  */

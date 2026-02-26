@@ -3,6 +3,7 @@
 /**
  * Updates the match count for each filter in the search state.
  *
+ * @function updateFilterCountFileMatches
  * @param {object} search The search state object.
  */
 export function updateFilterCountFileMatches(search) {

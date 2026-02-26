@@ -9,6 +9,7 @@ import { appState } from "../../services/store.js";
 /**
  * Retrieves the results Map for a given filter ID from the app state.
  * If no such Map exists, a new one is returned.
+ * @function getFilterMap
  * @param {string} filterId - The unique ID of the filter.
  * @returns {Map<string, object>} The Map of results for the specified filter.
  */
@@ -19,6 +20,7 @@ export function getFilterMap(filterId) {
 
 /**
  * Stores a results Map for a filter ID in the app state if the Map is not empty.
+ * @function updateSearchState
  * @param {string} filterId - The unique ID of the filter.
  * @param {Map<string, object>} resultsMap - The Map containing search results.
  * @returns {void}
@@ -31,6 +33,7 @@ export function updateSearchState(filterId, resultsMap) {
 
 /**
  * Records a match result object into a results Map if it indicates at least one match.
+ * @function recordMatch
  * @param {Map<string, object>} map - The results Map to update.
  * @param {string} fileId - The ID of the file where the match was found.
  * @param {object} resultObject - The result object containing match information.
@@ -44,6 +47,7 @@ export function recordMatch(map, fileId, resultObject) {
 
 /**
  * Constructs a standardized match result object.
+ * @function buildMatchResultObject
  * @param {number} count - The number of matches found.
  * @param {string} property - The property where the matches were found.
  * @param {string} type - The data type of the property.

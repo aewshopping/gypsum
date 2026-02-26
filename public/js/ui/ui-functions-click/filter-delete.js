@@ -7,6 +7,7 @@ import { processSeachResults } from '../ui-functions-search/a-search-orchestrato
  * Handles the click event to delete a filter.
  * It populates the search box with the filter's value for potential editing,
  * unchecks the content search option, and calls the deletion helper.
+ * @function handleDeleteFilter
  * @param {Event} evt - The click event.
  * @param {HTMLElement} target - The element that triggered the delete action.
  * @returns {void}
@@ -34,6 +35,7 @@ export function handleDeleteFilter(evt, target) {
 /**
  * Helper function to delete a filter and its associated results from the app state.
  * It also handles unhighlighting tags in the taxonomy and triggers a re-render.
+ * @function deleteFilterAndResults
  * @param {string} filterId - The ID of the filter to delete.
  * @returns {void}
  */
@@ -54,6 +56,7 @@ export function deleteFilterAndResults(filterId) {
 /**
  * Manually unhighlights tags in the tag taxonomy UI when a tag filter is deleted.
  * Unlike other tags, the taxonomy is not fully re-rendered on filter changes.
+ * @function unhighlightTaxonomyTags
  * @param {string} filterId - The ID of the deleted filter.
  * @returns {void}
  */

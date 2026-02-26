@@ -6,6 +6,8 @@ import { searchContent } from "./a-search-content.js";
 /**
  * Searches files based on a filter.
  *
+ * @async
+ * @function searchFiles
  * @param {string} filterId The ID of the filter to use for the search.
  */
 export async function searchFiles(filterId) {

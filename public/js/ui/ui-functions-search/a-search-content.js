@@ -8,6 +8,8 @@ import { recordMatch } from "./a-search-helpers.js";
 /**
  * Searches the content of all files for a given search value.
  *
+ * @async
+ * @function searchContent
  * @param {string} filterId The ID of the filter.
  * @param {string} searchValue The value to search for.
  * @param {string} property The property to search within (e.g., "content").

@@ -2,6 +2,7 @@
 
 /**
  * Handles the toggle event for entering or exiting fullscreen mode.
+ * @function handleFullscreenToggle
  * @param {Event} evt - The change event.
  * @param {HTMLInputElement} target - The checkbox element.
  * @returns {void}

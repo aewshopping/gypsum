@@ -9,6 +9,7 @@ import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 
 /**
  * Triggers the rendering of the file list.
+ * @function renderData
  * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render or just update rows (for table view).
  * @returns {void}
  */
@@ -20,6 +21,7 @@ export function renderData(fullRender = true) {
 
 /**
  * Orchestrates the rendering of files based on the current view state and active filters.
+ * @function renderFiles
  * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render.
  * @returns {void}
  */

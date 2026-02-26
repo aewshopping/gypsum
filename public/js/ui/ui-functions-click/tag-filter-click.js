@@ -8,8 +8,9 @@ import { deleteFilterAndResults } from "./filter-delete.js";
 /**
  * Handles the click event on a tag element, updating the appState.filterTags Set
  * and then updating the 'show' key in the appState.myFiles array.
+ * @function handleTagClick
  * @param {Event} evt The click event object
- * @param {Target} target The target object
+ * @param {HTMLElement} target The target object
  */
 export function handleTagClick(evt, target) {
 

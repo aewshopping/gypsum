@@ -20,6 +20,7 @@ import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-act
 /**
  * Adds event listeners to the document for click, change, and keyup events.
  * This function is called once when the application starts.
+ * @function addActionHandlers
  */
 export function addActionHandlers() {
     document.addEventListener("click", clickDelegate);
@@ -58,6 +59,7 @@ const keyUpActionHandlers = {
 /**
  * Handles all click events on the document and delegates them to the appropriate handler.
  * It looks for a `data-action` attribute on the clicked element or its ancestors.
+ * @function clickDelegate
  * @param {Event} evt The click event.
  */
 function clickDelegate(evt) {
@@ -77,6 +79,7 @@ function clickDelegate(evt) {
 /**
  * Handles all change events on the document and delegates them to the appropriate handler.
  * It looks for a `data-action` attribute on the changed element or its ancestors.
+ * @function changeDelegate
  * @param {Event} evt The change event.
  */
 function changeDelegate(evt) {
@@ -95,6 +98,7 @@ function changeDelegate(evt) {
 /**
  * Handles all keyup events on the document and delegates them to the appropriate handler.
  * It looks for a `data-action` attribute on the element that triggered the event or its ancestors.
+ * @function keyUpDelegate
  * @param {Event} evt The keyup event.
  */
 function keyUpDelegate(evt) {

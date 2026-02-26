@@ -10,6 +10,8 @@ import { updateMyFilesProperties } from '../file-props.js';
  * Processes a file handle to extract its content and metadata.
  * It reads the file, parses its content for tags and YAML front matter,
  * and constructs a file object with all the relevant information.
+ * @async
+ * @function getFileDataAndMetadata
  * @param {FileSystemFileHandle} handle The file handle to process.
  * @param {number} loadOrder The order in which the file was loaded.
  * @returns {Promise<object>} A promise that resolves to an object containing the file's metadata.
@@ -44,6 +46,7 @@ const regex_tag_match = new RegExp(regex_tag.source, "gm");
 /**
  * MAIN FUNCTION: Parses file content to find title, unique tags, and first color tag.
  *
+ * @function parseFileContent
  * @param {string} fileContent - The text content of the file.
  * @returns {{titleFirst: string, parentArray: string[], childArray: string[], colorFirst: string | null}} - Extracted data.
  */
@@ -75,8 +78,15 @@ function parseFileContent(fileContent) {
  * Processes a single potential tag (childValue/parentValue pair).
  * Pushes unique tags onto the arrays and handles first color extraction.
  *
- * @param {{childValue: string, parentValue: string | undefined}} tagInfo - The tag parts.
- * @param {{childSet: Set<string>, childArray: string[], parentArray: string[], colorFirst: string | null}} tagState - State object for accumulating tag data.
+ * @function processTag
+ * @param {object} tagInfo - The tag parts.
+ * @param {string} tagInfo.childValue - The child tag value.
+ * @param {string} [tagInfo.parentValue] - The parent tag value.
+ * @param {object} tagState - State object for accumulating tag data.
+ * @param {Set<string>} tagState.childSet - Set of child tags.
+ * @param {string[]} tagState.childArray - Array of child tags.
+ * @param {string[]} tagState.parentArray - Array of parent tags.
+ * @param {string|null} tagState.colorFirst - The first color tag found.
  */
 function processTag({ childValue, parentValue }, tagState) {
     if (!childValue) return;
@@ -103,10 +113,11 @@ function processTag({ childValue, parentValue }, tagState) {
  * Extracts titles and tags from the file content using matchAll.
  * Updates the tagState and finds the first title.
  *
+ * @function extractMatches
  * @param {string} fileContent - The text to parse.
  * @param {RegExp} regex_all - Combined regex for title and tags.
  * @param {RegExp} regex_tag_match - Regex specifically for tags (used for title inspection).
- * @param {{childSet: Set<string>, childArray: string[], parentArray: string[], colorFirst: string | null}} tagState - State object to pass to processTag.
+ * @param {object} tagState - State object to pass to processTag.
  * @returns {{titleFirst: string | null}} - The first encountered title.
  */
 function extractMatches(fileContent, regex_all, regex_tag_match, tagState) {
@@ -131,10 +142,11 @@ function extractMatches(fileContent, regex_all, regex_tag_match, tagState) {
  * Determines the final title, falling back to the first line if no markdown title is found.
  * Also checks the final title for any lurking tags
  *
+ * @function getInitialTitle
  * @param {string} fileContent - The full text.
  * @param {string | null} initialTitle - The first title found by extractMatches.
  * @param {RegExp} regex_tag_match - Regex specifically for tags.
- * @param {{childSet: Set<string>, childArray: string[], parentArray: string[], colorFirst: string | null}} tagState - State object to pass to processTag.
+ * @param {object} tagState - State object to pass to processTag.
  * @returns {string} The final title.
  */
 function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState) {

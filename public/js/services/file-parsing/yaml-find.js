@@ -3,6 +3,7 @@
  * Locates the line indices of the YAML front-matter block, including the '---' separators.
  * This version allows the starting '---' to be on ANY line, as long as the block is properly closed.
  *
+ * @function findFrontMatterIndices
  * @param {string} fullString - The raw content string.
  * @returns {{start: number, end: number} | null} An object with the 0-based start and end line indices, or null if not found.
  */

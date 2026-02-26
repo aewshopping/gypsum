@@ -5,6 +5,7 @@
 /**
  * Calculates the frequency of each tag across all files and returns a sorted list of unique tags with their counts.
  *
+ * @function getUniqueTagsSortedWithCount
  * @param {Array<Object>} dataObject An array of file objects, where each object is expected to have a `tags` property containing an array of tag strings.
  * @returns {Array<[string, number]>} An array of tuples, where each tuple contains a tag and its corresponding count. The array is sorted alphabetically by tag.
  */
@@ -27,6 +28,7 @@ export function getUniqueTagsSortedWithCount(dataObject) {
 /**
  * Comparator function for sorting tag entries alphabetically by tag name.
  *
+ * @function compareTagsAlphabetically
  * @param {[string, number]} a The first tag entry to compare.
  * @param {[string, number]} b The second tag entry to compare.
  * @returns {number} A negative, zero, or positive value, indicating the alphabetical order of the tags.

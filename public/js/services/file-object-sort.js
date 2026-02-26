@@ -3,6 +3,7 @@ import { appState } from './store.js';
 
 /**
  * Converts a date string into a numerical timestamp.
+ * @function getTimestamp
  * @param {string | Date} dateValue The date string or Date object to convert.
  * @returns {number} The numerical timestamp (milliseconds since epoch) or NaN if invalid.
  */
@@ -19,6 +20,7 @@ function getTimestamp(dateValue) {
  * Sorts the `appState.myFiles` array in place based on a specified property and data type.
  * Ensures that missing or invalid data (null, undefined, empty strings, invalid dates)
  * is consistently moved to the end of the array, regardless of sort order.
+ * @function sortAppStateFiles
  * @param {string} property The name of the property on the file objects to sort by.
  * @param {string} dataType The data type of the property ('string', 'number', 'date', 'array').
  * @param {string} [sortOrder='asc'] The sort order, either 'asc' for ascending or 'desc' for descending.
@@ -58,7 +60,13 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
 
         // --- 2. Consistent Missing Data Check (Nulls/Undefineds/Empty Strings/NaN go to the end) ---
         
-        // Helper function to check for missing/invalid data, including empty strings for non-date types
+        /**
+         * Helper function to check for missing/invalid data, including empty strings for non-date types.
+         * @function isMissing
+         * @param {*} value - The value to check.
+         * @param {string} type - The data type of the property.
+         * @returns {boolean} True if the value is considered missing or invalid.
+         */
         const isMissing = (value, type) => {
             // Check for explicit missing values
             if (value === null || value === undefined) return true;

@@ -6,6 +6,7 @@ import { renderTags } from './ui-functions-render/render-tags.js';
 
 /**
  * Renders the file list as a search result.
+ * @function renderFileList_search
  * @param {boolean} renderEverything - a flag to render all files or only the filtered ones.
  */
 export function renderFileList_search(renderEverything) {

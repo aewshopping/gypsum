@@ -3,6 +3,7 @@ import { appState } from "../../services/store.js";
 /**
  * Inverts the search results map, so that the file IDs are the keys and the filter IDs are the values.
  *
+ * @function invertSearchResultsMap
  * @returns {Map<string, Map<string, object>>} The inverted search results map.
  */
 export function invertSearchResultsMap() {

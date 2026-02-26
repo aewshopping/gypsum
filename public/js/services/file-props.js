@@ -10,6 +10,7 @@ import { appState, FILE_PROPERTIES } from './store.js';
  *
  * Side effects: mutates `appState.myFilesProperties`.
  *
+ * @function updateMyFilesProperties
  * @param {Object} myObject - Source object whose keys become file property keys.
  * @param {number} [order=1] - Default order value for newly added properties.
  * @returns {void}

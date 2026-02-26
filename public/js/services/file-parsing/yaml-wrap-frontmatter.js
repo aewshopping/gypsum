@@ -5,6 +5,7 @@ import { findFrontMatterIndices } from "./yaml-find.js";
  * Locates the YAML front-matter block AND its '---' separators, and wraps the entire
  * block with a starting and ending marker, ensuring no extra line breaks are introduced.
  *
+ * @function wrapFrontMatter
  * @param {string} fullString - The raw content string.
  * @param {string} startMarker - The marker to place before the block (e.g., "<pre>").
  * @param {string} endMarker - The marker to place after the block (e.g., "</pre>").

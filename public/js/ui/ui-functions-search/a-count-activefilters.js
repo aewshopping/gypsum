@@ -3,6 +3,7 @@ import { appState } from "../../services/store.js";
 
 /**
  * Counts how many filters in the map have active set to true.
+ * @function countActiveFilters
  * @returns {number}
  */
 export function countActiveFilters() {

@@ -5,6 +5,7 @@
  * Finds all elements with a `data-tag` attribute matching the given `tagName`
  * and sets their `data-active` attribute to the specified status.
  *
+ * @function tagsHighlight
  * @param {string} tagName The name of the tag to highlight.
  * @param {string} status The status to set ('true' or 'false').
  * @param {string} [key=""] - An optional key (currently unused).

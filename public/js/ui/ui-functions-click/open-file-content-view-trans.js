@@ -14,6 +14,7 @@ let file_box; // so we can access the target on close modal too
 
 /**
  * Handles the click event to open the file content modal with a view transition.
+ * @function handleOpenFileContent
  * @param {Event} event - The click event.
  * @param {HTMLElement} target - The element that triggered the modal opening.
  * @returns {void}
@@ -45,6 +46,7 @@ export function handleOpenFileContent(event, target) {
 
 /**
  * Handles clicks outside the modal to trigger the close animation.
+ * @function handeCloseModalOutside
  * @param {Event} event - The click event.
  * @param {HTMLElement} target - The element that was clicked.
  * @returns {void}
@@ -61,6 +63,7 @@ export function handeCloseModalOutside(event, target) {
 
 /**
  * Handles closing the file content modal with a view transition.
+ * @function handleCloseModal
  * @returns {void}
  */
 export function handleCloseModal() {

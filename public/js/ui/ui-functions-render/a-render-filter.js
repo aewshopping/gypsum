@@ -2,6 +2,7 @@ import { appState } from "../../services/store.js";
 
 /**
  * Renders the active search filters as a series of pills in the UI.
+ * @function renderFilters
  * @returns {void}
  */
 export function renderFilters() {

@@ -121,6 +121,7 @@ function structureAndSortResult(parentToChildrenMap, childCountMap, allChildTags
  * Orchestrator: Creates an array structure grouped by unique parent tags, using a pre-counted
  * array for the child tag counts.
  *
+ * @function createParentChildTagStructure
  * @param {object} data The object containing the 'fileobject' array.
  * @param {Array<Array<string | number>>} childtagsandcounts Array of [childtag, count].
  * @returns {Array<[string, Array<[string, number]>]>} An array in the format:

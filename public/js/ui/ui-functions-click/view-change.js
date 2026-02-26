@@ -4,6 +4,7 @@ import { appState } from '../../services/store.js';
 /**
  * Handles the change event for the view selector dropdown.
  * Updates the view state in the app state and triggers a re-render.
+ * @function handleViewSelect
  * @param {Event} evt - The change event.
  * @param {HTMLSelectElement} selectElement - The dropdown element.
  * @returns {void}
