@@ -29,7 +29,8 @@ jobs:
         run: node inline-scripts-from-files.js
 
       - name: Upload bundled artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bundled-web-app
           path: dist/
+          archive: false
