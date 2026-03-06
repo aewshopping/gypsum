@@ -1,3 +1,10 @@
+  @property --modal-top-bottom-margin {
+    /* the only reason we declare this as a prop is so we can animate with a transition */
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 20px;
+  }
+
 #file-content-modal {
   /* Remove default centering and ensure it covers the viewport for correct positioning */
   position: fixed;
@@ -12,17 +19,6 @@
   --modal-footer-height: 30px; /* nothing in here yet but later will be set to 50px and have an option to show plaintext or markdown */
   --modal-header-height: 40px;
 }
-
-body{
---modal-top-bottom-margin: 20px;
-
-  @media (max-width: 600px) {
-    /* to allow open dialog to take up fall screen space on small screens */
-    /* note 600px figure also used on scrollbar-gutter but can't put css vars in media queries so hard coded */
-    --modal-top-bottom-margin: 0px;
-  }
-}
-
 
 #moving-file-content-container {
   /* Mandatory CSS property */
@@ -43,7 +39,26 @@ body{
   top: var(--modal-top-bottom-margin);
   width: 65ch;
   max-width:100%;
+  transition: width var(--maximise-modal-transition), --modal-top-bottom-margin var(--maximise-modal-transition);
 /*  height: 95vh;*/
+}
+
+body{
+  --modal-top-bottom-margin: 20px;
+  --maximise-modal-transition: 0.2s;
+
+  @media (max-width: 600px) {
+    /* to allow open dialog to take up fall screen space on small screens */
+    /* note 600px figure also used on scrollbar-gutter but can't put css vars in media queries so hard coded */
+    --modal-top-bottom-margin: 0px;
+  }
+  
+  :has(#modalmaxscreen:checked) #moving-file-content-container {
+    /* tick the box for modal maximise, mainly useful for viewing svg diagrams */
+    --modal-top-bottom-margin: 0px;
+    width: 100%;
+  }
+
 }
 
 html {
