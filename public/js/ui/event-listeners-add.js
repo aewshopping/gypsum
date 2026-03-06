@@ -12,7 +12,7 @@ import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from 
 import { fileContentRender } from './ui-functions-click/load-file-content.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
-import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
+import { handleFullscreenToggle, handleModalFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
 import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
 import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-active.js';
@@ -40,6 +40,7 @@ const clickActionHandlers = {
     'searchbox-search': handleSearchBoxClick,
     'delete-filter': handleDeleteFilter,
     'filter-toggleactive':handleFilterToggleActive,
+    'toggle-modal-fullscreen': handleModalFullscreenToggle,
 };
 
 const changeActionHandlers = {

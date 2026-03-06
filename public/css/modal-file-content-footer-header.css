@@ -22,7 +22,27 @@
     padding-inline: 10px;
 }
 
+#file-content-header button {
+    margin-right: 5px;
+    background: transparent;
+    border: 1px solid var(--color-mono-contr);
+    color: var(--color-mono-contr);
+    cursor: pointer;
+    border-radius: 4px;
+    height: 24px;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+#file-content-header button:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
 #file-content-filename {
     /* allows flex sub-container to shrink even below length of filename string so that you never lose sight of the close model button even on small screens */
     min-width:0px;
+    margin-left: 5px;
 }

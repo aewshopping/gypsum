@@ -1,0 +1,36 @@
+
+Running 1 test using 1 worker
+
+Starting test...
+Clicking load files button...
+Waiting for file card...
+  ✘  1 tests/fullscreen.spec.js:7:5 › fullscreen toggle button is visible in modal and works (10.7s)
+
+
+  1) tests/fullscreen.spec.js:7:5 › fullscreen toggle button is visible in modal and works ─────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.note-card').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('.note-card').first()[22m
+
+
+      28 |   console.log('Waiting for file card...');
+      29 |   const fileCard = page.locator('.note-card').first();
+    > 30 |   await expect(fileCard).toBeVisible({ timeout: 10000 });
+         |                          ^
+      31 |
+      32 |   // Open the modal
+      33 |   console.log('Opening modal...');
+        at /app/tests/fullscreen.spec.js:30:26
+
+    Error Context: test-results/tests-fullscreen-fullscree-f0d35--visible-in-modal-and-works/error-context.md
+
+  1 failed
+    tests/fullscreen.spec.js:7:5 › fullscreen toggle button is visible in modal and works ──────────

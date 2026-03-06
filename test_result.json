@@ -1,0 +1,136 @@
+{
+  "config": {
+    "rootDir": "/app",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/app",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/fullscreen.spec.js",
+      "file": "tests/fullscreen.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "fullscreen toggle button is visible in modal and works",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5476,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.note-card').first()\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.note-card').first()\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.note-card').first()\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.note-card').first()\u001b[22m\n\n    at /app/tests/fullscreen.spec.js:26:26",
+                    "location": {
+                      "file": "/app/tests/fullscreen.spec.js",
+                      "column": 26,
+                      "line": 26
+                    },
+                    "snippet": "  24 |   // Wait for the file to be loaded and rendered in the list\n  25 |   const fileCard = page.locator('.note-card').first();\n> 26 |   await expect(fileCard).toBeVisible();\n     |                          ^\n  27 |\n  28 |   // Open the modal\n  29 |   await fileCard.click();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/app/tests/fullscreen.spec.js",
+                        "column": 26,
+                        "line": 26
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.note-card').first()\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.note-card').first()\u001b[22m\n\n\n  24 |   // Wait for the file to be loaded and rendered in the list\n  25 |   const fileCard = page.locator('.note-card').first();\n> 26 |   await expect(fileCard).toBeVisible();\n     |                          ^\n  27 |\n  28 |   // Open the modal\n  29 |   await fileCard.click();\n    at /app/tests/fullscreen.spec.js:26:26"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-03-06T09:50:41.681Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/app/test-results/tests-fullscreen-fullscree-f0d35--visible-in-modal-and-works/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/app/tests/fullscreen.spec.js",
+                    "column": 26,
+                    "line": 26
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a813c923bd46da61b7d0-ac0e0564082c4f541f34",
+          "file": "tests/fullscreen.spec.js",
+          "line": 7,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-06T09:50:39.766Z",
+    "duration": 7639.422,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

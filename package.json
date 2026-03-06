@@ -1,0 +1,24 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "A browser based view of text files saved on your computer. I named it Gypsum because it is a flakier, less robust version of Obsidian.",
+  "main": "inline-scripts-from-files.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aewshopping/gypsum.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aewshopping/gypsum/issues"
+  },
+  "homepage": "https://github.com/aewshopping/gypsum#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
