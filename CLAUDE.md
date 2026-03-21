@@ -154,8 +154,12 @@ npm run setup-playwright
 Then run tests with:
 
 ```bash
-npx playwright test
+npm test
 ```
+
+This runs `CODESPACE_NAME= npx playwright test`. Unsetting `CODESPACE_NAME` forces
+Playwright to use `http://localhost:8000` instead of the public Codespaces URL, which
+requires authentication and causes all tests to fail.
 
 The `webServer` config in `playwright.config.js` starts the HTTP server automatically — you
 do not need to start it manually before running tests.
