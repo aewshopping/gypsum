@@ -143,6 +143,31 @@ Open `http://localhost:8000` in the browser. All changes to `public/` are reflec
 There is no hot reload, no watcher, no dev server with special features. A plain file server
 is intentional and sufficient.
 
+### Running tests (Playwright / Codespaces)
+
+The test suite uses Playwright. On a fresh Codespace or environment, run once to set up:
+
+```bash
+npm install
+npx playwright install chromium
+```
+
+Then run tests with:
+
+```bash
+npx playwright test
+```
+
+The `webServer` config in `playwright.config.js` starts the HTTP server automatically — you
+do not need to start it manually before running tests.
+
+Tests live in `tests/`. Mock files are defined in `tests/helpers.js` and injected via
+`page.addInitScript()` to simulate the File System API without a real file picker.
+
+Note: `@playwright/test` is pinned to a specific version in `package.json` to match the
+Chromium revision already cached in the Codespaces environment. Do not bump this version
+without also running `npx playwright install chromium` to download the matching browser.
+
 ---
 
 ## Code conventions
