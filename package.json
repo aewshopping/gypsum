@@ -1,4 +1,8 @@
 {
+  "name": "gypsum",
+  "scripts": {
+    "setup-playwright": "npm install && npx playwright install --with-deps chromium"
+  },
   "devDependencies": {
     "@playwright/test": "1.56.1"
   }
