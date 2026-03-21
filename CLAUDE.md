@@ -149,7 +149,7 @@ The test suite uses Playwright. On a fresh Codespace or environment, run once to
 
 ```bash
 npm install
-npx playwright install chromium
+npx playwright install --with-deps chromium
 ```
 
 Then run tests with:
@@ -164,9 +164,9 @@ do not need to start it manually before running tests.
 Tests live in `tests/`. Mock files are defined in `tests/helpers.js` and injected via
 `page.addInitScript()` to simulate the File System API without a real file picker.
 
-Note: `@playwright/test` is pinned to a specific version in `package.json` to match the
-Chromium revision already cached in the Codespaces environment. Do not bump this version
-without also running `npx playwright install chromium` to download the matching browser.
+Note: `@playwright/test` is pinned to a specific version in `package.json`. Do not bump
+this version without also running `npx playwright install --with-deps chromium` to download
+the matching browser binary and system dependencies.
 
 ---
 
