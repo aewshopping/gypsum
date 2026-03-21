@@ -1,9 +1,13 @@
 const { defineConfig } = require('@playwright/test');
 
+const baseURL = process.env.CODESPACE_NAME
+  ? `https://${process.env.CODESPACE_NAME}-8000.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`
+  : 'http://localhost:8000';
+
 module.exports = defineConfig({
   testDir: './tests',
   use: {
-    baseURL: 'http://localhost:8000',
+    baseURL,
   },
   webServer: {
     command: 'python -m http.server 8000',
@@ -11,6 +15,14 @@ module.exports = defineConfig({
     reuseExistingServer: true,
   },
   projects: [
-    { name: 'chromium', use: { browserName: 'chromium' } },
+    {
+      name: 'chromium',
+      use: {
+        browserName: 'chromium',
+        launchOptions: {
+          args: process.env.CODESPACE_NAME ? ['--no-sandbox'] : [],
+        },
+      },
+    },
   ],
 });
