@@ -19,6 +19,7 @@ module.exports = defineConfig({
       name: 'chromium',
       use: {
         browserName: 'chromium',
+        headless: true,
         launchOptions: {
           args: process.env.CODESPACE_NAME ? ['--no-sandbox'] : [],
         },
