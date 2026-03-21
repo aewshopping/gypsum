@@ -148,8 +148,7 @@ is intentional and sufficient.
 The test suite uses Playwright. On a fresh Codespace or environment, run once to set up:
 
 ```bash
-npm install
-npx playwright install --with-deps chromium
+npm run setup-playwright
 ```
 
 Then run tests with:
