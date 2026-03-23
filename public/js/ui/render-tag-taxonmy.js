@@ -13,6 +13,9 @@ import { renderTags } from './ui-functions-render/render-tags.js';
  */
 export function renderTagTaxonomy() {
 
+    // Global counts (total files per tag across all parents) — used for display in every section
+    const globalCounts = appState.myParentMap.get('all') ?? new Map();
+
     let taxon_html = "";
 
     for (const [parentName, childMap] of appState.myParentMap) {
@@ -20,8 +23,8 @@ export function renderTagTaxonomy() {
         taxon_html += `<details class="taxon">
             <summary><code>${parentName}</code></summary>`
 
-        for (const [childName, count] of childMap) {
-            taxon_html += renderTags(childName, count);
+        for (const [childName] of childMap) {
+            taxon_html += renderTags(childName, globalCounts.get(childName) ?? null);
         }
 
         taxon_html += `</details>`
