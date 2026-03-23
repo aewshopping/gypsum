@@ -7,6 +7,8 @@ import { renderData } from './js/ui/ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from './js/ui/event-listeners-add.js';
 import { VIEWS } from './js/constants.js';
 
+window.appState = appState; // exposed for debugging and tests
+
 document.addEventListener('DOMContentLoaded', function () {
 
     const loadFilesButton = document.querySelector('[data-click-loadfiles]');

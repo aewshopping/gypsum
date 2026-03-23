@@ -1,7 +1,6 @@
 import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
-import { getUniqueTagsSortedWithCount } from './file-parsing/tag-count.js';
-import { createParentChildTagStructure } from './file-parsing/tag-taxon.js';
+import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { updateMyFilesProperties } from './file-props.js';
 
 /**
@@ -54,9 +53,7 @@ export async function loadFileHandles() {
     appState.myFiles = filesWithMetadata;
     updateMyFilesProperties(appState.myFiles[0], 1); // to build table view, with columns showing file properties
 
-    appState.myTags = getUniqueTagsSortedWithCount(appState.myFiles);
-
-    appState.myTaxonomy = createParentChildTagStructure(appState.myFiles, appState.myTags);
+    appState.myParentMap = buildParentMap(appState.myFiles);
 
     const endTime = performance.now();
     const timeTaken = endTime - startTime; 

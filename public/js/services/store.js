@@ -10,19 +10,16 @@ import { VIEWS } from "../constants.js";
  * @type {object}
  * @property {Array<object>} myFiles - An array of file objects, each containing metadata and content.
  * @property {Map<string, object>} myFilesProperties - A map of all unique properties found across all files.
- * @property {Array<[string, number]>} myTags - An array of unique tags and their counts.
- * @property {string} filterMode - The current tag filtering mode ('AND' or 'OR').
- * @property {Set<string>} filterTags - A set of tags currently used for filtering.
- * @property {string} filterString - The current string used for text-based filtering.
- * @property {Array<[string, Array<[string, number]>]>} myTaxonomy - The hierarchical tag structure.
+ * @property {Map<string, Map<string, number>>} myParentMap - Hierarchical tag structure. Keys are parent tag
+ *   names (plus 'orphan' and 'all'). Values are Map<childTag, count>. Ordered: named parents
+ *   alphabetically, then 'orphan', then 'all'.
  * @property {string} viewState - The current view mode (e.g., 'cards', 'table').
  * @property {{property: string, direction: string}} sortState - The current sorting state.
  */
 export const appState = {
   myFiles: [],
   myFilesProperties: new Map(), // to build table view, with columns including yaml data. Only includes *actual* props from files hence different to FILE_PROPERTIES map
-  myTags: [],
-  myTaxonomy: [],
+  myParentMap: new Map(),
   search: {
     filterMode: 'OR', // 'AND' or 'OR'
     depth: {
@@ -62,7 +59,6 @@ export const FILE_PROPERTIES = new Map([
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
   ['lastModified', {label: 'last modified', type: 'date', column_width: 150, display_order: 4 }],
   ['tags', { type: 'array', column_width: 200, display_order: 3 }],
-  ['tags_parent', { type: 'array', column_width: 250, display_order: 10 }],
   ['date', { type: 'date', column_width: 150, display_order: 5 }],
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
@@ -80,6 +76,6 @@ export const FILE_PROPERTIES = new Map([
  */
 export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
   hidden_always: ['handle', 'show', 'content'],
-  hidden_at_start: ['id', 'tags_parent', 'color', 'filepath'], // could in future add check box functionality to show current cols ticked and these cols unticked
+  hidden_at_start: ['id', 'color', 'filepath'], // could in future add check box functionality to show current cols ticked and these cols unticked
   current_props: [],
 };

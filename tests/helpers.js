@@ -89,4 +89,73 @@ async function setupMockDirectory(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory };
+/**
+ * Like setupMockFiles but includes a file with the same child tag under two different
+ * parents in the same file, to exercise within-file multi-parent tag handling.
+ *
+ * Files:
+ *   - meeting-notes.md: #work/project AND #personal/project in the same file
+ *   - shopping.txt:     #personal (orphan)
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesMultiParent(page) {
+  await page.addInitScript(() => {
+    window.showOpenFilePicker = async () => {
+      const files = [
+        {
+          name: 'meeting-notes.md',
+          content: '# Quarterly Review\n\nDiscussion points #work/project and #personal/project',
+        },
+        {
+          name: 'shopping.txt',
+          content: 'Shopping list\n\nMilk, eggs, bread #personal',
+        },
+      ];
+
+      return files.map(({ name, content }) => ({
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      }));
+    };
+  });
+}
+
+/**
+ * Mock files designed to produce a case where a tag's global file count differs
+ * from its per-parent count. 'project' appears in two files under two different
+ * parents ('work' and 'idea'), so its global count is 2 but each parent's count
+ * is only 1. The taxonomy should always display the global count.
+ *
+ * Files:
+ *   - file-a.md: #work/project  (project under work)
+ *   - file-b.md: #idea/project  (project under idea)
+ *   - file-c.md: #personal      (orphan tag)
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesTagCount(page) {
+  await page.addInitScript(() => {
+    window.showOpenFilePicker = async () => {
+      const files = [
+        { name: 'file-a.md', content: 'File A #work/project' },
+        { name: 'file-b.md', content: 'File B #idea/project' },
+        { name: 'file-c.md', content: 'File C #personal' },
+      ];
+      return files.map(({ name, content }) => ({
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      }));
+    };
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount };

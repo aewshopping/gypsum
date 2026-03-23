@@ -52,15 +52,21 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
 
     for (const file of appState.myFiles) {
         const items = file[property];
-        if (!Array.isArray(items)) continue;
-
         let matchCount = 0;
-        for (const item of items) {
-            if (item != null && searchValueLower === String(item).toLowerCase()) {
-                matchCount++;
+
+        if (items instanceof Map) {
+            // Tags are stored as a Map — O(1) lookup
+            matchCount = items.has(searchValueLower) ? 1 : 0;
+        } else if (Array.isArray(items)) {
+            for (const item of items) {
+                if (item != null && searchValueLower === String(item).toLowerCase()) {
+                    matchCount++;
+                }
             }
+        } else {
+            continue;
         }
-        
+
         // 1. Build the independent result object
         const resultObject = buildMatchResultObject(matchCount, property, type, operator, null, searchValueLower);
 

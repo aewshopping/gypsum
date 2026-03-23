@@ -27,7 +27,7 @@ export function renderFileList_grid(renderEverything) {
 
         // construct the html for the array of tags for this file
         let tag_pills_html = ""
-        for (const tag of file.tags) {
+        for (const tag of file.tags.keys()) {
             tag_pills_html += renderTags(tag);
         }
 
