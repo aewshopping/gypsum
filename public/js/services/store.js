@@ -67,7 +67,8 @@ export const FILE_PROPERTIES = new Map([
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
   ['color', { type: 'string', column_width: 0, display_order: 11 }],
-  ['people', { type: 'array', search_type: 'string', column_width: 250, display_order: 9 }]
+  ['people', { type: 'array', search_type: 'string', column_width: 250, display_order: 9 }],
+  ['filepath', { type: 'string', column_width: 300, display_order: 12 }]
 ]);
 
 /**
@@ -79,6 +80,6 @@ export const FILE_PROPERTIES = new Map([
  */
 export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
   hidden_always: ['handle', 'show', 'content'],
-  hidden_at_start: ['id', 'tags_parent', 'color'], // could in future add check box functionality to show current cols ticked and these cols unticked
+  hidden_at_start: ['id', 'tags_parent', 'color', 'filepath'], // could in future add check box functionality to show current cols ticked and these cols unticked
   current_props: [],
 };
