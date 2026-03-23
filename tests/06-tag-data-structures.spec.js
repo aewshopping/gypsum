@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, setupMockFilesMultiParent } = require('./helpers');
+const { setupMockFiles, setupMockFilesMultiParent, setupMockFilesTagCount } = require('./helpers');
 
 test('file.tags is a Map after loading', async ({ page }) => {
   await setupMockFiles(page);
@@ -79,6 +79,28 @@ test('orphan tags appear under orphan key in myParentMap', async ({ page }) => {
     return pm.get('orphan')?.has('personal') ?? false;
   });
   expect(isOrphan).toBe(true);
+});
+
+test('taxonomy displays global file count for a tag, not the per-parent count', async ({ page }) => {
+  // 'project' appears in 2 files (under 'work' and 'idea' separately).
+  // Per-parent count = 1 each. Global count = 2.
+  // Each parent section must show (2), not (1).
+  await setupMockFilesTagCount(page);
+  await page.goto('/');
+  await page.click('[data-click-loadfiles]');
+  await expect(page.locator('.note-grid')).toHaveCount(3);
+
+  // Open 'work' section and check 'project' shows the global count (2)
+  await page.click('details.taxon summary:has(code:text("work"))');
+  await expect(
+    page.locator('#tag_output [data-tag="project"]').first()
+  ).toContainText('(2)');
+
+  // Open 'idea' section and confirm the same global count there
+  await page.click('details.taxon summary:has(code:text("idea"))');
+  await expect(
+    page.locator('#tag_output [data-tag="project"]').nth(1)
+  ).toContainText('(2)');
 });
 
 test('tag filter still works correctly after TagMap change', async ({ page }) => {
