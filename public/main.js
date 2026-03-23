@@ -1,4 +1,5 @@
 import { loadFileHandles } from './js/services/file-handler.js';
+import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
@@ -11,6 +12,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const loadFilesButton = document.querySelector('[data-click-loadfiles]');
     loadFilesButton.addEventListener('click', function () {
         conductor();
+    });
+
+    const loadFolderButton = document.querySelector('[data-click-loadfolder]');
+    loadFolderButton.addEventListener('click', async function () {
+        await loadDirectoryData();
+        renderData();
+        addActionHandlers();
     });
 
     const viewSelectElem = document.querySelector('[data-action="view-select"]');
@@ -54,6 +62,25 @@ async function conductor() {
 async function loadData() {
 
     await loadFileHandles();
+
+    renderTagTaxonomy();
+
+    const sortProp = appState.sortState.property
+    const sortType = FILE_PROPERTIES.get(sortProp).type;
+    const sortDirection = appState.sortState.direction
+
+    sortAppStateFiles(sortProp, sortType, sortDirection);
+}
+
+/**
+ * Loads file data from a directory (recursively), processes tags/taxonomy, and sorts the files.
+ * @async
+ * @function loadDirectoryData
+ * @returns {Promise<void>}
+ */
+async function loadDirectoryData() {
+
+    await loadDirectoryFileHandles();
 
     renderTagTaxonomy();
 
