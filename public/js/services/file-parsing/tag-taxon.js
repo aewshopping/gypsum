@@ -1,141 +1,73 @@
-
-
-// Define the key strings once for consistency
-const ORPHAN_TAG_KEY = "orphan";
-const ALL_TAG_KEY = "all"; // Implemented the constant for the "all" parent tag
+/**
+ * @file Builds the global parent→child tag Map from all loaded file objects.
+ */
 
 /**
- * Stage 1: Iterates through the data to establish unique parent-child relationships
- * and track non-orphan children.
+ * Builds a Map of parent tags to their child tags with global file counts,
+ * using a single pass over all files.
  *
- * @function mapRelationshipsAndTrackExclusivity
- * @param {object} data The object containing the 'fileobject' array.
- * @returns {{parentToChildrenMap: Map<string, Set<string>>, nonOrphanChildTags: Set<string>}}
- */
-function mapRelationshipsAndTrackExclusivity(data) {
-    // NOTE: This function's logic relies entirely on the positional mapping 
-    // assumption between 'file.tags_parent' and 'file.tags'.
-
-    const parentToChildrenMap = new Map();
-    const nonOrphanChildTags = new Set(); 
-
-    for (const file of data) {
-        const parentTags = file.tags_parent || [];
-        const childTags = file.tags || [];
-        const relationshipCount = Math.min(parentTags.length, childTags.length);
-
-        for (let i = 0; i < relationshipCount; i++) {
-            const parentTag = parentTags[i];
-            const childTag = childTags[i];
-
-            // A. Track child tags that are NOT exclusive to 'orphan'
-            if (parentTag !== ORPHAN_TAG_KEY) {
-                nonOrphanChildTags.add(childTag);
-            }
-
-            // B. Build the main parentToChildrenMap
-            if (!parentToChildrenMap.has(parentTag)) {
-                parentToChildrenMap.set(parentTag, new Set());
-            }
-            parentToChildrenMap.get(parentTag).add(childTag);
-        }
-    }
-    return { parentToChildrenMap, nonOrphanChildTags };
-}
-
-/**
- * Stage 2: Filters the 'orphan' parent tag's children to ensure only tags 
- * exclusive to the 'orphan' category remain.
+ * The returned Map is ordered: named parents alphabetically, then 'orphan', then 'all'.
+ * - Each named parent key maps to a Map<childTag, count> for tags that appear under that parent.
+ * - 'orphan' maps to tags that never appear under any named parent across any file.
+ * - 'all' maps to every child tag with its total count across all files.
  *
- * @function filterExclusiveOrphanTags
- * @param {Map<string, Set<string>>} parentToChildrenMap Map of parentTag -> Set<childTag>.
- * @param {Set<string>} nonOrphanChildTags Set of all child tags with a non-orphan parent.
- * @returns {void}
+ * @param {Array<object>} files - Array of file objects, each with a `tags` property that is a
+ *   Map<childTagName, {count: number, parents: Set<string>}>.
+ * @returns {Map<string, Map<string, number>>} The assembled parent map.
  */
-function filterExclusiveOrphanTags(parentToChildrenMap, nonOrphanChildTags) {
-    if (parentToChildrenMap.has(ORPHAN_TAG_KEY)) {
-        const orphanChildTagSet = parentToChildrenMap.get(ORPHAN_TAG_KEY);
-        const exclusiveOrphanChildTags = new Set();
-        
-        for (const childTag of orphanChildTagSet) {
-            // Retain only child tags NOT associated with any non-orphan parent.
-            if (!nonOrphanChildTags.has(childTag)) {
-                exclusiveOrphanChildTags.add(childTag);
+export function buildParentMap(files) {
+
+    // Stage 1: Single pass — accumulate per-parent counts and global counts
+    const rawParentMap = new Map(); // Map<parentName, Map<childName, count>>
+    const allMap = new Map();       // Map<childName, globalCount>
+
+    for (const file of files) {
+        for (const [childTag, { parents }] of file.tags) {
+
+            // Global count
+            allMap.set(childTag, (allMap.get(childTag) || 0) + 1);
+
+            // Per-parent counts (only for tags with named parents)
+            for (const parent of parents) {
+                if (!rawParentMap.has(parent)) {
+                    rawParentMap.set(parent, new Map());
+                }
+                const pm = rawParentMap.get(parent);
+                pm.set(childTag, (pm.get(childTag) || 0) + 1);
             }
         }
-        
-        // Update the map with the new, exclusive set.
-        parentToChildrenMap.set(ORPHAN_TAG_KEY, exclusiveOrphanChildTags);
     }
-}
 
-/**
- * Stage 3: Constructs the final result array by merging relationships with counts
- * and applying final sorting and placement rules.
- *
- * @function structureAndSortResult
- * @param {Map<string, Set<string>>} parentToChildrenMap Map of parentTag -> Set<childTag>.
- * @param {Map<string, number>} childCountMap Map of childTag -> count.
- * @param {Array<Array<string | number>>} allChildTagsAndCounts Original array for the 'all' category.
- * @returns {Array<[string, Array<[string, number]>]>} The final structured array.
- */
-function structureAndSortResult(parentToChildrenMap, childCountMap, allChildTagsAndCounts) {
-    const result = [];
-
-    // Aggregate counts for all parent categories
-    for (const [parentTag, childTagSet] of parentToChildrenMap.entries()) {
-        const childTagsAndCounts = [];
-
-        // Convert Set to array to allow sorting
-        const childTagsArray = Array.from(childTagSet);
-
-        // Sort the child tags alphabetically (as requested by the user)
-        childTagsArray.sort((a, b) => a.localeCompare(b));
-        
-        for (const childTag of childTagsArray) {
-            const count = childCountMap.get(childTag) || 0; 
-            childTagsAndCounts.push([childTag, count]);
+    // Stage 2: Compute orphans via set subtraction
+    // familyTags = union of all children appearing under any named parent across all files
+    const familyTags = new Set();
+    for (const childMap of rawParentMap.values()) {
+        for (const childTag of childMap.keys()) {
+            familyTags.add(childTag);
         }
-
-        result.push([parentTag, childTagsAndCounts]);
-    }
-    
-    // Initial sort alphabetically by parent tag
-    result.sort((a, b) => a[0].localeCompare(b[0]));
-
-    // Move the "orphan" parent array to the end
-    const orphanIndex = result.findIndex(item => item[0] === ORPHAN_TAG_KEY);
-    if (orphanIndex !== -1) {
-        const orphanEntry = result.splice(orphanIndex, 1)[0];
-        result.push(orphanEntry);
     }
 
-    // Add the "all" category at the very end using the new constant
-    result.push([ALL_TAG_KEY, allChildTagsAndCounts]);
+    // orphans = tags in 'all' that never appear under any named parent
+    const orphanMap = new Map();
+    for (const [childTag, count] of allMap) {
+        if (!familyTags.has(childTag)) {
+            orphanMap.set(childTag, count);
+        }
+    }
+
+    // Stage 3: Sort and assemble the final Map
+    // Maps maintain insertion order, so we sort before inserting.
+    const sortedChildMap = (m) => new Map([...m.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+
+    const sortedParentEntries = [...rawParentMap.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([parent, childMap]) => [parent, sortedChildMap(childMap)]);
+
+    const result = new Map(sortedParentEntries);
+    if (orphanMap.size > 0) {
+        result.set('orphan', sortedChildMap(orphanMap));
+    }
+    result.set('all', sortedChildMap(allMap));
 
     return result;
-}
-
-
-/**
- * Orchestrator: Creates an array structure grouped by unique parent tags, using a pre-counted
- * array for the child tag counts.
- *
- * @param {object} data The object containing the 'fileobject' array.
- * @param {Array<Array<string | number>>} childtagsandcounts Array of [childtag, count].
- * @returns {Array<[string, Array<[string, number]>]>} An array in the format:
- * [parenttag, [[childtag1, count], [childtag2, count], ...]]
- */
-export function createParentChildTagStructure(data, childtagsandcounts) {
-    // 1. Prepare data structures for O(1) lookups
-    const childCountMap = new Map(childtagsandcounts);
-
-    // 2. Map relationships and identify non-exclusive orphan candidates
-    const { parentToChildrenMap, nonOrphanChildTags } = mapRelationshipsAndTrackExclusivity(data);
-
-    // 3. Filter the 'orphan' set to ensure exclusivity
-    filterExclusiveOrphanTags(parentToChildrenMap, nonOrphanChildTags);
-
-    // 4. Aggregate counts, structure the final result, and apply sorting/placement
-    return structureAndSortResult(parentToChildrenMap, childCountMap, childtagsandcounts);
 }

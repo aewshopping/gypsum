@@ -25,7 +25,7 @@ export function renderFileList_list(renderEverything) {
 
             // construct the html for the array of tags for this file
             let tag_pills_html = ""
-            for (const tag of file.tags) {
+            for (const tag of file.tags.keys()) {
                 tag_pills_html += renderTags(tag);
             }
 
@@ -41,7 +41,9 @@ export function renderFileList_list(renderEverything) {
                 // Skip properties that we don't want to display
                 if (key === 'handle' || key === 'show' ) continue;
 
-                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                if (value instanceof Map) {
+                    file_html += `<li><strong>${key}:</strong><span data-prop="${key}"> ${[...value.keys()].join(', ')}</span></li>`;
+                } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                     file_html += `<li><strong>${key}:</strong><ul>`;
                     for (const subKey in value) {
                         file_html += `<li><strong>${subKey}:</strong> ${value[subKey]}</li>`;

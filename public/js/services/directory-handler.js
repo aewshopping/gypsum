@@ -1,7 +1,6 @@
 import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
-import { getUniqueTagsSortedWithCount } from './file-parsing/tag-count.js';
-import { createParentChildTagStructure } from './file-parsing/tag-taxon.js';
+import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { updateMyFilesProperties } from './file-props.js';
 
 /**
@@ -60,8 +59,7 @@ export async function loadDirectoryFileHandles() {
     appState.myFiles = filesWithMetadata;
     updateMyFilesProperties(appState.myFiles[0], 1);
 
-    appState.myTags = getUniqueTagsSortedWithCount(appState.myFiles);
-    appState.myTaxonomy = createParentChildTagStructure(appState.myFiles, appState.myTags);
+    appState.myParentMap = buildParentMap(appState.myFiles);
 
     const endTime = performance.now();
     const durationSec = ((endTime - startTime) / 1000).toFixed(2);

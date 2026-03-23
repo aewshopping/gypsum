@@ -98,9 +98,12 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
                 comparison = normA - normB; 
                 break;
                 
-            case 'array':
-                comparison = normA.length - normB.length;
+            case 'array': {
+                const sizeA = normA instanceof Map ? normA.size : normA.length;
+                const sizeB = normB instanceof Map ? normB.size : normB.length;
+                comparison = sizeA - sizeB;
                 break;
+            }
 
             default:
                 comparison = 0;

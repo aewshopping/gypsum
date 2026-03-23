@@ -89,4 +89,40 @@ async function setupMockDirectory(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory };
+/**
+ * Like setupMockFiles but includes a file with the same child tag under two different
+ * parents in the same file, to exercise within-file multi-parent tag handling.
+ *
+ * Files:
+ *   - meeting-notes.md: #work/project AND #personal/project in the same file
+ *   - shopping.txt:     #personal (orphan)
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesMultiParent(page) {
+  await page.addInitScript(() => {
+    window.showOpenFilePicker = async () => {
+      const files = [
+        {
+          name: 'meeting-notes.md',
+          content: '# Quarterly Review\n\nDiscussion points #work/project and #personal/project',
+        },
+        {
+          name: 'shopping.txt',
+          content: 'Shopping list\n\nMilk, eggs, bread #personal',
+        },
+      ];
+
+      return files.map(({ name, content }) => ({
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      }));
+    };
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent };

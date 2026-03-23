@@ -32,6 +32,10 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 - For table view, allow columns to be selected and de-selected, and then shown or not. The js is simple here, just needs an update to the `store.js` --> `hidden_at_start` array, then render. So challenge is finding a nice visual way that allow this to be updated in the UI. Popup?
 - For grid view, allow sorting by property on both grid view as well? Main issue here is how to visually make this work.
 
+## For contributors
+
+See [DATA-STRUCTURES.md](DATA-STRUCTURES.md) for a reference to the in-memory data structures built on file load, including the per-file TagMap and the global ParentMap.
+
 ## Roadmap
 
 1. Table filtering is now active for tags... but could do this for other properties too. Not sure how useful this will be as currently you can ctrl+F everything.

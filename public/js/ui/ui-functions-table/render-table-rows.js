@@ -34,14 +34,12 @@ export function renderTableRows(current_props, renderEverything) {
                         cellContent = value ? new Date(value).toLocaleDateString() : 'N/A';
                         break;
                     case 'array':
-                        if (Array.isArray(value)) {
-                            if (prop.name === 'tags') {
-                                cellContent = value.map(tag => renderTags(tag)).join(''); // to make the tags clickable filters
-                            } else {
-                                // Renders other arrays as an unordered list (<ul>)
-                                const listItems = value.map(item => `<li>${item}</li>`).join('');
-                                cellContent = `<ul class="table-view-array-list">${listItems}</ul>`;
-                            }
+                        if (value instanceof Map) {
+                            cellContent = [...value.keys()].map(tag => renderTags(tag)).join(''); // to make the tags clickable filters
+                        } else if (Array.isArray(value)) {
+                            // Renders other arrays as an unordered list (<ul>)
+                            const listItems = value.map(item => `<li>${item}</li>`).join('');
+                            cellContent = `<ul class="table-view-array-list">${listItems}</ul>`;
                         }
                         break;
                     case 'number':
@@ -55,7 +53,7 @@ export function renderTableRows(current_props, renderEverything) {
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above
-            const tagList = file.tags ? file.tags.join(" ") : "";
+            const tagList = file.tags instanceof Map ? [...file.tags.keys()].join(" ") : "";
             rowsHtml += `
                 <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" tabindex="0">
                     ${cellsHtml}
