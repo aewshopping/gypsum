@@ -42,7 +42,6 @@ export async function loadContentModal (file_to_open) {
         appState.historyEntries = entries;
         const select = document.getElementById('file-content-history-select');
         select.innerHTML = renderHistorySelect(entries);
-        select.style.display = entries.length ? 'inline-block' : 'none';
     });
 
     const file_content_yamlwrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
