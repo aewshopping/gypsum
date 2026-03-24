@@ -2,7 +2,6 @@
 // - the key reason it is so long is because it is controlling a view transition 
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
-import { renderFilename } from '../ui-functions-render/render-filename.js';
 import { loadContentModal } from './load-file-content.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
@@ -34,8 +33,15 @@ export function handleOpenFileContent(event, target) {
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
     file_box.classList.remove("moving-file-content-view");
 
-    filenamebox.innerHTML = renderFilename(target.dataset.filename);
-    document.getElementById('file-content-header').dataset.color = target.dataset.color; 
+    filenamebox.innerHTML =
+        `<span class="copyflag" data-action="copy-filename"
+               title="copy filename to clipboard"
+               data-filename="${file_to_open}">©</span>`;
+    const selectTemp = document.createElement('template');
+    selectTemp.innerHTML =
+        `<option value="current"><span class="opt-filename">${file_to_open}</span><span class="opt-version"></span><span class="opt-time">current</span></option>`;
+    document.getElementById('file-content-history-select').replaceChildren(selectTemp.content.cloneNode(true));
+    document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;
     loadContentModal(file_to_open);
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.

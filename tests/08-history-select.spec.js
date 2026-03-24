@@ -27,8 +27,8 @@ test.describe('history select in file content modal', () => {
     const optionCount = await select.evaluate(el => el.options.length);
     expect(optionCount).toBe(1);
 
-    const firstOptionText = await select.evaluate(el => el.options[0].text);
-    expect(firstOptionText).toBe('current');
+    const firstOptionTime = await select.evaluate(el => el.options[0].querySelector('.opt-time').textContent);
+    expect(firstOptionTime).toBe('current');
   });
 
   test('select shows historical timestamps when prior entries exist', async ({ page }) => {
@@ -45,10 +45,10 @@ test.describe('history select in file content modal', () => {
     );
     expect(optionCount).toBe(2);
 
-    const firstOptionText = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options[0].text
+    const firstOptionTime = await page.evaluate(() =>
+      document.getElementById('file-content-history-select').options[0].querySelector('.opt-time').textContent
     );
-    expect(firstOptionText).toBe('current');
+    expect(firstOptionTime).toBe('current');
   });
 
   test('timestamps are formatted as yyyy-mm-dd hh:mm:ss', async ({ page }) => {
@@ -61,10 +61,10 @@ test.describe('history select in file content modal', () => {
     await waitForHistoryOptions(page, 2);
 
     // Mock uses '2025-01-15T09:30:00.000Z' → should format as '2025-01-15 09:30:00'
-    const secondOptionText = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options[1].text
+    const secondOptionTime = await page.evaluate(() =>
+      document.getElementById('file-content-history-select').options[1].querySelector('.opt-time').textContent
     );
-    expect(secondOptionText).toBe('2025-01-15 09:30:00');
+    expect(secondOptionTime).toBe('2025-01-15 09:30:00');
   });
 
   test('selecting a historical entry renders that content in the modal', async ({ page }) => {
@@ -142,10 +142,10 @@ test.describe('history select in file content modal', () => {
     );
     expect(optionCount).toBe(2); // "current" + 1 older entry (newest suppressed)
 
-    const secondOptionText = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options[1].text
+    const secondOptionTime = await page.evaluate(() =>
+      document.getElementById('file-content-history-select').options[1].querySelector('.opt-time').textContent
     );
-    expect(secondOptionText).toBe('2025-01-14 08:00:00');
+    expect(secondOptionTime).toBe('2025-01-14 08:00:00');
   });
 
   test('history entries only show for the correct file, not other files', async ({ page }) => {

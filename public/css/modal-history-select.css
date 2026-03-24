@@ -1,5 +1,29 @@
 #file-content-history-select {
-    margin-inline: 8px;
-    max-width: 200px;
+    appearance: base-select;
+    border: none;
+    background: transparent;
+    color: inherit;
     font: inherit;
+    flex: 1;
+    min-width: 0;
+}
+
+#file-content-history-select button {
+    all: unset;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* Collapsed picker: show filename + v-number, hide timestamp */
+#file-content-history-select selectedoption .opt-time {
+    display: none;
+}
+
+/* Open dropdown: show v-number + timestamp, hide filename */
+#file-content-history-select::picker(select) .opt-filename {
+    display: none;
 }
