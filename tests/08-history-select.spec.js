@@ -96,6 +96,58 @@ test.describe('history select in file content modal', () => {
     await expect(page.locator('#modal-content-text')).toContainText('Current content today');
   });
 
+  test('most recent entry is hidden when its content matches the current file', async ({ page }) => {
+    await page.addInitScript(() => {
+      const sameContent = '# My Notes\nCurrent content today #work';
+      const olderContent = '# My Notes\nOlder content from before';
+
+      // Oldest-first order, as saveBackupEntry appends and readBackupHistory reverses.
+      window.__backupFileContent = JSON.stringify([
+        { filepath: 'notes.md', filename: 'notes.md', content: olderContent,  timestamp: '2025-01-14T08:00:00.000Z', event: 'open' },
+        { filepath: 'notes.md', filename: 'notes.md', content: sameContent,   timestamp: '2025-01-15T10:00:00.000Z', event: 'open' },
+      ], null, 2);
+
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
+      });
+      const backupHandle = {
+        getFile: async () => ({ text: async () => window.__backupFileContent }),
+        createWritable: async () => ({
+          write: async (c) => { window.__backupFileContent = c; },
+          close: async () => {},
+        }),
+      };
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () { yield makeFile('notes.md', sameContent); },
+        getFileHandle: async (name, _options) => {
+          if (name === 'backup.gypsum') return backupHandle;
+          throw new Error(`Unexpected: ${name}`);
+        },
+      });
+    });
+
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+
+    // Wait long enough for the async history read to settle, then check options.
+    // Two raw entries but the newest matches current, so only "current" + older entry = 2 options.
+    await waitForHistoryOptions(page, 2);
+
+    const optionCount = await page.evaluate(() =>
+      document.getElementById('file-content-history-select').options.length
+    );
+    expect(optionCount).toBe(2); // "current" + 1 older entry (newest suppressed)
+
+    const secondOptionText = await page.evaluate(() =>
+      document.getElementById('file-content-history-select').options[1].text
+    );
+    expect(secondOptionText).toBe('2025-01-14 08:00:00');
+  });
+
   test('history entries only show for the correct file, not other files', async ({ page }) => {
     // Pre-populate history for notes.md, then open a second file with no history
     await page.addInitScript(() => {
