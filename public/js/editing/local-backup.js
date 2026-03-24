@@ -25,14 +25,13 @@ export async function saveBackupEntry(snapshot, event) {
             try { entries = JSON.parse(existingText); } catch { entries = []; }
         }
 
-        const last = entries[entries.length - 1];
-        const isDuplicate = last
-            && last.filename === snapshot.filename
-            && last.filepath === snapshot.filepath
-            && last.content === snapshot.content;
+        const lastForFile = [...entries].reverse().find(
+            e => e.filename === snapshot.filename && e.filepath === snapshot.filepath
+        );
+        const isDuplicate = lastForFile && lastForFile.content === snapshot.content;
 
         if (isDuplicate) {
-            last.timestamp = new Date().toISOString();
+            lastForFile.timestamp = new Date().toISOString();
         } else {
             entries.push({
                 filepath: snapshot.filepath,
