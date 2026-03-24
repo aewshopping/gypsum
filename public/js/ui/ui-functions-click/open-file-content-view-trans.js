@@ -37,10 +37,8 @@ export function handleOpenFileContent(event, target) {
         `<span class="copyflag" data-action="copy-filename"
                title="copy filename to clipboard"
                data-filename="${file_to_open}">©</span>`;
-    const selectTemp = document.createElement('template');
-    selectTemp.innerHTML =
+    document.getElementById('file-content-history-select').innerHTML =
         `<option value="current"><span class="opt-filename">${file_to_open}</span><span class="opt-version"></span><span class="opt-time">current</span></option>`;
-    document.getElementById('file-content-history-select').replaceChildren(selectTemp.content.cloneNode(true));
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;
     loadContentModal(file_to_open);
