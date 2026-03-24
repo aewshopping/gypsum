@@ -25,13 +25,23 @@ export async function saveBackupEntry(snapshot, event) {
             try { entries = JSON.parse(existingText); } catch { entries = []; }
         }
 
-        entries.push({
-            filepath: snapshot.filepath,
-            filename: snapshot.filename,
-            content: snapshot.content,
-            timestamp: new Date().toISOString(),
-            event,
-        });
+        const last = entries[entries.length - 1];
+        const isDuplicate = last
+            && last.filename === snapshot.filename
+            && last.filepath === snapshot.filepath
+            && last.content === snapshot.content;
+
+        if (isDuplicate) {
+            last.timestamp = new Date().toISOString();
+        } else {
+            entries.push({
+                filepath: snapshot.filepath,
+                filename: snapshot.filename,
+                content: snapshot.content,
+                timestamp: new Date().toISOString(),
+                event,
+            });
+        }
 
         if (entries.length > MAX_ENTRIES) entries = entries.slice(-MAX_ENTRIES);
 

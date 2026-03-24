@@ -30,7 +30,7 @@ test.describe('local file backup', () => {
     expect(typeof entries[0].timestamp).toBe('string');
   });
 
-  test('appends close entry when modal is closed', async ({ page }) => {
+  test('deduplicates close event when content unchanged, updating timestamp only', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
     await page.click('[data-click-loadfolder]');
@@ -38,16 +38,70 @@ test.describe('local file backup', () => {
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
     await waitForBackupEntries(page, 1);
+    const snapshotAfterOpen = await page.evaluate(() => window.__backupFileContent);
+    const timestampAfterOpen = JSON.parse(snapshotAfterOpen)[0].timestamp;
 
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
+    // Wait for the backup to be rewritten (timestamp update triggers a new write)
+    await page.waitForFunction((prev) => window.__backupFileContent !== prev, snapshotAfterOpen);
+
+    const entries = await page.evaluate(() => JSON.parse(window.__backupFileContent));
+    expect(entries).toHaveLength(1);
+    expect(entries[0].filename).toBe('notes.md');
+    expect(entries[0].timestamp).not.toBe(timestampAfterOpen);
+  });
+
+  test('appends a new entry when a different file is opened', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__backupFileContent = '';
+
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
+      });
+      const backupHandle = {
+        getFile: async () => ({ text: async () => window.__backupFileContent }),
+        createWritable: async () => ({
+          write: async (c) => { window.__backupFileContent = c; },
+          close: async () => {},
+        }),
+      };
+
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('alpha.md', '# Alpha\nFirst file #work');
+          yield makeFile('beta.md', '# Beta\nSecond file #personal');
+        },
+        getFileHandle: async (name) => {
+          if (name === 'backup.gypsum') return backupHandle;
+          throw new Error(`Unexpected: ${name}`);
+        },
+      });
+    });
+
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid')).toHaveCount(2);
+
+    // Open first file
+    await page.locator('[data-action="open-file-content-modal"][data-filename="alpha.md"]').click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await waitForBackupEntries(page, 1);
+
+    // Close, then open second file — different filename+content → must append
+    await page.click('[data-action="close-file-content-modal"]');
+    await expect(page.locator('#file-content-modal')).not.toBeVisible();
+    await page.locator('[data-action="open-file-content-modal"][data-filename="beta.md"]').click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForBackupEntries(page, 2);
 
     const entries = await page.evaluate(() => JSON.parse(window.__backupFileContent));
     expect(entries).toHaveLength(2);
-    expect(entries[1].event).toBe('close');
-    expect(entries[1].filename).toBe('notes.md');
+    expect(entries[0].filename).toBe('alpha.md');
+    expect(entries[1].filename).toBe('beta.md');
   });
 
   test('backup.gypsum does not appear in the file list', async ({ page }) => {
