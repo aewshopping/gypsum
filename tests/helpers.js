@@ -158,4 +158,117 @@ async function setupMockFilesTagCount(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount };
+/**
+ * Like setupMockDirectory but adds write support (getFileHandle + createWritable)
+ * so that the backup service can write backup.gypsum. The written content is
+ * captured in window.__backupFileContent for test assertions.
+ *
+ * Directory structure:
+ *   root/
+ *     notes.md  (single file with a tag)
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithWrite(page) {
+  await page.addInitScript(() => {
+    window.__backupFileContent = '';
+
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file',
+        name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+
+      const backupHandle = {
+        getFile: async () => ({
+          text: async () => window.__backupFileContent,
+        }),
+        createWritable: async () => ({
+          write: async (content) => { window.__backupFileContent = content; },
+          close: async () => {},
+        }),
+      };
+
+      return {
+        kind: 'directory',
+        name: 'root',
+        values: async function* () {
+          yield makeFile('notes.md', '# My Notes\nSome content #work/project');
+        },
+        getFileHandle: async (name, _options) => {
+          if (name === 'backup.gypsum') return backupHandle;
+          throw new Error(`Unexpected getFileHandle call for: ${name}`);
+        },
+      };
+    };
+  });
+}
+
+/**
+ * Directory mock with backup.gypsum pre-populated with one historical entry for notes.md.
+ * Used to test the history select in the file content modal.
+ *
+ * Live file content : '# My Notes\nCurrent content today #work'
+ * Historical entry  : '# My Notes\nOld content from yesterday'
+ *                     timestamp: '2025-01-15T09:30:00.000Z'
+ *
+ * Directory structure:
+ *   root/
+ *     notes.md  (current version)
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithHistory(page) {
+  await page.addInitScript(() => {
+    const historicalEntry = {
+      filepath: 'notes.md',
+      filename: 'notes.md',
+      content: '# My Notes\nOld content from yesterday',
+      timestamp: '2025-01-15T09:30:00.000Z',
+      event: 'open',
+    };
+    window.__backupFileContent = JSON.stringify([historicalEntry], null, 2);
+
+    window.showDirectoryPicker = async () => {
+      const currentContent = '# My Notes\nCurrent content today #work';
+      const makeFile = (name, content) => ({
+        kind: 'file',
+        name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+
+      const backupHandle = {
+        getFile: async () => ({ text: async () => window.__backupFileContent }),
+        createWritable: async () => ({
+          write: async (content) => { window.__backupFileContent = content; },
+          close: async () => {},
+        }),
+      };
+
+      return {
+        kind: 'directory',
+        name: 'root',
+        values: async function* () {
+          yield makeFile('notes.md', currentContent);
+        },
+        getFileHandle: async (name, _options) => {
+          if (name === 'backup.gypsum') return backupHandle;
+          throw new Error(`Unexpected getFileHandle call for: ${name}`);
+        },
+      };
+    };
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory };

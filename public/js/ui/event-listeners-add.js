@@ -16,6 +16,7 @@ import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.j
 import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
 import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-active.js';
+import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -48,6 +49,7 @@ const changeActionHandlers = {
     'toggle-filter-mode': handleFilterModeToggle,
     'toggle-content-search': handleContentSearchToggle,
     'toggle-fullscreen': handleFullscreenToggle,
+    'history-select-change': handleHistorySelectChange,
 };
 
 const keyUpActionHandlers = {

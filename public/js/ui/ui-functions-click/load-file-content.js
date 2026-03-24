@@ -3,34 +3,86 @@ import { marked }  from '../../services/marked.eos.js';
 import { tagParser } from '../../services/file-tagparser.js';
 import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatter.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
+import { saveBackupEntry } from '../../editing/local-backup.js';
+import { readBackupHistory } from '../../editing/backup-history-read.js';
+import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
 
+const YAML_WRAP_BEFORE = "<pre class='pre-bg'><code>";
+const YAML_WRAP_AFTER = "</pre></code>";
 
-let file_content; // so we can access the raw file content multiple times without looking it up again
-let file_content_tagged_parsed; // // so we can access the rendered file content multiple times
+let file_content;               // current working content (may be a historical snapshot)
+let file_content_tagged_parsed;
+let current_file_content;               // preserved on open — never overwritten by history selection
+let current_file_content_tagged_parsed;
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
+ * Also fires a backup write and concurrently populates the history select.
  * @async
  * @param {string} file_to_open - The name of the file to load content for.
  * @returns {Promise<void>}
  */
 export async function loadContentModal (file_to_open) {
 
-    const yamlWrapBefore = "<pre class='pre-bg'><code>";
-    const yamlWrapAfter = "</pre></code>";
-  
-    // look up filehandle from Map
     const file_handle = appState.myFileHandlesMap.get(file_to_open);
 
     const file_chosen = await file_handle.getFile();
     file_content = await file_chosen.text();
-    const file_content_yamlwrapped = wrapFrontMatter(file_content, yamlWrapBefore, yamlWrapAfter);
-    const file_content_tagged =  tagParser(file_content_yamlwrapped); // need to tagparse before marked parse to avoid parse clash! Also passing target elem in case we can figure out which tags are active...
-    file_content_tagged_parsed = marked(file_content_tagged)
+    current_file_content = file_content;
+
+    const file_obj = appState.myFiles.find(f => f.filename === file_to_open);
+    appState.openSnapshot = {
+        filepath: file_obj?.filepath ?? file_to_open,
+        filename: file_to_open,
+        content: file_content,
+    };
+
+    // Fire backup write and history read concurrently — intentionally not awaited.
+    // Reading before the write completes means history shows only past states,
+    // not a duplicate of the content currently being viewed.
+    saveBackupEntry(appState.openSnapshot, 'open');
+    const opened_content = file_content;
+    readBackupHistory(file_to_open).then(entries => {
+        // Suppress the most recent entry if its content is identical to what is
+        // currently open — it was saved by a prior session and adds no information.
+        const displayEntries = (entries.length > 0 && entries[0].content === opened_content)
+            ? entries.slice(1)
+            : entries;
+        appState.historyEntries = displayEntries;
+        const select = document.getElementById('file-content-history-select');
+        select.innerHTML = renderHistorySelect(displayEntries);
+    });
+
+    const file_content_yamlwrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
+    const file_content_tagged = tagParser(file_content_yamlwrapped);
+    file_content_tagged_parsed = marked(file_content_tagged);
+    current_file_content_tagged_parsed = file_content_tagged_parsed;
 
     fileContentRender();
- //   textbox.innerHTML = file_content_tagged_parsed;
+}
 
+/**
+ * Restores the modal to the current file content (undoes any historical selection).
+ * Uses the preserved current vars so that toggling html/txt works correctly.
+ * @returns {void}
+ */
+export function restoreCurrentContent() {
+    file_content = current_file_content;
+    file_content_tagged_parsed = current_file_content_tagged_parsed;
+    fileContentRender();
+}
+
+/**
+ * Loads a historical content string into the modal, updating the module-level
+ * vars so that the html/txt render toggle continues to work correctly.
+ * @param {string} rawContent - The raw file text to render.
+ * @returns {void}
+ */
+export function loadHistoricalContent(rawContent) {
+    file_content = rawContent;
+    const wrapped = wrapFrontMatter(rawContent, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
+    file_content_tagged_parsed = marked(tagParser(wrapped));
+    fileContentRender();
 }
 
 /**

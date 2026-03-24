@@ -4,6 +4,8 @@
 
 import { renderFilename } from '../ui-functions-render/render-filename.js';
 import { loadContentModal } from './load-file-content.js';
+import { appState } from '../../services/store.js';
+import { saveBackupEntry } from '../../editing/local-backup.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -64,6 +66,11 @@ export function handeCloseModalOutside(event, target) {
  * @returns {void}
  */
 export function handleCloseModal() {
+
+  if (appState.openSnapshot) {
+    appState.closeSnapshot = { ...appState.openSnapshot }; // identical for now; will differ once editing lands
+    saveBackupEntry(appState.closeSnapshot, 'close');
+  }
 
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view
 
