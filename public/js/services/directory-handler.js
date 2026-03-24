@@ -38,7 +38,8 @@ export async function loadDirectoryFileHandles() {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
 
-    const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    appState.dirHandle = dirHandle;
 
     const startTime = performance.now();
 

@@ -36,7 +36,11 @@ export const appState = {
   },
 
   viewState: VIEWS.CARDS.value, // sets initial view state
-  sortState: { property: 'filename', direction: 'desc'}
+  sortState: { property: 'filename', direction: 'desc'},
+
+  dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
+  openSnapshot: null,    // { filepath, filename, content } captured when modal opens
+  closeSnapshot: null,   // { filepath, filename, content } captured just before modal closes
 }
 
 /**
