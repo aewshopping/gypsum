@@ -10,8 +10,10 @@ import { renderHistorySelect } from '../ui-functions-render/render-history-selec
 const YAML_WRAP_BEFORE = "<pre class='pre-bg'><code>";
 const YAML_WRAP_AFTER = "</pre></code>";
 
-let file_content; // so we can access the raw file content multiple times without looking it up again
-let file_content_tagged_parsed; // so we can access the rendered file content multiple times
+let file_content;               // current working content (may be a historical snapshot)
+let file_content_tagged_parsed;
+let current_file_content;               // preserved on open — never overwritten by history selection
+let current_file_content_tagged_parsed;
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -26,6 +28,7 @@ export async function loadContentModal (file_to_open) {
 
     const file_chosen = await file_handle.getFile();
     file_content = await file_chosen.text();
+    current_file_content = file_content;
 
     const file_obj = appState.myFiles.find(f => f.filename === file_to_open);
     appState.openSnapshot = {
@@ -47,7 +50,19 @@ export async function loadContentModal (file_to_open) {
     const file_content_yamlwrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
     const file_content_tagged = tagParser(file_content_yamlwrapped);
     file_content_tagged_parsed = marked(file_content_tagged);
+    current_file_content_tagged_parsed = file_content_tagged_parsed;
 
+    fileContentRender();
+}
+
+/**
+ * Restores the modal to the current file content (undoes any historical selection).
+ * Uses the preserved current vars so that toggling html/txt works correctly.
+ * @returns {void}
+ */
+export function restoreCurrentContent() {
+    file_content = current_file_content;
+    file_content_tagged_parsed = current_file_content_tagged_parsed;
     fileContentRender();
 }
 

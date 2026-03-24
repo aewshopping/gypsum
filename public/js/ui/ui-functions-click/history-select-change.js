@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { fileContentRender, loadHistoricalContent } from './load-file-content.js';
+import { restoreCurrentContent, loadHistoricalContent } from './load-file-content.js';
 
 /**
  * Handles selection of a version from the history select in the file content modal.
@@ -12,7 +12,7 @@ import { fileContentRender, loadHistoricalContent } from './load-file-content.js
  */
 export function handleHistorySelectChange(event, target) {
     if (target.value === 'current') {
-        fileContentRender();
+        restoreCurrentContent();
         return;
     }
 
