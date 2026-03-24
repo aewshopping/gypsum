@@ -51,6 +51,8 @@ export async function loadContentModal (file_to_open) {
         appState.historyEntries = displayEntries;
         const select = document.getElementById('file-content-history-select');
         select.innerHTML = renderHistorySelect(file_to_open, displayEntries);
+        const sc = select.querySelector('selectedcontent');
+        if (sc) sc.innerHTML = select.options[select.selectedIndex]?.innerHTML ?? '';
     });
 
     const file_content_yamlwrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);

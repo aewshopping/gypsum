@@ -11,6 +11,9 @@ import { restoreCurrentContent, loadHistoricalContent } from './load-file-conten
  * @returns {void}
  */
 export function handleHistorySelectChange(event, target) {
+    const sc = target.querySelector('selectedcontent');
+    if (sc) sc.innerHTML = target.options[target.selectedIndex]?.innerHTML ?? '';
+
     if (target.value === 'current') {
         restoreCurrentContent();
         return;

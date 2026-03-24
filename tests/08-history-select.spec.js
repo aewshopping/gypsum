@@ -10,6 +10,76 @@ async function waitForHistoryOptions(page, count) {
   }, count);
 }
 
+test.describe('history select — layout and displayed text', () => {
+
+  // Open the modal and wait for the initial "current" option.
+  async function openModal(page) {
+    await page.click('[data-click-loadfolder]');
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await waitForHistoryOptions(page, 1);
+  }
+
+  test('select occupies most of the modal header width (not squashed)', async ({ page }) => {
+    await setupMockDirectoryWithWrite(page);
+    await page.goto('/');
+    await openModal(page);
+
+    const { selectWidth, headerWidth } = await page.evaluate(() => {
+      const select = document.getElementById('file-content-history-select');
+      const header = document.getElementById('file-content-header');
+      return {
+        selectWidth: select.getBoundingClientRect().width,
+        headerWidth: header.getBoundingClientRect().width,
+      };
+    });
+
+    // Select should occupy at least 60 % of the header — not squashed to a sliver
+    expect(selectWidth).toBeGreaterThan(headerWidth * 0.6);
+  });
+
+  test('collapsed picker button shows filename only — no time label appended', async ({ page }) => {
+    await setupMockDirectoryWithWrite(page);
+    await page.goto('/');
+    await openModal(page);
+
+    // The <button> inside the select is what the user sees in the collapsed state.
+    // innerText respects display:none — if CSS is working "current" must not appear.
+    const { found, innerText } = await page.evaluate(() => {
+      const btn = document.querySelector('#file-content-history-select button');
+      if (!btn) return { found: false, innerText: '' };
+      return { found: true, innerText: btn.innerText.trim() };
+    });
+
+    expect(found).toBe(true);
+    expect(innerText).toContain('notes.md');
+    expect(innerText).not.toContain('current');
+  });
+
+  test('history option in dropdown shows version label and timestamp, not the filename', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await waitForHistoryOptions(page, 2);
+
+    // Each option should carry: opt-filename (picker), opt-version (both), opt-time (dropdown).
+    // The "current" option has an empty opt-version; the history option has e.g. " (v-1)".
+    const { version, time, filename } = await page.evaluate(() => {
+      const opt = document.getElementById('file-content-history-select').options[1];
+      return {
+        filename: opt.querySelector('.opt-filename')?.textContent ?? '',
+        version:  opt.querySelector('.opt-version')?.textContent  ?? '',
+        time:     opt.querySelector('.opt-time')?.textContent     ?? '',
+      };
+    });
+
+    expect(filename).toBe('notes.md');
+    expect(version).toBe(' (v-1)');
+    expect(time).toBe('2025-01-15 09:30:00');
+  });
+
+});
+
 test.describe('history select in file content modal', () => {
 
   test('select is visible with only "current" when no prior history exists', async ({ page }) => {

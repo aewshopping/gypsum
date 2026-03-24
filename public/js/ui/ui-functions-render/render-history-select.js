@@ -22,7 +22,8 @@ export function renderHistorySelect(filename, entries) {
          </option>`
     ).join('');
 
-    return `<option value="current">
+    return `<button><selectedcontent></selectedcontent></button>
+            <option value="current">
               <span class="opt-filename">${filename}</span>
               <span class="opt-version"></span>
               <span class="opt-time">current</span>
