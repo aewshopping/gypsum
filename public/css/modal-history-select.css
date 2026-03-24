@@ -10,8 +10,8 @@
 
 #file-content-history-select button {
     all: unset;
-    flex: 1;
-    min-width: 0;
+    display: block;
+    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -19,7 +19,7 @@
 }
 
 /* Collapsed picker: show filename + v-number, hide timestamp */
-#file-content-history-select selectedoption .opt-time {
+#file-content-history-select selectedcontent .opt-time {
     display: none;
 }
 
