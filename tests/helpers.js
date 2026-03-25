@@ -160,7 +160,7 @@ async function setupMockFilesTagCount(page) {
 
 /**
  * Like setupMockDirectory but adds write support (getFileHandle + createWritable)
- * so that the backup service can write backup.gypsum. The written content is
+ * so that the backup service can write history.gypsum. The written content is
  * captured in window.__backupFileContent for test assertions.
  *
  * Directory structure:
@@ -202,7 +202,7 @@ async function setupMockDirectoryWithWrite(page) {
           yield makeFile('notes.md', '# My Notes\nSome content #work/project');
         },
         getFileHandle: async (name, _options) => {
-          if (name === 'backup.gypsum') return backupHandle;
+          if (name === 'history.gypsum') return backupHandle;
           throw new Error(`Unexpected getFileHandle call for: ${name}`);
         },
       };
@@ -211,7 +211,7 @@ async function setupMockDirectoryWithWrite(page) {
 }
 
 /**
- * Directory mock with backup.gypsum pre-populated with one historical entry for notes.md.
+ * Directory mock with history.gypsum pre-populated with one historical entry for notes.md.
  * Used to test the history select in the file content modal.
  *
  * Live file content : '# My Notes\nCurrent content today #work'
@@ -263,7 +263,7 @@ async function setupMockDirectoryWithHistory(page) {
           yield makeFile('notes.md', currentContent);
         },
         getFileHandle: async (name, _options) => {
-          if (name === 'backup.gypsum') return backupHandle;
+          if (name === 'history.gypsum') return backupHandle;
           throw new Error(`Unexpected getFileHandle call for: ${name}`);
         },
       };

@@ -11,7 +11,7 @@ async function waitForBackupEntries(page, count) {
 
 test.describe('local file backup', () => {
 
-  test('writes open entry to backup.gypsum when file modal is opened', async ({ page }) => {
+  test('writes open entry to history.gypsum when file modal is opened', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
     await page.click('[data-click-loadfolder]');
@@ -76,7 +76,7 @@ test.describe('local file backup', () => {
           yield makeFile('beta.md', '# Beta\nSecond file #personal');
         },
         getFileHandle: async (name) => {
-          if (name === 'backup.gypsum') return backupHandle;
+          if (name === 'history.gypsum') return backupHandle;
           throw new Error(`Unexpected: ${name}`);
         },
       });
@@ -127,7 +127,7 @@ test.describe('local file backup', () => {
           yield makeFile('beta.md', '# Beta\nSecond file #personal');
         },
         getFileHandle: async (name) => {
-          if (name === 'backup.gypsum') return backupHandle;
+          if (name === 'history.gypsum') return backupHandle;
           throw new Error(`Unexpected: ${name}`);
         },
       });
@@ -164,7 +164,7 @@ test.describe('local file backup', () => {
     expect(entries[1].filename).toBe('beta.md');
   });
 
-  test('backup.gypsum does not appear in the file list', async ({ page }) => {
+  test('history.gypsum does not appear in the file list', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
     await page.click('[data-click-loadfolder]');

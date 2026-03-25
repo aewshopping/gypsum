@@ -1,9 +1,9 @@
 import { appState } from '../services/store.js';
 
-const BACKUP_FILENAME = 'backup.gypsum';
+const BACKUP_FILENAME = 'history.gypsum';
 
 /**
- * Reads backup.gypsum and returns all entries matching the given filename, newest-first.
+ * Reads history.gypsum and returns all entries matching the given filename, newest-first.
  * Returns [] if no directory handle, backup file absent, or content is unreadable.
  *
  * Called concurrently with saveBackupEntry on modal open — this is intentional.
