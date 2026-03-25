@@ -1,10 +1,10 @@
 import { appState } from '../services/store.js';
 
-const BACKUP_FILENAME = 'backup.gypsum';
+const BACKUP_FILENAME = 'history.gypsum';
 const MAX_ENTRIES = 50;
 
 /**
- * Appends a snapshot entry to backup.gypsum in the loaded directory.
+ * Appends a snapshot entry to history.gypsum in the loaded directory.
  * Does nothing silently if no directory handle is available (file picker path).
  *
  * @async

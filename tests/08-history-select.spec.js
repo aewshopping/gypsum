@@ -192,7 +192,7 @@ test.describe('history select in file content modal', () => {
         kind: 'directory', name: 'root',
         values: async function* () { yield makeFile('notes.md', sameContent); },
         getFileHandle: async (name, _options) => {
-          if (name === 'backup.gypsum') return backupHandle;
+          if (name === 'history.gypsum') return backupHandle;
           throw new Error(`Unexpected: ${name}`);
         },
       });
@@ -245,7 +245,7 @@ test.describe('history select in file content modal', () => {
           yield makeFile('other.md', 'Other file content #personal');
         },
         getFileHandle: async (name, _options) => {
-          if (name === 'backup.gypsum') return backupHandle;
+          if (name === 'history.gypsum') return backupHandle;
           throw new Error(`Unexpected: ${name}`);
         },
       });
