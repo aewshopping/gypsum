@@ -3,6 +3,7 @@
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
 import { loadContentModal } from './load-file-content.js';
+import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
 
@@ -37,11 +38,7 @@ export function handleOpenFileContent(event, target) {
         `<span class="copyflag" data-action="copy-filename"
                title="copy filename to clipboard"
                data-filename="${file_to_open}">©</span>`;
-    const histSel = document.getElementById('file-content-history-select');
-    histSel.innerHTML =
-        `<button><selectedcontent></selectedcontent></button><option value="current"><span class="opt-filename">${file_to_open}</span><span class="opt-version"></span><span class="opt-time">current</span></option>`;
-    const initSc = histSel.querySelector('selectedcontent');
-    if (initSc) initSc.innerHTML = histSel.options[0]?.innerHTML ?? '';
+    initHistorySelect(file_to_open);
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;
     loadContentModal(file_to_open);

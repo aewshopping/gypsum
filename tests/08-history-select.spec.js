@@ -56,24 +56,24 @@ test.describe('history select — layout and displayed text', () => {
     expect(innerText).not.toContain('current');
   });
 
-  test('history option in dropdown shows version label and timestamp, not the filename', async ({ page }) => {
+  test('history option in dropdown shows version label and timestamp — no filename', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await waitForHistoryOptions(page, 2);
 
-    // Each option should carry: opt-filename (picker), opt-version (both), opt-time (dropdown).
-    // The "current" option has an empty opt-version; the history option has e.g. " (v-1)".
-    const { version, time, filename } = await page.evaluate(() => {
+    // History options should contain only version + time; the filename lives in the
+    // button (collapsed picker) and must not be repeated in the dropdown list.
+    const { hasFilename, version, time } = await page.evaluate(() => {
       const opt = document.getElementById('file-content-history-select').options[1];
       return {
-        filename: opt.querySelector('.opt-filename')?.textContent ?? '',
-        version:  opt.querySelector('.opt-version')?.textContent  ?? '',
-        time:     opt.querySelector('.opt-time')?.textContent     ?? '',
+        hasFilename: !!opt.querySelector('.opt-filename'),
+        version:     opt.querySelector('.opt-version')?.textContent  ?? '',
+        time:        opt.querySelector('.opt-time')?.textContent     ?? '',
       };
     });
 
-    expect(filename).toBe('notes.md');
+    expect(hasFilename).toBe(false);
     expect(version).toBe(' (v-1)');
     expect(time).toBe('2025-01-15 09:30:00');
   });

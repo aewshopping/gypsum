@@ -18,12 +18,3 @@
     cursor: pointer;
 }
 
-/* Collapsed picker: show filename + v-number, hide timestamp */
-#file-content-history-select selectedcontent .opt-time {
-    display: none;
-}
-
-/* Open dropdown: show v-number + timestamp, hide filename */
-#file-content-history-select::picker(select) .opt-filename {
-    display: none;
-}
