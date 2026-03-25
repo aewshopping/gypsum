@@ -1,5 +1,6 @@
 import { appState } from '../../services/store.js';
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
+import { renderTagTaxonomy } from '../render-tag-taxonmy.js';
 
 
 /**
@@ -13,6 +14,7 @@ export function handleClearFilters() {
     appState.search.results.clear();
     searchBox.value = "";
 
+    renderTagTaxonomy();
     processSeachResults();
 
 }
