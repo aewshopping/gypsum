@@ -1,20 +1,59 @@
 #file-content-history-select {
-    appearance: base-select;
-    border: none;
-    background: transparent;
+    border: 2px solid var(--colour-neutral-alt);
     color: inherit;
     font: inherit;
     flex: 1;
-    min-width: 0;
+    margin-inline: 6px;
+
+    &:hover {
+        background-color: var(--colour-neutral);
+    }
+
+    &::picker-icon {
+        content: "↺";
+        rotate: 0deg;
+        transition: 0.2s rotate;
+    }
+
+    &:open::picker-icon {
+        rotate: -135deg;
+    }
+
+    option {
+        font: 1.1em monospace;
+        padding: 4px;
+        padding-left: 15px;
+        margin: 10px;
+        border: 2px solid transparent;
+        border-radius: 20px;
+        color: var(--colour-contr);
+        background: var(--colour-neutral-alt);
+
+        &:hover {
+            border: 2px solid var(--colour-contr);
+            box-shadow: 3px 3px 0px 0px var(--colour-contr);
+        }
+
+        &:checked {
+            font-weight: bold;
+            border: 2px solid var(--colour-contr);
+            box-shadow: 3px 3px 0px 0px var(--colour-contr);
+        }
+
+    }
+
 }
 
-#file-content-history-select button {
-    all: unset;
-    display: block;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    cursor: pointer;
+/* a visual alert if you are looking at old file content (ie 2nd or later box checked) */
+#file-content-history-select:not(:has(option:first-of-type:checked)) {
+    background-color: var(--colour-compl-alt-emph);
+    color: DarkSlateGray;
+    transition: 0.2s background-color, 0.2s color;
 }
 
+/* styling the picker box as a whole */
+#file-content-history-select::picker(select) {
+    border: none;
+    background-color: var(--colour-compl-alt-emph);
+    border-radius: 10px;
+}

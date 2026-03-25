@@ -8,6 +8,7 @@
     left: 0;
     right: 0;
     height:var(--modal-footer-height);
+    pointer-events:none; /* to allow click through to horizontal scroll bar if needed */
 }
 
 #file-content-header {

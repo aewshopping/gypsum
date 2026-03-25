@@ -18,7 +18,6 @@ export function tagParser(text) {
 	tagSet.clear();
 	
 	returnActiveTags(); //mutates tagSet
-	console.log(tagSet);
 
 	const StripHexColors = text.replace(/#(?=([0-9a-fA-F]{3}){1,2}\b)/gm, '%'); // otherwise tagReplace will strip out hex colours like #fff or #00000. Mainly noticeable if using svg
 

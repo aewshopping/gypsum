@@ -17,13 +17,13 @@
 export function renderHistorySelect(filename, entries) {
     const historyOptions = entries.map((entry, i) =>
         `<option value="${i}">` +
-          `<span class="opt-version"> (v-${i + 1})</span>` +
           `<span class="opt-time">${formatTimestamp(entry.timestamp)}</span>` +
+          `<span class="opt-version"> (v-${i + 1})</span>` +
         `</option>`
     ).join('');
 
     return `<button><span class="opt-filename">${filename}</span><span class="opt-version"></span></button>` +
-           `<option value="current"><span class="opt-time">current</span></option>` +
+           `<option value="current"><span class="opt-time">current version</span></option>` +
            historyOptions;
 }
 
