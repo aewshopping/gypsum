@@ -82,7 +82,7 @@ test.describe('history select — layout and displayed text', () => {
 
 test.describe('history select in file content modal', () => {
 
-  test('select is visible with only "current" when no prior history exists', async ({ page }) => {
+  test('select is visible with only "current version" when no prior history exists', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
     await page.click('[data-click-loadfolder]');
@@ -98,7 +98,7 @@ test.describe('history select in file content modal', () => {
     expect(optionCount).toBe(1);
 
     const firstOptionTime = await select.evaluate(el => el.options[0].querySelector('.opt-time').textContent);
-    expect(firstOptionTime).toBe('current');
+    expect(firstOptionTime).toBe('current version');
   });
 
   test('select shows historical timestamps when prior entries exist', async ({ page }) => {
@@ -118,7 +118,7 @@ test.describe('history select in file content modal', () => {
     const firstOptionTime = await page.evaluate(() =>
       document.getElementById('file-content-history-select').options[0].querySelector('.opt-time').textContent
     );
-    expect(firstOptionTime).toBe('current');
+    expect(firstOptionTime).toBe('current version');
   });
 
   test('timestamps are formatted as yyyy-mm-dd hh:mm:ss', async ({ page }) => {
