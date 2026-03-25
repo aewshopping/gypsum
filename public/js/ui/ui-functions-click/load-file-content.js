@@ -80,6 +80,9 @@ export function loadHistoricalContent(rawContent) {
  */
 export function fileContentRender() {
 
+    const editToggle = document.getElementById('edit_toggle');
+    if (editToggle) editToggle.checked = false;
+
     const textbox = document.getElementById('modal-content-text');
     const renderToggle = document.getElementById('render_toggle');
 
