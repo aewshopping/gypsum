@@ -11,6 +11,9 @@ import { restoreCurrentContent, loadHistoricalContent } from './load-file-conten
  * @returns {void}
  */
 export function handleHistorySelectChange(event, target) {
+    const versionLabel = target.options[target.selectedIndex].querySelector('.opt-version')?.textContent ?? '';
+    target.querySelector('button .opt-version').textContent = versionLabel;
+
     if (target.value === 'current') {
         restoreCurrentContent();
         return;

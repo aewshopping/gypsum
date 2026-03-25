@@ -4,8 +4,7 @@ import { tagParser } from '../../services/file-tagparser.js';
 import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatter.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
-import { readBackupHistory } from '../../editing/backup-history-read.js';
-import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
+import { loadHistorySelect } from './setup-history-select.js';
 
 const YAML_WRAP_BEFORE = "<pre class='pre-bg'><code>";
 const YAML_WRAP_AFTER = "</pre></code>";
@@ -37,21 +36,10 @@ export async function loadContentModal (file_to_open) {
         content: file_content,
     };
 
-    // Fire backup write and history read concurrently — intentionally not awaited.
-    // Reading before the write completes means history shows only past states,
-    // not a duplicate of the content currently being viewed.
+    // Fire backup write and history load concurrently — intentionally not awaited.
+    // Reading before the write completes means history shows only past states.
     saveBackupEntry(appState.openSnapshot, 'open');
-    const opened_content = file_content;
-    readBackupHistory(file_to_open).then(entries => {
-        // Suppress the most recent entry if its content is identical to what is
-        // currently open — it was saved by a prior session and adds no information.
-        const displayEntries = (entries.length > 0 && entries[0].content === opened_content)
-            ? entries.slice(1)
-            : entries;
-        appState.historyEntries = displayEntries;
-        const select = document.getElementById('file-content-history-select');
-        select.innerHTML = renderHistorySelect(displayEntries);
-    });
+    loadHistorySelect(file_to_open, file_content);
 
     const file_content_yamlwrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
     const file_content_tagged = tagParser(file_content_yamlwrapped);
