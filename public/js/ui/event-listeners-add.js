@@ -9,7 +9,7 @@ import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
-import { fileContentRender } from './ui-functions-click/load-file-content.js';
+import { handleToggleRenderText } from './ui-functions-click/load-file-content.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -37,7 +37,7 @@ const clickActionHandlers = {
     'close-file-content-modal': handleCloseModal,
     'close-file-content-outside': handeCloseModalOutside,
     'sort-object': handleSortObject,
-    'toggle-render-text': fileContentRender,
+    'toggle-render-text': handleToggleRenderText,
     'searchbox-search': handleSearchBoxClick,
     'delete-filter': handleDeleteFilter,
     'filter-toggleactive':handleFilterToggleActive,
