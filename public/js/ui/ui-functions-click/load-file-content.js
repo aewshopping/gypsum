@@ -17,6 +17,14 @@ let current_file_content;               // preserved on open — never overwritt
 let current_file_content_tagged_parsed;
 
 /**
+ * @param {string} text - Raw file content.
+ * @returns {string} Parsed HTML string ready for injection into the modal.
+ */
+function parseContent(text) {
+    return marked(tagParser(wrapFrontMatter(text, YAML_WRAP_BEFORE, YAML_WRAP_AFTER)));
+}
+
+/**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
  * Also fires a backup write and concurrently populates the history select.
  * @async
@@ -43,9 +51,7 @@ export async function loadContentModal (file_to_open) {
     saveBackupEntry(appState.openSnapshot, 'open');
     loadHistorySelect(file_to_open, file_content);
 
-    const file_content_yamlwrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
-    const file_content_tagged = tagParser(file_content_yamlwrapped);
-    file_content_tagged_parsed = marked(file_content_tagged);
+    file_content_tagged_parsed = parseContent(file_content);
     current_file_content_tagged_parsed = file_content_tagged_parsed;
 
     setIsCurrentVersion(true);
@@ -75,18 +81,13 @@ export function loadHistoricalContent(rawContent) {
         const editedText = capturePreEdits();
         if (editedText !== null) {
             current_file_content = editedText;
-            const wrappedCurrent = wrapFrontMatter(current_file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
-            current_file_content_tagged_parsed = marked(tagParser(wrappedCurrent));
-            file_content = current_file_content;
-        } else {
-            current_file_content = file_content;
-            current_file_content_tagged_parsed = file_content_tagged_parsed;
+            current_file_content_tagged_parsed = parseContent(current_file_content);
         }
+        // else: current_* already in sync (handleToggleRenderText keeps them updated)
     }
     setIsCurrentVersion(false);
     file_content = rawContent;
-    const wrapped = wrapFrontMatter(rawContent, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
-    file_content_tagged_parsed = marked(tagParser(wrapped));
+    file_content_tagged_parsed = parseContent(rawContent);
     fileContentRender();
 }
 
@@ -100,8 +101,9 @@ export function handleToggleRenderText() {
     const editedText = capturePreEdits();
     if (editedText !== null) {
         file_content = editedText;
-        const wrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
-        file_content_tagged_parsed = marked(tagParser(wrapped));
+        file_content_tagged_parsed = parseContent(file_content);
+        current_file_content = editedText;
+        current_file_content_tagged_parsed = file_content_tagged_parsed;
     }
     fileContentRender();
 }
