@@ -122,6 +122,26 @@ test.describe('contentEditable state in TXT mode', () => {
     expect(preText).toBe('my edited content');
   });
 
+  test('newlines typed in TXT mode (browser <br> insertion) are preserved in HTML view', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+
+    await switchToTxt(page);
+    // Simulate browser inserting <br> on Enter in contenteditable (bypassing textContent setter)
+    await page.evaluate(() => {
+      document.querySelector('#modal-content-text pre').innerHTML = 'paragraph one<br><br>paragraph two';
+    });
+
+    await switchToHtml(page);
+
+    // With the bug (textContent), <br> is invisible so output is "paragraph oneparagraph two" — one blob.
+    // With the fix (innerText), <br> → \n so markdown sees \n\n and creates two <p> elements.
+    const html = await page.locator('#modal-content-text').innerHTML();
+    expect(html).toMatch(/<p>.*paragraph one.*<\/p>/s);
+    expect(html).toMatch(/<p>.*paragraph two.*<\/p>/s);
+  });
+
   test('toggling in history view does not pollute current_file_content', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
