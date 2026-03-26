@@ -1,7 +1,7 @@
 import { appState } from '../services/store.js';
 
 const BACKUP_FILENAME = 'history.gypsum';
-const MAX_SNAPSHOTS = 50;
+const MAX_SNAPSHOTS = 500;
 
 /**
  * Parses history.gypsum text into { lines, snapshots }.
