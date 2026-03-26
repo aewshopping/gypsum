@@ -13,6 +13,7 @@ let file_content;               // current working content (may be a historical 
 let file_content_tagged_parsed;
 let current_file_content;               // preserved on open — never overwritten by history selection
 let current_file_content_tagged_parsed;
+let isCurrentVersion = true;   // false when a historical entry is displayed
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -46,6 +47,7 @@ export async function loadContentModal (file_to_open) {
     file_content_tagged_parsed = marked(file_content_tagged);
     current_file_content_tagged_parsed = file_content_tagged_parsed;
 
+    isCurrentVersion = true;
     fileContentRender();
 }
 
@@ -57,6 +59,7 @@ export async function loadContentModal (file_to_open) {
 export function restoreCurrentContent() {
     file_content = current_file_content;
     file_content_tagged_parsed = current_file_content_tagged_parsed;
+    isCurrentVersion = true;
     fileContentRender();
 }
 
@@ -67,6 +70,19 @@ export function restoreCurrentContent() {
  * @returns {void}
  */
 export function loadHistoricalContent(rawContent) {
+    if (isCurrentVersion) {
+        const editedPre = document.querySelector('#modal-content-text pre[contenteditable="true"]');
+        if (editedPre) {
+            current_file_content = editedPre.textContent;
+            const wrappedCurrent = wrapFrontMatter(current_file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
+            current_file_content_tagged_parsed = marked(tagParser(wrappedCurrent));
+            file_content = current_file_content;
+        } else {
+            current_file_content = file_content;
+            current_file_content_tagged_parsed = file_content_tagged_parsed;
+        }
+    }
+    isCurrentVersion = false;
     file_content = rawContent;
     const wrapped = wrapFrontMatter(rawContent, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
     file_content_tagged_parsed = marked(tagParser(wrapped));
@@ -80,7 +96,7 @@ export function loadHistoricalContent(rawContent) {
  * @returns {void}
  */
 export function handleToggleRenderText() {
-    const existingPre = document.querySelector('#modal-content-text pre[contenteditable]');
+    const existingPre = document.querySelector('#modal-content-text pre[contenteditable="true"]');
     if (existingPre) {
         file_content = existingPre.textContent;
         const wrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
@@ -106,7 +122,7 @@ export function fileContentRender() {
       textbox.innerHTML = '';
       const preElement = document.createElement('pre');
       preElement.classList.add('pre-text-enlarge');
-      preElement.contentEditable = 'true';
+      preElement.contentEditable = isCurrentVersion ? 'true' : 'false';
       preElement.textContent = file_content; // Safe escaping - hence can't use template literal sadly
       textbox.appendChild(preElement);
 
