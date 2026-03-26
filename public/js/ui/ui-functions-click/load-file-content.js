@@ -74,6 +74,22 @@ export function loadHistoricalContent(rawContent) {
 }
 
 /**
+ * Handles the html/txt render toggle. Captures any edits made in the txt <pre>
+ * back into the module-level content vars before re-rendering, so that switching
+ * to html does not discard in-progress edits.
+ * @returns {void}
+ */
+export function handleToggleRenderText() {
+    const existingPre = document.querySelector('#modal-content-text pre[contenteditable]');
+    if (existingPre) {
+        file_content = existingPre.textContent;
+        const wrapped = wrapFrontMatter(file_content, YAML_WRAP_BEFORE, YAML_WRAP_AFTER);
+        file_content_tagged_parsed = marked(tagParser(wrapped));
+    }
+    fileContentRender();
+}
+
+/**
  * Renders the loaded file content into the modal text area.
  * Can toggle between rendered markdown and raw text.
  * @returns {void}
