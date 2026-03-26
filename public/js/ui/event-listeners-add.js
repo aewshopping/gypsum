@@ -17,7 +17,6 @@ import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-
 import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-active.js';
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
-import { handleEditModeToggle } from './ui-functions-click/toggle-edit-mode.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -39,7 +38,6 @@ const clickActionHandlers = {
     'close-file-content-outside': handeCloseModalOutside,
     'sort-object': handleSortObject,
     'toggle-render-text': fileContentRender,
-    'toggle-edit-text': handleEditModeToggle,
     'searchbox-search': handleSearchBoxClick,
     'delete-filter': handleDeleteFilter,
     'filter-toggleactive':handleFilterToggleActive,

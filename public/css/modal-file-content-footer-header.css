@@ -1,15 +1,3 @@
-#modal-edit-toggle {
-    position: absolute;
-    bottom: var(--modal-footer-height);
-    right: 0;
-    transform: translateY(calc(100% + var(--modal-footer-height)));
-    transition: transform 0.2s ease;
-}
-
-body:has(#render_toggle:checked) #modal-edit-toggle {
-    transform: translateY(0);
-}
-
 /* footer height currently set to zero but can inflate an add content later! */
 #file-content-footer {
     display: flex;

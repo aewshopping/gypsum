@@ -80,9 +80,6 @@ export function loadHistoricalContent(rawContent) {
  */
 export function fileContentRender() {
 
-    const editToggle = document.getElementById('edit_toggle');
-    if (editToggle) editToggle.checked = false;
-
     const textbox = document.getElementById('modal-content-text');
     const renderToggle = document.getElementById('render_toggle');
 
@@ -93,6 +90,7 @@ export function fileContentRender() {
       textbox.innerHTML = '';
       const preElement = document.createElement('pre');
       preElement.classList.add('pre-text-enlarge');
+      preElement.contentEditable = 'true';
       preElement.textContent = file_content; // Safe escaping - hence can't use template literal sadly
       textbox.appendChild(preElement);
 
