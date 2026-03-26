@@ -5,8 +5,8 @@ import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatt
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
-import { getIsCurrentVersion, setIsCurrentVersion } from './editable-state.js';
-import { capturePreEdits } from './capture-pre-edits.js';
+import { getIsCurrentVersion, setIsCurrentVersion } from '../../editing/editable-state.js';
+import { capturePreEdits } from '../../editing/capture-pre-edits.js';
 
 const YAML_WRAP_BEFORE = "<pre class='pre-bg'><code>";
 const YAML_WRAP_AFTER = "</pre></code>";
