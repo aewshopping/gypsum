@@ -17,6 +17,7 @@ let current_file_content;               // preserved on open — never overwritt
 let current_file_content_tagged_parsed;
 
 /**
+ * Wraps front matter, parses tags, and renders markdown for the given raw text.
  * @param {string} text - Raw file content.
  * @returns {string} Parsed HTML string ready for injection into the modal.
  */
@@ -94,7 +95,8 @@ export function loadHistoricalContent(rawContent) {
 /**
  * Handles the html/txt render toggle. Captures any edits made in the txt <pre>
  * back into the module-level content vars before re-rendering, so that switching
- * to html does not discard in-progress edits.
+ * to html does not discard in-progress edits. Also keeps current_* vars in sync
+ * so that loadHistoricalContent never sees stale current content.
  * @returns {void}
  */
 export function handleToggleRenderText() {
