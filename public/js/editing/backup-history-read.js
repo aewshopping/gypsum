@@ -4,7 +4,8 @@ const BACKUP_FILENAME = 'history.gypsum';
 
 /**
  * Reads history.gypsum and returns all entries matching the given filename, newest-first.
- * Returns [] if no directory handle, backup file absent, or content is unreadable.
+ * Handles both the current line-pool format ({ lines, snapshots }) and the legacy flat-array
+ * format transparently. Returns [] if no directory handle, backup file absent, or unreadable.
  *
  * Called concurrently with saveBackupEntry on modal open — this is intentional.
  * Reading before the new entry is written means history shows only past states,
@@ -20,8 +21,24 @@ export async function readBackupHistory(filename) {
         const fileHandle = await appState.dirHandle.getFileHandle(BACKUP_FILENAME);
         const text = await (await fileHandle.getFile()).text();
         if (!text.trim()) return [];
-        const entries = JSON.parse(text);
-        return entries.filter(e => e.filename === filename).reverse();
+        const parsed = JSON.parse(text);
+
+        if (Array.isArray(parsed)) {
+            // Legacy format: entries already carry a plain `content` string
+            return parsed.filter(e => e.filename === filename).reverse();
+        }
+
+        const { lines, snapshots } = parsed;
+        return snapshots
+            .filter(s => s.filename === filename)
+            .reverse()
+            .map(s => ({
+                filepath: s.filepath,
+                filename: s.filename,
+                content: s.lineRefs.map(i => lines[i]).join('\n'),
+                timestamp: s.timestamp,
+                event: s.event,
+            }));
     } catch {
         return [];
     }
