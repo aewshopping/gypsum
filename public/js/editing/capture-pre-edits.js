@@ -5,5 +5,5 @@
  */
 export function capturePreEdits() {
     const pre = document.querySelector('#modal-content-text pre[contenteditable="true"]');
-    return pre ? pre.textContent : null;
+    return pre ? pre.innerText : null;
 }
