@@ -15,7 +15,7 @@ import { recordMatch } from "./a-search-helpers.js";
  * @param {string} operator The search operator.
  */
 export async function searchContent(filterId, searchValue, property, type, operator) {
-    const MAX_SNIPPETS = 500;
+    const MAX_SNIPPETS = 5;
     const SNIPPET_TOTAL_LENGTH = 80;
     const keyedResults = getFilterMap(filterId);
 
