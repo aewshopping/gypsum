@@ -14,3 +14,8 @@ body:has(#and_filter:checked) ::highlight(match) {
     background-color: color-mix(in srgb, var(--colour-compl-alt-emph) 30%, transparent);
     text-decoration-color: var(--colour-compl-alt-emph);
 }
+
+::highlight(diff-old) {
+    background-color: color-mix(in srgb, var(--colour-contr-warning) 30%, transparent);
+    color: inherit;
+}

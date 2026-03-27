@@ -1,29 +1,17 @@
 import { appState } from '../../services/store.js';
-import { marked }  from '../../services/marked.eos.js';
-import { tagParser } from '../../services/file-tagparser.js';
-import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatter.js';
+import { parseContent } from '../../services/parse-content.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
+import { applyDiffHighlights, clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { getIsCurrentVersion, setIsCurrentVersion } from '../../editing/editable-state.js';
 import { capturePreEdits } from '../../editing/capture-pre-edits.js';
 
-const YAML_WRAP_BEFORE = "<pre class='pre-bg'><code>";
-const YAML_WRAP_AFTER = "</pre></code>";
-
 let file_content;               // current working content (may be a historical snapshot)
 let file_content_tagged_parsed;
 let current_file_content;               // preserved on open — never overwritten by history selection
 let current_file_content_tagged_parsed;
-
-/**
- * Wraps front matter, parses tags, and renders markdown for the given raw text.
- * @param {string} text - Raw file content.
- * @returns {string} Parsed HTML string ready for injection into the modal.
- */
-function parseContent(text) {
-    return marked(tagParser(wrapFrontMatter(text, YAML_WRAP_BEFORE, YAML_WRAP_AFTER)));
-}
+let current_historical_line_refs = null; // lineRefs of the historical entry currently displayed
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -55,6 +43,7 @@ export async function loadContentModal (file_to_open) {
     file_content_tagged_parsed = parseContent(file_content);
     current_file_content_tagged_parsed = file_content_tagged_parsed;
 
+    current_historical_line_refs = null;
     setIsCurrentVersion(true);
     fileContentRender();
 }
@@ -67,6 +56,7 @@ export async function loadContentModal (file_to_open) {
 export function restoreCurrentContent() {
     file_content = current_file_content;
     file_content_tagged_parsed = current_file_content_tagged_parsed;
+    current_historical_line_refs = null;
     setIsCurrentVersion(true);
     fileContentRender();
 }
@@ -75,9 +65,10 @@ export function restoreCurrentContent() {
  * Loads a historical content string into the modal, updating the module-level
  * vars so that the html/txt render toggle continues to work correctly.
  * @param {string} rawContent - The raw file text to render.
+ * @param {number[]|null} lineRefs - lineRefs from the history entry, for diff highlighting.
  * @returns {void}
  */
-export function loadHistoricalContent(rawContent) {
+export function loadHistoricalContent(rawContent, lineRefs = null) {
     if (getIsCurrentVersion()) {
         const editedText = capturePreEdits();
         if (editedText !== null) {
@@ -86,6 +77,7 @@ export function loadHistoricalContent(rawContent) {
         }
         // else: current_* already in sync (handleToggleRenderText keeps them updated)
     }
+    current_historical_line_refs = lineRefs;
     setIsCurrentVersion(false);
     file_content = rawContent;
     file_content_tagged_parsed = parseContent(rawContent);
@@ -138,5 +130,11 @@ export function fileContentRender() {
     }
 
     highlightPropMatches();
+
+    if (getIsCurrentVersion()) {
+        clearDiffHighlights();
+    } else {
+        applyDiffHighlights(file_content, current_file_content, current_historical_line_refs);
+    }
 
 }

@@ -17,6 +17,8 @@ export function initHistorySelect(filename) {
  * Reads backup history for the file and repopulates the select.
  * Suppresses the most recent entry if its content matches currentContent
  * (it was saved by a prior session and adds no information beyond what is already open).
+ * Also stores the current version's lineRefs in appState.currentVersionLineRefs for use
+ * by the diff highlighter when a historical version is selected.
  * Intentionally fire-and-forget — the select updates when the read completes.
  * @param {string} filename
  * @param {string} currentContent - The raw content currently displayed.
@@ -24,9 +26,9 @@ export function initHistorySelect(filename) {
  */
 export function loadHistorySelect(filename, currentContent) {
     readBackupHistory(filename).then(entries => {
-        const displayEntries = (entries.length > 0 && entries[0].content === currentContent)
-            ? entries.slice(1)
-            : entries;
+        const isCurrentMatch = entries.length > 0 && entries[0].content === currentContent;
+        appState.currentVersionLineRefs = isCurrentMatch ? (entries[0].lineRefs ?? null) : null;
+        const displayEntries = isCurrentMatch ? entries.slice(1) : entries;
         appState.historyEntries = displayEntries;
         document.getElementById('file-content-history-select').innerHTML =
             renderHistorySelect(filename, displayEntries);

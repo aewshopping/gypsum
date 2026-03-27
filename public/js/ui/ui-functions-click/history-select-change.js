@@ -20,5 +20,5 @@ export function handleHistorySelectChange(event, target) {
     }
 
     const entry = appState.historyEntries[parseInt(target.value, 10)];
-    if (entry) loadHistoricalContent(entry.content);
+    if (entry) loadHistoricalContent(entry.content, entry.lineRefs ?? null);
 }
