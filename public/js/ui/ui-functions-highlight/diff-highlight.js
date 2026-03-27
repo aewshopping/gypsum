@@ -6,27 +6,46 @@ const DIFF_HIGHLIGHT_NAME = 'diff-old';
 
 /**
  * Returns the 0-indexed positions of lines in oldLines absent from the current version,
- * using Symmetric Difference with Unique Occurrences: each line is treated as a
- * {lineRef}_{nth_occurrence} pair so that duplicate lines are handled correctly.
- * Returns [] if either lineRef array is unavailable.
+ * using Symmetric Difference with Unique Occurrences so that duplicate lines are handled
+ * correctly. When lineRefs are available on both sides they are used as keys (more precise);
+ * otherwise occurrence counts are computed over the raw line strings.
+ * Returns [] only if historicalLineRefs is unavailable.
  * @param {string[]} oldLines
+ * @param {string} currentContent
  * @param {number[]|null} historicalLineRefs
  * @returns {number[]}
  */
-function getOldOnlyPositions(oldLines, historicalLineRefs) {
-    const currentVersionLineRefs = appState.currentVersionLineRefs;
-    if (!historicalLineRefs || !currentVersionLineRefs) return [];
+function getOldOnlyPositions(oldLines, currentContent, historicalLineRefs) {
+    if (!historicalLineRefs) return [];
 
-    const currentRefCounts = new Map();
-    for (const ref of currentVersionLineRefs) {
-        currentRefCounts.set(ref, (currentRefCounts.get(ref) ?? 0) + 1);
+    const currentVersionLineRefs = appState.currentVersionLineRefs;
+    if (currentVersionLineRefs) {
+        // Primary path: both sides have lineRefs — occurrence-count by ref
+        const currentRefCounts = new Map();
+        for (const ref of currentVersionLineRefs) {
+            currentRefCounts.set(ref, (currentRefCounts.get(ref) ?? 0) + 1);
+        }
+        const seenInOld = new Map();
+        return historicalLineRefs.reduce((acc, ref, i) => {
+            if (oldLines[i]?.trim() === '') return acc;
+            const occ = (seenInOld.get(ref) ?? 0) + 1;
+            seenInOld.set(ref, occ);
+            if (occ > (currentRefCounts.get(ref) ?? 0)) acc.push(i);
+            return acc;
+        }, []);
+    }
+
+    // Secondary path: currentVersionLineRefs unavailable — occurrence-count by string
+    const currentLineCounts = new Map();
+    for (const line of currentContent.split('\n')) {
+        currentLineCounts.set(line, (currentLineCounts.get(line) ?? 0) + 1);
     }
     const seenInOld = new Map();
-    return historicalLineRefs.reduce((acc, ref, i) => {
-        if (oldLines[i]?.trim() === '') return acc;
-        const occ = (seenInOld.get(ref) ?? 0) + 1;
-        seenInOld.set(ref, occ);
-        if (occ > (currentRefCounts.get(ref) ?? 0)) acc.push(i);
+    return oldLines.reduce((acc, line, i) => {
+        if (line.trim() === '') return acc;
+        const occ = (seenInOld.get(line) ?? 0) + 1;
+        seenInOld.set(line, occ);
+        if (occ > (currentLineCounts.get(line) ?? 0)) acc.push(i);
         return acc;
     }, []);
 }
@@ -39,8 +58,8 @@ function getOldOnlyPositions(oldLines, historicalLineRefs) {
  * modal — to get its rendered plain text, which is then searched via searchContainer. This finds
  * headings, paragraphs, list items, and YAML frontmatter lines. Lines whose rendered text spans
  * multiple sibling text nodes (e.g. **bold** inline) won't be highlighted.
- * @param {string} oldContent - Raw text of the historical version (used for rendering, not diffing).
- * @param {string} currentContent - Raw text of the current version (unused; kept for API symmetry).
+ * @param {string} oldContent - Raw text of the historical version.
+ * @param {string} currentContent - Raw text of the current version (used when lineRefs unavailable).
  * @param {number[]|null} historicalLineRefs - lineRefs from the selected history entry.
  * @returns {void}
  */
@@ -48,7 +67,7 @@ export function applyDiffHighlights(oldContent, currentContent, historicalLineRe
     CSS.highlights.delete(DIFF_HIGHLIGHT_NAME);
 
     const oldLines = oldContent.split('\n');
-    const changedPositions = getOldOnlyPositions(oldLines, historicalLineRefs);
+    const changedPositions = getOldOnlyPositions(oldLines, currentContent, historicalLineRefs);
     if (changedPositions.length === 0) return;
 
     const container = document.getElementById('modal-content-text');
