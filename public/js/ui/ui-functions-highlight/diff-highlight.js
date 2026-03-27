@@ -5,40 +5,42 @@ import { searchContainer } from './treewalker-highlight.js';
 const DIFF_HIGHLIGHT_NAME = 'diff-old';
 
 /**
- * Returns the 0-indexed positions of lines in oldLines absent from the current version.
- * Uses lineRefs comparison when available (mirrors history.gypsum line-pool logic);
- * falls back to string-set comparison otherwise.
+ * Returns the 0-indexed positions of lines in oldLines absent from the current version,
+ * using Symmetric Difference with Unique Occurrences: each line is treated as a
+ * {lineRef}_{nth_occurrence} pair so that duplicate lines are handled correctly.
+ * Returns [] if either lineRef array is unavailable.
  * @param {string[]} oldLines
- * @param {string} currentContent
  * @param {number[]|null} historicalLineRefs
  * @returns {number[]}
  */
-function getOldOnlyPositions(oldLines, currentContent, historicalLineRefs) {
+function getOldOnlyPositions(oldLines, historicalLineRefs) {
     const currentVersionLineRefs = appState.currentVersionLineRefs;
-    if (historicalLineRefs && currentVersionLineRefs) {
-        const currentRefSet = new Set(currentVersionLineRefs);
-        return historicalLineRefs.reduce((acc, ref, i) => {
-            if (oldLines[i]?.trim() !== '' && !currentRefSet.has(ref)) acc.push(i);
-            return acc;
-        }, []);
+    if (!historicalLineRefs || !currentVersionLineRefs) return [];
+
+    const currentRefCounts = new Map();
+    for (const ref of currentVersionLineRefs) {
+        currentRefCounts.set(ref, (currentRefCounts.get(ref) ?? 0) + 1);
     }
-    // Fallback: string comparison (equivalent result for non-deduplicated content)
-    const currentLinesSet = new Set(currentContent.split('\n'));
-    return oldLines.reduce((acc, line, i) => {
-        if (line.trim() !== '' && !currentLinesSet.has(line)) acc.push(i);
+    const seenInOld = new Map();
+    return historicalLineRefs.reduce((acc, ref, i) => {
+        if (oldLines[i]?.trim() === '') return acc;
+        const occ = (seenInOld.get(ref) ?? 0) + 1;
+        seenInOld.set(ref, occ);
+        if (occ > (currentRefCounts.get(ref) ?? 0)) acc.push(i);
         return acc;
     }, []);
 }
 
 /**
  * Highlights lines in the content modal present in the old version but absent from current.
+ * The diff uses Symmetric Difference with Unique Occurrences via lineRefs from history.gypsum.
  * TXT mode: precise character-offset ranges in the <pre> text node (position-based, no false positives).
  * HTML mode: each old-only raw line is rendered through parseContent() — the same pipeline as the
  * modal — to get its rendered plain text, which is then searched via searchContainer. This finds
  * headings, paragraphs, list items, and YAML frontmatter lines. Lines whose rendered text spans
  * multiple sibling text nodes (e.g. **bold** inline) won't be highlighted.
- * @param {string} oldContent - Raw text of the historical version.
- * @param {string} currentContent - Raw text of the current version.
+ * @param {string} oldContent - Raw text of the historical version (used for rendering, not diffing).
+ * @param {string} currentContent - Raw text of the current version (unused; kept for API symmetry).
  * @param {number[]|null} historicalLineRefs - lineRefs from the selected history entry.
  * @returns {void}
  */
@@ -46,7 +48,7 @@ export function applyDiffHighlights(oldContent, currentContent, historicalLineRe
     CSS.highlights.delete(DIFF_HIGHLIGHT_NAME);
 
     const oldLines = oldContent.split('\n');
-    const changedPositions = getOldOnlyPositions(oldLines, currentContent, historicalLineRefs);
+    const changedPositions = getOldOnlyPositions(oldLines, historicalLineRefs);
     if (changedPositions.length === 0) return;
 
     const container = document.getElementById('modal-content-text');
