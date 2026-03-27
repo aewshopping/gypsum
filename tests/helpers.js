@@ -271,4 +271,71 @@ async function setupMockDirectoryWithHistory(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory };
+/**
+ * Directory mock with history.gypsum pre-populated using the line-pool format.
+ * Used to test diff highlighting, which requires lineRefs to be present.
+ *
+ * Line pool:
+ *   index 0: "# My Notes"
+ *   index 1: "Current content today"
+ *   index 2: "Old content from yesterday"
+ *
+ * Snapshots (oldest-first, readBackupHistory reverses them):
+ *   snapshot[0]: lineRefs [0, 2] → "# My Notes\nOld content from yesterday"  (historical)
+ *   snapshot[1]: lineRefs [0, 1] → "# My Notes\nCurrent content today"        (matches live file)
+ *
+ * Live file content: "# My Notes\nCurrent content today"
+ *
+ * When the historical entry is selected:
+ *   - appState.currentVersionLineRefs = [0, 1]
+ *   - historicalLineRefs = [0, 2]
+ *   - Line at index 1 ("Old content from yesterday") is old-only → highlighted
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithHistoryLinePool(page) {
+  await page.addInitScript(() => {
+    const historyData = {
+      lines: ['# My Notes', 'Current content today', 'Old content from yesterday'],
+      snapshots: [
+        { filepath: 'notes.md', filename: 'notes.md', lineRefs: [0, 2], timestamp: '2025-01-15T09:30:00.000Z', event: 'open' },
+        { filepath: 'notes.md', filename: 'notes.md', lineRefs: [0, 1], timestamp: '2025-01-15T10:00:00.000Z', event: 'open' },
+      ],
+    };
+    window.__backupFileContent = JSON.stringify(historyData, null, 2);
+
+    const currentContent = '# My Notes\nCurrent content today';
+    const makeFile = (name, content) => ({
+      kind: 'file',
+      name,
+      getFile: async () => ({
+        name,
+        size: content.length,
+        lastModified: Date.now(),
+        text: async () => content,
+      }),
+    });
+
+    const backupHandle = {
+      getFile: async () => ({ text: async () => window.__backupFileContent }),
+      createWritable: async () => ({
+        write: async (content) => { window.__backupFileContent = content; },
+        close: async () => {},
+      }),
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory',
+      name: 'root',
+      values: async function* () {
+        yield makeFile('notes.md', currentContent);
+      },
+      getFileHandle: async (name, _options) => {
+        if (name === 'history.gypsum') return backupHandle;
+        throw new Error(`Unexpected getFileHandle call for: ${name}`);
+      },
+    });
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool };
