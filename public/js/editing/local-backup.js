@@ -43,7 +43,7 @@ function parseHistory(text) {
  * @async
  * @param {{ filepath: string, filename: string, content: string }} snapshot
  * @param {'open' | 'close'} event
- * @returns {Promise<void>}
+ * @returns {Promise<number[]|null>} The lineRefs assigned to the snapshot, or null on failure.
  */
 export async function saveBackupEntry(snapshot, event) {
     if (!appState.dirHandle) return;
@@ -102,7 +102,9 @@ export async function saveBackupEntry(snapshot, event) {
         const writable = await fileHandle.createWritable();
         await writable.write(JSON.stringify({ lines, snapshots }, null, 2));
         await writable.close();
+        return newRefs;
     } catch {
         // Never crash the app over a backup failure
+        return null;
     }
 }

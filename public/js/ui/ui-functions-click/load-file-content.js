@@ -37,7 +37,11 @@ export async function loadContentModal (file_to_open) {
 
     // Fire backup write and history load concurrently — intentionally not awaited.
     // Reading before the write completes means history shows only past states.
-    saveBackupEntry(appState.openSnapshot, 'open');
+    // The save resolves with the lineRefs for the current content, which are stored
+    // in appState so the diff highlighter can use them when a historical version is selected.
+    saveBackupEntry(appState.openSnapshot, 'open').then(refs => {
+        appState.currentVersionLineRefs = refs;
+    });
     loadHistorySelect(file_to_open, file_content);
 
     file_content_tagged_parsed = parseContent(file_content);
