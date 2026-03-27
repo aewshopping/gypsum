@@ -20,7 +20,7 @@ function parseHistory(text) {
         const lines = [];
         const lineIndex = new Map();
         const snapshots = parsed.map(entry => {
-            const entryLines = entry.content.split('\n');
+            const entryLines = entry.content.split(/\r?\n/);
             const lineRefs = entryLines.map(line => {
                 if (!lineIndex.has(line)) { lineIndex.set(line, lines.length); lines.push(line); }
                 return lineIndex.get(line);
@@ -59,7 +59,7 @@ export async function saveBackupEntry(snapshot, event) {
         lines.forEach((line, i) => lineIndex.set(line, i));
 
         // Convert incoming content to lineRefs, extending the pool with new lines
-        const incomingLines = snapshot.content.split('\n');
+        const incomingLines = snapshot.content.split(/\r?\n/);
         const newRefs = incomingLines.map(line => {
             if (!lineIndex.has(line)) { lineIndex.set(line, lines.length); lines.push(line); }
             return lineIndex.get(line);
