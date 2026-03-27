@@ -30,7 +30,7 @@ function parseHistory(text) {
         return { lines, snapshots };
     }
 
-    return { lines: (parsed.lines ?? []).map(l => l.replace(/\r$/, '')), snapshots: parsed.snapshots ?? [] };
+    return { lines: parsed.lines ?? [], snapshots: parsed.snapshots ?? [] };
 }
 
 /**
