@@ -273,7 +273,7 @@ async function setupMockDirectoryWithHistory(page) {
 
 /**
  * Directory mock with history.gypsum pre-populated using the line-pool format.
- * Used to test diff highlighting, which requires lineRefs to be present.
+ * Used to test diff highlighting.
  *
  * Line pool:
  *   index 0: "# My Notes"
@@ -286,10 +286,10 @@ async function setupMockDirectoryWithHistory(page) {
  *
  * Live file content: "# My Notes\nCurrent content today"
  *
- * When the historical entry is selected:
- *   - appState.currentVersionLineRefs = [0, 1]
- *   - historicalLineRefs = [0, 2]
- *   - Line at index 1 ("Old content from yesterday") is old-only → highlighted
+ * When the historical entry is selected, the diff compares by string:
+ *   - current lines: ["# My Notes", "Current content today"]
+ *   - historical lines: ["# My Notes", "Old content from yesterday"]
+ *   - "Old content from yesterday" is absent from current → highlighted
  *
  * @param {import('@playwright/test').Page} page
  */

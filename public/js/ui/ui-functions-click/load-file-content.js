@@ -11,11 +11,11 @@ let file_content;               // current working content (may be a historical 
 let file_content_tagged_parsed;
 let current_file_content;               // preserved on open — never overwritten by history selection
 let current_file_content_tagged_parsed;
-let current_historical_line_refs = null; // lineRefs of the historical entry currently displayed
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
- * Also fires a backup write and concurrently populates the history select.
+ * Saves a backup snapshot first, then populates the history select so the select always reflects a
+ * state that includes the just-written entry and can correctly suppress it via the duplicate check.
  * @async
  * @param {string} file_to_open - The name of the file to load content for.
  * @returns {Promise<void>}
@@ -35,21 +35,16 @@ export async function loadContentModal (file_to_open) {
         content: file_content,
     };
 
-    // Fire backup write and history load concurrently — intentionally not awaited.
-    // Reading before the write completes means history shows only past states.
-    // The save resolves with the lineRefs for the current content, which are stored
-    // in appState so the diff highlighter can use them when a historical version is selected.
-    saveBackupEntry(appState.openSnapshot, 'open').then(refs => {
-        appState.currentVersionLineRefs = refs;
-    });
-    loadHistorySelect(file_to_open, file_content);
-
     file_content_tagged_parsed = parseContent(file_content);
     current_file_content_tagged_parsed = file_content_tagged_parsed;
 
-    current_historical_line_refs = null;
     setIsCurrentVersion(true);
     fileContentRender();
+
+    // Save snapshot first so the history select reads a consistent state,
+    // then fire history load (still fire-and-forget — the select updates when the read completes).
+    await saveBackupEntry(appState.openSnapshot, 'open');
+    loadHistorySelect(file_to_open, file_content);
 }
 
 /**
@@ -60,7 +55,6 @@ export async function loadContentModal (file_to_open) {
 export function restoreCurrentContent() {
     file_content = current_file_content;
     file_content_tagged_parsed = current_file_content_tagged_parsed;
-    current_historical_line_refs = null;
     setIsCurrentVersion(true);
     fileContentRender();
 }
@@ -69,10 +63,9 @@ export function restoreCurrentContent() {
  * Loads a historical content string into the modal, updating the module-level
  * vars so that the html/txt render toggle continues to work correctly.
  * @param {string} rawContent - The raw file text to render.
- * @param {number[]|null} lineRefs - lineRefs from the history entry, for diff highlighting.
  * @returns {void}
  */
-export function loadHistoricalContent(rawContent, lineRefs = null) {
+export function loadHistoricalContent(rawContent) {
     if (getIsCurrentVersion()) {
         const editedText = capturePreEdits();
         if (editedText !== null) {
@@ -81,7 +74,6 @@ export function loadHistoricalContent(rawContent, lineRefs = null) {
         }
         // else: current_* already in sync (handleToggleRenderText keeps them updated)
     }
-    current_historical_line_refs = lineRefs;
     setIsCurrentVersion(false);
     file_content = rawContent;
     file_content_tagged_parsed = parseContent(rawContent);
@@ -138,7 +130,7 @@ export function fileContentRender() {
     if (getIsCurrentVersion()) {
         clearDiffHighlights();
     } else {
-        applyDiffHighlights(file_content, current_file_content, current_historical_line_refs);
+        applyDiffHighlights(file_content, current_file_content);
     }
 
 }
