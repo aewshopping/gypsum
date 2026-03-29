@@ -286,7 +286,12 @@ async function setupMockDirectoryWithHistory(page) {
  *
  * Live file content: "# My Notes\nCurrent content today"
  *
- * When the historical entry is selected, the diff compares by string:
+ * On open, saveBackupEntry deduplicates snapshot[1] (same content → timestamp refresh only).
+ * History select therefore shows:
+ *   v-1 (index 1): "# My Notes\nCurrent content today"  — on-open reference snapshot
+ *   v-2 (index 2): "# My Notes\nOld content from yesterday"  — historical entry
+ *
+ * When v-2 is selected, the diff compares by string:
  *   - current lines: ["# My Notes", "Current content today"]
  *   - historical lines: ["# My Notes", "Old content from yesterday"]
  *   - "Old content from yesterday" is absent from current → highlighted

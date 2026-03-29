@@ -60,12 +60,14 @@ test.describe('history select — layout and displayed text', () => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
-    await waitForHistoryOptions(page, 2);
+    // With setupMockDirectoryWithHistory: on-open snapshot (v-1) + historical entry (v-2) = 3 total
+    await waitForHistoryOptions(page, 3);
 
     // History options should contain only version + time; the filename lives in the
     // button (collapsed picker) and must not be repeated in the dropdown list.
+    // options[2] is the pre-existing historical entry (v-2).
     const { hasFilename, version, time } = await page.evaluate(() => {
-      const opt = document.getElementById('file-content-history-select').options[1];
+      const opt = document.getElementById('file-content-history-select').options[2];
       return {
         hasFilename: !!opt.querySelector('.opt-filename'),
         version:     opt.querySelector('.opt-version')?.textContent  ?? '',
@@ -74,7 +76,7 @@ test.describe('history select — layout and displayed text', () => {
     });
 
     expect(hasFilename).toBe(false);
-    expect(version).toBe(' (v-1)');
+    expect(version).toBe(' (v-2)');
     expect(time).toBe('2025-01-15 09:30:00');
   });
 
@@ -82,20 +84,21 @@ test.describe('history select — layout and displayed text', () => {
 
 test.describe('history select in file content modal', () => {
 
-  test('select is visible with only "current version" when no prior history exists', async ({ page }) => {
+  test('select shows on-open snapshot as first history entry', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
     await page.click('[data-click-loadfolder]');
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
-    await waitForHistoryOptions(page, 1);
+    // The on-open snapshot is saved before the select is populated, so it appears as v-1.
+    await waitForHistoryOptions(page, 2);
 
     const select = page.locator('#file-content-history-select');
     await expect(select).toBeVisible();
 
     const optionCount = await select.evaluate(el => el.options.length);
-    expect(optionCount).toBe(1);
+    expect(optionCount).toBe(2); // "current version" + v-1 (on-open snapshot)
 
     const firstOptionTime = await select.evaluate(el => el.options[0].querySelector('.opt-time').textContent);
     expect(firstOptionTime).toBe('current version');
@@ -108,12 +111,13 @@ test.describe('history select in file content modal', () => {
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
-    await waitForHistoryOptions(page, 2);
+    // on-open snapshot (v-1) + pre-existing historical entry (v-2) = 3 total
+    await waitForHistoryOptions(page, 3);
 
     const optionCount = await page.evaluate(() =>
       document.getElementById('file-content-history-select').options.length
     );
-    expect(optionCount).toBe(2);
+    expect(optionCount).toBe(3);
 
     const firstOptionTime = await page.evaluate(() =>
       document.getElementById('file-content-history-select').options[0].querySelector('.opt-time').textContent
@@ -128,11 +132,12 @@ test.describe('history select in file content modal', () => {
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
-    await waitForHistoryOptions(page, 2);
+    await waitForHistoryOptions(page, 3);
 
-    // Mock uses '2025-01-15T09:30:00.000Z' → should format as '2025-01-15 09:30:00'
+    // Mock uses '2025-01-15T09:30:00.000Z' → should format as '2025-01-15 09:30:00'.
+    // options[2] is the pre-existing historical entry (v-2); options[1] is the on-open snapshot.
     const secondOptionTime = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options[1].querySelector('.opt-time').textContent
+      document.getElementById('file-content-history-select').options[2].querySelector('.opt-time').textContent
     );
     expect(secondOptionTime).toBe('2025-01-15 09:30:00');
   });
@@ -144,8 +149,9 @@ test.describe('history select in file content modal', () => {
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
-    await waitForHistoryOptions(page, 2);
-    await page.selectOption('#file-content-history-select', { index: 1 });
+    await waitForHistoryOptions(page, 3);
+    // index 2 is the pre-existing historical entry (v-2)
+    await page.selectOption('#file-content-history-select', { index: 2 });
 
     await expect(page.locator('#modal-content-text')).toContainText('Old content from yesterday');
   });
@@ -157,16 +163,16 @@ test.describe('history select in file content modal', () => {
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
-    await waitForHistoryOptions(page, 2);
+    await waitForHistoryOptions(page, 3);
 
-    await page.selectOption('#file-content-history-select', { index: 1 });
+    await page.selectOption('#file-content-history-select', { index: 2 });
     await expect(page.locator('#modal-content-text')).toContainText('Old content from yesterday');
 
     await page.selectOption('#file-content-history-select', { value: 'current' });
     await expect(page.locator('#modal-content-text')).toContainText('Current content today');
   });
 
-  test('most recent entry is hidden when its content matches the current file', async ({ page }) => {
+  test('snapshot from current open is shown in history even when content is unchanged', async ({ page }) => {
     await page.addInitScript(() => {
       const sameContent = '# My Notes\nCurrent content today #work';
       const olderContent = '# My Notes\nOlder content from before';
@@ -203,23 +209,23 @@ test.describe('history select in file content modal', () => {
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
-    // Wait long enough for the async history read to settle, then check options.
-    // Two raw entries but the newest matches current, so only "current" + older entry = 2 options.
-    await waitForHistoryOptions(page, 2);
+    // sameContent entry deduplicates (timestamp refresh only), olderContent stays as v-2.
+    // Both are shown: v-1 (sameContent, reference for edits) + v-2 (olderContent) = 3 total.
+    await waitForHistoryOptions(page, 3);
 
     const optionCount = await page.evaluate(() =>
       document.getElementById('file-content-history-select').options.length
     );
-    expect(optionCount).toBe(2); // "current" + 1 older entry (newest suppressed)
+    expect(optionCount).toBe(3); // "current" + v-1 (sameContent) + v-2 (olderContent)
 
-    const secondOptionTime = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options[1].querySelector('.opt-time').textContent
+    const thirdOptionTime = await page.evaluate(() =>
+      document.getElementById('file-content-history-select').options[2].querySelector('.opt-time').textContent
     );
-    expect(secondOptionTime).toBe('2025-01-14 08:00:00');
+    expect(thirdOptionTime).toBe('2025-01-14 08:00:00');
   });
 
   test('history entries only show for the correct file, not other files', async ({ page }) => {
-    // Pre-populate history for notes.md, then open a second file with no history
+    // Pre-populate history for notes.md, then open a second file with no prior history
     await page.addInitScript(() => {
       const entry = {
         filepath: 'notes.md', filename: 'notes.md',
@@ -255,16 +261,16 @@ test.describe('history select in file content modal', () => {
     await page.click('[data-click-loadfolder]');
     await expect(page.locator('.note-grid')).toHaveCount(2);
 
-    // Open other.md — it has no history entries
+    // Open other.md — it has no prior history; the on-open snapshot becomes v-1
     await page.locator('[data-action="open-file-content-modal"][data-filename="other.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
-    await waitForHistoryOptions(page, 1);
+    await waitForHistoryOptions(page, 2);
 
     const optionCount = await page.evaluate(() =>
       document.getElementById('file-content-history-select').options.length
     );
-    expect(optionCount).toBe(1); // only "current", no history for other.md
+    expect(optionCount).toBe(2); // "current" + v-1 (on-open snapshot for other.md only)
   });
 
 });

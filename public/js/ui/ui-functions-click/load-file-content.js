@@ -44,7 +44,7 @@ export async function loadContentModal (file_to_open) {
     // Save snapshot first so the history select reads a consistent state,
     // then fire history load (still fire-and-forget — the select updates when the read completes).
     await saveBackupEntry(appState.openSnapshot, 'open');
-    loadHistorySelect(file_to_open, file_content);
+    loadHistorySelect(file_to_open);
 }
 
 /**
