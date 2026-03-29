@@ -71,8 +71,8 @@ export function handeCloseModalOutside(event, target) {
  */
 export function handleCloseModal() {
 
-  if (appState.openSnapshot) {
-    appState.closeSnapshot = { ...appState.openSnapshot }; // identical for now; will differ once editing lands
+  if (appState.openFileSnapshot) {
+    appState.closeSnapshot = { ...appState.openFileSnapshot }; // identical for now; will differ once editing lands
     saveBackupEntry(appState.closeSnapshot, 'close');
   }
 

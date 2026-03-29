@@ -39,7 +39,7 @@ export const appState = {
   sortState: { property: 'lastModified', direction: 'desc'},
 
   dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
-  openSnapshot: null,    // { filepath, filename, content } captured when modal opens
+  openFileSnapshot: null,    // { filepath, filename, content } captured when modal opens
   closeSnapshot: null,   // { filepath, filename, content } captured just before modal closes
   historyEntries: [],    // backup entries for the currently-open file, newest-first
 }

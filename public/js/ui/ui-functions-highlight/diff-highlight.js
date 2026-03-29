@@ -42,8 +42,8 @@ function getOldOnlyPositions(oldLines, currentLines) {
 export function applyDiffHighlights(oldContent, currentContent) {
     CSS.highlights.delete(DIFF_HIGHLIGHT_NAME);
 
-    const oldLines = oldContent.split('\n');
-    const currentLines = currentContent.split('\n');
+    const oldLines = oldContent.split(/\r?\n/).map(line => line.trimEnd());
+    const currentLines = currentContent.split(/\r?\n/).map(line => line.trimEnd());
     const changedPositions = getOldOnlyPositions(oldLines, currentLines);
     if (changedPositions.length === 0) return;
 

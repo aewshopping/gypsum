@@ -10,7 +10,7 @@ import { capturePreEdits } from '../../editing/capture-pre-edits.js';
 let file_content;               // current working content (may be a historical snapshot)
 let file_content_tagged_parsed;
 let current_file_content;               // preserved on open — never overwritten by history selection
-let current_file_content_tagged_parsed;
+let current_file_content_tagged_parsed; // ie the html
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -29,7 +29,7 @@ export async function loadContentModal (file_to_open) {
     current_file_content = file_content;
 
     const file_obj = appState.myFiles.find(f => f.filename === file_to_open);
-    appState.openSnapshot = {
+    appState.openFileSnapshot = {
         filepath: file_obj?.filepath ?? file_to_open,
         filename: file_to_open,
         content: file_content,
@@ -43,7 +43,7 @@ export async function loadContentModal (file_to_open) {
 
     // Save snapshot first so the history select reads a consistent state,
     // then fire history load (still fire-and-forget — the select updates when the read completes).
-    await saveBackupEntry(appState.openSnapshot, 'open');
+    await saveBackupEntry(appState.openFileSnapshot, 'open');
     loadHistorySelect(file_to_open);
 }
 
@@ -130,6 +130,9 @@ export function fileContentRender() {
     if (getIsCurrentVersion()) {
         clearDiffHighlights();
     } else {
+        console.log(file_content.slice(0,100));
+        console.log(current_file_content.slice(0,100));
+
         applyDiffHighlights(file_content, current_file_content);
     }
 
