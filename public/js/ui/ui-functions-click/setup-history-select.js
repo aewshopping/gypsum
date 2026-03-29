@@ -14,21 +14,17 @@ export function initHistorySelect(filename) {
 }
 
 /**
- * Reads backup history for the file and repopulates the select.
- * Suppresses the most recent entry if its content matches currentContent
- * (it was saved by a prior session and adds no information beyond what is already open).
+ * Reads backup history for the file and repopulates the select with all entries.
+ * The snapshot saved on open is intentionally shown — it serves as the baseline
+ * the user can compare their in-session edits against.
  * Intentionally fire-and-forget — the select updates when the read completes.
  * @param {string} filename
- * @param {string} currentContent - The raw content currently displayed.
  * @returns {void}
  */
-export function loadHistorySelect(filename, currentContent) {
+export function loadHistorySelect(filename) {
     readBackupHistory(filename).then(entries => {
-        const displayEntries = (entries.length > 0 && entries[0].content === currentContent)
-            ? entries.slice(1)
-            : entries;
-        appState.historyEntries = displayEntries;
+        appState.historyEntries = entries;
         document.getElementById('file-content-history-select').innerHTML =
-            renderHistorySelect(filename, displayEntries);
+            renderHistorySelect(filename, entries);
     });
 }

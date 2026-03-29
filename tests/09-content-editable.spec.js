@@ -51,9 +51,10 @@ test.describe('contentEditable state in TXT mode', () => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
-    await waitForHistoryOptions(page, 2);
+    // on-open snapshot (v-1) + historical entry (v-2) = 3 total
+    await waitForHistoryOptions(page, 3);
 
-    await page.selectOption('#file-content-history-select', { index: 1 });
+    await page.selectOption('#file-content-history-select', { index: 2 });
     await switchToTxt(page);
 
     const editable = await page.evaluate(() =>
@@ -66,9 +67,9 @@ test.describe('contentEditable state in TXT mode', () => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
-    await waitForHistoryOptions(page, 2);
+    await waitForHistoryOptions(page, 3);
 
-    await page.selectOption('#file-content-history-select', { index: 1 });
+    await page.selectOption('#file-content-history-select', { index: 2 });
     await switchToTxt(page);
     await page.selectOption('#file-content-history-select', { value: 'current' });
 
@@ -82,14 +83,14 @@ test.describe('contentEditable state in TXT mode', () => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
-    await waitForHistoryOptions(page, 2);
+    await waitForHistoryOptions(page, 3);
 
     await switchToTxt(page);
     await page.evaluate(() => {
       document.querySelector('#modal-content-text pre').textContent = 'my edited content';
     });
 
-    await page.selectOption('#file-content-history-select', { index: 1 });
+    await page.selectOption('#file-content-history-select', { index: 2 });
     await expect(page.locator('#modal-content-text')).toContainText('Old content from yesterday');
 
     await page.selectOption('#file-content-history-select', { value: 'current' });
@@ -102,7 +103,7 @@ test.describe('contentEditable state in TXT mode', () => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
-    await waitForHistoryOptions(page, 2);
+    await waitForHistoryOptions(page, 3);
 
     await switchToTxt(page);
     await page.evaluate(() => {
@@ -112,7 +113,7 @@ test.describe('contentEditable state in TXT mode', () => {
     // Toggle to HTML — this syncs file_content via handleToggleRenderText
     await switchToHtml(page);
 
-    await page.selectOption('#file-content-history-select', { index: 1 });
+    await page.selectOption('#file-content-history-select', { index: 2 });
     await expect(page.locator('#modal-content-text')).toContainText('Old content from yesterday');
 
     await page.selectOption('#file-content-history-select', { value: 'current' });
@@ -146,10 +147,10 @@ test.describe('contentEditable state in TXT mode', () => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
-    await waitForHistoryOptions(page, 2);
+    await waitForHistoryOptions(page, 3);
 
     // Switch to history and toggle TXT→HTML
-    await page.selectOption('#file-content-history-select', { index: 1 });
+    await page.selectOption('#file-content-history-select', { index: 2 });
     await switchToTxt(page);
     await switchToHtml(page);
 

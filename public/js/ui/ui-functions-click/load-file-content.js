@@ -1,15 +1,11 @@
 import { appState } from '../../services/store.js';
-import { marked }  from '../../services/marked.eos.js';
-import { tagParser } from '../../services/file-tagparser.js';
-import { wrapFrontMatter } from '../../services/file-parsing/yaml-wrap-frontmatter.js';
+import { parseContent } from '../../services/parse-content.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
+import { applyDiffHighlights, clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { getIsCurrentVersion, setIsCurrentVersion } from '../../editing/editable-state.js';
 import { capturePreEdits } from '../../editing/capture-pre-edits.js';
-
-const YAML_WRAP_BEFORE = "<pre class='pre-bg'><code>";
-const YAML_WRAP_AFTER = "</pre></code>";
 
 let file_content;               // current working content (may be a historical snapshot)
 let file_content_tagged_parsed;
@@ -17,17 +13,9 @@ let current_file_content;               // preserved on open — never overwritt
 let current_file_content_tagged_parsed;
 
 /**
- * Wraps front matter, parses tags, and renders markdown for the given raw text.
- * @param {string} text - Raw file content.
- * @returns {string} Parsed HTML string ready for injection into the modal.
- */
-function parseContent(text) {
-    return marked(tagParser(wrapFrontMatter(text, YAML_WRAP_BEFORE, YAML_WRAP_AFTER)));
-}
-
-/**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
- * Also fires a backup write and concurrently populates the history select.
+ * Saves a backup snapshot first, then populates the history select so the select always reflects a
+ * state that includes the just-written entry and can correctly suppress it via the duplicate check.
  * @async
  * @param {string} file_to_open - The name of the file to load content for.
  * @returns {Promise<void>}
@@ -47,16 +35,16 @@ export async function loadContentModal (file_to_open) {
         content: file_content,
     };
 
-    // Fire backup write and history load concurrently — intentionally not awaited.
-    // Reading before the write completes means history shows only past states.
-    saveBackupEntry(appState.openSnapshot, 'open');
-    loadHistorySelect(file_to_open, file_content);
-
     file_content_tagged_parsed = parseContent(file_content);
     current_file_content_tagged_parsed = file_content_tagged_parsed;
 
     setIsCurrentVersion(true);
     fileContentRender();
+
+    // Save snapshot first so the history select reads a consistent state,
+    // then fire history load (still fire-and-forget — the select updates when the read completes).
+    await saveBackupEntry(appState.openSnapshot, 'open');
+    loadHistorySelect(file_to_open);
 }
 
 /**
@@ -138,5 +126,11 @@ export function fileContentRender() {
     }
 
     highlightPropMatches();
+
+    if (getIsCurrentVersion()) {
+        clearDiffHighlights();
+    } else {
+        applyDiffHighlights(file_content, current_file_content);
+    }
 
 }

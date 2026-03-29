@@ -13,7 +13,7 @@ const BACKUP_FILENAME = 'history.gypsum';
  *
  * @async
  * @param {string} filename
- * @returns {Promise<Array<{filepath: string, filename: string, content: string, timestamp: string, event: string}>>}
+ * @returns {Promise<Array<{filepath: string, filename: string, content: string, lineRefs: number[]|undefined, lines: string[]|undefined, timestamp: string, event: string}>>}
  */
 export async function readBackupHistory(filename) {
     if (!appState.dirHandle) return [];
@@ -36,6 +36,8 @@ export async function readBackupHistory(filename) {
                 filepath: s.filepath,
                 filename: s.filename,
                 content: s.lineRefs.map(i => lines[i]).join('\n'),
+                lineRefs: s.lineRefs,
+                lines,
                 timestamp: s.timestamp,
                 event: s.event,
             }));

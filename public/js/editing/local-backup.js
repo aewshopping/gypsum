@@ -20,7 +20,7 @@ function parseHistory(text) {
         const lines = [];
         const lineIndex = new Map();
         const snapshots = parsed.map(entry => {
-            const entryLines = entry.content.split('\n');
+            const entryLines = entry.content.split(/\r?\n/);
             const lineRefs = entryLines.map(line => {
                 if (!lineIndex.has(line)) { lineIndex.set(line, lines.length); lines.push(line); }
                 return lineIndex.get(line);
@@ -43,7 +43,7 @@ function parseHistory(text) {
  * @async
  * @param {{ filepath: string, filename: string, content: string }} snapshot
  * @param {'open' | 'close'} event
- * @returns {Promise<void>}
+ * @returns {Promise<number[]|null>} The lineRefs assigned to the snapshot, or null on failure.
  */
 export async function saveBackupEntry(snapshot, event) {
     if (!appState.dirHandle) return;
@@ -59,13 +59,13 @@ export async function saveBackupEntry(snapshot, event) {
         lines.forEach((line, i) => lineIndex.set(line, i));
 
         // Convert incoming content to lineRefs, extending the pool with new lines
-        const incomingLines = snapshot.content.split('\n');
+        const incomingLines = snapshot.content.split(/\r?\n/);
         const newRefs = incomingLines.map(line => {
             if (!lineIndex.has(line)) { lineIndex.set(line, lines.length); lines.push(line); }
             return lineIndex.get(line);
         });
 
-        // Duplicate check: if last snapshot for this file has identical lineRefs, only refresh timestamp
+        // Duplicate check: if last snapshot for this file has identical lineRefs, skip the write entirely.
         const lastForFile = [...snapshots].reverse().find(
             s => s.filename === snapshot.filename && s.filepath === snapshot.filepath
         );
@@ -74,7 +74,7 @@ export async function saveBackupEntry(snapshot, event) {
             lastForFile.lineRefs.every((v, i) => v === newRefs[i]);
 
         if (isDuplicate) {
-            lastForFile.timestamp = new Date().toISOString();
+            return newRefs;
         } else {
             snapshots.push({
                 filepath: snapshot.filepath,
@@ -102,7 +102,9 @@ export async function saveBackupEntry(snapshot, event) {
         const writable = await fileHandle.createWritable();
         await writable.write(JSON.stringify({ lines, snapshots }, null, 2));
         await writable.close();
+        return newRefs;
     } catch {
         // Never crash the app over a backup failure
+        return null;
     }
 }

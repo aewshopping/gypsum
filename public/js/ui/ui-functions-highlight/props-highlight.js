@@ -9,8 +9,8 @@ import { searchContainer } from "./treewalker-highlight.js";
  * @returns {void}
  */
 export function updatePropHighlights(elementIds) {
-    // Clear all existing highlights for a fresh start
-    CSS.highlights.clear();
+    // Clear search highlights only — other named highlights (e.g. diff-old) are preserved
+    CSS.highlights.delete('match');
 
     const allRanges = [];
 
