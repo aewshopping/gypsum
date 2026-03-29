@@ -7,133 +7,118 @@ import { loadHistorySelect } from './setup-history-select.js';
 import { getIsCurrentVersion, setIsCurrentVersion } from '../../editing/editable-state.js';
 import { capturePreEdits } from '../../editing/capture-pre-edits.js';
 
-let file_content;               // current working content (may be a historical snapshot)
-let file_content_tagged_parsed;
-let current_file_content;               // preserved on open — never overwritten by history selection
-let current_file_content_tagged_parsed; // ie the html
+// Represents the content currently visible in the modal (could be historical)
+let activeRawContent; 
+let activeHtmlContent;
+
+// Represents the "true" current state of the file, preserved during history browsing
+let liveRawContent; 
+let liveHtmlContent;
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
- * Saves a backup snapshot first, then populates the history select so the select always reflects a
- * state that includes the just-written entry and can correctly suppress it via the duplicate check.
  * @async
- * @param {string} file_to_open - The name of the file to load content for.
- * @returns {Promise<void>}
+ * @param {string} fileToOpen - The name of the file to load content for.
  */
-export async function loadContentModal (file_to_open) {
+export async function loadContentModal(fileToOpen) {
+    const fileHandle = appState.myFileHandlesMap.get(fileToOpen);
+    const fileChosen = await fileHandle.getFile();
+    
+    // On initial load, the active content and live content are identical
+    activeRawContent = await fileChosen.text();
+    liveRawContent = activeRawContent;
 
-    const file_handle = appState.myFileHandlesMap.get(file_to_open);
-
-    const file_chosen = await file_handle.getFile();
-    file_content = await file_chosen.text();
-    current_file_content = file_content;
-
-    const file_obj = appState.myFiles.find(f => f.filename === file_to_open);
+    const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
     appState.openFileSnapshot = {
-        filepath: file_obj?.filepath ?? file_to_open,
-        filename: file_to_open,
-        content: file_content,
+        filepath: fileObj?.filepath ?? fileToOpen,
+        filename: fileToOpen,
+        content: activeRawContent,
     };
 
-    file_content_tagged_parsed = parseContent(file_content);
-    current_file_content_tagged_parsed = file_content_tagged_parsed;
+    activeHtmlContent = parseContent(activeRawContent);
+    liveHtmlContent = activeHtmlContent;
 
     setIsCurrentVersion(true);
     fileContentRender();
 
-    // Save snapshot first so the history select reads a consistent state,
-    // then fire history load (still fire-and-forget — the select updates when the read completes).
     await saveBackupEntry(appState.openFileSnapshot, 'open');
-    loadHistorySelect(file_to_open);
+    loadHistorySelect(fileToOpen);
 }
 
 /**
- * Restores the modal to the current file content (undoes any historical selection).
- * Uses the preserved current vars so that toggling html/txt works correctly.
- * @returns {void}
+ * Restores the modal to the live file content (undoes any historical selection).
  */
 export function restoreCurrentContent() {
-    file_content = current_file_content;
-    file_content_tagged_parsed = current_file_content_tagged_parsed;
+    activeRawContent = liveRawContent;
+    activeHtmlContent = liveHtmlContent;
     setIsCurrentVersion(true);
     fileContentRender();
 }
 
 /**
- * Loads a historical content string into the modal, updating the module-level
- * vars so that the html/txt render toggle continues to work correctly.
- * @param {string} rawContent - The raw file text to render.
- * @returns {void}
+ * Loads a historical content string into the modal.
+ * @param {string} historicalRaw - The raw file text from history to render.
  */
-export function loadHistoricalContent(rawContent) {
+export function loadHistoricalContent(historicalRaw) {
     if (getIsCurrentVersion()) {
         const editedText = capturePreEdits();
         if (editedText !== null) {
-            current_file_content = editedText;
-            current_file_content_tagged_parsed = parseContent(current_file_content);
+            // Preserve the user's current edits as the "live" version before switching view
+            liveRawContent = editedText;
+            liveHtmlContent = parseContent(liveRawContent);
         }
-        // else: current_* already in sync (handleToggleRenderText keeps them updated)
     }
+    
     setIsCurrentVersion(false);
-    file_content = rawContent;
-    file_content_tagged_parsed = parseContent(rawContent);
+    activeRawContent = historicalRaw;
+    activeHtmlContent = parseContent(historicalRaw);
     fileContentRender();
 }
 
 /**
- * Handles the html/txt render toggle. Captures any edits made in the txt <pre>
- * back into the module-level content vars before re-rendering, so that switching
- * to html does not discard in-progress edits. Also keeps current_* vars in sync
- * so that loadHistoricalContent never sees stale current content.
- * @returns {void}
+ * Handles the html/txt render toggle and captures in-progress edits.
  */
 export function handleToggleRenderText() {
     const editedText = capturePreEdits();
     if (editedText !== null) {
-        file_content = editedText;
-        file_content_tagged_parsed = parseContent(file_content);
-        current_file_content = editedText;
-        current_file_content_tagged_parsed = file_content_tagged_parsed;
+        activeRawContent = editedText;
+        activeHtmlContent = parseContent(activeRawContent);
+        
+        // When editing the "current" version, keep live vars in sync
+        liveRawContent = editedText;
+        liveHtmlContent = activeHtmlContent;
     }
     fileContentRender();
 }
 
 /**
- * Renders the loaded file content into the modal text area.
- * Can toggle between rendered markdown and raw text.
- * @returns {void}
+ * Renders the active content into the modal.
  */
 export function fileContentRender() {
-
     const textbox = document.getElementById('modal-content-text');
     const renderToggle = document.getElementById('render_toggle');
+    const isTxtMode = renderToggle.checked;
 
-    const isChecked = renderToggle.checked;
-
-    if (isChecked) {
-
-      textbox.innerHTML = '';
-      const preElement = document.createElement('pre');
-      preElement.classList.add('pre-text-enlarge');
-      preElement.contentEditable = getIsCurrentVersion() ? 'true' : 'false';
-      preElement.textContent = file_content; // Safe escaping - hence can't use template literal sadly
-      textbox.appendChild(preElement);
-
+    if (isTxtMode) {
+        textbox.innerHTML = '';
+        const preElement = document.createElement('pre');
+        preElement.classList.add('pre-text-enlarge');
+        // Only allow editing if we are on the current (live) version
+        preElement.contentEditable = getIsCurrentVersion() ? 'true' : 'false';
+        preElement.textContent = activeRawContent; 
+        textbox.appendChild(preElement);
     } else {
-
-      textbox.innerHTML = file_content_tagged_parsed;
-
+        textbox.innerHTML = activeHtmlContent;
     }
 
+    // apply search highlights if any
     highlightPropMatches();
 
+    // apply diff highlights if a prior version
     if (getIsCurrentVersion()) {
         clearDiffHighlights();
     } else {
-        console.log(file_content.slice(0,100));
-        console.log(current_file_content.slice(0,100));
-
-        applyDiffHighlights(file_content, current_file_content);
+        // Compare the historical "active" content against the "live" current version
+        applyDiffHighlights(activeRawContent, liveRawContent);
     }
-
 }

@@ -1,82 +1,121 @@
 import { parseContent } from '../../services/parse-content.js';
 import { searchContainer } from './treewalker-highlight.js';
+import diff from './fast-diff.js'; // Swapped to fast-diff
 
 const DIFF_HIGHLIGHT_NAME = 'diff-old';
 
 /**
- * Returns the 0-indexed positions of lines in oldLines absent from currentLines,
- * using Symmetric Difference with Unique Occurrences: each line string is treated as a
- * {line}_{nth_occurrence} pair so that duplicate lines are handled correctly.
- * @param {string[]} oldLines
- * @param {string[]} currentLines
- * @returns {number[]}
+ * Identifies indices in the ACTIVE content that are lost, changed, or added-to.
+ * Uses fast-diff to handle insertions/deletions without shifting all subsequent lines.
+ * @param {string} activeRawContent - The historical snapshot being viewed.
+ * @param {string} liveRawContent - The current, up-to-date content.
+ * @returns {Array<number>} Indices relative to the activeLines array.
  */
-function getOldOnlyPositions(oldLines, currentLines) {
-    const currentLineCounts = new Map();
-    for (const line of currentLines) {
-        currentLineCounts.set(line, (currentLineCounts.get(line) ?? 0) + 1);
+export function getLostOrChangedIndices(activeRawContent, liveRawContent) {
+    // 1. NORMALIZE: Force both to use standard \n and trim trailing whitespace
+    // This is the most common cause of the "everything changed" bug.
+    const activeClean = activeRawContent.replace(/\r\n/g, '\n').trimEnd();
+    const liveClean = liveRawContent.replace(/\r\n/g, '\n').trimEnd();
+
+    const diffs = diff(activeClean, liveClean);
+    
+    let activeLineIndex = 0;
+    const affectedIndices = new Set();
+
+    console.group(`%c Diff Analysis `, 'background: #222; color: #bada55');
+
+    for (const [type, text] of diffs) {
+        // Use a consistent split
+        const linesInChunk = text.split('\n');
+        const numNewlines = linesInChunk.length - 1;
+
+        if (type === -1) {
+            // REMOVAL (Old version text)
+            console.log(`%c [-] Change/Removal at Line ${activeLineIndex}`, 'color: #ff4444');
+            for (let i = 0; i <= numNewlines; i++) {
+                affectedIndices.add(activeLineIndex + i);
+            }
+            activeLineIndex += numNewlines;
+        } 
+        else if (type === 1) {
+            // ADDITION (New version text)
+            // We only highlight the current line where the addition happened
+            console.log(`%c [+] Addition at Line ${activeLineIndex}`, 'color: #44ff44');
+            affectedIndices.add(activeLineIndex);
+            // activeLineIndex does NOT move
+        } 
+        else if (type === 0) {
+            // EQUAL (Matches perfectly)
+            activeLineIndex += numNewlines;
+        }
     }
-    const seenInOld = new Map();
-    return oldLines.reduce((acc, line, i) => {
-        if (line.trim() === '') return acc;
-        const occ = (seenInOld.get(line) ?? 0) + 1;
-        seenInOld.set(line, occ);
-        if (occ > (currentLineCounts.get(line) ?? 0)) acc.push(i);
-        return acc;
-    }, []);
+
+    console.log("Indices to Highlight:", [...affectedIndices]);
+    console.groupEnd();
+
+    return [...affectedIndices];
 }
 
+
 /**
- * Highlights lines in the content modal present in the old version but absent from current.
- * The diff compares the historical content against the live current content string (which
- * reflects any edits made by the user in the <pre> before selecting a historical version).
- * TXT mode: precise character-offset ranges in the <pre> text node (position-based, no false positives).
- * HTML mode: each old-only raw line is rendered through parseContent() — the same pipeline as the
- * modal — to get its rendered plain text, which is then searched via searchContainer. This finds
- * headings, paragraphs, list items, and YAML frontmatter lines. Lines whose rendered text spans
- * multiple sibling text nodes (e.g. **bold** inline) won't be highlighted.
- * @param {string} oldContent - Raw text of the historical version.
- * @param {string} currentContent - Raw text of the current version (including any user edits in the pre).
- * @returns {void}
+ * Applies CSS highlights to the current view based on differences from a previous version.
  */
 export function applyDiffHighlights(oldContent, currentContent) {
     CSS.highlights.delete(DIFF_HIGHLIGHT_NAME);
 
-    const oldLines = oldContent.split(/\r?\n/).map(line => line.trimEnd());
-    const currentLines = currentContent.split(/\r?\n/).map(line => line.trimEnd());
-    const changedPositions = getOldOnlyPositions(oldLines, currentLines);
-    if (changedPositions.length === 0) return;
+    // Use our updated logic function to get the indices of interest
+    const lostOrChangedPositions = getLostOrChangedIndices(oldContent, currentContent);
+    if (lostOrChangedPositions.length === 0) return;
 
     const container = document.getElementById('modal-content-text');
     if (!container) return;
 
+    const oldLines = oldContent.split(/\r?\n/).map(line => line.trimEnd());
     const isTxtMode = document.getElementById('render_toggle').checked;
     const ranges = [];
 
     if (isTxtMode) {
+        // Handle the <pre> tag's raw text node directly
         const preEl = container.querySelector('pre');
         if (!preEl?.firstChild) return;
         const textNode = preEl.firstChild;
-        const lines = textNode.nodeValue.split('\n');
+
+        // Split the raw text into lines and map the character starting-offset for every line
+        const displayLines = textNode.nodeValue.split('\n');
         const lineOffsets = [];
         let offset = 0;
-        for (const line of lines) {
+        for (const line of displayLines) {
             lineOffsets.push(offset);
-            offset += line.length + 1; // +1 for '\n'
+            offset += line.length + 1; // +1 accounts for the '\n' character
         }
-        for (const pos of changedPositions) {
-            if (pos >= lines.length || lines[pos].length === 0) continue;
+
+        // Loop through the indices identified as "lost" or "changed"
+        for (const pos of lostOrChangedPositions) {
+            // Skip if the index is out of bounds or if the line is empty (nothing to highlight)
+            if (pos >= displayLines.length || displayLines[pos].length === 0) continue;
+
+            // Create a precise selection range based on character indices in the text node
             const range = new Range();
-            range.setStart(textNode, lineOffsets[pos]);
-            range.setEnd(textNode, lineOffsets[pos] + lines[pos].length);
+            range.setStart(textNode, lineOffsets[pos]); // Start of the line
+            range.setEnd(textNode, lineOffsets[pos] + displayLines[pos].length); // End of the line
             ranges.push(range);
         }
     } else {
+        // Handle HTML mode: finding text within rendered elements (headings, list items, etc.)
         const tempDiv = document.createElement('div');
-        for (const pos of changedPositions) {
-            tempDiv.innerHTML = parseContent(oldLines[pos]);
+        for (const pos of lostOrChangedPositions) {
+            // Retrieve the actual string content from the old version using the index
+            const lineToSearch = oldLines[pos];
+            if (!lineToSearch) continue;
+
+            // Convert raw markdown/text into HTML, then extract the plain text for searching
+            tempDiv.innerHTML = parseContent(lineToSearch);
             const renderedText = tempDiv.textContent.trim();
-            if (renderedText) searchContainer(container, renderedText, ranges);
+
+            // If the line resulted in visible text, search the DOM for it and add to ranges
+            if (renderedText) {
+                searchContainer(container, renderedText, ranges);
+            }
         }
     }
 
