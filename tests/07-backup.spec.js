@@ -34,7 +34,7 @@ test.describe('local file backup', () => {
     expect(typeof parsed.snapshots[0].timestamp).toBe('string');
   });
 
-  test('deduplicates close event when content unchanged, updating timestamp only', async ({ page }) => {
+  test('deduplicates close event when content unchanged, making no write', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
     await page.click('[data-click-loadfolder]');
@@ -48,13 +48,15 @@ test.describe('local file backup', () => {
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
-    // Wait for the backup to be rewritten (timestamp update triggers a new write)
-    await page.waitForFunction((prev) => window.__backupFileContent !== prev, snapshotAfterOpen);
+    // Give the async close-save time to run (and confirm it does nothing on duplicate).
+    await page.waitForTimeout(300);
 
-    const parsed = await page.evaluate(() => JSON.parse(window.__backupFileContent));
+    const backupAfterClose = await page.evaluate(() => window.__backupFileContent);
+    expect(backupAfterClose).toBe(snapshotAfterOpen); // file not rewritten
+
+    const parsed = JSON.parse(backupAfterClose);
     expect(parsed.snapshots).toHaveLength(1);
-    expect(parsed.snapshots[0].filename).toBe('notes.md');
-    expect(parsed.snapshots[0].timestamp).not.toBe(timestampAfterOpen);
+    expect(parsed.snapshots[0].timestamp).toBe(timestampAfterOpen); // timestamp unchanged
   });
 
   test('appends a new entry when a different file is opened', async ({ page }) => {
@@ -156,11 +158,19 @@ test.describe('local file backup', () => {
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
     // Re-open alpha with identical content — must deduplicate against alpha's earlier entry,
-    // not beta's (the globally last entry). Entry count must stay at 2.
+    // not beta's (the globally last entry). No write should occur; entry count must stay at 2.
     const snapshotBefore = await page.evaluate(() => window.__backupFileContent);
     await page.locator('[data-action="open-file-content-modal"][data-filename="alpha.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
-    await page.waitForFunction((prev) => window.__backupFileContent !== prev, snapshotBefore);
+    // Wait for modal to be fully loaded (history select populated) then confirm no extra write.
+    await page.waitForFunction(() => {
+      const sel = document.getElementById('file-content-history-select');
+      return sel && sel.options.length >= 2;
+    });
+    await page.waitForTimeout(200);
+
+    const backupAfterReopen = await page.evaluate(() => window.__backupFileContent);
+    expect(backupAfterReopen).toBe(snapshotBefore); // no write on duplicate
 
     const parsed = await page.evaluate(() => JSON.parse(window.__backupFileContent));
     expect(parsed.snapshots).toHaveLength(2);

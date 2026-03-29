@@ -65,7 +65,7 @@ export async function saveBackupEntry(snapshot, event) {
             return lineIndex.get(line);
         });
 
-        // Duplicate check: if last snapshot for this file has identical lineRefs, only refresh timestamp
+        // Duplicate check: if last snapshot for this file has identical lineRefs, skip the write entirely.
         const lastForFile = [...snapshots].reverse().find(
             s => s.filename === snapshot.filename && s.filepath === snapshot.filepath
         );
@@ -74,7 +74,7 @@ export async function saveBackupEntry(snapshot, event) {
             lastForFile.lineRefs.every((v, i) => v === newRefs[i]);
 
         if (isDuplicate) {
-            lastForFile.timestamp = new Date().toISOString();
+            return newRefs;
         } else {
             snapshots.push({
                 filepath: snapshot.filepath,
