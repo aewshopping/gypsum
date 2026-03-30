@@ -5,7 +5,6 @@ import { applyDiffHighlights, clearDiffHighlights } from '../ui-functions-highli
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { getIsCurrentVersion, setIsCurrentVersion } from '../../editing/editable-state.js';
-import { capturePreEdits } from '../../editing/capture-pre-edits.js';
 
 // Represents the content currently visible in the modal (could be historical)
 let activeRawContent; 
@@ -61,14 +60,10 @@ export function restoreCurrentContent() {
  */
 export function loadHistoricalContent(historicalRaw) {
     if (getIsCurrentVersion()) {
-        const editedText = capturePreEdits();
-        if (editedText !== null) {
-            // Preserve the user's current edits as the "live" version before switching view
-            liveRawContent = editedText;
-            liveHtmlContent = parseContent(liveRawContent);
-        }
+        // liveRawContent is kept current by the input listener; ensure HTML is in sync
+        liveHtmlContent = parseContent(liveRawContent);
     }
-    
+
     setIsCurrentVersion(false);
     activeRawContent = historicalRaw;
     activeHtmlContent = parseContent(historicalRaw);
@@ -76,16 +71,12 @@ export function loadHistoricalContent(historicalRaw) {
 }
 
 /**
- * Handles the html/txt render toggle and captures in-progress edits.
+ * Handles the html/txt render toggle and re-parses in-progress edits.
  */
 export function handleToggleRenderText() {
-    const editedText = capturePreEdits();
-    if (editedText !== null) {
-        activeRawContent = editedText;
+    if (getIsCurrentVersion()) {
+        // activeRawContent is kept current by the input listener; re-parse for HTML mode
         activeHtmlContent = parseContent(activeRawContent);
-        
-        // When editing the "current" version, keep live vars in sync
-        liveRawContent = editedText;
         liveHtmlContent = activeHtmlContent;
     }
     fileContentRender();
@@ -105,7 +96,13 @@ export function fileContentRender() {
         preElement.classList.add('pre-text-enlarge');
         // Only allow editing if we are on the current (live) version
         preElement.contentEditable = getIsCurrentVersion() ? 'true' : 'false';
-        preElement.textContent = activeRawContent; 
+        preElement.textContent = activeRawContent;
+        if (getIsCurrentVersion()) {
+            preElement.addEventListener('input', () => {
+                activeRawContent = preElement.innerText;
+                liveRawContent = activeRawContent;
+            });
+        }
         textbox.appendChild(preElement);
     } else {
         textbox.innerHTML = activeHtmlContent;
