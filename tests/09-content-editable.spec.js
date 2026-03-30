@@ -44,7 +44,7 @@ test.describe('contentEditable state in TXT mode', () => {
     const editable = await page.evaluate(() =>
       document.querySelector('#modal-content-text pre')?.contentEditable
     );
-    expect(editable).toBe('true');
+    expect(editable).toBe('plaintext-only');
   });
 
   test('pre is not editable when viewing a historical version', async ({ page }) => {
@@ -76,7 +76,7 @@ test.describe('contentEditable state in TXT mode', () => {
     const editable = await page.evaluate(() =>
       document.querySelector('#modal-content-text pre')?.contentEditable
     );
-    expect(editable).toBe('true');
+    expect(editable).toBe('plaintext-only');
   });
 
   test('edits in TXT mode survive a history round-trip (no HTML toggle)', async ({ page }) => {
@@ -87,7 +87,9 @@ test.describe('contentEditable state in TXT mode', () => {
 
     await switchToTxt(page);
     await page.evaluate(() => {
-      document.querySelector('#modal-content-text pre').textContent = 'my edited content';
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'my edited content';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     await page.selectOption('#file-content-history-select', { index: 2 });
@@ -107,7 +109,9 @@ test.describe('contentEditable state in TXT mode', () => {
 
     await switchToTxt(page);
     await page.evaluate(() => {
-      document.querySelector('#modal-content-text pre').textContent = 'my edited content';
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'my edited content';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     // Toggle to HTML — this syncs file_content via handleToggleRenderText
@@ -129,15 +133,16 @@ test.describe('contentEditable state in TXT mode', () => {
     await openModal(page);
 
     await switchToTxt(page);
-    // Simulate browser inserting <br> on Enter in contenteditable (bypassing textContent setter)
+    // Simulate pressing Enter in plaintext-only contenteditable — browser inserts \n, not <br>
     await page.evaluate(() => {
-      document.querySelector('#modal-content-text pre').innerHTML = 'paragraph one<br><br>paragraph two';
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'paragraph one\n\nparagraph two';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     await switchToHtml(page);
 
-    // With the bug (textContent), <br> is invisible so output is "paragraph oneparagraph two" — one blob.
-    // With the fix (innerText), <br> → \n so markdown sees \n\n and creates two <p> elements.
+    // \n\n in the raw text is a markdown paragraph break → two separate <p> elements.
     const html = await page.locator('#modal-content-text').innerHTML();
     expect(html).toMatch(/<p>.*paragraph one.*<\/p>/s);
     expect(html).toMatch(/<p>.*paragraph two.*<\/p>/s);

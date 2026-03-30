@@ -16,6 +16,6 @@ body:has(#and_filter:checked) ::highlight(match) {
 }
 
 ::highlight(diff-old) {
-    background-color: color-mix(in srgb, var(--colour-contr-warning) 30%, transparent);
+    background-color: color-mix(in srgb, var(--colour-compl-alt-emph) 50%, transparent); /* TO ADD */
     color: inherit;
 }
