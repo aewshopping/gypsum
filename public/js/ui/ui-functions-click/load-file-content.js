@@ -95,7 +95,7 @@ export function fileContentRender() {
         const preElement = document.createElement('pre');
         preElement.classList.add('pre-text-enlarge');
         // Only allow editing if we are on the current (live) version
-        preElement.contentEditable = getIsCurrentVersion() ? 'true' : 'false';
+        preElement.contentEditable = getIsCurrentVersion() ? 'plaintext-only' : 'false';
         preElement.textContent = activeRawContent;
         if (getIsCurrentVersion()) {
             preElement.addEventListener('input', () => {
