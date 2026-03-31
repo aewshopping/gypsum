@@ -4,14 +4,14 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 
 ## What's the point of it?
 
-- Because it works client side in the browser you can use it on any computer. Either served as a normal webpage or just download the single bundled html file. Unlike Obsidian you don't need to download a desktop application.
-- It does have depencencies (for example `marked.js`) but those are included as bundled files rather than using the official cdn. Ie no *remote* dependencies are used.
-- Because I decided to ES Modules the downloaded files and directories will not work directly on the file system. I am therefore bundling the js with a github action and saving as a artefact. The artefact bundles all js and css into a single file that can be downloaded.
+- Because it works client side in the browser you can use it on any computer. Either served as a normal webpage or just download the single bundled html file. Unlike Obsidian you don't need to download a massive desktop application.
+- It does have depencencies (for example `marked.js` and `fast diff`) but those are included as bundled files rather than using the official cdn. Ie no *remote* dependencies are used.
+- Because I decided to use ES Modules the downloaded files and directories will not work directly on the file system. I am therefore bundling the js with a github action and saving as a artefact. The artefact bundles all js and css into a single file that can be downloaded.
 - It is also intended to be simple enough for me to understand not only now but in the future too, so that it is easier to modify and muck around with.
 
 ## What can you do with it?
 
-1. You can view text files. You can't edit them. Maybe later you can if I every trust myself to implement this.
+1. You can view text files. Editing files is a work in progress, I am building the safety features first.
 2. You can render markdown as html via the use of `marked.js`.
 3. You use tags like `#this` to easily associate text files.
 4. You can filter notes based on selected tags, either with an `and` filter or an `or` filter.
@@ -21,9 +21,9 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 ## Limitations
 
 1. There are many limitations, but perhaps the biggest one is the number of files it can cope with. Probably no more than a thousand before the browser starts complaining. This can be relatively easily rectified with selective rendering of files (eg pagination) but this is not yet implemented.
-2. You can't edit the files. (There is a handy 'copy file name' bit of functionality though which I use to easily open the required file in my text files folder on windows explorer).
-3. It only takes the notes in the top level of a folder, it doesn't use sub folders.
-4. For tag hierarchies only one level of tag classifcation is allowed. Ie `#that/this` is fine `#that/this/them` isn't.
+2. For tag hierarchies only one level of tag classifcation is allowed. Ie `#that/this` is fine `#that/this/them` isn't.
+3. Editing still not quite there.
+4. It is only tested on up to date versions of Chrome and Edge. It relies on a fair bit of new and newish css to work so I suspect that Safari would mess things up and Firefox would be way behind.
 
 ## Immediate to do list
 
