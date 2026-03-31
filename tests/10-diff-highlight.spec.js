@@ -31,6 +31,24 @@ test.describe('diff highlighting', () => {
     expect(hasHighlight).toBe(true);
   });
 
+  test('diff-old highlight is applied in TXT mode', async ({ page }) => {
+    await setupMockDirectoryWithHistoryLinePool(page);
+    await page.goto('/');
+    await openModal(page);
+
+    // Switch to TXT mode before selecting history
+    await page.evaluate(() => {
+      const t = document.getElementById('render_toggle');
+      if (!t.checked) t.click();
+    });
+    await expect(page.locator('#modal-content-text pre')).toBeVisible();
+
+    await page.selectOption('#file-content-history-select', { index: 2 });
+
+    const hasHighlight = await page.evaluate(() => CSS.highlights.has('diff-old'));
+    expect(hasHighlight).toBe(true);
+  });
+
   test('switching back to current version removes diff-old highlight', async ({ page }) => {
     await setupMockDirectoryWithHistoryLinePool(page);
     await page.goto('/');
