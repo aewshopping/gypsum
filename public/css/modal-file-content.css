@@ -40,7 +40,12 @@
   width: 65ch;
   max-width:100%;
   transition: width var(--maximise-modal-transition), --modal-top-bottom-margin var(--maximise-modal-transition);
-/*  height: 95vh;*/
+  border: 2px, solid, transparent; /* create space for later */
+  /*  height: 95vh;*/
+
+  &:has(#modal-content-text:focus-within){ /* provide subtle visual indicator */
+	  border: 2px, solid, var(--colour-contr);
+  }
 }
 
 body{
@@ -97,4 +102,8 @@ html {
 
 #modal-content-text {
   margin-bottom: 200px; /* to allow scrolling below last bit of text for easier reading */
+
+  & > pre {
+    outline: none; /* focus-within targets parent element border*/
+  }
 }
