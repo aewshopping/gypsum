@@ -75,29 +75,29 @@ export function applyDiffHighlights(oldContent, currentContent) {
     const ranges = [];
 
     if (isTxtMode) {
-        // Handle the <pre> tag's raw text node directly
+        // Content is rendered as text nodes separated by <br> elements.
+        // Build a line-index → text-node map by walking the child nodes.
         const preEl = container.querySelector('pre');
-        if (!preEl?.firstChild) return;
-        const textNode = preEl.firstChild;
+        if (!preEl) return;
 
-        // Split the raw text into lines and map the character starting-offset for every line
-        const displayLines = textNode.nodeValue.split('\n');
-        const lineOffsets = [];
-        let offset = 0;
-        for (const line of displayLines) {
-            lineOffsets.push(offset);
-            offset += line.length + 1; // +1 accounts for the '\n' character
+        const lineNodes = [];
+        let currentLineNode = null;
+        for (const child of preEl.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) {
+                currentLineNode = child;
+            } else if (child.nodeName === 'BR') {
+                lineNodes.push(currentLineNode);
+                currentLineNode = null;
+            }
         }
+        lineNodes.push(currentLineNode); // last line (or only line when no <br> present)
 
-        // Loop through the indices identified as "lost" or "changed"
         for (const pos of lostOrChangedPositions) {
-            // Skip if the index is out of bounds or if the line is empty (nothing to highlight)
-            if (pos >= displayLines.length || displayLines[pos].length === 0) continue;
-
-            // Create a precise selection range based on character indices in the text node
+            const node = lineNodes[pos];
+            if (!node || node.nodeValue.length === 0) continue;
             const range = new Range();
-            range.setStart(textNode, lineOffsets[pos]); // Start of the line
-            range.setEnd(textNode, lineOffsets[pos] + displayLines[pos].length); // End of the line
+            range.setStart(node, 0);
+            range.setEnd(node, node.nodeValue.length);
             ranges.push(range);
         }
     } else {
