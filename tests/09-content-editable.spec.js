@@ -148,6 +148,88 @@ test.describe('contentEditable state in TXT mode', () => {
     expect(html).toMatch(/<p>.*paragraph two.*<\/p>/s);
   });
 
+  test('line breaks in the source file are rendered as <br> elements in TXT mode', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+
+    await switchToTxt(page);
+
+    const innerHTML = await page.evaluate(() =>
+      document.querySelector('#modal-content-text pre').innerHTML
+    );
+    expect(innerHTML).toContain('<br>');
+    // One \n in the source → exactly one <br>
+    expect(innerHTML.split('<br>').length - 1).toBe(1);
+  });
+
+  test('HTML special characters in TXT mode are displayed as literal text', async ({ page }) => {
+    await page.addInitScript(() => {
+      const content = 'Price: $5 <small>, tax & fees\nNext line >';
+      const makeFile = (name, c) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: c.length, lastModified: Date.now(), text: async () => c }),
+      });
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () { yield makeFile('notes.md', content); },
+        getFileHandle: async () => { throw new Error('no backup'); },
+      });
+    });
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+
+    await page.evaluate(() => {
+      const t = document.getElementById('render_toggle');
+      if (!t.checked) t.click();
+    });
+    await expect(page.locator('#modal-content-text pre')).toBeVisible();
+
+    // The raw HTML must not contain a live <small> element
+    const hasSmallTag = await page.evaluate(() =>
+      !!document.querySelector('#modal-content-text pre small')
+    );
+    expect(hasSmallTag).toBe(false);
+
+    // textContent should preserve the original characters verbatim
+    const text = await page.locator('#modal-content-text pre').textContent();
+    expect(text).toContain('<small>');
+    expect(text).toContain('& fees');
+  });
+
+  test('Windows-style \\r\\n line endings are rendered as <br> elements', async ({ page }) => {
+    await page.addInitScript(() => {
+      const content = 'line one\r\nline two\r\nline three';
+      const makeFile = (name, c) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: c.length, lastModified: Date.now(), text: async () => c }),
+      });
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () { yield makeFile('notes.md', content); },
+        getFileHandle: async () => { throw new Error('no backup'); },
+      });
+    });
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+
+    await page.evaluate(() => {
+      const t = document.getElementById('render_toggle');
+      if (!t.checked) t.click();
+    });
+    await expect(page.locator('#modal-content-text pre')).toBeVisible();
+
+    const innerHTML = await page.evaluate(() =>
+      document.querySelector('#modal-content-text pre').innerHTML
+    );
+    // Two \r\n → two <br>
+    expect(innerHTML.split('<br>').length - 1).toBe(2);
+  });
+
   test('toggling in history view does not pollute current_file_content', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
