@@ -1,6 +1,7 @@
 import { parseContent } from '../../services/parse-content.js';
 import { searchContainer } from './treewalker-highlight.js';
 import diff from './fast-diff.js'; // Swapped to fast-diff
+import { applyCharDiffHighlights, clearCharDiffHighlights } from './diff-highlight-chars.js';
 
 const DIFF_HIGHLIGHT_NAME = 'diff-old';
 
@@ -122,6 +123,10 @@ export function applyDiffHighlights(oldContent, currentContent) {
     if (ranges.length > 0) {
         CSS.highlights.set(DIFF_HIGHLIGHT_NAME, new Highlight(...ranges));
     }
+
+    if (isTxtMode) {
+        applyCharDiffHighlights(oldContent, currentContent);
+    }
 }
 
 /**
@@ -130,4 +135,5 @@ export function applyDiffHighlights(oldContent, currentContent) {
  */
 export function clearDiffHighlights() {
     CSS.highlights.delete(DIFF_HIGHLIGHT_NAME);
+    clearCharDiffHighlights();
 }
