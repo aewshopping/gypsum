@@ -102,10 +102,7 @@ export function fileContentRender() {
             .replace(/>/g, '&gt;')
             .replace(/\r\n|\r|\n/g, '<br>');
         if (getIsCurrentVersion()) {
-            preElement.addEventListener('input', () => {
-                activeRawContent = preElement.innerText;
-                liveRawContent = activeRawContent;
-            });
+            preElement.dataset.action = 'file-content-edit';
         }
         textbox.appendChild(preElement);
     } else {
@@ -122,4 +119,13 @@ export function fileContentRender() {
         // Compare the historical "active" content against the "live" current version
         applyDiffHighlights(activeRawContent, liveRawContent);
     }
+}
+
+/**
+ * Saves the current text content of the editable pre element to module state.
+ * @param {Event} evt - The input event from the contentEditable pre element.
+ */
+export function handleFileContentInput(evt) {
+    activeRawContent = evt.target.innerText;
+    liveRawContent = activeRawContent;
 }
