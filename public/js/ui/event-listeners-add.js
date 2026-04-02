@@ -9,7 +9,7 @@ import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
-import { handleToggleRenderText } from './ui-functions-click/load-file-content.js';
+import { handleToggleRenderText, handleFileContentInput } from './ui-functions-click/load-file-content.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -26,6 +26,7 @@ export function addActionHandlers() {
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
     document.addEventListener("keyup", keyUpDelegate);
+    document.addEventListener("input", inputDelegate);
 }
 
 // Map 'data-action' names from html to their handler functions.
@@ -55,6 +56,10 @@ const changeActionHandlers = {
 const keyUpActionHandlers = {
     // Only elements that emit a change event should use these data-actions
     'search-files': handleSearchBoxEnterPress,
+};
+
+const inputActionHandlers = {
+    'file-content-edit': handleFileContentInput,
 };
 
 /**
@@ -105,6 +110,24 @@ function keyUpDelegate(evt) {
     if (actionElement) {
         const actionName = actionElement.dataset.action;
         const handler = keyUpActionHandlers[actionName]; // Check the CHANGE map
+
+        if (handler) {
+            handler(evt, actionElement);
+        }
+    }
+}
+
+/**
+ * Handles all input events on the document and delegates them to the appropriate handler.
+ * It looks for a `data-action` attribute on the element that triggered the event or its ancestors.
+ * @param {Event} evt The input event.
+ */
+function inputDelegate(evt) {
+    const actionElement = evt.target.closest('[data-action]');
+
+    if (actionElement) {
+        const actionName = actionElement.dataset.action;
+        const handler = inputActionHandlers[actionName];
 
         if (handler) {
             handler(evt, actionElement);
