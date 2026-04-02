@@ -2,7 +2,7 @@
 // - the key reason it is so long is because it is controlling a view transition 
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
-import { loadContentModal } from './load-file-content.js';
+import { loadContentModal, hasUnsavedChanges } from './load-file-content.js';
 import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
@@ -11,8 +11,15 @@ const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const filenamebox = document.getElementById('file-content-filename');
 const scrollingContent = document.getElementById("modal-content");
+const warningPopover = document.getElementById('modal-unsaved-warning');
 
 let file_box; // so we can access the target on close modal too
+let pendingClose = false;
+
+dialog.addEventListener('cancel', (evt) => {
+    evt.preventDefault(); // prevent native close, which bypasses our view transition
+    handleCloseModal();
+});
 
 /**
  * Handles the click event to open the file content modal with a view transition.
@@ -21,6 +28,9 @@ let file_box; // so we can access the target on close modal too
  * @returns {void}
  */
 export function handleOpenFileContent(event, target) {
+
+  pendingClose = false;
+  warningPopover.hidePopover();
 
   const file_to_open = target.dataset.filename;
   file_box = target;
@@ -70,6 +80,14 @@ export function handeCloseModalOutside(event, target) {
  * @returns {void}
  */
 export function handleCloseModal() {
+
+  if (hasUnsavedChanges() && !pendingClose) {
+    pendingClose = true;
+    warningPopover.showPopover();
+    return;
+  }
+  pendingClose = false;
+  warningPopover.hidePopover();
 
   if (appState.openFileSnapshot) {
     appState.closeSnapshot = { ...appState.openFileSnapshot }; // identical for now; will differ once editing lands

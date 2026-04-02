@@ -1,0 +1,18 @@
+#modal-close-btn {
+    anchor-name: --modal-close-btn;
+}
+
+#modal-unsaved-warning {
+    position: fixed;
+    position-anchor: --modal-close-btn;
+    top: anchor(bottom);
+    right: calc(100vw - anchor(right));
+    margin-block-start: 4px;
+    padding: 6px 10px;
+    border: 1px solid var(--colour-contr-warning);
+    border-radius: 4px;
+    background: var(--colour-neutral-alt);
+    color: var(--colour-contr-warning);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}

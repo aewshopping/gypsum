@@ -24,7 +24,7 @@
           <label>
             <input type="checkbox" name="modalmaxscreen" id="modalmaxscreen" data-action="toggle-modal-maxscreen">
           </label>
-          <button data-action="close-file-content-modal">✕</button>
+          <button id="modal-close-btn" data-action="close-file-content-modal">✕</button>
         </div>
         <div id="modal-content-text" data-prop="content"></div>
       </div>
@@ -115,6 +115,8 @@
 
     <div id="output"></div>
   </main>
+
+  <div id="modal-unsaved-warning" popover>unsaved changes — click ✕ again to discard</div>
 
 </body>
 <script type="module" src="public/main.js"></script>

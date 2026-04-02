@@ -129,3 +129,11 @@ export function handleFileContentInput(evt) {
     activeRawContent = evt.target.innerText;
     liveRawContent = activeRawContent;
 }
+
+/**
+ * Returns true if the live content differs from the content when the modal was opened.
+ * @returns {boolean}
+ */
+export function hasUnsavedChanges() {
+    return liveRawContent !== appState.openFileSnapshot?.content;
+}
