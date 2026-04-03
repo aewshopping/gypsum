@@ -343,4 +343,127 @@ async function setupMockDirectoryWithHistoryLinePool(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool };
+/**
+ * Directory mock with full save support (.gypsum folder).
+ * Written files are captured in window.__savedFiles (object: filename → content).
+ *
+ * File: notes.md with content '# My Notes\nSome content here'
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithSaveSupport(page) {
+  await page.addInitScript(() => {
+    window.__savedFiles = {};
+    window.__backupFileContent = '';
+
+    const fileContent = '# My Notes\nSome content here';
+
+    const makeFile = (name, content) => ({
+      kind: 'file', name,
+      getFile: async () => ({
+        name, size: content.length, lastModified: Date.now(), text: async () => content,
+      }),
+    });
+
+    const backupHandle = {
+      getFile: async () => ({ text: async () => window.__backupFileContent }),
+      createWritable: async () => ({
+        write: async (c) => { window.__backupFileContent = c; },
+        close: async () => {},
+      }),
+    };
+
+    const gypsumDirHandle = {
+      getFileHandle: async (name, _options) => {
+        if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
+        return {
+          getFile: async () => ({ text: async () => window.__savedFiles[name] }),
+          createWritable: async () => ({
+            write: async (c) => { window.__savedFiles[name] = c; },
+            close: async () => {},
+          }),
+        };
+      },
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { yield makeFile('notes.md', fileContent); },
+      getFileHandle: async (name, _options) => {
+        if (name === 'history.gypsum') return backupHandle;
+        throw new Error(`Unexpected getFileHandle call for: ${name}`);
+      },
+      getDirectoryHandle: async (name, _options) => {
+        if (name === '.gypsum') return gypsumDirHandle;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  });
+}
+
+/**
+ * Like setupMockDirectoryWithSaveSupport but also pre-populates history.gypsum
+ * with one historical entry, so the history select has a prior version to navigate to.
+ *
+ * Live file content    : '# My Notes\nCurrent content today'
+ * Historical entry     : '# My Notes\nOld content from yesterday' (2025-01-15T09:30:00.000Z)
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithHistoryAndSave(page) {
+  await page.addInitScript(() => {
+    window.__savedFiles = {};
+
+    const historicalEntry = {
+      filepath: 'notes.md', filename: 'notes.md',
+      content: '# My Notes\nOld content from yesterday',
+      timestamp: '2025-01-15T09:30:00.000Z', event: 'open',
+    };
+    window.__backupFileContent = JSON.stringify([historicalEntry], null, 2);
+
+    const currentContent = '# My Notes\nCurrent content today';
+
+    const makeFile = (name, content) => ({
+      kind: 'file', name,
+      getFile: async () => ({
+        name, size: content.length, lastModified: Date.now(), text: async () => content,
+      }),
+    });
+
+    const backupHandle = {
+      getFile: async () => ({ text: async () => window.__backupFileContent }),
+      createWritable: async () => ({
+        write: async (c) => { window.__backupFileContent = c; },
+        close: async () => {},
+      }),
+    };
+
+    const gypsumDirHandle = {
+      getFileHandle: async (name, _options) => {
+        if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
+        return {
+          getFile: async () => ({ text: async () => window.__savedFiles[name] }),
+          createWritable: async () => ({
+            write: async (c) => { window.__savedFiles[name] = c; },
+            close: async () => {},
+          }),
+        };
+      },
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { yield makeFile('notes.md', currentContent); },
+      getFileHandle: async (name, _options) => {
+        if (name === 'history.gypsum') return backupHandle;
+        throw new Error(`Unexpected getFileHandle call for: ${name}`);
+      },
+      getDirectoryHandle: async (name, _options) => {
+        if (name === '.gypsum') return gypsumDirHandle;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave };
