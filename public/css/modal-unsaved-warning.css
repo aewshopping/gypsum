@@ -1,0 +1,36 @@
+#modal-unsaved-warning {
+    margin: auto;
+    padding: 24px 32px;
+    border: 1px solid var(--colour-contr-warning);
+    border-radius: 6px;
+    background: var(--colour-neutral);
+    color: var(--colour-contr);
+    text-align: center;
+}
+
+#modal-unsaved-warning p {
+    margin: 0 0 20px;
+}
+
+#modal-unsaved-warning::backdrop {
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.unsaved-warning-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.unsaved-warning-buttons button {
+    padding: 6px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--colour-contr);
+    background: var(--colour-compl);
+    color: var(--colour-compl-contr);
+    cursor: pointer;
+}
+
+.unsaved-warning-buttons button:hover {
+    background: var(--colour-compl-emph-light);
+}
