@@ -1,0 +1,20 @@
+#save-btn-container {
+    pointer-events: auto; /* override parent pointer-events: none */
+    display: flex;
+    align-items: center;
+    padding-inline: 10px;
+}
+
+#save-btn {
+    cursor: pointer;
+    font: 1.1em monospace;
+    padding: 2px 8px;
+    background-color: var(--colour-neutral);
+    color: var(--colour-contr);
+    border: 1px solid var(--colour-contr);
+    border-radius: 4px;
+}
+
+#save-btn:hover {
+    background-color: var(--colour-neutral-alt);
+}
