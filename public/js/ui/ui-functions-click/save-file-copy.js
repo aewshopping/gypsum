@@ -1,4 +1,5 @@
 import { appState } from '../../services/store.js';
+import { getIsCurrentVersion } from '../../editing/editable-state.js';
 
 const SAVE_FOLDER = '.gypsum';
 
@@ -10,6 +11,9 @@ const SAVE_FOLDER = '.gypsum';
  * @returns {Promise<void>}
  */
 export async function handleSaveFileCopy() {
+    const renderToggle = document.getElementById('render_toggle');
+    if (!renderToggle?.checked || !getIsCurrentVersion()) return;
+
     if (!appState.dirHandle) return;
 
     const snapshot = appState.openFileSnapshot;
