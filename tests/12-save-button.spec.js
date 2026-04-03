@@ -538,3 +538,62 @@ test.describe('save equivalence check', () => {
   });
 
 });
+
+test.describe('Ctrl+S keyboard shortcut', () => {
+
+  test('Ctrl+S saves the file in text mode / current version', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.keyboard.press('Control+s');
+    await page.waitForTimeout(300);
+
+    const savedFiles = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFiles)).toContain('notes.md-save.gypsum');
+  });
+
+  test('Ctrl+S shows the success popover', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.keyboard.press('Control+s');
+    await page.waitForTimeout(300);
+
+    await expect(page.locator('#save-popover')).toBeVisible();
+    await expect(page.locator('#save-popover')).toHaveText('Saved');
+  });
+
+  test('Ctrl+S does not save when in HTML mode', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    // Modal opens in HTML mode — do not switch to txt
+
+    await page.keyboard.press('Control+s');
+    await page.waitForTimeout(300);
+
+    const savedFiles = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFiles)).toHaveLength(0);
+  });
+
+  test('Ctrl+S does not save when viewing a historical version', async ({ page }) => {
+    await setupMockDirectoryWithHistoryAndSave(page);
+    await page.goto('/');
+    await openModal(page);
+    await waitForHistoryOptions(page, 3);
+
+    await switchToTxt(page);
+    await page.selectOption('#file-content-history-select', { index: 2 });
+
+    await page.keyboard.press('Control+s');
+    await page.waitForTimeout(300);
+
+    const savedFiles = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFiles)).toHaveLength(0);
+  });
+
+});
