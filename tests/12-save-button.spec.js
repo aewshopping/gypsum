@@ -365,6 +365,75 @@ test.describe('save file functionality', () => {
     expect(msg.text()).toContain('notes.md-save.gypsum');
   });
 
+  test('popover shows "Saved" after a successful save', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await clickSaveBtn(page);
+    await page.waitForTimeout(300);
+
+    await expect(page.locator('#save-popover')).toBeVisible();
+    await expect(page.locator('#save-popover')).toHaveText('Saved');
+    await expect(page.locator('#save-popover')).toHaveClass('success');
+  });
+
+  test('popover shows "Save failed" when verification fails', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__backupFileContent = '';
+      const fileContent = '# My Notes\nSome content here';
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
+      });
+      const backupHandle = {
+        getFile: async () => ({ text: async () => window.__backupFileContent }),
+        createWritable: async () => ({ write: async (c) => { window.__backupFileContent = c; }, close: async () => {} }),
+      };
+      const gypsumDirHandle = {
+        getFileHandle: async (_name, _options) => ({
+          getFile: async () => ({ text: async () => 'TAMPERED CONTENT' }),
+          createWritable: async () => ({ write: async (_c) => {}, close: async () => {} }),
+        }),
+      };
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () { yield makeFile('notes.md', fileContent); },
+        getFileHandle: async (name) => {
+          if (name === 'history.gypsum') return backupHandle;
+          throw new Error(`Unexpected: ${name}`);
+        },
+        getDirectoryHandle: async (name) => {
+          if (name === '.gypsum') return gypsumDirHandle;
+          throw new Error(`Unexpected: ${name}`);
+        },
+      });
+    });
+
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await clickSaveBtn(page);
+    await page.waitForTimeout(300);
+
+    await expect(page.locator('#save-popover')).toBeVisible();
+    await expect(page.locator('#save-popover')).toHaveText('Save failed');
+    await expect(page.locator('#save-popover')).toHaveClass('error');
+  });
+
+  test('popover hides automatically after 2.5 seconds', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await clickSaveBtn(page);
+    await expect(page.locator('#save-popover')).toBeVisible();
+    await expect(page.locator('#save-popover')).toBeHidden({ timeout: 4000 });
+  });
+
 });
 
 test.describe('save equivalence check', () => {
