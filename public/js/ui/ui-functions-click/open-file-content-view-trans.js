@@ -119,6 +119,7 @@ export function handleCloseModal() {
 
   if (hasUnsavedChanges()) {
     warningDialog.showModal();
+    warningDialog.focus();
     return;
   }
   doClose();
