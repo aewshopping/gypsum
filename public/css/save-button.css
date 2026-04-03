@@ -21,3 +21,37 @@
 #save-btn:hover {
     background-color: var(--colour-neutral-alt);
 }
+
+#save-popover {
+    position: absolute;
+    bottom: 100%;
+    left: 10px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font: 0.9em monospace;
+    white-space: nowrap;
+    pointer-events: none;
+
+    &.success {
+        background-color: #2d6a4f;
+        color: ivory;
+    }
+
+    &.error {
+        background-color: var(--colour-contr-warning);
+        color: ivory;
+    }
+
+    &:not([hidden]) {
+        animation: save-popover-show 2.5s ease forwards;
+    }
+
+    &[hidden] { display: none; }
+}
+
+@keyframes save-popover-show {
+    0%   { opacity: 0; transform: translateY(4px); }
+    12%  { opacity: 1; transform: translateY(0); }
+    72%  { opacity: 1; }
+    100% { opacity: 0; }
+}
