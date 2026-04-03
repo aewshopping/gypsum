@@ -137,7 +137,7 @@ test.describe('save button guard conditions', () => {
 
 test.describe('save file functionality', () => {
 
-  test('save creates a file in .gypsum with the correct name', async ({ page }) => {
+  test('top-level file is saved as {filename}-save.gypsum (no dir prefix)', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
@@ -147,8 +147,61 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(300);
 
     const savedFiles = await page.evaluate(() => window.__savedFiles);
-    // filepath=notes.md, filename=notes.md → notes.md-notes.md-save.gypsum
-    expect(Object.keys(savedFiles)).toContain('notes.md-notes.md-save.gypsum');
+    // top-level file: filepath === filename, so no dir prefix
+    expect(Object.keys(savedFiles)).toContain('notes.md-save.gypsum');
+    expect(Object.keys(savedFiles)).not.toContain('notes.md-notes.md-save.gypsum');
+  });
+
+  test('file in a subdirectory is saved as {dir}-{filename}-save.gypsum', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__savedFiles = {};
+      window.__backupFileContent = '';
+      const fileContent = 'Nested file content';
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
+      });
+      const makeDir = (name, entries) => ({
+        kind: 'directory', name,
+        values: async function* () { yield* entries; },
+      });
+      const backupHandle = {
+        getFile: async () => ({ text: async () => window.__backupFileContent }),
+        createWritable: async () => ({ write: async (c) => { window.__backupFileContent = c; }, close: async () => {} }),
+      };
+      const gypsumDirHandle = {
+        getFileHandle: async (name, _options) => {
+          if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
+          return {
+            getFile: async () => ({ text: async () => window.__savedFiles[name] }),
+            createWritable: async () => ({ write: async (c) => { window.__savedFiles[name] = c; }, close: async () => {} }),
+          };
+        },
+      };
+      window.showDirectoryPicker = async () => ({
+        ...makeDir('root', [makeDir('subdir', [makeFile('notes.md', fileContent)])]),
+        getFileHandle: async (name) => {
+          if (name === 'history.gypsum') return backupHandle;
+          throw new Error(`Unexpected: ${name}`);
+        },
+        getDirectoryHandle: async (name) => {
+          if (name === '.gypsum') return gypsumDirHandle;
+          throw new Error(`Unexpected: ${name}`);
+        },
+      });
+    });
+
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await clickSaveBtn(page);
+    await page.waitForTimeout(300);
+
+    const savedFiles = await page.evaluate(() => window.__savedFiles);
+    // filepath='subdir/notes.md', filename='notes.md' → dir part is 'subdir'
+    expect(Object.keys(savedFiles)).toContain('subdir-notes.md-save.gypsum');
+    expect(Object.keys(savedFiles)).not.toContain('subdir-notes.md-notes.md-save.gypsum');
   });
 
   test('saved file has newlines (\\n) not <br> for line breaks', async ({ page }) => {
@@ -161,7 +214,7 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(300);
 
     const savedContent = await page.evaluate(
-      () => window.__savedFiles['notes.md-notes.md-save.gypsum']
+      () => window.__savedFiles['notes.md-save.gypsum']
     );
     expect(savedContent).toContain('\n');
     expect(savedContent).not.toContain('<br>');
@@ -177,7 +230,7 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(300);
 
     const savedContent = await page.evaluate(
-      () => window.__savedFiles['notes.md-notes.md-save.gypsum']
+      () => window.__savedFiles['notes.md-save.gypsum']
     );
     expect(savedContent).toBe('# My Notes\nSome content here');
   });
@@ -226,7 +279,7 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(300);
 
     const savedContent = await page.evaluate(
-      () => window.__savedFiles['notes.md-notes.md-save.gypsum']
+      () => window.__savedFiles['notes.md-save.gypsum']
     );
     // HTML entities must be decoded back to literal characters
     expect(savedContent).toContain('&');
@@ -256,7 +309,7 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(300);
 
     const savedContent = await page.evaluate(
-      () => window.__savedFiles['notes.md-notes.md-save.gypsum']
+      () => window.__savedFiles['notes.md-save.gypsum']
     );
     expect(savedContent).toBe('updated content');
   });
@@ -272,7 +325,7 @@ test.describe('save file functionality', () => {
     );
     await clickSaveBtn(page);
     const msg = await successPromise;
-    expect(msg.text()).toContain('notes.md-notes.md-save.gypsum');
+    expect(msg.text()).toContain('notes.md-save.gypsum');
   });
 
 });

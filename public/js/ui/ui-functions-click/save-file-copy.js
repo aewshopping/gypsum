@@ -5,7 +5,9 @@ const SAVE_FOLDER = '.gypsum';
 
 /**
  * Saves a copy of the currently-viewed file content to the .gypsum folder.
- * The save file is named {filepath}-{filename}-save.gypsum and will be overwritten if it exists.
+ * The save file is named {dir}-{filename}-save.gypsum for files in subdirectories,
+ * or {filename}-save.gypsum for top-level files (no dir prefix).
+ * Overwrites any existing save file with the same name.
  * Verifies the write by reading back and comparing to the modal content.
  * @async
  * @returns {Promise<void>}
@@ -30,9 +32,13 @@ export async function handleSaveFileCopy() {
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>');
 
-    // Sanitize filepath to avoid directory separators in the filename
-    const safeFilepath = snapshot.filepath.replace(/[/\\]/g, '-');
-    const saveFilename = `${safeFilepath}-${snapshot.filename}-save.gypsum`;
+    // filepath includes the filename (e.g. "subdir/notes.md" or "notes.md" for top-level).
+    // Strip the filename to get only the directory part, then build the save name.
+    const dirPart = snapshot.filepath.slice(0, -(snapshot.filename.length + 1)); // +1 for the '/'
+    const safeDir = dirPart.replace(/[/\\]/g, '-');
+    const saveFilename = safeDir
+        ? `${safeDir}-${snapshot.filename}-save.gypsum`
+        : `${snapshot.filename}-save.gypsum`;
 
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
