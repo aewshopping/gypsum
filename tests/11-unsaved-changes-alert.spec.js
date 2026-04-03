@@ -179,4 +179,33 @@ test.describe('unsaved changes alert', () => {
     expect(text).toBe('edited content');
   });
 
+  test('beforeunload is prevented when tab/browser is closed with unsaved changes', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await editContent(page);
+
+    const wasPrevented = await page.evaluate(() => {
+      const evt = new Event('beforeunload', { cancelable: true, bubbles: true });
+      window.dispatchEvent(evt);
+      return evt.defaultPrevented;
+    });
+    expect(wasPrevented).toBe(true);
+  });
+
+  test('beforeunload is not prevented when tab/browser is closed without unsaved changes', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    // No edits made
+
+    const wasPrevented = await page.evaluate(() => {
+      const evt = new Event('beforeunload', { cancelable: true, bubbles: true });
+      window.dispatchEvent(evt);
+      return evt.defaultPrevented;
+    });
+    expect(wasPrevented).toBe(false);
+  });
+
 });
