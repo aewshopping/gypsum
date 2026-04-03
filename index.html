@@ -116,7 +116,13 @@
     <div id="output"></div>
   </main>
 
-  <div id="modal-unsaved-warning" popover="manual">unsaved changes — click ✕ again to discard</div>
+  <dialog id="modal-unsaved-warning">
+    <p>You have unsaved changes.</p>
+    <div class="unsaved-warning-buttons">
+      <button data-action="discard-modal-changes">Discard changes</button>
+      <button data-action="keep-modal-editing">Keep editing</button>
+    </div>
+  </dialog>
 
 </body>
 <script type="module" src="public/main.js"></script>

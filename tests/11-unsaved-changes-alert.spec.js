@@ -39,136 +39,144 @@ async function clickBackdrop(page) {
 }
 
 const modal = '#file-content-modal';
-const warning = '#modal-unsaved-warning';
+const warningDialog = '#modal-unsaved-warning';
 const closeBtn = '[data-action="close-file-content-modal"]';
+const discardBtn = '[data-action="discard-modal-changes"]';
+const keepBtn = '[data-action="keep-modal-editing"]';
 
 test.describe('unsaved changes alert', () => {
 
-  test('no warning when closing without edits via close button', async ({ page }) => {
+  test('no warning dialog when closing without edits via close button', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await page.click(closeBtn);
     await expect(page.locator(modal)).not.toBeVisible();
-    await expect(page.locator(warning)).not.toBeVisible();
+    await expect(page.locator(warningDialog)).not.toBeVisible();
   });
 
-  test('no warning when closing without edits via Escape', async ({ page }) => {
+  test('no warning dialog when closing without edits via Escape', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await page.keyboard.press('Escape');
     await expect(page.locator(modal)).not.toBeVisible();
-    await expect(page.locator(warning)).not.toBeVisible();
+    await expect(page.locator(warningDialog)).not.toBeVisible();
   });
 
-  test('close button shows warning and keeps modal open when there are unsaved edits', async ({ page }) => {
+  test('close button shows warning dialog when there are unsaved edits', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
     await page.click(closeBtn);
-    await expect(page.locator(warning)).toBeVisible();
+    await expect(page.locator(warningDialog)).toBeVisible();
     await expect(page.locator(modal)).toBeVisible();
   });
 
-  test('backdrop click shows warning and keeps modal open when there are unsaved edits', async ({ page }) => {
+  test('backdrop click shows warning dialog when there are unsaved edits', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
     await clickBackdrop(page);
-    await expect(page.locator(warning)).toBeVisible();
+    await expect(page.locator(warningDialog)).toBeVisible();
     await expect(page.locator(modal)).toBeVisible();
   });
 
-  test('Escape key shows warning and keeps modal open when there are unsaved edits', async ({ page }) => {
+  test('Escape key shows warning dialog when there are unsaved edits', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
     await page.keyboard.press('Escape');
-    await expect(page.locator(warning)).toBeVisible();
+    await expect(page.locator(warningDialog)).toBeVisible();
     await expect(page.locator(modal)).toBeVisible();
   });
 
-  test('second close button click discards changes and closes', async ({ page }) => {
+  test('"Discard changes" closes the warning dialog and the modal', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
-    await page.click(closeBtn); // first: warning
-    await page.click(closeBtn); // second: discard
-    await expect(page.locator(modal)).not.toBeVisible();
-    await expect(page.locator(warning)).not.toBeVisible();
-  });
-
-  test('second backdrop click discards changes and closes', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await clickBackdrop(page); // first: warning
-    await clickBackdrop(page); // second: discard
-    await expect(page.locator(modal)).not.toBeVisible();
-    await expect(page.locator(warning)).not.toBeVisible();
-  });
-
-  test('second Escape key press discards changes and closes', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await page.keyboard.press('Escape'); // first: warning
-    await page.keyboard.press('Escape'); // second: discard
-    await expect(page.locator(modal)).not.toBeVisible();
-    await expect(page.locator(warning)).not.toBeVisible();
-  });
-
-  test('warning triggered by close button, confirmed by Escape', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await page.click(closeBtn);          // first: warning
-    await page.keyboard.press('Escape'); // second: discard
+    await page.click(closeBtn);
+    await expect(page.locator(warningDialog)).toBeVisible();
+    await page.click(discardBtn);
+    await expect(page.locator(warningDialog)).not.toBeVisible();
     await expect(page.locator(modal)).not.toBeVisible();
   });
 
-  test('warning triggered by Escape, confirmed by close button', async ({ page }) => {
+  test('"Keep editing" closes the warning dialog and leaves the modal open', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
-    await page.keyboard.press('Escape'); // first: warning
-    await page.click(closeBtn);          // second: discard
+    await page.click(closeBtn);
+    await expect(page.locator(warningDialog)).toBeVisible();
+    await page.click(keepBtn);
+    await expect(page.locator(warningDialog)).not.toBeVisible();
+    await expect(page.locator(modal)).toBeVisible();
+  });
+
+  test('Escape on the warning dialog acts as "Keep editing"', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await editContent(page);
+    await page.keyboard.press('Escape'); // opens warning dialog
+    await expect(page.locator(warningDialog)).toBeVisible();
+    await page.keyboard.press('Escape'); // closes warning dialog (keep editing)
+    await expect(page.locator(warningDialog)).not.toBeVisible();
+    await expect(page.locator(modal)).toBeVisible();
+  });
+
+  test('warning dialog triggered by backdrop, confirmed by "Discard changes"', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await editContent(page);
+    await clickBackdrop(page);
+    await expect(page.locator(warningDialog)).toBeVisible();
+    await page.click(discardBtn);
     await expect(page.locator(modal)).not.toBeVisible();
   });
 
-  test('warning state resets when modal is reopened', async ({ page }) => {
+  test('warning state resets when modal is reopened after discard', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
-    await page.click(closeBtn); // first: warning
-    await page.click(closeBtn); // second: closes
+    await page.click(closeBtn);
+    await page.click(discardBtn);
     await expect(page.locator(modal)).not.toBeVisible();
 
-    // Reopen — pendingClose and warning should be reset
+    // Reopen — no warning dialog on a clean open
     await page.locator('.note-grid').first().click();
     await expect(page.locator(modal)).toBeVisible();
-    await expect(page.locator(warning)).not.toBeVisible();
+    await expect(page.locator(warningDialog)).not.toBeVisible();
     await page.click(closeBtn);
     await expect(page.locator(modal)).not.toBeVisible();
+  });
+
+  test('edits are preserved after dismissing the warning dialog with "Keep editing"', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await editContent(page);
+    await page.click(closeBtn);
+    await page.click(keepBtn);
+    // Content should still be the edited version
+    const text = await page.locator('#modal-content-text pre').textContent();
+    expect(text).toBe('edited content');
   });
 
 });

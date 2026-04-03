@@ -1,5 +1,5 @@
 // This file will handle open and closing of modal, and displaying file content within it
-// - the key reason it is so long is because it is controlling a view transition 
+// - the key reason it is so long is because it is controlling a view transition
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
 import { loadContentModal, hasUnsavedChanges } from './load-file-content.js';
@@ -11,10 +11,9 @@ const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const filenamebox = document.getElementById('file-content-filename');
 const scrollingContent = document.getElementById("modal-content");
-const warningPopover = document.getElementById('modal-unsaved-warning');
+const warningDialog = document.getElementById('modal-unsaved-warning');
 
 let file_box; // so we can access the target on close modal too
-let pendingClose = false;
 
 dialog.addEventListener('cancel', (evt) => {
     evt.preventDefault(); // prevent native close, which bypasses our view transition
@@ -29,13 +28,10 @@ dialog.addEventListener('cancel', (evt) => {
  */
 export function handleOpenFileContent(event, target) {
 
-  pendingClose = false;
-  warningPopover.hidePopover();
-
   const file_to_open = target.dataset.filename;
   file_box = target;
   file_box.classList.add("moving-file-content-view"); // animate *from* this element
-  
+
   // 3. Animate the move (State 1 -> State 2)
   document.startViewTransition(function () {
 
@@ -76,18 +72,10 @@ export function handeCloseModalOutside(event, target) {
 
 
 /**
- * Handles closing the file content modal with a view transition.
+ * Runs the view transition that closes the file content modal.
  * @returns {void}
  */
-export function handleCloseModal() {
-
-  if (hasUnsavedChanges() && !pendingClose) {
-    pendingClose = true;
-    warningPopover.showPopover();
-    return;
-  }
-  pendingClose = false;
-  warningPopover.hidePopover();
+function doClose() {
 
   if (appState.openFileSnapshot) {
     appState.closeSnapshot = { ...appState.openFileSnapshot }; // identical for now; will differ once editing lands
@@ -113,4 +101,47 @@ export function handleCloseModal() {
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
   });
 
+}
+
+
+
+
+/**
+ * Handles closing the file content modal with a view transition.
+ * Shows the unsaved changes warning dialog if there are unsaved edits.
+ * @returns {void}
+ */
+export function handleCloseModal() {
+
+  if (hasUnsavedChanges()) {
+    warningDialog.showModal();
+    return;
+  }
+  doClose();
+
+}
+
+
+
+
+/**
+ * Handles the "Discard changes" button in the unsaved changes warning dialog.
+ * Closes the warning and proceeds with closing the file content modal.
+ * @returns {void}
+ */
+export function handleDiscardChanges() {
+  warningDialog.close();
+  doClose();
+}
+
+
+
+
+/**
+ * Handles the "Keep editing" button in the unsaved changes warning dialog.
+ * Closes the warning and returns focus to the file content modal.
+ * @returns {void}
+ */
+export function handleKeepEditing() {
+  warningDialog.close();
 }

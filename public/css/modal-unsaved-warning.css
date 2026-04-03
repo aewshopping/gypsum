@@ -1,18 +1,36 @@
-#modal-close-btn {
-    anchor-name: --modal-close-btn;
+#modal-unsaved-warning {
+    margin: auto;
+    padding: 24px 32px;
+    border: 1px solid var(--colour-contr-warning);
+    border-radius: 6px;
+    background: var(--colour-neutral);
+    color: var(--colour-contr);
+    text-align: center;
 }
 
-#modal-unsaved-warning {
-    position: fixed;
-    position-anchor: --modal-close-btn;
-    top: anchor(bottom);
-    right: calc(100vw - anchor(right));
-    margin-block-start: 4px;
-    padding: 6px 10px;
-    border: 1px solid var(--colour-contr-warning);
+#modal-unsaved-warning p {
+    margin: 0 0 20px;
+}
+
+#modal-unsaved-warning::backdrop {
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.unsaved-warning-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.unsaved-warning-buttons button {
+    padding: 6px 16px;
     border-radius: 4px;
-    background: var(--colour-neutral-alt);
-    color: var(--colour-contr-warning);
-    font-size: 0.85rem;
-    white-space: nowrap;
+    border: 1px solid var(--colour-contr);
+    background: var(--colour-compl);
+    color: var(--colour-compl-contr);
+    cursor: pointer;
+}
+
+.unsaved-warning-buttons button:hover {
+    background: var(--colour-compl-emph-light);
 }
