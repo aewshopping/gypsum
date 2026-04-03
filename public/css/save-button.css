@@ -42,16 +42,5 @@
         color: ivory;
     }
 
-    &:not([hidden]) {
-        animation: save-popover-show 2.5s ease forwards;
-    }
-
     &[hidden] { display: none; }
-}
-
-@keyframes save-popover-show {
-    0%   { opacity: 0; transform: translateY(4px); }
-    12%  { opacity: 1; transform: translateY(0); }
-    72%  { opacity: 1; }
-    100% { opacity: 0; }
 }

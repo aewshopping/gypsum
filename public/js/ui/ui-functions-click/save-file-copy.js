@@ -6,18 +6,14 @@ let savePopoverTimer = null;
 
 /**
  * Briefly shows a popover above the save button indicating success or failure.
- * A second call while the popover is visible restarts the animation.
  * @param {boolean} success
  */
 function showSavePopover(success) {
     const popover = document.getElementById('save-popover');
     if (!popover) return;
     popover.textContent = success ? 'Saved' : 'Save failed';
-    // Reset class and force reflow so the animation restarts if already playing
-    popover.className = '';
-    popover.hidden = false;
-    void popover.offsetWidth;
     popover.className = success ? 'success' : 'error';
+    popover.hidden = false;
     clearTimeout(savePopoverTimer);
     savePopoverTimer = setTimeout(() => { popover.hidden = true; }, 2500);
 }
