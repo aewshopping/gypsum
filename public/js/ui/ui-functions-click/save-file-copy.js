@@ -4,6 +4,24 @@ import { getIsCurrentVersion } from '../../editing/editable-state.js';
 const SAVE_FOLDER = '.gypsum';
 
 /**
+ * Extracts the directory portion of a filepath, handling both cases:
+ *   - filepath includes the filename: 'subdir/notes.md' → 'subdir', 'notes.md' → ''
+ *   - filepath is already a pure directory: 'subdir' → 'subdir', '' → ''
+ * Detection: if the last path segment (after the final '/') contains a '.', it is
+ * treated as a filename and stripped. Otherwise the whole value is a directory path.
+ * @param {string} filepath
+ * @returns {string}
+ */
+function extractDirFromFilepath(filepath) {
+    const lastSlash = filepath.lastIndexOf('/');
+    const lastSegment = lastSlash === -1 ? filepath : filepath.slice(lastSlash + 1);
+    if (lastSegment.includes('.')) {
+        return lastSlash === -1 ? '' : filepath.slice(0, lastSlash);
+    }
+    return filepath;
+}
+
+/**
  * Saves a copy of the currently-viewed file content to the .gypsum folder.
  * The save file is named {dir}-{filename}-save.gypsum for files in subdirectories,
  * or {filename}-save.gypsum for top-level files (no dir prefix).
@@ -32,9 +50,7 @@ export async function handleSaveFileCopy() {
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>');
 
-    // filepath includes the filename (e.g. "subdir/notes.md" or "notes.md" for top-level).
-    // Strip the filename to get only the directory part, then build the save name.
-    const dirPart = snapshot.filepath.slice(0, -(snapshot.filename.length + 1)); // +1 for the '/'
+    const dirPart = extractDirFromFilepath(snapshot.filepath);
     const safeDir = dirPart.replace(/[/\\]/g, '-');
     const saveFilename = safeDir
         ? `${safeDir}-${snapshot.filename}-save.gypsum`

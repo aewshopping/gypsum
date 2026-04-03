@@ -204,6 +204,43 @@ test.describe('save file functionality', () => {
     expect(Object.keys(savedFiles)).not.toContain('subdir-notes.md-notes.md-save.gypsum');
   });
 
+  test('filepath as pure directory path (future format) produces the correct save name', async ({ page }) => {
+    // Simulates a future where filepath is only the directory, not including the filename.
+    // Uses dynamic import to reach appState and override openFileSnapshot.filepath
+    // after the modal opens, before clicking save.
+    // Top-level pure dir:    filepath=''       → 'notes.md-save.gypsum'
+    // Subdirectory pure dir: filepath='subdir' → 'subdir-notes.md-save.gypsum'
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    // Override snapshot to simulate pure directory path (no filename in filepath)
+    await page.evaluate(async () => {
+      const { appState } = await import('/public/js/services/store.js');
+      // Top-level case: pure dir path is '' instead of 'notes.md'
+      appState.openFileSnapshot.filepath = '';
+    });
+
+    await clickSaveBtn(page);
+    await page.waitForTimeout(300);
+
+    const savedFilesTopLevel = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFilesTopLevel)).toContain('notes.md-save.gypsum');
+
+    // Subdirectory case: pure dir path 'subdir' instead of 'subdir/notes.md'
+    await page.evaluate(async () => {
+      const { appState } = await import('/public/js/services/store.js');
+      appState.openFileSnapshot.filepath = 'subdir';
+    });
+
+    await clickSaveBtn(page);
+    await page.waitForTimeout(300);
+
+    const savedFilesSubdir = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFilesSubdir)).toContain('subdir-notes.md-save.gypsum');
+  });
+
   test('saved file has newlines (\\n) not <br> for line breaks', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
