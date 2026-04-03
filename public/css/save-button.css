@@ -3,6 +3,9 @@
     display: flex;
     align-items: center;
     padding-inline: 10px;
+
+    /* display: flex would override the [hidden] attribute's display:none without this */
+    &[hidden] { display: none; }
 }
 
 #save-btn {

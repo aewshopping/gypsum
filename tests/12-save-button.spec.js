@@ -49,10 +49,7 @@ test.describe('save button visibility', () => {
     await page.goto('/');
     await openModal(page);
 
-    const hidden = await page.evaluate(() =>
-      document.getElementById('save-btn-container').hidden
-    );
-    expect(hidden).toBe(true);
+    await expect(page.locator('#save-btn-container')).toBeHidden();
   });
 
   test('save button becomes visible after switching to text mode', async ({ page }) => {
@@ -62,10 +59,7 @@ test.describe('save button visibility', () => {
 
     await switchToTxt(page);
 
-    const hidden = await page.evaluate(() =>
-      document.getElementById('save-btn-container').hidden
-    );
-    expect(hidden).toBe(false);
+    await expect(page.locator('#save-btn-container')).toBeVisible();
   });
 
   test('save button becomes hidden again after switching back to HTML mode', async ({ page }) => {
@@ -76,10 +70,7 @@ test.describe('save button visibility', () => {
     await switchToTxt(page);
     await switchToHtml(page);
 
-    const hidden = await page.evaluate(() =>
-      document.getElementById('save-btn-container').hidden
-    );
-    expect(hidden).toBe(true);
+    await expect(page.locator('#save-btn-container')).toBeHidden();
   });
 
   test('save button is hidden when navigating to a historical version in text mode', async ({ page }) => {
@@ -91,10 +82,7 @@ test.describe('save button visibility', () => {
     await switchToTxt(page);
     await page.selectOption('#file-content-history-select', { index: 2 });
 
-    const hidden = await page.evaluate(() =>
-      document.getElementById('save-btn-container').hidden
-    );
-    expect(hidden).toBe(true);
+    await expect(page.locator('#save-btn-container')).toBeHidden();
   });
 
   test('save button reappears after returning to current version in text mode', async ({ page }) => {
@@ -107,10 +95,7 @@ test.describe('save button visibility', () => {
     await page.selectOption('#file-content-history-select', { index: 2 });
     await page.selectOption('#file-content-history-select', { value: 'current' });
 
-    const hidden = await page.evaluate(() =>
-      document.getElementById('save-btn-container').hidden
-    );
-    expect(hidden).toBe(false);
+    await expect(page.locator('#save-btn-container')).toBeVisible();
   });
 
 });
