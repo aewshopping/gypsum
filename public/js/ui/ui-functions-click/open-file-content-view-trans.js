@@ -20,6 +20,10 @@ dialog.addEventListener('cancel', (evt) => {
     handleCloseModal();
 });
 
+window.addEventListener('beforeunload', (evt) => {
+    if (hasUnsavedChanges()) evt.preventDefault();
+});
+
 /**
  * Handles the click event to open the file content modal with a view transition.
  * @param {Event} event - The click event.
