@@ -6,6 +6,7 @@ import { loadContentModal, hasUnsavedChanges } from './load-file-content.js';
 import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
+import { resetAutosave } from './autosave-file.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -51,6 +52,7 @@ export function handleOpenFileContent(event, target) {
     initHistorySelect(file_to_open);
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;
+    resetAutosave();
     loadContentModal(file_to_open);
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
   });
@@ -80,6 +82,8 @@ export function handeCloseModalOutside(event, target) {
  * @returns {void}
  */
 function doClose() {
+
+  resetAutosave();
 
   if (appState.openFileSnapshot) {
     appState.closeSnapshot = { ...appState.openFileSnapshot }; // identical for now; will differ once editing lands

@@ -466,4 +466,67 @@ async function setupMockDirectoryWithHistoryAndSave(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave };
+/**
+ * Like setupMockDirectoryWithSaveSupport but also supports removeEntry on the
+ * .gypsum directory handle, which is required by the autosave flow to delete
+ * the intermediate save file after the temp file has been verified.
+ * Removed entries are deleted from window.__savedFiles.
+ *
+ * File: notes.md with content '# My Notes\nSome content here'
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithAutosaveSupport(page) {
+  await page.addInitScript(() => {
+    window.__savedFiles = {};
+    window.__backupFileContent = '';
+
+    const fileContent = '# My Notes\nSome content here';
+
+    const makeFile = (name, content) => ({
+      kind: 'file', name,
+      getFile: async () => ({
+        name, size: content.length, lastModified: Date.now(), text: async () => content,
+      }),
+    });
+
+    const backupHandle = {
+      getFile: async () => ({ text: async () => window.__backupFileContent }),
+      createWritable: async () => ({
+        write: async (c) => { window.__backupFileContent = c; },
+        close: async () => {},
+      }),
+    };
+
+    const gypsumDirHandle = {
+      getFileHandle: async (name, _options) => {
+        if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
+        return {
+          getFile: async () => ({ text: async () => window.__savedFiles[name] }),
+          createWritable: async () => ({
+            write: async (c) => { window.__savedFiles[name] = c; },
+            close: async () => {},
+          }),
+        };
+      },
+      removeEntry: async (name) => {
+        delete window.__savedFiles[name];
+      },
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { yield makeFile('notes.md', fileContent); },
+      getFileHandle: async (name, _options) => {
+        if (name === 'history.gypsum') return backupHandle;
+        throw new Error(`Unexpected getFileHandle call for: ${name}`);
+      },
+      getDirectoryHandle: async (name, _options) => {
+        if (name === '.gypsum') return gypsumDirHandle;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithAutosaveSupport };

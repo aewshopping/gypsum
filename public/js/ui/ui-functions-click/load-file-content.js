@@ -5,6 +5,7 @@ import { applyDiffHighlights, clearDiffHighlights } from '../ui-functions-highli
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { getIsCurrentVersion, setIsCurrentVersion } from '../../editing/editable-state.js';
+import { scheduleAutosave } from './autosave-file.js';
 
 // Represents the content currently visible in the modal (could be historical)
 let activeRawContent; 
@@ -133,6 +134,7 @@ export function fileContentRender() {
 export function handleFileContentInput(evt) {
     activeRawContent = evt.target.innerText;
     liveRawContent = activeRawContent;
+    scheduleAutosave();
 }
 
 /**

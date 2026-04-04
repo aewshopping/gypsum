@@ -37,6 +37,38 @@ function extractDirFromFilepath(filepath) {
 }
 
 /**
+ * Builds the .gypsum save filename for a given file.
+ * Top-level files: '{filename}-save.gypsum'
+ * Files in subdirectories: '{safeDir}-{filename}-save.gypsum'
+ * @param {string} filepath
+ * @param {string} filename
+ * @returns {string}
+ */
+export function buildSaveFilename(filepath, filename) {
+    const dirPart = extractDirFromFilepath(filepath);
+    const safeDir = dirPart.replace(/[/\\]/g, '-');
+    return safeDir
+        ? `${safeDir}-${filename}-save.gypsum`
+        : `${filename}-save.gypsum`;
+}
+
+/**
+ * Writes content to a named file inside gypsumDir, then reads it back to verify.
+ * @param {FileSystemDirectoryHandle} gypsumDir
+ * @param {string} filename
+ * @param {string} content
+ * @returns {Promise<boolean>} true if the written content matches what was read back
+ */
+export async function writeAndVerify(gypsumDir, filename, content) {
+    const handle = await gypsumDir.getFileHandle(filename, { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(content);
+    await writable.close();
+    const savedText = await (await handle.getFile()).text();
+    return savedText === content;
+}
+
+/**
  * Saves a copy of the currently-viewed file content to the .gypsum folder.
  * The save file is named {dir}-{filename}-save.gypsum for files in subdirectories,
  * or {filename}-save.gypsum for top-level files (no dir prefix).
@@ -65,34 +97,16 @@ export async function handleSaveFileCopy() {
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>');
 
-    const dirPart = extractDirFromFilepath(snapshot.filepath);
-    const safeDir = dirPart.replace(/[/\\]/g, '-');
-    const saveFilename = safeDir
-        ? `${safeDir}-${snapshot.filename}-save.gypsum`
-        : `${snapshot.filename}-save.gypsum`;
+    const saveFilename = buildSaveFilename(snapshot.filepath, snapshot.filename);
 
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
-        const saveHandle = await gypsumDir.getFileHandle(saveFilename, { create: true });
+        const verified = await writeAndVerify(gypsumDir, saveFilename, textToSave);
 
-        const writable = await saveHandle.createWritable();
-        await writable.write(textToSave);
-        await writable.close();
-
-        // Verify: read back and compare (performing the same <br> → \n conversion)
-        const savedText = await (await saveHandle.getFile()).text();
-        const modalTextForComparison = modalHtml
-            .replace(/<br>/gi, '\n')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>');
-
-        if (savedText === modalTextForComparison) {
+        if (verified) {
             console.log(`Save verified: ${saveFilename}`);
-            showSavePopover(true);
-        } else {
-            showSavePopover(false);
         }
+        showSavePopover(verified);
     } catch (err) {
         console.error('Save failed:', err);
         showSavePopover(false);
