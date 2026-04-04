@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithAutosaveSupport } = require('./helpers');
+const { setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave } = require('./helpers');
 
 // Shared helpers (same patterns as 12-save-button.spec.js)
 
@@ -44,7 +44,7 @@ async function fireDebouncedAutosave(page) {
 test.describe('autosave temp file creation', () => {
 
   test('creates a -temp.gypsum file after editing and the debounce period', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -58,7 +58,7 @@ test.describe('autosave temp file creation', () => {
   });
 
   test('the intermediate save file is deleted after the temp file is verified', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -72,7 +72,7 @@ test.describe('autosave temp file creation', () => {
   });
 
   test('temp file content matches the edited text', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -86,7 +86,7 @@ test.describe('autosave temp file creation', () => {
   });
 
   test('autosave logs the temp filename to the console on success', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -110,7 +110,7 @@ test.describe('autosave temp file creation', () => {
 test.describe('autosave guard conditions', () => {
 
   test('does not autosave when no editing has occurred (no input events dispatched)', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -125,7 +125,7 @@ test.describe('autosave guard conditions', () => {
   });
 
   test('does not autosave when the render toggle is switched back to HTML before the debounce fires', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -146,49 +146,7 @@ test.describe('autosave guard conditions', () => {
   });
 
   test('does not autosave when viewing a historical version', async ({ page }) => {
-    // Custom mock: history + autosave (removeEntry) support combined
-    await page.addInitScript(() => {
-      window.__savedFiles = {};
-      const historicalEntry = {
-        filepath: 'notes.md', filename: 'notes.md',
-        content: '# My Notes\nOld content from yesterday',
-        timestamp: '2025-01-15T09:30:00.000Z', event: 'open',
-      };
-      window.__backupFileContent = JSON.stringify([historicalEntry], null, 2);
-
-      const currentContent = '# My Notes\nCurrent content today';
-      const makeFile = (name, content) => ({
-        kind: 'file', name,
-        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
-      });
-      const backupHandle = {
-        getFile: async () => ({ text: async () => window.__backupFileContent }),
-        createWritable: async () => ({ write: async (c) => { window.__backupFileContent = c; }, close: async () => {} }),
-      };
-      const gypsumDirHandle = {
-        getFileHandle: async (name, _options) => {
-          if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
-          return {
-            getFile: async () => ({ text: async () => window.__savedFiles[name] }),
-            createWritable: async () => ({ write: async (c) => { window.__savedFiles[name] = c; }, close: async () => {} }),
-          };
-        },
-        removeEntry: async (name) => { delete window.__savedFiles[name]; },
-      };
-      window.showDirectoryPicker = async () => ({
-        kind: 'directory', name: 'root',
-        values: async function* () { yield makeFile('notes.md', currentContent); },
-        getFileHandle: async (name) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected: ${name}`);
-        },
-        getDirectoryHandle: async (name) => {
-          if (name === '.gypsum') return gypsumDirHandle;
-          throw new Error(`Unexpected: ${name}`);
-        },
-      });
-    });
-
+    await setupMockDirectoryWithHistoryAndSave(page);
     await page.goto('/');
     await openModal(page);
     await waitForHistoryOptions(page, 3);
@@ -208,7 +166,7 @@ test.describe('autosave guard conditions', () => {
   });
 
   test('does not autosave when the content is identical to when the file was opened', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -229,7 +187,7 @@ test.describe('autosave guard conditions', () => {
 test.describe('autosave timing', () => {
 
   test('does not autosave before the 3-second debounce period has elapsed', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -246,7 +204,7 @@ test.describe('autosave timing', () => {
   });
 
   test('does not autosave a second time when within the 1-minute minimum interval', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -268,7 +226,7 @@ test.describe('autosave timing', () => {
   });
 
   test('autosaves again once the minimum interval has elapsed', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -298,7 +256,7 @@ test.describe('autosave timing', () => {
 test.describe('autosave coexistence with manual save', () => {
 
   test('manual save (Ctrl+S) still produces a save file after autosave has run', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -320,7 +278,7 @@ test.describe('autosave coexistence with manual save', () => {
   });
 
   test('autosave does not affect the manual save popover', async ({ page }) => {
-    await setupMockDirectoryWithAutosaveSupport(page);
+    await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);

@@ -1,8 +1,7 @@
 import { appState } from '../../services/store.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
-import { buildSaveFilename, writeAndVerify } from './save-file-copy.js';
+import { SAVE_FOLDER, buildSaveFilename, decodeModalHtml, writeAndVerify } from '../../services/file-save.js';
 
-const SAVE_FOLDER = '.gypsum';
 const DEBOUNCE_MS = 3000;    // pause in typing before attempting autosave
 const MIN_INTERVAL_MS = 60_000; // minimum time between successful autosaves
 
@@ -49,12 +48,7 @@ async function maybeAutosave() {
     const preElement = document.querySelector('#modal-content-text pre');
     if (!preElement) return;
 
-    const modalHtml = preElement.innerHTML;
-    const textToSave = modalHtml
-        .replace(/<br>/gi, '\n')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>');
+    const textToSave = decodeModalHtml(preElement.innerHTML);
 
     // Skip if content unchanged since the last autosave (or since the file was opened)
     const baseline = lastAutosaveContent ?? snapshot.content;
@@ -67,8 +61,7 @@ async function maybeAutosave() {
  * Executes the full autosave sequence:
  *   1. Write content to the save file and verify.
  *   2. Read the verified save file and write its content to the temp file.
- *   3. Compare the temp file against the save file.
- *   4. If they match, delete the save file — leaving only the temp file.
+ *   3. If the temp file is verified, delete the save file — leaving only the temp file.
  * @param {{ filepath: string, filename: string }} snapshot
  * @param {string} textToSave
  */
@@ -79,22 +72,15 @@ async function performAutosave(snapshot, textToSave) {
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
 
-        // Step 1: write to save file and verify
         const saveOk = await writeAndVerify(gypsumDir, saveFilename, textToSave);
         if (!saveOk) return;
 
-        // Step 2: copy save file content to temp file and verify
-        const saveHandle = await gypsumDir.getFileHandle(saveFilename);
-        const saveContent = await (await saveHandle.getFile()).text();
+        // Read the on-disk save file and copy its content to the temp file.
+        // This follows the save file's verified bytes rather than in-memory content.
+        const saveContent = await (await (await gypsumDir.getFileHandle(saveFilename)).getFile()).text();
         const tempOk = await writeAndVerify(gypsumDir, tempFilename, saveContent);
         if (!tempOk) return;
 
-        // Step 3: confirm temp file matches save file byte-for-byte
-        const tempHandle = await gypsumDir.getFileHandle(tempFilename);
-        const tempContent = await (await tempHandle.getFile()).text();
-        if (tempContent !== saveContent) return;
-
-        // Step 4: delete the intermediate save file
         await gypsumDir.removeEntry(saveFilename);
 
         lastAutosaveContent = textToSave;
