@@ -85,6 +85,8 @@ function doClose() {
 
   resetAutosave();
 
+  const snapshotToClean = appState.openFileSnapshot ?? null; // capture now before transition runs
+
   if (appState.openFileSnapshot) {
     appState.closeSnapshot = { ...appState.openFileSnapshot }; // identical for now; will differ once editing lands
     saveBackupEntry(appState.closeSnapshot, 'close');
@@ -108,7 +110,7 @@ function doClose() {
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
 
-    await deleteTempFileIfExists(appState.closeSnapshot ?? null);
+    await deleteTempFileIfExists(snapshotToClean);
   });
 
 }
