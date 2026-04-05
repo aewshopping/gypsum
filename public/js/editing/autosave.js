@@ -1,6 +1,6 @@
-import { appState } from '../../services/store.js';
-import { getIsCurrentVersion } from '../../editing/editable-state.js';
-import { SAVE_FOLDER, buildSaveFilename, decodeModalHtml, writeAndVerify } from '../../services/file-save.js';
+import { appState } from '../services/store.js';
+import { getIsCurrentVersion } from './editable-state.js';
+import { SAVE_FOLDER, buildSaveFilename, decodeModalHtml, writeAndVerify } from '../services/file-save.js';
 
 const DEBOUNCE_MS = 3000;    // pause in typing before attempting autosave
 const MIN_INTERVAL_MS = 60_000; // minimum time between successful autosaves

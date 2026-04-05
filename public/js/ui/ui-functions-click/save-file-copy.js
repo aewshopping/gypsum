@@ -1,6 +1,7 @@
 import { appState } from '../../services/store.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
-import { SAVE_FOLDER, buildSaveFilename, decodeModalHtml, writeAndVerify } from '../../services/file-save.js';
+import { decodeModalHtml } from '../../services/file-save.js';
+import { saveFileCopy } from '../../editing/save-file-copy.js';
 
 let savePopoverTimer = null;
 
@@ -20,10 +21,8 @@ function showSavePopover(success) {
 
 /**
  * Saves a copy of the currently-viewed file content to the .gypsum folder.
- * The save file is named {dir}-{filename}-save.gypsum for files in subdirectories,
- * or {filename}-save.gypsum for top-level files (no dir prefix).
- * Overwrites any existing save file with the same name.
- * Verifies the write by reading back and comparing to the modal content.
+ * Delegates the actual file write to saveFileCopy in editing/save-file-copy.js.
+ * Shows a popover to indicate success or failure.
  * @async
  * @returns {Promise<void>}
  */
@@ -40,15 +39,9 @@ export async function handleSaveFileCopy() {
     if (!preElement) return;
 
     const textToSave = decodeModalHtml(preElement.innerHTML);
-    const saveFilename = buildSaveFilename(snapshot.filepath, snapshot.filename);
 
     try {
-        const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
-        const verified = await writeAndVerify(gypsumDir, saveFilename, textToSave);
-
-        if (verified) {
-            console.log(`Save verified: ${saveFilename}`);
-        }
+        const verified = await saveFileCopy(snapshot, textToSave);
         showSavePopover(verified);
     } catch (err) {
         console.error('Save failed:', err);
