@@ -384,6 +384,7 @@ async function setupMockDirectoryWithSaveSupport(page) {
           }),
         };
       },
+      removeEntry: async (name) => { delete window.__savedFiles[name]; },
     };
 
     window.showDirectoryPicker = async () => ({
@@ -449,6 +450,7 @@ async function setupMockDirectoryWithHistoryAndSave(page) {
           }),
         };
       },
+      removeEntry: async (name) => { delete window.__savedFiles[name]; },
     };
 
     window.showDirectoryPicker = async () => ({

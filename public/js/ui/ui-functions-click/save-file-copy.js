@@ -1,7 +1,7 @@
 import { appState } from '../../services/store.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
+import { SAVE_FOLDER, buildSaveFilename, decodeModalHtml, writeAndVerify } from '../../services/file-save.js';
 
-const SAVE_FOLDER = '.gypsum';
 let savePopoverTimer = null;
 
 /**
@@ -16,24 +16,6 @@ function showSavePopover(success) {
     popover.hidden = false;
     clearTimeout(savePopoverTimer);
     savePopoverTimer = setTimeout(() => { popover.hidden = true; }, 2500);
-}
-
-/**
- * Extracts the directory portion of a filepath, handling both cases:
- *   - filepath includes the filename: 'subdir/notes.md' → 'subdir', 'notes.md' → ''
- *   - filepath is already a pure directory: 'subdir' → 'subdir', '' → ''
- * Detection: if the last path segment (after the final '/') contains a '.', it is
- * treated as a filename and stripped. Otherwise the whole value is a directory path.
- * @param {string} filepath
- * @returns {string}
- */
-function extractDirFromFilepath(filepath) {
-    const lastSlash = filepath.lastIndexOf('/');
-    const lastSegment = lastSlash === -1 ? filepath : filepath.slice(lastSlash + 1);
-    if (lastSegment.includes('.')) {
-        return lastSlash === -1 ? '' : filepath.slice(0, lastSlash);
-    }
-    return filepath;
 }
 
 /**
@@ -57,42 +39,17 @@ export async function handleSaveFileCopy() {
     const preElement = document.querySelector('#modal-content-text pre');
     if (!preElement) return;
 
-    // Convert <br> to \n and decode HTML entities to get plain text for saving
-    const modalHtml = preElement.innerHTML;
-    const textToSave = modalHtml
-        .replace(/<br>/gi, '\n')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>');
-
-    const dirPart = extractDirFromFilepath(snapshot.filepath);
-    const safeDir = dirPart.replace(/[/\\]/g, '-');
-    const saveFilename = safeDir
-        ? `${safeDir}-${snapshot.filename}-save.gypsum`
-        : `${snapshot.filename}-save.gypsum`;
+    const textToSave = decodeModalHtml(preElement.innerHTML);
+    const saveFilename = buildSaveFilename(snapshot.filepath, snapshot.filename);
 
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
-        const saveHandle = await gypsumDir.getFileHandle(saveFilename, { create: true });
+        const verified = await writeAndVerify(gypsumDir, saveFilename, textToSave);
 
-        const writable = await saveHandle.createWritable();
-        await writable.write(textToSave);
-        await writable.close();
-
-        // Verify: read back and compare (performing the same <br> → \n conversion)
-        const savedText = await (await saveHandle.getFile()).text();
-        const modalTextForComparison = modalHtml
-            .replace(/<br>/gi, '\n')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>');
-
-        if (savedText === modalTextForComparison) {
+        if (verified) {
             console.log(`Save verified: ${saveFilename}`);
-            showSavePopover(true);
-        } else {
-            showSavePopover(false);
         }
+        showSavePopover(verified);
     } catch (err) {
         console.error('Save failed:', err);
         showSavePopover(false);
