@@ -1,0 +1,46 @@
+#save-btn-container {
+    pointer-events: auto; /* override parent pointer-events: none */
+    display: flex;
+    align-items: center;
+    padding-inline: 10px;
+
+    /* display: flex would override the [hidden] attribute's display:none without this */
+    &[hidden] { display: none; }
+}
+
+#save-btn {
+    cursor: pointer;
+    font: 1.1em monospace;
+    padding: 2px 8px;
+    background-color: var(--colour-neutral);
+    color: var(--colour-contr);
+    border: 1px solid var(--colour-contr);
+    border-radius: 4px;
+}
+
+#save-btn:hover {
+    background-color: var(--colour-neutral-alt);
+}
+
+#save-popover {
+    position: absolute;
+    bottom: 100%;
+    left: 10px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font: 0.9em monospace;
+    white-space: nowrap;
+    pointer-events: none;
+
+    &.success {
+        background-color: #2d6a4f;
+        color: ivory;
+    }
+
+    &.error {
+        background-color: var(--colour-contr-warning);
+        color: ivory;
+    }
+
+    &[hidden] { display: none; }
+}

@@ -17,6 +17,7 @@ import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-
 import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-active.js';
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
+import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -25,6 +26,7 @@ import { handleHistorySelectChange } from './ui-functions-click/history-select-c
 export function addActionHandlers() {
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
+    document.addEventListener("keydown", keyDownDelegate);
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
 }
@@ -44,6 +46,7 @@ const clickActionHandlers = {
     'searchbox-search': handleSearchBoxClick,
     'delete-filter': handleDeleteFilter,
     'filter-toggleactive':handleFilterToggleActive,
+    'save-file-copy': handleSaveFileCopy,
 };
 
 const changeActionHandlers = {
@@ -98,6 +101,19 @@ function changeDelegate(evt) {
         if (handler) {
             handler(evt, actionElement);
         }
+    }
+}
+
+/**
+ * Handles keydown events for global keyboard shortcuts.
+ * Ctrl+S / Cmd+S triggers the file save action, suppressing the browser's
+ * native save-page dialog (which also fires on keydown).
+ * @param {KeyboardEvent} evt
+ */
+function keyDownDelegate(evt) {
+    if ((evt.ctrlKey || evt.metaKey) && evt.key === 's') {
+        evt.preventDefault();
+        handleSaveFileCopy();
     }
 }
 
