@@ -90,3 +90,22 @@ async function performAutosave(snapshot, textToSave) {
         console.error('Autosave failed:', err);
     }
 }
+
+/**
+ * Deletes the temp autosave file for the given snapshot, if it exists.
+ * Silently ignores errors (e.g. file not found, folder not accessible).
+ * @param {{ filepath: string, filename: string }|null} snapshot
+ * @returns {Promise<void>}
+ */
+export async function deleteTempFileIfExists(snapshot) {
+    if (!snapshot || !appState.dirHandle) return;
+    const saveFilename = buildSaveFilename(snapshot.filepath, snapshot.filename);
+    const tempFilename = saveFilename.replace(/-save\.gypsum$/, '-temp.gypsum');
+    try {
+        const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER);
+        await gypsumDir.removeEntry(tempFilename);
+        console.log(`Deleted temp file: ${tempFilename}`);
+    } catch {
+        // temp file does not exist or folder is inaccessible — nothing to clean up
+    }
+}

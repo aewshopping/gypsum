@@ -251,6 +251,65 @@ test.describe('autosave timing', () => {
 
 });
 
+// ─── Temp file cleanup on modal close ────────────────────────────────────────
+
+test.describe('autosave temp file cleanup on modal close', () => {
+
+  test('temp file is deleted when modal is closed normally (no unsaved changes)', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+
+    // Inject a temp file directly, simulating a previous autosave run
+    await page.evaluate(() => { window.__savedFiles['notes.md-temp.gypsum'] = 'autosaved content'; });
+
+    // No edits were made, so hasUnsavedChanges() is false — modal closes without warning
+    await page.click('[data-action="close-file-content-modal"]');
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+    await page.waitForTimeout(300);
+
+    const savedFiles = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
+  });
+
+  test('temp file is deleted when modal is closed via Discard changes', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    // Inject a temp file directly, simulating a previous autosave run
+    await page.evaluate(() => { window.__savedFiles['notes.md-temp.gypsum'] = 'autosaved content'; });
+
+    // Create unsaved changes so the warning dialog appears on close
+    await editContent(page, 'additional unsaved edits');
+    await page.click('[data-action="close-file-content-modal"]');
+    await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+
+    await page.click('[data-action="discard-modal-changes"]');
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+    await page.waitForTimeout(300);
+
+    const savedFiles = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
+  });
+
+  test('closing the modal when no autosave has run does not error', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+
+    // No temp file exists — the try/catch in deleteTempFileIfExists must not throw
+    await page.click('[data-action="close-file-content-modal"]');
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+    await page.waitForTimeout(300);
+
+    const savedFiles = await page.evaluate(() => window.__savedFiles);
+    expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
+  });
+
+});
+
 // ─── Coexistence with manual save ─────────────────────────────────────────────
 
 test.describe('autosave coexistence with manual save', () => {

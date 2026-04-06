@@ -6,7 +6,7 @@ import { loadContentModal, hasUnsavedChanges } from './load-file-content.js';
 import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
-import { resetAutosave } from './autosave-file.js';
+import { resetAutosave, deleteTempFileIfExists } from './autosave-file.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -85,6 +85,8 @@ function doClose() {
 
   resetAutosave();
 
+  const snapshotToClean = appState.openFileSnapshot ?? null; // capture now before transition runs
+
   if (appState.openFileSnapshot) {
     appState.closeSnapshot = { ...appState.openFileSnapshot }; // identical for now; will differ once editing lands
     saveBackupEntry(appState.closeSnapshot, 'close');
@@ -101,12 +103,14 @@ function doClose() {
 
   });
 
-  transition.finished.then(() => {
+  transition.finished.then(async () => {
     dialog.close();
 
     file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
+
+    await deleteTempFileIfExists(snapshotToClean);
   });
 
 }
