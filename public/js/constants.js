@@ -17,3 +17,6 @@ export const VIEWS = {
     LIST: { value: "list", label: "list view" },
     SEARCH: { value: "search", label: "search view" }
 };
+
+export const SAVE_FOLDER = '.gypsum';
+export const BACKUP_FILENAME = 'history.gypsum';

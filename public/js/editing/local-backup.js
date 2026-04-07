@@ -1,6 +1,6 @@
 import { appState } from '../services/store.js';
+import { BACKUP_FILENAME, SAVE_FOLDER } from '../constants.js';
 
-const BACKUP_FILENAME = 'history.gypsum';
 const MAX_SNAPSHOTS = 500;
 
 /**
@@ -49,7 +49,8 @@ export async function saveBackupEntry(snapshot, event) {
     if (!appState.dirHandle) return;
 
     try {
-        const fileHandle = await appState.dirHandle.getFileHandle(BACKUP_FILENAME, { create: true });
+        const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
+        const fileHandle = await gypsumDir.getFileHandle(BACKUP_FILENAME, { create: true });
         const existingText = await (await fileHandle.getFile()).text();
 
         let { lines, snapshots } = parseHistory(existingText);
