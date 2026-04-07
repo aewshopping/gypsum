@@ -102,6 +102,38 @@ test.describe('unsaved changes indicator in history select button', () => {
     expect(text).toContain('●');
   });
 
+  test('indicator disappears after typing then deleting the typed character', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    // Type a character directly into the contentEditable pre
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('x');
+    expect(await getFilenameSpanText(page)).toContain('●');
+
+    // Delete the typed character — content is now identical to the original
+    await page.keyboard.press('Backspace');
+    expect(await getFilenameSpanText(page)).not.toContain('●');
+  });
+
+  test('indicator disappears after Ctrl+Z undo back to original content', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('x');
+    expect(await getFilenameSpanText(page)).toContain('●');
+
+    await page.keyboard.press('Control+z');
+    expect(await getFilenameSpanText(page)).not.toContain('●');
+  });
+
   test('no indicator when switching history → current without any edits', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
