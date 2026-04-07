@@ -16,9 +16,14 @@ let liveRawContent;
 let liveHtmlContent;
 
 // Normalised baseline set once when the file opens: \r\n unified, trailing whitespace
-// stripped. Matches the form contentEditable returns via innerText, so hasUnsavedChanges()
-// can compare directly without any per-call transformation.
+// stripped. Matches the form contentEditable returns via innerText.
 let openContentNormalized;
+
+// Normalised form of the live content, kept in sync with liveRawContent on each input
+// event. innerText already unifies line endings to \n, so only trimEnd() is needed here.
+// Both variables are pre-computed so hasUnsavedChanges() is a single !== with no runtime
+// transformation on either side.
+let liveContentNormalized;
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -33,6 +38,7 @@ export async function loadContentModal(fileToOpen) {
     activeRawContent = await fileChosen.text();
     liveRawContent = activeRawContent;
     openContentNormalized = activeRawContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd();
+    liveContentNormalized = openContentNormalized;
 
     const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
     appState.openFileSnapshot = {
@@ -142,6 +148,7 @@ export function fileContentRender() {
 export function handleFileContentInput(evt) {
     activeRawContent = evt.target.innerText;
     liveRawContent = activeRawContent;
+    liveContentNormalized = liveRawContent.trimEnd();
     updateUnsavedIndicator();
     scheduleAutosave();
 }
@@ -154,7 +161,7 @@ export function handleFileContentInput(evt) {
  * @returns {boolean}
  */
 export function hasUnsavedChanges() {
-    return liveRawContent.trimEnd() !== openContentNormalized;
+    return liveContentNormalized !== openContentNormalized;
 }
 
 /**
