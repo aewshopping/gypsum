@@ -55,6 +55,7 @@ export async function loadContentModal(fileToOpen) {
 
     await saveBackupEntry(appState.openFileSnapshot, 'open');
     loadHistorySelect(fileToOpen);
+    console.log(fileToOpen);
 }
 
 /**
@@ -175,5 +176,5 @@ export function updateUnsavedIndicator() {
     if (!filenameSpan) return;
     const filename = appState.openFileSnapshot?.filename ?? '';
     const show = getIsCurrentVersion() && hasUnsavedChanges();
-    filenameSpan.textContent = show ? `${filename} ●` : filename;
+    filenameSpan.textContent = show ? `● ${filename}` : `○ ${filename}`;
 }

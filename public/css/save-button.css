@@ -1,13 +1,3 @@
-#save-btn-container {
-    pointer-events: auto; /* override parent pointer-events: none */
-    display: flex;
-    align-items: center;
-    padding-inline: 10px;
-
-    /* display: flex would override the [hidden] attribute's display:none without this */
-    &[hidden] { display: none; }
-}
-
 #save-btn {
     cursor: pointer;
     font: 1.1em monospace;

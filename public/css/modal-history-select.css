@@ -3,10 +3,25 @@
     color: inherit;
     font: inherit;
     flex: 1;
+    min-width: 0px;
     margin-inline: 6px;
 
     &:hover {
         background-color: var(--colour-neutral);
+    }
+
+    button {
+        display:flex;
+        align-items: center;
+        width:100%;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    .opt-filename {
+      font-size: 0.9em;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     &::picker-icon {
