@@ -41,6 +41,30 @@ async function getFilenameSpanText(page) {
 
 test.describe('unsaved changes indicator in history select button', () => {
 
+  test('no indicator shown on initial open for a file with Windows \\r\\n line endings', async ({ page }) => {
+    await page.addInitScript(() => {
+      const content = '# My Notes\r\nCurrent content today #work';
+      const makeFile = (name, c) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: c.length, lastModified: Date.now(), text: async () => c }),
+      });
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () { yield makeFile('notes.md', content); },
+        getFileHandle: async () => { throw new Error('no backup'); },
+      });
+    });
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await waitForHistoryOptions(page, 1);
+
+    const text = await getFilenameSpanText(page);
+    expect(text).toContain('notes.md');
+    expect(text).not.toContain('●');
+  });
+
   test('no indicator shown on initial open with no edits', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
