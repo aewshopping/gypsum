@@ -10,7 +10,6 @@ import { resetAutosave, deleteTempFileIfExists } from '../../editing/autosave.js
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
-const filenamebox = document.getElementById('file-content-filename');
 const scrollingContent = document.getElementById("modal-content");
 const warningDialog = document.getElementById('modal-unsaved-warning');
 
@@ -45,10 +44,6 @@ export function handleOpenFileContent(event, target) {
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
     file_box.classList.remove("moving-file-content-view");
 
-    filenamebox.innerHTML =
-        `<span class="copyflag" data-action="copy-filename"
-               title="copy filename to clipboard"
-               data-filename="${file_to_open}">©</span>`;
     initHistorySelect(file_to_open);
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;
