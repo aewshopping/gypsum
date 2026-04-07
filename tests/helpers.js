@@ -201,9 +201,14 @@ async function setupMockDirectoryWithWrite(page) {
         values: async function* () {
           yield makeFile('notes.md', '# My Notes\nSome content #work/project');
         },
-        getFileHandle: async (name, _options) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected getFileHandle call for: ${name}`);
+        getDirectoryHandle: async (name, _options) => {
+          if (name === '.gypsum') return {
+            getFileHandle: async (n, _opts) => {
+              if (n === 'history.gypsum') return backupHandle;
+              throw new Error(`Unexpected getFileHandle call for: ${n}`);
+            },
+          };
+          throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
         },
       };
     };
@@ -262,9 +267,14 @@ async function setupMockDirectoryWithHistory(page) {
         values: async function* () {
           yield makeFile('notes.md', currentContent);
         },
-        getFileHandle: async (name, _options) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected getFileHandle call for: ${name}`);
+        getDirectoryHandle: async (name, _options) => {
+          if (name === '.gypsum') return {
+            getFileHandle: async (n, _opts) => {
+              if (n === 'history.gypsum') return backupHandle;
+              throw new Error(`Unexpected getFileHandle call for: ${n}`);
+            },
+          };
+          throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
         },
       };
     };
@@ -335,9 +345,14 @@ async function setupMockDirectoryWithHistoryLinePool(page) {
       values: async function* () {
         yield makeFile('notes.md', currentContent);
       },
-      getFileHandle: async (name, _options) => {
-        if (name === 'history.gypsum') return backupHandle;
-        throw new Error(`Unexpected getFileHandle call for: ${name}`);
+      getDirectoryHandle: async (name, _options) => {
+        if (name === '.gypsum') return {
+          getFileHandle: async (n, _opts) => {
+            if (n === 'history.gypsum') return backupHandle;
+            throw new Error(`Unexpected getFileHandle call for: ${n}`);
+          },
+        };
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
       },
     });
   });
@@ -375,6 +390,7 @@ async function setupMockDirectoryWithSaveSupport(page) {
 
     const gypsumDirHandle = {
       getFileHandle: async (name, _options) => {
+        if (name === 'history.gypsum') return backupHandle;
         if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
         return {
           getFile: async () => ({ text: async () => window.__savedFiles[name] }),
@@ -390,10 +406,6 @@ async function setupMockDirectoryWithSaveSupport(page) {
     window.showDirectoryPicker = async () => ({
       kind: 'directory', name: 'root',
       values: async function* () { yield makeFile('notes.md', fileContent); },
-      getFileHandle: async (name, _options) => {
-        if (name === 'history.gypsum') return backupHandle;
-        throw new Error(`Unexpected getFileHandle call for: ${name}`);
-      },
       getDirectoryHandle: async (name, _options) => {
         if (name === '.gypsum') return gypsumDirHandle;
         throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
@@ -441,6 +453,7 @@ async function setupMockDirectoryWithHistoryAndSave(page) {
 
     const gypsumDirHandle = {
       getFileHandle: async (name, _options) => {
+        if (name === 'history.gypsum') return backupHandle;
         if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
         return {
           getFile: async () => ({ text: async () => window.__savedFiles[name] }),
@@ -456,10 +469,6 @@ async function setupMockDirectoryWithHistoryAndSave(page) {
     window.showDirectoryPicker = async () => ({
       kind: 'directory', name: 'root',
       values: async function* () { yield makeFile('notes.md', currentContent); },
-      getFileHandle: async (name, _options) => {
-        if (name === 'history.gypsum') return backupHandle;
-        throw new Error(`Unexpected getFileHandle call for: ${name}`);
-      },
       getDirectoryHandle: async (name, _options) => {
         if (name === '.gypsum') return gypsumDirHandle;
         throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);

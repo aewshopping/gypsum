@@ -1,6 +1,5 @@
 import { appState } from '../services/store.js';
-
-const BACKUP_FILENAME = 'history.gypsum';
+import { BACKUP_FILENAME, SAVE_FOLDER } from '../constants.js';
 
 /**
  * Reads history.gypsum and returns all entries matching the given filename, newest-first.
@@ -18,7 +17,8 @@ const BACKUP_FILENAME = 'history.gypsum';
 export async function readBackupHistory(filename) {
     if (!appState.dirHandle) return [];
     try {
-        const fileHandle = await appState.dirHandle.getFileHandle(BACKUP_FILENAME);
+        const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER);
+        const fileHandle = await gypsumDir.getFileHandle(BACKUP_FILENAME);
         const text = await (await fileHandle.getFile()).text();
         if (!text.trim()) return [];
         const parsed = JSON.parse(text);

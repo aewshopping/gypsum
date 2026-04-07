@@ -81,9 +81,14 @@ test.describe('local file backup', () => {
           yield makeFile('alpha.md', '# Alpha\nFirst file #work');
           yield makeFile('beta.md', '# Beta\nSecond file #personal');
         },
-        getFileHandle: async (name) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected: ${name}`);
+        getDirectoryHandle: async (name) => {
+          if (name === '.gypsum') return {
+            getFileHandle: async (n) => {
+              if (n === 'history.gypsum') return backupHandle;
+              throw new Error(`Unexpected: ${n}`);
+            },
+          };
+          throw new Error(`Unexpected getDirectoryHandle: ${name}`);
         },
       });
     });
@@ -132,9 +137,14 @@ test.describe('local file backup', () => {
           yield makeFile('alpha.md', '# Alpha\nFirst file #work');
           yield makeFile('beta.md', '# Beta\nSecond file #personal');
         },
-        getFileHandle: async (name) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected: ${name}`);
+        getDirectoryHandle: async (name) => {
+          if (name === '.gypsum') return {
+            getFileHandle: async (n) => {
+              if (n === 'history.gypsum') return backupHandle;
+              throw new Error(`Unexpected: ${n}`);
+            },
+          };
+          throw new Error(`Unexpected getDirectoryHandle: ${name}`);
         },
       });
     });

@@ -1,5 +1,3 @@
-export const SAVE_FOLDER = '.gypsum';
-
 /**
  * Extracts the directory portion of a filepath, handling both cases:
  *   - filepath includes the filename: 'subdir/notes.md' → 'subdir', 'notes.md' → ''

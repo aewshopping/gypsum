@@ -197,9 +197,14 @@ test.describe('history select in file content modal', () => {
       window.showDirectoryPicker = async () => ({
         kind: 'directory', name: 'root',
         values: async function* () { yield makeFile('notes.md', sameContent); },
-        getFileHandle: async (name, _options) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected: ${name}`);
+        getDirectoryHandle: async (name, _options) => {
+          if (name === '.gypsum') return {
+            getFileHandle: async (n, _opts) => {
+              if (n === 'history.gypsum') return backupHandle;
+              throw new Error(`Unexpected: ${n}`);
+            },
+          };
+          throw new Error(`Unexpected getDirectoryHandle: ${name}`);
         },
       });
     });
@@ -250,9 +255,14 @@ test.describe('history select in file content modal', () => {
           yield makeFile('notes.md', 'Current notes content');
           yield makeFile('other.md', 'Other file content #personal');
         },
-        getFileHandle: async (name, _options) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected: ${name}`);
+        getDirectoryHandle: async (name, _options) => {
+          if (name === '.gypsum') return {
+            getFileHandle: async (n, _opts) => {
+              if (n === 'history.gypsum') return backupHandle;
+              throw new Error(`Unexpected: ${n}`);
+            },
+          };
+          throw new Error(`Unexpected getDirectoryHandle: ${name}`);
         },
       });
     });

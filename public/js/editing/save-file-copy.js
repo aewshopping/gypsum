@@ -1,5 +1,6 @@
 import { appState } from '../services/store.js';
-import { SAVE_FOLDER, buildSaveFilename, writeAndVerify } from '../services/file-save.js';
+import { SAVE_FOLDER } from '../constants.js';
+import { buildSaveFilename, writeAndVerify } from '../services/file-save.js';
 
 /**
  * Saves a copy of the given text content to the .gypsum folder.
