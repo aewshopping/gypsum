@@ -175,6 +175,7 @@ export function updateUnsavedIndicator() {
     const filenameSpan = document.querySelector('#file-content-history-select button .opt-filename');
     if (!filenameSpan) return;
     const filename = appState.openFileSnapshot?.filename ?? '';
+    const filepath = appState.openFileSnapshot?.filepath ?? '';
     const show = getIsCurrentVersion() && hasUnsavedChanges();
-    filenameSpan.textContent = show ? `● ${filename}` : `○ ${filename}`;
+    filenameSpan.textContent = show ? `● ${filepath}\u00A0` : `○ ${filepath}\u00A0`;
 }

@@ -5,6 +5,7 @@
     flex: 1;
     min-width: 0px;
     margin-inline: 6px;
+    font-size: 0.9em;
 
     &:hover {
         background-color: var(--colour-neutral);
@@ -19,7 +20,6 @@
     }
 
     .opt-filename {
-      font-size: 0.9em;
       overflow: hidden;
       text-overflow: ellipsis;
     }
