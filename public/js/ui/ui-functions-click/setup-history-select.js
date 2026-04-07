@@ -1,6 +1,7 @@
 import { appState } from '../../services/store.js';
 import { readBackupHistory } from '../../editing/backup-history-read.js';
 import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
+import { updateUnsavedIndicator } from './load-file-content.js';
 
 /**
  * Resets the history select to show only "current" for a newly opened file.
@@ -26,5 +27,6 @@ export function loadHistorySelect(filename) {
         appState.historyEntries = entries;
         document.getElementById('file-content-history-select').innerHTML =
             renderHistorySelect(filename, entries);
+        updateUnsavedIndicator();
     });
 }

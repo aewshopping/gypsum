@@ -125,6 +125,8 @@ export function fileContentRender() {
         // Compare the historical "active" content against the "live" current version
         applyDiffHighlights(activeRawContent, liveRawContent);
     }
+
+    updateUnsavedIndicator();
 }
 
 /**
@@ -134,6 +136,7 @@ export function fileContentRender() {
 export function handleFileContentInput(evt) {
     activeRawContent = evt.target.innerText;
     liveRawContent = activeRawContent;
+    updateUnsavedIndicator();
     scheduleAutosave();
 }
 
@@ -143,4 +146,18 @@ export function handleFileContentInput(evt) {
  */
 export function hasUnsavedChanges() {
     return liveRawContent !== appState.openFileSnapshot?.content;
+}
+
+/**
+ * Appends a black circle (●) to the filename in the history select button when the
+ * current version has unsaved changes, and removes it otherwise.
+ * Only shown when viewing the current version — not for historical snapshots.
+ * @returns {void}
+ */
+export function updateUnsavedIndicator() {
+    const filenameSpan = document.querySelector('#file-content-history-select button .opt-filename');
+    if (!filenameSpan) return;
+    const filename = appState.openFileSnapshot?.filename ?? '';
+    const show = getIsCurrentVersion() && hasUnsavedChanges();
+    filenameSpan.textContent = show ? `${filename} ●` : filename;
 }
