@@ -1,10 +1,12 @@
+import { appState } from '../../services/store.js';
+
 /**
  * Renders the inner HTML for the history select element.
  *
- * The <button> shows the filename and (when a history entry is selected) a version
+ * The <button> shows the filepath and (when a history entry is selected) a version
  * label — this is what the user sees when the select is closed.
  *
- * Each <option> shows only the version label and timestamp — the filename is not
+ * Each <option> shows only the version label and timestamp — the filepath is not
  * repeated in the dropdown list.
  *
  * The "current" option has no version label. Historical options are labelled
@@ -15,6 +17,7 @@
  * @returns {string} HTML string for the select's innerHTML.
  */
 export function renderHistorySelect(filename, entries) {
+    const filepath = appState.myFiles.find(f => f.filename === filename)?.filepath ?? filename;
     const historyOptions = entries.map((entry, i) =>
         `<option value="${i}">` +
           `<span class="opt-time">${formatTimestamp(entry.timestamp)}</span>` +
@@ -22,7 +25,7 @@ export function renderHistorySelect(filename, entries) {
         `</option>`
     ).join('');
 
-    return `<button><span class="opt-filename">${filename}</span><span class="opt-version"></span></button>` +
+    return `<button><span class="opt-filename">${filepath}</span><span class="opt-version"></span></button>` +
            `<option value="current"><span class="opt-time">current version</span></option>` +
            historyOptions;
 }
