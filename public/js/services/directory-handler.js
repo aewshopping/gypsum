@@ -17,7 +17,7 @@ async function getFilesRecursive(dirHandle, path = '') {
                 const filepath = path ? `${path}/${entry.name}` : entry.name;
                 results.push({ handle: entry, filepath });
             }
-        } else if (entry.kind === 'directory') {
+        } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
             const subPath = path ? `${path}/${entry.name}` : entry.name;
             const subResults = await getFilesRecursive(entry, subPath);
             results.push(...subResults);
