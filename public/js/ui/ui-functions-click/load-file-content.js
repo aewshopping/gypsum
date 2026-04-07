@@ -8,12 +8,17 @@ import { getIsCurrentVersion, setIsCurrentVersion } from '../../editing/editable
 import { scheduleAutosave } from '../../editing/autosave.js';
 
 // Represents the content currently visible in the modal (could be historical)
-let activeRawContent; 
+let activeRawContent;
 let activeHtmlContent;
 
 // Represents the "true" current state of the file, preserved during history browsing
-let liveRawContent; 
+let liveRawContent;
 let liveHtmlContent;
+
+// Normalised baseline set once when the file opens: \r\n unified, trailing whitespace
+// stripped. Matches the form contentEditable returns via innerText, so hasUnsavedChanges()
+// can compare directly without any per-call transformation.
+let openContentNormalized;
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -27,6 +32,7 @@ export async function loadContentModal(fileToOpen) {
     // On initial load, the active content and live content are identical
     activeRawContent = await fileChosen.text();
     liveRawContent = activeRawContent;
+    openContentNormalized = activeRawContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd();
 
     const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
     appState.openFileSnapshot = {
@@ -142,10 +148,13 @@ export function handleFileContentInput(evt) {
 
 /**
  * Returns true if the live content differs from the content when the modal was opened.
+ * Compares against openContentNormalized (computed once on load) to avoid false positives
+ * from line-ending differences (\r\n vs \n) between the raw file and what contentEditable
+ * returns via innerText.
  * @returns {boolean}
  */
 export function hasUnsavedChanges() {
-    return liveRawContent !== appState.openFileSnapshot?.content;
+    return liveRawContent.trimEnd() !== openContentNormalized;
 }
 
 /**
