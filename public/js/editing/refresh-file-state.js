@@ -25,6 +25,7 @@ export async function refreshFileAfterSave(snapshot) {
         const freshFile = await getFileDataAndMetadata(existingFile.handle, loadOrder);
 
         const tagsHaveChanged = !tagsEqual(existingFile.tags, freshFile.tags);
+        const colorHasChanged = existingFile.color !== freshFile.color;
 
         appState.myFiles[fileIndex] = {
             ...freshFile,
@@ -32,6 +33,12 @@ export async function refreshFileAfterSave(snapshot) {
             id: existingFile.id,
             filepath: existingFile.filepath,
         };
+
+        if (colorHasChanged && appState.openFileSnapshot?.filepath === snapshot.filepath) {
+            const newColor = freshFile.color ?? '';
+            document.getElementById('file-content-header').dataset.color = newColor;
+            document.getElementById('modal-content').dataset.color = newColor;
+        }
 
         if (tagsHaveChanged) {
             appState.myParentMap = buildParentMap(appState.myFiles);

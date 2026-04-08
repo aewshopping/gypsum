@@ -292,6 +292,66 @@ test.describe('file list re-renders after manual save', () => {
 
 });
 
+// ─── UI: modal color ──────────────────────────────────────────────────────────
+
+test.describe('modal color updates after manual save', () => {
+
+  test('modal header and content data-color update when color tag is added', async ({ page }) => {
+    await setupWithContent(page, '# My Notes\nContent');
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await editContent(page, '# My Notes\nContent #color/coral');
+    await clickSaveBtn(page);
+    await page.waitForTimeout(500);
+
+    const colors = await page.evaluate(() => ({
+      header: document.getElementById('file-content-header').dataset.color,
+      content: document.getElementById('modal-content').dataset.color,
+    }));
+    expect(colors.header).toBe('coral');
+    expect(colors.content).toBe('coral');
+  });
+
+  test('modal header and content data-color clear when color tag is removed', async ({ page }) => {
+    await setupWithContent(page, '# My Notes\nContent #color/coral');
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await editContent(page, '# My Notes\nContent');
+    await clickSaveBtn(page);
+    await page.waitForTimeout(500);
+
+    const colors = await page.evaluate(() => ({
+      header: document.getElementById('file-content-header').dataset.color,
+      content: document.getElementById('modal-content').dataset.color,
+    }));
+    expect(colors.header).toBe('');
+    expect(colors.content).toBe('');
+  });
+
+  test('modal color does not change when non-color content is edited', async ({ page }) => {
+    await setupWithContent(page, '# My Notes\nContent #color/coral');
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    const colorBefore = await page.evaluate(() =>
+      document.getElementById('file-content-header').dataset.color
+    );
+
+    await editContent(page, '# My Notes\nDifferent body #color/coral');
+    await clickSaveBtn(page);
+    await page.waitForTimeout(500);
+
+    const colorAfter = await page.evaluate(() =>
+      document.getElementById('file-content-header').dataset.color
+    );
+    expect(colorAfter).toBe(colorBefore);
+  });
+
+});
+
 // ─── UI: tag taxonomy ─────────────────────────────────────────────────────────
 
 test.describe('tag taxonomy re-renders after manual save', () => {
