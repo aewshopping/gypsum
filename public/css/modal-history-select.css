@@ -22,6 +22,10 @@
     .opt-filename {
       overflow: hidden;
       text-overflow: ellipsis;
+
+      &::before{
+        content:"⏺ " /* indicates not saved, saved indicator below */
+      }
     }
 
     &::picker-icon {
@@ -58,6 +62,11 @@
     }
 
 }
+
+#modal-content.saved .opt-filename::before {
+    content:"🞅 "; /* indicates saved */
+}
+
 
 /* a visual alert if you are looking at old file content (ie 2nd or later box checked) */
 #file-content-history-select:not(:has(option:first-of-type:checked)) {

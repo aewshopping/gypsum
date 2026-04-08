@@ -17,7 +17,7 @@ import { appState } from '../../services/store.js';
  * @returns {string} HTML string for the select's innerHTML.
  */
 export function renderHistorySelect(filename, entries) {
-    const filepath = appState.myFiles.find(f => f.filename === filename)?.filepath ?? filename;
+    const filepath = "temp-pre-render-filepath" //appState.myFiles.find(f => f.filename === filename)?.filepath ?? filename;
     const historyOptions = entries.map((entry, i) =>
         `<option value="${i}">` +
           `<span class="opt-time">${formatTimestamp(entry.timestamp)}</span>` +

@@ -1,16 +1,19 @@
 #save-btn {
     cursor: pointer;
-    font: 1.1em monospace;
-    padding: 2px 8px;
-    background-color: var(--colour-neutral);
-    color: var(--colour-contr);
-    border: 1px solid var(--colour-contr);
-    border-radius: 4px;
+    padding: 2px 4px 2px 4px;
+    background-color: var(--colour-contr);
+    border: 1.5px solid var(--colour-neutral-alt);
+    color: var(--colour-neutral);
+    border-radius: 6px;
+    font:1.1em monospace;
 }
 
-#save-btn:hover {
+#modal-content.saved #save-btn {
+    border: 1.5px solid var(--colour-contr);
+    color: var(--colour-contr);
     background-color: var(--colour-neutral-alt);
 }
+
 
 #save-popover {
     position: absolute;

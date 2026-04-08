@@ -172,10 +172,11 @@ export function hasUnsavedChanges() {
  * @returns {void}
  */
 export function updateUnsavedIndicator() {
-    const filenameSpan = document.querySelector('#file-content-history-select button .opt-filename');
-    if (!filenameSpan) return;
-    const filename = appState.openFileSnapshot?.filename ?? '';
-    const filepath = appState.openFileSnapshot?.filepath ?? '';
-    const show = getIsCurrentVersion() && hasUnsavedChanges();
-    filenameSpan.textContent = show ? `● ${filepath}\u00A0` : `○ ${filepath}\u00A0`;
+    const modalContentDiv = document.getElementById("modal-content");
+
+    const isUnsaved = getIsCurrentVersion() && hasUnsavedChanges();
+
+    // If isUnsaved is true, 'saved' is removed. If false, 'saved' is added.
+    // this class triggers css style changes
+    modalContentDiv.classList.toggle("saved", !isUnsaved);
 }
