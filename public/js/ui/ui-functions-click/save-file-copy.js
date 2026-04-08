@@ -3,6 +3,7 @@ import { getIsCurrentVersion } from '../../editing/editable-state.js';
 import { decodeModalHtml } from '../../services/file-save.js';
 import { saveFileCopy } from '../../editing/save-file-copy.js';
 import { updateUnsavedIndicator, resetUnsavedBaseline } from './load-file-content.js';
+import { refreshFileAfterSave } from '../../editing/refresh-file-state.js';
 
 let savePopoverTimer = null;
 
@@ -48,6 +49,7 @@ export async function handleSaveFileCopy() {
             updateUnsavedIndicator();
         }
         showSavePopover(verified);
+        if (verified) refreshFileAfterSave(snapshot);
     } catch (err) {
         console.error('Save failed:', err);
         showSavePopover(false);
