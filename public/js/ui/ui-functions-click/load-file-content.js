@@ -123,11 +123,6 @@ export function fileContentRender() {
         textbox.innerHTML = activeHtmlContent;
     }
 
-    const saveBtnContainer = document.getElementById('save-btn-container');
-    if (saveBtnContainer) {
-        saveBtnContainer.hidden = !(isTxtMode && getIsCurrentVersion());
-    }
-
     // apply search highlights if any
     highlightPropMatches();
 
