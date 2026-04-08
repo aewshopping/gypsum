@@ -166,6 +166,16 @@ export function hasUnsavedChanges() {
 }
 
 /**
+ * Resets the saved baseline to the current live content.
+ * Called after a successful save so that hasUnsavedChanges() returns false
+ * and the unsaved-changes indicator is cleared.
+ * @returns {void}
+ */
+export function resetUnsavedBaseline() {
+    openContentNormalized = liveContentNormalized;
+}
+
+/**
  * Appends a black circle (●) to the filename in the history select button when the
  * current version has unsaved changes, and removes it otherwise.
  * Only shown when viewing the current version — not for historical snapshots.

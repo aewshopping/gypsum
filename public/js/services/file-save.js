@@ -61,3 +61,17 @@ export async function writeAndVerify(gypsumDir, filename, content) {
     const savedText = await (await handle.getFile()).text();
     return savedText === content;
 }
+
+/**
+ * Writes content directly to a FileSystemFileHandle, then reads it back to verify.
+ * @param {FileSystemFileHandle} fileHandle
+ * @param {string} content
+ * @returns {Promise<boolean>} true if the written content matches what was read back
+ */
+export async function writeAndVerifyHandle(fileHandle, content) {
+    const writable = await fileHandle.createWritable();
+    await writable.write(content);
+    await writable.close();
+    const savedText = await (await fileHandle.getFile()).text();
+    return savedText === content;
+}
