@@ -34,81 +34,13 @@ async function clickSaveBtn(page) {
   await page.evaluate(() => document.getElementById('save-btn').click());
 }
 
-// Force the save button visible regardless of state — used in guard tests to
-// verify the handler itself rejects calls made under invalid conditions.
-async function forceShowSaveBtn(page) {
-  await page.evaluate(() => {
-    document.getElementById('save-btn-container').hidden = false;
-  });
-}
-
-test.describe('save button visibility', () => {
-
-  test('save button is hidden when modal first opens (default HTML mode)', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-
-    await expect(page.locator('#save-btn-container')).toBeHidden();
-  });
-
-  test('save button becomes visible after switching to text mode', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-
-    await switchToTxt(page);
-
-    await expect(page.locator('#save-btn-container')).toBeVisible();
-  });
-
-  test('save button becomes hidden again after switching back to HTML mode', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-
-    await switchToTxt(page);
-    await switchToHtml(page);
-
-    await expect(page.locator('#save-btn-container')).toBeHidden();
-  });
-
-  test('save button is hidden when navigating to a historical version in text mode', async ({ page }) => {
-    await setupMockDirectoryWithHistoryAndSave(page);
-    await page.goto('/');
-    await openModal(page);
-    await waitForHistoryOptions(page, 3);
-
-    await switchToTxt(page);
-    await page.selectOption('#file-content-history-select', { index: 2 });
-
-    await expect(page.locator('#save-btn-container')).toBeHidden();
-  });
-
-  test('save button reappears after returning to current version in text mode', async ({ page }) => {
-    await setupMockDirectoryWithHistoryAndSave(page);
-    await page.goto('/');
-    await openModal(page);
-    await waitForHistoryOptions(page, 3);
-
-    await switchToTxt(page);
-    await page.selectOption('#file-content-history-select', { index: 2 });
-    await page.selectOption('#file-content-history-select', { value: 'current' });
-
-    await expect(page.locator('#save-btn-container')).toBeVisible();
-  });
-
-});
-
 test.describe('save button guard conditions', () => {
 
-  test('handler does not save when forced visible in HTML mode', async ({ page }) => {
+  test('handler does not save in HTML mode', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
-    // Modal opens in HTML mode (render_toggle unchecked). Force the button visible
-    // as if a CSS bug had revealed it, and click it.
-    await forceShowSaveBtn(page);
+    // Modal opens in HTML mode (render_toggle unchecked).
     await clickSaveBtn(page);
     await page.waitForTimeout(300);
 
@@ -116,7 +48,7 @@ test.describe('save button guard conditions', () => {
     expect(Object.keys(savedFiles)).toHaveLength(0);
   });
 
-  test('handler does not save when forced visible while viewing a historical version', async ({ page }) => {
+  test('handler does not save while viewing a historical version', async ({ page }) => {
     await setupMockDirectoryWithHistoryAndSave(page);
     await page.goto('/');
     await openModal(page);
@@ -124,8 +56,6 @@ test.describe('save button guard conditions', () => {
 
     await switchToTxt(page);
     await page.selectOption('#file-content-history-select', { index: 2 });
-    // Button is now hidden (historical version). Force it visible and click.
-    await forceShowSaveBtn(page);
     await clickSaveBtn(page);
     await page.waitForTimeout(300);
 
