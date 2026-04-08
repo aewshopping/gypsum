@@ -15,9 +15,9 @@ function showSavePopover(success) {
     if (!popover) return;
     popover.textContent = success ? 'Saved' : 'Save failed';
     popover.className = success ? 'success' : 'error';
-    popover.hidden = false;
+    popover.showPopover();
     clearTimeout(savePopoverTimer);
-    savePopoverTimer = setTimeout(() => { popover.hidden = true; }, 2500);
+    savePopoverTimer = setTimeout(() => { popover.hidePopover(); }, 2500);
 }
 
 /**

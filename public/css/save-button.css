@@ -6,6 +6,7 @@
     color: var(--colour-neutral);
     border-radius: 6px;
     font:1.1em monospace;
+    anchor-name: --save-btn;
 }
 
 #modal-content.saved #save-btn {
@@ -16,9 +17,12 @@
 
 
 #save-popover {
-    position: absolute;
-    bottom: 100%;
-    left: 10px;
+    margin: 0;
+    inset: auto;
+    position-anchor: --save-btn;
+    top: anchor(bottom);
+    left: anchor(left);
+    margin-block-start: 4px;
     padding: 4px 10px;
     border-radius: 4px;
     font: 0.9em monospace;
@@ -34,6 +38,4 @@
         background-color: var(--colour-contr-warning);
         color: ivory;
     }
-
-    &[hidden] { display: none; }
 }
