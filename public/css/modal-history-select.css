@@ -24,7 +24,7 @@
       text-overflow: ellipsis;
 
       &::before{
-        content:"⏺ " /* indicates not saved, saved indicator below */
+        content:"● " /* indicates not saved, saved indicator below */
       }
     }
 
@@ -64,7 +64,7 @@
 }
 
 #modal-content.saved .opt-filename::before {
-    content:"🞅 "; /* indicates saved */
+    content:"○ "; /* indicates saved */
 }
 
 
