@@ -369,6 +369,8 @@ async function setupMockDirectoryWithHistoryLinePool(page) {
 async function setupMockDirectoryWithSaveSupport(page) {
   await page.addInitScript(() => {
     window.__savedFiles = {};
+    window.__originalFiles = {};
+    window.__deletedFiles = {};
     window.__backupFileContent = '';
 
     const fileContent = '# My Notes\nSome content here';
@@ -376,7 +378,12 @@ async function setupMockDirectoryWithSaveSupport(page) {
     const makeFile = (name, content) => ({
       kind: 'file', name,
       getFile: async () => ({
-        name, size: content.length, lastModified: Date.now(), text: async () => content,
+        name, size: content.length, lastModified: Date.now(),
+        text: async () => window.__originalFiles[name] ?? content,
+      }),
+      createWritable: async () => ({
+        write: async (c) => { window.__originalFiles[name] = c; },
+        close: async () => {},
       }),
     });
 
@@ -400,7 +407,7 @@ async function setupMockDirectoryWithSaveSupport(page) {
           }),
         };
       },
-      removeEntry: async (name) => { delete window.__savedFiles[name]; },
+      removeEntry: async (name) => { window.__deletedFiles[name] = true; delete window.__savedFiles[name]; },
     };
 
     window.showDirectoryPicker = async () => ({

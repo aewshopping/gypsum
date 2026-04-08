@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
 import { decodeModalHtml } from '../../services/file-save.js';
 import { saveFileCopy } from '../../editing/save-file-copy.js';
+import { updateUnsavedIndicator, resetUnsavedBaseline } from './load-file-content.js';
 
 let savePopoverTimer = null;
 
@@ -42,6 +43,10 @@ export async function handleSaveFileCopy() {
 
     try {
         const verified = await saveFileCopy(snapshot, textToSave);
+        if (verified) {
+            resetUnsavedBaseline();
+            updateUnsavedIndicator();
+        }
         showSavePopover(verified);
     } catch (err) {
         console.error('Save failed:', err);

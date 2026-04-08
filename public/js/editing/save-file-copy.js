@@ -1,24 +1,40 @@
 import { appState } from '../services/store.js';
 import { SAVE_FOLDER } from '../constants.js';
-import { buildSaveFilename, writeAndVerify } from '../services/file-save.js';
+import { buildSaveFilename, writeAndVerify, writeAndVerifyHandle } from '../services/file-save.js';
 
 /**
- * Saves a copy of the given text content to the .gypsum folder.
- * The save file is named {dir}-{filename}-save.gypsum for files in subdirectories,
- * or {filename}-save.gypsum for top-level files (no dir prefix).
- * Overwrites any existing save file with the same name.
- * Verifies the write by reading back and comparing to the provided content.
+ * Saves the given text to the .gypsum folder and, once verified, overwrites the
+ * original file. Both writes are verified by read-back comparison.
+ * On full success: deletes the temporary save file and updates the in-memory
+ * snapshot content (so the unsaved-changes indicator resets).
  * @async
- * @param {{ filepath: string, filename: string }} snapshot
+ * @param {{ filepath: string, filename: string, content: string }} snapshot
  * @param {string} textToSave
- * @returns {Promise<boolean>} true if the save was verified successfully
+ * @returns {Promise<boolean>} true if both the save file and the original file
+ *   were written and verified successfully
  */
 export async function saveFileCopy(snapshot, textToSave) {
     const saveFilename = buildSaveFilename(snapshot.filepath, snapshot.filename);
     const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
-    const verified = await writeAndVerify(gypsumDir, saveFilename, textToSave);
-    if (verified) {
-        console.log(`Save verified: ${saveFilename}`);
+
+    const saveVerified = await writeAndVerify(gypsumDir, saveFilename, textToSave);
+    if (!saveVerified) {
+        console.warn(`Save file verification failed: ${saveFilename}`);
+        return false;
     }
-    return verified;
+    console.log(`Save verified: ${saveFilename}`);
+
+    const fileObj = appState.myFiles.find(f => f.filepath === snapshot.filepath);
+    if (!fileObj?.handle) return false;
+
+    const originalVerified = await writeAndVerifyHandle(fileObj.handle, textToSave);
+    if (!originalVerified) {
+        console.warn(`Original file verification failed: ${snapshot.filename}`);
+        return false;
+    }
+    console.log(`Original saved: ${snapshot.filename}`);
+
+    await gypsumDir.removeEntry(saveFilename);
+    snapshot.content = textToSave;
+    return true;
 }

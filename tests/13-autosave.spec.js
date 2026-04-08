@@ -331,9 +331,9 @@ test.describe('autosave coexistence with manual save', () => {
     await page.keyboard.press('Control+s');
     await page.waitForTimeout(300);
 
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).toContain('notes.md-save.gypsum');
-    expect(savedFiles['notes.md-save.gypsum']).toBe('manually saved content');
+    // Manual save writes to the original file and deletes the intermediate .gypsum file
+    const originalContent = await page.evaluate(() => window.__originalFiles['notes.md']);
+    expect(originalContent).toBe('manually saved content');
   });
 
   test('autosave does not affect the manual save popover', async ({ page }) => {

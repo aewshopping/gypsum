@@ -31,13 +31,9 @@ async function editContent(page) {
   });
 }
 
-/** Returns the current textContent of the .opt-filename span in the select button. */
-async function getFilenameSpanText(page) {
-  return page.evaluate(() => {
-    const span = document.querySelector('#file-content-history-select button .opt-filename');
-    return span ? span.textContent : null;
-  });
-}
+// The unsaved-changes indicator is driven by the 'saved' class on #modal-content:
+//   no 'saved' class → indicator visible (unsaved changes)
+//   has 'saved' class → no indicator (content is saved / clean)
 
 test.describe('unsaved changes indicator in history select button', () => {
 
@@ -60,9 +56,7 @@ test.describe('unsaved changes indicator in history select button', () => {
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForHistoryOptions(page, 1);
 
-    const text = await getFilenameSpanText(page);
-    expect(text).toContain('notes.md');
-    expect(text).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
   test('no indicator shown on initial open with no edits', async ({ page }) => {
@@ -70,9 +64,7 @@ test.describe('unsaved changes indicator in history select button', () => {
     await page.goto('/');
     await openModal(page);
 
-    const text = await getFilenameSpanText(page);
-    expect(text).toContain('notes.md');
-    expect(text).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
   test('indicator appears after editing content in txt mode', async ({ page }) => {
@@ -82,9 +74,7 @@ test.describe('unsaved changes indicator in history select button', () => {
     await switchToTxt(page);
     await editContent(page);
 
-    const text = await getFilenameSpanText(page);
-    expect(text).toContain('notes.md');
-    expect(text).toContain('●');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
   });
 
   test('indicator is removed when switching to a historical version', async ({ page }) => {
@@ -95,15 +85,13 @@ test.describe('unsaved changes indicator in history select button', () => {
     await editContent(page);
 
     // Confirm indicator is present before switching
-    expect(await getFilenameSpanText(page)).toContain('●');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
 
     // Wait for full history to load (on-open snapshot v-1 + pre-existing v-2 = 3 total)
     await waitForHistoryOptions(page, 3);
     await page.selectOption('#file-content-history-select', { index: 2 });
 
-    const text = await getFilenameSpanText(page);
-    expect(text).toContain('notes.md');
-    expect(text).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
   test('indicator reappears when returning to current version after viewing history', async ({ page }) => {
@@ -116,14 +104,12 @@ test.describe('unsaved changes indicator in history select button', () => {
     await waitForHistoryOptions(page, 3);
     // Switch to historical entry
     await page.selectOption('#file-content-history-select', { index: 2 });
-    expect(await getFilenameSpanText(page)).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
 
     // Return to current version — edits are still unsaved
     await page.selectOption('#file-content-history-select', { value: 'current' });
 
-    const text = await getFilenameSpanText(page);
-    expect(text).toContain('notes.md');
-    expect(text).toContain('●');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
   });
 
   test('indicator disappears after typing then deleting the typed character', async ({ page }) => {
@@ -136,11 +122,11 @@ test.describe('unsaved changes indicator in history select button', () => {
     await page.locator('#modal-content-text pre').click();
     await page.keyboard.press('End');
     await page.keyboard.type('x');
-    expect(await getFilenameSpanText(page)).toContain('●');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
 
     // Delete the typed character — content is now identical to the original
     await page.keyboard.press('Backspace');
-    expect(await getFilenameSpanText(page)).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
   test('indicator disappears after Ctrl+Z undo back to original content', async ({ page }) => {
@@ -152,10 +138,10 @@ test.describe('unsaved changes indicator in history select button', () => {
     await page.locator('#modal-content-text pre').click();
     await page.keyboard.press('End');
     await page.keyboard.type('x');
-    expect(await getFilenameSpanText(page)).toContain('●');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
 
     await page.keyboard.press('Control+z');
-    expect(await getFilenameSpanText(page)).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
   test('no indicator when switching history → current without any edits', async ({ page }) => {
@@ -166,14 +152,12 @@ test.describe('unsaved changes indicator in history select button', () => {
     await waitForHistoryOptions(page, 3);
     // View historical version (no edits made)
     await page.selectOption('#file-content-history-select', { index: 2 });
-    expect(await getFilenameSpanText(page)).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
 
     // Return to current — still no edits
     await page.selectOption('#file-content-history-select', { value: 'current' });
 
-    const text = await getFilenameSpanText(page);
-    expect(text).toContain('notes.md');
-    expect(text).not.toContain('●');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
 });
