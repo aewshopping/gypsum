@@ -1,0 +1,48 @@
+#save-btn {
+    cursor:pointer;
+    anchor-name: --save-btn;
+
+    &:hover {
+        box-shadow: 3px 3px 0px 0px var(--colour-compl-contr);
+    }
+}
+
+#modal-content.saved #save-btn {
+    border: 1.5px solid var(--colour-contr);
+    color: var(--colour-contr);
+    background-color: var(--colour-neutral-alt);
+}
+
+.btn-save {
+    padding: 2px 4px 2px 4px;
+    background-color: var(--colour-contr);
+    border: 1.5px solid var(--colour-neutral-alt);
+    color: var(--colour-neutral);
+    border-radius: 6px;
+    font:1.1em monospace;
+}
+
+#save-popover {
+    inset: auto;
+    position-anchor: --save-btn;
+    top: anchor(top);
+    left: anchor(left);
+    white-space: nowrap;
+
+    &:hover {
+        box-shadow: 3px 3px 0px 0px var(--colour-compl-contr);
+    }
+
+    &.success {
+        &::before {
+            content: "saved"
+        }
+    }
+
+    &.error {
+        border-color: var(--colour-contr-warning);
+        &::before {
+            content: "save failed"
+        }
+    }
+}

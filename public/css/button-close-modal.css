@@ -1,0 +1,12 @@
+#modal-close-btn {
+    background-color: transparent;
+    border:1.5px solid transparent;
+    border-radius: 5px;
+    cursor:pointer;
+    color: var(--colour-compl-contr);
+
+    &:hover {
+        border:1.5px solid var(--colour-compl-contr);
+        box-shadow: 3px 3px 0px 0px var(--colour-compl-contr);
+    }
+}

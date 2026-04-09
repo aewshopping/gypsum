@@ -14,11 +14,13 @@ let savePopoverTimer = null;
 function showSavePopover(success) {
     const popover = document.getElementById('save-popover');
     if (!popover) return;
-    popover.textContent = success ? 'Saved' : 'Save failed';
-    popover.className = success ? 'success' : 'error';
+//    popover.textContent = success ? 'Saved' : 'Save failed'; //now doing this with css before triggered by class name
+//    popover.className = success ? 'success' : 'error';
+    popover.classList.toggle('success', success);
+    popover.classList.toggle('error', !success);
     popover.showPopover();
     clearTimeout(savePopoverTimer);
-    savePopoverTimer = setTimeout(() => { popover.hidePopover(); }, 2500);
+    savePopoverTimer = setTimeout(() => { popover.hidePopover(); }, 1500);
 }
 
 /**
