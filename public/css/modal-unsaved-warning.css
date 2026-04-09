@@ -32,6 +32,7 @@
     background: var(--colour-compl);
     color: var(--colour-contr);
     border: 2px solid transparent;
+    
 
     &:hover, &:focus-within {
         background-color: var(--colour-compl-emph-light);
@@ -50,6 +51,6 @@
         background-color: var(--colour-compl-alt-emph);
         border: 2px solid var(--colour-contr-warning);
         color: var(--colour-compl-alt-emph-light);
-        box-shadow: 3px 3px 0px 0px var(--colour-contr-warning  );
+        box-shadow: 3px 3px 0px 0px var(--colour-contr-warning);
     }
 }

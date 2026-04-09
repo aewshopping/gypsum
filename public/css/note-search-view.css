@@ -22,7 +22,7 @@
 
   &:hover {
     border: 2px solid var(--colour-contr);
-    box-shadow: 3px 3px 0px 0px var(--colour-contr);
+    box-shadow: var(--hover-box-shadow);
   }
 }
 

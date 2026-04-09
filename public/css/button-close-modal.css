@@ -7,6 +7,6 @@
 
     &:hover {
         border:1.5px solid var(--colour-compl-contr);
-        box-shadow: 3px 3px 0px 0px var(--colour-compl-contr);
+        box-shadow: var(--hover-box-shadow);
     }
 }

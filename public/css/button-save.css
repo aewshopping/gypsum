@@ -3,7 +3,7 @@
     anchor-name: --save-btn;
 
     &:hover {
-        box-shadow: 3px 3px 0px 0px var(--colour-compl-contr);
+        box-shadow: var(--hover-box-shadow);
     }
 }
 
@@ -30,7 +30,7 @@
     white-space: nowrap;
 
     &:hover {
-        box-shadow: 3px 3px 0px 0px var(--colour-compl-contr);
+        box-shadow: var(--hover-box-shadow);
     }
 
     &.success {
