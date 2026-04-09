@@ -2,9 +2,10 @@
     cursor:pointer;
     anchor-name: --save-btn;
 
-    &:hover {
-        box-shadow: var(--hover-box-shadow);
-    }
+}
+
+#modal-content.current-version #save-btn:hover {
+    box-shadow: var(--hover-box-shadow);
 }
 
 #modal-content.saved #save-btn {
@@ -20,6 +21,15 @@
     color: var(--colour-neutral);
     border-radius: 6px;
     font:1.1em monospace;
+}
+
+#modal-content:not(.current-version) #save-btn {
+    background: linear-gradient(
+        to bottom right, 
+        transparent calc(50% - 1px), 
+        black, 
+        transparent calc(50% + 1px)
+    );
 }
 
 #save-popover {

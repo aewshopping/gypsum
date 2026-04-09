@@ -180,8 +180,10 @@ export function updateUnsavedIndicator() {
     const modalContentDiv = document.getElementById("modal-content");
 
     const isUnsaved = getIsCurrentVersion() && hasUnsavedChanges();
+    const isCurrent = getIsCurrentVersion();
 
     // If isUnsaved is true, 'saved' is removed. If false, 'saved' is added.
     // this class triggers css style changes
     modalContentDiv.classList.toggle("saved", !isUnsaved);
+    modalContentDiv.classList.toggle("current-version", isCurrent);
 }
