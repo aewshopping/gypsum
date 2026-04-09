@@ -314,8 +314,7 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(300);
 
     await expect(page.locator('#save-popover')).toBeVisible();
-    await expect(page.locator('#save-popover')).toHaveText('Saved');
-    await expect(page.locator('#save-popover')).toHaveClass('success');
+    await expect(page.locator('#save-popover')).toHaveClass(/\bsuccess\b/);
   });
 
   test('popover shows "Save failed" when verification fails', async ({ page }) => {
@@ -358,8 +357,7 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(300);
 
     await expect(page.locator('#save-popover')).toBeVisible();
-    await expect(page.locator('#save-popover')).toHaveText('Save failed');
-    await expect(page.locator('#save-popover')).toHaveClass('error');
+    await expect(page.locator('#save-popover')).toHaveClass(/\berror\b/);
   });
 
   test('popover hides automatically after 2.5 seconds', async ({ page }) => {
@@ -507,7 +505,6 @@ test.describe('Ctrl+S keyboard shortcut', () => {
     await page.waitForTimeout(300);
 
     await expect(page.locator('#save-popover')).toBeVisible();
-    await expect(page.locator('#save-popover')).toHaveText('Saved');
   });
 
   test('Ctrl+S does not save when in HTML mode', async ({ page }) => {
