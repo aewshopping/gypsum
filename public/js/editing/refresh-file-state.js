@@ -49,6 +49,7 @@ export async function refreshFileAfterSave(snapshot) {
 
         if (appState.search.filters.size > 0) {
             const filterIds = [...appState.search.filters.keys()];
+            filterIds.forEach(id => appState.search.results.delete(id));
             await Promise.all(filterIds.map(id => searchFiles(id)));
             processSeachResults();
         }

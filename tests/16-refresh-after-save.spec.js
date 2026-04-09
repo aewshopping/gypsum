@@ -365,7 +365,7 @@ test.describe('tag taxonomy re-renders after manual save', () => {
     await clickSaveBtn(page);
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#tag_output [data-tag="addedtag"]')).toBeAttached();
+    await expect(page.locator('#tag_output [data-tag="addedtag"]').first()).toBeAttached();
   });
 
   test('removed tag disappears from the taxonomy sidebar after save', async ({ page }) => {

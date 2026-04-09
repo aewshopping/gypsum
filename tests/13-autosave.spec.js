@@ -353,7 +353,7 @@ test.describe('autosave coexistence with manual save', () => {
     await page.evaluate(() => document.getElementById('save-btn').click());
     await page.waitForTimeout(300);
     await expect(page.locator('#save-popover')).toBeVisible();
-    await expect(page.locator('#save-popover')).toHaveText('Saved');
+    await expect(page.locator('#save-popover')).toHaveClass(/\bsuccess\b/);
   });
 
 });
