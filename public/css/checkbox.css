@@ -1,0 +1,38 @@
+.checkbox-no-show {
+    position: relative;
+    margin-inline: 4px;
+    padding-inline: 4px;
+    border-radius: 5px;
+    color: var(--colour-compl-contr);
+    border: 1.5px solid transparent;
+
+    &:hover {
+        border: 1.5px solid var(--colour-compl-contr);
+        box-shadow: var(--hover-box-shadow);
+    }
+
+    &:has(:focus-visible) {
+
+        box-shadow:
+            0 0 0 2px black,
+            0 0 0 3.5px white;
+    }
+}
+
+.checkbox-no-show input[type="checkbox"] {
+    /* remove the checkbox from flow */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* hide it visually */
+    opacity: 0;
+}
+
+.checkbox-no-show:has(#modalmaxscreen:checked)::before {
+    content:"⚊"
+}
+.checkbox-no-show:has(:not(#modalmaxscreen:checked))::before {
+    content:"☐"
+}
