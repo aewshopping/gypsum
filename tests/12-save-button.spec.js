@@ -36,7 +36,7 @@ async function clickSaveBtn(page) {
 
 test.describe('save button guard conditions', () => {
 
-  test('handler does not save in HTML mode', async ({ page }) => {
+  test('handler saves in HTML mode (current version)', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
@@ -44,8 +44,8 @@ test.describe('save button guard conditions', () => {
     await clickSaveBtn(page);
     await page.waitForTimeout(300);
 
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).toHaveLength(0);
+    const deletedFiles = await page.evaluate(() => Object.keys(window.__deletedFiles));
+    expect(deletedFiles).toContain('notes.md-save.gypsum');
   });
 
   test('handler does not save while viewing a historical version', async ({ page }) => {
@@ -507,7 +507,7 @@ test.describe('Ctrl+S keyboard shortcut', () => {
     await expect(page.locator('#save-popover')).toBeVisible();
   });
 
-  test('Ctrl+S does not save when in HTML mode', async ({ page }) => {
+  test('Ctrl+S saves the file in HTML mode / current version', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
@@ -516,8 +516,8 @@ test.describe('Ctrl+S keyboard shortcut', () => {
     await page.keyboard.press('Control+s');
     await page.waitForTimeout(300);
 
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).toHaveLength(0);
+    const deletedFiles = await page.evaluate(() => Object.keys(window.__deletedFiles));
+    expect(deletedFiles).toContain('notes.md-save.gypsum');
   });
 
   test('Ctrl+S does not save when viewing a historical version', async ({ page }) => {
