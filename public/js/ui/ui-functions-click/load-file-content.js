@@ -161,6 +161,14 @@ export function hasUnsavedChanges() {
 }
 
 /**
+ * Returns the current live raw text content of the open file.
+ * @returns {string}
+ */
+export function getLiveRawContent() {
+    return liveRawContent;
+}
+
+/**
  * Resets the saved baseline to the current live content.
  * Called after a successful save so that hasUnsavedChanges() returns false
  * and the unsaved-changes indicator is cleared.

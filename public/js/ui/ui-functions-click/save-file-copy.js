@@ -2,7 +2,7 @@ import { appState } from '../../services/store.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
 import { decodeModalHtml } from '../../services/file-save.js';
 import { saveFileCopy } from '../../editing/save-file-copy.js';
-import { updateUnsavedIndicator, resetUnsavedBaseline } from './load-file-content.js';
+import { updateUnsavedIndicator, resetUnsavedBaseline, getLiveRawContent } from './load-file-content.js';
 import { refreshFileAfterSave } from '../../editing/refresh-file-state.js';
 
 let savePopoverTimer = null;
@@ -31,18 +31,24 @@ function showSavePopover(success) {
  * @returns {Promise<void>}
  */
 export async function handleSaveFileCopy() {
-    const renderToggle = document.getElementById('render_toggle');
-    if (!renderToggle?.checked || !getIsCurrentVersion()) return;
-
+    if (!getIsCurrentVersion()) return;
     if (!appState.dirHandle) return;
 
     const snapshot = appState.openFileSnapshot;
     if (!snapshot) return;
 
-    const preElement = document.querySelector('#modal-content-text pre');
-    if (!preElement) return;
+    const renderToggle = document.getElementById('render_toggle');
+    let textToSave;
 
-    const textToSave = decodeModalHtml(preElement.innerHTML);
+    if (renderToggle?.checked) {
+        // Text view: read from the editable pre element
+        const preElement = document.querySelector('#modal-content-text pre');
+        if (!preElement) return;
+        textToSave = decodeModalHtml(preElement.innerHTML);
+    } else {
+        // HTML view: use the tracked live raw content
+        textToSave = getLiveRawContent();
+    }
 
     try {
         const verified = await saveFileCopy(snapshot, textToSave);
