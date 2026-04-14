@@ -23,13 +23,13 @@ A browser based view of text files saved on your computer. I named it Gypsum bec
 4. You can filter notes based on selected tags, either with an `and` filter or an `or` filter.
 5. Add a tag of the format `#color/red` (ie `#color/[color]`) and it will use this colour in the file viewer for that file, assuming it is a valid html color name.
 6. You can add simple YAML properties to the files, in front matter (ie key value pairs below one `---`and above another `---`). These are visible as columns in the table view.
+7. Files are paginated (50 per page) across all views, with page navigation shown below the file list. The page resets to 1 whenever the sort order or active filters change.
 
 ## Limitations
 
-1. There are many limitations, but perhaps the biggest one is the number of files it can cope with. Probably no more than a thousand before the browser starts complaining. This can be relatively easily rectified with selective rendering of files (eg pagination) but this is not yet implemented.
-2. For tag hierarchies only one level of tag classifcation is allowed. Ie `#that/this` is fine `#that/this/them` isn't.
-3. Editing still not quite there.
-4. Technically this works on mobile - screen sizes work etc - but because accessing the file system is incredibly slow it is basically broken. It will take several seconds to load a handful of files. This is a shame!
+1. For tag hierarchies only one level of tag classifcation is allowed. Ie `#that/this` is fine `#that/this/them` isn't.
+2. Editing still not quite there.
+3. Technically this works on mobile - screen sizes work etc - but because accessing the file system is incredibly slow it is basically broken. It will take several seconds to load a handful of files. This is a shame!
 
 ## Immediate to do list
 
@@ -45,5 +45,4 @@ See [DATA-STRUCTURES.md](DATA-STRUCTURES.md) for a reference to the in-memory da
 ## Roadmap
 
 1. Table filtering is now active for tags... but could do this for other properties too. Not sure how useful this will be as currently you can ctrl+F everything.
-2. Pagination of rendered files to cope with large numbers of files. In future this could be implemented by a virtual DOM that destroy and creates html elements depending on scroll position but not in the immediate plans.
-3. Alongside this some sort of very simple DOM diffing process might be considered.
+2. Some sort of very simple DOM diffing process might be considered to avoid full re-renders on state change.

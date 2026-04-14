@@ -133,6 +133,27 @@ Note that `"personal"` appears in `"orphan"` because it only ever appears as a p
 
 ---
 
+## Pagination state (`appState.paginationState`)
+
+```js
+appState.paginationState = {
+  currentPage: 1,          // 1-based index of the currently displayed page
+  pageFileIds: new Set(),   // IDs of the files visible on the current page
+}
+```
+
+`pageFileIds` is recomputed on every render inside `a-render-all-files.js`:
+
+1. The full visible list is built — either all files (no active filters) or the subset that passes the active AND/OR filter check via `checkFilesToShow`.
+2. The list is sliced to `PAGINATION_SIZE` entries starting at `(currentPage - 1) * PAGINATION_SIZE`.
+3. The IDs of that slice are stored as a `Set` in `pageFileIds`.
+
+Each view renderer calls `checkFileOnPage(file.id)` (`pagination/check-file-on-page.js`), which is a single `pageFileIds.has(fileId)` lookup. Because `pageFileIds` was already built from the correctly filtered list, no second filter check is needed.
+
+`currentPage` resets to `1` on every render except when triggered by a page-button click (`handle-page-change.js` passes `keepPage=true`). It is also clamped to the last available page if a filter reduces the total number of pages.
+
+---
+
 ## Where the structures are built
 
 | Structure | Built in | Called from |
