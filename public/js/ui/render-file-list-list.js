@@ -5,7 +5,7 @@
 import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
-import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js';
+import { checkFileOnPage } from './pagination/check-file-on-page.js';
 
 /**
  * Renders the list of files as an ordered list.
@@ -19,7 +19,7 @@ export function renderFileList_list(renderEverything) {
     let file_html = `<ol class="list-view">`; 
 
     for (const file of appState.myFiles) {
-        if (checkFilesToShow(file.id) === true || renderEverything === true ) {
+        if (checkFileOnPage(file.id)) {
 
             const filename_html = renderFilename(file.filename);
 

@@ -18,6 +18,7 @@ import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-active.js';
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
+import { handlePageChange } from './pagination/handle-page-change.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -47,6 +48,7 @@ const clickActionHandlers = {
     'delete-filter': handleDeleteFilter,
     'filter-toggleactive':handleFilterToggleActive,
     'save-file-copy': handleSaveFileCopy,
+    'change-page': handlePageChange,
 };
 
 const changeActionHandlers = {

@@ -37,6 +37,10 @@ export const appState = {
 
   viewState: VIEWS.CARDS.value, // sets initial view state
   sortState: { property: 'lastModified', direction: 'desc'},
+  paginationState: {
+    currentPage: 1,
+    pageFileIds: new Set(),
+  },
 
   dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
   openFileSnapshot: null,    // { filepath, filename, content } captured when modal opens

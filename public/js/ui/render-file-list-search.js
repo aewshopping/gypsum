@@ -1,6 +1,6 @@
 
 import { appState } from '../services/store.js';
-import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js';
+import { checkFileOnPage } from './pagination/check-file-on-page.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
@@ -15,7 +15,7 @@ export function renderFileList_search(renderEverything) {
             <div class="search-results-view">`;
 
     for (const file of appState.myFiles) {
-        if (checkFilesToShow(file.id) === true || renderEverything === true) {
+        if (checkFileOnPage(file.id)) {
 
             const filename_html = renderFilename(file.filename);
 

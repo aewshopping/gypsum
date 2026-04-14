@@ -20,3 +20,5 @@ export const VIEWS = {
 
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
+
+export const PAGINATION_SIZE = 50;
