@@ -11,18 +11,6 @@ import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 import { renderPagination } from "../pagination/render-pagination.js";
 
 /**
- * Triggers the rendering of the file list.
- * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render or just update rows (for table view).
- * @param {boolean} [keepPage=false] - When true, stays on the current page instead of resetting to page 1.
- * @returns {void}
- */
-export function renderData(fullRender = true, keepPage = false) {
-
-    renderFiles(fullRender, keepPage);
-
-}
-
-/**
  * Orchestrates the rendering of files based on the current view state and active filters.
  * Computes the current page's file IDs into appState.paginationState.pageFileIds before
  * calling the view renderer, then appends pagination controls below the output.

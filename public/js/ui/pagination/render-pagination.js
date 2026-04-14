@@ -20,8 +20,9 @@ export function renderPagination(totalVisible) {
     // Always show first page
     items.push(1);
 
-    // Ellipsis between 1 and c-1 if there is a gap
-    if (c - 1 > 2) items.push('...');
+    // Leading gap: ellipsis only when 2+ pages are hidden; otherwise emit the single hidden page
+    if (c - 1 > 3) items.push('...');
+    else if (c - 1 === 3) items.push(2);
 
     // Page before current (if it exists and isn't page 1)
     if (c - 1 > 1) items.push(c - 1);
@@ -32,20 +33,22 @@ export function renderPagination(totalVisible) {
     // Page after current (if it exists and isn't last)
     if (c + 1 < n) items.push(c + 1);
 
-    // Ellipsis between c+1 and last page if there is a gap
-    if (c + 2 < n) items.push('...');
+    // Trailing gap: ellipsis only when 2+ pages are hidden; otherwise emit the single hidden page
+    if (c + 3 < n) items.push('...');
+    else if (c + 2 < n) items.push(c + 2);
 
-    // Always show last page
-    if (n > 1) items.push(n);
+    // Always show last page (n >= 2 is guaranteed by the early return above)
+    items.push(n);
 
     let html = '<nav class="pagination">';
 
     for (const item of items) {
         if (item === '...') {
             html += '<span class="pagination-ellipsis">...</span>';
+        } else if (item === c) {
+            html += `<span class="pagination-current">${item}</span>`;
         } else {
-            const isActive = item === c;
-            html += `<button class="pagination-btn${isActive ? ' pagination-btn--active' : ''}" data-action="change-page" data-page="${item}">${item}</button>`;
+            html += `<button class="pagination-btn" data-action="change-page" data-page="${item}">${item}</button>`;
         }
     }
 

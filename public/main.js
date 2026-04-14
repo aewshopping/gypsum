@@ -3,7 +3,7 @@ import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
-import { renderData } from './js/ui/ui-functions-render/a-render-all-files.js';
+import { renderFiles } from './js/ui/ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from './js/ui/event-listeners-add.js';
 import { VIEWS } from './js/constants.js';
 
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const loadFolderButton = document.querySelector('[data-click-loadfolder]');
     loadFolderButton.addEventListener('click', async function () {
         await loadDirectoryData();
-        renderData();
+        renderFiles();
         addActionHandlers();
     });
 
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
  */
 async function conductor() {
     await loadData();
-    renderData();
+    renderFiles();
     addActionHandlers();
 }
 

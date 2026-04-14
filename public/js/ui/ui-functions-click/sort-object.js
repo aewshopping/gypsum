@@ -1,7 +1,7 @@
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { appState, FILE_PROPERTIES, propertySortMap } from '../../services/store.js';
 import { renderFileList_table } from '../render-file-list-table.js';
-import { renderData } from '../ui-functions-render/a-render-all-files.js';
+import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /**
  * Handles the click event to sort the file list by a specific property.
@@ -41,7 +41,7 @@ export function handleSortObject(evt, element){
     // sort the appState.myFiles object with the selected property, type and direction.
     sortAppStateFiles(sortProp, sortType, sortDirection);
     // then render on this sorted object (only table rows hence false arg)
-    renderData(false);
+    renderFiles(false);
 
     // appState.sortState with current sort state
     Object.assign(currentSort, { property: sortProp, direction: sortDirection });
