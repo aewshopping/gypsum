@@ -5,7 +5,7 @@
 import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
-import { checkFilesToShow } from './ui-functions-search/a-check-files-to-show.js';
+import { checkFileOnPage } from './pagination/check-file-on-page.js';
 
 /**
  * Renders the list of files as a grid of cards.
@@ -22,7 +22,7 @@ export function renderFileList_grid(renderEverything) {
 
     for (const file of appState.myFiles) {
 
-        if (checkFilesToShow(file.id) === true || renderEverything===true ) {
+        if (checkFileOnPage(file.id)) {
      //   console.log(file);
 
         // construct the html for the array of tags for this file

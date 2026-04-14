@@ -1,7 +1,7 @@
 import { appState } from '../../services/store.js';
 import { renderFilenamePlusOpenBtn } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
-import { checkFilesToShow } from '../ui-functions-search/a-check-files-to-show.js';
+import { checkFileOnPage } from '../pagination/check-file-on-page.js';
 
 /**
  * Renders the rows for the table view.
@@ -15,7 +15,7 @@ export function renderTableRows(current_props, renderEverything) {
     let rowsHtml = '';
 
     for (const file of appState.myFiles) {
-        if (checkFilesToShow(file.id) === true || renderEverything === true ) {
+        if (checkFileOnPage(file.id)) {
 
             const cellsHtml = current_props.map(prop => {
                 const value = file[prop.name];
