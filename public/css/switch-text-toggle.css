@@ -34,7 +34,7 @@
 	  position: absolute;
 	  cursor: pointer;
 	  inset: 0;
-	  background-color: var(--colour-compl); /* bg to slider */
+	  background-color: var(--colour-contr); /* bg to slider */
 	  transition: .4s;
 	  border-radius: 17px;
 	}
