@@ -40,7 +40,7 @@ These are non-negotiable. Do not work against them.
 ### 4. One file, one responsibility
 - Each module handles a single logical concern.
 - `ui-functions-click/` has one file per user action. Follow this pattern for new actions.
-- CSS is split into 26 component-scoped files. Add a new file for a new component; do not
+- CSS is split into 27 component-scoped files. Add a new file for a new component; do not
   bloat an existing one.
 
 ### 5. No frameworks
@@ -79,6 +79,7 @@ Key structures:
 - `appState.search.matchingFiles` — inverted map: `fileId → Set<filterId>` (used for AND/OR)
 - `appState.viewState` — current view mode
 - `appState.sortState` — current sort column and direction
+- `appState.paginationState` — `{ currentPage, pageFileIds }`: current page number and the Set of file IDs visible on that page (recomputed on every render)
 
 ### Event handling: `data-action` attributes, not inline handlers
 
@@ -122,6 +123,7 @@ in `event-listeners-add.js` maps action names to handler functions.
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |
+| `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/css/` | Component-scoped CSS modules |
 | `inline-scripts-from-files.js` | Build-time bundler (do not run manually) |
 | `.github/workflows/bundle.yaml` | CI/CD pipeline — produces single-file HTML artefact |
@@ -205,7 +207,6 @@ the matching browser binary and system dependencies.
 
 These are accepted trade-offs, not bugs:
 
-- **~1000 file limit** — no pagination or virtual scrolling yet (roadmap item)
 - **Read-only** — files cannot be edited in the app
 - **Top-level folder only** — subdirectories are ignored
 - **Two-level tags only** — `#parent/child` works; `#a/b/c` does not
