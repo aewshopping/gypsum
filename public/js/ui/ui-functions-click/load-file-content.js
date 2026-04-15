@@ -19,16 +19,21 @@ let liveHtmlContent;
 // stripped. Matches the form contentEditable returns via innerText.
 let openContentNormalized;
 
-// Length of openContentNormalized with newlines removed — equals pre.textContent.length
-// and is non-layout-forcing to read, so used to gate the more expensive innerText check.
+// The <pre> renders newlines as <br> elements. pre.textContent ignores <br> (non-layout-
+// forcing); pre.innerText converts each <br> to \n (layout-forcing). Stripping \n from
+// openContentNormalized gives the equivalent textContent length, used in handleFileContentInput
+// as a cheap gate: if lengths differ the content definitely changed and we skip the innerText
+// read entirely; only when lengths match do we pay for the full innerText comparison.
 let openTextContentLength = 0;
 
 // True when the user has made edits not yet matching the open baseline.
 let isDirtyFlag = false;
 
 /**
- * Syncs liveRawContent and activeRawContent from the editable pre if dirty.
- * Called before any operation that consumes liveRawContent (toggle, history browse).
+ * Pulls the current editable content from the DOM into liveRawContent / activeRawContent.
+ * innerText is not read in the input hot path because it forces a synchronous layout flush.
+ * Instead, consumers that need up-to-date content (toggle, history browse) call this
+ * function lazily, paying the layout cost only when they actually need the value.
  */
 function syncFromDom() {
     if (!isDirtyFlag) return;
@@ -51,7 +56,7 @@ export async function loadContentModal(fileToOpen) {
     activeRawContent = await fileChosen.text();
     liveRawContent = activeRawContent;
     openContentNormalized = activeRawContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd();
-    openTextContentLength = openContentNormalized.replace(/\n/g, '').length;
+    openTextContentLength = openContentNormalized.replace(/\n/g, '').length; // \n → <br> in DOM, invisible to textContent
     isDirtyFlag = false;
 
     const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
@@ -153,19 +158,22 @@ export function fileContentRender() {
 
 /**
  * Updates dirty state and the unsaved indicator on each edit.
- * Uses pre.textContent.length (non-layout-forcing) to gate the more expensive
- * innerText read: only reads innerText when length matches the open baseline,
- * which catches both newline-only changes and true reverts to original content.
+ * Hot-path design: pre.textContent.length is read on every keystroke because it is
+ * non-layout-forcing (raw text nodes only, no CSS). pre.innerText forces a synchronous
+ * layout flush and is only read when textContent length matches the open baseline —
+ * the rare case where content might have reverted to the original (or a newline was
+ * inserted/removed without changing the character count).
  * @param {Event} evt - The input event from the contentEditable pre element.
  */
 export function handleFileContentInput(evt) {
     scheduleAutosave();
     const pre = evt.target;
     if (pre.textContent.length !== openTextContentLength) {
+        // Fast path: length mismatch means content definitely changed — no innerText read needed
         if (!isDirtyFlag) { isDirtyFlag = true; updateUnsavedIndicator(); }
         return;
     }
-    // Same textContent length — might have reverted to original; do full check
+    // Slow path: same textContent length — might have reverted; innerText read required
     liveRawContent = pre.innerText;
     activeRawContent = liveRawContent;
     isDirtyFlag = liveRawContent.trimEnd() !== openContentNormalized;
