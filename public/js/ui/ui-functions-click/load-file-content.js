@@ -19,11 +19,24 @@ let liveHtmlContent;
 // stripped. Matches the form contentEditable returns via innerText.
 let openContentNormalized;
 
-// Normalised form of the live content, kept in sync with liveRawContent on each input
-// event. innerText already unifies line endings to \n, so only trimEnd() is needed here.
-// Both variables are pre-computed so hasUnsavedChanges() is a single !== with no runtime
-// transformation on either side.
-let liveContentNormalized;
+// Length of openContentNormalized with newlines removed — equals pre.textContent.length
+// and is non-layout-forcing to read, so used to gate the more expensive innerText check.
+let openTextContentLength = 0;
+
+// True when the user has made edits not yet matching the open baseline.
+let isDirtyFlag = false;
+
+/**
+ * Syncs liveRawContent and activeRawContent from the editable pre if dirty.
+ * Called before any operation that consumes liveRawContent (toggle, history browse).
+ */
+function syncFromDom() {
+    if (!isDirtyFlag) return;
+    const pre = document.querySelector('#modal-content-text pre');
+    if (!pre) return;
+    liveRawContent = pre.innerText;
+    activeRawContent = liveRawContent;
+}
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -33,12 +46,13 @@ let liveContentNormalized;
 export async function loadContentModal(fileToOpen) {
     const fileHandle = appState.myFileHandlesMap.get(fileToOpen);
     const fileChosen = await fileHandle.getFile();
-    
+
     // On initial load, the active content and live content are identical
     activeRawContent = await fileChosen.text();
     liveRawContent = activeRawContent;
     openContentNormalized = activeRawContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd();
-    liveContentNormalized = openContentNormalized;
+    openTextContentLength = openContentNormalized.replace(/\n/g, '').length;
+    isDirtyFlag = false;
 
     const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
     appState.openFileSnapshot = {
@@ -74,7 +88,7 @@ export function restoreCurrentContent() {
  */
 export function loadHistoricalContent(historicalRaw) {
     if (getIsCurrentVersion()) {
-        // liveRawContent is kept current by the input listener; ensure HTML is in sync
+        syncFromDom();
         liveHtmlContent = parseContent(liveRawContent);
     }
 
@@ -89,7 +103,7 @@ export function loadHistoricalContent(historicalRaw) {
  */
 export function handleToggleRenderText() {
     if (getIsCurrentVersion()) {
-        // activeRawContent is kept current by the input listener; re-parse for HTML mode
+        syncFromDom();
         activeHtmlContent = parseContent(activeRawContent);
         liveHtmlContent = activeHtmlContent;
     }
@@ -138,26 +152,32 @@ export function fileContentRender() {
 }
 
 /**
- * Saves the current text content of the editable pre element to module state.
+ * Updates dirty state and the unsaved indicator on each edit.
+ * Uses pre.textContent.length (non-layout-forcing) to gate the more expensive
+ * innerText read: only reads innerText when length matches the open baseline,
+ * which catches both newline-only changes and true reverts to original content.
  * @param {Event} evt - The input event from the contentEditable pre element.
  */
 export function handleFileContentInput(evt) {
-    activeRawContent = evt.target.innerText;
-    liveRawContent = activeRawContent;
-    liveContentNormalized = liveRawContent.trimEnd();
-    updateUnsavedIndicator();
     scheduleAutosave();
+    const pre = evt.target;
+    if (pre.textContent.length !== openTextContentLength) {
+        if (!isDirtyFlag) { isDirtyFlag = true; updateUnsavedIndicator(); }
+        return;
+    }
+    // Same textContent length — might have reverted to original; do full check
+    liveRawContent = pre.innerText;
+    activeRawContent = liveRawContent;
+    isDirtyFlag = liveRawContent.trimEnd() !== openContentNormalized;
+    updateUnsavedIndicator();
 }
 
 /**
  * Returns true if the live content differs from the content when the modal was opened.
- * Compares against openContentNormalized (computed once on load) to avoid false positives
- * from line-ending differences (\r\n vs \n) between the raw file and what contentEditable
- * returns via innerText.
  * @returns {boolean}
  */
 export function hasUnsavedChanges() {
-    return liveContentNormalized !== openContentNormalized;
+    return isDirtyFlag;
 }
 
 /**
@@ -175,7 +195,11 @@ export function getLiveRawContent() {
  * @returns {void}
  */
 export function resetUnsavedBaseline() {
-    openContentNormalized = liveContentNormalized;
+    const pre = document.querySelector('#modal-content-text pre');
+    if (pre) liveRawContent = pre.innerText;
+    openContentNormalized = liveRawContent.trimEnd();
+    openTextContentLength = openContentNormalized.replace(/\n/g, '').length;
+    isDirtyFlag = false;
 }
 
 /**
@@ -186,12 +210,10 @@ export function resetUnsavedBaseline() {
  */
 export function updateUnsavedIndicator() {
     const modalContentDiv = document.getElementById("modal-content");
-
     const isUnsaved = getIsCurrentVersion() && hasUnsavedChanges();
     const isCurrent = getIsCurrentVersion();
-
-    // If isUnsaved is true, 'saved' is removed. If false, 'saved' is added.
-    // this class triggers css style changes
-    modalContentDiv.classList.toggle("saved", !isUnsaved);
+    if (modalContentDiv.classList.contains("saved") !== !isUnsaved) {
+        modalContentDiv.classList.toggle("saved", !isUnsaved);
+    }
     modalContentDiv.classList.toggle("current-version", isCurrent);
 }
