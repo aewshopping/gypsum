@@ -108,12 +108,12 @@ export function loadHistoricalContent(historicalRaw) {
  * Handles the html/txt render toggle and re-parses in-progress edits.
  */
 export function handleToggleRenderText() {
-    appState.editState = document.getElementById('render_toggle').checked;
     if (getIsCurrentVersion()) {
-        syncFromDom();
+        syncFromDom(); // appState.editState still holds the outgoing mode here — guard is correct
         activeHtmlContent = parseContent(activeRawContent);
         liveHtmlContent = activeHtmlContent;
     }
+    appState.editState = document.getElementById('render_toggle').checked;
     fileContentRender();
 }
 
