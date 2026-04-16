@@ -30,6 +30,29 @@ let openTextContentLength = 0;
 let isDirtyFlag = false;
 
 /**
+ * Returns the editable content element when in txt mode, null in html mode.
+ * Html output must never be used as a content source — returning null enforces that.
+ * Single point of truth for both the mode check and the DOM selector.
+ * @returns {Element|null}
+ */
+export function getEditorElement() {
+    return appState.editState
+        ? document.querySelector('#modal-content-text .text-editor')
+        : null;
+}
+
+/**
+ * Reads the editor content from the DOM into liveRawContent and activeRawContent.
+ * Both variables are always updated together to keep them in sync on the current version.
+ */
+function readEditorIntoState() {
+    const el = getEditorElement();
+    if (!el) return;
+    liveRawContent = el.innerText;
+    activeRawContent = liveRawContent;
+}
+
+/**
  * Pulls the current editable content from the DOM into liveRawContent / activeRawContent.
  * innerText is not read in the input hot path because it forces a synchronous layout flush.
  * Instead, consumers that need up-to-date content (toggle, history browse) call this
@@ -37,11 +60,7 @@ let isDirtyFlag = false;
  */
 function syncFromDom() {
     if (!isDirtyFlag) return;
-    if (!appState.editState) return; // HTML mode is output-only; never read content from it
-    const pre = document.querySelector('#modal-content-text .text-editor');
-    if (!pre) return;
-    liveRawContent = pre.innerText;
-    activeRawContent = liveRawContent;
+    readEditorIntoState();
 }
 
 /**
@@ -207,11 +226,7 @@ export function getLiveRawContent() {
  * @returns {void}
  */
 export function resetUnsavedBaseline() {
-    const pre = appState.editState
-        ? document.querySelector('#modal-content-text .text-editor')
-        : null;
-    if (pre) liveRawContent = pre.innerText;
-    activeRawContent = liveRawContent;
+    readEditorIntoState();
     openContentNormalized = liveRawContent.trimEnd();
     openTextContentLength = openContentNormalized.replace(/\n/g, '').length;
     isDirtyFlag = false;
