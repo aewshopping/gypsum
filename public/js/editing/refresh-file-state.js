@@ -2,7 +2,7 @@ import { appState } from '../services/store.js';
 import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { renderTagTaxonomy } from '../ui/render-tag-taxonmy.js';
-import { renderData } from '../ui/ui-functions-render/a-render-all-files.js';
+import { renderFiles } from '../ui/ui-functions-render/a-render-all-files.js';
 import { searchFiles } from '../ui/ui-functions-search/a-search-files.js';
 import { processSeachResults } from '../ui/ui-functions-search/a-search-orchestrator.js';
 
@@ -45,7 +45,7 @@ export async function refreshFileAfterSave(snapshot) {
             renderTagTaxonomy();
         }
 
-        renderData();
+        renderFiles();
 
         if (appState.search.filters.size > 0) {
             const filterIds = [...appState.search.filters.keys()];

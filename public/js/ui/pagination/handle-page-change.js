@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { renderData } from '../ui-functions-render/a-render-all-files.js';
+import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /**
  * Handles a click on a pagination page button.
@@ -10,5 +10,5 @@ import { renderData } from '../ui-functions-render/a-render-all-files.js';
 export function handlePageChange(evt, target) {
     const page = parseInt(target.dataset.page, 10);
     appState.paginationState.currentPage = page;
-    renderData(true, true); // keepPage=true so we stay on the chosen page
+    renderFiles(true, true); // keepPage=true so we stay on the chosen page
 }
