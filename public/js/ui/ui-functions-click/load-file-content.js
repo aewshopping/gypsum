@@ -37,7 +37,8 @@ let isDirtyFlag = false;
  */
 function syncFromDom() {
     if (!isDirtyFlag) return;
-    const pre = document.querySelector('#modal-content-text pre');
+    if (!appState.editState) return; // HTML mode is output-only; never read content from it
+    const pre = document.querySelector('#modal-content-text .text-editor');
     if (!pre) return;
     liveRawContent = pre.innerText;
     activeRawContent = liveRawContent;
@@ -107,6 +108,7 @@ export function loadHistoricalContent(historicalRaw) {
  * Handles the html/txt render toggle and re-parses in-progress edits.
  */
 export function handleToggleRenderText() {
+    appState.editState = document.getElementById('render_toggle').checked;
     if (getIsCurrentVersion()) {
         syncFromDom();
         activeHtmlContent = parseContent(activeRawContent);
@@ -121,12 +123,14 @@ export function handleToggleRenderText() {
 export function fileContentRender() {
     const textbox = document.getElementById('modal-content-text');
     const renderToggle = document.getElementById('render_toggle');
-    const isTxtMode = renderToggle.checked;
+    renderToggle.checked = appState.editState;
+    const isTxtMode = appState.editState;
 
     if (isTxtMode) {
         textbox.innerHTML = '';
         const preElement = document.createElement('pre');
         preElement.classList.add('pre-text-enlarge');
+        preElement.classList.add('text-editor');
         // Only allow editing if we are on the current (live) version
         preElement.contentEditable = getIsCurrentVersion() ? 'plaintext-only' : 'false';
         preElement.innerHTML = activeRawContent
@@ -203,7 +207,9 @@ export function getLiveRawContent() {
  * @returns {void}
  */
 export function resetUnsavedBaseline() {
-    const pre = document.querySelector('#modal-content-text pre');
+    const pre = appState.editState
+        ? document.querySelector('#modal-content-text .text-editor')
+        : null;
     if (pre) liveRawContent = pre.innerText;
     openContentNormalized = liveRawContent.trimEnd();
     openTextContentLength = openContentNormalized.replace(/\n/g, '').length;

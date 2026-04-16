@@ -42,6 +42,8 @@ export const appState = {
     pageFileIds: new Set(),
   },
 
+  editState: false,   // true = txt mode, false = html mode; drives the modal render toggle
+
   dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
   openFileSnapshot: null,    // { filepath, filename, content } captured when modal opens
   closeSnapshot: null,   // { filepath, filename, content } captured just before modal closes
