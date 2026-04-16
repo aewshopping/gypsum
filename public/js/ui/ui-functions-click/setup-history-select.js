@@ -1,7 +1,7 @@
 import { appState } from '../../services/store.js';
 import { readBackupHistory } from '../../editing/backup-history-read.js';
 import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
-import { updateUnsavedIndicator } from './load-file-content.js';
+import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
 
 /**
  * Resets the history select to show only "current" for a newly opened file.

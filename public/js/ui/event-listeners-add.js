@@ -9,7 +9,8 @@ import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside, handleDiscardChanges, handleKeepEditing } from './ui-functions-click/open-file-content-view-trans.js';
-import { handleToggleRenderText, handleFileContentInput } from './ui-functions-click/load-file-content.js';
+import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
+import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';

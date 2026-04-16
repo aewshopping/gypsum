@@ -2,7 +2,8 @@ import { appState } from '../../services/store.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
 import { decodeModalHtml } from '../../services/file-save.js';
 import { saveFileCopy } from '../../editing/save-file-copy.js';
-import { updateUnsavedIndicator, resetUnsavedBaseline, getLiveRawContent, getEditorElement } from './load-file-content.js';
+import { resetUnsavedBaseline, getLiveRawContent, getEditorElement } from '../../editing/manage-unsaved-changes.js';
+import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
 import { refreshFileAfterSave } from '../../editing/refresh-file-state.js';
 
 let savePopoverTimer = null;

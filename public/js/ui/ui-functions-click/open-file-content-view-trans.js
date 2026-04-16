@@ -2,7 +2,8 @@
 // - the key reason it is so long is because it is controlling a view transition
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
-import { loadContentModal, hasUnsavedChanges } from './load-file-content.js';
+import { loadContentModal } from './load-file-content.js';
+import { hasUnsavedChanges } from '../../editing/manage-unsaved-changes.js';
 import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';

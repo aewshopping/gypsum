@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { restoreCurrentContent, loadHistoricalContent } from './load-file-content.js';
+import { restoreCurrentContent, loadHistoricalContent } from '../../editing/history-navigation.js';
 
 /**
  * Handles selection of a version from the history select in the file content modal.
