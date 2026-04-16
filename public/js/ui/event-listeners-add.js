@@ -20,6 +20,7 @@ import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-act
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
+import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -50,6 +51,9 @@ const clickActionHandlers = {
     'filter-toggleactive':handleFilterToggleActive,
     'save-file-copy': handleSaveFileCopy,
     'change-page': handlePageChange,
+    'open-settings-modal': handleOpenSettings,
+    'close-settings-modal': handleCloseSettings,
+    'close-settings-outside': handleCloseSettingsOutside,
 };
 
 const changeActionHandlers = {

@@ -59,10 +59,7 @@
       <input type="checkbox" name="fullscreen" id="fullscreen" data-action="toggle-fullscreen">
     </label>
 
-    <div class="color-select-radio">
-      <label class="formcontrol"><input type="radio" name="radio" checked />snow</label>
-      <label class="formcontrol"><input type="radio" name="radio" id="funcheck" />glow</label>
-    </div>
+    <button id="btn-settings" data-action="open-settings-modal">Settings</button>
   </div>
 
   <br><br>
@@ -122,6 +119,48 @@
 
     <div id="output"></div>
   </main>
+
+  <dialog id="modal-settings" data-action="close-settings-outside">
+    <button class="modal-close-btn" data-action="close-settings-modal">✕</button>
+    <h2 class="settings-title">Settings</h2>
+
+    <div class="settings-row">
+      <span class="settings-label">Colour theme</span>
+      <div class="color-select-radio">
+        <label class="formcontrol"><input type="radio" name="radio" checked />snow</label>
+        <label class="formcontrol"><input type="radio" name="radio" id="funcheck" />glow</label>
+      </div>
+    </div>
+
+    <label class="settings-row">
+      <span class="settings-label">Font size (app)</span>
+      <input type="range" min="12" max="24" disabled>
+    </label>
+
+    <label class="settings-row">
+      <span class="settings-label">Font size (text file)</span>
+      <input type="range" min="12" max="32" disabled>
+    </label>
+
+    <label class="settings-row">
+      <span class="settings-label">Font style</span>
+      <select disabled>
+        <option>sans-serif</option>
+        <option>serif</option>
+        <option>monospace</option>
+      </select>
+    </label>
+
+    <label class="settings-row">
+      <span class="settings-label">Pagination size</span>
+      <input type="number" min="10" max="200" disabled>
+    </label>
+
+    <div class="settings-row">
+      <span class="settings-label">Tag autocomplete</span>
+      <label class="switch"><input type="checkbox" disabled><span class="slider"></span></label>
+    </div>
+  </dialog>
 
   <dialog id="modal-unsaved-warning">
     <p>You have unsaved changes</p>
