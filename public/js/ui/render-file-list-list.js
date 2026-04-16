@@ -6,6 +6,7 @@ import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
+import { PAGINATION_SIZE } from '../constants.js';
 
 /**
  * Renders the list of files as an ordered list.
@@ -16,7 +17,8 @@ import { checkFileOnPage } from './pagination/check-file-on-page.js';
  * @param {boolean} renderEverything - A flag to render all files or only the filtered ones.
  */
 export function renderFileList_list(renderEverything) {
-    let file_html = `<ol class="list-view">`; 
+    const startNumber = (appState.paginationState.currentPage - 1) * PAGINATION_SIZE + 1;
+    let file_html = `<ol class="list-view" start="${startNumber}">`;
 
     for (const file of appState.myFiles) {
         if (checkFileOnPage(file.id)) {
