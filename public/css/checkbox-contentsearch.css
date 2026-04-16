@@ -1,0 +1,45 @@
+#contentsearch{
+    opacity:0;
+}
+
+#contentsearch-label {
+    position:relative;
+    height: 25px;
+    width: 25px;
+}
+
+.contentsearch-svg{
+    --colour-svg: var(--colour-contr);
+
+    position:absolute;
+    color:var(--colour-svg);
+    top:0px;
+    left:0px;
+    height:100%;
+    width:100%;
+    padding-inline:2px;
+    border-radius:4px;
+    border: 2px solid transparent;
+
+    &:hover {
+        border: 2px solid var(--colour-contr);
+        box-shadow: var(--hover-box-shadow);
+    }
+}
+
+.contentsearch-svg g, 
+.contentsearch-svg path {stroke: currentColor;}
+.contentsearch-svg circle {fill: var(--colour-svg);}
+
+/* fiddling with position to line up the eye svgs */
+#contentsearch-svg-open{ padding-bottom:0px;}
+#contentsearch-svg-closed{ padding-top:6px;}
+
+body:has(#contentsearch:checked) #contentsearch-svg-closed {
+    display:none;
+}
+
+body:has(#contentsearch:not(:checked)) #contentsearch-svg-open {
+    display:none;
+}
+
