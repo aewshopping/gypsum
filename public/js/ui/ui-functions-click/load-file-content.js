@@ -211,6 +211,7 @@ export function resetUnsavedBaseline() {
         ? document.querySelector('#modal-content-text .text-editor')
         : null;
     if (pre) liveRawContent = pre.innerText;
+    activeRawContent = liveRawContent;
     openContentNormalized = liveRawContent.trimEnd();
     openTextContentLength = openContentNormalized.replace(/\n/g, '').length;
     isDirtyFlag = false;

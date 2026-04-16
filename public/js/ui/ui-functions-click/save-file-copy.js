@@ -37,12 +37,11 @@ export async function handleSaveFileCopy() {
     const snapshot = appState.openFileSnapshot;
     if (!snapshot) return;
 
-    const renderToggle = document.getElementById('render_toggle');
     let textToSave;
 
-    if (renderToggle?.checked) {
-        // Text view: read from the editable pre element
-        const preElement = document.querySelector('#modal-content-text pre');
+    if (appState.editState) {
+        // Text view: read from the editable element
+        const preElement = document.querySelector('#modal-content-text .text-editor');
         if (!preElement) return;
         textToSave = decodeModalHtml(preElement.innerHTML);
     } else {
