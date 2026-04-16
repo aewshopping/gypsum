@@ -44,6 +44,16 @@ export const appState = {
 
   editState: false,   // true = txt mode, false = html mode; drives the modal render toggle
 
+  editSession: {
+    activeRaw:      '',   // content currently displayed (current or historical)
+    activeHtml:     '',
+    liveRaw:        '',   // true current content (preserved during history browse)
+    liveHtml:       '',
+    openNormalized: '',   // \r\n-unified, trimEnd baseline set on file open
+    openTextLen:    0,    // length of openNormalized without \n chars (fast-path gate)
+    isDirty:        false,
+  },
+
   dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
   openFileSnapshot: null,    // { filepath, filename, content } captured when modal opens
   closeSnapshot: null,   // { filepath, filename, content } captured just before modal closes
