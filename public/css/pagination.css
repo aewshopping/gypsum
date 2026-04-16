@@ -7,45 +7,34 @@
     padding: 16px 8px;
 }
 
-.pagination-btn {
+.pagination-elem-style {
     min-width: 36px;
     height: 36px;
     padding: 0 8px;
-    border: 1px solid var(--border-color, #ccc);
-    background: var(--bg-color, #fff);
-    color: var(--text-color, inherit);
     border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
+    border: 2px solid transparent;
+    font: 1.1em monospace;
+    display: inline-flex; /* for where no btn and need inner elems like spans to be centred */
+    align-items: center;
+    justify-content: center;  
 }
 
-.pagination-btn:hover {
-    background: var(--hover-bg, #f0f0f0);
+.pagination-btn {
+    background: var(--colour-neutral-alt);
+    color: var(--colour-compl-contr);
+    cursor: pointer;
+
+    &:hover {
+        border: 2px solid var(--colour-contr);
+        box-shadow: var(--hover-box-shadow);
+    }
 }
 
 .pagination-current {
-    min-width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 8px;
-    background: var(--accent-color, #333);
-    color: var(--accent-text, #fff);
-    border: 1px solid var(--accent-color, #333);
-    border-radius: 4px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    user-select: none;
+    background: var(--colour-compl-contr);
+    color: var(--colour-neutral-alt);
 }
 
 .pagination-ellipsis {
-    min-width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted, #888);
-    font-size: 0.9rem;
-    user-select: none;
+    color: var(--colour-compl-contr);
 }

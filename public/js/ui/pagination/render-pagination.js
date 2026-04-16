@@ -44,11 +44,11 @@ export function renderPagination(totalVisible) {
 
     for (const item of items) {
         if (item === '...') {
-            html += '<span class="pagination-ellipsis">...</span>';
+            html += '<span class="pagination-elem-style pagination-ellipsis">...</span>';
         } else if (item === c) {
-            html += `<span class="pagination-current">${item}</span>`;
+            html += `<span class="pagination-elem-style pagination-current">${item}</span>`;
         } else {
-            html += `<button class="pagination-btn" data-action="change-page" data-page="${item}">${item}</button>`;
+            html += `<button class="pagination-elem-style pagination-btn" data-action="change-page" data-page="${item}">${item}</button>`;
         }
     }
 
