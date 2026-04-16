@@ -30,6 +30,29 @@ let openTextContentLength = 0;
 let isDirtyFlag = false;
 
 /**
+ * Returns the editable content element when in txt mode, null in html mode.
+ * Html output must never be used as a content source — returning null enforces that.
+ * Single point of truth for both the mode check and the DOM selector.
+ * @returns {Element|null}
+ */
+export function getEditorElement() {
+    return appState.editState
+        ? document.querySelector('#modal-content-text .text-editor')
+        : null;
+}
+
+/**
+ * Reads the editor content from the DOM into liveRawContent and activeRawContent.
+ * Both variables are always updated together to keep them in sync on the current version.
+ */
+function readEditorIntoState() {
+    const el = getEditorElement();
+    if (!el) return;
+    liveRawContent = el.innerText;
+    activeRawContent = liveRawContent;
+}
+
+/**
  * Pulls the current editable content from the DOM into liveRawContent / activeRawContent.
  * innerText is not read in the input hot path because it forces a synchronous layout flush.
  * Instead, consumers that need up-to-date content (toggle, history browse) call this
@@ -37,10 +60,7 @@ let isDirtyFlag = false;
  */
 function syncFromDom() {
     if (!isDirtyFlag) return;
-    const pre = document.querySelector('#modal-content-text pre');
-    if (!pre) return;
-    liveRawContent = pre.innerText;
-    activeRawContent = liveRawContent;
+    readEditorIntoState();
 }
 
 /**
@@ -108,10 +128,11 @@ export function loadHistoricalContent(historicalRaw) {
  */
 export function handleToggleRenderText() {
     if (getIsCurrentVersion()) {
-        syncFromDom();
+        syncFromDom(); // appState.editState still holds the outgoing mode here — guard is correct
         activeHtmlContent = parseContent(activeRawContent);
         liveHtmlContent = activeHtmlContent;
     }
+    appState.editState = document.getElementById('render_toggle').checked;
     fileContentRender();
 }
 
@@ -121,12 +142,14 @@ export function handleToggleRenderText() {
 export function fileContentRender() {
     const textbox = document.getElementById('modal-content-text');
     const renderToggle = document.getElementById('render_toggle');
-    const isTxtMode = renderToggle.checked;
+    renderToggle.checked = appState.editState;
+    const isTxtMode = appState.editState;
 
     if (isTxtMode) {
         textbox.innerHTML = '';
         const preElement = document.createElement('pre');
         preElement.classList.add('pre-text-enlarge');
+        preElement.classList.add('text-editor');
         // Only allow editing if we are on the current (live) version
         preElement.contentEditable = getIsCurrentVersion() ? 'plaintext-only' : 'false';
         preElement.innerHTML = activeRawContent
@@ -203,8 +226,7 @@ export function getLiveRawContent() {
  * @returns {void}
  */
 export function resetUnsavedBaseline() {
-    const pre = document.querySelector('#modal-content-text pre');
-    if (pre) liveRawContent = pre.innerText;
+    readEditorIntoState();
     openContentNormalized = liveRawContent.trimEnd();
     openTextContentLength = openContentNormalized.replace(/\n/g, '').length;
     isDirtyFlag = false;
