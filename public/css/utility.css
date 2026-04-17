@@ -40,6 +40,10 @@
 	/* visibility: hidden */ /* <-- more performant? */
 }
 
+.margin-bottom {
+	margin-bottom: 20px;
+}
+
 .test-outline > * {
 border: 1px solid red;
 }

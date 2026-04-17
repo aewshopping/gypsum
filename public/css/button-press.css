@@ -1,4 +1,4 @@
-.btn-press-enter{
+.btn-press{
     height: 25px;
     width:25px;
     border: 2px solid transparent;
@@ -18,7 +18,21 @@
     height:100%;
     width:100%;
     color:var(--colour-svg);
+
+    g, path {
+        stroke: currentColor;
+    }
 }
 
-#btn-press-enter-svg g, 
-#btn-press-enter-svg path {stroke: currentColor;}
+
+#btn-settings-svg {
+    --colour-svg: var(--colour-contr);
+
+    height:100%;
+    width:100%;
+    color:var(--colour-svg);
+
+    g, path {
+        stroke: currentColor;
+    }
+}
