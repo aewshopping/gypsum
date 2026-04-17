@@ -304,4 +304,40 @@ test.describe('Undo/redo in the plain-text editor', () => {
     expect(await undoCount(page)).toBe(0);
   });
 
+  test('typing in a CRLF file inserts at the caret, not offset left', async ({ page }) => {
+    // Regression: liveRaw previously kept literal \r\n (2 chars per line
+    // break) while the DOM collapsed each \r\n to a single <br> (1 char).
+    // nodeOffsetToIndex() under-counted by N (the number of \r\n before
+    // the caret), so splices landed N positions too far left.
+    await page.addInitScript(() => {
+      const content = '---\r\ntitle: Test\r\ntag: x\r\n---\r\n\r\nBody line one\r\nBody line two';
+      const makeFile = (name, c) => ({
+        kind: 'file', name,
+        getFile: async () => ({ name, size: c.length, lastModified: Date.now(), text: async () => c }),
+      });
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () { yield makeFile('notes.md', content); },
+        getFileHandle: async () => { throw new Error('no backup'); },
+      });
+    });
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await switchToTxt(page);
+    await focusAtEnd(page);
+
+    const before = await readLiveRaw(page);
+    await page.keyboard.type('Z', { delay: 20 });
+    const after = await readLiveRaw(page);
+
+    // Z must land at the end, not offset by the count of \r\n before it.
+    expect(after).toBe(before + 'Z');
+
+    // DOM must agree with liveRaw.
+    const preText = await readEditorText(page);
+    expect(preText.replace(/\r\n/g, '\n').trimEnd()).toBe(after.trimEnd());
+  });
+
 });
