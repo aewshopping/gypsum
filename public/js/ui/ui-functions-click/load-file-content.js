@@ -16,12 +16,17 @@ export async function loadContentModal(fileToOpen) {
     const fileChosen = await fileHandle.getFile();
 
     const raw = await fileChosen.text();
+    // Normalise line endings on load: the DOM collapses every CRLF to a single
+    // <br>, so liveRaw must use the same \n-only convention or character
+    // offsets between the DOM and the buffer drift by the count of preceding
+    // \r\n sequences.
+    const normalized = raw.replace(/\r\n|\r/g, '\n');
     const session = appState.editSession;
 
     // On initial load, the active content and live content are identical
-    session.activeRaw = raw;
-    session.liveRaw = raw;
-    session.openNormalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd();
+    session.activeRaw = normalized;
+    session.liveRaw = normalized;
+    session.openNormalized = normalized.trimEnd();
     session.openTextLen = session.openNormalized.replace(/\n/g, '').length; // \n → <br> in DOM, invisible to textContent
     session.isDirty = false;
     resetUndoStacks();
