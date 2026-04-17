@@ -211,6 +211,59 @@ test.describe('Undo/redo in the plain-text editor', () => {
     expect(await redoCount(page)).toBe(0);
   });
 
+  test('Delete key (deleteContentForward) keeps liveRaw in sync', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await focusAtEnd(page);
+
+    // Position caret at start of the last line so Delete has somewhere to go.
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text .text-editor');
+      const raw = window.appState.editSession.liveRaw;
+      const lastNl = raw.lastIndexOf('\n');
+      const target = lastNl + 1;
+      const tn = [...pre.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.previousSibling?.nodeName === 'BR');
+      if (tn) {
+        const range = document.createRange();
+        range.setStart(tn, 0);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+
+    const raw = await readLiveRaw(page);
+    await page.keyboard.press('Delete');
+    const after = await readLiveRaw(page);
+    // One character should have been removed from liveRaw.
+    expect(after.length).toBe(raw.length - 1);
+    const preText = await readEditorText(page);
+    // DOM and liveRaw stay in sync (normalising line endings).
+    expect(preText.replace(/\r\n/g, '\n').trimEnd()).toBe(after.trimEnd());
+  });
+
+  test('Ctrl+Backspace (deleteWordBackward) keeps liveRaw in sync', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await focusAtEnd(page);
+
+    await page.keyboard.type(' alpha beta', { delay: 20 });
+    const before = await readLiveRaw(page);
+    await page.keyboard.press('Control+Backspace');
+    const after = await readLiveRaw(page);
+
+    // Word-delete removes "beta" and leaves the preceding whitespace (matches
+    // Chromium's own Ctrl+Backspace behaviour on a plain textarea).
+    expect(after).toBe(before.slice(0, before.length - 4));
+    const preText = await readEditorText(page);
+    expect(preText.replace(/\r\n/g, '\n').trimEnd()).toBe(after.trimEnd());
+  });
+
   test('type -> backspace -> type keeps liveRaw in sync with the DOM', async ({ page }) => {
     // Regression: Chromium may return an empty getTargetRanges() for
     // deleteContentBackward, which previously caused our handler to bail

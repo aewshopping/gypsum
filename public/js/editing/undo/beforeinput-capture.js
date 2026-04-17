@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { rangeToOffsets, selectionToOffsets } from './dom-index-map.js';
 import { applyChange } from './apply-change.js';
 import { pushTransaction } from './undo-state.js';
+import { performUndo, performRedo } from './undo-redo.js';
 
 /**
  * @file Turns a `beforeinput` event on the editor into an immutable
@@ -24,6 +25,12 @@ export function handleBeforeInput(evt) {
     if (evt.isComposing) return;  // let IME composition through to native
     const preEl = evt.target.closest('[data-action="file-content-edit"]');
     if (!preEl) return;
+
+    // Route browser-triggered undo/redo (e.g. Edit menu) to our own stacks.
+    // The Mod-Z/Y keyboard shortcuts are already intercepted at keydown;
+    // this covers menu and programmatic execCommand paths.
+    if (evt.inputType === 'historyUndo') { evt.preventDefault(); performUndo(); return; }
+    if (evt.inputType === 'historyRedo') { evt.preventDefault(); performRedo(); return; }
 
     const priorSelection = selectionToOffsets(preEl);
     const priorCollapsed = !!priorSelection && priorSelection.from === priorSelection.to;
@@ -83,16 +90,82 @@ function extractOffsets(evt, preEl, priorSelection) {
     if (!priorSelection) return null;
     if (priorSelection.from !== priorSelection.to) return priorSelection;
 
-    const liveLen = appState.editSession.liveRaw.length;
+    const raw = appState.editSession.liveRaw;
     const p = priorSelection.from;
     switch (evt.inputType) {
         case 'deleteContentBackward':
             return { from: Math.max(0, p - 1), to: p };
         case 'deleteContentForward':
-            return { from: p, to: Math.min(liveLen, p + 1) };
+            return { from: p, to: Math.min(raw.length, p + 1) };
+        case 'deleteWordBackward':
+            return { from: wordStartBefore(raw, p), to: p };
+        case 'deleteWordForward':
+            return { from: p, to: wordEndAfter(raw, p) };
+        case 'deleteSoftLineBackward':
+        case 'deleteHardLineBackward':
+            return { from: lineStartBefore(raw, p), to: p };
+        case 'deleteSoftLineForward':
+        case 'deleteHardLineForward':
+            return { from: p, to: lineEndAfter(raw, p) };
+        case 'deleteEntireSoftLine':
+            return { from: lineStartBefore(raw, p), to: lineEndAfter(raw, p) };
         default:
+            // Unknown delete with empty staticRange + collapsed selection:
+            // degrade to a single-char backward delete rather than bailing to
+            // native (which would desync liveRaw from the DOM).
+            if (isDeleteType(evt.inputType)) return { from: Math.max(0, p - 1), to: p };
             return priorSelection;
     }
+}
+
+/**
+ * Index of the start of the word immediately before `p` in `raw`.
+ * Skips trailing whitespace then a run of non-whitespace, matching
+ * typical Ctrl+Backspace semantics.
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function wordStartBefore(raw, p) {
+    let i = p;
+    while (i > 0 && /\s/.test(raw[i - 1])) i--;
+    while (i > 0 && /\S/.test(raw[i - 1])) i--;
+    return i;
+}
+
+/**
+ * Index of the end of the word immediately after `p` in `raw`.
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function wordEndAfter(raw, p) {
+    let i = p;
+    while (i < raw.length && /\s/.test(raw[i])) i++;
+    while (i < raw.length && /\S/.test(raw[i])) i++;
+    return i;
+}
+
+/**
+ * Index of the start of the current line (char after the previous \n).
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function lineStartBefore(raw, p) {
+    const nl = raw.lastIndexOf('\n', p - 1);
+    return nl === -1 ? 0 : nl + 1;
+}
+
+/**
+ * Index of the end of the current line (the next \n, or end of raw).
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function lineEndAfter(raw, p) {
+    const nl = raw.indexOf('\n', p);
+    return nl === -1 ? raw.length : nl;
 }
 
 /**
