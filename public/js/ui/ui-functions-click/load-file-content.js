@@ -4,6 +4,7 @@ import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { setIsCurrentVersion } from '../../editing/editable-state.js';
 import { fileContentRender } from '../ui-functions-render/render-file-content.js';
+import { resetUndoStacks } from '../../editing/undo/undo-state.js';
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -23,6 +24,7 @@ export async function loadContentModal(fileToOpen) {
     session.openNormalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd();
     session.openTextLen = session.openNormalized.replace(/\n/g, '').length; // \n → <br> in DOM, invisible to textContent
     session.isDirty = false;
+    resetUndoStacks();
 
     const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
     appState.openFileSnapshot = {

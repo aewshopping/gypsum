@@ -52,6 +52,12 @@ export const appState = {
     openNormalized: '',   // \r\n-unified, trimEnd baseline set on file open
     openTextLen:    0,    // length of openNormalized without \n chars (fast-path gate)
     isDirty:        false,
+    undo: {
+      done:       [],     // Transaction[] — tail is most recent
+      undone:     [],     // Transaction[] — cleared on any new user edit
+      lastEditAt: 0,      // ms timestamp of the tail of `done` for 500ms grouping
+      lastType:   null,   // 'insertText' | 'deleteContentBackward' | null
+    },
   },
 
   dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
