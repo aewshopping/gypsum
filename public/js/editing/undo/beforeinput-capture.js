@@ -25,7 +25,10 @@ export function handleBeforeInput(evt) {
     const preEl = evt.target.closest('[data-action="file-content-edit"]');
     if (!preEl) return;
 
-    const offsets = extractOffsets(evt, preEl);
+    const priorSelection = selectionToOffsets(preEl);
+    const priorCollapsed = !!priorSelection && priorSelection.from === priorSelection.to;
+
+    const offsets = extractOffsets(evt, preEl, priorSelection);
     if (!offsets) return;
 
     const insert = extractInsertText(evt);
@@ -41,7 +44,7 @@ export function handleBeforeInput(evt) {
 
     evt.preventDefault();
 
-    const type = normalizeType(evt.inputType, from !== to);
+    const type = normalizeType(evt.inputType, priorCollapsed);
     const change = { from, to, insert: resolvedInsert, removed };
     const caretAt = from + resolvedInsert.length;
 
@@ -58,18 +61,46 @@ export function handleBeforeInput(evt) {
 }
 
 /**
- * Derives { from, to } offsets from the event, preferring getTargetRanges().
+ * Derives { from, to } offsets for the affected range. Prefers
+ * getTargetRanges(), but Chromium sometimes returns an empty array (notably
+ * for deleteContent{Backward,Forward} on contenteditable="plaintext-only"),
+ * in which case we synthesise the range from the current selection plus the
+ * inputType. For collapsed selections we extend by one character in the
+ * delete direction; non-collapsed selections are the target range directly.
  * @param {InputEvent} evt
  * @param {HTMLElement} preEl
+ * @param {{from: number, to: number}|null} priorSelection
  * @returns {{from: number, to: number}|null}
  */
-function extractOffsets(evt, preEl) {
+function extractOffsets(evt, preEl, priorSelection) {
     const targets = typeof evt.getTargetRanges === 'function' ? evt.getTargetRanges() : [];
     if (targets && targets.length > 0) {
         const off = rangeToOffsets(targets[0], preEl);
-        if (off) return off;
+        if (off && (off.from !== off.to || !isDeleteType(evt.inputType))) return off;
+        // Collapsed staticRange on a delete: fall through to inputType-based extension.
     }
-    return selectionToOffsets(preEl);
+
+    if (!priorSelection) return null;
+    if (priorSelection.from !== priorSelection.to) return priorSelection;
+
+    const liveLen = appState.editSession.liveRaw.length;
+    const p = priorSelection.from;
+    switch (evt.inputType) {
+        case 'deleteContentBackward':
+            return { from: Math.max(0, p - 1), to: p };
+        case 'deleteContentForward':
+            return { from: p, to: Math.min(liveLen, p + 1) };
+        default:
+            return priorSelection;
+    }
+}
+
+/**
+ * @param {string} inputType
+ * @returns {boolean}
+ */
+function isDeleteType(inputType) {
+    return typeof inputType === 'string' && inputType.startsWith('delete');
 }
 
 /**
@@ -88,15 +119,16 @@ function extractInsertText(evt) {
 
 /**
  * Collapses inputType into one of the grouping categories used by undo-state.
- * Any delete whose source range is non-collapsed is treated as atomic.
+ * A single-char backward delete is groupable only when the selection was
+ * collapsed before the event — a delete over an active range is atomic.
  * @param {string} inputType
- * @param {boolean} hasSelectionRange
+ * @param {boolean} priorCollapsed
  * @returns {string}
  */
-function normalizeType(inputType, hasSelectionRange) {
+function normalizeType(inputType, priorCollapsed) {
     if (ATOMIC_TYPES.has(inputType)) return inputType;
     if (inputType === 'insertText') return 'insertText';
-    if (inputType === 'deleteContentBackward' && !hasSelectionRange) return 'deleteContentBackward';
+    if (inputType === 'deleteContentBackward' && priorCollapsed) return 'deleteContentBackward';
     if (inputType === 'insertLineBreak' || inputType === 'insertParagraph') return 'insertLineBreak';
     return inputType || 'atomic';
 }

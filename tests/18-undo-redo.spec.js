@@ -211,6 +211,33 @@ test.describe('Undo/redo in the plain-text editor', () => {
     expect(await redoCount(page)).toBe(0);
   });
 
+  test('type -> backspace -> type keeps liveRaw in sync with the DOM', async ({ page }) => {
+    // Regression: Chromium may return an empty getTargetRanges() for
+    // deleteContentBackward, which previously caused our handler to bail
+    // without preventDefault(). The browser then deleted natively while
+    // liveRaw stayed stale, so subsequent inserts spliced into stale text
+    // and the deleted characters visibly reappeared.
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await focusAtEnd(page);
+
+    const before = await readLiveRaw(page);
+
+    await page.keyboard.type('XYZ', { delay: 50 });
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('A', { delay: 50 });
+    await page.keyboard.type('B', { delay: 50 });
+
+    expect(await readLiveRaw(page)).toBe(before + 'XAB');
+
+    const preText = await readEditorText(page);
+    // innerText collapses <br> into \n; our liveRaw already uses \n.
+    expect(preText.replace(/\r\n/g, '\n').trimEnd()).toBe((before + 'XAB').trimEnd());
+  });
+
   test('Ctrl+Z on an empty stack is inert', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
