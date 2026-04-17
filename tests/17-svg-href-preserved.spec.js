@@ -1,10 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
-// An inline SVG whose <use> elements reference a <defs> symbol via href="#petal".
-// Before the fix, tagParser rewrote "#petal" into a tag span inside the attribute
-// value, corrupting the SVG so it did not render. The fix excludes '#' preceded
-// by a quote or '=' from tag substitution.
-test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }) => {
+// Mock a file whose body contains inline SVG (with href="#petal"), a real tag,
+// and a hex colour. Two separate tag-matching paths need to ignore `#petal`:
+//   1. tagParser (render-time) — injects <span class="tag"> into rendered HTML
+//   2. regex_tag in file-info.js (load-time) — builds file.tags Map for filters
+async function loadRoseFile(page) {
   await page.addInitScript(() => {
     const content =
       '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
@@ -27,6 +27,11 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
 
   await page.goto('/');
   await page.click('[data-click-loadfolder]');
+  await expect(page.locator('.note-grid')).toHaveCount(1);
+}
+
+test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }) => {
+  await loadRoseFile(page);
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
 
@@ -40,4 +45,17 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
   const tagCount = await page.locator('#modal-content-text .tag').count();
   expect(tagCount).toBe(1);
   await expect(page.locator('#modal-content-text .tag').first()).toHaveText(/realtag/);
+});
+
+test('SVG href="#id" is not harvested into the file.tags index', async ({ page }) => {
+  await loadRoseFile(page);
+
+  const tagKeys = await page.evaluate(() => {
+    const file = window.appState.myFiles.find(f => f.filename === 'rose.md');
+    return [...file.tags.keys()];
+  });
+
+  expect(tagKeys).toContain('realtag');
+  expect(tagKeys).not.toContain('petal');
+  expect(tagKeys).not.toContain('abcdef');
 });
