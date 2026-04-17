@@ -9,23 +9,29 @@ const tagSet = new Set();
 
 /**
  * Parses a string of text, finds tags (e.g., #tag, #category/tag), and wraps them in HTML `<span>` elements
- * for styling and interaction. It temporarily replaces hex color codes to avoid accidentally parsing them as tags.
+ * for styling and interaction. Skips `#` preceded by `"`, `'`, or `=` (so HTML attribute values like
+ * SVG `href="#id"` survive) and `#` that introduces a hex colour (`#fff`, `#00ff00`).
  *
  * @param {string} text The input text to parse for tags.
  * @returns {string} The text with tags replaced by HTML `<span>` elements.
  */
 export function tagParser(text) {
 	tagSet.clear();
-	
+
 	returnActiveTags(); //mutates tagSet
 
-	const StripHexColors = text.replace(/#(?=([0-9a-fA-F]{3}){1,2}\b)/gm, '%'); // otherwise tagReplace will strip out hex colours like #fff or #00000. Mainly noticeable if using svg
+	// Match #tag and #category/tag, skipping two cases that look like tags but aren't:
+	//   (?<!["'=])  – '#' preceded by a quote or '=' is inside an HTML attribute
+	//                 value (e.g. SVG <use href="#petal"/>) — leave the markup alone.
+	//   (?!(?:[0-9a-fA-F]{3}){1,2}\b)
+	//               – '#' followed by a 3- or 6-char hex sequence is a CSS colour
+	//                 (#fff, #00ff00) — not a tag. Non-capturing so the replacer's
+	//                 p1..p4 positions are unaffected.
+	// Two branches: simple #tag (groups 1-2) and #parent/child (groups 3-4),
+	// matching the structure `tagreplacer` expects.
+	const TAG_REGEX = /(?<!["'=])(#)(?!(?:[0-9a-fA-F]{3}){1,2}\b)(\w+)\b(?!\/)|(?<!["'=])(#\w+\/)(\w+)\b/gm;
 
-	const tagReplace = StripHexColors.replace(/(#)(\w+)\b(?!\/)|(#\w+\/)(\w+)\b/gm, tagreplacer); // replace tags and parents according to function...
-
-	const ReplaceHexColors = tagReplace.replace(/%(?=([0-9a-fA-F]{3}){1,2}\b)/gm, '#'); // put back the hexcodes now the tagReplace is over
-
-	return ReplaceHexColors.trim();
+	return text.replace(TAG_REGEX, tagreplacer).trim();
 }
 
 /**
