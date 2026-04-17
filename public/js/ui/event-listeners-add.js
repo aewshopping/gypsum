@@ -21,6 +21,8 @@ import { handleHistorySelectChange } from './ui-functions-click/history-select-c
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
+import { handleBeforeInput } from '../editing/undo/beforeinput-capture.js';
+import { performUndo, performRedo } from '../editing/undo/undo-redo.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -32,6 +34,10 @@ export function addActionHandlers() {
     document.addEventListener("keydown", keyDownDelegate);
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
+    // Capture phase: preventDefault() must fire before the browser mutates the
+    // contenteditable DOM, which also suppresses the subsequent `input` event
+    // so file-content-input.js doesn't double-process captured edits.
+    document.addEventListener("beforeinput", beforeInputDelegate, true);
 }
 
 // Map 'data-action' names from html to their handler functions.
@@ -72,6 +78,10 @@ const keyUpActionHandlers = {
 
 const inputActionHandlers = {
     'file-content-edit': handleFileContentInput,
+};
+
+const beforeInputActionHandlers = {
+    'file-content-edit': handleBeforeInput,
 };
 
 /**
@@ -118,9 +128,23 @@ function changeDelegate(evt) {
  * @param {KeyboardEvent} evt
  */
 function keyDownDelegate(evt) {
-    if ((evt.ctrlKey || evt.metaKey) && evt.key === 's') {
-        evt.preventDefault();
-        handleSaveFileCopy();
+    if (evt.ctrlKey || evt.metaKey) {
+        if (evt.key === 's') {
+            evt.preventDefault();
+            handleSaveFileCopy();
+            return;
+        }
+        // Undo/redo only when the active target is the plain-text editor.
+        const inEditor = evt.target?.closest?.('[data-action="file-content-edit"]');
+        if (!inEditor) return;
+        const key = evt.key.toLowerCase();
+        if (key === 'z' && !evt.shiftKey) {
+            evt.preventDefault();
+            performUndo();
+        } else if (key === 'y' || (key === 'z' && evt.shiftKey)) {
+            evt.preventDefault();
+            performRedo();
+        }
     }
 }
 
@@ -153,6 +177,24 @@ function inputDelegate(evt) {
     if (actionElement) {
         const actionName = actionElement.dataset.action;
         const handler = inputActionHandlers[actionName];
+
+        if (handler) {
+            handler(evt, actionElement);
+        }
+    }
+}
+
+/**
+ * Handles all beforeinput events on the document (capture phase) and
+ * delegates to the appropriate handler via the element's data-action.
+ * @param {InputEvent} evt
+ */
+function beforeInputDelegate(evt) {
+    const actionElement = evt.target?.closest?.('[data-action]');
+
+    if (actionElement) {
+        const actionName = actionElement.dataset.action;
+        const handler = beforeInputActionHandlers[actionName];
 
         if (handler) {
             handler(evt, actionElement);
