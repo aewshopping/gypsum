@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { rangeToOffsets, selectionToOffsets } from './dom-index-map.js';
 import { applyChange } from './apply-change.js';
 import { pushTransaction } from './undo-state.js';
+import { performUndo, performRedo } from './undo-redo.js';
 
 /**
  * @file Turns a `beforeinput` event on the editor into an immutable
@@ -25,7 +26,16 @@ export function handleBeforeInput(evt) {
     const preEl = evt.target.closest('[data-action="file-content-edit"]');
     if (!preEl) return;
 
-    const offsets = extractOffsets(evt, preEl);
+    // Route browser-triggered undo/redo (e.g. Edit menu) to our own stacks.
+    // The Mod-Z/Y keyboard shortcuts are already intercepted at keydown;
+    // this covers menu and programmatic execCommand paths.
+    if (evt.inputType === 'historyUndo') { evt.preventDefault(); performUndo(); return; }
+    if (evt.inputType === 'historyRedo') { evt.preventDefault(); performRedo(); return; }
+
+    const priorSelection = selectionToOffsets(preEl);
+    const priorCollapsed = !!priorSelection && priorSelection.from === priorSelection.to;
+
+    const offsets = extractOffsets(evt, preEl, priorSelection);
     if (!offsets) return;
 
     const insert = extractInsertText(evt);
@@ -41,7 +51,7 @@ export function handleBeforeInput(evt) {
 
     evt.preventDefault();
 
-    const type = normalizeType(evt.inputType, from !== to);
+    const type = normalizeType(evt.inputType, priorCollapsed);
     const change = { from, to, insert: resolvedInsert, removed };
     const caretAt = from + resolvedInsert.length;
 
@@ -58,18 +68,112 @@ export function handleBeforeInput(evt) {
 }
 
 /**
- * Derives { from, to } offsets from the event, preferring getTargetRanges().
+ * Derives { from, to } offsets for the affected range. Prefers
+ * getTargetRanges(), but Chromium sometimes returns an empty array (notably
+ * for deleteContent{Backward,Forward} on contenteditable="plaintext-only"),
+ * in which case we synthesise the range from the current selection plus the
+ * inputType. For collapsed selections we extend by one character in the
+ * delete direction; non-collapsed selections are the target range directly.
  * @param {InputEvent} evt
  * @param {HTMLElement} preEl
+ * @param {{from: number, to: number}|null} priorSelection
  * @returns {{from: number, to: number}|null}
  */
-function extractOffsets(evt, preEl) {
+function extractOffsets(evt, preEl, priorSelection) {
     const targets = typeof evt.getTargetRanges === 'function' ? evt.getTargetRanges() : [];
     if (targets && targets.length > 0) {
         const off = rangeToOffsets(targets[0], preEl);
-        if (off) return off;
+        if (off && (off.from !== off.to || !isDeleteType(evt.inputType))) return off;
+        // Collapsed staticRange on a delete: fall through to inputType-based extension.
     }
-    return selectionToOffsets(preEl);
+
+    if (!priorSelection) return null;
+    if (priorSelection.from !== priorSelection.to) return priorSelection;
+
+    const raw = appState.editSession.liveRaw;
+    const p = priorSelection.from;
+    switch (evt.inputType) {
+        case 'deleteContentBackward':
+            return { from: Math.max(0, p - 1), to: p };
+        case 'deleteContentForward':
+            return { from: p, to: Math.min(raw.length, p + 1) };
+        case 'deleteWordBackward':
+            return { from: wordStartBefore(raw, p), to: p };
+        case 'deleteWordForward':
+            return { from: p, to: wordEndAfter(raw, p) };
+        case 'deleteSoftLineBackward':
+        case 'deleteHardLineBackward':
+            return { from: lineStartBefore(raw, p), to: p };
+        case 'deleteSoftLineForward':
+        case 'deleteHardLineForward':
+            return { from: p, to: lineEndAfter(raw, p) };
+        case 'deleteEntireSoftLine':
+            return { from: lineStartBefore(raw, p), to: lineEndAfter(raw, p) };
+        default:
+            // Unknown delete with empty staticRange + collapsed selection:
+            // degrade to a single-char backward delete rather than bailing to
+            // native (which would desync liveRaw from the DOM).
+            if (isDeleteType(evt.inputType)) return { from: Math.max(0, p - 1), to: p };
+            return priorSelection;
+    }
+}
+
+/**
+ * Index of the start of the word immediately before `p` in `raw`.
+ * Skips trailing whitespace then a run of non-whitespace, matching
+ * typical Ctrl+Backspace semantics.
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function wordStartBefore(raw, p) {
+    let i = p;
+    while (i > 0 && /\s/.test(raw[i - 1])) i--;
+    while (i > 0 && /\S/.test(raw[i - 1])) i--;
+    return i;
+}
+
+/**
+ * Index of the end of the word immediately after `p` in `raw`.
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function wordEndAfter(raw, p) {
+    let i = p;
+    while (i < raw.length && /\s/.test(raw[i])) i++;
+    while (i < raw.length && /\S/.test(raw[i])) i++;
+    return i;
+}
+
+/**
+ * Index of the start of the current line (char after the previous \n).
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function lineStartBefore(raw, p) {
+    const nl = raw.lastIndexOf('\n', p - 1);
+    return nl === -1 ? 0 : nl + 1;
+}
+
+/**
+ * Index of the end of the current line (the next \n, or end of raw).
+ * @param {string} raw
+ * @param {number} p
+ * @returns {number}
+ */
+function lineEndAfter(raw, p) {
+    const nl = raw.indexOf('\n', p);
+    return nl === -1 ? raw.length : nl;
+}
+
+/**
+ * @param {string} inputType
+ * @returns {boolean}
+ */
+function isDeleteType(inputType) {
+    return typeof inputType === 'string' && inputType.startsWith('delete');
 }
 
 /**
@@ -88,15 +192,16 @@ function extractInsertText(evt) {
 
 /**
  * Collapses inputType into one of the grouping categories used by undo-state.
- * Any delete whose source range is non-collapsed is treated as atomic.
+ * A single-char backward delete is groupable only when the selection was
+ * collapsed before the event — a delete over an active range is atomic.
  * @param {string} inputType
- * @param {boolean} hasSelectionRange
+ * @param {boolean} priorCollapsed
  * @returns {string}
  */
-function normalizeType(inputType, hasSelectionRange) {
+function normalizeType(inputType, priorCollapsed) {
     if (ATOMIC_TYPES.has(inputType)) return inputType;
     if (inputType === 'insertText') return 'insertText';
-    if (inputType === 'deleteContentBackward' && !hasSelectionRange) return 'deleteContentBackward';
+    if (inputType === 'deleteContentBackward' && priorCollapsed) return 'deleteContentBackward';
     if (inputType === 'insertLineBreak' || inputType === 'insertParagraph') return 'insertLineBreak';
     return inputType || 'atomic';
 }
