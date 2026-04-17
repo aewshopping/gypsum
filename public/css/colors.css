@@ -18,7 +18,7 @@
     --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
     }
 
-:root:has(input[type="radio"]#funcheck:checked) {
+:root:has(input[type="radio"]#glow:checked) {
     --colour-neutral: DarkSlateGray; /* bg */
     --colour-neutral-alt: #0b6f6f; /* card bg */
     --colour-contr: aquamarine; /* text */
@@ -36,6 +36,26 @@
     --colour-compl-alt-emph: #FF80AA; /* tag select */ /* PINK */
     --colour-compl-alt-contr: aquamarine; /* tag text */
     --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
+}
+
+:root:has(input[type="radio"]#blackandwhite:checked) {
+    --colour-neutral: rgb(241, 241, 241); /* bg */
+    --colour-neutral-alt: white; /* card bg */
+    --colour-contr: black; /* text */
+    --colour-contr-emph: black;  /* h1 */
+    --colour-contr-warning: #cd3158;
+
+    --colour-compl: LightGrey;  /* btn */
+    --colour-compl-emph-light: Silver;  /* btn hover */
+    --colour-compl-emph: #FFD480; /* btn select */ /*gold*/
+    --colour-compl-contr: black; /* btn text */
+    --colour-compl-emph-contr: black; /* btn select text */
+
+    --colour-compl-alt: LightGrey; /* tag */
+    --colour-compl-alt-emph-light: Silver; /* tag hover */
+    --colour-compl-alt-emph: #FF80AA; /* tag select */ /*Pink*/
+    --colour-compl-alt-contr: black; /* tag text */ /*MediumVioletRed*/
+    --colour-compl-alt-emph-contr: black; /* tag select text */
 }
 
 .color-dynamic {
