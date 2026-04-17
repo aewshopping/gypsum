@@ -5,7 +5,7 @@ select, ::picker(select) {
 
 .select-label {
     margin-inline: 10px;
-    margin-left:auto; /* when item wraps to its own row we want it to be on the right */
+    margin-bottom:20px;
 }
 
 #view-select {

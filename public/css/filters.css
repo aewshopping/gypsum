@@ -3,10 +3,10 @@
     border-radius: 6px;
     padding: 16px 10px 10px 10px;
     position: relative;
-    min-width: 250px;
+    max-width: 600px;
     min-height: 46px;
-    margin-top:20px;
-    margin-left:10px;
+    margin-block:20px;
+    margin-inline: auto;
 
         &:has(.showall:hover){
         border: 1px solid var(--colour-contr-warning);
@@ -27,8 +27,3 @@ body:has(#and_filter:checked) #filter-box{
 
 }
 
-#search-and-filters {
-    flex-grow: 10;
-    max-width: 800px;
-    width: 100%;
-}

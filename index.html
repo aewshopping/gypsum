@@ -48,14 +48,14 @@
 
   <div class="flex-row">
     <div>
-      <button id="btn_loadFileHandles" data-click-loadfiles>Handle files</button>
-      <button id="btn_loadDirectoryHandles" data-click-loadfolder>Handle folder</button>
+      <button id="btn_loadFileHandles" data-click-loadfiles>Files</button>
+      <button id="btn_loadDirectoryHandles" data-click-loadfolder>Folder</button>
       <span id=fileCountElement>No files loaded</span>
     </div>
 
     <div class="flexgrow"></div>
 
-    <!-- <label>
+    <!-- removing temporarily <label>
       <input type="checkbox" name="fullscreen" id="fullscreen" data-action="toggle-fullscreen">
     </label> -->
 
@@ -66,10 +66,9 @@
 
   <main>
 
-    <div class="flex-row flex-wrap stick-top">
+    <div class="stick-top">
 
-      <div id="search-and-filters" class="flex-column">
-        <div id="search-box" class="flex-row">
+        <div class="flex-row justify-content-center">
 
           <label id="contentsearch-label" title="click to toggle file content search on and off">
             <input type="checkbox" name="contentsearch" id="contentsearch" data-action="toggle-content-search">
@@ -77,42 +76,46 @@
             <svg version="1.1" class="contentsearch-svg" id="contentsearch-svg-open" xmlns="http://www.w3.org/2000/svg"viewBox="0 0 211.67 118.97" width="100" height="50"><defs><style class="style-fonts"></style></defs><g stroke="black" stroke-width="24" fill="none" stroke-linecap="round"><g transform="translate(11 58.99)"><path d="M0 0 C6 5.82, 20.67 26.61, 36 34.94 C51.33 43.26, 73.78 49.74, 92 49.97 C110.22 50.21, 128.89 44.22, 145.33 36.36 C161.78 28.51, 183.11 8.44, 190.67 2.85"></path></g><g transform="translate(200.67 59.98)"><path d="M0 0 C-6 -5.82, -20.67 -26.61, -36 -34.94 C-51.33 -43.26, -73.78 -49.74, -92 -49.97 C-110.22 -50.21, -128.89 -44.22, -145.33 -36.36 C-161.78 -28.51, -183.11 -8.44, -190.67 -2.85"></path></g><g transform="translate(53.33 23.99)"><path d="M0 0 C-1.89 4.22, -9.44 16.78, -11.33 25.33 C-13.22 33.89, -13.33 43.22, -11.33 51.33 C-9.33 59.44, -1.33 70.22, 0.67 74"></path></g><g transform="translate(152.27 21.66)"><path d="M0 0 C1.89 4.22, 9.44 16.78, 11.33 25.33 C13.22 33.89, 13.33 43.22, 11.33 51.33 C9.33 59.44, 1.33 70.22, -0.67 74"></path></g><g transform="translate(83.67 37.32)"><circle cx="22.67" cy="22.67" r="22.67" fill="black" stroke="none"></circle></g></g></svg>
           </label>
 
-          <input class="flexgrow" data-action="search-files" type="text" id="searchbox" name="searchbox" size="10"
+          <div class="searchbox-container flexgrow">
+            <input data-action="search-files" type="text" id="searchbox" name="searchbox" size="10"
             minlength="3" maxlength="100" placeholder='' />
+
+            <div class="searchbox-tag-btn" data-action="show-tag-taxonomy">#</div>
+          </div>
 
           <button title="click to search" id="btn_search" class="btn-press" data-action="searchbox-search">
             <svg version="1.1" id="btn-press-enter-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"width="100" height="80" preserveAspectRatio="none"><defs><style class="style-fonts"></style></defs><g stroke="#1e1e1e" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(35.28 46.29)"><polygon points="0,0 -25.28,22.09 -0.13,41.49" fill="none"></polygon></g><g transform="translate(83.39 10)"><path d="M0 0 C0.27 9.59, 1.37 47.94, 1.65 57.53"></path></g><g transform="translate(85.78 67.31)"><path d="M0 0 C-11.23 0.12, -56.17 0.62, -67.41 0.74"></path></g></g></svg>
           </button>
 
         </div>
+    </div>
+      <div id="filter-box">
+        <div class="flex-row label_group_filter_toggle">
 
-        <div id="filter-box">
-          <div class="flex-row label_group_filter_toggle">
-
-            <div class="ANDOR_label">OR</div>
-            <label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"
-                data-action="toggle-filter-mode"><span class="slider"></span></label>
-            <div class="ANDOR_label">AND</div>
-
-          </div>
-
-          <div id="filter-output"></div>
-
-          <button class="showall" data-action="clear-filters">clear</button>
+          <div class="ANDOR_label">OR</div>
+          <label for="and_filter" class="switch"><input type="checkbox" id="and_filter" name="and_filter"
+              data-action="toggle-filter-mode"><span class="slider"></span></label>
+          <div class="ANDOR_label">AND</div>
 
         </div>
-      </div>
 
-      <div class="flexgrow-weak"></div>
+        <div id="filter-output"></div>
+
+        <button class="showall" data-action="clear-filters">clear</button>
+
+      </div>
+    
+    <div class="flex-row">
+      <div class="flexgrow"></div>
 
       <label class="select-label" for="view-select">
         <select id="view-select" data-action="view-select">
         </select>
       </label>
-
     </div>
 
-    <div class="border-rounded margin-bottom">
+
+    <div class="border-top-straight border-bottom-straight margin-bottom padding-top">
       #
       <div id="tag_output"></div>
     </div>    
