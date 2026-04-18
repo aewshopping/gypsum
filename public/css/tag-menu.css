@@ -87,4 +87,19 @@
   }
 }
 
+
+.tag-taxon-hide-btn {
+    display: inline-block;
+    font-size: 0.9em;
+    cursor: pointer;
+    padding-inline: 5px;
+    border-radius: 4px;
+    background-color: var(--colour-neutral);
+    border: 1.5px solid transparent;
+
+    &:hover {
+        border: 1.5px solid var(--colour-compl-contr);
+    }
+}
+
 /* ### END OF TAG TAXONOMY CSS */

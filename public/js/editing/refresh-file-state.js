@@ -42,7 +42,7 @@ export async function refreshFileAfterSave(snapshot) {
 
         if (tagsHaveChanged) {
             appState.myParentMap = buildParentMap(appState.myFiles);
-            renderTagTaxonomy();
+            if (appState.tagTaxonomyVisible) renderTagTaxonomy();
         }
 
         renderFiles();

@@ -6,17 +6,21 @@ import { appState } from '../services/store.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
 /**
- * Renders the tag taxonomy as a series of `<details>` elements.
+ * Renders the tag taxonomy, including its bordered wrapper, into `#tag-taxonomy-container`.
  * Each parent tag is a `<summary>`, and the child tags are rendered within the `<details>` block.
  * This function iterates through `appState.myParentMap` (a Map<parentName, Map<childName, count>>),
- * creates an HTML string for the taxonomy, and then sets the innerHTML of the 'tag_output' element.
+ * creates an HTML string for the taxonomy, and then sets the innerHTML of the container element.
  */
 export function renderTagTaxonomy() {
+
+    appState.tagTaxonomyVisible = true;
 
     // Global counts (total files per tag across all parents) — used for display in every section
     const globalCounts = appState.myParentMap.get('all') ?? new Map();
 
-    let taxon_html = "";
+    let taxon_html = `<div class="border-top-straight border-bottom-straight margin-bottom padding-top">
+        <div id="tag_output">
+            <div class="tag-taxon-hide-btn" data-action="hide-tag-taxonomy"># hide</div>`;
 
     for (const [parentName, childMap] of appState.myParentMap) {
 
@@ -32,7 +36,9 @@ export function renderTagTaxonomy() {
 
     taxon_html += `<details class="details_divider">
         <summary>selected categories</summary>
-        </details>`
+        </details>
+        </div>
+    </div>`;
 
-    document.getElementById('tag_output').innerHTML = taxon_html;
+    document.getElementById('tag-taxonomy-container').innerHTML = taxon_html;
 }
