@@ -1,7 +1,7 @@
 import { appState } from '../../services/store.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { applyDiffHighlights, clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
-import { getEditorElement, hasUnsavedChanges } from '../../editing/manage-unsaved-changes.js';
+import { hasUnsavedChanges } from '../../editing/manage-unsaved-changes.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
 
 /**
@@ -29,35 +29,64 @@ export function fileContentRender() {
     const renderToggle = document.getElementById('render_toggle');
     renderToggle.checked = appState.editState;
     const isTxtMode = appState.editState;
+    const isCurrent = getIsCurrentVersion();
 
-    if (isTxtMode) {
-        textbox.innerHTML = '';
-        const preElement = document.createElement('pre');
-        preElement.classList.add('pre-text-enlarge');
-        preElement.classList.add('text-editor');
-        // Only allow editing if we are on the current (live) version
-        preElement.contentEditable = getIsCurrentVersion() ? 'plaintext-only' : 'false';
-        preElement.innerHTML = appState.editSession.activeRaw
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\r\n|\r|\n/g, '<br>');
-        if (getIsCurrentVersion()) {
+    // Keep the live editor element in the DOM across view switches so the browser's
+    // native undo history is preserved. Only hide/show it rather than destroy/rebuild.
+    const liveEditor = textbox.querySelector('.text-editor');
+
+    // Remove all non-live-editor children (elements and text nodes)
+    Array.from(textbox.childNodes)
+        .filter(node => node.nodeType !== 1 || !node.classList.contains('text-editor'))
+        .forEach(node => node.remove());
+
+    if (isTxtMode && isCurrent) {
+        if (liveEditor) {
+            liveEditor.style.display = '';
+        } else {
+            const preElement = document.createElement('pre');
+            preElement.classList.add('pre-text-enlarge');
+            preElement.classList.add('text-editor');
+            preElement.contentEditable = 'plaintext-only';
+            preElement.innerHTML = appState.editSession.activeRaw
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\r\n|\r|\n/g, '<br>');
             preElement.dataset.action = 'file-content-edit';
+            textbox.appendChild(preElement);
         }
-        textbox.appendChild(preElement);
     } else {
-        textbox.innerHTML = appState.editSession.activeHtml;
+        if (liveEditor) liveEditor.style.display = 'none';
+
+        if (isTxtMode) {
+            // Historical txt view — read-only pre, no .text-editor class
+            const preElement = document.createElement('pre');
+            preElement.classList.add('pre-text-enlarge');
+            preElement.contentEditable = 'false';
+            preElement.innerHTML = appState.editSession.activeRaw
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\r\n|\r|\n/g, '<br>');
+            textbox.appendChild(preElement);
+        } else {
+            // HTML view — move rendered nodes in without wiping the hidden live editor
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = appState.editSession.activeHtml;
+            while (tempDiv.firstChild) {
+                textbox.appendChild(tempDiv.firstChild);
+            }
+        }
     }
 
     // apply search highlights if any
     highlightPropMatches();
 
     // apply diff highlights if a prior version
-    if (getIsCurrentVersion()) {
+    if (isCurrent) {
         clearDiffHighlights();
     } else {
-        // Compare the historical "active" content against the "live" current version
         applyDiffHighlights(appState.editSession.activeRaw, appState.editSession.liveRaw);
     }
 
