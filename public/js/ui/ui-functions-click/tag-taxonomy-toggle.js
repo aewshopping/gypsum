@@ -7,6 +7,10 @@ import { appState } from '../../services/store.js';
  */
 export function handleShowTagTaxonomy() {
     renderTagTaxonomy();
+    const searchbox = document.getElementById('searchbox');
+    searchbox.value = 'tags:';
+    searchbox.focus();
+    searchbox.setSelectionRange(5, 5);
 }
 
 /**
