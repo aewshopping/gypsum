@@ -1,0 +1,35 @@
+.editor-btns {
+    background-color: rgba(var(--colour-neutral), 0.5);  
+    backdrop-filter: blur(3px);
+    border-top-right-radius: 16px;
+    pointer-events: auto; /* because I am rendering inert the element it is inside to allow user to click on the horizontal scrollbar if needed */
+	padding:6px 10px 10px 10px;
+    width:fit-content;
+    border: 2px solid transparent;
+	margin-left:-2px;
+	font: 1.1em monospace;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+body:not(:has(#render_toggle:checked)) .editor-btns {
+    display:none;
+}
+
+.editor-btns button {
+    cursor: pointer;
+    padding: 0px 4px;
+    background-color: var(--colour-neutral);
+    border: 1.5px solid transparent;
+    color: var(--colour-contr);
+    border-radius: 6px;
+    font:1.1em monospace;
+
+    &:hover {
+        border: 1.5px solid var(--colour-contr);
+        box-shadow: var(--hover-box-shadow);
+    }
+}

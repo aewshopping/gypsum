@@ -87,8 +87,7 @@
   }
 
   &:not(:has(details.taxon[open])) .details_divider {
-    border:2px solid red;
-    display: none;
+    display: none; /* so that if other details elements are closed don't show the divider */
   }
 }
 

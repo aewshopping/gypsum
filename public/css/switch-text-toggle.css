@@ -2,7 +2,8 @@
 .label_group_text_toggle {
 	pointer-events: auto; /* because I am rendering inert the element it is inside to allow user to click on the horizontal scrollbar if needed */
 	padding:8px 10px 10px 10px;
-	background-color: var(--colour-neutral);
+	background-color: rgba(var(--colour-neutral),0.5);
+	backdrop-filter: blur(3px);
 	width:fit-content;
 	border-top-left-radius: 16px;
 	color: var(--colour-contr);

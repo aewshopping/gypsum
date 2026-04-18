@@ -100,21 +100,6 @@ html {
   margin-top: var(--modal-header-height); /* leave room for footer */
 }
 
-#file-content-footer button {
-  font-family: monospace;
-  font-size: 1.1em;
-  background: var(--colour-neutral);
-  border: none;
-  padding: 8px 10px;
-  cursor: pointer;
-  border-top-left-radius: 16px;
-  color: var(--colour-contr);
-}
-
-#file-content-footer button:hover {
-  background: var(--colour-contr-low);
-}
-
 #modal-content-text {
   margin-bottom: 200px; /* to allow scrolling below last bit of text for easier reading */
 
