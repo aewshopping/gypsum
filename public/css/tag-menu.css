@@ -85,20 +85,36 @@
       padding: 0;
     }
   }
+
+  &:not(:has(details.taxon[open])) .details_divider {
+    border:2px solid red;
+    display: none;
+  }
+}
+
+#tag-taxonomy-container {
+  position:relative;
 }
 
 
 .tag-taxon-hide-btn {
-    display: inline-block;
-    font-size: 0.9em;
+    position:absolute;
+    top:0px;
+    left:50%;
+    transform: translateX(-50%);
+    font-family: monospace;
     cursor: pointer;
     padding-inline: 5px;
-    border-radius: 4px;
-    background-color: var(--colour-neutral);
+    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+
+    background-color: var(--colour-neutral-alt);
     border: 1.5px solid transparent;
 
     &:hover {
         border: 1.5px solid var(--colour-compl-contr);
+        border-top: 1.5px solid transparent;
+        box-shadow: var(--hover-box-shadow);
     }
 }
 
