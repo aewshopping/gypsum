@@ -22,6 +22,8 @@ import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handleInsertDateShortcut } from './ui-functions-click/insert-date-shortcut.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
+import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
+import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
 
 /**
@@ -34,6 +36,11 @@ export function addActionHandlers() {
     document.addEventListener("keydown", keyDownDelegate);
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
+    document.addEventListener("mousedown", (evt) => {
+        if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
+            evt.preventDefault();
+        }
+    });
 }
 
 // Map 'data-action' names from html to their handler functions.
@@ -56,6 +63,8 @@ const clickActionHandlers = {
     'open-settings-modal': handleOpenSettings,
     'close-settings-modal': handleCloseSettings,
     'close-settings-outside': handleCloseSettingsOutside,
+    'editor-undo': handleEditorUndo,
+    'editor-redo': handleEditorRedo,
     'show-tag-taxonomy': handleShowTagTaxonomy,
     'hide-tag-taxonomy': handleHideTagTaxonomy,
 };

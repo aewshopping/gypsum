@@ -11,6 +11,11 @@
     pointer-events:none; /* to allow click through to horizontal scroll bar if needed */
 }
 
+#file-content-footer button,
+#file-content-footer .label_group_text_toggle {
+    pointer-events: auto;
+}
+
 #file-content-header {
     display: flex;
     flex-direction: row;
