@@ -35,6 +35,11 @@ export function addActionHandlers() {
     document.addEventListener("keydown", keyDownDelegate);
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
+    document.addEventListener("mousedown", (evt) => {
+        if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
+            evt.preventDefault();
+        }
+    });
 }
 
 // Map 'data-action' names from html to their handler functions.
