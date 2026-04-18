@@ -19,6 +19,7 @@ import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-active.js';
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
+import { handleInsertDateShortcut } from './ui-functions-click/insert-date-shortcut.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
 
@@ -123,6 +124,10 @@ function keyDownDelegate(evt) {
             evt.preventDefault();
             handleSaveFileCopy();
         }
+    }
+    if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {
+        evt.preventDefault();
+        handleInsertDateShortcut();
     }
 }
 
