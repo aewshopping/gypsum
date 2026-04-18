@@ -15,5 +15,5 @@ export function handleShowTagTaxonomy() {
  */
 export function handleHideTagTaxonomy() {
     appState.tagTaxonomyVisible = false;
-    document.getElementById('tag_output').innerHTML = '';
+    document.getElementById('tag-taxonomy-container').innerHTML = '';
 }

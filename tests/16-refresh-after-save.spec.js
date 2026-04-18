@@ -384,6 +384,7 @@ test.describe('tag taxonomy re-renders after manual save', () => {
   test('tag taxonomy is unchanged when only body text is edited (no tag change)', async ({ page }) => {
     await setupWithContent(page, '# My Notes\nContent #stabletag');
     await page.goto('/');
+    await page.click('[data-action="show-tag-taxonomy"]');
     await openModal(page);
     await switchToTxt(page);
 
