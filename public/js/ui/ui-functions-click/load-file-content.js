@@ -4,7 +4,6 @@ import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { setIsCurrentVersion } from '../../editing/editable-state.js';
 import { fileContentRender } from '../ui-functions-render/render-file-content.js';
-import { resetUndoStacks } from '../../editing/undo/undo-state.js';
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -16,10 +15,10 @@ export async function loadContentModal(fileToOpen) {
     const fileChosen = await fileHandle.getFile();
 
     const raw = await fileChosen.text();
-    // Normalise line endings on load: the DOM collapses every CRLF to a single
-    // <br>, so liveRaw must use the same \n-only convention or character
-    // offsets between the DOM and the buffer drift by the count of preceding
-    // \r\n sequences.
+    // Normalise CRLF/CR to \n on load so the dirty-flag comparison holds:
+    // the DOM collapses every line break to a single \n via innerText, while
+    // a raw CRLF file would keep \r\n in liveRaw and openNormalized,
+    // defeating the trimEnd() equality check.
     const normalized = raw.replace(/\r\n|\r/g, '\n');
     const session = appState.editSession;
 
@@ -29,7 +28,6 @@ export async function loadContentModal(fileToOpen) {
     session.openNormalized = normalized.trimEnd();
     session.openTextLen = session.openNormalized.replace(/\n/g, '').length; // \n → <br> in DOM, invisible to textContent
     session.isDirty = false;
-    resetUndoStacks();
 
     const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
     appState.openFileSnapshot = {
