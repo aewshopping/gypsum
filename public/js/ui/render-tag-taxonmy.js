@@ -13,10 +13,12 @@ import { renderTags } from './ui-functions-render/render-tags.js';
  */
 export function renderTagTaxonomy() {
 
+    appState.tagTaxonomyVisible = true;
+
     // Global counts (total files per tag across all parents) — used for display in every section
     const globalCounts = appState.myParentMap.get('all') ?? new Map();
 
-    let taxon_html = "";
+    let taxon_html = `<div class="searchbox-tag-btn" data-action="hide-tag-taxonomy"># hide</div>`;
 
     for (const [parentName, childMap] of appState.myParentMap) {
 
