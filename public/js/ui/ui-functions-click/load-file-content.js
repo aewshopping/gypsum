@@ -40,6 +40,7 @@ export async function loadContentModal(fileToOpen) {
     session.liveHtml = session.activeHtml;
 
     setIsCurrentVersion(true);
+    document.getElementById('modal-content-text').innerHTML = '';
     fileContentRender();
 
     await saveBackupEntry(appState.openFileSnapshot, 'open');
