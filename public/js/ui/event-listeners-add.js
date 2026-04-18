@@ -22,6 +22,8 @@ import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handleInsertDateShortcut } from './ui-functions-click/insert-date-shortcut.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
+import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
+import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -55,6 +57,8 @@ const clickActionHandlers = {
     'open-settings-modal': handleOpenSettings,
     'close-settings-modal': handleCloseSettings,
     'close-settings-outside': handleCloseSettingsOutside,
+    'editor-undo': handleEditorUndo,
+    'editor-redo': handleEditorRedo,
 };
 
 const changeActionHandlers = {
