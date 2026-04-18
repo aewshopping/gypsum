@@ -58,6 +58,8 @@ export const appState = {
   openFileSnapshot: null,    // { filepath, filename, content } captured when modal opens
   closeSnapshot: null,   // { filepath, filename, content } captured just before modal closes
   historyEntries: [],    // backup entries for the currently-open file, newest-first
+
+  tagTaxonomyVisible: false,  // true when the tag taxonomy is currently rendered in the DOM
 }
 
 /**

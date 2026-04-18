@@ -24,6 +24,7 @@ import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
+import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -64,6 +65,8 @@ const clickActionHandlers = {
     'close-settings-outside': handleCloseSettingsOutside,
     'editor-undo': handleEditorUndo,
     'editor-redo': handleEditorRedo,
+    'show-tag-taxonomy': handleShowTagTaxonomy,
+    'hide-tag-taxonomy': handleHideTagTaxonomy,
 };
 
 const changeActionHandlers = {

@@ -65,6 +65,7 @@ function unhighlightTaxonomyTags(filterId) {
     if (property !="tags" ) { return; } // only matters for tags - other properties not in tag taxon
 
     const container = document.querySelector('#tag_output');
+    if (!container) { return; }
     const elements = container.querySelectorAll(`[data-tag="${searchValue}"]`);
 
     elements.forEach(el => el.dataset.active=false);

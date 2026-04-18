@@ -14,7 +14,7 @@ export function handleClearFilters() {
     appState.search.results.clear();
     searchBox.value = "";
 
-    renderTagTaxonomy();
+    if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     processSeachResults();
 
 }

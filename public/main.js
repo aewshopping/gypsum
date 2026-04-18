@@ -65,7 +65,7 @@ async function loadData() {
 
     await loadFileHandles();
 
-    renderTagTaxonomy();
+    if (appState.tagTaxonomyVisible) renderTagTaxonomy();
 
     const sortProp = appState.sortState.property
     const sortType = FILE_PROPERTIES.get(sortProp).type;
@@ -84,7 +84,7 @@ async function loadDirectoryData() {
 
     await loadDirectoryFileHandles();
 
-    renderTagTaxonomy();
+    if (appState.tagTaxonomyVisible) renderTagTaxonomy();
 
     const sortProp = appState.sortState.property
     const sortType = FILE_PROPERTIES.get(sortProp).type;
