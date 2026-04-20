@@ -7,7 +7,9 @@ const FORBIDDEN_IN_FILENAME = /[\/\\\x00-\x1f]/;
 
 /**
  * Normalises a folder path: trims, strips leading/trailing slashes, splits on '/',
- * drops empty segments. Returns the cleaned path or null if any segment is '.' or '..'.
+ * drops empty segments. Returns the cleaned path or null if any segment is '.',
+ * '..', or starts with '.' (hidden folders, which `directory-handler.js` skips
+ * on load — renaming into one would silently lose the file).
  * @param {string} raw
  * @returns {string|null}
  */
@@ -17,6 +19,7 @@ function normaliseFolder(raw) {
     const segments = trimmed.split('/').filter(s => s !== '');
     for (const seg of segments) {
         if (seg === '.' || seg === '..') return null;
+        if (seg.startsWith('.')) return null;
     }
     return segments.join('/');
 }
@@ -34,6 +37,9 @@ function normaliseFolder(raw) {
 export function validateRenameInputs({ currentFile, newFolder, newName, myFiles }) {
     const name = (newName ?? '').trim();
     if (name === '') return { ok: false, reason: 'Filename cannot be empty.' };
+    if (name.startsWith('.')) {
+        return { ok: false, reason: 'Filename cannot start with a dot.' };
+    }
     if (FORBIDDEN_IN_FILENAME.test(name)) {
         return { ok: false, reason: 'Filename cannot contain slashes or control characters.' };
     }
@@ -44,7 +50,7 @@ export function validateRenameInputs({ currentFile, newFolder, newName, myFiles 
 
     const folder = normaliseFolder(newFolder);
     if (folder === null) {
-        return { ok: false, reason: "Folder path cannot contain '.' or '..' segments." };
+        return { ok: false, reason: 'Folder names cannot start with a dot or be "." / ".."' };
     }
 
     const newFilepath = folder ? `${folder}/${name}` : name;

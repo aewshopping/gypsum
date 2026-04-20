@@ -1,55 +1,76 @@
 import { appState } from '../services/store.js';
 import { BACKUP_FILENAME, SAVE_FOLDER } from '../constants.js';
-import { buildSaveFilename } from '../services/file-save.js';
+import { buildSaveFilename, writeAndVerifyHandle } from '../services/file-save.js';
 
 /**
  * Rewrites `.gypsum/history.gypsum` entries for the renamed file so past
- * snapshots continue to surface under the new name/path. No-op if the backup
- * file or folder does not exist yet.
+ * snapshots continue to surface under the new name/path. Returns a list of
+ * warning strings (empty on clean success or when there was nothing to do).
+ * Missing history file/folder is benign; corrupt JSON or a failed write
+ * produces a warning rather than a throw so the rename itself still completes.
  *
  * @param {object} params
  * @param {string} params.oldFilename
  * @param {string} params.oldFilepath
  * @param {string} params.newFilename
  * @param {string} params.newFilepath
- * @returns {Promise<void>}
+ * @returns {Promise<string[]>}
  */
 async function rewriteHistoryFile({ oldFilename, oldFilepath, newFilename, newFilepath }) {
+    let fileHandle;
+    let text;
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER);
-        const fileHandle = await gypsumDir.getFileHandle(BACKUP_FILENAME);
-        const text = await (await fileHandle.getFile()).text();
-        if (!text.trim()) return;
-
-        const parsed = JSON.parse(text);
-        let changed = false;
-
-        const retag = entry => {
-            if (entry.filename === oldFilename && entry.filepath === oldFilepath) {
-                entry.filename = newFilename;
-                entry.filepath = newFilepath;
-                changed = true;
-            }
-        };
-
-        if (Array.isArray(parsed)) {
-            parsed.forEach(retag);
-            if (changed) {
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify(parsed, null, 2));
-                await writable.close();
-            }
-        } else if (parsed && Array.isArray(parsed.snapshots)) {
-            parsed.snapshots.forEach(retag);
-            if (changed) {
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify(parsed, null, 2));
-                await writable.close();
-            }
-        }
-    } catch {
-        // No backup file, inaccessible folder, or corrupt JSON — nothing to migrate.
+        fileHandle = await gypsumDir.getFileHandle(BACKUP_FILENAME);
+        text = await (await fileHandle.getFile()).text();
+    } catch (err) {
+        if (err?.name === 'NotFoundError') return [];
+        console.error('History migration: could not read history.gypsum', { oldFilename, newFilename, err });
+        return ['Could not read history file; past snapshots may still reference the old name.'];
     }
+
+    if (!text.trim()) return [];
+
+    let parsed;
+    try {
+        parsed = JSON.parse(text);
+    } catch (err) {
+        console.error('History migration: history.gypsum is corrupt', { oldFilename, newFilename, err });
+        return ['History file is corrupt; past snapshots may still reference the old name.'];
+    }
+
+    let changed = false;
+    const retag = entry => {
+        if (entry.filename === oldFilename && entry.filepath === oldFilepath) {
+            entry.filename = newFilename;
+            entry.filepath = newFilepath;
+            changed = true;
+        }
+    };
+
+    let toWrite;
+    if (Array.isArray(parsed)) {
+        parsed.forEach(retag);
+        if (changed) toWrite = JSON.stringify(parsed, null, 2);
+    } else if (parsed && Array.isArray(parsed.snapshots)) {
+        parsed.snapshots.forEach(retag);
+        if (changed) toWrite = JSON.stringify(parsed, null, 2);
+    }
+
+    if (toWrite === undefined) return [];
+
+    try {
+        const ok = await writeAndVerifyHandle(fileHandle, toWrite);
+        if (!ok) {
+            console.error('History migration: write verification failed', { oldFilename, newFilename });
+            return ['History file write could not be verified; past snapshots may be stale.'];
+        }
+    } catch (err) {
+        console.error('History migration: write threw', { oldFilename, newFilename, err });
+        return ['History file could not be updated; past snapshots may still reference the old name.'];
+    }
+
+    return [];
 }
 
 /**
@@ -76,18 +97,23 @@ async function moveTransientIfExists(gypsumDir, oldSaveName, newSaveName) {
  *   - <filename>-save.gypsum / <filename>-temp.gypsum: renamed to the new pattern.
  *
  * Safe to call even when there is no backup folder or no matching entries.
+ * Returns an array of warning strings (empty on clean success) so the caller
+ * can surface them to the user without aborting the rename itself.
  *
  * @param {object} params
  * @param {string} params.oldFilename
  * @param {string} params.oldFilepath
  * @param {string} params.newFilename
  * @param {string} params.newFilepath
- * @returns {Promise<void>}
+ * @returns {Promise<string[]>}
  */
 export async function migrateBackupsForRename({ oldFilename, oldFilepath, newFilename, newFilepath }) {
-    if (!appState.dirHandle) return;
+    if (!appState.dirHandle) return [];
 
-    await rewriteHistoryFile({ oldFilename, oldFilepath, newFilename, newFilepath });
+    const warnings = [];
+
+    const historyWarnings = await rewriteHistoryFile({ oldFilename, oldFilepath, newFilename, newFilepath });
+    warnings.push(...historyWarnings);
 
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER);
@@ -97,7 +123,12 @@ export async function migrateBackupsForRename({ oldFilename, oldFilepath, newFil
         const newTemp = newSave.replace(/-save\.gypsum$/, '-temp.gypsum');
         await moveTransientIfExists(gypsumDir, oldSave, newSave);
         await moveTransientIfExists(gypsumDir, oldTemp, newTemp);
-    } catch {
-        // .gypsum folder not present — nothing to migrate.
+    } catch (err) {
+        if (err?.name !== 'NotFoundError') {
+            console.error('Transient migration: could not access .gypsum folder', { oldFilename, newFilename, err });
+            warnings.push('Could not access the .gypsum folder; any pending save/temp files were not migrated.');
+        }
     }
+
+    return warnings;
 }
