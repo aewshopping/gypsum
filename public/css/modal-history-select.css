@@ -71,7 +71,6 @@
 }
 
 #file-content-history-select:hover, body:has(#rename-file-btn:hover) #file-content-history-select {
-        background-color: var(--colour-neutral-alt);
         box-shadow: var(--hover-box-shadow);
         border: 1.5px solid var(--colour-compl-contr);
 }
@@ -88,7 +87,7 @@
 /* a visual alert if you are looking at old file content (ie 2nd or later box checked) */
 #file-content-history-select:not(:has(option:first-of-type:checked)) {
     background-color: var(--colour-compl-alt-emph);
-    color: DarkSlateGray;
+    color: var(--colour-contr);
     transition: 0.2s background-color, 0.2s color;
 }
 
