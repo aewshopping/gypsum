@@ -29,6 +29,7 @@ test.describe('undo/redo footer buttons', () => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
+    await switchToTxt(page);
 
     await expect(page.locator('[data-action="editor-undo"]')).toBeVisible();
     await expect(page.locator('[data-action="editor-redo"]')).toBeVisible();
