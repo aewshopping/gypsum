@@ -45,7 +45,7 @@ export function handleOpenFileContent(event, target) {
   target.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
-  document.startViewTransition(function () {
+  document.startViewTransition(async function () {
 
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
@@ -56,7 +56,7 @@ export function handleOpenFileContent(event, target) {
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;
     resetAutosave();
-    loadContentModal(file_to_open);
+    await loadContentModal(file_to_open);
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
   });
 }
@@ -117,6 +117,7 @@ function doClose() {
 
   transition.finished.then(async () => {
     dialog.close();
+    document.getElementById('modal-content-text').innerHTML = '';
 
     if (file_box) file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
