@@ -14,7 +14,7 @@ const movingbox = document.getElementById("moving-file-content-container"); // m
 const scrollingContent = document.getElementById("modal-content");
 const warningDialog = document.getElementById('modal-unsaved-warning');
 
-let file_box; // so we can access the target on close modal too
+let openedFilename; // look up the live DOM element by filename on close, since a save can re-render and replace the original node
 
 dialog.addEventListener('cancel', (evt) => {
     evt.preventDefault(); // prevent native close, which bypasses our view transition
@@ -34,8 +34,8 @@ window.addEventListener('beforeunload', (evt) => {
 export function handleOpenFileContent(event, target) {
 
   const file_to_open = target.dataset.filename;
-  file_box = target;
-  file_box.classList.add("moving-file-content-view"); // animate *from* this element
+  openedFilename = file_to_open;
+  target.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
   document.startViewTransition(function () {
@@ -43,7 +43,7 @@ export function handleOpenFileContent(event, target) {
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
-    file_box.classList.remove("moving-file-content-view");
+    target.classList.remove("moving-file-content-view");
 
     initHistorySelect(file_to_open);
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
@@ -90,11 +90,18 @@ function doClose() {
 
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view
 
+  // Re-query the target now: if the file list was re-rendered since open
+  // (e.g. after save), the node captured on open is detached and would not
+  // participate in the view transition.
+  const file_box = openedFilename
+    ? document.querySelector(`[data-action="open-file-content-modal"][data-filename="${CSS.escape(openedFilename)}"]`)
+    : null;
+
   const transition = document.startViewTransition(function () {
 
     dialog.classList.remove("dialog-view"); // backdrop fade out
     movingbox.classList.remove("moving-file-content-view");
-    file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
+    if (file_box) file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
     movingbox.classList.add("opacity-0"); // hide modal otherwise it stays onscreen during animation
 
   });
@@ -102,7 +109,7 @@ function doClose() {
   transition.finished.then(async () => {
     dialog.close();
 
-    file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
+    if (file_box) file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
 
