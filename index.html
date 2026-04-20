@@ -177,6 +177,26 @@
     </div>
   </dialog>
 
+  <dialog id="modal-rename-file">
+    <form method="dialog" class="rename-form">
+      <p class="rename-title">Rename file</p>
+      <label class="rename-field">
+        <span>Folder</span>
+        <input id="rename-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
+      </label>
+      <datalist id="gypsum-folders"></datalist>
+      <label class="rename-field">
+        <span>Filename</span>
+        <input id="rename-name-input" type="text" autocomplete="off">
+      </label>
+      <p id="rename-error-slot" class="rename-error"></p>
+      <div class="rename-buttons">
+        <button type="button" class="rename-button-cancel" data-action="rename-cancel">Cancel</button>
+        <button type="button" class="rename-button-confirm" data-action="rename-confirm">Rename</button>
+      </div>
+    </form>
+  </dialog>
+
 </body>
 <script type="module" src="public/main.js"></script>
 
