@@ -1,6 +1,15 @@
 #save-btn {
     cursor:pointer;
     anchor-name: --save-btn;
+
+    &::after {
+        content: "→";
+        display: inline-block;
+        padding-left: 3px;
+        width: 1.2em;
+        height: 1em;
+        line-height: 1;
+    }
 }
 
 #modal-content.current-version #save-btn:hover {
@@ -11,12 +20,21 @@
     border: 1.5px solid var(--colour-contr);
     color: var(--colour-contr);
     background-color: var(--colour-neutral-alt);
+
+    &::after {
+        content: "✓";
+        display: inline-block;
+        padding-left: 3px;
+        width: 1.2em;
+        height: 1em;
+        line-height: 1;
+    }
 }
 
 .btn-save {
     padding: 2px 4px 2px 4px;
     background-color: var(--colour-contr);
-    border: 1.5px solid var(--colour-neutral-alt);
+    border: 1.5px solid var(--colour-contr);
     color: var(--colour-neutral);
     border-radius: 6px;
     font:1.1em monospace;
@@ -36,6 +54,7 @@
     position-anchor: --save-btn;
     top: anchor(top);
     left: anchor(left);
+    padding-right:14px; /* hack to get it to over ::after part of btn */
     white-space: nowrap;
 
     &:hover {
