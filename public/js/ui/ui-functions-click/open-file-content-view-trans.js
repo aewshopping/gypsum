@@ -21,6 +21,13 @@ dialog.addEventListener('cancel', (evt) => {
     handleCloseModal();
 });
 
+// Track where the press started so a drag-select that ends on the backdrop
+// doesn't trigger the click-outside close handler below.
+let pressedOnDialog = false;
+dialog.addEventListener('pointerdown', (evt) => {
+    pressedOnDialog = evt.target === dialog;
+});
+
 window.addEventListener('beforeunload', (evt) => {
     if (hasUnsavedChanges()) evt.preventDefault();
 });
@@ -65,7 +72,9 @@ export function handleOpenFileContent(event, target) {
  */
 export function handeCloseModalOutside(event, target) {
 
-  if (event.target === dialog) {
+  // Require the press *and* release on the dialog itself; otherwise a text
+  // selection that crosses the modal edge would count as a click-outside.
+  if (event.target === dialog && pressedOnDialog) {
     handleCloseModal();
   }
 }
