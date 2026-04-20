@@ -13,7 +13,7 @@
         border: 1.5px solid var(--colour-compl-contr);
     }
 
-    button {
+    > button {
         display:flex;
         align-items: center;
         width:100%;
@@ -82,4 +82,13 @@
     border: none;
     background-color: var(--colour-compl-alt-emph);
     border-radius: 10px;
+}
+
+#rename-btn {
+    cursor:pointer;
+    font-weight:100;
+    background-color: var(--colour-neutral);
+    border:1.5px solid var(--colour-neutral);
+    border-radius: 6px;
+    margin-inline:10px;
 }

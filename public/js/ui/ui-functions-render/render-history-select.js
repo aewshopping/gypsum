@@ -26,7 +26,7 @@ export function renderHistorySelect(filename, entries) {
     ).join('');
 
     return `<button><span class="opt-filename">${filepath}&nbsp;</span><span class="opt-version"></span></button>` +
-           `<option value="current"><span class="opt-time">current version</span></option>` +
+           `<option value="current" class="flex-row"><span class="opt-time">current version</span><span class="flexgrow"></span><button id="rename-btn" data-action="rename-file">rename</button></option>` +
            historyOptions;
 }
 
