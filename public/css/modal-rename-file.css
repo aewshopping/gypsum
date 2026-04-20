@@ -1,0 +1,86 @@
+#modal-rename-file {
+    margin: auto;
+    padding: 24px 28px;
+    border: 2px solid var(--colour-contr);
+    border-radius: 6px;
+    background-color: var(--colour-neutral-alt);
+    color: var(--colour-contr);
+    min-width: 320px;
+}
+
+#modal-rename-file::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.rename-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+}
+
+.rename-title {
+    margin: 0 0 4px;
+    font-weight: 600;
+}
+
+.rename-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.9em;
+}
+
+.rename-field input {
+    padding: 6px 8px;
+    border: 1px solid var(--colour-contr);
+    border-radius: 4px;
+    background: var(--colour-neutral);
+    color: var(--colour-contr);
+    font: inherit;
+}
+
+.rename-error {
+    margin: 0;
+    min-height: 1em;
+    color: var(--colour-contr-warning);
+    font-size: 0.85em;
+}
+
+.rename-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.rename-buttons button {
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.rename-button-confirm {
+    background: var(--colour-compl);
+    color: var(--colour-contr);
+    border: 2px solid transparent;
+
+    &:hover, &:focus-within {
+        background-color: var(--colour-compl-emph-light);
+        border: 2px solid var(--colour-compl-emph-contr);
+        color: var(--colour-compl-emph-contr);
+        box-shadow: 3px 3px 0px 0px var(--colour-compl-emph-contr);
+    }
+}
+
+.rename-button-cancel {
+    background-color: var(--colour-compl-alt-emph-light);
+    color: var(--colour-compl-emph-contr);
+    border: 2px solid transparent;
+
+    &:hover, &:focus-within {
+        background-color: var(--colour-compl-alt-emph);
+        border: 2px solid var(--colour-contr-warning);
+        color: var(--colour-compl-alt-emph-light);
+        box-shadow: 3px 3px 0px 0px var(--colour-contr-warning);
+    }
+}

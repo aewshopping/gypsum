@@ -16,6 +16,16 @@ const warningDialog = document.getElementById('modal-unsaved-warning');
 
 let openedFilename; // look up the live DOM element by filename on close, since a save can re-render and replace the original node
 
+/**
+ * Updates the tracked "opened filename" used by the close animation to find
+ * the originating card. Call after a rename so the close animation targets
+ * the renamed card rather than the (now-gone) old one.
+ * @param {string} newFilename
+ */
+export function setOpenedFilename(newFilename) {
+    openedFilename = newFilename;
+}
+
 dialog.addEventListener('cancel', (evt) => {
     evt.preventDefault(); // prevent native close, which bypasses our view transition
     handleCloseModal();

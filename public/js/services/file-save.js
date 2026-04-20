@@ -7,7 +7,7 @@
  * @param {string} filepath
  * @returns {string}
  */
-function extractDirFromFilepath(filepath) {
+export function extractDirFromFilepath(filepath) {
     const lastSlash = filepath.lastIndexOf('/');
     const lastSegment = lastSlash === -1 ? filepath : filepath.slice(lastSlash + 1);
     if (lastSegment.includes('.')) {

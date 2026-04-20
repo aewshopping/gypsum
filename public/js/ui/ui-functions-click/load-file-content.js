@@ -43,6 +43,9 @@ export async function loadContentModal(fileToOpen) {
     document.getElementById('modal-content-text').innerHTML = '';
     fileContentRender();
 
+    const filepathandname = appState.myFiles.find(f => f.filename === fileToOpen)?.filepath ?? fileToOpen;
+    document.getElementById('rename-file-btn').innerHTML = filepathandname;
+
     await saveBackupEntry(appState.openFileSnapshot, 'open');
     loadHistorySelect(fileToOpen);
     console.log(fileToOpen);

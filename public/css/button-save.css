@@ -38,6 +38,7 @@
     color: var(--colour-neutral);
     border-radius: 6px;
     font:1.1em monospace;
+    flex-shrink: 0;
 }
 
 #modal-content:not(.current-version) #save-btn {

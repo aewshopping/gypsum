@@ -23,7 +23,9 @@
           <div id="save-popover" class="btn-save" popover="manual"></div>
           <button id="save-btn" class="btn-save" data-action="save-file-copy">save</button>
 
+          <button data-action="rename-file" id="rename-file-btn">filepath/filename</button>          
           <select id="file-content-history-select" data-action="history-select-change"></select>
+
           <label class="checkbox-no-show">
             <input type="checkbox" name="modalmaxscreen" id="modalmaxscreen" data-action="toggle-modal-maxscreen">
           </label>
@@ -176,6 +178,27 @@
       <button class="unsaved-warning-button-keep" data-action="keep-modal-editing">Keep editing</button>
     </div>
   </dialog>
+
+  <dialog id="modal-rename-file">
+    <form method="dialog" class="rename-form">
+      <p class="rename-title">Rename file</p>
+      <label class="rename-field">
+        <span>Folder</span>
+        <input id="rename-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
+      </label>
+      <label class="rename-field">
+        <span>Filename</span>
+        <input id="rename-name-input" type="text" autocomplete="off">
+      </label>
+      <p id="rename-error-slot" class="rename-error"></p>
+      <div class="rename-buttons">
+        <button type="button" class="rename-button-cancel" data-action="rename-cancel">Cancel</button>
+        <button type="button" class="rename-button-confirm" data-action="rename-confirm">Rename</button>
+      </div>
+    </form>
+  </dialog>
+
+  <datalist id="gypsum-folders"></datalist>
 
 </body>
 <script type="module" src="public/main.js"></script>
