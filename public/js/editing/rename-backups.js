@@ -1,6 +1,7 @@
 import { appState } from '../services/store.js';
 import { BACKUP_FILENAME, SAVE_FOLDER } from '../constants.js';
 import { buildSaveFilename, writeAndVerifyHandle } from '../services/file-save.js';
+import { copyFileByStream } from './rename-file.js';
 
 /**
  * Rewrites `.gypsum/history.gypsum` entries for the renamed file so past
@@ -76,18 +77,25 @@ async function rewriteHistoryFile({ oldFilename, oldFilepath, newFilename, newFi
 /**
  * Renames transient `-save.gypsum` / `-temp.gypsum` files (if any) so that
  * in-flight saves or crash-recovery state stays attached to the right file.
- * Silently ignores files that don't exist.
+ * Copy-then-delete rather than `.move()`: the latter is unsupported on Chrome
+ * for Android. Silently ignores files that don't exist.
  * @param {FileSystemDirectoryHandle} gypsumDir
  * @param {string} oldSaveName
  * @param {string} newSaveName
  */
 async function moveTransientIfExists(gypsumDir, oldSaveName, newSaveName) {
     if (oldSaveName === newSaveName) return;
+    let handle;
     try {
-        const handle = await gypsumDir.getFileHandle(oldSaveName, { create: false });
-        await handle.move(gypsumDir, newSaveName);
+        handle = await gypsumDir.getFileHandle(oldSaveName, { create: false });
     } catch {
-        // Not present — nothing to rename.
+        return;
+    }
+    try {
+        await copyFileByStream(handle, gypsumDir, newSaveName);
+        await gypsumDir.removeEntry(oldSaveName);
+    } catch (err) {
+        console.warn(`Transient migration failed for ${oldSaveName}:`, err);
     }
 }
 

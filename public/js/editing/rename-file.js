@@ -1,11 +1,27 @@
 import { appState } from '../services/store.js';
+import { extractDirFromFilepath } from '../services/file-save.js';
 
 /**
  * @file Core rename service. Resolves the target parent directory, performs a
- * filesystem-level collision check, calls FileSystemFileHandle.move, then
- * updates all appState references tied to the old filename/filepath.
- * No DOM access.
+ * filesystem-level collision check, copies the source file to the new
+ * location via a streamed write, verifies, swaps `file.handle`, then deletes
+ * the original. Falls back to leaving both files in place if the delete
+ * fails. No DOM access.
+ *
+ * FileSystemFileHandle.move() is deliberately not used: it is unsupported on
+ * Chrome for Android, which is a target browser. Copy + delete uses only
+ * primitives that are available everywhere.
  */
+
+let renameInProgress = false;
+
+// Slow copies on mobile can take several seconds for larger files. If the
+// user closes the tab mid-rename they would lose both copies: partial new
+// file removed, old file about to be deleted. The busy flag is cleared in a
+// finally block in renameFile() so no error path can trap the user here.
+window.addEventListener('beforeunload', (evt) => {
+    if (renameInProgress) evt.preventDefault();
+});
 
 /**
  * Walks from `appState.dirHandle` down `folderPath` (slash-separated), creating
@@ -50,9 +66,46 @@ async function assertNoCollision(dir, name, selfHandle, folderPath) {
 }
 
 /**
+ * Copies a file's bytes into a new entry `newName` inside `targetDir` by
+ * piping the source File's ReadableStream to a new writable. Streaming keeps
+ * memory flat for large files on mobile. Verifies the copy by comparing
+ * byte sizes, and removes the partial entry if verification fails so no
+ * half-written file is left behind.
+ * @param {FileSystemFileHandle} sourceHandle
+ * @param {FileSystemDirectoryHandle} targetDir
+ * @param {string} newName
+ * @returns {Promise<FileSystemFileHandle>} the new file's handle
+ */
+export async function copyFileByStream(sourceHandle, targetDir, newName) {
+    const sourceFile = await sourceHandle.getFile();
+    const newHandle = await targetDir.getFileHandle(newName, { create: true });
+    const writable = await newHandle.createWritable();
+    try {
+        await sourceFile.stream().pipeTo(writable);
+    } catch (err) {
+        try { await writable.abort(); } catch {}
+        try { await targetDir.removeEntry(newName); } catch {}
+        throw err;
+    }
+
+    const copiedFile = await newHandle.getFile();
+    if (copiedFile.size !== sourceFile.size) {
+        try { await targetDir.removeEntry(newName); } catch {}
+        throw new Error('Copy verification failed: size mismatch.');
+    }
+    return newHandle;
+}
+
+/**
  * Renames (and optionally relocates) a file on disk and updates appState.
  * Preconditions: caller has already validated inputs via validateRenameInputs
  * and confirmed `appState.dirHandle` is set.
+ *
+ * Flow: copy source → new location, verify, then update `file.handle` and
+ * other appState references, then delete the original. If the copy or
+ * verification fails, the old file is preserved untouched and `file.handle`
+ * is not swapped. If the delete fails after a successful copy, both files
+ * exist on disk (recoverable) and the app is bound to the verified new one.
  *
  * @param {object} params
  * @param {object} params.file - The file object from appState.myFiles.
@@ -64,29 +117,52 @@ export async function renameFile({ file, newFolder, newName }) {
     const oldFilename = file.filename;
     const oldFilepath = file.filepath;
     const newFilepath = newFolder ? `${newFolder}/${newName}` : newName;
+    const oldFolder = extractDirFromFilepath(oldFilepath);
 
     const targetDir = await resolveTargetDir(newFolder);
     await assertNoCollision(targetDir, newName, file.handle, newFolder);
 
-    // .move() overwrites any entry at the target silently — assertNoCollision is the only guard.
-    await file.handle.move(targetDir, newName);
+    renameInProgress = true;
+    try {
+        const newHandle = await copyFileByStream(file.handle, targetDir, newName);
 
-    file.filename = newName;
-    file.filepath = newFilepath;
-    file.id = newFilepath;
+        // Swap only after the new file is verified; until this point a failure
+        // leaves the old file intact and file.handle still pointing to it.
+        file.handle = newHandle;
+        file.filename = newName;
+        file.filepath = newFilepath;
+        file.id = newFilepath;
+        // file.lastModified is intentionally left at its original value. The
+        // on-disk mtime of the new copy is unavoidably "now" (the File System
+        // Access API exposes no way to preserve it), but keeping the session
+        // view pinned to the original mtime avoids a surprising sort reshuffle.
 
-    if (appState.myFileHandlesMap) {
-        appState.myFileHandlesMap.delete(oldFilepath);
-        appState.myFileHandlesMap.set(newFilepath, file.handle);
-    }
+        if (appState.myFileHandlesMap) {
+            appState.myFileHandlesMap.delete(oldFilepath);
+            appState.myFileHandlesMap.set(newFilepath, newHandle);
+        }
 
-    if (appState.openFileSnapshot?.filepath === oldFilepath) {
-        appState.openFileSnapshot.filename = newName;
-        appState.openFileSnapshot.filepath = newFilepath;
-    }
-    if (appState.closeSnapshot?.filepath === oldFilepath) {
-        appState.closeSnapshot.filename = newName;
-        appState.closeSnapshot.filepath = newFilepath;
+        if (appState.openFileSnapshot?.filepath === oldFilepath) {
+            appState.openFileSnapshot.filename = newName;
+            appState.openFileSnapshot.filepath = newFilepath;
+        }
+        if (appState.closeSnapshot?.filepath === oldFilepath) {
+            appState.closeSnapshot.filename = newName;
+            appState.closeSnapshot.filepath = newFilepath;
+        }
+
+        try {
+            const oldParentDir = await resolveTargetDir(oldFolder);
+            await oldParentDir.removeEntry(oldFilename);
+        } catch (err) {
+            console.warn(
+                `Rename copy succeeded, but removing old file "${oldFilepath}" failed. ` +
+                'Both the old and new files now exist on disk.',
+                err,
+            );
+        }
+    } finally {
+        renameInProgress = false;
     }
 
     return { oldFilename, oldFilepath, newFilename: newName, newFilepath };
