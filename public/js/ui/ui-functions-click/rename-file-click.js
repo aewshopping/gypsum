@@ -144,7 +144,7 @@ export async function handleRenameConfirm(evt) {
             newFolder: result.normalizedFolder,
             newName: result.normalizedName,
         });
-        await migrateBackupsForRename(outcome);
+        const warnings = await migrateBackupsForRename(outcome);
 
         setOpenedFilename(outcome.newFilename);
 
@@ -157,6 +157,10 @@ export async function handleRenameConfirm(evt) {
         }
 
         renderFiles(true, true);
+
+        if (warnings.length) {
+            alert(`File renamed, but:\n\n- ${warnings.join('\n- ')}`);
+        }
 
         if (dialog) dialog.close();
     } catch (err) {

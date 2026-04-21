@@ -25,21 +25,26 @@ async function resolveTargetDir(folderPath) {
 
 /**
  * Checks whether an entry with `name` already exists in `dir`. If it does and
- * it is not the same entry as `selfHandle`, throws.
+ * it is not the same entry as `selfHandle`, surfaces a blocking alert (because
+ * the file appeared behind the app's back — validation already rejects clashes
+ * with loaded files) and cancels the rename. No "proceed anyway" option: a
+ * user never knowingly wants to overwrite a file they didn't know existed.
  * @param {FileSystemDirectoryHandle} dir
  * @param {string} name
  * @param {FileSystemFileHandle} selfHandle
+ * @param {string} folderPath - Normalised folder path, used only for the alert message.
  */
-async function assertNoCollision(dir, name, selfHandle) {
+async function assertNoCollision(dir, name, selfHandle, folderPath) {
     try {
         const existing = await dir.getFileHandle(name, { create: false });
         const same = await existing.isSameEntry(selfHandle);
         if (!same) {
-            throw new Error('A file with that name already exists here.');
+            const location = folderPath ? `"${folderPath}"` : 'this folder';
+            alert(`A file named "${name}" has just appeared in ${location}. Rename cancelled to prevent overwriting it.`);
+            throw new Error('Rename cancelled: unknown file at target.');
         }
     } catch (err) {
         if (err?.name === 'NotFoundError') return;
-        if (err instanceof Error && err.message.startsWith('A file')) throw err;
         throw err;
     }
 }
@@ -61,8 +66,9 @@ export async function renameFile({ file, newFolder, newName }) {
     const newFilepath = newFolder ? `${newFolder}/${newName}` : newName;
 
     const targetDir = await resolveTargetDir(newFolder);
-    await assertNoCollision(targetDir, newName, file.handle);
+    await assertNoCollision(targetDir, newName, file.handle, newFolder);
 
+    // .move() overwrites any entry at the target silently — assertNoCollision is the only guard.
     await file.handle.move(targetDir, newName);
 
     file.filename = newName;
