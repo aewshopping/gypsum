@@ -148,6 +148,9 @@ export async function handleRenameConfirm(evt) {
 
         setOpenedFilename(outcome.newFilename);
 
+        const renameBtn = document.getElementById('rename-file-btn');
+        if (renameBtn) renameBtn.innerHTML = outcome.newFilepath;
+
         const historySelect = document.getElementById('file-content-history-select');
         if (historySelect) {
             historySelect.innerHTML = renderHistorySelect(outcome.newFilename, appState.historyEntries ?? []);
