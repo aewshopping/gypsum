@@ -36,16 +36,22 @@ export async function loadFileHandles() {
 
     const startTime = performance.now();
 
-    // Map file handles to promises from the function above
-    const filePromises = fileHandles.map((handle, index) => getFileDataAndMetadata(handle, index));
+    // Map file handles to promises from the function above.
+    // Single-file picker has no folder context, so filepath collapses to filename.
+    const filePromises = fileHandles.map((handle, index) =>
+        getFileDataAndMetadata(handle, index).then(fileObj => ({
+            ...fileObj,
+            filepath: fileObj.filename,
+            id: fileObj.filename,
+        }))
+    );
 
     // Await all promises to resolve concurrently (quicker than loading one by one)
     const filesWithMetadata = await Promise.all(filePromises);
 
     const fileHandleMap = filesWithMetadata.reduce((map, fileObject) => {
-        // fileObject.filename is the key
-        // fileObject.handle is the value
-        map.set(fileObject.filename, fileObject.handle); 
+        // fileObject.id (= filepath) is the key, fileObject.handle is the value
+        map.set(fileObject.id, fileObject.handle);
         return map;
     }, new Map());
 

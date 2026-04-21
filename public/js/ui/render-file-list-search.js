@@ -26,7 +26,7 @@ export function renderFileList_search(renderEverything) {
             }
 
             file_html += `
-                <div class="search-view-item color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
+                <div class="search-view-item color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal">
 
                     <div class="search-view-fileinfo">
                         <div class="note-search" data-color="${file.color}">

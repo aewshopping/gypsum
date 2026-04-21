@@ -46,13 +46,13 @@ export async function loadDirectoryFileHandles() {
     const fileEntries = await getFilesRecursive(dirHandle);
 
     const filePromises = fileEntries.map(({ handle, filepath }, index) =>
-        getFileDataAndMetadata(handle, index).then(fileObj => ({ ...fileObj, filepath }))
+        getFileDataAndMetadata(handle, index).then(fileObj => ({ ...fileObj, filepath, id: filepath }))
     );
 
     const filesWithMetadata = await Promise.all(filePromises);
 
     const fileHandleMap = filesWithMetadata.reduce((map, fileObject) => {
-        map.set(fileObject.filename, fileObject.handle);
+        map.set(fileObject.id, fileObject.handle);
         return map;
     }, new Map());
 

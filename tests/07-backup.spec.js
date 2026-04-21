@@ -98,14 +98,14 @@ test.describe('local file backup', () => {
     await expect(page.locator('.note-grid')).toHaveCount(2);
 
     // Open first file
-    await page.locator('[data-action="open-file-content-modal"][data-filename="alpha.md"]').click();
+    await page.locator('[data-action="open-file-content-modal"][data-file-id="alpha.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForBackupEntries(page, 1);
 
     // Close, then open second file — different filename+content → must append
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
-    await page.locator('[data-action="open-file-content-modal"][data-filename="beta.md"]').click();
+    await page.locator('[data-action="open-file-content-modal"][data-file-id="beta.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForBackupEntries(page, 2);
 
@@ -154,14 +154,14 @@ test.describe('local file backup', () => {
     await expect(page.locator('.note-grid')).toHaveCount(2);
 
     // Open alpha, close alpha → 1 entry (close deduplicates against the open)
-    await page.locator('[data-action="open-file-content-modal"][data-filename="alpha.md"]').click();
+    await page.locator('[data-action="open-file-content-modal"][data-file-id="alpha.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForBackupEntries(page, 1);
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
     // Open beta → 2 entries total
-    await page.locator('[data-action="open-file-content-modal"][data-filename="beta.md"]').click();
+    await page.locator('[data-action="open-file-content-modal"][data-file-id="beta.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForBackupEntries(page, 2);
     await page.click('[data-action="close-file-content-modal"]');
@@ -170,7 +170,7 @@ test.describe('local file backup', () => {
     // Re-open alpha with identical content — must deduplicate against alpha's earlier entry,
     // not beta's (the globally last entry). No write should occur; entry count must stay at 2.
     const snapshotBefore = await page.evaluate(() => window.__backupFileContent);
-    await page.locator('[data-action="open-file-content-modal"][data-filename="alpha.md"]').click();
+    await page.locator('[data-action="open-file-content-modal"][data-file-id="alpha.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     // Wait for modal to be fully loaded (history select populated) then confirm no extra write.
     await page.waitForFunction(() => {

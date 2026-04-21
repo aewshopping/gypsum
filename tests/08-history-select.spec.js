@@ -272,7 +272,7 @@ test.describe('history select in file content modal', () => {
     await expect(page.locator('.note-grid')).toHaveCount(2);
 
     // Open other.md — it has no prior history; the on-open snapshot becomes v-1
-    await page.locator('[data-action="open-file-content-modal"][data-filename="other.md"]').click();
+    await page.locator('[data-action="open-file-content-modal"][data-file-id="other.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
     await waitForHistoryOptions(page, 2);

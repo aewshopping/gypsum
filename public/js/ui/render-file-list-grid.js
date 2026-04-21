@@ -35,7 +35,7 @@ export function renderFileList_grid(renderEverything) {
   //      const tag_list = file.tags.join(" ");
         const filename_html = renderFilename(file.filename);
         file_html += `
-        <div class="note-grid color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">
+        <div class="note-grid color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal">
 
             <div data-prop="filename">${filename_html}</div>
 

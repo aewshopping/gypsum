@@ -20,9 +20,8 @@ export async function refreshFileAfterSave(snapshot) {
         if (fileIndex === -1) return;
 
         const existingFile = appState.myFiles[fileIndex];
-        const loadOrder = parseInt(existingFile.id.slice(1), 10);
 
-        const freshFile = await getFileDataAndMetadata(existingFile.handle, loadOrder);
+        const freshFile = await getFileDataAndMetadata(existingFile.handle, 0);
 
         const tagsHaveChanged = !tagsEqual(existingFile.tags, freshFile.tags);
         const colorHasChanged = existingFile.color !== freshFile.color;
