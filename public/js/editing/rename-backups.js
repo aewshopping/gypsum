@@ -1,7 +1,7 @@
 import { appState } from '../services/store.js';
 import { BACKUP_FILENAME, SAVE_FOLDER } from '../constants.js';
 import { buildSaveFilename, writeAndVerifyHandle } from '../services/file-save.js';
-import { copyFileByStream } from './rename-file.js';
+import { copyFile } from './rename-file.js';
 
 /**
  * Rewrites `.gypsum/history.gypsum` entries for the renamed file so past
@@ -92,7 +92,7 @@ async function moveTransientIfExists(gypsumDir, oldSaveName, newSaveName) {
         return;
     }
     try {
-        await copyFileByStream(handle, gypsumDir, newSaveName);
+        await copyFile(handle, gypsumDir, newSaveName);
         await gypsumDir.removeEntry(oldSaveName);
     } catch (err) {
         console.warn(`Transient migration failed for ${oldSaveName}:`, err);

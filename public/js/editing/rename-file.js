@@ -1,12 +1,11 @@
 import { appState } from '../services/store.js';
-import { extractDirFromFilepath } from '../services/file-save.js';
+import { extractDirFromFilepath, writeAndVerifyHandle } from '../services/file-save.js';
 
 /**
  * @file Core rename service. Resolves the target parent directory, performs a
  * filesystem-level collision check, copies the source file to the new
- * location via a streamed write, verifies, swaps `file.handle`, then deletes
- * the original. Falls back to leaving both files in place if the delete
- * fails. No DOM access.
+ * location, verifies, swaps `file.handle`, then deletes the original. Falls
+ * back to leaving both files in place if the delete fails. No DOM access.
  *
  * FileSystemFileHandle.move() is deliberately not used: it is unsupported on
  * Chrome for Android, which is a target browser. Copy + delete uses only
@@ -66,32 +65,25 @@ async function assertNoCollision(dir, name, selfHandle, folderPath) {
 }
 
 /**
- * Copies a file's bytes into a new entry `newName` inside `targetDir` by
- * piping the source File's ReadableStream to a new writable. Streaming keeps
- * memory flat for large files on mobile. Verifies the copy by comparing
- * byte sizes, and removes the partial entry if verification fails so no
- * half-written file is left behind.
+ * Copies a file's text content into a new entry `newName` inside `targetDir`
+ * and verifies by read-back text comparison. Removes the partial entry if
+ * verification fails so no half-written file is left behind.
+ *
+ * Text-mode is fine: this helper only runs on .txt/.md notes that the app has
+ * already loaded into memory. Reuses writeAndVerifyHandle so the write +
+ * verify path matches how user edits are saved.
  * @param {FileSystemFileHandle} sourceHandle
  * @param {FileSystemDirectoryHandle} targetDir
  * @param {string} newName
  * @returns {Promise<FileSystemFileHandle>} the new file's handle
  */
-export async function copyFileByStream(sourceHandle, targetDir, newName) {
-    const sourceFile = await sourceHandle.getFile();
+export async function copyFile(sourceHandle, targetDir, newName) {
+    const content = await (await sourceHandle.getFile()).text();
     const newHandle = await targetDir.getFileHandle(newName, { create: true });
-    const writable = await newHandle.createWritable();
-    try {
-        await sourceFile.stream().pipeTo(writable);
-    } catch (err) {
-        try { await writable.abort(); } catch {}
+    const ok = await writeAndVerifyHandle(newHandle, content);
+    if (!ok) {
         try { await targetDir.removeEntry(newName); } catch {}
-        throw err;
-    }
-
-    const copiedFile = await newHandle.getFile();
-    if (copiedFile.size !== sourceFile.size) {
-        try { await targetDir.removeEntry(newName); } catch {}
-        throw new Error('Copy verification failed: size mismatch.');
+        throw new Error('Copy verification failed.');
     }
     return newHandle;
 }
@@ -124,7 +116,7 @@ export async function renameFile({ file, newFolder, newName }) {
 
     renameInProgress = true;
     try {
-        const newHandle = await copyFileByStream(file.handle, targetDir, newName);
+        const newHandle = await copyFile(file.handle, targetDir, newName);
 
         // Swap only after the new file is verified; until this point a failure
         // leaves the old file intact and file.handle still pointing to it.
