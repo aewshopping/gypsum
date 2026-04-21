@@ -33,8 +33,9 @@ async function editContent(page) {
 
 async function clickBackdrop(page) {
   await page.evaluate(() => {
-    document.getElementById('file-content-modal')
-      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const modal = document.getElementById('file-content-modal');
+    modal.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
 }
 
