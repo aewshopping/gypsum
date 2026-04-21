@@ -77,7 +77,7 @@ export const propertySortMap = new Map();
  */
 export const FILE_PROPERTIES = new Map([
   ['sizeInBytes', {label: 'size', type: 'number', column_width: 120, display_order: 6 }],
-  ['id', { type: 'number', column_width: 40, display_order: 1 }],
+  ['id', { type: 'string', column_width: 40, display_order: 1 }],
   ['title', { type: 'string', column_width: 350, display_order: 2 }],
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
   ['lastModified', {label: 'last modified', type: 'date', column_width: 150, display_order: 4 }],

@@ -14,16 +14,16 @@ const movingbox = document.getElementById("moving-file-content-container"); // m
 const scrollingContent = document.getElementById("modal-content");
 const warningDialog = document.getElementById('modal-unsaved-warning');
 
-let openedFilename; // look up the live DOM element by filename on close, since a save can re-render and replace the original node
+let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
 
 /**
- * Updates the tracked "opened filename" used by the close animation to find
+ * Updates the tracked "opened file id" used by the close animation to find
  * the originating card. Call after a rename so the close animation targets
  * the renamed card rather than the (now-gone) old one.
- * @param {string} newFilename
+ * @param {string} newFileId
  */
-export function setOpenedFilename(newFilename) {
-    openedFilename = newFilename;
+export function setOpenedFileId(newFileId) {
+    openedFileId = newFileId;
 }
 
 dialog.addEventListener('cancel', (evt) => {
@@ -50,8 +50,8 @@ window.addEventListener('beforeunload', (evt) => {
  */
 export function handleOpenFileContent(event, target) {
 
-  const file_to_open = target.dataset.filename;
-  openedFilename = file_to_open;
+  const file_to_open = target.dataset.fileId;
+  openedFileId = file_to_open;
   target.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
@@ -62,7 +62,8 @@ export function handleOpenFileContent(event, target) {
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
     target.classList.remove("moving-file-content-view");
 
-    initHistorySelect(file_to_open);
+    const fileObj = appState.myFiles.find(f => f.id === file_to_open);
+    initHistorySelect(fileObj?.filepath ?? file_to_open);
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;
     resetAutosave();
@@ -112,8 +113,8 @@ function doClose() {
   // Re-query the target now: if the file list was re-rendered since open
   // (e.g. after save), the node captured on open is detached and would not
   // participate in the view transition.
-  const file_box = openedFilename
-    ? document.querySelector(`[data-action="open-file-content-modal"][data-filename="${CSS.escape(openedFilename)}"]`)
+  const file_box = openedFileId
+    ? document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(openedFileId)}"]`)
     : null;
 
   const transition = document.startViewTransition(function () {

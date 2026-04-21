@@ -36,7 +36,7 @@ export function renderFileList_list(renderEverything) {
                     <details>
                         <summary data-prop="filename">${filename_html} ${tag_pills_html}</summary>
                         <ul>
-                        <li><span class="show-content-tag color-dynamic" data-color="${file.color}" data-filename="${file.filename}" data-action="open-file-content-modal">open</span></li>
+                        <li><span class="show-content-tag color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal">open</span></li>
                         `;
             for (const key in file) {
                 const value = file[key];

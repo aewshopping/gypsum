@@ -73,17 +73,18 @@ export async function renameFile({ file, newFolder, newName }) {
 
     file.filename = newName;
     file.filepath = newFilepath;
+    file.id = newFilepath;
 
     if (appState.myFileHandlesMap) {
-        appState.myFileHandlesMap.delete(oldFilename);
-        appState.myFileHandlesMap.set(newName, file.handle);
+        appState.myFileHandlesMap.delete(oldFilepath);
+        appState.myFileHandlesMap.set(newFilepath, file.handle);
     }
 
-    if (appState.openFileSnapshot?.filename === oldFilename) {
+    if (appState.openFileSnapshot?.filepath === oldFilepath) {
         appState.openFileSnapshot.filename = newName;
         appState.openFileSnapshot.filepath = newFilepath;
     }
-    if (appState.closeSnapshot?.filename === oldFilename) {
+    if (appState.closeSnapshot?.filepath === oldFilepath) {
         appState.closeSnapshot.filename = newName;
         appState.closeSnapshot.filepath = newFilepath;
     }

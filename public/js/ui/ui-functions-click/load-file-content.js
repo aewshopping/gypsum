@@ -8,10 +8,10 @@ import { fileContentRender } from '../ui-functions-render/render-file-content.js
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
  * @async
- * @param {string} fileToOpen - The name of the file to load content for.
+ * @param {string} fileId - The unique id (full path from root) of the file to load content for.
  */
-export async function loadContentModal(fileToOpen) {
-    const fileHandle = appState.myFileHandlesMap.get(fileToOpen);
+export async function loadContentModal(fileId) {
+    const fileHandle = appState.myFileHandlesMap.get(fileId);
     const fileChosen = await fileHandle.getFile();
 
     const raw = await fileChosen.text();
@@ -29,10 +29,10 @@ export async function loadContentModal(fileToOpen) {
     session.openTextLen = session.openNormalized.replace(/\n/g, '').length; // \n → <br> in DOM, invisible to textContent
     session.isDirty = false;
 
-    const fileObj = appState.myFiles.find(f => f.filename === fileToOpen);
+    const fileObj = appState.myFiles.find(f => f.id === fileId);
     appState.openFileSnapshot = {
-        filepath: fileObj?.filepath ?? fileToOpen,
-        filename: fileToOpen,
+        filepath: fileObj?.filepath ?? fileId,
+        filename: fileObj?.filename ?? fileId,
         content: raw,
     };
 
@@ -43,10 +43,10 @@ export async function loadContentModal(fileToOpen) {
     document.getElementById('modal-content-text').innerHTML = '';
     fileContentRender();
 
-    const filepathandname = appState.myFiles.find(f => f.filename === fileToOpen)?.filepath ?? fileToOpen;
+    const filepathandname = fileObj?.filepath ?? fileId;
     document.getElementById('rename-file-btn').innerHTML = filepathandname;
 
     await saveBackupEntry(appState.openFileSnapshot, 'open');
-    loadHistorySelect(fileToOpen);
-    console.log(fileToOpen);
+    loadHistorySelect(fileObj?.filename ?? fileId, fileObj?.filepath ?? fileId);
+    console.log(fileId);
 }

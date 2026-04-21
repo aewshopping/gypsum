@@ -1,5 +1,3 @@
-import { appState } from '../../services/store.js';
-
 /**
  * Renders the inner HTML for the history select element.
  *
@@ -12,12 +10,11 @@ import { appState } from '../../services/store.js';
  * The "current" option has no version label. Historical options are labelled
  * v-1 (most recent backup), v-2, v-3, … newest-first.
  *
- * @param {string} filename - The name of the open file.
+ * @param {string} filepath - The full path of the open file (displayed in the button).
  * @param {Array<{timestamp: string}>} entries - Backup entries, newest-first.
  * @returns {string} HTML string for the select's innerHTML.
  */
-export function renderHistorySelect(filename, entries) {
-    const filepath = appState.myFiles.find(f => f.filename === filename)?.filepath ?? filename;
+export function renderHistorySelect(filepath, entries) {
     const historyOptions = entries.map((entry, i) =>
         `<option value="${i}">` +
           `<span class="opt-time">${formatTimestamp(entry.timestamp)}</span>` +

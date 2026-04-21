@@ -5,7 +5,7 @@ import { renameFile } from '../../editing/rename-file.js';
 import { migrateBackupsForRename } from '../../editing/rename-backups.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
-import { setOpenedFilename } from './open-file-content-view-trans.js';
+import { setOpenedFileId } from './open-file-content-view-trans.js';
 
 const dialogId = 'modal-rename-file';
 const folderInputId = 'rename-folder-input';
@@ -23,9 +23,9 @@ function getErrorSlot() { return document.getElementById(errorSlotId); }
  * @returns {object|null}
  */
 function getCurrentFile() {
-    const filename = appState.openFileSnapshot?.filename;
-    if (!filename) return null;
-    return appState.myFiles.find(f => f.filename === filename) ?? null;
+    const filepath = appState.openFileSnapshot?.filepath;
+    if (!filepath) return null;
+    return appState.myFiles.find(f => f.id === filepath) ?? null;
 }
 
 /**
@@ -146,14 +146,14 @@ export async function handleRenameConfirm(evt) {
         });
         const warnings = await migrateBackupsForRename(outcome);
 
-        setOpenedFilename(outcome.newFilename);
+        setOpenedFileId(outcome.newFilepath);
 
         const renameBtn = document.getElementById('rename-file-btn');
         if (renameBtn) renameBtn.innerHTML = outcome.newFilepath;
 
         const historySelect = document.getElementById('file-content-history-select');
         if (historySelect) {
-            historySelect.innerHTML = renderHistorySelect(outcome.newFilename, appState.historyEntries ?? []);
+            historySelect.innerHTML = renderHistorySelect(outcome.newFilepath, appState.historyEntries ?? []);
         }
 
         renderFiles(true, true);
