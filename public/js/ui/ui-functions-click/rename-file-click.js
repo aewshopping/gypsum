@@ -133,11 +133,6 @@ export async function handleRenameConfirm(evt) {
 
     const dialog = getDialog();
 
-    if (result.unchanged) {
-        if (dialog) dialog.close();
-        return;
-    }
-
     try {
         const outcome = await renameFile({
             file,
