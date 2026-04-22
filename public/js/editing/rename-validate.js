@@ -32,7 +32,7 @@ function normaliseFolder(raw) {
  * @param {string} params.newFolder - User-entered target folder path (may be empty for root).
  * @param {string} params.newName - User-entered new filename.
  * @param {Array<{filename: string, filepath: string}>} params.myFiles
- * @returns {{ok: true, normalizedFolder: string, normalizedName: string, unchanged: boolean} | {ok: false, reason: string}}
+ * @returns {{ok: true, normalizedFolder: string, normalizedName: string} | {ok: false, reason: string}}
  */
 export function validateRenameInputs({ currentFile, newFolder, newName, myFiles }) {
     const name = (newName ?? '').trim();
@@ -54,16 +54,15 @@ export function validateRenameInputs({ currentFile, newFolder, newName, myFiles 
     }
 
     const newFilepath = folder ? `${folder}/${name}` : name;
-    const unchanged = newFilepath.toLowerCase() === currentFile.filepath.toLowerCase();
-
-    if (!unchanged) {
-        const collision = myFiles.some(f =>
-            f !== currentFile && f.filepath.toLowerCase() === newFilepath.toLowerCase()
-        );
-        if (collision) {
-            return { ok: false, reason: 'A loaded file with that path already exists.' };
-        }
+    if (newFilepath.toLowerCase() === currentFile.filepath.toLowerCase()) {
+        return { ok: false, reason: 'Rename cancelled: path is unchanged (case-only renames are not supported).' };
+    }
+    const collision = myFiles.some(f =>
+        f !== currentFile && f.filepath.toLowerCase() === newFilepath.toLowerCase()
+    );
+    if (collision) {
+        return { ok: false, reason: 'A loaded file with that path already exists.' };
     }
 
-    return { ok: true, normalizedFolder: folder, normalizedName: name, unchanged };
+    return { ok: true, normalizedFolder: folder, normalizedName: name };
 }
