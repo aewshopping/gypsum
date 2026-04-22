@@ -54,7 +54,7 @@ export function validateRenameInputs({ currentFile, newFolder, newName, myFiles 
     }
 
     const newFilepath = folder ? `${folder}/${name}` : name;
-    const unchanged = newFilepath === currentFile.filepath;
+    const unchanged = newFilepath.toLowerCase() === currentFile.filepath.toLowerCase();
 
     if (!unchanged) {
         const collision = myFiles.some(f =>

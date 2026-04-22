@@ -111,6 +111,11 @@ export async function renameFile({ file, newFolder, newName }) {
     const newFilepath = newFolder ? `${newFolder}/${newName}` : newName;
     const oldFolder = extractDirFromFilepath(oldFilepath);
 
+    // Deterministic no-op for case-only path changes across platforms.
+    if (newFilepath.toLowerCase() === oldFilepath.toLowerCase()) {
+        return { oldFilename, oldFilepath, newFilename: oldFilename, newFilepath: oldFilepath };
+    }
+
     const targetDir = await resolveTargetDir(newFolder);
     await assertNoCollision(targetDir, newName, file.handle, newFolder);
 
