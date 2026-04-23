@@ -18,16 +18,14 @@ export function initHistorySelect(filepath) {
  * Reads backup history for the file and repopulates the select with all entries.
  * The snapshot saved on open is intentionally shown — it serves as the baseline
  * the user can compare their in-session edits against.
- * Intentionally fire-and-forget — the select updates when the read completes.
  * @param {string} filename
  * @param {string} filepath
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function loadHistorySelect(filename, filepath) {
-    readBackupHistory(filename, filepath).then(entries => {
-        appState.historyEntries = entries;
-        document.getElementById('file-content-history-select').innerHTML =
-            renderHistorySelect(filepath, entries);
-        updateUnsavedIndicator();
-    });
+export async function loadHistorySelect(filename, filepath) {
+    const entries = await readBackupHistory(filename, filepath);
+    appState.historyEntries = entries;
+    document.getElementById('file-content-history-select').innerHTML =
+        renderHistorySelect(filepath, entries);
+    updateUnsavedIndicator();
 }

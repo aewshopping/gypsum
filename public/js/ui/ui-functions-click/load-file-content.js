@@ -45,10 +45,9 @@ export async function loadContentModal(fileId) {
     fileContentRender();
 
     await saveBackupEntry(appState.openFileSnapshot, 'open');
-    loadHistorySelect(fileObj?.filename ?? fileId, fileObj?.filepath ?? fileId);
+    await loadHistorySelect(fileObj?.filename ?? fileId, fileObj?.filepath ?? fileId);
+    applyHighlights();
 
     console.log(fileId);
 
-    // apply search highlights if any
-    highlightPropMatches();
 }
