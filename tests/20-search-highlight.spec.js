@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, setupMockDirectoryWithHistoryLinePool } = require('./helpers');
+const { setupMockFiles, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport } = require('./helpers');
 
 // Verifies that every Range in the 'match' CSS highlight points to a live DOM
 // node. Stale ranges (produced when highlighted nodes are removed from the DOM
@@ -93,6 +93,55 @@ test.describe('search highlight (match) lifecycle', () => {
 
         // After close, no stale ranges should remain from the cleared modal content.
         expect(await allMatchRangesConnected(page)).toBe(true);
+    });
+
+    test('contentEditable keystrokes do not trigger the highlight observer', async ({ page }) => {
+        await setupMockDirectoryWithSaveSupport(page);
+        await page.goto('/');
+        await page.click('[data-click-loadfolder]');
+        await expect(page.locator('.note-grid')).toHaveCount(1);
+
+        await page.fill('#searchbox', 'notes');
+        await page.click('#btn_search');
+
+        await page.locator('.note-grid').first().click();
+        await expect(page.locator('#file-content-modal')).toBeVisible();
+
+        // Switch to text mode so the contentEditable <pre> is in the DOM.
+        await page.evaluate(() => document.getElementById('render_toggle').click());
+        await expect(page.locator('.text-editor')).toBeVisible();
+
+        // Drain microtasks from the mode-toggle render before installing the spy,
+        // so the toggle's own highlight rebuild does not pollute the count.
+        await page.evaluate(() => new Promise(r => setTimeout(r, 50)));
+
+        // Spy: CSS.highlights.delete('match') is called unconditionally at the
+        // start of every highlightPropMatches() run, making it a reliable proxy
+        // for "did the observer fire and dispatch a highlight rebuild?".
+        await page.evaluate(() => {
+            window.__matchHighlightClears = 0;
+            const orig = CSS.highlights.delete.bind(CSS.highlights);
+            CSS.highlights.delete = (name) => {
+                if (name === 'match') window.__matchHighlightClears++;
+                return orig(name);
+            };
+        });
+
+        // Press Enter in the text editor. This creates a <br> inside the
+        // contentEditable <pre> — a childList mutation whose target IS the <pre>
+        // element itself. The observer should reject this batch because every
+        // mutation record passes m.target.closest('[contenteditable]').
+        await page.locator('.text-editor').press('End');
+        await page.locator('.text-editor').press('Enter');
+        await page.evaluate(() => new Promise(r => setTimeout(r, 50)));
+        expect(await page.evaluate(() => window.__matchHighlightClears)).toBe(0);
+
+        // Confirm the spy is working: toggling render mode re-renders
+        // #modal-content-text (a non-editable parent), which the observer does
+        // NOT filter out. Count should advance from 0 to 1.
+        await page.evaluate(() => document.getElementById('render_toggle').click());
+        await page.evaluate(() => new Promise(r => setTimeout(r, 50)));
+        expect(await page.evaluate(() => window.__matchHighlightClears)).toBe(1);
     });
 
     test('match highlight has connected ranges after history navigation', async ({ page }) => {

@@ -9,6 +9,7 @@ import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { resetAutosave, deleteTempFileIfExists } from '../../editing/autosave.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
+import { clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -166,10 +167,12 @@ function doClose() {
   transition.finished.then(async () => {
     dialog.close();
     document.getElementById('modal-content-text').innerHTML = '';
-    // Rebuild the 'match' highlight immediately after clearing modal content.
-    // The modal DOM nodes are now detached, so this call drops any ranges that
-    // pointed to them while keeping the main file list highlights intact.
-    // (The observer fires too, but the dialog.open guard causes it to skip.)
+    // Clear both named highlights whose ranges may point to the just-removed
+    // modal DOM nodes. highlightPropMatches rebuilds 'match' from the main file
+    // list only (modal content is now empty). clearDiffHighlights drops 'diff-old'
+    // entirely — it is only meaningful while a historical version is on screen.
+    // (The observer also fires here but the dialog.open guard causes it to skip.)
+    clearDiffHighlights();
     highlightPropMatches();
 
     if (file_box) file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
