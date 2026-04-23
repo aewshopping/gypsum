@@ -27,7 +27,7 @@
     }
 
     &::picker-icon {
-        content: "➜";
+        content: "➜"; /* U+0279C */
         rotate: 90deg;
         transition: 0.2s rotate;
     }
