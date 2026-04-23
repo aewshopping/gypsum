@@ -1,5 +1,4 @@
 import { appState } from '../../services/store.js';
-import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { applyDiffHighlights, clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 import { hasUnsavedChanges } from '../../editing/manage-unsaved-changes.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
@@ -79,9 +78,6 @@ export function fileContentRender() {
             }
         }
     }
-
-    // apply search highlights if any
-    highlightPropMatches();
 
     // apply diff highlights if a prior version
     if (isCurrent) {

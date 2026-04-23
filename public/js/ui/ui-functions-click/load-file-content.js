@@ -4,6 +4,7 @@ import { saveBackupEntry } from '../../editing/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { setIsCurrentVersion } from '../../editing/editable-state.js';
 import { fileContentRender } from '../ui-functions-render/render-file-content.js';
+import { applyHighlights } from '../ui-functions-highlight/apply-highlights.js';
 
 /**
  * Loads the content of a file, wraps front matter, parses tags and markdown, and then triggers the render.
@@ -45,5 +46,9 @@ export async function loadContentModal(fileId) {
 
     await saveBackupEntry(appState.openFileSnapshot, 'open');
     loadHistorySelect(fileObj?.filename ?? fileId, fileObj?.filepath ?? fileId);
+
     console.log(fileId);
+
+    // apply search highlights if any
+    highlightPropMatches();
 }
