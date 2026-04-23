@@ -21,7 +21,15 @@ let openedFileId; // look up the live DOM element by file id on close, since a s
 // Previously, every code path that mutated modal content (fileContentRender,
 // loadContentModal, history navigation) had to manually call highlightPropMatches()
 // at the end. This observer replaces all those scattered call sites: any DOM
-// change to the modal content container triggers a single highlight pass.
+// change to either observed element triggers a single highlight pass.
+//
+// Two targets are observed rather than the whole dialog with subtree:true:
+//   1. #modal-content-text  — file body rendered by fileContentRender()
+//   2. #file-content-history-select — contains the <span data-prop="filename">
+//      that renderHistorySelect() injects; this fires when loadHistorySelect()
+//      populates the select, which is outside #modal-content-text.
+// Using two narrow childList observers avoids firing on every Enter/paste
+// keystroke inside the contentEditable text editor, which subtree:true would do.
 //
 // Why no timer-based debounce: MutationObserver batches all synchronous DOM
 // mutations within one task into a single callback invocation, so a full
@@ -42,6 +50,7 @@ const observer = new MutationObserver(() => {
     });
 });
 observer.observe(document.getElementById('modal-content-text'), { childList: true });
+observer.observe(document.getElementById('file-content-history-select'), { childList: true });
 
 /**
  * Updates the tracked "opened file id" used by the close animation to find
