@@ -20,16 +20,17 @@ let openedFileId; // look up the live DOM element by file id on close, since a s
 // Re-apply search highlights automatically whenever modal content changes.
 // Previously, every code path that mutated modal content (fileContentRender,
 // loadContentModal, history navigation) had to manually call highlightPropMatches()
-// at the end. This observer replaces all those scattered call sites: any DOM
-// change to either observed element triggers a single highlight pass.
+// at the end. This observer covers the whole modal container with subtree:true
+// so any future element carrying data-prop is picked up without needing to be
+// manually added here.
 //
-// Two targets are observed rather than the whole dialog with subtree:true:
-//   1. #modal-content-text  — file body rendered by fileContentRender()
-//   2. #file-content-history-select — contains the <span data-prop="filename">
-//      that renderHistorySelect() injects; this fires when loadHistorySelect()
-//      populates the select, which is outside #modal-content-text.
-// Using two narrow childList observers avoids firing on every Enter/paste
-// keystroke inside the contentEditable text editor, which subtree:true would do.
+// The one exclusion: keystrokes in the contentEditable text editor also produce
+// childList mutations (e.g. a <br> inserted on Enter). These are distinguishable
+// because their mutation.target IS the editable element or a descendant of one —
+// m.target.closest('[contenteditable]') returns non-null. Lifecycle renders
+// (fileContentRender, loadHistorySelect) mutate non-editable parents, so they
+// always pass the filter. Batches where every record comes from within
+// contentEditable are skipped; all others trigger a highlight pass.
 //
 // Why no timer-based debounce: MutationObserver batches all synchronous DOM
 // mutations within one task into a single callback invocation, so a full
@@ -41,7 +42,8 @@ let openedFileId; // look up the live DOM element by file id on close, since a s
 // to false before innerHTML is cleared in doClose(), so the guard below causes
 // the callback to return early without highlighting an empty container.
 let highlightQueued = false;
-const observer = new MutationObserver(() => {
+const observer = new MutationObserver((mutations) => {
+    if (mutations.every(m => m.target.closest('[contenteditable]'))) return;
     if (highlightQueued) return;
     highlightQueued = true;
     queueMicrotask(() => {
@@ -49,8 +51,7 @@ const observer = new MutationObserver(() => {
         if (dialog.open) highlightPropMatches();
     });
 });
-observer.observe(document.getElementById('modal-content-text'), { childList: true });
-observer.observe(document.getElementById('file-content-history-select'), { childList: true });
+observer.observe(movingbox, { childList: true, subtree: true });
 
 /**
  * Updates the tracked "opened file id" used by the close animation to find
