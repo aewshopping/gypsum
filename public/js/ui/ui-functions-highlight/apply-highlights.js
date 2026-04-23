@@ -9,7 +9,6 @@ import { updatePropHighlights } from "./props-highlight.js";
  * @returns {void}
  */
 export function applyHighlights() {
-
     highlightTagMatches();
     highlightPropMatches();
 }
