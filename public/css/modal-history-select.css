@@ -6,24 +6,24 @@
     min-width: 0px;
     margin-inline: 6px;
 
-    > button {
-        display:flex;
+    >button {
+        display: flex;
         align-items: center;
         justify-content: space-between;
-        width:100%;
+        width: 100%;
         white-space: nowrap;
         overflow: hidden;
     }
 
     .opt-filename {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color:transparent; /* most of the weird stuff here is to allow me to position an interactive btn over the select using anchor posit which I am using to trigger a filename change event, because select title buttons don't allow nested interactive elems. Very hacky but it seems ok just now... */
+        overflow: hidden;
+        text-overflow: ellipsis;
 
-      &::before{
-        color:var(--colour-contr);
-        content:"● " /* indicates not saved, saved indicator below */
-      }
+        &::before {
+            color: inherit;
+            content: "● "
+                /* indicates not saved, saved indicator below */
+        }
     }
 
     &::picker-icon {
@@ -37,7 +37,7 @@
     }
 
     option {
-        display:flex;
+        display: flex;
         align-items: center;
 
         font: 1.1em monospace;
@@ -45,13 +45,13 @@
         padding-left: 15px;
         margin: 10px;
         border: 2px solid transparent;
-        border-radius: 20px;
+        border-radius: 40px;
         color: var(--colour-contr);
         background: var(--colour-neutral-alt);
 
-        .opt-version {
-            flex-grow:1;
-            margin-right:4px;
+        .opt-version,
+        #rename-file-btn {
+            margin-right: 4px;
             text-align: right;
         }
 
@@ -68,19 +68,21 @@
 
     }
 
+    &:has(#rename-file-btn:hover) {
+        background: var(--colour-contr);
+        color: var(--colour-neutral-alt);
+    }
+
 }
 
-#file-content-history-select:hover, body:has(#rename-file-btn:hover) #file-content-history-select {
-        box-shadow: var(--hover-box-shadow);
-        border: 1.5px solid var(--colour-compl-contr);
+#file-content-history-select:hover {
+    box-shadow: var(--hover-box-shadow);
+    border: 1.5px solid var(--colour-compl-contr);
 }
 
 #modal-content.saved .opt-filename::before {
-    content:"○ "; /* indicates saved */
-}
-
-.anchor-filename {
-    anchor-name: --filename-anchor;
+    content: "○ ";
+    /* indicates saved */
 }
 
 
@@ -98,28 +100,18 @@
     border-radius: 10px;
 }
 
-/* most of the weird stuff here is to allow me to position an interactive btn over the select using anchor posit which I am using to trigger a filename change event, because select title buttons don't allow nested interactive elems. Very hacky but it seems ok just now... */
-
 #rename-file-btn {
-    position: absolute; 
-    position-anchor: --filename-anchor;
-    top: anchor(center);
-    transform: translateY(-50%); 
-    left: calc(anchor(left) + 11px);
-    width: calc(anchor-size(width) * 1);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-left:2px;
-    text-align:left;
-
-    cursor:text;
+    cursor: pointer;
     font: 1em monospace;
+    margin-block: 6px;
+    padding-block: 2px;
     color: var(--colour-contr);
-    background-color: transparent;
-    border: none;
+    background-color: var(--colour-neutral-alt);
+    border: 1.5px solid var(--colour-compl-contr);
+    border-radius: 20px;
 
     &:hover {
-        background-color: var(--colour-neutral)
+        box-shadow: var(--hover-box-shadow);
+        border: 1.5px solid var(--colour-compl-contr);
     }
 }

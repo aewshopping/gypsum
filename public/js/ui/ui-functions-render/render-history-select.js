@@ -18,12 +18,13 @@ export function renderHistorySelect(filepath, entries) {
     const historyOptions = entries.map((entry, i) =>
         `<option value="${i}">` +
           `<span class="opt-time">${formatTimestamp(entry.timestamp)}</span>` +
+          `<span class="flexgrow"></span>` +
           `<span class="opt-version"> (v-${i + 1})</span>` +
         `</option>`
     ).join('');
 
     return `<button><span class="opt-filename anchor-filename">${filepath}&nbsp;</span><span class="opt-version"></span></button>` +
-           `<option value="current" class="flex-row"><span class="opt-time">current version</span></option>` +
+           `<option value="current" class="flex-row"><span class="opt-time">current version</span><span class="flexgrow"></span><button data-action="rename-file" id="rename-file-btn">rename file</button></option>` +
            historyOptions;
 }
 
