@@ -8,6 +8,7 @@ import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { resetAutosave, deleteTempFileIfExists } from '../../editing/autosave.js';
+import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -15,6 +16,32 @@ const scrollingContent = document.getElementById("modal-content");
 const warningDialog = document.getElementById('modal-unsaved-warning');
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
+
+// Re-apply search highlights automatically whenever modal content changes.
+// Previously, every code path that mutated modal content (fileContentRender,
+// loadContentModal, history navigation) had to manually call highlightPropMatches()
+// at the end. This observer replaces all those scattered call sites: any DOM
+// change to the modal content container triggers a single highlight pass.
+//
+// Why no timer-based debounce: MutationObserver batches all synchronous DOM
+// mutations within one task into a single callback invocation, so a full
+// re-render produces exactly one callback regardless of how many nodes change.
+// The queueMicrotask defers the TreeWalker run by one tick so it always sees
+// the fully-settled DOM rather than a mid-render snapshot.
+//
+// Why no disconnect/reconnect on modal close: dialog.close() sets dialog.open
+// to false before innerHTML is cleared in doClose(), so the guard below causes
+// the callback to return early without highlighting an empty container.
+let highlightQueued = false;
+const observer = new MutationObserver(() => {
+    if (highlightQueued) return;
+    highlightQueued = true;
+    queueMicrotask(() => {
+        highlightQueued = false;
+        if (dialog.open) highlightPropMatches();
+    });
+});
+observer.observe(document.getElementById('modal-content-text'), { childList: true });
 
 /**
  * Updates the tracked "opened file id" used by the close animation to find
@@ -129,6 +156,11 @@ function doClose() {
   transition.finished.then(async () => {
     dialog.close();
     document.getElementById('modal-content-text').innerHTML = '';
+    // Rebuild the 'match' highlight immediately after clearing modal content.
+    // The modal DOM nodes are now detached, so this call drops any ranges that
+    // pointed to them while keeping the main file list highlights intact.
+    // (The observer fires too, but the dialog.open guard causes it to skip.)
+    highlightPropMatches();
 
     if (file_box) file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
