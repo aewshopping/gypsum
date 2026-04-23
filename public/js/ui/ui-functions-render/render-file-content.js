@@ -62,6 +62,7 @@ export function fileContentRender() {
             // Historical txt view — read-only pre, no .text-editor class
             const preElement = document.createElement('pre');
             preElement.classList.add('pre-text-enlarge');
+            preElement.classList.add('historical-snapshot');
             preElement.contentEditable = 'false';
             preElement.innerHTML = appState.editSession.activeRaw
                 .replace(/&/g, '&amp;')

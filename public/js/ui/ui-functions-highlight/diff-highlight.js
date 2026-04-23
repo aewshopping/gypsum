@@ -77,7 +77,8 @@ export function applyDiffHighlights(oldContent, currentContent) {
     if (isTxtMode) {
         // Content is rendered as text nodes separated by <br> elements.
         // Build a line-index → text-node map by walking the child nodes.
-        const preEl = container.querySelector('pre');
+        const preEl = container.querySelector('pre.historical-snapshot')
+            ?? container.querySelector('pre.text-editor');
         if (!preEl) return;
 
         const lineNodes = [];
