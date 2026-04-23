@@ -27,13 +27,13 @@
     }
 
     &::picker-icon {
-        content: "↺";
-        rotate: 0deg;
+        content: "➜";
+        rotate: 90deg;
         transition: 0.2s rotate;
     }
 
     &:open::picker-icon {
-        rotate: -135deg;
+        rotate: -90deg;
     }
 
     option {
@@ -71,6 +71,10 @@
     &:has(#rename-file-btn:hover) {
         background: var(--colour-contr);
         color: var(--colour-neutral-alt);
+
+        &::picker-icon {
+            rotate: -180deg;
+        }
     }
 
 }
