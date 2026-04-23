@@ -207,7 +207,5 @@ the matching browser binary and system dependencies.
 
 These are accepted trade-offs, not bugs:
 
-- **Read-only** — files cannot be edited in the app
-- **Top-level folder only** — subdirectories are ignored
 - **Two-level tags only** — `#parent/child` works; `#a/b/c` does not
 - **No diffing / reactivity** — full re-renders on state change are intentional for simplicity
