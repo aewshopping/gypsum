@@ -1,10 +1,11 @@
-import { appState } from '../services/store.js';
+import { appState, FILE_PROPERTIES } from '../services/store.js';
 import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { renderTagTaxonomy } from '../ui/render-tag-taxonmy.js';
 import { renderFiles } from '../ui/ui-functions-render/a-render-all-files.js';
 import { searchFiles } from '../ui/ui-functions-search/a-search-files.js';
 import { processSeachResults } from '../ui/ui-functions-search/a-search-orchestrator.js';
+import { sortAppStateFiles } from '../services/file-object-sort.js';
 
 /**
  * Re-parses the saved file from disk, updates appState, and re-renders
@@ -44,6 +45,8 @@ export async function refreshFileAfterSave(snapshot) {
             if (appState.tagTaxonomyVisible) renderTagTaxonomy();
         }
 
+        const { property, direction } = appState.sortState;
+        sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
         renderFiles();
 
         if (appState.search.filters.size > 0) {

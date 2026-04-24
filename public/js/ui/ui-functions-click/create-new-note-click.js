@@ -1,8 +1,9 @@
-import { appState } from '../../services/store.js';
+import { appState, FILE_PROPERTIES } from '../../services/store.js';
 import { getFileDataAndMetadata } from '../../services/file-parsing/file-info.js';
 import { handleOpenFileContent } from './open-file-content-view-trans.js';
 import { activateTextMode } from '../../editing/activate-text-mode.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { sortAppStateFiles } from '../../services/file-object-sort.js';
 
 /**
  * Finds the first available note-N.txt filename by querying the real filesystem.
@@ -54,6 +55,8 @@ export async function handleCreateNewNote(event, target) {
     target.dataset.fileId = newFilename;
     handleOpenFileContent(event, target, () => {
         activateTextMode();
+        const { property, direction } = appState.sortState;
+        sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
         renderFiles();
     });
     delete target.dataset.fileId;
