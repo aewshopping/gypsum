@@ -1,6 +1,5 @@
 import { appState } from '../../services/store.js';
 import { applyDiffHighlights, clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
-import { applyHighlights, highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { hasUnsavedChanges } from '../../editing/manage-unsaved-changes.js';
 import { getIsCurrentVersion } from '../../editing/editable-state.js';
 
@@ -88,10 +87,5 @@ export function fileContentRender() {
         applyDiffHighlights(appState.editSession.activeRaw, appState.editSession.liveRaw);
     }
 
-    if (isTxtMode) {
-        highlightPropMatches();
-    } else {
-        applyHighlights();
-    }
     updateUnsavedIndicator();
 }

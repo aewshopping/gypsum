@@ -8,6 +8,8 @@ import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
 import { resetAutosave, deleteTempFileIfExists } from '../../editing/autosave.js';
+import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
+import { clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -15,6 +17,42 @@ const scrollingContent = document.getElementById("modal-content");
 const warningDialog = document.getElementById('modal-unsaved-warning');
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
+
+// Re-apply search highlights automatically whenever modal content changes.
+// Previously, every code path that mutated modal content (fileContentRender,
+// loadContentModal, history navigation) had to manually call highlightPropMatches()
+// at the end. This observer covers the whole modal container with subtree:true
+// so any future element carrying data-prop is picked up without needing to be
+// manually added here.
+//
+// The one exclusion: keystrokes in the contentEditable text editor also produce
+// childList mutations (e.g. a <br> inserted on Enter). These are distinguishable
+// because their mutation.target IS the editable element or a descendant of one —
+// m.target.closest('[contenteditable]') returns non-null. Lifecycle renders
+// (fileContentRender, loadHistorySelect) mutate non-editable parents, so they
+// always pass the filter. Batches where every record comes from within
+// contentEditable are skipped; all others trigger a highlight pass.
+//
+// Why no timer-based debounce: MutationObserver batches all synchronous DOM
+// mutations within one task into a single callback invocation, so a full
+// re-render produces exactly one callback regardless of how many nodes change.
+// The queueMicrotask defers the TreeWalker run by one tick so it always sees
+// the fully-settled DOM rather than a mid-render snapshot.
+//
+// Why no disconnect/reconnect on modal close: dialog.close() sets dialog.open
+// to false before innerHTML is cleared in doClose(), so the guard below causes
+// the callback to return early without highlighting an empty container.
+let highlightQueued = false;
+const observer = new MutationObserver((mutations) => {
+    if (mutations.every(m => m.target.closest('[contenteditable]'))) return;
+    if (highlightQueued) return;
+    highlightQueued = true;
+    queueMicrotask(() => {
+        highlightQueued = false;
+        if (dialog.open) highlightPropMatches();
+    });
+});
+observer.observe(movingbox, { childList: true, subtree: true });
 
 /**
  * Updates the tracked "opened file id" used by the close animation to find
@@ -129,6 +167,13 @@ function doClose() {
   transition.finished.then(async () => {
     dialog.close();
     document.getElementById('modal-content-text').innerHTML = '';
+    // Clear both named highlights whose ranges may point to the just-removed
+    // modal DOM nodes. highlightPropMatches rebuilds 'match' from the main file
+    // list only (modal content is now empty). clearDiffHighlights drops 'diff-old'
+    // entirely — it is only meaningful while a historical version is on screen.
+    // (The observer also fires here but the dialog.open guard causes it to skip.)
+    clearDiffHighlights();
+    highlightPropMatches();
 
     if (file_box) file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
