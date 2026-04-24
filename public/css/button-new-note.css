@@ -1,0 +1,20 @@
+#btn-new-note {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--colour-contr);
+    background-color: var(--colour-compl);
+    color: var(--colour-compl-contr);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+
+    &:hover {
+        background-color: var(--colour-compl-emph);
+        box-shadow: var(--hover-box-shadow);
+    }
+}

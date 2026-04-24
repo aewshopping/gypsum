@@ -84,9 +84,11 @@ window.addEventListener('beforeunload', (evt) => {
  * Handles the click event to open the file content modal with a view transition.
  * @param {Event} event - The click event.
  * @param {HTMLElement} target - The element that triggered the modal opening.
+ * @param {Function|null} [postLoad=null] - Optional callback invoked inside the transition
+ *   after the file content has loaded. Used by create-new-note-click to activate txt mode.
  * @returns {void}
  */
-export function handleOpenFileContent(event, target) {
+export function handleOpenFileContent(event, target, postLoad = null) {
 
   const file_to_open = target.dataset.fileId;
   openedFileId = file_to_open;
@@ -107,6 +109,7 @@ export function handleOpenFileContent(event, target) {
     resetAutosave();
     await loadContentModal(file_to_open);
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
+    if (postLoad) await postLoad();
   });
 }
 
