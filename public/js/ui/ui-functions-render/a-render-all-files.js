@@ -14,6 +14,11 @@ import { renderPagination } from "../pagination/render-pagination.js";
  * Orchestrates the rendering of files based on the current view state and active filters.
  * Computes the current page's file IDs into appState.paginationState.pageFileIds before
  * calling the view renderer, then appends pagination controls below the output.
+ *
+ * This function renders appState.myFiles in whatever order they currently sit.
+ * If the array order may have changed (e.g. a file was added or its sort-relevant
+ * metadata was updated), call sortAppStateFiles() from services/file-object-sort.js
+ * using appState.sortState before calling this function.
  * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render.
  * @param {boolean} [keepPage=false] - When true, stays on the current page instead of resetting to page 1.
  * @returns {void}
