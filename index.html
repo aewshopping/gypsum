@@ -134,9 +134,9 @@
     <div class="settings-row">
       <span class="settings-label">Colour theme</span>
       <div class="color-select-radio">
-        <label class="formcontrol"><input type="radio" name="radio" checked />snow</label>
+        <label class="formcontrol"><input type="radio" name="radio" />snow</label>
         <label class="formcontrol"><input type="radio" name="radio" id="glow" />glow</label>
-        <label class="formcontrol"><input type="radio" name="radio" id="blackandwhite" />b&w</label>
+        <label class="formcontrol"><input type="radio" name="radio" id="blackandwhite" checked />b&w</label>
       </div>
     </div>
 
@@ -198,6 +198,8 @@
   </dialog>
 
   <datalist id="gypsum-folders"></datalist>
+
+  <button id="btn-new-note" data-action="create-new-note" disabled>+</button>
 
 </body>
 <script type="module" src="public/main.js"></script>

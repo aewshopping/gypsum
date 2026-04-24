@@ -26,6 +26,7 @@ import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
 import { handleRenameOpen, handleRenameConfirm, handleRenameCancel } from './ui-functions-click/rename-file-click.js';
+import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -71,6 +72,7 @@ const clickActionHandlers = {
     'rename-file': handleRenameOpen,
     'rename-confirm': handleRenameConfirm,
     'rename-cancel': handleRenameCancel,
+    'create-new-note': handleCreateNewNote,
 };
 
 const changeActionHandlers = {

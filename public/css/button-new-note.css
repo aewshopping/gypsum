@@ -1,0 +1,29 @@
+#btn-new-note {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 80px;
+    height: 80px;
+    border-radius: 20%;
+    border: 1.5px solid color-mix(in srgb, var(--colour-contr), transparent 50%);
+    background-color: var(--colour-neutral-alt);
+    box-shadow: 3px 3px 10px 3px color-mix(in srgb, var(--colour-contr), transparent 50%);
+    color: color-mix(in srgb, var(--colour-contr), transparent 50%);
+    font-size: 40px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+
+    &:hover {
+        box-shadow: 
+            3px 3px 10px 5px color-mix(in srgb, var(--colour-contr), transparent 50%),
+            var(--hover-box-shadow);
+        border: 1.5px solid var(--colour-contr);
+        color: var(--colour-contr);
+    }
+
+    &:disabled {
+        opacity: 0.25;
+        cursor: not-allowed;
+    }
+}
