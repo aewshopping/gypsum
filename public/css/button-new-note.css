@@ -17,4 +17,9 @@
         background-color: var(--colour-compl-emph);
         box-shadow: var(--hover-box-shadow);
     }
+
+    &:disabled {
+        opacity: 0.25;
+        cursor: not-allowed;
+    }
 }

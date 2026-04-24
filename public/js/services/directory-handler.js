@@ -40,6 +40,7 @@ export async function loadDirectoryFileHandles() {
 
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     appState.dirHandle = dirHandle;
+    document.getElementById('btn-new-note').disabled = false;
 
     const startTime = performance.now();
 
