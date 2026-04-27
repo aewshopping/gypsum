@@ -112,8 +112,18 @@
 
       </div>
     
-    <div class="flex-row">
+    <div class="flex-row sort-controls">
       <div class="flexgrow"></div>
+
+      <label class="select-label" for="sort-select">
+        <select id="sort-select" data-action="sort-select">
+        </select>
+      </label>
+
+      <label class="sort-direction-label" for="sort-direction">
+        <input type="checkbox" id="sort-direction" data-action="sort-direction-toggle">
+        asc
+      </label>
 
       <label class="select-label" for="view-select">
         <select id="view-select" data-action="view-select">

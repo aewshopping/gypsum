@@ -1,54 +1,33 @@
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { appState, FILE_PROPERTIES, propertySortMap } from '../../services/store.js';
-import { renderFileList_table } from '../render-file-list-table.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /**
+ * Sorts files by the given property and direction, re-renders, and updates sort state.
+ * Shared by both the table header click handler and the sort-select controls.
+ * @param {string} sortProp - The file property key to sort by.
+ * @param {string} sortDirection - 'asc' or 'desc'.
+ * @returns {void}
+ */
+export function applySortAndRender(sortProp, sortDirection) {
+    const sortType = FILE_PROPERTIES.get(sortProp)?.type ?? 'string';
+    sortAppStateFiles(sortProp, sortType, sortDirection);
+    renderFiles(false);
+    Object.assign(appState.sortState, { property: sortProp, direction: sortDirection });
+    propertySortMap.set(sortProp, appState.sortState);
+}
+
+/**
  * Handles the click event to sort the file list by a specific property.
- * It determines the property type, calculates the next sort direction (toggling if necessary),
- * sorts the files in the app state, and triggers a re-render.
+ * Toggles direction if the property was previously sorted; otherwise defaults to 'asc'.
  * @param {Event} evt - The click event.
  * @param {HTMLElement} element - The element that triggered the sort, which must have a `data-property` attribute.
  * @returns {void}
  */
-export function handleSortObject(evt, element){
-
+export function handleSortObject(evt, element) {
     const sortProp = element.dataset.property;
-    const sortType = FILE_PROPERTIES.get(sortProp)?.type ?? "string"; // string as default for undefined properties
-    let sortDirection = "";
-
-    // get the currentSort for later updating
-    const currentSort = appState.sortState;
-    
-    // check if we have a prior sort direction for this property, if we do then flip it. If not then set to "asc".
-    const previousSort = propertySortMap.get(currentSort.property);
-    if (!previousSort) {
-        sortDirection = "asc";
-    } else {
-        switch (previousSort.direction) {
-            case "asc":
-                sortDirection = "desc";
-                break;
-            case "desc":
-                sortDirection = "asc"
-                break;
-            default:
-                sortDirection = "asc"
-                break;
-        }
-    }
-
-    // sort the appState.myFiles object with the selected property, type and direction.
-    sortAppStateFiles(sortProp, sortType, sortDirection);
-    // then render on this sorted object (only table rows hence false arg)
-    renderFiles(false);
-
-    // appState.sortState with current sort state
-    Object.assign(currentSort, { property: sortProp, direction: sortDirection });
-
-    // add to or update the propertySortMap, depending on whether property already exists (update), or doesn't (add)
-    propertySortMap.set(currentSort.property, currentSort)
-    
-
+    const previousSort = propertySortMap.get(appState.sortState.property);
+    const sortDirection = (!previousSort || previousSort.direction === 'desc') ? 'asc' : 'desc';
+    applySortAndRender(sortProp, sortDirection);
 }
 
