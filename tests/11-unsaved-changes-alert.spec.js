@@ -42,8 +42,8 @@ async function clickBackdrop(page) {
 const modal = '#file-content-modal';
 const warningDialog = '#modal-unsaved-warning';
 const closeBtn = '[data-action="close-file-content-modal"]';
-const discardBtn = '[data-action="discard-modal-changes"]';
-const keepBtn = '[data-action="keep-modal-editing"]';
+const discardBtn = '[data-action="warning-proceed"]';
+const keepBtn = '[data-action="warning-cancel"]';
 
 test.describe('unsaved changes alert', () => {
 

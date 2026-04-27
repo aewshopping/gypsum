@@ -286,7 +286,7 @@ test.describe('autosave temp file cleanup on modal close', () => {
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
 
-    await page.click('[data-action="discard-modal-changes"]');
+    await page.click('[data-action="warning-proceed"]');
     await expect(page.locator('#file-content-modal')).toBeHidden();
     await page.waitForTimeout(300);
 

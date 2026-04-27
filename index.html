@@ -181,10 +181,10 @@
   </dialog>
 
   <dialog id="modal-unsaved-warning">
-    <p>You have unsaved changes</p>
+    <p id="modal-unsaved-warning-text"></p>
     <div class="unsaved-warning-buttons">
-      <button class="unsaved-warning-button-discard" data-action="discard-modal-changes">Discard changes</button>
-      <button class="unsaved-warning-button-keep" data-action="keep-modal-editing">Keep editing</button>
+      <button id="modal-unsaved-warning-proceed" class="unsaved-warning-button-discard" data-action="warning-proceed"></button>
+      <button id="modal-unsaved-warning-cancel" class="unsaved-warning-button-keep" data-action="warning-cancel"></button>
     </div>
   </dialog>
 
@@ -207,6 +207,7 @@
       </div>
       <p id="rename-error-slot" class="rename-error"></p>
       <div class="rename-buttons">
+        <button type="button" class="rename-button-delete" data-action="delete-file">Delete file</button>
         <button type="button" class="rename-button-cancel" data-action="rename-cancel">Cancel</button>
       </div>
     </form>

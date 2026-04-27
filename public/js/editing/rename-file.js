@@ -29,7 +29,7 @@ window.addEventListener('beforeunload', (evt) => {
  * @param {string} folderPath - Normalised folder path (may be empty for root).
  * @returns {Promise<FileSystemDirectoryHandle>}
  */
-async function resolveTargetDir(folderPath) {
+export async function resolveTargetDir(folderPath) {
     let dir = appState.dirHandle;
     if (!folderPath) return dir;
     for (const segment of folderPath.split('/')) {
