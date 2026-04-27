@@ -26,10 +26,10 @@ try {
   let htmlContent = fs.readFileSync(htmlFile, 'utf8');
   
   const cssLinkTag = '<link rel="stylesheet" href="public/style.css">';
-  htmlContent = htmlContent.replace(cssLinkTag, () => `<style>${cssContent}</style>`);
+  htmlContent = htmlContent.replace(cssLinkTag, `<style>${cssContent}</style>`);
 
   const jsScriptTag = '<script type="module" src="public/main.js"></script>';
-  htmlContent = htmlContent.replace(jsScriptTag, () => `<script>${jsContent}</script>`);
+  htmlContent = htmlContent.replace(jsScriptTag, `<script>${jsContent}</script>`);
   
   // 4. Write the final HTML file
   fs.writeFileSync(outputFile, htmlContent, 'utf8');

@@ -13,7 +13,7 @@ const nameInputId = 'rename-name-input';
 const errorSlotId = 'rename-error-slot';
 const datalistId = 'gypsum-folders';
 
-function escapeForPattern(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function escapeForPattern(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, (c) => '\\' + c); }
 
 function getDialog() { return document.getElementById(dialogId); }
 function getFolderInput() { return document.getElementById(folderInputId); }
