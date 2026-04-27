@@ -13,6 +13,8 @@ const nameInputId = 'rename-name-input';
 const errorSlotId = 'rename-error-slot';
 const datalistId = 'gypsum-folders';
 
+function escapeForPattern(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
 function getDialog() { return document.getElementById(dialogId); }
 function getFolderInput() { return document.getElementById(folderInputId); }
 function getNameInput() { return document.getElementById(nameInputId); }
@@ -93,8 +95,14 @@ export function handleRenameOpen(evt) {
     refreshFolderDatalist();
     const folderInput = getFolderInput();
     const nameInput = getNameInput();
-    if (folderInput) folderInput.value = extractDirFromFilepath(file.filepath);
-    if (nameInput) nameInput.value = file.filename;
+    if (folderInput) {
+        folderInput.value = extractDirFromFilepath(file.filepath);
+        folderInput.pattern = escapeForPattern(folderInput.value);
+    }
+    if (nameInput) {
+        nameInput.value = file.filename;
+        nameInput.pattern = escapeForPattern(nameInput.value);
+    }
     clearError();
 
     const dialog = getDialog();
@@ -104,25 +112,23 @@ export function handleRenameOpen(evt) {
 }
 
 /**
- * Confirms the rename: validates inputs, performs the filesystem rename and
- * state updates, migrates backup files, then re-renders and closes the dialog.
- * Errors from any step are surfaced via the inline error slot; the dialog
- * stays open so the user can correct the input.
+ * Confirms a folder move: validates the new folder against the current filename,
+ * performs the filesystem rename, migrates backups, then re-renders. The dialog
+ * stays open so the user can make further changes.
  * @param {Event} evt
  */
-export async function handleRenameConfirm(evt) {
+export async function handleMoveConfirm(evt) {
     evt.preventDefault();
     const file = getCurrentFile();
     if (!file) return;
 
     const folderInput = getFolderInput();
-    const nameInput = getNameInput();
-    if (!folderInput || !nameInput) return;
+    if (!folderInput) return;
 
     const result = validateRenameInputs({
         currentFile: file,
         newFolder: folderInput.value,
-        newName: nameInput.value,
+        newName: file.filename,
         myFiles: appState.myFiles,
     });
 
@@ -130,8 +136,6 @@ export async function handleRenameConfirm(evt) {
         showError(result.reason);
         return;
     }
-
-    const dialog = getDialog();
 
     try {
         const outcome = await renameFile({
@@ -149,12 +153,70 @@ export async function handleRenameConfirm(evt) {
         }
 
         renderFiles(true, true);
+        clearError();
+
+        folderInput.value = result.normalizedFolder;
+        folderInput.pattern = escapeForPattern(result.normalizedFolder);
+
+        if (warnings.length) {
+            alert(`File moved, but:\n\n- ${warnings.join('\n- ')}`);
+        }
+    } catch (err) {
+        console.error('Move failed:', err);
+        showError(err?.message ?? 'Move failed. See console for details.');
+    }
+}
+
+/**
+ * Confirms the filename rename: validates the new name against the current folder,
+ * performs the filesystem rename, migrates backups, then re-renders. The dialog
+ * stays open so the user can make further changes.
+ * @param {Event} evt
+ */
+export async function handleRenameConfirm(evt) {
+    evt.preventDefault();
+    const file = getCurrentFile();
+    if (!file) return;
+
+    const nameInput = getNameInput();
+    if (!nameInput) return;
+
+    const result = validateRenameInputs({
+        currentFile: file,
+        newFolder: extractDirFromFilepath(file.filepath),
+        newName: nameInput.value,
+        myFiles: appState.myFiles,
+    });
+
+    if (!result.ok) {
+        showError(result.reason);
+        return;
+    }
+
+    try {
+        const outcome = await renameFile({
+            file,
+            newFolder: result.normalizedFolder,
+            newName: result.normalizedName,
+        });
+        const warnings = await migrateBackupsForRename(outcome);
+
+        setOpenedFileId(outcome.newFilepath);
+
+        const historySelect = document.getElementById('file-content-history-select');
+        if (historySelect) {
+            historySelect.innerHTML = renderHistorySelect(outcome.newFilepath, appState.historyEntries ?? []);
+        }
+
+        renderFiles(true, true);
+        clearError();
+
+        nameInput.value = result.normalizedName;
+        nameInput.pattern = escapeForPattern(result.normalizedName);
 
         if (warnings.length) {
             alert(`File renamed, but:\n\n- ${warnings.join('\n- ')}`);
         }
-
-        if (dialog) dialog.close();
     } catch (err) {
         console.error('Rename failed:', err);
         showError(err?.message ?? 'Rename failed. See console for details.');

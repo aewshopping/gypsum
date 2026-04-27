@@ -31,6 +31,16 @@
     font-size: 0.9em;
 }
 
+.rename-field-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.rename-field-row input {
+    flex: 1;
+}
+
 .rename-field input {
     padding: 6px 8px;
     border: 1px solid var(--colour-contr);
@@ -38,6 +48,12 @@
     background: var(--colour-neutral);
     color: var(--colour-contr);
     font: inherit;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.rename-field input:user-invalid {
+    background: var(--colour-compl-alt-emph-light);
+    border-color: var(--colour-contr-warning);
 }
 
 .rename-error {
@@ -59,7 +75,10 @@
     cursor: pointer;
 }
 
-.rename-button-confirm {
+.rename-field-row button {
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
     background: var(--colour-compl);
     color: var(--colour-contr);
     border: 2px solid transparent;
