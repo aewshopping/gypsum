@@ -195,17 +195,19 @@
         <label for="rename-folder-input">Folder</label>
         <div class="rename-field-row">
           <input id="rename-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
-          <button type="button" class="rename-button-move" data-action="rename-move-confirm">Move</button>
+          <button type="button" data-action="rename-move-confirm">Move</button>
         </div>
       </div>
       <div class="rename-field">
         <label for="rename-name-input">Filename</label>
-        <input id="rename-name-input" type="text" autocomplete="off">
+        <div class="rename-field-row">
+          <input id="rename-name-input" type="text" autocomplete="off">
+          <button type="button" data-action="rename-confirm">Rename</button>
+        </div>
       </div>
       <p id="rename-error-slot" class="rename-error"></p>
       <div class="rename-buttons">
         <button type="button" class="rename-button-cancel" data-action="rename-cancel">Cancel</button>
-        <button type="button" class="rename-button-confirm" data-action="rename-confirm">Rename</button>
       </div>
     </form>
   </dialog>

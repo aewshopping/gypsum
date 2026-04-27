@@ -69,15 +69,16 @@
     justify-content: flex-end;
 }
 
-.rename-buttons button,
-.rename-button-move {
+.rename-buttons button {
     padding: 6px 16px;
     border-radius: 4px;
     cursor: pointer;
 }
 
-.rename-button-confirm,
-.rename-button-move {
+.rename-field-row button {
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
     background: var(--colour-compl);
     color: var(--colour-contr);
     border: 2px solid transparent;
