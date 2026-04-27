@@ -3,7 +3,7 @@ import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
-import { initSortSelect, populateSortSelect } from './js/services/ui/ui-elements-load/sort-select-load.js';
+import { initSortSelect, populateSortSelect } from './js/ui/ui-elements-load/sort-select-load.js';
 import { renderFiles } from './js/ui/ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from './js/ui/event-listeners-add.js';
 import { VIEWS } from './js/constants.js';

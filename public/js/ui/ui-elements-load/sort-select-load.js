@@ -1,4 +1,4 @@
-import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../store.js';
+import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 
 /**
  * Seeds the sort-select with the default sort property before any files are loaded,
