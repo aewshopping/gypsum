@@ -115,8 +115,11 @@ function populateSortSelect() {
     const sortSelectElem = document.querySelector('[data-action="sort-select"]');
     sortSelectElem.innerHTML = '';
 
-    for (const [key, props] of appState.myFilesProperties) {
-        if (TABLE_VIEW_COLUMNS.hidden_always.includes(key)) continue;
+    const entries = [...appState.myFilesProperties.entries()]
+        .filter(([key]) => !TABLE_VIEW_COLUMNS.hidden_always.includes(key))
+        .sort(([, a], [, b]) => (a.display_order ?? 99) - (b.display_order ?? 99));
+
+    for (const [key, props] of entries) {
         const option = document.createElement('option');
         option.value = key;
         option.textContent = props.label ?? key;
