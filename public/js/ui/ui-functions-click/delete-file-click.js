@@ -46,6 +46,17 @@ async function handleDeleteFileConfirmed() {
         return;
     }
 
+    // Remove original from disk; non-fatal if this fails (trash copy is already safe,
+    // and findUnusedFilename queries the real filesystem so a leftover file just means
+    // note-N numbering skips that slot — whereas a successful removeEntry lets it reuse it).
+    try {
+        const folder = file.filepath.split('/').slice(0, -1).join('/');
+        const parentDir = await resolveTargetDir(folder);
+        await parentDir.removeEntry(file.filename);
+    } catch (err) {
+        console.warn('Delete: could not remove original file from disk.', err);
+    }
+
     // Phase B — State mutations (only reached if copy verified)
     const idx = appState.myFiles.indexOf(file);
     if (idx !== -1) appState.myFiles.splice(idx, 1);
