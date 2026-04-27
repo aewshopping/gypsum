@@ -35,6 +35,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     viewSelectElem.value = appState.viewState;
 
+    const sortSelectElem = document.querySelector('[data-action="sort-select"]');
+    const defaultSortProp = appState.sortState.property;
+    const defaultOption = document.createElement('option');
+    defaultOption.value = defaultSortProp;
+    defaultOption.textContent = FILE_PROPERTIES.get(defaultSortProp)?.label ?? defaultSortProp;
+    sortSelectElem.appendChild(defaultOption);
+    sortSelectElem.value = defaultSortProp;
+
+    const directionCheckbox = document.querySelector('[data-action="sort-direction-toggle"]');
+    directionCheckbox.checked = appState.sortState.direction === 'asc';
+
     const searchbox = document.getElementById("searchbox");
     const searchmode = appState.search.depth.searchMode;
     searchbox.placeholder = appState.search.depth.prompt[searchmode];    
