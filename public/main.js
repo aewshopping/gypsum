@@ -2,7 +2,8 @@ import { loadFileHandles } from './js/services/file-handler.js';
 import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
-import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from './js/services/store.js';
+import { appState, FILE_PROPERTIES } from './js/services/store.js';
+import { initSortSelect, populateSortSelect } from './js/services/ui/ui-elements-load/sort-select-load.js';
 import { renderFiles } from './js/ui/ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from './js/ui/event-listeners-add.js';
 import { VIEWS } from './js/constants.js';
@@ -35,16 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     viewSelectElem.value = appState.viewState;
 
-    const sortSelectElem = document.querySelector('[data-action="sort-select"]');
-    const defaultSortProp = appState.sortState.property;
-    const defaultOption = document.createElement('option');
-    defaultOption.value = defaultSortProp;
-    defaultOption.textContent = FILE_PROPERTIES.get(defaultSortProp)?.label ?? defaultSortProp;
-    sortSelectElem.appendChild(defaultOption);
-    sortSelectElem.value = defaultSortProp;
-
-    const directionCheckbox = document.querySelector('[data-action="sort-direction-toggle"]');
-    directionCheckbox.checked = appState.sortState.direction === 'asc';
+    initSortSelect();
 
     const searchbox = document.getElementById("searchbox");
     const searchmode = appState.search.depth.searchMode;
@@ -106,28 +98,3 @@ async function loadDirectoryData() {
     sortAppStateFiles(sortProp, sortType, sortDirection);
 }
 
-/**
- * Populates the sort-select dropdown with the properties found in the loaded files,
- * and syncs the sort-direction checkbox to match the current sort state.
- * @returns {void}
- */
-function populateSortSelect() {
-    const sortSelectElem = document.querySelector('[data-action="sort-select"]');
-    sortSelectElem.innerHTML = '';
-
-    const entries = [...appState.myFilesProperties.entries()]
-        .filter(([key]) => !TABLE_VIEW_COLUMNS.hidden_always.includes(key))
-        .sort(([, a], [, b]) => (a.display_order ?? 99) - (b.display_order ?? 99));
-
-    for (const [key, props] of entries) {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = props.label ?? key;
-        sortSelectElem.appendChild(option);
-    }
-
-    sortSelectElem.value = appState.sortState.property;
-
-    const directionCheckbox = document.querySelector('[data-action="sort-direction-toggle"]');
-    directionCheckbox.checked = appState.sortState.direction === 'asc';
-}
