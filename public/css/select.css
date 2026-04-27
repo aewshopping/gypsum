@@ -8,7 +8,7 @@ select, ::picker(select) {
     margin-bottom:20px;
 }
 
-#view-select {
+#view-select, #sort-select {
     min-width: 70px;
     font: 1.1em monospace;
 }
