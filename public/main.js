@@ -3,9 +3,10 @@ import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
+import { initSortSelect, populateSortSelect } from './js/ui/ui-elements-load/sort-select-load.js';
+import { initViewSelect } from './js/ui/ui-elements-load/views-select-load.js';
 import { renderFiles } from './js/ui/ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from './js/ui/event-listeners-add.js';
-import { VIEWS } from './js/constants.js';
 
 window.appState = appState; // exposed for debugging and tests
 
@@ -19,20 +20,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const loadFolderButton = document.querySelector('[data-click-loadfolder]');
     loadFolderButton.addEventListener('click', async function () {
         await loadDirectoryData();
+        populateSortSelect();
         renderFiles();
         addActionHandlers();
     });
 
-    const viewSelectElem = document.querySelector('[data-action="view-select"]');
-
-    for (const key in VIEWS) {
-        const option = document.createElement('option');
-        option.value = VIEWS[key].value;
-        option.textContent = VIEWS[key].label;
-        viewSelectElem.appendChild(option);
-    }
-
-    viewSelectElem.value = appState.viewState;
+    initViewSelect();
+    initSortSelect();
 
     const searchbox = document.getElementById("searchbox");
     const searchmode = appState.search.depth.searchMode;
@@ -51,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
  */
 async function conductor() {
     await loadData();
+    populateSortSelect();
     renderFiles();
     addActionHandlers();
 }
@@ -92,3 +87,4 @@ async function loadDirectoryData() {
 
     sortAppStateFiles(sortProp, sortType, sortDirection);
 }
+

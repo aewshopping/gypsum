@@ -12,6 +12,7 @@ import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside, handle
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
+import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
 import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
@@ -82,6 +83,8 @@ const changeActionHandlers = {
     'toggle-content-search': handleContentSearchToggle,
     'toggle-fullscreen': handleFullscreenToggle,
     'history-select-change': handleHistorySelectChange,
+    'sort-select': handleSortSelectChange,
+    'sort-direction-toggle': handleSortDirectionChange,
 };
 
 const keyUpActionHandlers = {
