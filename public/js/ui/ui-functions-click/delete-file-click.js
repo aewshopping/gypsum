@@ -92,7 +92,7 @@ export function handleDeleteFile(evt) {
     if (!file) return;
 
     showWarningModal(
-        `Delete "${file.filename}"? It will be moved to .gypsum/trash and can be recovered manually.`,
+        `Move "${file.filename}" to trash?`,
         'Delete',
         'Cancel',
         handleDeleteFileConfirmed,

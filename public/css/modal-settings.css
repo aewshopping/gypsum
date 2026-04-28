@@ -36,18 +36,4 @@
     cursor: not-allowed;
 }
 
-#modal-settings .modal-close-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background-color: transparent;
-    border: 1.5px solid transparent;
-    border-radius: 5px;
-    cursor: pointer;
-    color: var(--colour-compl-contr);
 
-    &:hover {
-        border: 1.5px solid var(--colour-compl-contr);
-        box-shadow: var(--hover-box-shadow);
-    }
-}

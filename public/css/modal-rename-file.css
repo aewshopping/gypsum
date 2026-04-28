@@ -1,6 +1,6 @@
 #modal-rename-file {
     margin: auto;
-    padding: 24px 28px;
+    padding: 4px 28px 24px 28px;
     border: 2px solid var(--colour-contr);
     border-radius: 6px;
     background-color: var(--colour-neutral-alt);
@@ -17,11 +17,6 @@
     flex-direction: column;
     gap: 12px;
     margin: 0;
-}
-
-.rename-title {
-    margin: 0 0 4px;
-    font-weight: 600;
 }
 
 .rename-field {
@@ -47,13 +42,12 @@
     border-radius: 4px;
     background: var(--colour-neutral);
     color: var(--colour-contr);
-    font: inherit;
+    font: 1.1em monospace;
     transition: background-color 0.15s, border-color 0.15s;
 }
 
-.rename-field input:user-invalid {
-    background: var(--colour-compl-alt-emph-light);
-    border-color: var(--colour-contr-warning);
+.rename-field input:user-invalid { /* This is a hack to give a visual indicator if form input has changed from initial value */
+    box-shadow: inset 0px 0px 0px 3px var(--colour-contr-warning);
 }
 
 .rename-error {
@@ -63,19 +57,8 @@
     font-size: 0.85em;
 }
 
-.rename-buttons {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.rename-buttons button {
-    padding: 6px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
 .rename-field-row button {
+    font: 0.9rem monospace;
     padding: 6px 16px;
     border-radius: 4px;
     cursor: pointer;
@@ -91,20 +74,14 @@
     }
 }
 
-.rename-button-cancel {
-    background-color: var(--colour-compl-alt-emph-light);
-    color: var(--colour-compl-emph-contr);
-    border: 2px solid transparent;
 
-    &:hover, &:focus-within {
-        background-color: var(--colour-compl-alt-emph);
-        border: 2px solid var(--colour-contr-warning);
-        color: var(--colour-compl-alt-emph-light);
-        box-shadow: 3px 3px 0px 0px var(--colour-contr-warning);
-    }
-}
 
 .rename-button-delete {
+    align-self: center;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font: 0.9rem monospace;
     background-color: var(--colour-compl-alt-emph-light);
     color: var(--colour-compl-emph-contr);
     border: 2px solid transparent;

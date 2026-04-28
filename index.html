@@ -28,7 +28,7 @@
           <label class="checkbox-no-show">
             <input type="checkbox" name="modalmaxscreen" id="modalmaxscreen" data-action="toggle-modal-maxscreen">
           </label>
-          <button id="modal-close-btn" data-action="close-file-content-modal">✕</button>
+          <button id="modal-close-btn" class="modal-close-btn" data-action="close-file-content-modal">✕</button>
         </div>
         <div id="modal-content-text" data-prop="content"></div>
       </div>
@@ -189,26 +189,26 @@
   </dialog>
 
   <dialog id="modal-rename-file" closedby="any">
+    <button class="modal-close-btn" data-action="rename-cancel">✕</button>
+    <h2>File options</h2>
     <form class="rename-form">
-      <p class="rename-title">Rename file</p>
       <div class="rename-field">
-        <label for="rename-folder-input">Folder</label>
+        <label for="rename-folder-input">Change folder:</label>
         <div class="rename-field-row">
           <input id="rename-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
-          <button type="button" data-action="rename-move-confirm">Move</button>
+          <button type="button" data-action="rename-move-confirm">move</button>
         </div>
       </div>
       <div class="rename-field">
-        <label for="rename-name-input">Filename</label>
+        <label for="rename-name-input">Change filename:</label>
         <div class="rename-field-row">
           <input id="rename-name-input" type="text" autocomplete="off">
-          <button type="button" data-action="rename-confirm">Rename</button>
+          <button type="button" data-action="rename-confirm">rename</button>
         </div>
       </div>
       <p id="rename-error-slot" class="rename-error"></p>
-      <div class="rename-buttons">
-        <button type="button" class="rename-button-delete" data-action="delete-file">Delete file</button>
-        <button type="button" class="rename-button-cancel" data-action="rename-cancel">Cancel</button>
+      <div class="flex-column">
+        <button type="button" class="rename-button-delete" data-action="delete-file">delete file</button>
       </div>
     </form>
   </dialog>

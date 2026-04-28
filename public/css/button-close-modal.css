@@ -1,4 +1,4 @@
-#modal-close-btn {
+.modal-close-btn {
     background-color: transparent;
     border:1.5px solid transparent;
     border-radius: 5px;
@@ -9,4 +9,10 @@
         border:1.5px solid var(--colour-compl-contr);
         box-shadow: var(--hover-box-shadow);
     }
+}
+
+#modal-settings .modal-close-btn,  #modal-rename-file .modal-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
 }
