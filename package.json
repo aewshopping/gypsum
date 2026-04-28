@@ -2,7 +2,7 @@
   "name": "gypsum",
   "scripts": {
     "setup-playwright": "sudo rm -f /etc/apt/sources.list.d/yarn.list && npm install && npx playwright install --with-deps chromium",
-    "test": "CODESPACE_NAME= npx playwright test"
+    "test": "CODESPACE_NAME= PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"
