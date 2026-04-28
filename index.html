@@ -25,8 +25,10 @@
 
           <select id="file-content-history-select" data-action="history-select-change"></select>
 
-          <label class="checkbox-no-show">
+          <label class="checkbox-minmax">
             <input type="checkbox" name="modalmaxscreen" id="modalmaxscreen" data-action="toggle-modal-maxscreen">
+            <svg class="minmax-svg modalmax-svg" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 115.2 113.3" width="115.2" height="113.3"><g stroke="#1e1e1e" stroke-width="6" fill="none" stroke-linecap="round"><g transform="translate(63.2 49.9)"><path d="M0 0C6.5-6.4 32.4-31.9 38.9-38.2M0 0C6.5-6.4 32.4-31.9 38.9-38.2"/></g><g transform="translate(49.3 63.8)"><path d="M0 0C-6 5.7-30.1 28.5-36.1 34.2M0 0C-6 5.7-30.1 28.5-36.1 34.2"/></g><g transform="translate(101.9 11.6)"><path d="M0 0C0.6 3.6 2.8 17.9 3.3 21.4M0 0C0.6 3.6 2.8 17.9 3.3 21.4"/></g><g transform="translate(100.6 10.3)"><path d="M0 0C-3.5-0.1-17.3-0.3-20.8-0.3M0 0C-3.5-0.1-17.3-0.3-20.8-0.3"/></g><g transform="translate(11.6 99)"><path d="M0 0C-0.3-4.1-1.3-20.5-1.6-24.6M0 0C-0.3-4.1-1.3-20.5-1.6-24.6"/></g><g transform="translate(14.5 100)"><path d="M0 0C3.9 0.6 19.5 2.8 23.4 3.3M0 0C3.9 0.6 19.5 2.8 23.4 3.3"/></g></g></svg>
+            <svg class="minmax-svg modalmin-svg" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 111 112.2" width="111" height="112.2"><g stroke="#1e1e1e" stroke-width="6" fill="none" stroke-linecap="round"><g transform="translate(10 102.2)"><path d="M0 0C6.5-6.4 32.4-31.9 38.9-38.2M0 0C6.5-6.4 32.4-31.9 38.9-38.2"/></g><g transform="translate(101 10)"><path d="M0 0C-6 5.7-30.1 28.5-36.1 34.2M0 0C-6 5.7-30.1 28.5-36.1 34.2"/></g><g transform="translate(48.7 64)"><path d="M0 0C0.6 3.6 2.8 17.9 3.3 21.4M0 0C0.6 3.6 2.8 17.9 3.3 21.4"/></g><g transform="translate(48.4 64.6)"><path d="M0 0C-3.5-0.1-17.3-0.3-20.8-0.3M0 0C-3.5-0.1-17.3-0.3-20.8-0.3"/></g><g transform="translate(63.3 45.2)"><path d="M0 0C-0.3-4.1-1.3-20.5-1.6-24.6M0 0C-0.3-4.1-1.3-20.5-1.6-24.6"/></g><g transform="translate(64.3 45.2)"><path d="M0 0C3.9 0.6 19.5 2.8 23.4 3.3M0 0C3.9 0.6 19.5 2.8 23.4 3.3"/></g></g></svg>
           </label>
           <button id="modal-close-btn" class="modal-close-btn" data-action="close-file-content-modal">✕</button>
         </div>
@@ -112,23 +114,28 @@
 
       </div>
     
-    <div class="flex-row sort-controls">
+    <div class="file-display-controls flex-row margin-bottom">
       <div class="flexgrow"></div>
 
-      <label class="select-label" for="sort-select">
-        <select id="sort-select" data-action="sort-select">
-        </select>
-      </label>
+      <div class="sort-controls">
+        sort:
+        <label for="sort-select">
+          <select id="sort-select" data-action="sort-select">
+          </select>
+        </label>
 
-      <label class="sort-direction-label" for="sort-direction">
-        <input type="checkbox" id="sort-direction" data-action="sort-direction-toggle">
-        asc
-      </label>
+          <label class="sort-direction-label" for="sort-direction">
+            <input type="checkbox" id="sort-direction" data-action="sort-direction-toggle">
+          </label>
+      </div>
 
-      <label class="select-label" for="view-select">
-        <select id="view-select" data-action="view-select">
-        </select>
-      </label>
+      <div class="view-controls">
+        view:
+        <label for="view-select">
+          <select id="view-select" data-action="view-select">
+          </select>
+        </label>
+      </div>
     </div>
 
 
