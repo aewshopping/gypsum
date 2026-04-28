@@ -188,27 +188,27 @@
     </div>
   </dialog>
 
-  <dialog id="modal-rename-file" closedby="any">
-    <button class="modal-close-btn" data-action="rename-cancel">✕</button>
+  <dialog id="modal-file-options" closedby="any">
+    <button class="modal-close-btn" data-action="file-options-cancel">✕</button>
     <h2>File options</h2>
-    <form class="rename-form">
-      <div class="rename-field">
-        <label for="rename-folder-input">Change folder:</label>
-        <div class="rename-field-row">
-          <input id="rename-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
-          <button type="button" data-action="rename-move-confirm">move</button>
+    <form class="file-options-form">
+      <div class="file-options-field">
+        <label for="file-options-folder-input">Change folder:</label>
+        <div class="file-options-field-row">
+          <input id="file-options-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
+          <button type="button" data-action="file-options-move-confirm">move</button>
         </div>
       </div>
-      <div class="rename-field">
+      <div class="file-options-field">
         <label for="rename-name-input">Change filename:</label>
-        <div class="rename-field-row">
+        <div class="file-options-field-row">
           <input id="rename-name-input" type="text" autocomplete="off">
           <button type="button" data-action="rename-confirm">rename</button>
         </div>
       </div>
-      <p id="rename-error-slot" class="rename-error"></p>
+      <p id="file-options-error-slot" class="file-options-error"></p>
       <div class="flex-column">
-        <button type="button" class="rename-button-delete" data-action="delete-file">delete file</button>
+        <button type="button" class="file-options-button-delete" data-action="delete-file">delete file</button>
       </div>
     </form>
   </dialog>

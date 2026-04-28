@@ -7,10 +7,10 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
 import { setOpenedFileId } from './open-file-content-view-trans.js';
 
-const dialogId = 'modal-rename-file';
-const folderInputId = 'rename-folder-input';
+const dialogId = 'modal-file-options';
+const folderInputId = 'file-options-folder-input';
 const nameInputId = 'rename-name-input';
-const errorSlotId = 'rename-error-slot';
+const errorSlotId = 'file-options-error-slot';
 const datalistId = 'gypsum-folders';
 
 function escapeForPattern(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, (c) => '\\' + c); }
@@ -79,12 +79,12 @@ function showError(message) {
 }
 
 /**
- * Handles a click on the rename button inside the history-select dropdown.
- * Opens the rename dialog pre-filled with the current file's folder and name.
+ * Handles a click on the file options button inside the history-select dropdown.
+ * Opens the file options dialog pre-filled with the current file's folder and name.
  * Gated on appState.dirHandle being set (mirrors save-file-copy.js:36).
  * @param {Event} evt
  */
-export function handleRenameOpen(evt) {
+export function handleFileOptionsOpen(evt) {
     evt.preventDefault();
     evt.stopPropagation();
     if (!appState.dirHandle) return;
@@ -224,10 +224,10 @@ export async function handleRenameConfirm(evt) {
 }
 
 /**
- * Closes the rename dialog without making any changes.
+ * Closes the file options dialog without making any changes.
  * @param {Event} evt
  */
-export function handleRenameCancel(evt) {
+export function handleFileOptionsCancel(evt) {
     evt.preventDefault();
     const dialog = getDialog();
     if (dialog) dialog.close();

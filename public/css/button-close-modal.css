@@ -11,7 +11,7 @@
     }
 }
 
-#modal-settings .modal-close-btn,  #modal-rename-file .modal-close-btn {
+#modal-settings .modal-close-btn,  #modal-file-options .modal-close-btn {
     position: absolute;
     top: 8px;
     right: 8px;

@@ -18,8 +18,8 @@ async function openFileAndRenameModal(page) {
   await expect(page.locator('#file-content-modal')).toBeVisible();
   await waitForHistoryOptions(page, 1);
   // The rename button lives inside the history-select option element
-  await page.evaluate(() => document.getElementById('rename-file-btn').click());
-  await expect(page.locator('#modal-rename-file')).toBeVisible();
+  await page.evaluate(() => document.getElementById('file-options-btn').click());
+  await expect(page.locator('#modal-file-options')).toBeVisible();
 }
 
 test.describe('delete file', () => {

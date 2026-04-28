@@ -28,7 +28,7 @@ import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } f
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
-import { handleRenameOpen, handleRenameConfirm, handleRenameCancel, handleMoveConfirm } from './ui-functions-click/rename-file-click.js';
+import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 
 /**
@@ -72,10 +72,10 @@ const clickActionHandlers = {
     'editor-redo': handleEditorRedo,
     'show-tag-taxonomy': handleShowTagTaxonomy,
     'hide-tag-taxonomy': handleHideTagTaxonomy,
-    'rename-file': handleRenameOpen,
-    'rename-move-confirm': handleMoveConfirm,
+    'file-options-open': handleFileOptionsOpen,
+    'file-options-move-confirm': handleMoveConfirm,
     'rename-confirm': handleRenameConfirm,
-    'rename-cancel': handleRenameCancel,
+    'file-options-cancel': handleFileOptionsCancel,
     'delete-file': handleDeleteFile,
     'create-new-note': handleCreateNewNote,
 };

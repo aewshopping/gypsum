@@ -50,7 +50,7 @@
         background: var(--colour-neutral-alt);
 
         .opt-version,
-        #rename-file-btn {
+        #file-options-btn {
             margin-right: 4px;
             text-align: right;
         }
@@ -68,7 +68,7 @@
 
     }
 
-    &:has(#rename-file-btn:hover) {
+    &:has(#file-options-btn:hover) {
         background: var(--colour-contr);
         color: var(--colour-neutral-alt);
 
@@ -104,7 +104,7 @@
     border-radius: 10px;
 }
 
-#rename-file-btn {
+#file-options-btn {
     cursor: pointer;
     font: 1em monospace;
     margin-block: 6px;

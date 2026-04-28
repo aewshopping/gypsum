@@ -1,4 +1,4 @@
-#modal-rename-file {
+#modal-file-options {
     margin: auto;
     padding: 4px 28px 24px 28px;
     border: 2px solid var(--colour-contr);
@@ -8,35 +8,35 @@
     min-width: 320px;
 }
 
-#modal-rename-file::backdrop {
+#modal-file-options::backdrop {
     background: rgba(0, 0, 0, 0.65);
 }
 
-.rename-form {
+.file-options-form {
     display: flex;
     flex-direction: column;
     gap: 12px;
     margin: 0;
 }
 
-.rename-field {
+.file-options-field {
     display: flex;
     flex-direction: column;
     gap: 4px;
     font-size: 0.9em;
 }
 
-.rename-field-row {
+.file-options-field-row {
     display: flex;
     gap: 8px;
     align-items: stretch;
 }
 
-.rename-field-row input {
+.file-options-field-row input {
     flex: 1;
 }
 
-.rename-field input {
+.file-options-field input {
     padding: 6px 8px;
     border: 1px solid var(--colour-contr);
     border-radius: 4px;
@@ -46,18 +46,18 @@
     transition: background-color 0.15s, border-color 0.15s;
 }
 
-.rename-field input:user-invalid { /* This is a hack to give a visual indicator if form input has changed from initial value */
+.file-options-field input:user-invalid { /* This is a hack to give a visual indicator if form input has changed from initial value */
     box-shadow: inset 0px 0px 0px 3px var(--colour-contr-warning);
 }
 
-.rename-error {
+.file-options-error {
     margin: 0;
     min-height: 1em;
     color: var(--colour-contr-warning);
     font-size: 0.85em;
 }
 
-.rename-field-row button {
+.file-options-field-row button {
     font: 0.9rem monospace;
     padding: 6px 16px;
     border-radius: 4px;
@@ -76,7 +76,7 @@
 
 
 
-.rename-button-delete {
+.file-options-button-delete {
     align-self: center;
     padding: 6px 16px;
     border-radius: 4px;
