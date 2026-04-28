@@ -1,12 +1,14 @@
 .showall {
 	position:absolute;
-	top:-13px;
+	top:0%;
+	transform: translateY(-50%);
 	right:10px;
 	cursor:pointer;
 	color: var(--colour-contr);
 	background-color:var(--colour-neutral);
 	border: 2px solid var(--colour-compl-emph);
 	border-radius: 6px;
+	font: 1em monospace;
 	&:hover {
 		color: var(--colour-compl-emph-contr);
 		background-color: var(--colour-compl-emph-light);

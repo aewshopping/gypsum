@@ -70,7 +70,7 @@ async function handleDeleteFileConfirmed() {
 
     // Phase C — Close modals
     setOpenedFileId(null);
-    document.getElementById('modal-rename-file')?.close();
+    document.getElementById('modal-file-options')?.close();
     doClose(); // captures openFileSnapshot synchronously, saves close-backup entry
 
     // Phase D — Post-close cleanup

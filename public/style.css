@@ -13,7 +13,7 @@
 @import url("css/tags.css");
 @import url("css/filters.css");
 @import url("css/select.css");
-@import url("css/sort-controls.css");
+@import url("css/file-display-controls.css");
 @import url("css/switch-filter-toggle.css");
 @import url("css/switch-text-toggle.css");
 @import url("css/snippet.css");
@@ -24,7 +24,7 @@
 @import url("css/searchbox.css");
 @import url("css/modal-file-content-footer-header.css");
 @import url("css/modal-unsaved-warning.css");
-@import url("css/modal-rename-file.css");
+@import url("css/modal-file-options.css");
 @import url("css/modal-settings.css");
 @import url("css/modal-history-select.css");
 @import url("css/copy-filename.css");
@@ -33,7 +33,7 @@
 @import url("css/button-save.css");
 @import url("css/button-close-modal.css");
 @import url("css/button-press.css");
-@import url("css/checkbox.css");
+@import url("css/checkbox-minmax.css");
 @import url("css/checkbox-contentsearch.css");
 @import url("css/pagination.css");
 @import url("css/button-new-note.css");

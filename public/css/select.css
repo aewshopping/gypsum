@@ -3,15 +3,6 @@ select, ::picker(select) {
 	appearance: base-select;
 }
 
-.select-label {
-    margin-inline: 10px;
-    margin-bottom:20px;
-}
-
-#view-select, #sort-select {
-    min-width: 70px;
-    font: 1.1em monospace;
-}
 
 option:checked {
   font-weight: bold;

@@ -3,7 +3,7 @@
     anchor-name: --save-btn;
 
     &::after {
-        content: "→";
+        content: "➜"; /* U+0279C */        
         display: inline-block;
         padding-left: 3px;
         width: 1.2em;
