@@ -10,11 +10,11 @@ import { saveBackupEntry } from '../../editing/local-backup.js';
 import { resetAutosave, deleteTempFileIfExists } from '../../editing/autosave.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
+import { showWarningModal } from './warning-modal.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const scrollingContent = document.getElementById("modal-content");
-const warningDialog = document.getElementById('modal-unsaved-warning');
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
 
@@ -138,7 +138,7 @@ export function handeCloseModalOutside(event, target) {
  * Runs the view transition that closes the file content modal.
  * @returns {void}
  */
-function doClose() {
+export function doClose() {
 
   resetAutosave();
 
@@ -198,8 +198,7 @@ function doClose() {
 export function handleCloseModal() {
 
   if (hasUnsavedChanges()) {
-    warningDialog.showModal();
-    warningDialog.focus();
+    showWarningModal('You have unsaved changes', 'Discard changes', 'Keep editing', doClose);
     return;
   }
   doClose();
@@ -209,24 +208,3 @@ export function handleCloseModal() {
 
 
 
-/**
- * Handles the "Discard changes" button in the unsaved changes warning dialog.
- * Closes the warning and proceeds with closing the file content modal.
- * @returns {void}
- */
-export function handleDiscardChanges() {
-  warningDialog.close();
-  doClose();
-}
-
-
-
-
-/**
- * Handles the "Keep editing" button in the unsaved changes warning dialog.
- * Closes the warning and returns focus to the file content modal.
- * @returns {void}
- */
-export function handleKeepEditing() {
-  warningDialog.close();
-}

@@ -484,4 +484,58 @@ async function setupMockDirectoryWithHistoryAndSave(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave };
+/**
+ * Directory mock with full delete support. Tracks files written to .gypsum/trash/
+ * in window.__trashFiles (name → content string). Also handles history.gypsum
+ * for the close-backup entry written by doClose() on delete confirmation.
+ *
+ * Directory structure:
+ *   root/
+ *     notes.md  (single file with a tag)
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithDeleteSupport(page) {
+  await page.addInitScript(() => {
+    window.__trashFiles = {};
+    window.__backupFileContent = '';
+    const fileContent = '# My Notes\nSome content here #work/project';
+    const makeFile = (name, content) => ({
+      kind: 'file', name,
+      getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
+    });
+    const backupHandle = {
+      getFile: async () => ({ text: async () => window.__backupFileContent }),
+      createWritable: async () => ({ write: async (c) => { window.__backupFileContent = c; }, close: async () => {} }),
+    };
+    const trashDirHandle = {
+      getFileHandle: async (name, _options) => {
+        if (!(name in window.__trashFiles)) window.__trashFiles[name] = '';
+        return {
+          getFile: async () => ({ text: async () => window.__trashFiles[name] }),
+          createWritable: async () => ({ write: async (c) => { window.__trashFiles[name] = c; }, close: async () => {} }),
+        };
+      },
+    };
+    const gypsumDirHandle = {
+      getFileHandle: async (name, _options) => {
+        if (name === 'history.gypsum') return backupHandle;
+        throw new Error(`Unexpected getFileHandle in .gypsum: ${name}`);
+      },
+      getDirectoryHandle: async (name, _options) => {
+        if (name === 'trash') return trashDirHandle;
+        throw new Error(`Unexpected getDirectoryHandle in .gypsum: ${name}`);
+      },
+    };
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { yield makeFile('notes.md', fileContent); },
+      getDirectoryHandle: async (name, _options) => {
+        if (name === '.gypsum') return gypsumDirHandle;
+        throw new Error(`Unexpected getDirectoryHandle: ${name}`);
+      },
+    });
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport };

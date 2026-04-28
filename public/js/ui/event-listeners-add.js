@@ -8,7 +8,9 @@ import { handleTagClick } from './ui-functions-click/tag-filter-click.js';
 import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.js';
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
-import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside, handleDiscardChanges, handleKeepEditing } from './ui-functions-click/open-file-content-view-trans.js';
+import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
+import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/warning-modal.js';
+import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleSortObject } from './ui-functions-click/sort-object.js';
@@ -54,8 +56,8 @@ const clickActionHandlers = {
     'open-file-content-modal': handleOpenFileContent,
     'close-file-content-modal': handleCloseModal,
     'close-file-content-outside': handeCloseModalOutside,
-    'discard-modal-changes': handleDiscardChanges,
-    'keep-modal-editing': handleKeepEditing,
+    'warning-proceed': handleWarningProceed,
+    'warning-cancel': handleWarningCancel,
     'sort-object': handleSortObject,
     'toggle-render-text': handleToggleRenderText,
     'searchbox-search': handleSearchBoxClick,
@@ -74,6 +76,7 @@ const clickActionHandlers = {
     'rename-move-confirm': handleMoveConfirm,
     'rename-confirm': handleRenameConfirm,
     'rename-cancel': handleRenameCancel,
+    'delete-file': handleDeleteFile,
     'create-new-note': handleCreateNewNote,
 };
 

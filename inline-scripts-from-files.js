@@ -27,7 +27,7 @@ try {
   
   const cssLinkTag = '<link rel="stylesheet" href="public/style.css">';
   htmlContent = htmlContent.replace(cssLinkTag, `<style>${cssContent}</style>`);
-  
+
   const jsScriptTag = '<script type="module" src="public/main.js"></script>';
   htmlContent = htmlContent.replace(jsScriptTag, `<script>${jsContent}</script>`);
   
