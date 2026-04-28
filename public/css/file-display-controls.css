@@ -1,6 +1,7 @@
 .file-display-controls {
     display: flex;
-    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap:10px;
     margin-bottom: 20px;
     font: 1.1em monospace;
