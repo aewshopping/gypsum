@@ -112,7 +112,7 @@ test.describe('tag autocomplete — editor', () => {
     await setupMockFiles(page);
     await page.goto('/');
     await openEditorInTextMode(page);
-    await typeInEditor(page, ' #p');
+    await typeInEditor(page, ' #per');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Enter');
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
@@ -124,7 +124,7 @@ test.describe('tag autocomplete — editor', () => {
     await setupMockFiles(page);
     await page.goto('/');
     await openEditorInTextMode(page);
-    await typeInEditor(page, ' #p');
+    await typeInEditor(page, ' #per');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
@@ -200,7 +200,7 @@ test.describe('tag autocomplete — searchbox', () => {
     await setupMockFiles(page);
     await page.goto('/');
     await loadFiles(page);
-    await page.fill('#searchbox', 'tags:p');
+    await page.fill('#searchbox', 'tags:per');
     await page.locator('#searchbox').press('Tab');
     await page.locator('#searchbox').press('Tab');
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
