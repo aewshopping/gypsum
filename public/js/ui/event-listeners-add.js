@@ -30,12 +30,14 @@ import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
+import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
  * This function is called once when the application starts.
  */
 export function addActionHandlers() {
+    initTagAutocomplete();
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
     document.addEventListener("keydown", keyDownDelegate);
@@ -98,6 +100,7 @@ const keyUpActionHandlers = {
 
 const inputActionHandlers = {
     'file-content-edit': handleFileContentInput,
+    'search-files': handleSearchboxAutocomplete,
 };
 
 /**
@@ -106,6 +109,7 @@ const inputActionHandlers = {
  * @param {Event} evt The click event.
  */
 function clickDelegate(evt) {
+    handleAutocompleteClickOutside(evt);
     // Finds the closest element (starting from the target) with the data-action attribute
     const actionElement = evt.target.closest('[data-action]');
 
@@ -144,6 +148,7 @@ function changeDelegate(evt) {
  * @param {KeyboardEvent} evt
  */
 function keyDownDelegate(evt) {
+    if (handleAutocompleteKeydown(evt)) return;
     if (evt.ctrlKey || evt.metaKey) {
         if (evt.key === 's') {
             evt.preventDefault();

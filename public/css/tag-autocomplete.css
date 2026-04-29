@@ -1,0 +1,41 @@
+#tag-ac-proxy {
+    anchor-name: --tag-ac-editor;
+    position: fixed;
+    width: 0;
+    height: 1lh;
+    pointer-events: none;
+}
+
+#searchbox {
+    anchor-name: --tag-ac-search;
+}
+
+.tag-autocomplete-popup {
+    position: fixed;
+    inset: auto;
+    top: anchor(bottom);
+    left: anchor(left);
+    margin-top: 4px;
+    z-index: 100;
+    background-color: var(--colour-neutral);
+    border: 1.5px solid var(--colour-contr);
+    border-radius: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+    min-width: 180px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 0.9em;
+}
+
+.tag-autocomplete-item {
+    padding: 5px 12px;
+    cursor: pointer;
+    color: var(--colour-contr);
+    white-space: nowrap;
+}
+
+.tag-autocomplete-item:hover,
+.tag-autocomplete-item[data-active="true"] {
+    background-color: var(--colour-contr);
+    color: var(--colour-neutral);
+}
