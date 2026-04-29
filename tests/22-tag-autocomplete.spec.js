@@ -37,6 +37,28 @@ test.describe('tag autocomplete — editor', () => {
     await expect(page.locator('.tag-autocomplete-popup')).toContainText('personal');
   });
 
+  test('popup appears when typing # at the start of a line (after a <br>)', async ({ page }) => {
+    await setupMockFiles(page);
+    await page.goto('/');
+    await openEditorInTextMode(page);
+    // The renderer converts \n → <br> in the pre's innerHTML.
+    // Place the caret directly after the first <br> so the bug is isolated:
+    // Range.toString() drops <br> nodes, making '#' look mid-word to the regex.
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      const br = pre.querySelector('br');
+      const range = document.createRange();
+      range.setStartAfter(br);
+      range.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      pre.focus();
+    });
+    await page.keyboard.type('#p');
+    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
+  });
+
   test('popup appears on bare # (shows all tags)', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');

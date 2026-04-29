@@ -41,7 +41,10 @@ export function handleEditorAutocomplete(evt) {
     const preRange = document.createRange();
     preRange.setStart(evt.target, 0);
     preRange.setEnd(caret.startContainer, caret.startOffset);
-    const textBeforeCaret = preRange.toString();
+    // Range.toString() drops <br> elements (they have no text content), so '#' typed
+    // right after a <br> would appear to follow the last character of the previous line,
+    // causing the mid-word guard to suppress the trigger. Walk the fragment instead.
+    const textBeforeCaret = _fragmentToText(preRange.cloneContents());
 
     const trigger = detectEditorTrigger(textBeforeCaret);
     if (!trigger) { _dismiss(); return; }
@@ -172,4 +175,20 @@ function _updateEditorProxy(caret) {
     const rect = rects[0];
     _proxy.style.left = `${rect.left}px`;
     _proxy.style.top  = `${rect.top}px`;
+}
+
+/**
+ * Converts a DOM node (typically a DocumentFragment from Range.cloneContents()) to a
+ * plain-text string, substituting '\n' for <br> elements. Range.toString() is not used
+ * here because it silently drops <br> nodes, causing '#' at the start of a rendered line
+ * to appear mid-word to the trigger regex.
+ * @param {Node} node
+ * @returns {string}
+ */
+function _fragmentToText(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.data;
+    if (node.nodeName === 'BR') return '\n';
+    let out = '';
+    for (const child of node.childNodes) out += _fragmentToText(child);
+    return out;
 }
