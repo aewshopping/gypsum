@@ -10,12 +10,34 @@
     anchor-name: --tag-ac-search;
 }
 
+@position-try --ac-flip-up {
+    top: auto;
+    bottom: anchor(top);
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+@position-try --ac-flip-left {
+    left: auto;
+    right: anchor(right);
+}
+
+@position-try --ac-flip-up-left {
+    top: auto;
+    bottom: anchor(top);
+    left: auto;
+    right: anchor(right);
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
 .tag-autocomplete-popup {
     position: fixed;
     inset: auto;
     top: anchor(bottom);
     left: anchor(left);
     margin-top: 4px;
+    position-try-fallbacks: --ac-flip-up, --ac-flip-left, --ac-flip-up-left;
     z-index: 100;
     background-color: var(--colour-neutral);
     border: 1.5px solid var(--colour-contr);
