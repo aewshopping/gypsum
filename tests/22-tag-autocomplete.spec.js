@@ -336,6 +336,48 @@ test.describe('tag autocomplete — searchbox', () => {
 
 });
 
+test.describe('tag autocomplete — tag list contents', () => {
+
+  test('child-only tag and same-name parented tag both show as the bare child name once', async ({ page }) => {
+    // File 1 has #brie (orphan), File 2 has #cheese/brie (parented).
+    // buildParentMap classifies 'brie' as a family tag (appears under cheese),
+    // so the old code never emitted the bare 'brie' entry. The fix uses the
+    // 'all' key which deduplicates to the child name regardless of parenting.
+    await page.addInitScript(() => {
+      window.showOpenFilePicker = async () => [
+        {
+          getFile: async () => ({
+            name: 'a.md', size: 10, lastModified: Date.now(),
+            text: async () => '# A\n#brie',
+          }),
+        },
+        {
+          getFile: async () => ({
+            name: 'b.md', size: 10, lastModified: Date.now(),
+            text: async () => '# B\n#cheese/brie',
+          }),
+        },
+      ];
+    });
+    await page.goto('/');
+    await page.click('[data-click-loadfiles]');
+    await page.locator('.note-grid').first().click();
+    await page.evaluate(() => {
+      const t = document.getElementById('render_toggle');
+      if (!t.checked) t.click();
+    });
+    await expect(page.locator('#modal-content-text pre')).toBeVisible();
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(' #b');
+    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
+    // 'brie' should appear exactly once (not as 'cheese/brie')
+    await expect(page.locator('.tag-autocomplete-item')).toHaveCount(1);
+    await expect(page.locator('.tag-autocomplete-item').first()).toHaveText('brie');
+  });
+
+});
+
 test.describe('tag autocomplete — regression guards', () => {
 
   test('Enter search still works after autocomplete popup is dismissed', async ({ page }) => {
