@@ -38,13 +38,11 @@ export function handleEditorAutocomplete(evt) {
     if (!sel.rangeCount) { _dismiss(); return; }
 
     const caret = sel.getRangeAt(0);
-    const preRange = document.createRange();
-    preRange.setStart(evt.target, 0);
-    preRange.setEnd(caret.startContainer, caret.startOffset);
     // Range.toString() drops <br> elements (they have no text content), so '#' typed
     // right after a <br> would appear to follow the last character of the previous line,
-    // causing the mid-word guard to suppress the trigger. Walk the fragment instead.
-    const textBeforeCaret = _fragmentToText(preRange.cloneContents());
+    // causing the mid-word guard to suppress the trigger. Walk the live DOM instead —
+    // no cloneContents() allocation, stops as soon as the caret node is reached.
+    const textBeforeCaret = _textBeforeCaret(evt.target, caret);
 
     const trigger = detectEditorTrigger(textBeforeCaret);
     if (!trigger) { _dismiss(); return; }
@@ -178,17 +176,31 @@ function _updateEditorProxy(caret) {
 }
 
 /**
- * Converts a DOM node (typically a DocumentFragment from Range.cloneContents()) to a
- * plain-text string, substituting '\n' for <br> elements. Range.toString() is not used
- * here because it silently drops <br> nodes, causing '#' at the start of a rendered line
- * to appear mid-word to the trigger regex.
- * @param {Node} node
+ * Returns the text content of `pre` up to (but not including) the caret position,
+ * substituting '\n' for each <br> element. Walks the live DOM without cloning —
+ * no per-keystroke allocations regardless of file size.
+ * @param {HTMLElement} pre
+ * @param {Range} caret - Collapsed range at the cursor position.
  * @returns {string}
  */
-function _fragmentToText(node) {
-    if (node.nodeType === Node.TEXT_NODE) return node.data;
-    if (node.nodeName === 'BR') return '\n';
+function _textBeforeCaret(pre, caret) {
+    const stopNode = caret.startContainer;
+    const stopOffset = caret.startOffset;
     let out = '';
-    for (const child of node.childNodes) out += _fragmentToText(child);
+    let done = false;
+
+    function walk(node) {
+        if (done) return;
+        if (node === stopNode) {
+            if (node.nodeType === Node.TEXT_NODE) out += node.data.slice(0, stopOffset);
+            done = true;
+            return;
+        }
+        if (node.nodeType === Node.TEXT_NODE) { out += node.data; return; }
+        if (node.nodeName === 'BR') { out += '\n'; return; }
+        for (const child of node.childNodes) { walk(child); if (done) return; }
+    }
+
+    walk(pre);
     return out;
 }
