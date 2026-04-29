@@ -1,6 +1,7 @@
 import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
+import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { updateMyFilesProperties } from './file-props.js';
 
 /**
@@ -60,6 +61,7 @@ export async function loadFileHandles() {
     updateMyFilesProperties(appState.myFiles[0], 1); // to build table view, with columns showing file properties
 
     appState.myParentMap = buildParentMap(appState.myFiles);
+    invalidateTagCache();
 
     const endTime = performance.now();
     const timeTaken = endTime - startTime; 

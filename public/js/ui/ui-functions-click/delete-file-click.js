@@ -3,6 +3,7 @@ import { showWarningModal } from './warning-modal.js';
 import { doClose, setOpenedFileId } from './open-file-content-view-trans.js';
 import { resolveTargetDir, copyFile } from '../../editing/rename-file.js';
 import { buildParentMap } from '../../services/file-parsing/tag-taxon.js';
+import { invalidateTagCache } from '../../autocomplete/tag-cache.js';
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
 import { SAVE_FOLDER } from '../../constants.js';
 
@@ -67,6 +68,7 @@ async function handleDeleteFileConfirmed() {
     }
 
     appState.myParentMap = buildParentMap(appState.myFiles);
+    invalidateTagCache();
 
     // Phase C — Close modals
     setOpenedFileId(null);

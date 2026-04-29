@@ -1,6 +1,7 @@
 import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
+import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { updateMyFilesProperties } from './file-props.js';
 
 /**
@@ -62,6 +63,7 @@ export async function loadDirectoryFileHandles() {
     updateMyFilesProperties(appState.myFiles[0], 1);
 
     appState.myParentMap = buildParentMap(appState.myFiles);
+    invalidateTagCache();
 
     const endTime = performance.now();
     const durationSec = ((endTime - startTime) / 1000).toFixed(2);

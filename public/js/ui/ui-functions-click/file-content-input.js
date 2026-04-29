@@ -1,6 +1,7 @@
 import { appState } from '../../services/store.js';
 import { scheduleAutosave } from '../../editing/autosave.js';
 import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
+import { handleEditorAutocomplete } from '../../autocomplete/tag-autocomplete.js';
 
 /**
  * Updates dirty state and the unsaved indicator on each edit.
@@ -19,6 +20,7 @@ export function handleFileContentInput(evt) {
     if (pre.textContent.length !== session.openTextLen) {
         // Fast path: length mismatch means content definitely changed — no innerText read needed
         if (!session.isDirty) { session.isDirty = true; updateUnsavedIndicator(); }
+        handleEditorAutocomplete(evt);
         return;
     }
     // Slow path: same textContent length — might have reverted; innerText read required
@@ -26,4 +28,5 @@ export function handleFileContentInput(evt) {
     session.activeRaw = session.liveRaw;
     session.isDirty = session.liveRaw.trimEnd() !== session.openNormalized;
     updateUnsavedIndicator();
+    handleEditorAutocomplete(evt);
 }
