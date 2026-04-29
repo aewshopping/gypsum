@@ -176,31 +176,38 @@ function _updateEditorProxy(caret) {
 }
 
 /**
- * Returns the text content of `pre` up to (but not including) the caret position,
- * substituting '\n' for each <br> element. Walks the live DOM without cloning —
- * no per-keystroke allocations regardless of file size.
+ * Returns enough text before the caret to evaluate the trigger regex, substituting
+ * '\n' for <br> elements. Walks BACKWARD from the caret and stops at the first
+ * space, newline, or start-of-pre — so it is O(1) for natural-language text
+ * regardless of file size (you hit a word boundary within a word or two).
  * @param {HTMLElement} pre
  * @param {Range} caret - Collapsed range at the cursor position.
  * @returns {string}
  */
 function _textBeforeCaret(pre, caret) {
-    const stopNode = caret.startContainer;
-    const stopOffset = caret.startOffset;
-    let out = '';
-    let done = false;
+    const { startContainer, startOffset } = caret;
 
-    function walk(node) {
-        if (done) return;
-        if (node === stopNode) {
-            if (node.nodeType === Node.TEXT_NODE) out += node.data.slice(0, stopOffset);
-            done = true;
-            return;
+    // Collect text in the caret's own node up to the caret position.
+    let suffix = startContainer.nodeType === Node.TEXT_NODE
+        ? startContainer.data.slice(0, startOffset)
+        : '';
+
+    // If a word boundary is already present we have enough context; return early.
+    if (suffix.includes(' ') || suffix.includes('\n')) return suffix;
+
+    // Walk backward through preceding siblings until a boundary is found.
+    let sib = startContainer.nodeType === Node.TEXT_NODE
+        ? startContainer.previousSibling
+        : (startOffset > 0 ? pre.childNodes[startOffset - 1] : null);
+
+    while (sib) {
+        if (sib.nodeName === 'BR') { suffix = '\n' + suffix; break; }
+        if (sib.nodeType === Node.TEXT_NODE) {
+            suffix = sib.data + suffix;
+            if (sib.data.includes(' ') || sib.data.includes('\n')) break;
         }
-        if (node.nodeType === Node.TEXT_NODE) { out += node.data; return; }
-        if (node.nodeName === 'BR') { out += '\n'; return; }
-        for (const child of node.childNodes) { walk(child); if (done) return; }
+        sib = sib.previousSibling;
     }
 
-    walk(pre);
-    return out;
+    return suffix;
 }
