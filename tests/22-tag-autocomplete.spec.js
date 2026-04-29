@@ -59,6 +59,74 @@ test.describe('tag autocomplete — editor', () => {
     await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
   });
 
+  test('popup appears after a <br> that follows a very long space-free line (base64 scenario)', async ({ page }) => {
+    // A base64-encoded image produces one massive line with no spaces. Without a
+    // character cap on the backward walk, typing '#' on the NEXT line would still
+    // scan or allocate the entire preceding text. Verify correctness is preserved.
+    const longLine = 'A'.repeat(5000); // simulate base64 — no spaces, no newlines
+    await page.addInitScript((line) => {
+      window.showOpenFilePicker = async () => [{
+        getFile: async () => ({
+          name: 'base64-test.md',
+          size: line.length + 10,
+          lastModified: Date.now(),
+          text: async () => `${line}\nsome text #personal`,
+        }),
+      }];
+    }, longLine);
+    await page.goto('/');
+    await page.click('[data-click-loadfiles]');
+    await page.locator('.note-grid').first().click();
+    await page.evaluate(() => {
+      const t = document.getElementById('render_toggle');
+      if (!t.checked) t.click();
+    });
+    await expect(page.locator('#modal-content-text pre')).toBeVisible();
+    // Place caret after the <br> that follows the long line (start of "some text...")
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      const br = pre.querySelector('br');
+      const range = document.createRange();
+      range.setStartAfter(br);
+      range.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      pre.focus();
+    });
+    await page.keyboard.type('#p');
+    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
+  });
+
+  test('popup does not appear when # is preceded only by base64-like characters on the same line', async ({ page }) => {
+    // Typing '#' immediately after a long run of alphanumerics (no space/newline
+    // boundary within the lookback window) must not trigger autocomplete.
+    const longLine = 'A'.repeat(5000);
+    await page.addInitScript((line) => {
+      window.showOpenFilePicker = async () => [{
+        getFile: async () => ({
+          name: 'base64-test.md',
+          size: line.length,
+          lastModified: Date.now(),
+          text: async () => line,
+        }),
+      }];
+    }, longLine);
+    await page.goto('/');
+    await page.click('[data-click-loadfiles]');
+    await page.locator('.note-grid').first().click();
+    await page.evaluate(() => {
+      const t = document.getElementById('render_toggle');
+      if (!t.checked) t.click();
+    });
+    await expect(page.locator('#modal-content-text pre')).toBeVisible();
+    // Place caret at the end of the long line and type '#p'
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('#p');
+    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
+  });
+
   test('popup appears on bare # (shows all tags)', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');

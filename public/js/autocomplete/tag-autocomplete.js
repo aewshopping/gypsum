@@ -177,33 +177,36 @@ function _updateEditorProxy(caret) {
 
 /**
  * Returns enough text before the caret to evaluate the trigger regex, substituting
- * '\n' for <br> elements. Walks BACKWARD from the caret and stops at the first
- * space, newline, or start-of-pre — so it is O(1) for natural-language text
- * regardless of file size (you hit a word boundary within a word or two).
+ * '\n' for <br> elements. Collects at most MAX chars working backward from the caret,
+ * stopping earlier at the first space/newline. This keeps cost O(1) regardless of
+ * file size or line length — including pathological cases like base64-encoded images
+ * which form one huge space-free line (those would cause a large allocation and
+ * full-line scan without the cap).
  * @param {HTMLElement} pre
  * @param {Range} caret - Collapsed range at the cursor position.
  * @returns {string}
  */
 function _textBeforeCaret(pre, caret) {
     const { startContainer, startOffset } = caret;
+    const MAX = 200; // ample for any tag name + boundary; caps cost on long lines
 
-    // Collect text in the caret's own node up to the caret position.
+    // Take up to MAX chars from the caret's own text node, working backward.
     let suffix = startContainer.nodeType === Node.TEXT_NODE
-        ? startContainer.data.slice(0, startOffset)
+        ? startContainer.data.slice(Math.max(0, startOffset - MAX), startOffset)
         : '';
 
-    // If a word boundary is already present we have enough context; return early.
-    if (suffix.includes(' ') || suffix.includes('\n')) return suffix;
+    if (suffix.length >= MAX || suffix.includes(' ') || suffix.includes('\n')) return suffix;
 
-    // Walk backward through preceding siblings until a boundary is found.
+    // Walk backward through preceding siblings, staying within the MAX budget.
     let sib = startContainer.nodeType === Node.TEXT_NODE
         ? startContainer.previousSibling
         : (startOffset > 0 ? pre.childNodes[startOffset - 1] : null);
 
-    while (sib) {
+    while (sib && suffix.length < MAX) {
         if (sib.nodeName === 'BR') { suffix = '\n' + suffix; break; }
         if (sib.nodeType === Node.TEXT_NODE) {
-            suffix = sib.data + suffix;
+            const take = Math.min(sib.data.length, MAX - suffix.length);
+            suffix = sib.data.slice(sib.data.length - take) + suffix;
             if (sib.data.includes(' ') || sib.data.includes('\n')) break;
         }
         sib = sib.previousSibling;
