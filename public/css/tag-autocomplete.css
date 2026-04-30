@@ -52,12 +52,17 @@
 .tag-autocomplete-item {
     padding: 5px 12px;
     cursor: pointer;
-    color: var(--colour-contr);
+    color: color-mix(in srgb, var(--colour-contr) 70%, transparent 30%);
     white-space: nowrap;
 }
 
-.tag-autocomplete-item:hover,
-.tag-autocomplete-item[data-active="true"] {
+.tag-autocomplete-match {
+    font-weight: bold;
+    color: var(--colour-contr);
+}
+
+.tag-autocomplete-item:is(:hover, [data-active="true"]),
+.tag-autocomplete-item:is(:hover, [data-active="true"]) .tag-autocomplete-match {
     background-color: var(--colour-contr);
     color: var(--colour-neutral);
 }

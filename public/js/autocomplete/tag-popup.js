@@ -9,7 +9,7 @@ function highlightMatch(tag, query) {
     if (!query) return tag;
     const i = tag.toLowerCase().indexOf(query.toLowerCase());
     if (i === -1) return tag;
-    return tag.slice(0, i) + '<b>' + tag.slice(i, i + query.length) + '</b>' + tag.slice(i + query.length);
+    return tag.slice(0, i) + '<span class="tag-autocomplete-match">' + tag.slice(i, i + query.length) + '</span>' + tag.slice(i + query.length);
 }
 
 /**
