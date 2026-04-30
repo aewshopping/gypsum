@@ -127,12 +127,12 @@ test.describe('tag autocomplete — editor', () => {
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
   });
 
-  test('popup appears on bare # (shows all tags)', async ({ page }) => {
+  test('popup does not appear on bare # alone (requires at least one letter)', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
     await openEditorInTextMode(page);
     await typeInEditor(page, ' #');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
+    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
   });
 
   test('popup does not appear when # follows a letter (mid-word)', async ({ page }) => {

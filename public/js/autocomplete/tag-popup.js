@@ -1,16 +1,31 @@
 /**
+ * Wraps the first occurrence of query (case-insensitive) in tag with a <b> element.
+ * Tag names are word characters only, so no HTML escaping is needed.
+ * @param {string} tag
+ * @param {string} query
+ * @returns {string}
+ */
+function highlightMatch(tag, query) {
+    if (!query) return tag;
+    const i = tag.toLowerCase().indexOf(query.toLowerCase());
+    if (i === -1) return tag;
+    return tag.slice(0, i) + '<b>' + tag.slice(i, i + query.length) + '</b>' + tag.slice(i + query.length);
+}
+
+/**
  * Builds the list of item elements and attaches mousedown handlers.
  * @param {HTMLElement} popup
  * @param {string[]} items
+ * @param {string} query - The active search query, used to bold the matching substring.
  * @param {function(string): void} onSelect
  */
-function _buildItems(popup, items, onSelect) {
+function _buildItems(popup, items, query, onSelect) {
     popup.innerHTML = '';
     for (const tag of items) {
         const item = document.createElement('div');
         item.className = 'tag-autocomplete-item';
         item.dataset.tag = tag;
-        item.textContent = tag;
+        item.innerHTML = highlightMatch(tag, query);
         // mousedown fires before blur — preventDefault keeps caret in editor
         item.addEventListener('mousedown', (evt) => { evt.preventDefault(); onSelect(tag); });
         popup.appendChild(item);
@@ -23,13 +38,14 @@ function _buildItems(popup, items, onSelect) {
  * @param {HTMLElement} parentEl - Dialog element (editor) or document.body (searchbox).
  * @param {string} anchorName - CSS anchor name, e.g. '--tag-ac-editor'.
  * @param {function(string): void} onSelect - Called with chosen tag on click.
+ * @param {string} query - The active search query, used to bold the matching substring.
  * @returns {HTMLElement}
  */
-export function createPopup(items, parentEl, anchorName, onSelect) {
+export function createPopup(items, parentEl, anchorName, onSelect, query) {
     const popup = document.createElement('div');
     popup.className = 'tag-autocomplete-popup';
     popup.style.setProperty('position-anchor', anchorName);
-    _buildItems(popup, items, onSelect);
+    _buildItems(popup, items, query, onSelect);
     parentEl.appendChild(popup);
     return popup;
 }
@@ -39,10 +55,11 @@ export function createPopup(items, parentEl, anchorName, onSelect) {
  * @param {HTMLElement} popup
  * @param {string[]} items
  * @param {function(string): void} onSelect
+ * @param {string} query - The active search query, used to bold the matching substring.
  * @returns {void}
  */
-export function repopulatePopup(popup, items, onSelect) {
-    _buildItems(popup, items, onSelect);
+export function repopulatePopup(popup, items, onSelect, query) {
+    _buildItems(popup, items, query, onSelect);
 }
 
 /**

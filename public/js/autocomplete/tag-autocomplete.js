@@ -57,10 +57,10 @@ export function handleEditorAutocomplete(evt) {
     if (!_popup || _context !== 'editor') {
         destroyPopup(_popup);
         const dialog = document.getElementById('file-content-modal');
-        _popup = createPopup(items, dialog, '--tag-ac-editor', onSelect);
+        _popup = createPopup(items, dialog, '--tag-ac-editor', onSelect, trigger.query);
         _context = 'editor';
     } else {
-        repopulatePopup(_popup, items, onSelect);
+        repopulatePopup(_popup, items, onSelect, trigger.query);
     }
 
     _query = trigger.query;
@@ -85,10 +85,10 @@ export function handleSearchboxAutocomplete(evt) {
 
     if (!_popup || _context !== 'searchbox') {
         destroyPopup(_popup);
-        _popup = createPopup(items, document.body, '--tag-ac-search', onSelect);
+        _popup = createPopup(items, document.body, '--tag-ac-search', onSelect, trigger.query);
         _context = 'searchbox';
     } else {
-        repopulatePopup(_popup, items, onSelect);
+        repopulatePopup(_popup, items, onSelect, trigger.query);
     }
 
     _query = trigger.query;
