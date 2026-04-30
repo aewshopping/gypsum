@@ -8,7 +8,7 @@
     margin-block:20px;
     margin-inline: auto;
 
-        &:has(.showall:hover){
+        &:has(.clear-filters:hover){
         border: 1px solid var(--colour-contr-warning);
     }
 }
@@ -21,7 +21,7 @@
 body:has(#and_filter:checked) #filter-box{
     border: 1px solid var(--colour-compl-alt-emph);
 
-    &:has(.showall:hover){
+    &:has(.clear-filters:hover){
         border: 1px solid var(--colour-contr-warning);
     }
 

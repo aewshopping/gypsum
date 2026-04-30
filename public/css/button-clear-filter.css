@@ -1,25 +1,34 @@
-.showall {
+.filter-options {
 	position:absolute;
 	top:0%;
 	transform: translateY(-50%);
-	right:10px;
-	cursor:pointer;
 	color: var(--colour-contr);
 	background-color:var(--colour-neutral);
 	border: 2px solid var(--colour-compl-emph);
 	border-radius: 6px;
+}
+
+body:has(#and_filter:checked) .filter-options {
+	border: 2px solid var(--colour-compl-alt-emph);
+}
+
+.clear-filters {
+	right:10px;
+	cursor:pointer;
 	font: 1em monospace;
+
 	&:hover {
 		color: var(--colour-compl-emph-contr);
 		background-color: var(--colour-compl-emph-light);
 		border: 2px solid var(--colour-contr-warning);
-	}
+	}	
 }
 
-body:has(#and_filter:checked) .showall {border: 2px solid var(--colour-compl-alt-emph);
+body:has(#and_filter:checked) .clear-filters {
 	&:hover {
 		background-color:var(--colour-compl-alt-emph-light);
 		color: var(--colour-compl-emph-contr);
 		border: 2px solid var(--colour-contr-warning);
 	}
 }
+

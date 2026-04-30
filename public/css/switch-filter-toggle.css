@@ -2,7 +2,8 @@
 .label_group_filter_toggle {
 	position: absolute;
 	left: 10px;
-	top: -13px;
+	top: 0px;
+	transform: translateY(-50%);
 	padding-block: 2px;
 	border: 2px solid transparent;
 	background-color: var(--colour-neutral);

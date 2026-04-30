@@ -54,7 +54,7 @@ export function addActionHandlers() {
 const clickActionHandlers = {
     'tag-filter': handleTagClick,
     'copy-filename': handleCopyClick,
-    'clear-filters': handleClearFilters,
+    'clear-all-filters': handleClearFilters,
     'open-file-content-modal': handleOpenFileContent,
     'close-file-content-modal': handleCloseModal,
     'close-file-content-outside': handeCloseModalOutside,

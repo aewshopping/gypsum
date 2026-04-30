@@ -1,4 +1,4 @@
-::highlight(match) {
+body:has(#toggle-search-highlights:checked) ::highlight(match) {
     background-color: color-mix(in srgb, var(--colour-compl-emph) 60%, transparent);
     color: inherit;
     border-radius: 4px;
@@ -10,7 +10,7 @@
     text-decoration-thickness: 3px;
 }
 
-body:has(#and_filter:checked) ::highlight(match) {
+body:has(#and_filter:checked):has(#toggle-search-highlights:checked) ::highlight(match) {
     background-color: color-mix(in srgb, var(--colour-compl-alt-emph) 30%, transparent);
     text-decoration-color: var(--colour-compl-alt-emph);
 }
