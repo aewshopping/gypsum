@@ -28,19 +28,20 @@ export function detectSearchboxTrigger(value, caretPos) {
 
 /**
  * Case-insensitive substring filter over tagArray, capped at maxResults.
- * @param {string[]} tagArray
+ * Results are sorted so prefix matches come before mid-word matches, both groups alphabetical.
+ * @param {string[]} tagArray - Must be pre-sorted alphabetically.
  * @param {string} query
  * @param {number} [maxResults=50]
  * @returns {string[]}
  */
 export function filterTags(tagArray, query, maxResults = 50) {
     const q = query.toLowerCase();
-    const out = [];
+    const starts = [], rest = [];
     for (const tag of tagArray) {
-        if (tag.toLowerCase().includes(q)) {
-            out.push(tag);
-            if (out.length >= maxResults) break;
-        }
+        const t = tag.toLowerCase();
+        if (t.startsWith(q)) starts.push(tag);
+        else if (t.includes(q)) rest.push(tag);
+        if (starts.length + rest.length >= maxResults) break;
     }
-    return out;
+    return [...starts, ...rest];
 }
