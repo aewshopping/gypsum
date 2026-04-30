@@ -1,13 +1,14 @@
 /**
  * Detects whether the text before the caret ends with a '#tag' trigger.
  * Group 1 is '' (start of string) or a single space/newline, ensuring '#' is not
- * mid-word (e.g. 'foo#bar' must not trigger). '\w*' allows bare '#' to show all tags.
+ * mid-word (e.g. 'foo#bar' must not trigger). Requires at least one word character
+ * after '#' so bare '#' and '##' headings do not trigger the popup.
  * @param {string} textBeforeCaret
  * @returns {{ query: string, triggerStart: number }|null}
  *   triggerStart: char offset of '#' in textBeforeCaret
  */
 export function detectEditorTrigger(textBeforeCaret) {
-    const match = textBeforeCaret.match(/(^|[ \n])#(\w*(?:\/\w*)?)$/);
+    const match = textBeforeCaret.match(/(^|[ \n])#(\w+(?:\/\w*)?)$/);
     if (!match) return null;
     return { query: match[2], triggerStart: match.index + match[1].length };
 }
