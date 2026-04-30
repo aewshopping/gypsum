@@ -17,7 +17,7 @@ export function renderFileList_search(renderEverything) {
     for (const file of appState.myFiles) {
         if (checkFileOnPage(file.id)) {
 
-            const filename_html = renderFilename(file.filename);
+            const filename_html = renderFilename(file.filepath);
 
             // construct the html for the array of tags for this file
             let tag_pills_html = ""
