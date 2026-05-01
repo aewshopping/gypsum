@@ -76,6 +76,15 @@ export function handleKeyboardNavigate(evt) {
     const rowsOnScreen = _cachedRowsOnScreen || computeRowsOnScreen(els, cols);
     const pageDelta = cols * (rowsOnScreen - 1);
 
-    if (key === 'PageDown') { els[idx + pageDelta]?.focus(); return; }
-    if (key === 'PageUp')   { els[idx - pageDelta]?.focus(); }
+    if (key === 'PageDown') {
+        let target = idx + pageDelta;
+        while (target > idx && !els[target]) target -= cols;
+        if (target > idx) els[target].focus();
+        return;
+    }
+    if (key === 'PageUp') {
+        let target = idx - pageDelta;
+        while (target < idx && !els[target]) target += cols;
+        if (target < idx) els[target].focus();
+    }
 }
