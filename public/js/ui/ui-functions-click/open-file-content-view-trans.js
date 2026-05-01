@@ -182,6 +182,8 @@ export function doClose() {
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
 
+    if (file_box) file_box.focus();
+
     await deleteTempFileIfExists(snapshotToClean);
   });
 
