@@ -24,6 +24,7 @@ import { handleHistorySelectChange } from './ui-functions-click/history-select-c
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handleInsertDateShortcut } from './ui-functions-click/insert-date-shortcut.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
+import { handleKeyboardNavigate } from './ui-functions-click/keyboard-navigate.js';
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
@@ -149,6 +150,7 @@ function changeDelegate(evt) {
  */
 function keyDownDelegate(evt) {
     if (handleAutocompleteKeydown(evt)) return;
+    handleKeyboardNavigate(evt);
     if (evt.ctrlKey || evt.metaKey) {
         if (evt.key === 's') {
             evt.preventDefault();
