@@ -20,10 +20,12 @@ export function renderFileList_grid(renderEverything) {
     let file_html = `
         <div class="list-grid">`
 
+    let index = 0;
     for (const file of appState.myFiles) {
 
         if (checkFileOnPage(file.id)) {
      //   console.log(file);
+            index++;
 
         // construct the html for the array of tags for this file
         let tag_pills_html = ""
@@ -35,7 +37,7 @@ export function renderFileList_grid(renderEverything) {
   //      const tag_list = file.tags.join(" ");
         const filename_html = renderFilename(file.filepath);
         file_html += `
-        <div class="note-grid color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal">
+        <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal">
 
             <div data-prop="filename">${filename_html}</div>
 
