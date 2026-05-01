@@ -145,33 +145,48 @@ Open `http://localhost:8000` in the browser. All changes to `public/` are reflec
 There is no hot reload, no watcher, no dev server with special features. A plain file server
 is intentional and sufficient.
 
-### Running tests (Playwright / Codespaces)
+### Running tests (Playwright)
 
-The test suite uses Playwright. On a fresh Codespace or environment, run once to set up:
+**Step 1 — install JS dependencies** (only needed once per environment, or after a fresh clone):
 
 ```bash
-npm run setup-playwright
+npm install
 ```
 
-Then run tests with:
+This creates `node_modules/` and makes `@playwright/test` available locally. The browsers
+themselves live at `/opt/pw-browsers` in this environment and are already installed — you
+do not need to run `npx playwright install`.
+
+**Step 2 — run tests:**
 
 ```bash
 npm test
 ```
 
-This runs `CODESPACE_NAME= npx playwright test`. Unsetting `CODESPACE_NAME` forces
-Playwright to use `http://localhost:8000` instead of the public Codespaces URL, which
-requires authentication and causes all tests to fail.
+This runs `CODESPACE_NAME= PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test`.
 
-The `webServer` config in `playwright.config.js` starts the HTTP server automatically — you
-do not need to start it manually before running tests.
+- `CODESPACE_NAME=` (empty) forces Playwright to use `http://localhost:8000` rather than
+  a Codespaces public URL that requires authentication.
+- `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` points to the pre-installed Chromium binary.
+
+The `webServer` config in `playwright.config.js` starts `python -m http.server 8000`
+automatically — you do not need to start it manually.
+
+**Troubleshooting:**
+
+| Symptom | Fix |
+|---------|-----|
+| `Cannot find module '@playwright/test'` | Run `npm install` — `node_modules/` is missing |
+| `browserType.launch: Executable doesn't exist` | Browsers missing; run `npx playwright install --with-deps chromium` |
+| All tests fail with auth/login errors | `CODESPACE_NAME` is set in the environment; the `npm test` script unsets it, so use `npm test` not `npx playwright test` directly |
+| Port 8000 already in use | `playwright.config.js` sets `reuseExistingServer: true`, so a running server on 8000 is fine and will be reused |
 
 Tests live in `tests/`. Mock files are defined in `tests/helpers.js` and injected via
 `page.addInitScript()` to simulate the File System API without a real file picker.
 
 Note: `@playwright/test` is pinned to a specific version in `package.json`. Do not bump
 this version without also running `npx playwright install --with-deps chromium` to download
-the matching browser binary and system dependencies.
+the matching browser binary.
 
 ---
 
