@@ -146,13 +146,21 @@ function changeDelegate(evt) {
  * Handles keydown events for global keyboard shortcuts.
  * Ctrl+S / Cmd+S triggers the file save action, suppressing the browser's
  * native save-page dialog (which also fires on keydown).
+ * Ctrl+Shift+S / Cmd+Shift+S opens the file rename/move dialog, but only
+ * when the file content modal is open.
  * @param {KeyboardEvent} evt
  */
 function keyDownDelegate(evt) {
     if (handleAutocompleteKeydown(evt)) return;
     handleKeyboardNavigate(evt);
     if (evt.ctrlKey || evt.metaKey) {
-        if (evt.key === 's') {
+        if (evt.shiftKey && evt.key === 'S') {
+            const modal = document.getElementById('file-content-modal');
+            if (modal?.open) {
+                evt.preventDefault();
+                handleFileOptionsOpen(evt);
+            }
+        } else if (evt.key === 's') {
             evt.preventDefault();
             handleSaveFileCopy();
         }
