@@ -32,6 +32,7 @@ import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-cli
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
+import { appState } from '../services/store.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -149,6 +150,7 @@ function changeDelegate(evt) {
  * Ctrl+Shift+S / Cmd+Shift+S opens the file rename/move dialog, but only
  * when the file content modal is open.
  * Alt+N creates a new file, but only when no modal is open.
+ * Alt+1 focuses the first open-file-content-modal element, but only when no modal is open and a directory is loaded.
  * @param {KeyboardEvent} evt
  */
 function keyDownDelegate(evt) {
@@ -170,6 +172,13 @@ function keyDownDelegate(evt) {
         evt.preventDefault();
         if (!document.querySelector('dialog[open]')) {
             handleCreateNewNote(evt, document.getElementById('btn-new-note'));
+        }
+    }
+    if (evt.altKey && evt.key === '1') {
+        evt.preventDefault();
+        if (!document.querySelector('dialog[open]') && appState.dirHandle) {
+            const firstFileLink = document.querySelector('[data-action="open-file-content-modal"]');
+            if (firstFileLink) firstFileLink.focus();
         }
     }
     if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {
