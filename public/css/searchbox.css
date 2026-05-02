@@ -40,6 +40,7 @@ body:has(#and_filter:checked) #searchbox {
     top: 3px;
     bottom: 3px;
     right:6px;
+    padding-block: 0px;
     padding-inline: 5px;
     border-radius: 4px;
     background-color: var(--colour-neutral);
