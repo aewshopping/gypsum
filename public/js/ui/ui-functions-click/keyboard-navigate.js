@@ -45,8 +45,9 @@ new ResizeObserver(() => {
 }).observe(document.getElementById('output'));
 
 /**
- * Handles arrow-key, Enter/Space, and PageDown/PageUp navigation for
- * keyboard-navigable file cards.
+ * Handles arrow-key, Ctrl+arrow, Enter/Space, and PageDown/PageUp navigation
+ * for keyboard-navigable file cards. Ctrl+Arrow jumps to the start/end of the
+ * current row (Ctrl+Left/Right) or column (Ctrl+Up/Down).
  * @param {KeyboardEvent} evt
  */
 export function handleKeyboardNavigate(evt) {
@@ -62,11 +63,31 @@ export function handleKeyboardNavigate(evt) {
 
     const els = [...document.querySelectorAll('.keyboard-navigable')];
     const idx = parseInt(focused.dataset.index, 10) - 1; // data-index is 1-based
+    const cols = _cachedCols || computeColumnCount(els);
+
+    if (evt.ctrlKey) {
+        if (key === 'ArrowRight') {
+            els[Math.min(Math.floor(idx / cols) * cols + cols - 1, els.length - 1)].focus();
+            return;
+        }
+        if (key === 'ArrowLeft') {
+            els[Math.floor(idx / cols) * cols].focus();
+            return;
+        }
+        if (key === 'ArrowDown') {
+            let n = idx;
+            while (els[n + cols]) n += cols;
+            els[n].focus();
+            return;
+        }
+        if (key === 'ArrowUp') {
+            els[idx % cols].focus();
+            return;
+        }
+    }
 
     if (key === 'ArrowRight') { els[idx + 1]?.focus(); return; }
     if (key === 'ArrowLeft')  { els[idx - 1]?.focus(); return; }
-
-    const cols = _cachedCols || computeColumnCount(els);
 
     if (key === 'ArrowDown') { els[idx + cols]?.focus(); return; }
     if (key === 'ArrowUp')   { els[idx - cols]?.focus(); return; }
