@@ -55,7 +55,8 @@ export function createFilterObject(searchObject) {
         type: propertyType,
         property: property,
         timestamp: timeNow,
-        active: true
+        active: true,
+        negate: false
     }
 
     console.log(filterObj);
