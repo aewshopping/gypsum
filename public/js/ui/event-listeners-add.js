@@ -148,7 +148,7 @@ function changeDelegate(evt) {
  * native save-page dialog (which also fires on keydown).
  * Ctrl+Shift+S / Cmd+Shift+S opens the file rename/move dialog, but only
  * when the file content modal is open.
- * Ctrl+N / Cmd+N creates a new file, but only when no modal is open.
+ * Alt+N creates a new file, but only when no modal is open.
  * @param {KeyboardEvent} evt
  */
 function keyDownDelegate(evt) {
@@ -164,11 +164,12 @@ function keyDownDelegate(evt) {
         } else if (evt.key === 's') {
             evt.preventDefault();
             handleSaveFileCopy();
-        } else if (evt.key === 'n') {
-            evt.preventDefault();
-            if (!document.querySelector('dialog[open]')) {
-                handleCreateNewNote(evt, document.getElementById('btn-new-note'));
-            }
+        }
+    }
+    if (evt.altKey && evt.key === 'n') {
+        evt.preventDefault();
+        if (!document.querySelector('dialog[open]')) {
+            handleCreateNewNote(evt, document.getElementById('btn-new-note'));
         }
     }
     if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {
