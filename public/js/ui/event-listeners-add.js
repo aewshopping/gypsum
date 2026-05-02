@@ -152,6 +152,7 @@ function changeDelegate(evt) {
  * Alt+N creates a new file, but only when no modal is open.
  * Alt+1 focuses the first open-file-content-modal element, but only when no modal is open and a directory is loaded.
  * / focuses the searchbox, but only when no modal is open.
+ * # triggers the tag taxonomy, but only when no modal is open.
  * @param {KeyboardEvent} evt
  */
 function keyDownDelegate(evt) {
@@ -181,6 +182,10 @@ function keyDownDelegate(evt) {
             const firstFileLink = document.querySelector('[data-action="open-file-content-modal"]');
             if (firstFileLink) firstFileLink.focus();
         }
+    }
+    if (evt.key === '#' && !document.querySelector('dialog[open]')) {
+        evt.preventDefault();
+        handleShowTagTaxonomy();
     }
     if (evt.key === '/' && !document.querySelector('dialog[open]')) {
         const searchbox = document.getElementById('searchbox');
