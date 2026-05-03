@@ -19,7 +19,7 @@ import { handleContentSearchToggle } from './ui-functions-click/search-content-t
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
 import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
 import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
-import { handleFilterToggleActive } from './ui-functions-click/filter-toggle-active.js';
+import { handleFilterToggleState } from './ui-functions-click/filter-toggle-state.js';
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handleInsertDateShortcut } from './ui-functions-click/insert-date-shortcut.js';
@@ -66,7 +66,7 @@ const clickActionHandlers = {
     'toggle-render-text': handleToggleRenderText,
     'searchbox-search': handleSearchBoxClick,
     'delete-filter': handleDeleteFilter,
-    'filter-toggleactive':handleFilterToggleActive,
+    'filter-togglestate': handleFilterToggleState,
     'save-file-copy': handleSaveFileCopy,
     'change-page': handlePageChange,
     'open-settings-modal': handleOpenSettings,
