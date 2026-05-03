@@ -29,4 +29,6 @@ const filterObj = appState.search.filters.get(filterId);
 
     processSeachResults();
 
+    document.querySelector(`[data-action="filter-togglestate"][data-filterid="${filterId}"]`)?.focus();
+
 }
