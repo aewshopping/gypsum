@@ -150,7 +150,7 @@ function changeDelegate(evt) {
  * Ctrl+Shift+S / Cmd+Shift+S opens the file rename/move dialog, but only
  * when the file content modal is open.
  * Alt+N creates a new file, but only when no modal is open.
- * Alt+1 focuses the first open-file-content-modal element, but only when no modal is open and a directory is loaded.
+ * 1–9 focuses the Nth file in the list, but only when no modal is open, a directory is loaded, and no input has focus.
  * / focuses the searchbox, but only when no modal is open.
  * # triggers the tag taxonomy, but only when no modal is open.
  * @param {KeyboardEvent} evt
@@ -176,11 +176,17 @@ function keyDownDelegate(evt) {
             handleCreateNewNote(evt, document.getElementById('btn-new-note'));
         }
     }
-    if (evt.altKey && evt.key === '1') {
-        evt.preventDefault();
-        if (!document.querySelector('dialog[open]') && appState.dirHandle) {
-            const firstFileLink = document.querySelector('[data-action="open-file-content-modal"]');
-            if (firstFileLink) firstFileLink.focus();
+    if (evt.key >= '1' && evt.key <= '9' && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
+        const active = document.activeElement;
+        const inInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+        if (!inInput && !document.querySelector('dialog[open]') && appState.dirHandle) {
+            const index = parseInt(evt.key, 10) - 1;
+            const fileLinks = document.querySelectorAll('[data-action="open-file-content-modal"]');
+            const target = fileLinks[index];
+            if (target) {
+                evt.preventDefault();
+                target.focus();
+            }
         }
     }
     if (evt.key === '#' && !document.querySelector('dialog[open]')) {
