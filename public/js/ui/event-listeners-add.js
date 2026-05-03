@@ -178,7 +178,8 @@ function keyDownDelegate(evt) {
     }
     if (evt.key >= '1' && evt.key <= '9' && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
         const active = document.activeElement;
-        const inInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+        const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 'number', 'tel']);
+        const inInput = active && (TEXT_INPUT_TYPES.has(active.type) || active.tagName === 'TEXTAREA' || active.isContentEditable);
         if (!inInput && !document.querySelector('dialog[open]') && appState.dirHandle) {
             const index = parseInt(evt.key, 10) - 1;
             const fileLinks = document.querySelectorAll('[data-action="open-file-content-modal"]');
