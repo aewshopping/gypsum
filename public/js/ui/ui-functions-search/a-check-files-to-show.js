@@ -1,34 +1,31 @@
 import { appState } from "../../services/store.js";
-import { countActiveFilters } from "./a-count-activefilters.js";
 
 const search = appState.search;
 
 /**
  * Checks if a file should be shown based on the current filter mode and matching files.
+ * Each active filter is evaluated individually, respecting its `negate` flag:
+ * a non-negated filter is satisfied when the file positively matched it; a negated
+ * filter is satisfied when the file did NOT positively match it.
  *
  * @param {string} fileId The ID of the file to check.
  * @returns {boolean} Whether the file should be shown.
  */
 export function checkFilesToShow(fileId) {
 
-//    console.log("checking files to show" + fileId);
+    const activeFilters = [...appState.search.filters.entries()]
+        .filter(([, f]) => f.active === true);
 
-    if (search.matchingFiles.has(fileId)) {
+    const fileMatchMap = search.matchingFiles.get(fileId) ?? new Map();
 
-        if (search.filterMode === 'OR') {
-            return true;
-        }
+    const satisfies = ([filterId, filterObj]) => {
+        const positiveMatch = fileMatchMap.has(filterId);
+        return filterObj.negate ? !positiveMatch : positiveMatch;
+    };
 
-        const fileMap = search.matchingFiles.get(fileId);
-        const filterCount = countActiveFilters(); // search.filters.size;
-        const matchCount = fileMap.size;
-
-        if (search.filterMode === 'AND' && matchCount === filterCount) {
-            return true
-        }
-        return false
+    if (search.filterMode === 'OR') {
+        return activeFilters.some(satisfies);
     }
-
-    return false
+    return activeFilters.every(satisfies);  // AND
 
 }
