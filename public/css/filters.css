@@ -13,9 +13,34 @@
     }
 }
 
+#filter-output {
+    display:flex;
+    gap: 4px;
+}
+
 .filter-pill {
     font: 0.9em monospace;
     margin: 2px;
+
+    &::before {
+        content: "= ";
+        font-size: 1.1em;
+        padding:0px;
+        margin:0px;
+    }
+}
+
+.filter-pill.filter-negate {
+/*    background: linear-gradient(to right, var(--colour-contr-warning) 15px, var(--colour-compl-emph) 15px);
+    background-repeat:repeat-y; /* a hack to prevent sliver of colour on RHS - no repeat strips border radius */
+/*    border-left: 3px solid var(--colour-contr-warning); */
+    box-shadow:
+        -4px 0px 0 0 var(--colour-contr-warning);
+
+    &::before {
+        color: var(--colour-contr-warning);
+        content: "≠ ";
+    }
 }
 
 body:has(#and_filter:checked) #filter-box{

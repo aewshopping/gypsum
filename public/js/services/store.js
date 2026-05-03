@@ -26,7 +26,7 @@ export const appState = {
       searchMode: "onlyProperties",
       prompt: {
         fullContent: " content search... (slower) ",
-        onlyProperties: " search... with text or property:value "
+        onlyProperties: " press / for search "
       }
     },
     excludedProperties: ["handle", "show"],
