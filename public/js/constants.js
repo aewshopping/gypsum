@@ -24,3 +24,13 @@ export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 
 export const PAGINATION_SIZE = 50;
+
+export const COLOR_NAMES = [
+    'nocolor', 'coral', 'steelblue', 'goldenrod', 'mediumseagreen',
+    'plum', 'tomato', 'cornflowerblue', 'sandybrown', 'mediumorchid', 'lightseagreen',
+];
+
+// Matches #color/name or #colour/name in plain text file content.
+// Lookbehind requires a space or newline before the tag.
+// Lookahead requires a space, newline, or end of string after.
+export const regex_color = /(?<= |\n)#(?:color|colour)\/(\w+)(?= |\n|$)/;
