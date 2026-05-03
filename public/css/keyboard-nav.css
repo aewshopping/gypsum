@@ -1,4 +1,4 @@
-.keyboard-navigable:focus {
-    outline: 2px solid var(--colour-contr-emph);
-    outline-offset: 2px;
+.keyboard-navigable:focus-visible {
+    outline: 3px solid var(--colour-contr);
+    outline-offset:0px;
 }
