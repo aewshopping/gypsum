@@ -22,7 +22,7 @@ export function renderFilters() {
             operator = filterObj.operator;
         }
 
-            filterhtml += `<span class="tag filter-pill" data-filterid="${filterId}" data-action="filter-togglestate" data-active="${isActive}" data-negate="${isNegate}">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})<button class="btn-delete-filter" data-filterid="${filterId}" data-action="delete-filter">✕</button></span>`;
+            filterhtml += `<button class="tag filter-pill" data-filterid="${filterId}" data-action="filter-togglestate" data-active="${isActive}" data-negate="${isNegate}">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})<button class="btn-delete-filter" data-filterid="${filterId}" data-action="delete-filter">✕</button></button>`;
     }
 
     outputElement.innerHTML = filterhtml;
