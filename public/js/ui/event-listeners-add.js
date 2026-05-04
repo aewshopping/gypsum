@@ -183,6 +183,14 @@ function keyDownDelegate(evt) {
             handleCreateNewNote(evt, document.getElementById('btn-new-note'));
         }
     }
+    if (evt.altKey && evt.key === 'c') {
+        const modal = document.getElementById('file-content-modal');
+        if (modal?.open) {
+            evt.preventDefault();
+            handleEditorColorPick();
+        }
+    }
+
     if (evt.key >= '1' && evt.key <= '9' && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
         const active = document.activeElement;
         const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 'number', 'tel']);
