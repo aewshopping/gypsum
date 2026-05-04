@@ -11,6 +11,7 @@ import { resetAutosave, deleteTempFileIfExists } from '../../editing/autosave.js
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 import { showWarningModal } from './warning-modal.js';
+import { resetEditorCursorOffset } from './editor-color-pick.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -141,6 +142,7 @@ export function handeCloseModalOutside(event, target) {
 export function doClose() {
 
   resetAutosave();
+  resetEditorCursorOffset();
 
   const snapshotToClean = appState.openFileSnapshot ?? null; // capture now before transition runs
 

@@ -2,8 +2,29 @@ import { COLOR_NAMES } from '../../constants.js';
 import { getEditorElement } from '../../editing/manage-unsaved-changes.js';
 import { saveCursorOffset, restoreCursorOffset, applyColorToEditor } from '../../editing/color-pick-apply.js';
 import { handleSaveFileCopy } from './save-file-copy.js';
+import { decodeModalHtml } from '../../services/file-save.js';
 
+let storedCursorOffset = null;
 let pendingSavedOffset = 0;
+
+/**
+ * Saves the current cursor offset. Called on mousedown of the colour-pick button,
+ * before the click moves focus away from the editor.
+ */
+export function captureEditorCursorOffset() {
+    const editorEl = getEditorElement();
+    if (!editorEl) return;
+    if (!window.getSelection().rangeCount) return;
+    storedCursorOffset = saveCursorOffset(editorEl);
+}
+
+/**
+ * Resets the stored cursor offset to null. Called when the file content modal closes
+ * so stale offsets from a previous file do not bleed into the next one.
+ */
+export function resetEditorCursorOffset() {
+    storedCursorOffset = null;
+}
 
 function buildColorPickerContent() {
     const container = document.getElementById('color-picker-content');
@@ -23,12 +44,15 @@ function buildColorPickerContent() {
 }
 
 /**
- * Opens the colour picker dialog. Saves the cursor position first.
+ * Opens the colour picker dialog. Uses the cursor position captured on mousedown;
+ * falls back to end of file if the editor was never focused.
  */
 export function handleEditorColorPick() {
     const editorEl = getEditorElement();
     if (!editorEl) return;
-    pendingSavedOffset = saveCursorOffset(editorEl);
+    pendingSavedOffset = storedCursorOffset !== null
+        ? storedCursorOffset
+        : decodeModalHtml(editorEl.innerHTML).length;
     buildColorPickerContent();
     document.getElementById('modal-color-picker').showModal();
 }

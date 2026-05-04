@@ -101,6 +101,42 @@ test.describe('colour picker modal', () => {
     expect(editorText).toMatch(/#color\/coral\s*$/);
   });
 
+  test('cursor stays at its position when colour tag is below the cursor', async ({ page }) => {
+    // Trickiest case: cursor is BEFORE the #color/coral tag in the file (offset 5
+    // vs tag at offset 11). Replacing the tag must not shift the cursor.
+    // File: '# My Notes\n#color/coral\nText below'
+    await setupMockDirectoryForColorExisting(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    // Place cursor at offset 5 inside the first text node ('# My |Notes').
+    await page.locator('#modal-content-text pre').click();
+    await page.evaluate(() => {
+      const el = document.querySelector('#modal-content-text .text-editor');
+      const textNode = el.childNodes[0];
+      const range = document.createRange();
+      range.setStart(textNode, 5);
+      range.collapse(true);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+    });
+
+    const savedOffset = await getCursorOffset(page);
+    expect(savedOffset).toBe(5);
+
+    await page.click('[data-action="editor-color-pick"]');
+    await expect(page.locator('#modal-color-picker')).toBeVisible();
+    await page.click('[data-action="color-circle-pick"][data-color-value="steelblue"]');
+    await expect(page.locator('#modal-color-picker')).not.toBeVisible();
+
+    await expect(page.locator('#modal-content-text pre')).toContainText('#color/steelblue');
+
+    // Tag was BELOW the cursor so no delta — cursor must stay at offset 5.
+    const newOffset = await getCursorOffset(page);
+    expect(newOffset).toBe(5);
+  });
+
   test('when multiple colours exist, only the first is changed', async ({ page }) => {
     // File: '# My Notes\n#color/coral\nSome text\n#color/blue'
     await setupMockDirectoryForColorMultiple(page);

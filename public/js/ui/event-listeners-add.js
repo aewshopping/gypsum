@@ -28,7 +28,7 @@ import { handleKeyboardNavigate } from './ui-functions-click/keyboard-navigate.j
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
-import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside } from './ui-functions-click/editor-color-pick.js';
+import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside, captureEditorCursorOffset } from './ui-functions-click/editor-color-pick.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
@@ -49,6 +49,9 @@ export function addActionHandlers() {
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
             evt.preventDefault();
+        }
+        if (evt.target.closest('[data-action="editor-color-pick"]')) {
+            captureEditorCursorOffset();
         }
     });
 }
