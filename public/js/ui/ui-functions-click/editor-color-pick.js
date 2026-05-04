@@ -74,7 +74,7 @@ export function handleColorCirclePick(_evt, actionEl) {
         editorEl.focus();
         restoreCursorOffset(editorEl, newOffset);
     }
-    handleSaveFileCopy();
+    // handleSaveFileCopy(); remove autosave, uncomment if decide to reimplement
 }
 
 /**
