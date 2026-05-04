@@ -4,17 +4,29 @@ import { regex_color } from '../constants.js';
 
 /**
  * Returns the cursor's character offset from the start of the editor's text content.
+ * Counts each <br> element as 1 character (matching decodeModalHtml and restoreCursorOffset).
+ * Range.toString() does not count <br> elements, so we walk childNodes directly.
  * @param {Element} editorEl
  * @returns {number}
  */
 export function saveCursorOffset(editorEl) {
     const selection = window.getSelection();
     if (!selection.rangeCount) return 0;
-    const range = selection.getRangeAt(0);
-    const preRange = document.createRange();
-    preRange.selectNodeContents(editorEl);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    return preRange.toString().length;
+    const { startContainer, startOffset } = selection.getRangeAt(0);
+    let offset = 0;
+    if (startContainer === editorEl) {
+        let i = 0;
+        for (const child of editorEl.childNodes) {
+            if (i++ === startOffset) break;
+            offset += child.nodeType === Node.TEXT_NODE ? child.nodeValue.length : 1;
+        }
+        return offset;
+    }
+    for (const child of editorEl.childNodes) {
+        if (child === startContainer) return offset + startOffset;
+        offset += child.nodeType === Node.TEXT_NODE ? child.nodeValue.length : 1;
+    }
+    return offset;
 }
 
 /**
@@ -118,6 +130,6 @@ export function applyColorToEditor(colorName, savedOffset) {
     endRange.collapse(false);
     window.getSelection().removeAllRanges();
     window.getSelection().addRange(endRange);
-    document.execCommand('insertText', false, `\n#color/${colorName}`);
+    document.execCommand('insertText', false, `\n\n#color/${colorName}`);
     return savedOffset;
 }
