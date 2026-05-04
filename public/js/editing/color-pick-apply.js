@@ -130,6 +130,6 @@ export function applyColorToEditor(colorName, savedOffset) {
     endRange.collapse(false);
     window.getSelection().removeAllRanges();
     window.getSelection().addRange(endRange);
-    document.execCommand('insertText', false, `\n#color/${colorName}`);
+    document.execCommand('insertText', false, `\n\n#color/${colorName}`);
     return savedOffset;
 }

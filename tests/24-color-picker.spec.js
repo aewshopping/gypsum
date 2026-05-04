@@ -95,10 +95,13 @@ test.describe('colour picker modal', () => {
     await page.click('[data-action="color-circle-pick"][data-color-value="coral"]');
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
-    const editorText = await page.locator('#modal-content-text pre').textContent();
+    // Use innerText (not textContent) so <br> elements appear as \n.
+    const editorText = await page.evaluate(() =>
+      document.querySelector('#modal-content-text pre').innerText
+    );
     expect(editorText).toContain('# My Notes');
     expect(editorText).toContain('Some content here');
-    expect(editorText).toMatch(/#color\/coral\s*$/);
+    expect(editorText).toMatch(/\n\n#color\/coral\s*$/);
   });
 
   test('cursor stays at its position when colour tag is below the cursor', async ({ page }) => {
