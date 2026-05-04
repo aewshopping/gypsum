@@ -50,6 +50,7 @@ function buildColorPickerContent() {
 export function handleEditorColorPick() {
     const editorEl = getEditorElement();
     if (!editorEl) return;
+    if (document.activeElement === editorEl) captureEditorCursorOffset();
     pendingSavedOffset = storedCursorOffset !== null
         ? storedCursorOffset
         : decodeModalHtml(editorEl.innerHTML).length;
