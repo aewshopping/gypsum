@@ -41,6 +41,9 @@ export function handleEditorColorPick() {
 export function handleColorCirclePick(_evt, actionEl) {
     const colorName = actionEl.dataset.colorValue;
     document.getElementById('modal-color-picker').close();
+    const colorValue = colorName === 'nocolor' ? '' : colorName;
+    document.getElementById('file-content-header').dataset.color = colorValue;
+    document.getElementById('modal-content').dataset.color = colorValue;
     const newOffset = applyColorToEditor(colorName, pendingSavedOffset);
     const editorEl = getEditorElement();
     if (editorEl) {
