@@ -26,8 +26,7 @@ export const BACKUP_FILENAME = 'history.gypsum';
 export const PAGINATION_SIZE = 50;
 
 export const COLOR_NAMES = [
-    'nocolor', 'coral', 'steelblue', 'goldenrod', 'mediumseagreen',
-    'plum', 'tomato', 'cornflowerblue', 'sandybrown', 'mediumorchid', 'lightseagreen',
+     'LightCoral','palevioletred','salmon','maroon', 'red', 'orangered','coral','lightsalmon','peru','orange', 'NavajoWhite', 'gold', 'yellow','lightgreen','darkseagreen', 'mediumseagreen', 'seagreen','aquamarine','mediumaquamarine','mediumturquoise','darkcyan','cadetblue', 'silver','dodgerblue','cornflowerblue','royalblue','darkblue','thistle','plum','violet','orchid','hotpink'
 ];
 
 // Matches #color/name or #colour/name in plain text file content.
