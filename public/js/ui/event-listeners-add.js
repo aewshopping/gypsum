@@ -22,9 +22,8 @@ import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleState } from './ui-functions-click/filter-toggle-state.js';
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
-import { handleInsertDateShortcut } from './ui-functions-click/insert-date-shortcut.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
-import { handleKeyboardNavigate } from './ui-functions-click/keyboard-navigate.js';
+import { handleKeyboardShortcuts } from './ui-functions-click/keyboard-shortcuts.js';
 import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
@@ -33,7 +32,6 @@ import { handleShowTagTaxonomy, handleHideTagTaxonomy } from './ui-functions-cli
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
-import { appState } from '../services/store.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -151,75 +149,11 @@ function changeDelegate(evt) {
 }
 
 /**
- * Handles keydown events for global keyboard shortcuts.
- * Ctrl+S / Cmd+S triggers the file save action, suppressing the browser's
- * native save-page dialog (which also fires on keydown).
- * Ctrl+Shift+S / Cmd+Shift+S opens the file rename/move dialog, but only
- * when the file content modal is open.
- * Alt+N creates a new file, but only when no modal is open.
- * 1–9 focuses the Nth file in the list, but only when no modal is open, a directory is loaded, and no input has focus.
- * / focuses the searchbox, but only when no modal is open.
- * # triggers the tag taxonomy, but only when no modal is open.
  * @param {KeyboardEvent} evt
  */
 function keyDownDelegate(evt) {
     if (handleAutocompleteKeydown(evt)) return;
-    handleKeyboardNavigate(evt);
-    if (evt.ctrlKey || evt.metaKey) {
-        if (evt.shiftKey && evt.key === 'S') {
-            const modal = document.getElementById('file-content-modal');
-            if (modal?.open) {
-                evt.preventDefault();
-                handleFileOptionsOpen(evt);
-            }
-        } else if (evt.key === 's') {
-            evt.preventDefault();
-            handleSaveFileCopy();
-        }
-    }
-    if (evt.altKey && evt.key === 'n') {
-        evt.preventDefault();
-        if (!document.querySelector('dialog[open]')) {
-            handleCreateNewNote(evt, document.getElementById('btn-new-note'));
-        }
-    }
-    if (evt.altKey && evt.key === 'c') {
-        const modal = document.getElementById('file-content-modal');
-        if (modal?.open) {
-            evt.preventDefault();
-            handleEditorColorPick();
-        }
-    }
-
-    if (evt.key >= '1' && evt.key <= '9' && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
-        const active = document.activeElement;
-        const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 'number', 'tel']);
-        const inInput = active && (TEXT_INPUT_TYPES.has(active.type) || active.tagName === 'TEXTAREA' || active.isContentEditable);
-        if (!inInput && !document.querySelector('dialog[open]') && appState.dirHandle) {
-            const index = parseInt(evt.key, 10) - 1;
-            const fileLinks = document.querySelectorAll('[data-action="open-file-content-modal"]');
-            const target = fileLinks[index];
-            if (target) {
-                evt.preventDefault();
-                target.focus();
-            }
-        }
-    }
-    if (evt.key === '#' && !document.querySelector('dialog[open]')) {
-        evt.preventDefault();
-        handleShowTagTaxonomy();
-    }
-    if (evt.key === '/' && !document.querySelector('dialog[open]')) {
-        const searchbox = document.getElementById('searchbox');
-        if (searchbox && document.activeElement !== searchbox) {
-            evt.preventDefault();
-            searchbox.focus();
-        }
-    }
-    if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {
-        evt.preventDefault();
-        handleInsertDateShortcut();
-    }
+    handleKeyboardShortcuts(evt);
 }
 
 /**
