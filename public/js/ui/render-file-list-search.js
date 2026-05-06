@@ -43,45 +43,42 @@ export function renderFileList_search(renderEverything) {
             file_html += `
                     <div class="search-view-matches flex-column color-dynamic" data-color="${file.color}">`
             if (matchingFilters) {
-                for (const [filterId, resultsObj] of matchingFilters) {
-                    let matchHtml = "";
-                    let contentInfo = "";
+                for (const [filterId, resultsObjArray] of matchingFilters) {
+                    for (const resultsObj of resultsObjArray) {
+                        let matchHtml = "";
+                        let contentInfo = "";
 
+                        if (resultsObj.property_match === "content") {
+                            const matches = resultsObj.matches;
+                            const match_count = resultsObj.count;
+                            const snippet_count = resultsObj.matches.length;
 
-                    if (resultsObj.property_match === "content") {
-                        const matches = resultsObj.matches;
-                        const match_count = resultsObj.count;
-                        const snippet_count = resultsObj.matches.length;
+                            contentInfo = `<span><i>(showing ${snippet_count} of ${match_count} matches)</i></span>`
 
-                        contentInfo = `<span><i>(showing ${snippet_count} of ${match_count} matches)</i></span>`
+                            for (const match of matches) {
+                                matchHtml += `<pre class="snippet color-dynamic-fade" data-color="${file.color}" data-prop="content">...${match.snippet}...</pre>`;
+                            }
 
-                        //   console.log(resultsObj);
-                        for (const match of matches) {
-                            matchHtml += `<pre class="snippet color-dynamic-fade" data-color="${file.color}" data-prop="content">...${match.snippet}...</pre>`;
+                            file_html +=
+                                `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
+                                <p>
+                                    <i>${resultsObj.property_match}</i>:<span"> ${resultsObj.searchValue}</span> ${contentInfo}
+                                </p>
+                                ${matchHtml}
+                            </div>`;
+
+                        } else {
+                            let propertyValue = resultsObj.property_match;
+                            console.log(file[propertyValue]);
+
+                            file_html +=
+                                `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
+                                <p>
+                                    <i>${resultsObj.property_match}</i>:<span data-prop="${resultsObj.property_match}"> ${file[propertyValue]}</span>
+                                </p>
+                            </div>`;
                         }
-
-                        file_html +=
-                            `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
-                            <p>
-                                <i>${resultsObj.property_match}</i>:<span"> ${resultsObj.searchValue}</span> ${contentInfo}
-                            </p>
-                            ${matchHtml}
-                        </div>`;
-
-                    } else {
-                        let propertyValue = resultsObj.property_match;
-                        console.log(file[propertyValue]);
-
-                        file_html +=
-                            `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
-                            <p>
-                                <i>${resultsObj.property_match}</i>:<span data-prop="${resultsObj.property_match}"> ${file[propertyValue]}</span>
-                            </p>
-                        </div>`;
-
                     }
-
-
                 }
             }
             file_html += `
