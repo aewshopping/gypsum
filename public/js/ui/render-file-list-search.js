@@ -71,11 +71,12 @@ export function renderFileList_search(renderEverything) {
                             const propertyValue = resultsObj.property_match;
                             const rawValue = file[propertyValue];
                             const displayValue = rawValue instanceof Map ? [...rawValue.keys()].join(', ') : rawValue;
+                            const tagAttr = rawValue instanceof Map ? `data-tag="${resultsObj.searchValue}"` : '';
 
                             file_html +=
                                 `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
                                 <p>
-                                    <i>${propertyValue}</i>:<span data-prop="${propertyValue}"> ${displayValue}</span>
+                                    <i>${propertyValue}</i>:<span data-prop="${propertyValue}" ${tagAttr}> ${displayValue}</span>
                                 </p>
                             </div>`;
                         }
