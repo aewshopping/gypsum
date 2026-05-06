@@ -27,9 +27,16 @@ export function updatePropHighlights(elementIds) {
             if (filter.active === false) return; // only highlight active filters, skip if active:false
             if (filter.property === "tags") return; // tags highlighted elsewhere, skip if property:tags
 
-            // if using special prop allProperties need to highlight **every** elem with data-prop... except where data-prop="content". If not allProperties just use current property for data-prop selector.
+            // For a specific property search, target that property's element directly.
+            // For allProperties, target every data-prop element except content (searched separately)
+            // and except the tags wrapper div. Tags need exact matching — substring matching would
+            // falsely highlight e.g. "some" inside the tag "something". Instead we use the
+            // [data-tag="value"] attribute equality selector on individual tag spans, which only
+            // matches spans whose tag name exactly equals the search value.
+            // To revert to the old substring behaviour for tags, replace the allProperties selector with:
+            // '[data-prop]:not([data-prop="content"])'
             const selector = filter.property === 'allProperties'
-                ? '[data-prop]:not([data-prop="content"])'
+                ? `[data-prop]:not([data-prop="content"]):not([data-prop="tags"]), [data-tag="${filter.searchValue.toLowerCase()}"]`
                 : `[data-prop="${filter.property}"]`;
 
             const containers = rootElement.querySelectorAll(selector);
