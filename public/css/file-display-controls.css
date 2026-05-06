@@ -64,3 +64,18 @@
 .sort-direction-label:has(#sort-direction:checked) {
     rotate:-90deg;
 }
+
+.tag-taxonomy-btn {
+    font-size: 0.9em;
+    cursor: pointer;
+    padding-block: 0px;
+    padding-inline: 5px;
+    border-radius: 4px;
+    background-color: var(--colour-neutral);
+    color: var(--colour-contr);
+    border: 1.5px solid transparent;
+
+    &:hover {
+        border: 1.5px solid var(--colour-compl-contr);
+    }
+}
