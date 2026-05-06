@@ -50,14 +50,14 @@ export function handleKeyboardShortcuts(evt) {
         }
     }
 
-    // switch between html and text modes (need to check the input box first), gives focus to text editor if txt mode
+    // switch between html and text modes (need to check the input box first), gives focus to text editor if txt mode, and modal-content for scrolling if html mode
     if (evt.altKey && evt.key === 't') {
          const modal = document.getElementById('file-content-modal');
         if (modal?.open) {
             evt.preventDefault();
             const el = document.getElementById('render_toggle'); el.checked = !el.checked;
             handleToggleRenderText();
-            if (el.checked) {document.querySelector('#modal-content-text .text-editor')?.focus();}
+            document.querySelector(el.checked ? '#modal-content .text-editor' : '#modal-content')?.focus();
         }
     }
 
