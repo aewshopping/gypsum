@@ -14,11 +14,19 @@ export function handleShowTagTaxonomy() {
         checkbox.checked = false;
         handleContentSearchToggle(null, checkbox);
     }
-    renderTagTaxonomy();
+    // renderTagTaxonomy();
     const searchbox = document.getElementById('searchbox');
     searchbox.value = '';
     searchbox.focus();
     document.execCommand('insertText', false, 'tags:');
+}
+
+/**
+ * Renders the tag taxonomy into the DOM on demand (standalone, no searchbox side-effects).
+ * @returns {void}
+ */
+export function handleRenderTagTaxonomy() {
+    renderTagTaxonomy();
 }
 
 /**

@@ -71,15 +71,15 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click('[data-action="color-circle-pick"][data-color-value="steelblue"]');
+    await page.click('[data-action="color-circle-pick"][data-color-value="orangered"]');
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
     const editorText = await page.locator('#modal-content-text pre').textContent();
-    expect(editorText).toContain('#color/steelblue');
+    expect(editorText).toContain('#color/orangered');
     expect(editorText).not.toContain('#color/coral');
 
     const newOffset = await getCursorOffset(page);
-    const delta = 'steelblue'.length - 'coral'.length; // 4
+    const delta = 'orangered'.length - 'coral'.length; // 4
     expect(newOffset).toBe(savedOffset + delta);
   });
 
@@ -130,10 +130,10 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click('[data-action="color-circle-pick"][data-color-value="steelblue"]');
+    await page.click('[data-action="color-circle-pick"][data-color-value="orangered"]');
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
-    await expect(page.locator('#modal-content-text pre')).toContainText('#color/steelblue');
+    await expect(page.locator('#modal-content-text pre')).toContainText('#color/orangered');
 
     // Tag was BELOW the cursor so no delta — cursor must stay at offset 5.
     const newOffset = await getCursorOffset(page);
@@ -149,11 +149,11 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click('[data-action="color-circle-pick"][data-color-value="goldenrod"]');
+    await page.click('[data-action="color-circle-pick"][data-color-value="gold"]');
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
     const editorText = await page.locator('#modal-content-text pre').textContent();
-    expect(editorText).toContain('#color/goldenrod');
+    expect(editorText).toContain('#color/gold');
     expect(editorText).not.toContain('#color/coral');
     expect(editorText).toContain('#color/blue');
   });

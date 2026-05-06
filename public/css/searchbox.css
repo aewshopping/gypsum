@@ -36,6 +36,7 @@ body:has(#and_filter:checked) #searchbox {
 .searchbox-tag-btn {
     font-size:0.9em;
     cursor:pointer;
+    color: var(--colour-contr);
     position: absolute;
     top: 3px;
     bottom: 3px;

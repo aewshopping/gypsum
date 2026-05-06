@@ -17,7 +17,7 @@
     border-bottom-right-radius: 6px;
 }
 
-#view-select, #sort-select {
+#view-select, #sort-select, .tag-taxonomy-btn {
     border:none;
     cursor:pointer;
     min-width: 80px;

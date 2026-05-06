@@ -77,16 +77,15 @@ export function handleKeyboardShortcuts(evt) {
         }
     }
 
-    if (evt.key === '#' && !document.querySelector('dialog[open]')) {
-        evt.preventDefault();
-        handleShowTagTaxonomy();
-    }
-
-    if (evt.key === '/' && !document.querySelector('dialog[open]')) {
+    const searchboxKeyActions = {
+        '/': (searchbox) => searchbox.focus(),
+        '#': () => handleShowTagTaxonomy(),
+    };
+    if (searchboxKeyActions[evt.key] && !document.querySelector('dialog[open]')) {
         const searchbox = document.getElementById('searchbox');
         if (searchbox && document.activeElement !== searchbox) {
             evt.preventDefault();
-            searchbox.focus();
+            searchboxKeyActions[evt.key](searchbox);
         }
     }
 
