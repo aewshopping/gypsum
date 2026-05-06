@@ -8,6 +8,7 @@ import { handleSaveFileCopy } from './save-file-copy.js';
 import { handleFileOptionsOpen } from './file-options-click.js';
 import { handleCreateNewNote } from './create-new-note-click.js';
 import { handleEditorColorPick } from './editor-color-pick.js';
+import { handleToggleRenderText } from './toggle-render-text.js';
 import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
 import { appState } from '../../services/store.js';
@@ -40,6 +41,7 @@ export function handleKeyboardShortcuts(evt) {
         }
     }
 
+    // open colour picker
     if (evt.altKey && evt.key === 'c') {
         const modal = document.getElementById('file-content-modal');
         if (modal?.open) {
@@ -48,6 +50,18 @@ export function handleKeyboardShortcuts(evt) {
         }
     }
 
+    // switch between html and text modes (need to check the input box first), gives focus to text editor if txt mode
+    if (evt.altKey && evt.key === 't') {
+         const modal = document.getElementById('file-content-modal');
+        if (modal?.open) {
+            evt.preventDefault();
+            const el = document.getElementById('render_toggle'); el.checked = !el.checked;
+            handleToggleRenderText();
+            if (el.checked) {document.querySelector('#modal-content-text .text-editor')?.focus();}
+        }
+    }
+
+    // the number keys select the nth element with the data-action attribute of open-file-content-modal
     if (evt.key >= '1' && evt.key <= '9' && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
         const active = document.activeElement;
         const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 'number', 'tel']);
@@ -73,6 +87,14 @@ export function handleKeyboardShortcuts(evt) {
         if (searchbox && document.activeElement !== searchbox) {
             evt.preventDefault();
             searchbox.focus();
+        }
+    }
+
+    // Unfocus with 'Escape'
+    if (evt.key === 'Escape') {
+        const searchbox = document.getElementById('searchbox');
+        if (document.activeElement === searchbox) {
+            searchbox.blur(); // Removes focus from the element
         }
     }
 
