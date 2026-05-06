@@ -43,43 +43,62 @@ export function renderFileList_search(renderEverything) {
             file_html += `
                     <div class="search-view-matches flex-column color-dynamic" data-color="${file.color}">`
             if (matchingFilters) {
+                // Pre-pass: deduplicate by property, collecting all matched tag values
+                // separately so every tag gets its own data-tag for highlighting.
+                const seenProperties = new Map(); // property_match → first resultsObj
+                const matchedTagValues = new Set();
+
                 for (const [filterId, resultsObjArray] of matchingFilters) {
                     for (const resultsObj of resultsObjArray) {
-                        let matchHtml = "";
-                        let contentInfo = "";
-
-                        if (resultsObj.property_match === "content") {
-                            const matches = resultsObj.matches;
-                            const match_count = resultsObj.count;
-                            const snippet_count = resultsObj.matches.length;
-
-                            contentInfo = `<span><i>(showing ${snippet_count} of ${match_count} matches)</i></span>`
-
-                            for (const match of matches) {
-                                matchHtml += `<pre class="snippet color-dynamic-fade" data-color="${file.color}" data-prop="content">...${match.snippet}...</pre>`;
-                            }
-
-                            file_html +=
-                                `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
-                                <p>
-                                    <i>${resultsObj.property_match}</i>:<span"> ${resultsObj.searchValue}</span> ${contentInfo}
-                                </p>
-                                ${matchHtml}
-                            </div>`;
-
-                        } else {
-                            const propertyValue = resultsObj.property_match;
-                            const rawValue = file[propertyValue];
-                            const displayValue = rawValue instanceof Map ? [...rawValue.keys()].join(', ') : rawValue;
-                            const tagAttr = rawValue instanceof Map ? `data-tag="${resultsObj.searchValue}"` : '';
-
-                            file_html +=
-                                `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
-                                <p>
-                                    <i>${propertyValue}</i>:<span data-prop="${propertyValue}" ${tagAttr}> ${displayValue}</span>
-                                </p>
-                            </div>`;
+                        const prop = resultsObj.property_match;
+                        if (prop === 'tags') {
+                            matchedTagValues.add(resultsObj.searchValue);
+                            if (!seenProperties.has('tags')) seenProperties.set('tags', resultsObj);
+                        } else if (!seenProperties.has(prop)) {
+                            seenProperties.set(prop, resultsObj);
                         }
+                    }
+                }
+
+                for (const [prop, resultsObj] of seenProperties) {
+                    if (prop === 'content') {
+                        const matches = resultsObj.matches;
+                        const snippet_count = matches.length;
+                        const contentInfo = `<span><i>(showing ${snippet_count} of ${resultsObj.count} matches)</i></span>`;
+                        let matchHtml = "";
+                        for (const match of matches) {
+                            matchHtml += `<pre class="snippet color-dynamic-fade" data-color="${file.color}" data-prop="content">...${match.snippet}...</pre>`;
+                        }
+                        file_html +=
+                            `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
+                            <p>
+                                <i>content</i>:<span> ${resultsObj.searchValue}</span> ${contentInfo}
+                            </p>
+                            ${matchHtml}
+                        </div>`;
+
+                    } else if (prop === 'tags') {
+                        // Render each matched tag as its own span with data-tag so the
+                        // [data-tag] highlight selector in props-highlight.js picks up every match.
+                        const tagSpans = [...matchedTagValues]
+                            .map(sv => `<span data-prop="tags" data-tag="${sv}"> ${sv}</span>`)
+                            .join(',');
+                        file_html +=
+                            `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
+                            <p>
+                                <i>tags</i>:${tagSpans}
+                            </p>
+                        </div>`;
+
+                    } else {
+                        const rawValue = file[prop];
+                        const displayValue = Array.isArray(rawValue) ? rawValue.join(', ') : rawValue;
+                        file_html +=
+                            `<div class="search-view-matches-item color-dynamic" data-color="${file.color}">
+                            <p>
+                                <i>${prop}</i>:<span data-prop="${prop}"> ${displayValue}</span>
+                            </p>
+                        </div>`;
                     }
                 }
             }
