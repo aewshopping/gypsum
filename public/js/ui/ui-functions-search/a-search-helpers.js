@@ -38,7 +38,10 @@ export function updateSearchState(filterId, resultsMap) {
  */
 export function recordMatch(map, fileId, resultObject) {
     if (resultObject && resultObject.count > 0) {
-        map.set(fileId, resultObject);
+        if (!map.has(fileId)) {
+            map.set(fileId, []);
+        }
+        map.get(fileId).push(resultObject);
     }
 }
 
