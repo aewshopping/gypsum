@@ -34,7 +34,7 @@ export function renderFileList_list(renderEverything) {
             file_html += `
                 <li>
                     <details>
-                        <summary data-prop="filename">${filename_html} ${tag_pills_html}</summary>
+                        <summary><span data-prop="filename">${filename_html}</span> ${tag_pills_html}</summary>
                         <ul>
                         <li><span class="show-content-tag color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal">open</span></li>
                         `;
@@ -44,7 +44,8 @@ export function renderFileList_list(renderEverything) {
                 if (key === 'handle' || key === 'show' ) continue;
 
                 if (value instanceof Map) {
-                    file_html += `<li><strong>${key}:</strong><span data-prop="${key}"> ${[...value.keys()].join(', ')}</span></li>`;
+                    const tagPills = [...value.keys()].map(tag => renderTags(tag)).join('');
+                    file_html += `<li><strong>${key}:</strong> ${tagPills}</li>`;
                 } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                     file_html += `<li><strong>${key}:</strong><ul>`;
                     for (const subKey in value) {
