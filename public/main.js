@@ -1,5 +1,7 @@
 import { loadFileHandles } from './js/services/file-handler.js';
-import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
+import { loadDirectoryFileHandles, loadDirectoryFromHandle } from './js/services/directory-handler.js';
+import { loadSavedHandle, clearSavedHandle } from './js/services/storage/folder-handle-storage.js';
+import { showWarningModal } from './js/ui/ui-functions-click/warning-modal.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
@@ -30,11 +32,60 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const searchbox = document.getElementById("searchbox");
     const searchmode = appState.search.depth.searchMode;
-    searchbox.placeholder = appState.search.depth.prompt[searchmode];    
+    searchbox.placeholder = appState.search.depth.prompt[searchmode];
 
     addActionHandlers();
 
+    (async () => {
+        try {
+            const handle = await loadSavedHandle();
+            if (!handle) return;
+
+            const permission = await handle.queryPermission({ mode: 'readwrite' });
+
+            if (permission === 'granted') {
+                await renderDirectoryFromHandle(handle);
+            } else if (permission === 'prompt') {
+                showWarningModal(
+                    `Reopen "${handle.name}"?`,
+                    'Open',
+                    'Cancel',
+                    async () => {
+                        const granted = await handle.requestPermission({ mode: 'readwrite' });
+                        if (granted === 'granted') {
+                            await renderDirectoryFromHandle(handle);
+                        } else {
+                            await clearSavedHandle();
+                            console.log('Filesystem permission denied; cleared saved folder.');
+                        }
+                    }
+                );
+            } else {
+                await clearSavedHandle();
+                console.log('Filesystem permission denied; cleared saved folder.');
+            }
+        } catch (err) {
+            console.log('Could not restore saved folder:', err);
+        }
+    })();
+
 });
+
+/**
+ * Loads a directory from a handle, sorts, and renders.
+ * @async
+ * @param {FileSystemDirectoryHandle} handle
+ * @returns {Promise<void>}
+ */
+async function renderDirectoryFromHandle(handle) {
+    await loadDirectoryFromHandle(handle);
+    if (appState.tagTaxonomyVisible) renderTagTaxonomy();
+    const sortProp = appState.sortState.property;
+    sortAppStateFiles(sortProp, FILE_PROPERTIES.get(sortProp).type, appState.sortState.direction);
+    populateSortSelect();
+    renderFiles();
+    addActionHandlers();
+}
 
 /**
  * Orchestrates the data loading and initial rendering process.
@@ -87,4 +138,3 @@ async function loadDirectoryData() {
 
     sortAppStateFiles(sortProp, sortType, sortDirection);
 }
-

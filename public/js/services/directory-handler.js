@@ -3,6 +3,7 @@ import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { updateMyFilesProperties } from './file-props.js';
+import { saveHandle } from './storage/folder-handle-storage.js';
 
 /**
  * Recursively collects all .txt and .md file handles from a directory and its subdirectories.
@@ -28,18 +29,17 @@ async function getFilesRecursive(dirHandle, path = '') {
 }
 
 /**
- * Opens a read-only directory picker, recursively collects all .txt and .md files,
- * processes their metadata, and populates appState.
+ * Loads all .txt and .md files from a directory handle and populates appState.
  * @async
- * @function loadDirectoryFileHandles
+ * @function loadDirectoryFromHandle
+ * @param {FileSystemDirectoryHandle} dirHandle
  * @returns {Promise<void>}
  */
-export async function loadDirectoryFileHandles() {
+export async function loadDirectoryFromHandle(dirHandle) {
 
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
 
-    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     appState.dirHandle = dirHandle;
     document.getElementById('btn-new-note').disabled = false;
 
@@ -72,4 +72,16 @@ export async function loadDirectoryFileHandles() {
     console.log(`Saved metadata for ${fileCount} files.`);
     document.getElementById('fileCountElement').textContent = `${fileCount} files loaded, in ${durationSec} seconds`;
 
+}
+
+/**
+ * Opens a directory picker, persists the handle, then loads the directory.
+ * @async
+ * @function loadDirectoryFileHandles
+ * @returns {Promise<void>}
+ */
+export async function loadDirectoryFileHandles() {
+    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    saveHandle(dirHandle).catch(err => console.log('Could not persist folder handle:', err));
+    await loadDirectoryFromHandle(dirHandle);
 }
