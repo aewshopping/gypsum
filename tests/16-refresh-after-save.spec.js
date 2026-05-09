@@ -359,7 +359,7 @@ test.describe('tag taxonomy re-renders after manual save', () => {
   test('new tag appears in the taxonomy sidebar after save', async ({ page }) => {
     await setupWithContent(page, '# My Notes\nContent');
     await page.goto('/');
-    await page.click('[data-action="show-tag-taxonomy"]');
+    await page.click('[data-action="render-tag-taxonomy"]');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent #addedtag');
@@ -384,7 +384,7 @@ test.describe('tag taxonomy re-renders after manual save', () => {
   test('tag taxonomy is unchanged when only body text is edited (no tag change)', async ({ page }) => {
     await setupWithContent(page, '# My Notes\nContent #stabletag');
     await page.goto('/');
-    await page.click('[data-action="show-tag-taxonomy"]');
+    await page.click('[data-action="render-tag-taxonomy"]');
     await openModal(page);
     await switchToTxt(page);
 
@@ -417,7 +417,7 @@ test.describe('active search filters are re-run after manual save', () => {
     // Load files, show taxonomy, and apply a filter for the tag
     await page.click('[data-click-loadfolder]');
     await expect(page.locator('.note-grid')).toHaveCount(1);
-    await page.click('[data-action="show-tag-taxonomy"]');
+    await page.click('[data-action="render-tag-taxonomy"]');
     await page.click('details.taxon summary:has(code:text("orphan"))');
     await page.click('[data-action="tag-filter"][data-tag="searchtag"]');
     await expect(page.locator('.note-grid')).toHaveCount(1);
@@ -445,7 +445,7 @@ test.describe('active search filters are re-run after manual save', () => {
     // Load files, show taxonomy, and apply a filter — file matches
     await page.click('[data-click-loadfolder]');
     await expect(page.locator('.note-grid')).toHaveCount(1);
-    await page.click('[data-action="show-tag-taxonomy"]');
+    await page.click('[data-action="render-tag-taxonomy"]');
     await page.click('details.taxon summary:has(code:text("orphan"))');
     await page.click('[data-action="tag-filter"][data-tag="searchtag"]');
     await expect(page.locator('.note-grid')).toHaveCount(1);

@@ -36,4 +36,71 @@
     cursor: not-allowed;
 }
 
+.settings-shortcuts {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 20px;
+    row-gap: 4px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--colour-contr);
+    opacity: 0.85;
+}
 
+.settings-shortcuts-heading {
+    grid-column: 1 / -1;
+    margin: 0 0 8px;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.settings-shortcuts-group {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    row-gap: 3px;
+    margin-bottom: 8px;
+}
+
+.settings-shortcuts-group-heading {
+    grid-column: 1 / -1;
+    margin: 0 0 3px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+}
+
+.settings-shortcuts-dl {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    row-gap: 3px;
+    margin: 0;
+}
+
+.settings-shortcuts-dl div {
+    display: contents;
+}
+
+.settings-shortcuts-dl dt {
+    font-weight: normal;
+    margin: 0;
+    text-align: right;
+}
+
+.settings-shortcuts-dl dd {
+    margin: 0;
+    white-space: nowrap;
+}
+
+#modal-settings kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    border: 1px solid var(--colour-contr);
+    border-radius: 3px;
+    font-size: 0.78em;
+    font-family: monospace;
+    line-height: 1.5;
+}
