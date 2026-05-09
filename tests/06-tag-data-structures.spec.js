@@ -91,7 +91,7 @@ test('taxonomy displays global file count for a tag, not the per-parent count', 
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Show the taxonomy, then open parent sections to check counts
-  await page.click('[data-action="show-tag-taxonomy"]');
+  await page.click('[data-action="render-tag-taxonomy"]');
   await page.click('details.taxon summary:has(code:text("work"))');
   await expect(
     page.locator('#tag_output [data-tag="project"]').first()
@@ -111,7 +111,7 @@ test('tag filter still works correctly after TagMap change', async ({ page }) =>
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Show the taxonomy, then open 'work' to reveal 'project'
-  await page.click('[data-action="show-tag-taxonomy"]');
+  await page.click('[data-action="render-tag-taxonomy"]');
   await page.click('details.taxon summary:has(code:text("work"))');
   await page.click('[data-action="tag-filter"][data-tag="project"]');
 

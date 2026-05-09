@@ -9,7 +9,7 @@ test('clicking a tag filters files to only those with that tag', async ({ page }
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Show the taxonomy, then open 'work' to reveal 'project'
-  await page.click('[data-action="show-tag-taxonomy"]');
+  await page.click('[data-action="render-tag-taxonomy"]');
   await page.click('details.taxon summary:has(code:text("work"))');
   await page.click('[data-action="tag-filter"][data-tag="project"]');
 
