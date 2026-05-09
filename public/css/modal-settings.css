@@ -87,11 +87,11 @@
 .settings-shortcuts-dl dt {
     font-weight: normal;
     margin: 0;
+    text-align: right;
 }
 
 .settings-shortcuts-dl dd {
     margin: 0;
-    text-align: right;
     white-space: nowrap;
 }
 
