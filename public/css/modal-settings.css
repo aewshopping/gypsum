@@ -36,6 +36,25 @@
     cursor: not-allowed;
 }
 
+.settings-backup-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.settings-action-btn {
+    padding: 3px 10px;
+    border: 1px solid var(--colour-contr);
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--colour-contr);
+    cursor: pointer;
+    font: inherit;
+}
+
+.settings-action-btn:hover {
+    box-shadow: var(--hover-box-shadow);
+}
+
 .settings-shortcuts {
     display: grid;
     grid-template-columns: 1fr auto;

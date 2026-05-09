@@ -31,6 +31,7 @@ import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOut
 import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
+import { handleBackupContent, handleBackupFull } from './ui-functions-click/backup-click.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
 
 /**
@@ -88,6 +89,8 @@ const clickActionHandlers = {
     'file-options-cancel': handleFileOptionsCancel,
     'delete-file': handleDeleteFile,
     'create-new-note': handleCreateNewNote,
+    'backup-content': handleBackupContent,
+    'backup-full': handleBackupFull,
 };
 
 const changeActionHandlers = {
