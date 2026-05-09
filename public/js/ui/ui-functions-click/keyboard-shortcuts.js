@@ -11,6 +11,7 @@ import { handleEditorColorPick } from './editor-color-pick.js';
 import { handleToggleRenderText } from './toggle-render-text.js';
 import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
+import { handleOpenSettings } from './settings-modal.js';
 import { appState } from '../../services/store.js';
 
 /**
@@ -80,12 +81,28 @@ export function handleKeyboardShortcuts(evt) {
     const searchboxKeyActions = {
         '/': (searchbox) => searchbox.focus(),
         '#': () => handleShowTagTaxonomy(),
+        '?': () => handleOpenSettings(),
     };
     if (searchboxKeyActions[evt.key] && !document.querySelector('dialog[open]')) {
         const searchbox = document.getElementById('searchbox');
         if (searchbox && document.activeElement !== searchbox) {
             evt.preventDefault();
             searchboxKeyActions[evt.key](searchbox);
+        }
+    }
+
+    // Keys that also work when the file content modal is open (but not when the text editor has focus)
+    const contentModalKeyActions = {
+        '?': () => {
+            const settingsModal = document.getElementById('modal-settings');
+            if (!settingsModal?.open) handleOpenSettings();
+        },
+    };
+    if (contentModalKeyActions[evt.key]) {
+        const contentModal = document.getElementById('file-content-modal');
+        if (contentModal?.open && !document.activeElement?.isContentEditable) {
+            evt.preventDefault();
+            contentModalKeyActions[evt.key]();
         }
     }
 
