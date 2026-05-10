@@ -1,5 +1,6 @@
 import { loadFileHandles } from './js/services/file-handler.js';
 import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
+import { importTarGzipToOPFS, loadFromOPFS, initOPFSButton } from './js/backup/opfs-import.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
@@ -24,6 +25,27 @@ document.addEventListener('DOMContentLoaded', function () {
         renderFiles();
         addActionHandlers();
     });
+
+    const loadOpfsButton = document.getElementById('btn-load-opfs');
+
+    document.querySelector('[data-click-importtartoopfs]').addEventListener('click', function () {
+        importTarGzipToOPFS(function () {
+            populateSortSelect();
+            renderFiles();
+            addActionHandlers();
+            loadOpfsButton.disabled = false;
+        });
+    });
+
+    loadOpfsButton.addEventListener('click', async function () {
+        await loadFromOPFS(function () {
+            populateSortSelect();
+            renderFiles();
+            addActionHandlers();
+        });
+    });
+
+    initOPFSButton();
 
     initViewSelect();
     initSortSelect();
