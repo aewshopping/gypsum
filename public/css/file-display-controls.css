@@ -22,6 +22,7 @@
     cursor:pointer;
     min-width: 80px;
     font: 1em monospace;
+    color: var(--colour-contr);
     background-color: var(--colour-neutral-alt);
     &:hover {
         background-color: revert;
