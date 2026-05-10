@@ -21,6 +21,17 @@ async function hasOPFSContent(opfsRoot) {
 }
 
 /**
+ * Removes all entries from OPFS root, including subdirectories.
+ * @param {FileSystemDirectoryHandle} opfsRoot
+ * @returns {Promise<void>}
+ */
+async function clearOPFS(opfsRoot) {
+    for await (const name of opfsRoot.keys()) {
+        await opfsRoot.removeEntry(name, { recursive: true });
+    }
+}
+
+/**
  * Writes .txt and .md entries from a parsed tar archive into OPFS, preserving paths.
  * @param {Array<{name: string, type: string, text: string}>} entries
  * @param {FileSystemDirectoryHandle} opfsRoot
@@ -97,7 +108,10 @@ export async function importTarGzipToOPFS(onComplete) {
     }
 
     if (await hasOPFSContent(opfsRoot)) {
-        showWarningModal('OPFS already contains imported files. Overwrite them?', 'Overwrite', 'Cancel', proceed);
+        showWarningModal('OPFS already contains imported files. Overwrite them?', 'Overwrite', 'Cancel', async () => {
+            await clearOPFS(opfsRoot);
+            await proceed();
+        });
     } else {
         await proceed();
     }
