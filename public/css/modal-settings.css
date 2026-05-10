@@ -63,7 +63,6 @@
     margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid var(--colour-contr);
-    opacity: 0.85;
 }
 
 .settings-shortcuts-heading {
@@ -88,7 +87,6 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    opacity: 0.6;
 }
 
 .settings-shortcuts-dl {
@@ -115,11 +113,17 @@
 }
 
 #modal-settings kbd {
-    display: inline-block;
+    --colour-soften-1: color-mix(in srgb, var(--colour-contr) 90%, transparent 10%);
+    --colour-soften-2: color-mix(in srgb, var(--colour-contr) 60%, transparent 40%);
+    --colour-soften-3: color-mix(in srgb, var(--colour-contr) 5%, transparent 95%);
+    /* display: inline-block; */
     padding: 1px 5px;
-    border: 1px solid var(--colour-contr);
-    border-radius: 3px;
-    font-size: 0.78em;
+    margin-inline: 2px;
+    color: var(--colour-soften-1);
+    border: 1px solid var(--colour-soften-2);
+    background-color: var(--colour-soften-3);
+    border-radius: 4px;
+    font-size: 1.1em;
     font-family: monospace;
     line-height: 1.5;
 }
