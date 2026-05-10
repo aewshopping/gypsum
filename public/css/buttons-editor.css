@@ -3,7 +3,7 @@
     backdrop-filter: blur(3px);
     border-top-right-radius: 16px;
     pointer-events: auto; /* because I am rendering inert the element it is inside to allow user to click on the horizontal scrollbar if needed */
-	padding:6px 10px 10px 10px;
+	padding:6px 10px 16px 10px;
     width:fit-content;
     border: 2px solid transparent;
 	margin-left:-2px;

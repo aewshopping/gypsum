@@ -1,7 +1,7 @@
 /* this surrounds the whole switch to allow has focus to draw a box round it */
 .label_group_text_toggle {
 	pointer-events: auto; /* because I am rendering inert the element it is inside to allow user to click on the horizontal scrollbar if needed */
-	padding:8px 10px 10px 10px;
+	padding:8px 10px 16px 10px;
 	background-color: rgba(var(--colour-neutral), 50%);
 	backdrop-filter: blur(3px);
 	width:fit-content;
