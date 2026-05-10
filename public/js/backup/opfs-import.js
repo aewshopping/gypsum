@@ -119,14 +119,12 @@ export async function importTarGzipToOPFS(onComplete) {
 
 /**
  * Loads files already in OPFS into appState without re-importing. No-ops if OPFS is empty.
- * @param {Function} onComplete - Called after files are loaded into appState.
  * @returns {Promise<void>}
  */
-export async function loadFromOPFS(onComplete) {
+export async function loadFromOPFS() {
     const opfsRoot = await navigator.storage.getDirectory();
     if (!(await hasOPFSContent(opfsRoot))) return;
     await populateAppStateFromOPFS(opfsRoot);
-    onComplete();
 }
 
 /**
