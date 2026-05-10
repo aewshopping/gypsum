@@ -32,7 +32,7 @@ async function clearOPFS(opfsRoot) {
 }
 
 /**
- * Writes .txt and .md entries from a parsed tar archive into OPFS, preserving paths.
+ * Writes all file entries from a parsed tar archive into OPFS, preserving paths.
  * @param {Array<{name: string, type: string, text: string}>} entries
  * @param {FileSystemDirectoryHandle} opfsRoot
  * @returns {Promise<void>}
@@ -40,7 +40,6 @@ async function clearOPFS(opfsRoot) {
 async function writeFilesToOPFS(entries, opfsRoot) {
     for (const entry of entries) {
         if (entry.type !== 'file') continue;
-        if (!entry.name.endsWith('.txt') && !entry.name.endsWith('.md')) continue;
         const parts = entry.name.split('/');
         const filename = parts.pop();
         let dir = opfsRoot;
