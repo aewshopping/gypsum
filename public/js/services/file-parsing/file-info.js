@@ -1,5 +1,6 @@
 import { regex_title, regex_tag } from '../../constants.js';
 import { parseYaml } from './yaml-parse.js';
+import { findFrontMatterIndices } from './yaml-find.js';
 import { updateMyFilesProperties } from '../file-props.js';
 
 /**
@@ -18,7 +19,8 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
 
     const file = await handle.getFile();
     const content = await file.text();
-    const tagData = parseFileContent(content);
+    const frontMatterIndices = findFrontMatterIndices(content);
+    const tagData = parseFileContent(content, frontMatterIndices);
     const yamlData = parseYaml(content);
     updateMyFilesProperties(yamlData, 2);
 
@@ -56,9 +58,10 @@ const regex_tag_match = new RegExp(regex_tag.source, "gm");
  * MAIN FUNCTION: Parses file content to find title, unique tags (as a TagMap), and first color tag.
  *
  * @param {string} fileContent - The text content of the file.
+ * @param {{start: number, end: number} | null} frontMatterIndices - Pre-computed YAML block line indices, or null if absent.
  * @returns {{titleFirst: string, tagMap: Map<string, {count: number, parents: Set<string>}>, colorFirst: string | null}} - Extracted data.
  */
-function parseFileContent(fileContent) {
+function parseFileContent(fileContent, frontMatterIndices) {
     let tagState = {
         tagMap: new Map(),  // Map<childTagName, {count: number, parents: Set<string>}>
         colorFirst: null,
@@ -68,7 +71,7 @@ function parseFileContent(fileContent) {
     const { titleFirst: initialTitle } = extractMatches(fileContent, regex_all, regex_tag_match, tagState);
 
     // 2. Finalize Title
-    const titleFirst = getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState);
+    const titleFirst = getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, frontMatterIndices);
 
     // 3. Return results
     return {
@@ -142,21 +145,29 @@ function extractMatches(fileContent, regex_all, regex_tag_match, tagState) {
 }
 
 /**
- * Determines the final title, falling back to the first line if no markdown title is found.
- * Also checks the final title for any lurking tags
+ * Determines the final title, falling back to the first non-empty line after the YAML block
+ * (if present) or the first line of the file when no markdown H1 is found.
+ * Also checks the final title for any lurking tags.
  *
  * @param {string} fileContent - The full text.
  * @param {string | null} initialTitle - The first title found by extractMatches.
  * @param {RegExp} regex_tag_match - Regex specifically for tags.
  * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>, colorFirst: string | null}} tagState - State object to pass to processTag.
+ * @param {{start: number, end: number} | null} frontMatterIndices - Pre-computed YAML block line indices, or null if absent.
  * @returns {string} The final title.
  */
-function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState) {
+function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, frontMatterIndices) {
     let finalTitle = initialTitle;
 
     if (finalTitle === null) {
-        // No markdown H1 found, fallback to the first line of the file
-        finalTitle = fileContent.split(/\r?\n/)[0].trim().substring(0, 180);
+        const lines = fileContent.split(/\r?\n/);
+        if (frontMatterIndices && frontMatterIndices.start === 0) {
+            // Skip the YAML block; use the first non-empty line after it
+            const afterYaml = lines.slice(frontMatterIndices.end + 1);
+            finalTitle = (afterYaml.find(line => line.trim() !== '') ?? '').trim().substring(0, 180);
+        } else {
+            finalTitle = lines[0].trim().substring(0, 180);
+        }
     } else {
         // Markdown H1 *was* found. Check it for tags.
         const titleTagMatches = finalTitle.matchAll(regex_tag_match);

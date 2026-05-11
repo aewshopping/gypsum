@@ -27,7 +27,7 @@ export function renderTableRows(current_props, renderEverything) {
                         if (prop.name === 'filename') {
                             cellContent = renderFilenamePlusOpenBtn(file.filepath || '', file.color, file.id); // so that it shows the "copy filename" thing (note updated to be full filepath incl filename now we are looking at folders)
                         } else {
-                            cellContent = file.filepath || '';
+                            cellContent = value || '';
                         }
                         break;
                     case 'date':
