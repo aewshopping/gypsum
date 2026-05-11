@@ -5,7 +5,7 @@ test('clicking a tag filters files to only those with that tag', async ({ page }
   await setupMockFiles(page);
   await page.goto('/');
 
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Show the taxonomy, then open 'work' to reveal 'project'

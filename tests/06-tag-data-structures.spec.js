@@ -4,7 +4,7 @@ const { setupMockFiles, setupMockFilesMultiParent, setupMockFilesTagCount } = re
 test('file.tags is a Map after loading', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   const tagsIsMap = await page.evaluate(() => {
@@ -17,7 +17,7 @@ test('file.tags is a Map after loading', async ({ page }) => {
 test('file.tags Map has correct entries for a hierarchical tag', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   const tagEntry = await page.evaluate(() => {
@@ -33,7 +33,7 @@ test('file.tags Map has correct entries for a hierarchical tag', async ({ page }
 test('file.tags captures multiple parents for the same child tag within one file', async ({ page }) => {
   await setupMockFilesMultiParent(page);
   await page.goto('/');
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(2);
 
   const parents = await page.evaluate(() => {
@@ -47,7 +47,7 @@ test('file.tags captures multiple parents for the same child tag within one file
 test('appState.myParentMap is built with correct parent/child structure', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   const mapInfo = await page.evaluate(() => {
@@ -70,7 +70,7 @@ test('appState.myParentMap is built with correct parent/child structure', async 
 test('orphan tags appear under orphan key in myParentMap', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // 'personal' only ever appears as #personal (no named parent), so it should be an orphan
@@ -87,7 +87,7 @@ test('taxonomy displays global file count for a tag, not the per-parent count', 
   // Each parent section must show (2), not (1).
   await setupMockFilesTagCount(page);
   await page.goto('/');
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Show the taxonomy, then open parent sections to check counts
@@ -107,7 +107,7 @@ test('taxonomy displays global file count for a tag, not the per-parent count', 
 test('tag filter still works correctly after TagMap change', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Show the taxonomy, then open 'work' to reveal 'project'

@@ -4,7 +4,7 @@ const { setupMockFiles } = require('./helpers');
 // setupMockFiles has files with: #work/project, #personal, #color/coral
 
 async function loadFiles(page) {
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid').first()).toBeVisible();
 }
 
@@ -65,17 +65,23 @@ test.describe('tag autocomplete — editor', () => {
     // scan or allocate the entire preceding text. Verify correctness is preserved.
     const longLine = 'A'.repeat(5000); // simulate base64 — no spaces, no newlines
     await page.addInitScript((line) => {
-      window.showOpenFilePicker = async () => [{
-        getFile: async () => ({
-          name: 'base64-test.md',
-          size: line.length + 10,
-          lastModified: Date.now(),
-          text: async () => `${line}\nsome text #personal`,
-        }),
-      }];
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield {
+            kind: 'file', name: 'base64-test.md',
+            getFile: async () => ({
+              name: 'base64-test.md',
+              size: line.length + 10,
+              lastModified: Date.now(),
+              text: async () => `${line}\nsome text #personal`,
+            }),
+          };
+        },
+      });
     }, longLine);
     await page.goto('/');
-    await page.click('[data-click-loadfiles]');
+    await page.click('[data-click-loadfolder]');
     await page.locator('.note-grid').first().click();
     await page.evaluate(() => {
       const t = document.getElementById('render_toggle');
@@ -103,17 +109,23 @@ test.describe('tag autocomplete — editor', () => {
     // boundary within the lookback window) must not trigger autocomplete.
     const longLine = 'A'.repeat(5000);
     await page.addInitScript((line) => {
-      window.showOpenFilePicker = async () => [{
-        getFile: async () => ({
-          name: 'base64-test.md',
-          size: line.length,
-          lastModified: Date.now(),
-          text: async () => line,
-        }),
-      }];
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield {
+            kind: 'file', name: 'base64-test.md',
+            getFile: async () => ({
+              name: 'base64-test.md',
+              size: line.length,
+              lastModified: Date.now(),
+              text: async () => line,
+            }),
+          };
+        },
+      });
     }, longLine);
     await page.goto('/');
-    await page.click('[data-click-loadfiles]');
+    await page.click('[data-click-loadfolder]');
     await page.locator('.note-grid').first().click();
     await page.evaluate(() => {
       const t = document.getElementById('render_toggle');
@@ -344,23 +356,16 @@ test.describe('tag autocomplete — tag list contents', () => {
     // so the old code never emitted the bare 'brie' entry. The fix uses the
     // 'all' key which deduplicates to the child name regardless of parenting.
     await page.addInitScript(() => {
-      window.showOpenFilePicker = async () => [
-        {
-          getFile: async () => ({
-            name: 'a.md', size: 10, lastModified: Date.now(),
-            text: async () => '# A\n#brie',
-          }),
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield { kind: 'file', name: 'a.md', getFile: async () => ({ name: 'a.md', size: 10, lastModified: Date.now(), text: async () => '# A\n#brie' }) };
+          yield { kind: 'file', name: 'b.md', getFile: async () => ({ name: 'b.md', size: 10, lastModified: Date.now(), text: async () => '# B\n#cheese/brie' }) };
         },
-        {
-          getFile: async () => ({
-            name: 'b.md', size: 10, lastModified: Date.now(),
-            text: async () => '# B\n#cheese/brie',
-          }),
-        },
-      ];
+      });
     });
     await page.goto('/');
-    await page.click('[data-click-loadfiles]');
+    await page.click('[data-click-loadfolder]');
     await page.locator('.note-grid').first().click();
     await page.evaluate(() => {
       const t = document.getElementById('render_toggle');

@@ -1,5 +1,5 @@
 /**
- * Injects a mock version of window.showOpenFilePicker into the page
+ * Injects a mock version of window.showDirectoryPicker into the page
  * before the app's JavaScript runs. This lets tests simulate loading
  * files without triggering the native file picker dialog.
  *
@@ -12,30 +12,24 @@
  */
 async function setupMockFiles(page) {
   await page.addInitScript(() => {
-    window.showOpenFilePicker = async () => {
-      const files = [
-        {
-          name: 'meeting-notes.md',
-          content: '# Quarterly Review\n\nDiscussion points for the quarter #work/project',
-        },
-        {
-          name: 'shopping.txt',
-          content: 'Shopping list\n\nMilk, eggs, bread #personal',
-        },
-        {
-          name: 'big-ideas.md',
-          content: '# Big Ideas\n\nLong term thinking #personal #color/coral',
-        },
-      ];
-
-      return files.map(({ name, content }) => ({
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
         getFile: async () => ({
           name,
           size: content.length,
           lastModified: Date.now(),
           text: async () => content,
         }),
-      }));
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('meeting-notes.md', '# Quarterly Review\n\nDiscussion points for the quarter #work/project');
+          yield makeFile('shopping.txt', 'Shopping list\n\nMilk, eggs, bread #personal');
+          yield makeFile('big-ideas.md', '# Big Ideas\n\nLong term thinking #personal #color/coral');
+        },
+      };
     };
   });
 }
@@ -101,26 +95,23 @@ async function setupMockDirectory(page) {
  */
 async function setupMockFilesMultiParent(page) {
   await page.addInitScript(() => {
-    window.showOpenFilePicker = async () => {
-      const files = [
-        {
-          name: 'meeting-notes.md',
-          content: '# Quarterly Review\n\nDiscussion points #work/project and #personal/project',
-        },
-        {
-          name: 'shopping.txt',
-          content: 'Shopping list\n\nMilk, eggs, bread #personal',
-        },
-      ];
-
-      return files.map(({ name, content }) => ({
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
         getFile: async () => ({
           name,
           size: content.length,
           lastModified: Date.now(),
           text: async () => content,
         }),
-      }));
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('meeting-notes.md', '# Quarterly Review\n\nDiscussion points #work/project and #personal/project');
+          yield makeFile('shopping.txt', 'Shopping list\n\nMilk, eggs, bread #personal');
+        },
+      };
     };
   });
 }
@@ -140,20 +131,24 @@ async function setupMockFilesMultiParent(page) {
  */
 async function setupMockFilesTagCount(page) {
   await page.addInitScript(() => {
-    window.showOpenFilePicker = async () => {
-      const files = [
-        { name: 'file-a.md', content: 'File A #work/project' },
-        { name: 'file-b.md', content: 'File B #idea/project' },
-        { name: 'file-c.md', content: 'File C #personal' },
-      ];
-      return files.map(({ name, content }) => ({
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
         getFile: async () => ({
           name,
           size: content.length,
           lastModified: Date.now(),
           text: async () => content,
         }),
-      }));
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('file-a.md', 'File A #work/project');
+          yield makeFile('file-b.md', 'File B #idea/project');
+          yield makeFile('file-c.md', 'File C #personal');
+        },
+      };
     };
   });
 }

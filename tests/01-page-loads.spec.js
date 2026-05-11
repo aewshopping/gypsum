@@ -6,5 +6,6 @@ test('page loads with correct title', async ({ page }) => {
   await page.goto('/');
 
   await expect(page).toHaveTitle('Text file viewer');
+  await expect(page.locator('[data-click-loadfolder]')).toBeVisible();
   await expect(page.locator('#fileCountElement')).toHaveText('No files loaded');
 });

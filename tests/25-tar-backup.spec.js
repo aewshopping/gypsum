@@ -240,18 +240,10 @@ test.describe('tar backup buttons', () => {
                 window.__downloadTriggered = true;
                 return origCreateObjectURL(blob);
             };
-            window.showOpenFilePicker = async () => [{
-                getFile: async () => ({
-                    name: 'notes.md', size: 8, lastModified: Date.now(),
-                    text: async () => '# Notes',
-                }),
-            }];
         });
 
         await page.goto('/');
-        await page.click('[data-click-loadfiles]');
-        await expect(page.locator('.note-grid')).toHaveCount(1);
-
+        // No folder loaded — open settings and try backup directly
         await page.click('[data-action="open-settings-modal"]');
         await page.click('[data-action="backup-content"]');
         await page.waitForTimeout(500);
