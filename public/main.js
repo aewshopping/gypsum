@@ -1,5 +1,6 @@
 import { loadFileHandles } from './js/services/file-handler.js';
 import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
+import { importTarGzipToOPFS, loadFromOPFS, initOPFSButton } from './js/backup/opfs-import.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
 import { sortAppStateFiles } from './js/services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from './js/services/store.js';
@@ -12,79 +13,48 @@ window.appState = appState; // exposed for debugging and tests
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    const loadFilesButton = document.querySelector('[data-click-loadfiles]');
-    loadFilesButton.addEventListener('click', function () {
-        conductor();
-    });
+    document.querySelector('[data-click-loadfiles]').addEventListener('click', () => loadAndProcess(loadFileHandles));
+    document.querySelector('[data-click-loadfolder]').addEventListener('click', () => loadAndProcess(loadDirectoryFileHandles));
+    document.querySelector('[data-click-loadopfs]').addEventListener('click', () => loadAndProcess(loadFromOPFS));
 
-    const loadFolderButton = document.querySelector('[data-click-loadfolder]');
-    loadFolderButton.addEventListener('click', async function () {
-        await loadDirectoryData();
-        populateSortSelect();
-        renderFiles();
-        addActionHandlers();
+    document.querySelector('[data-click-importtartoopfs]').addEventListener('click', () => {
+        importTarGzipToOPFS(() => {
+            postLoad();
+            document.getElementById('btn-load-opfs').disabled = false;
+        });
     });
 
     initViewSelect();
     initSortSelect();
+    initOPFSButton();
 
-    const searchbox = document.getElementById("searchbox");
+    const searchbox = document.getElementById('searchbox');
     const searchmode = appState.search.depth.searchMode;
-    searchbox.placeholder = appState.search.depth.prompt[searchmode];    
+    searchbox.placeholder = appState.search.depth.prompt[searchmode];
 
     addActionHandlers();
 
 });
 
 /**
- * Orchestrates the data loading and initial rendering process.
- * This function is called when the "Load Files" button is clicked.
- * @async
- * @function conductor
- * @returns {Promise<void>}
+ * Shared post-load steps: tag taxonomy, sort, UI refresh.
+ * All loading paths run this after populating appState.
  */
-async function conductor() {
-    await loadData();
+function postLoad() {
+    if (appState.tagTaxonomyVisible) renderTagTaxonomy();
+    const sortProp = appState.sortState.property;
+    sortAppStateFiles(sortProp, FILE_PROPERTIES.get(sortProp).type, appState.sortState.direction);
     populateSortSelect();
     renderFiles();
     addActionHandlers();
 }
 
 /**
- * Loads file data, processes tags/taxonomy, and sorts the files based on the initial state.
- * @async
- * @function loadData
+ * Calls a loader function then runs shared post-load steps.
+ * @param {Function} loaderFn - Async function that populates appState.myFiles.
  * @returns {Promise<void>}
  */
-async function loadData() {
-
-    await loadFileHandles();
-
-    if (appState.tagTaxonomyVisible) renderTagTaxonomy();
-
-    const sortProp = appState.sortState.property
-    const sortType = FILE_PROPERTIES.get(sortProp).type;
-    const sortDirection = appState.sortState.direction
-
-    sortAppStateFiles(sortProp, sortType, sortDirection);
+async function loadAndProcess(loaderFn) {
+    await loaderFn();
+    postLoad();
 }
-
-/**
- * Loads file data from a directory (recursively), processes tags/taxonomy, and sorts the files.
- * @async
- * @function loadDirectoryData
- * @returns {Promise<void>}
- */
-async function loadDirectoryData() {
-
-    await loadDirectoryFileHandles();
-
-    if (appState.tagTaxonomyVisible) renderTagTaxonomy();
-
-    const sortProp = appState.sortState.property
-    const sortType = FILE_PROPERTIES.get(sortProp).type;
-    const sortDirection = appState.sortState.direction
-
-    sortAppStateFiles(sortProp, sortType, sortDirection);
-}
-

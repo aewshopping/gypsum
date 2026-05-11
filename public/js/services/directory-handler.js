@@ -10,7 +10,7 @@ import { updateMyFilesProperties } from './file-props.js';
  * @param {string} path - The accumulated relative path prefix for this level.
  * @returns {Promise<Array<{handle: FileSystemFileHandle, filepath: string}>>}
  */
-async function getFilesRecursive(dirHandle, path = '') {
+export async function getFilesRecursive(dirHandle, path = '') {
     const results = [];
     for await (const entry of dirHandle.values()) {
         if (entry.kind === 'file') {
