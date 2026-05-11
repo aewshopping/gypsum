@@ -161,7 +161,7 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
 
     if (finalTitle === null) {
         const lines = fileContent.split(/\r?\n/);
-        if (frontMatterIndices) {
+        if (frontMatterIndices && frontMatterIndices.start === 0) {
             // Skip the YAML block; use the first non-empty line after it
             const afterYaml = lines.slice(frontMatterIndices.end + 1);
             finalTitle = (afterYaml.find(line => line.trim() !== '') ?? '').trim().substring(0, 180);
