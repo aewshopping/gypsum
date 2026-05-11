@@ -229,7 +229,7 @@ function getContentPeek(fileContent, initialTitle, frontMatterIndices) {
     for (let i = firstLine.lineIndex; i < lines.length; i++) {
         if (yamlStart !== -1 && i >= yamlStart && i <= yamlEnd) continue;
         const line = lines[i].trim();
-        if (line !== '') text += (text ? ' ' : '') + line;
+        if (line !== '') text += (text ? '\n' : '') + line;
         if (text.length >= PEEK_MAX_CHARS) break;
     }
 

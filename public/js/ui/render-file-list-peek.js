@@ -24,12 +24,18 @@ export function renderFileList_peek(renderEverything) {
                 tag_pills_html += renderTags(tag);
             }
 
+            const peekHtml = (file.contentPeek || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>');
+
             file_html += `
         <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal">
 
-            <p data-prop="title">${file.title}</p>
+            <h3 data-prop="title">${file.title}</h3>
 
-            <p data-prop="contentPeek">${file.contentPeek || ''}</p>
+            <p data-prop="contentPeek">${peekHtml ? peekHtml + '...' : ''}</p>
 
             <div data-prop="tags">${tag_pills_html}</div>
 
