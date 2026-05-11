@@ -200,7 +200,7 @@ test.describe('local file backup', () => {
   test('does not write backup when files loaded via file picker', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
-    await page.click('[data-click-loadfiles]');
+    await page.click('[data-click-loadfolder]');
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
