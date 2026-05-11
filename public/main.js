@@ -1,4 +1,3 @@
-import { loadFileHandles } from './js/services/file-handler.js';
 import { loadDirectoryFileHandles } from './js/services/directory-handler.js';
 import { importTarGzipToOPFS, loadFromOPFS, initOPFSButton } from './js/backup/opfs-import.js';
 import { renderTagTaxonomy } from './js/ui/render-tag-taxonmy.js';
@@ -13,7 +12,6 @@ window.appState = appState; // exposed for debugging and tests
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    document.querySelector('[data-click-loadfiles]').addEventListener('click', () => loadAndProcess(loadFileHandles));
     document.querySelector('[data-click-loadfolder]').addEventListener('click', () => loadAndProcess(loadDirectoryFileHandles));
     document.querySelector('[data-click-loadopfs]').addEventListener('click', () => loadAndProcess(loadFromOPFS));
 
