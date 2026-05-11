@@ -5,7 +5,7 @@ test('switching to table view shows column headers', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
 
-  await page.click('[data-click-loadfiles]');
+  await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   await page.selectOption('#view-select', 'table');

@@ -24,7 +24,7 @@ test.describe('search highlight (match) lifecycle', () => {
     test('search creates a match highlight in the file list', async ({ page }) => {
         await setupMockFiles(page);
         await page.goto('/');
-        await page.click('[data-click-loadfiles]');
+        await page.click('[data-click-loadfolder]');
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.fill('#searchbox', 'meeting');
@@ -38,7 +38,7 @@ test.describe('search highlight (match) lifecycle', () => {
     test('match highlight has connected ranges after opening the modal', async ({ page }) => {
         await setupMockFiles(page);
         await page.goto('/');
-        await page.click('[data-click-loadfiles]');
+        await page.click('[data-click-loadfolder]');
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.fill('#searchbox', 'meeting');
@@ -54,7 +54,7 @@ test.describe('search highlight (match) lifecycle', () => {
     test('match highlight has connected ranges after toggling render mode', async ({ page }) => {
         await setupMockFiles(page);
         await page.goto('/');
-        await page.click('[data-click-loadfiles]');
+        await page.click('[data-click-loadfolder]');
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.fill('#searchbox', 'meeting');
@@ -78,7 +78,7 @@ test.describe('search highlight (match) lifecycle', () => {
     test('match highlight has connected ranges after closing the modal', async ({ page }) => {
         await setupMockFiles(page);
         await page.goto('/');
-        await page.click('[data-click-loadfiles]');
+        await page.click('[data-click-loadfolder]');
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.fill('#searchbox', 'meeting');
