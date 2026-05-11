@@ -42,6 +42,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         filename: file.name,
         sizeInBytes: file.size,
         title: tagData.titleFirst,
+        contentPeek: tagData.contentPeek,
         tags: tagData.tagMap,
         color: tagData.colorFirst,
         lastModified: new Date(file.lastModified),
@@ -53,6 +54,9 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
 const regex_pattern = `${regex_title.source}|${regex_tag.source}`;
 const regex_all = new RegExp(regex_pattern, "gm");
 const regex_tag_match = new RegExp(regex_tag.source, "gm");
+
+const PEEK_TARGET_CHARS = 100;
+const PEEK_MAX_CHARS = 130;
 
 /**
  * MAIN FUNCTION: Parses file content to find title, unique tags (as a TagMap), and first color tag.
@@ -70,12 +74,14 @@ function parseFileContent(fileContent, frontMatterIndices) {
     // 1. Extract Matches and get Initial Title
     const { titleFirst: initialTitle } = extractMatches(fileContent, regex_all, regex_tag_match, tagState);
 
-    // 2. Finalize Title
+    // 2. Finalize Title and Content Preview
     const titleFirst = getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, frontMatterIndices);
+    const contentPeek = getContentPeek(fileContent, initialTitle, frontMatterIndices);
 
     // 3. Return results
     return {
         titleFirst: titleFirst.trim(),
+        contentPeek,
         tagMap: tagState.tagMap,
         colorFirst: tagState.colorFirst,
     };
@@ -145,6 +151,25 @@ function extractMatches(fileContent, regex_all, regex_tag_match, tagState) {
 }
 
 /**
+ * Returns the index and trimmed text of the first non-empty line at or after startIndex,
+ * skipping any lines inside the YAML front-matter block.
+ *
+ * @param {string[]} lines - File content split into lines.
+ * @param {number} startIndex - 0-based index to begin searching from.
+ * @param {{start: number, end: number} | null} frontMatterIndices
+ * @returns {{ lineIndex: number, lineText: string } | null}
+ */
+function findFirstContentLine(lines, startIndex, frontMatterIndices) {
+    const yamlStart = frontMatterIndices?.start ?? -1;
+    const yamlEnd = frontMatterIndices?.end ?? -1;
+    for (let i = startIndex; i < lines.length; i++) {
+        if (yamlStart !== -1 && i >= yamlStart && i <= yamlEnd) continue;
+        if (lines[i].trim() !== '') return { lineIndex: i, lineText: lines[i].trim() };
+    }
+    return null;
+}
+
+/**
  * Determines the final title, falling back to the first non-empty line after the YAML block
  * (if present) or the first line of the file when no markdown H1 is found.
  * Also checks the final title for any lurking tags.
@@ -161,13 +186,8 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
 
     if (finalTitle === null) {
         const lines = fileContent.split(/\r?\n/);
-        if (frontMatterIndices && frontMatterIndices.start === 0) {
-            // Skip the YAML block; use the first non-empty line after it
-            const afterYaml = lines.slice(frontMatterIndices.end + 1);
-            finalTitle = (afterYaml.find(line => line.trim() !== '') ?? '').trim().substring(0, 180);
-        } else {
-            finalTitle = lines[0].trim().substring(0, 180);
-        }
+        const result = findFirstContentLine(lines, 0, frontMatterIndices);
+        finalTitle = result ? result.lineText.substring(0, 180) : '';
     } else {
         // Markdown H1 *was* found. Check it for tags.
         const titleTagMatches = finalTitle.matchAll(regex_tag_match);
@@ -179,4 +199,42 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
     }
 
     return finalTitle.substring(0, 180); // maxed out at 180 characters
+}
+
+/**
+ * Extracts a short content preview, skipping the H1 title line, YAML front-matter,
+ * and leading blank lines. Truncates at whitespace near PEEK_TARGET_CHARS,
+ * hard-capped at PEEK_MAX_CHARS.
+ *
+ * @param {string} fileContent - The full text.
+ * @param {string | null} initialTitle - The H1 title found by extractMatches, or null.
+ * @param {{start: number, end: number} | null} frontMatterIndices
+ * @returns {string} The content preview.
+ */
+function getContentPeek(fileContent, initialTitle, frontMatterIndices) {
+    const lines = fileContent.split(/\r?\n/);
+
+    const h1LineIndex = initialTitle !== null
+        ? lines.findIndex(line => /^# /.test(line))
+        : -1;
+    const startIndex = h1LineIndex !== -1 ? h1LineIndex + 1 : 1;
+
+    const firstLine = findFirstContentLine(lines, startIndex, frontMatterIndices);
+    if (!firstLine) return '';
+
+    const yamlStart = frontMatterIndices?.start ?? -1;
+    const yamlEnd = frontMatterIndices?.end ?? -1;
+    let text = '';
+
+    for (let i = firstLine.lineIndex; i < lines.length; i++) {
+        if (yamlStart !== -1 && i >= yamlStart && i <= yamlEnd) continue;
+        const line = lines[i].trim();
+        if (line !== '') text += (text ? ' ' : '') + line;
+        if (text.length >= PEEK_MAX_CHARS) break;
+    }
+
+    if (text.length <= PEEK_TARGET_CHARS) return text;
+    const spaceIndex = text.indexOf(' ', PEEK_TARGET_CHARS);
+    if (spaceIndex === -1 || spaceIndex >= PEEK_MAX_CHARS) return text.substring(0, PEEK_MAX_CHARS);
+    return text.substring(0, spaceIndex);
 }
