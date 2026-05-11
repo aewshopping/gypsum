@@ -229,12 +229,16 @@ function getContentPeek(fileContent, initialTitle, frontMatterIndices) {
     for (let i = firstLine.lineIndex; i < lines.length; i++) {
         if (yamlStart !== -1 && i >= yamlStart && i <= yamlEnd) continue;
         const line = lines[i].trim();
-        if (line !== '') text += (text ? '\n' : '') + line;
+        if (line !== '') {
+            text += (text ? '\n' : '') + line;
+        } else if (text && !text.endsWith('\n\n')) {
+            text += '\n'; // preserve paragraph break; cap at one blank line
+        }
         if (text.length >= PEEK_MAX_CHARS) break;
     }
 
-    if (text.length <= PEEK_TARGET_CHARS) return text;
+    if (text.length <= PEEK_TARGET_CHARS) return text.trimEnd();
     const spaceIndex = text.indexOf(' ', PEEK_TARGET_CHARS);
-    if (spaceIndex === -1 || spaceIndex >= PEEK_MAX_CHARS) return text.substring(0, PEEK_MAX_CHARS);
-    return text.substring(0, spaceIndex);
+    if (spaceIndex === -1 || spaceIndex >= PEEK_MAX_CHARS) return text.substring(0, PEEK_MAX_CHARS).trimEnd();
+    return text.substring(0, spaceIndex).trimEnd();
 }
