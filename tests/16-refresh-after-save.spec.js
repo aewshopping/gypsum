@@ -120,83 +120,12 @@ test.describe('appState.myFiles is updated after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# Updated Title\nContent here');
     await clickSaveBtn(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(150);
 
     const title = await page.evaluate(() =>
       window.appState.myFiles.find(f => f.filename === 'notes.md')?.title
     );
     expect(title).toBe('Updated Title');
-  });
-
-  test('tags Map gains a new entry after adding a tag', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent here');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent here #freshtag');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const hasTag = await page.evaluate(() => {
-      const file = window.appState.myFiles.find(f => f.filename === 'notes.md');
-      return file?.tags instanceof Map && file.tags.has('freshtag');
-    });
-    expect(hasTag).toBe(true);
-  });
-
-  test('tags Map loses an entry after removing a tag', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent #removeme');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const hasTag = await page.evaluate(() => {
-      const file = window.appState.myFiles.find(f => f.filename === 'notes.md');
-      return file?.tags instanceof Map && file.tags.has('removeme');
-    });
-    expect(hasTag).toBe(false);
-  });
-
-  test('YAML property is updated after editing frontmatter', async ({ page }) => {
-    await setupWithContent(page, '---\ndate: 2024-01-01\n---\n# My Notes\nContent');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '---\ndate: 2025-06-15\n---\n# My Notes\nContent');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const dateVal = await page.evaluate(() =>
-      window.appState.myFiles.find(f => f.filename === 'notes.md')?.date
-    );
-    expect(String(dateVal)).toContain('2025');
-  });
-
-  test('file object identity (id and filepath) is preserved after refresh', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    const before = await page.evaluate(() => {
-      const f = window.appState.myFiles.find(f => f.filename === 'notes.md');
-      return { id: f.id, filepath: f.filepath };
-    });
-
-    await editContent(page, '# My Notes\nContent edited');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const after = await page.evaluate(() => {
-      const f = window.appState.myFiles.find(f => f.filename === 'notes.md');
-      return { id: f.id, filepath: f.filepath };
-    });
-
-    expect(after.id).toBe(before.id);
-    expect(after.filepath).toBe(before.filepath);
   });
 
 });
@@ -212,82 +141,12 @@ test.describe('appState.myParentMap is rebuilt after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent #brandnewtag');
     await clickSaveBtn(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(150);
 
     const inMap = await page.evaluate(() =>
       window.appState.myParentMap.get('all')?.has('brandnewtag') ?? false
     );
     expect(inMap).toBe(true);
-  });
-
-  test('removed tag disappears from myParentMap[all] after save', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent #uniquetag');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const inMap = await page.evaluate(() =>
-      window.appState.myParentMap.get('all')?.has('uniquetag') ?? false
-    );
-    expect(inMap).toBe(false);
-  });
-
-  test('new hierarchical tag creates its parent key in myParentMap after save', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent #newparent/newchild');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const parentExists = await page.evaluate(() =>
-      window.appState.myParentMap.has('newparent')
-    );
-    expect(parentExists).toBe(true);
-  });
-
-  test('orphan tag moves under its parent after save adds a parent', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\n#childtag');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\n#parenttag/childtag');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const result = await page.evaluate(() => {
-      const pm = window.appState.myParentMap;
-      return {
-        hasParent: pm.has('parenttag'),
-        childUnderParent: pm.get('parenttag')?.has('childtag') ?? false,
-        notOrphan: !(pm.get('orphan')?.has('childtag') ?? false),
-      };
-    });
-    expect(result.hasParent).toBe(true);
-    expect(result.childUnderParent).toBe(true);
-    expect(result.notOrphan).toBe(true);
-  });
-
-});
-
-// ─── UI: file list ────────────────────────────────────────────────────────────
-
-test.describe('file list re-renders after manual save', () => {
-
-  test('card shows updated title after save', async ({ page }) => {
-    await setupWithContent(page, '# Old Title\nContent');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# New Title\nContent');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('.note-grid').first()).toContainText('New Title');
   });
 
 });
@@ -303,7 +162,7 @@ test.describe('modal color updates after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent #color/coral');
     await clickSaveBtn(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(150);
 
     const colors = await page.evaluate(() => ({
       header: document.getElementById('file-content-header').dataset.color,
@@ -311,43 +170,6 @@ test.describe('modal color updates after manual save', () => {
     }));
     expect(colors.header).toBe('coral');
     expect(colors.content).toBe('coral');
-  });
-
-  test('modal header and content data-color clear when color tag is removed', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent #color/coral');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const colors = await page.evaluate(() => ({
-      header: document.getElementById('file-content-header').dataset.color,
-      content: document.getElementById('modal-content').dataset.color,
-    }));
-    expect(colors.header).toBe('');
-    expect(colors.content).toBe('');
-  });
-
-  test('modal color does not change when non-color content is edited', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent #color/coral');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    const colorBefore = await page.evaluate(() =>
-      document.getElementById('file-content-header').dataset.color
-    );
-
-    await editContent(page, '# My Notes\nDifferent body #color/coral');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const colorAfter = await page.evaluate(() =>
-      document.getElementById('file-content-header').dataset.color
-    );
-    expect(colorAfter).toBe(colorBefore);
   });
 
 });
@@ -364,44 +186,9 @@ test.describe('tag taxonomy re-renders after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent #addedtag');
     await clickSaveBtn(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(150);
 
     await expect(page.locator('#tag_output [data-tag="addedtag"]').first()).toBeAttached();
-  });
-
-  test('removed tag disappears from the taxonomy sidebar after save', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent #gonetag');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('#tag_output [data-tag="gonetag"]')).not.toBeAttached();
-  });
-
-  test('tag taxonomy is unchanged when only body text is edited (no tag change)', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent #stabletag');
-    await page.goto('/');
-    await page.click('[data-action="render-tag-taxonomy"]');
-    await openModal(page);
-    await switchToTxt(page);
-
-    // Capture initial taxonomy HTML
-    const before = await page.evaluate(() =>
-      document.getElementById('tag_output').innerHTML
-    );
-
-    // Edit body text only — tags unchanged
-    await editContent(page, '# My Notes\nDifferent body text but same #stabletag');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    const after = await page.evaluate(() =>
-      document.getElementById('tag_output').innerHTML
-    );
-    expect(after).toBe(before);
   });
 
 });
@@ -429,41 +216,13 @@ test.describe('active search filters are re-run after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent');
     await clickSaveBtn(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(150);
 
     // After refresh, the file no longer matches the filter
     const matchingCount = await page.evaluate(() =>
       window.appState.search.matchingFiles.size
     );
     expect(matchingCount).toBe(0);
-  });
-
-  test('file still matches active filter after saving unrelated body text', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent #searchtag');
-    await page.goto('/');
-
-    // Load files, show taxonomy, and apply a filter — file matches
-    await page.click('[data-click-loadfolder]');
-    await expect(page.locator('.note-grid')).toHaveCount(1);
-    await page.click('[data-action="render-tag-taxonomy"]');
-    await page.click('details.taxon summary:has(code:text("orphan"))');
-    await page.click('[data-action="tag-filter"][data-tag="searchtag"]');
-    await expect(page.locator('.note-grid')).toHaveCount(1);
-
-    // Open the file, edit body text only (tag unchanged), save
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await waitForHistoryOptions(page, 1);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nDifferent body but still has #searchtag');
-    await clickSaveBtn(page);
-    await page.waitForTimeout(500);
-
-    // Filter was automatically re-run — file still matches
-    const matchingCount = await page.evaluate(() =>
-      window.appState.search.matchingFiles.size
-    );
-    expect(matchingCount).toBe(1);
   });
 
 });

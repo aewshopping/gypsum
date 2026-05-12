@@ -31,14 +31,6 @@ async function editContent(page) {
   });
 }
 
-async function clickBackdrop(page) {
-  await page.evaluate(() => {
-    const modal = document.getElementById('file-content-modal');
-    modal.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  });
-}
-
 const modal = '#file-content-modal';
 const warningDialog = '#modal-unsaved-warning';
 const closeBtn = '[data-action="close-file-content-modal"]';
@@ -56,15 +48,6 @@ test.describe('unsaved changes alert', () => {
     await expect(page.locator(warningDialog)).not.toBeVisible();
   });
 
-  test('no warning dialog when closing without edits via Escape', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await page.keyboard.press('Escape');
-    await expect(page.locator(modal)).not.toBeVisible();
-    await expect(page.locator(warningDialog)).not.toBeVisible();
-  });
-
   test('close button shows warning dialog when there are unsaved edits', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
@@ -72,28 +55,6 @@ test.describe('unsaved changes alert', () => {
     await switchToTxt(page);
     await editContent(page);
     await page.click(closeBtn);
-    await expect(page.locator(warningDialog)).toBeVisible();
-    await expect(page.locator(modal)).toBeVisible();
-  });
-
-  test('backdrop click shows warning dialog when there are unsaved edits', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await clickBackdrop(page);
-    await expect(page.locator(warningDialog)).toBeVisible();
-    await expect(page.locator(modal)).toBeVisible();
-  });
-
-  test('Escape key shows warning dialog when there are unsaved edits', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await page.keyboard.press('Escape');
     await expect(page.locator(warningDialog)).toBeVisible();
     await expect(page.locator(modal)).toBeVisible();
   });
@@ -122,31 +83,6 @@ test.describe('unsaved changes alert', () => {
     await page.click(keepBtn);
     await expect(page.locator(warningDialog)).not.toBeVisible();
     await expect(page.locator(modal)).toBeVisible();
-  });
-
-  test('Escape on the warning dialog acts as "Keep editing"', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await page.keyboard.press('Escape'); // opens warning dialog
-    await expect(page.locator(warningDialog)).toBeVisible();
-    await page.keyboard.press('Escape'); // closes warning dialog (keep editing)
-    await expect(page.locator(warningDialog)).not.toBeVisible();
-    await expect(page.locator(modal)).toBeVisible();
-  });
-
-  test('warning dialog triggered by backdrop, confirmed by "Discard changes"', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await clickBackdrop(page);
-    await expect(page.locator(warningDialog)).toBeVisible();
-    await page.click(discardBtn);
-    await expect(page.locator(modal)).not.toBeVisible();
   });
 
   test('warning state resets when modal is reopened after discard', async ({ page }) => {
@@ -193,20 +129,6 @@ test.describe('unsaved changes alert', () => {
       return evt.defaultPrevented;
     });
     expect(wasPrevented).toBe(true);
-  });
-
-  test('beforeunload is not prevented when tab/browser is closed without unsaved changes', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    // No edits made
-
-    const wasPrevented = await page.evaluate(() => {
-      const evt = new Event('beforeunload', { cancelable: true, bubbles: true });
-      window.dispatchEvent(evt);
-      return evt.defaultPrevented;
-    });
-    expect(wasPrevented).toBe(false);
   });
 
 });

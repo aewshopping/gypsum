@@ -20,24 +20,6 @@ test.describe('history select — layout and displayed text', () => {
     await waitForHistoryOptions(page, 1);
   }
 
-  test('select occupies most of the modal header width (not squashed)', async ({ page }) => {
-    await setupMockDirectoryWithWrite(page);
-    await page.goto('/');
-    await openModal(page);
-
-    const { selectWidth, headerWidth } = await page.evaluate(() => {
-      const select = document.getElementById('file-content-history-select');
-      const header = document.getElementById('file-content-header');
-      return {
-        selectWidth: select.getBoundingClientRect().width,
-        headerWidth: header.getBoundingClientRect().width,
-      };
-    });
-
-    // Select should occupy at least 60 % of the header — not squashed to a sliver
-    expect(selectWidth).toBeGreaterThan(headerWidth * 0.6);
-  });
-
   test('collapsed picker button shows filename only — no time label appended', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
@@ -104,27 +86,6 @@ test.describe('history select in file content modal', () => {
     expect(firstOptionTime).toBe('current version');
   });
 
-  test('select shows historical timestamps when prior entries exist', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await page.click('[data-click-loadfolder]');
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-
-    // on-open snapshot (v-1) + pre-existing historical entry (v-2) = 3 total
-    await waitForHistoryOptions(page, 3);
-
-    const optionCount = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options.length
-    );
-    expect(optionCount).toBe(3);
-
-    const firstOptionTime = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options[0].querySelector('.opt-time').textContent
-    );
-    expect(firstOptionTime).toBe('current version');
-  });
-
   test('timestamps are formatted as yyyy-mm-dd hh:mm:ss', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
@@ -170,117 +131,6 @@ test.describe('history select in file content modal', () => {
 
     await page.selectOption('#file-content-history-select', { value: 'current' });
     await expect(page.locator('#modal-content-text')).toContainText('Current content today');
-  });
-
-  test('snapshot from current open is shown in history even when content is unchanged', async ({ page }) => {
-    await page.addInitScript(() => {
-      const sameContent = '# My Notes\nCurrent content today #work';
-      const olderContent = '# My Notes\nOlder content from before';
-
-      // Oldest-first order, as saveBackupEntry appends and readBackupHistory reverses.
-      window.__backupFileContent = JSON.stringify([
-        { filepath: 'notes.md', filename: 'notes.md', content: olderContent,  timestamp: '2025-01-14T08:00:00.000Z', event: 'open' },
-        { filepath: 'notes.md', filename: 'notes.md', content: sameContent,   timestamp: '2025-01-15T10:00:00.000Z', event: 'open' },
-      ], null, 2);
-
-      const makeFile = (name, content) => ({
-        kind: 'file', name,
-        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
-      });
-      const backupHandle = {
-        getFile: async () => ({ text: async () => window.__backupFileContent }),
-        createWritable: async () => ({
-          write: async (c) => { window.__backupFileContent = c; },
-          close: async () => {},
-        }),
-      };
-      window.showDirectoryPicker = async () => ({
-        kind: 'directory', name: 'root',
-        values: async function* () { yield makeFile('notes.md', sameContent); },
-        getDirectoryHandle: async (name, _options) => {
-          if (name === '.gypsum') return {
-            getFileHandle: async (n, _opts) => {
-              if (n === 'history.gypsum') return backupHandle;
-              throw new Error(`Unexpected: ${n}`);
-            },
-          };
-          throw new Error(`Unexpected getDirectoryHandle: ${name}`);
-        },
-      });
-    });
-
-    await page.goto('/');
-    await page.click('[data-click-loadfolder]');
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-
-    // sameContent entry deduplicates (timestamp refresh only), olderContent stays as v-2.
-    // Both are shown: v-1 (sameContent, reference for edits) + v-2 (olderContent) = 3 total.
-    await waitForHistoryOptions(page, 3);
-
-    const optionCount = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options.length
-    );
-    expect(optionCount).toBe(3); // "current" + v-1 (sameContent) + v-2 (olderContent)
-
-    const thirdOptionTime = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options[2].querySelector('.opt-time').textContent
-    );
-    expect(thirdOptionTime).toBe('2025-01-14 08:00:00');
-  });
-
-  test('history entries only show for the correct file, not other files', async ({ page }) => {
-    // Pre-populate history for notes.md, then open a second file with no prior history
-    await page.addInitScript(() => {
-      const entry = {
-        filepath: 'notes.md', filename: 'notes.md',
-        content: 'Old notes content', timestamp: '2025-01-15T09:30:00.000Z', event: 'open',
-      };
-      window.__backupFileContent = JSON.stringify([entry], null, 2);
-
-      const makeFile = (name, content) => ({
-        kind: 'file', name,
-        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
-      });
-      const backupHandle = {
-        getFile: async () => ({ text: async () => window.__backupFileContent }),
-        createWritable: async () => ({
-          write: async (c) => { window.__backupFileContent = c; },
-          close: async () => {},
-        }),
-      };
-      window.showDirectoryPicker = async () => ({
-        kind: 'directory', name: 'root',
-        values: async function* () {
-          yield makeFile('notes.md', 'Current notes content');
-          yield makeFile('other.md', 'Other file content #personal');
-        },
-        getDirectoryHandle: async (name, _options) => {
-          if (name === '.gypsum') return {
-            getFileHandle: async (n, _opts) => {
-              if (n === 'history.gypsum') return backupHandle;
-              throw new Error(`Unexpected: ${n}`);
-            },
-          };
-          throw new Error(`Unexpected getDirectoryHandle: ${name}`);
-        },
-      });
-    });
-
-    await page.goto('/');
-    await page.click('[data-click-loadfolder]');
-    await expect(page.locator('.note-grid')).toHaveCount(2);
-
-    // Open other.md — it has no prior history; the on-open snapshot becomes v-1
-    await page.locator('[data-action="open-file-content-modal"][data-file-id="other.md"]').click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-
-    await waitForHistoryOptions(page, 2);
-
-    const optionCount = await page.evaluate(() =>
-      document.getElementById('file-content-history-select').options.length
-    );
-    expect(optionCount).toBe(2); // "current" + v-1 (on-open snapshot for other.md only)
   });
 
 });

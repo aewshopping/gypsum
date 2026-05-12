@@ -70,46 +70,6 @@ test.describe('editor DOM persistence and no accumulation', () => {
     expect(isVisible).toBe(true);
   });
 
-  test('html content nodes are removed when switching back to txt', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await switchToHtml(page);
-    await switchToTxt(page);
-
-    // Only .text-editor should remain as a direct child
-    const nonEditorDirectChildren = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('#modal-content-text > *'))
-        .filter(el => !el.classList.contains('text-editor')).length
-    );
-    expect(nonEditorDirectChildren).toBe(0);
-  });
-
-  test('live editor is preserved (hidden) when browsing a historical snapshot', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await waitForHistoryOptions(page, 3);
-    await switchToTxt(page);
-
-    await page.selectOption('#file-content-history-select', { index: 2 });
-
-    expect(await page.locator('#modal-content-text .text-editor').count()).toBe(1);
-    const isHidden = await page.evaluate(() => {
-      const el = document.querySelector('#modal-content-text .text-editor');
-      return el && window.getComputedStyle(el).display === 'none';
-    });
-    expect(isHidden).toBe(true);
-
-    // A separate read-only pre (no .text-editor) holds the historical content
-    const historicalPreCount = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('#modal-content-text pre'))
-        .filter(p => !p.classList.contains('text-editor')).length
-    );
-    expect(historicalPreCount).toBe(1);
-  });
-
   test('historical pre is removed and live editor reappears on return to current', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');

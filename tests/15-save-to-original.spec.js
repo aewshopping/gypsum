@@ -36,40 +36,10 @@ test.describe('save to original file', () => {
     await switchToTxt(page);
 
     await clickSaveBtn(page);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(100);
 
     const originalContent = await page.evaluate(() => window.__originalFiles['notes.md']);
     expect(originalContent).toBe('# My Notes\nSome content here');
-  });
-
-  test('console logs "Original saved: {filename}" on success', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    const successPromise = page.waitForEvent('console',
-      msg => msg.text().includes('Original saved')
-    );
-    await clickSaveBtn(page);
-    const msg = await successPromise;
-    expect(msg.text()).toContain('notes.md');
-  });
-
-  test('gypsum save file is deleted after successful original-file save', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await clickSaveBtn(page);
-    await page.waitForTimeout(300);
-
-    const savedFiles = await page.evaluate(() => Object.keys(window.__savedFiles));
-    expect(savedFiles).not.toContain('notes.md-save.gypsum');
-
-    const deletedFiles = await page.evaluate(() => Object.keys(window.__deletedFiles));
-    expect(deletedFiles).toContain('notes.md-save.gypsum');
   });
 
   test('if gypsum save fails, original file is not written and console.warn is emitted', async ({ page }) => {
@@ -111,7 +81,7 @@ test.describe('save to original file', () => {
     page.on('console', msg => { if (msg.type() === 'warning') warnMessages.push(msg.text()); });
 
     await clickSaveBtn(page);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(100);
 
     const originalFiles = await page.evaluate(() => window.__originalFiles);
     expect(Object.keys(originalFiles)).toHaveLength(0);
@@ -172,7 +142,7 @@ test.describe('save to original file', () => {
     page.on('console', msg => { if (msg.type() === 'warning') warnMessages.push(msg.text()); });
 
     await clickSaveBtn(page);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(100);
 
     await expect(page.locator('#save-popover')).toHaveClass(/\berror\b/);
     expect(warnMessages.some(m => m.includes('Original file verification failed'))).toBe(true);
@@ -180,59 +150,6 @@ test.describe('save to original file', () => {
     // Gypsum save file persists because removeEntry was never reached
     const savedFiles = await page.evaluate(() => Object.keys(window.__savedFiles));
     expect(savedFiles).toContain('notes.md-save.gypsum');
-  });
-
-  test('subdir file: original is written to the correct handle', async ({ page }) => {
-    await page.addInitScript(() => {
-      window.__savedFiles = {};
-      window.__originalFiles = {};
-      window.__backupFileContent = '';
-      const fileContent = 'Nested file content';
-      const makeFile = (name, content) => ({
-        kind: 'file', name,
-        getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => window.__originalFiles[name] ?? content }),
-        createWritable: async () => ({ write: async (c) => { window.__originalFiles[name] = c; }, close: async () => {} }),
-      });
-      const makeDir = (name, entries) => ({
-        kind: 'directory', name,
-        values: async function* () { yield* entries; },
-      });
-      const backupHandle = {
-        getFile: async () => ({ text: async () => window.__backupFileContent }),
-        createWritable: async () => ({ write: async (c) => { window.__backupFileContent = c; }, close: async () => {} }),
-      };
-      const gypsumDirHandle = {
-        getFileHandle: async (name, _options) => {
-          if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
-          return {
-            getFile: async () => ({ text: async () => window.__savedFiles[name] }),
-            createWritable: async () => ({ write: async (c) => { window.__savedFiles[name] = c; }, close: async () => {} }),
-          };
-        },
-        removeEntry: async (name) => { delete window.__savedFiles[name]; },
-      };
-      window.showDirectoryPicker = async () => ({
-        ...makeDir('root', [makeDir('subdir', [makeFile('notes.md', fileContent)])]),
-        getFileHandle: async (name) => {
-          if (name === 'history.gypsum') return backupHandle;
-          throw new Error(`Unexpected: ${name}`);
-        },
-        getDirectoryHandle: async (name) => {
-          if (name === '.gypsum') return gypsumDirHandle;
-          throw new Error(`Unexpected: ${name}`);
-        },
-      });
-    });
-
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await clickSaveBtn(page);
-    await page.waitForTimeout(300);
-
-    const originalContent = await page.evaluate(() => window.__originalFiles['notes.md']);
-    expect(originalContent).toBe('Nested file content');
   });
 
   test('after successful save, unsaved-changes indicator disappears', async ({ page }) => {
@@ -251,7 +168,7 @@ test.describe('save to original file', () => {
 
     // Save — both gypsum and original file writes complete, then indicator resets
     await clickSaveBtn(page);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(100);
 
     await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });

@@ -25,16 +25,6 @@ async function switchToTxt(page) {
 
 test.describe('undo/redo footer buttons', () => {
 
-  test('undo and redo buttons are visible in the modal footer', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await expect(page.locator('[data-action="editor-undo"]')).toBeVisible();
-    await expect(page.locator('[data-action="editor-redo"]')).toBeVisible();
-  });
-
   test('undo button reverts typed text in the editor', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');

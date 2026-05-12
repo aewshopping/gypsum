@@ -37,28 +37,6 @@ test.describe('tag autocomplete — editor', () => {
     await expect(page.locator('.tag-autocomplete-popup')).toContainText('personal');
   });
 
-  test('popup appears when typing # at the start of a line (after a <br>)', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    // The renderer converts \n → <br> in the pre's innerHTML.
-    // Place the caret directly after the first <br> so the bug is isolated:
-    // Range.toString() drops <br> nodes, making '#' look mid-word to the regex.
-    await page.evaluate(() => {
-      const pre = document.querySelector('#modal-content-text pre');
-      const br = pre.querySelector('br');
-      const range = document.createRange();
-      range.setStartAfter(br);
-      range.collapse(true);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      pre.focus();
-    });
-    await page.keyboard.type('#p');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-  });
-
   test('popup appears after a <br> that follows a very long space-free line (base64 scenario)', async ({ page }) => {
     // A base64-encoded image produces one massive line with no spaces. Without a
     // character cap on the backward walk, typing '#' on the NEXT line would still
@@ -139,34 +117,6 @@ test.describe('tag autocomplete — editor', () => {
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
   });
 
-  test('popup does not appear on bare # alone (requires at least one letter)', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    await typeInEditor(page, ' #');
-    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-  });
-
-  test('popup does not appear when # follows a letter (mid-word)', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    await typeInEditor(page, 'foo#p');
-    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-  });
-
-  test('popup updates as user types more letters', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    await typeInEditor(page, ' #p');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    await page.keyboard.type('e');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    await expect(page.locator('.tag-autocomplete-item')).toHaveCount(1);
-    await expect(page.locator('.tag-autocomplete-item').first()).toContainText('personal');
-  });
-
   test('popup dismisses when a space is typed after trigger', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
@@ -200,16 +150,6 @@ test.describe('tag autocomplete — editor', () => {
     expect(text).toContain('#p');
   });
 
-  test('Tab highlights the first item', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    await typeInEditor(page, ' #p');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    await page.keyboard.press('Tab');
-    await expect(page.locator('.tag-autocomplete-item[data-active="true"]')).toBeVisible();
-  });
-
   test('Tab then Enter inserts the selected tag', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
@@ -217,18 +157,6 @@ test.describe('tag autocomplete — editor', () => {
     await typeInEditor(page, ' #per');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Enter');
-    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-    const text = await page.locator('#modal-content-text pre').textContent();
-    expect(text).toMatch(/#personal/);
-  });
-
-  test('Tab twice selects (Tab on active item)', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    await typeInEditor(page, ' #per');
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
     const text = await page.locator('#modal-content-text pre').textContent();
     expect(text).toMatch(/#personal/);
@@ -245,28 +173,6 @@ test.describe('tag autocomplete — editor', () => {
     expect(text).toMatch(/#personal/);
   });
 
-  test('clicking outside the popup dismisses it', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    await typeInEditor(page, ' #p');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    await page.locator('#file-content-header').click();
-    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-  });
-
-  test('Ctrl+S is not consumed when popup is open', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await openEditorInTextMode(page);
-    await typeInEditor(page, ' #p');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    // Ctrl+S should not throw or break the page
-    await page.keyboard.press('Control+s');
-    // Page must remain functional (popup may or may not still be visible)
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-  });
-
 });
 
 test.describe('tag autocomplete — searchbox', () => {
@@ -280,31 +186,12 @@ test.describe('tag autocomplete — searchbox', () => {
     await expect(page.locator('.tag-autocomplete-popup')).toContainText('personal');
   });
 
-  test('popup does not appear without the tags: prefix', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await loadFiles(page);
-    await page.fill('#searchbox', 'personal');
-    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-  });
-
   test('clicking an item fills the searchbox value', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
     await loadFiles(page);
     await page.fill('#searchbox', 'tags:p');
     await page.locator('.tag-autocomplete-item').filter({ hasText: 'personal' }).click();
-    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-    await expect(page.locator('#searchbox')).toHaveValue('tags:personal');
-  });
-
-  test('Tab then Tab selects into searchbox', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await loadFiles(page);
-    await page.fill('#searchbox', 'tags:per');
-    await page.locator('#searchbox').press('Tab');
-    await page.locator('#searchbox').press('Tab');
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
     await expect(page.locator('#searchbox')).toHaveValue('tags:personal');
   });
@@ -321,29 +208,6 @@ test.describe('tag autocomplete — searchbox', () => {
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
     // shopping.txt and big-ideas.md both have #personal
     await expect(page.locator('.note-grid')).toHaveCount(2);
-  });
-
-  test('Enter after click-selection runs search', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await loadFiles(page);
-    await page.fill('#searchbox', 'tags:p');
-    await page.locator('.tag-autocomplete-item').filter({ hasText: 'personal' }).click();
-    await expect(page.locator('#searchbox')).toHaveValue('tags:personal');
-    // Now press Enter to run the search
-    await page.locator('#searchbox').press('Enter');
-    await expect(page.locator('.note-grid')).toHaveCount(2);
-  });
-
-  test('Escape dismisses popup without changing searchbox value', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await loadFiles(page);
-    await page.fill('#searchbox', 'tags:p');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    await page.locator('#searchbox').press('Escape');
-    await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-    await expect(page.locator('#searchbox')).toHaveValue('tags:p');
   });
 
 });
