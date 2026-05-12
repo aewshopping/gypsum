@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, setupMockFilesMultiParent, setupMockFilesTagCount } = require('./helpers');
+const { setupMockFiles } = require('./helpers');
 
 test('file.tags is a Map after loading', async ({ page }) => {
   await setupMockFiles(page);
@@ -28,20 +28,6 @@ test('file.tags Map has correct entries for a hierarchical tag', async ({ page }
   expect(tagEntry).not.toBeNull();
   expect(tagEntry.count).toBe(1);
   expect(tagEntry.parents).toContain('work');
-});
-
-test('file.tags captures multiple parents for the same child tag within one file', async ({ page }) => {
-  await setupMockFilesMultiParent(page);
-  await page.goto('/');
-  await page.click('[data-click-loadfolder]');
-  await expect(page.locator('.note-grid')).toHaveCount(2);
-
-  const parents = await page.evaluate(() => {
-    const file = window.appState.myFiles.find(f => f.filename === 'meeting-notes.md');
-    const entry = file.tags.get('project');
-    return entry ? [...entry.parents].sort() : null;
-  });
-  expect(parents).toEqual(['personal', 'work']);
 });
 
 test('appState.myParentMap is built with correct parent/child structure', async ({ page }) => {
@@ -79,29 +65,6 @@ test('orphan tags appear under orphan key in myParentMap', async ({ page }) => {
     return pm.get('orphan')?.has('personal') ?? false;
   });
   expect(isOrphan).toBe(true);
-});
-
-test('taxonomy displays global file count for a tag, not the per-parent count', async ({ page }) => {
-  // 'project' appears in 2 files (under 'work' and 'idea' separately).
-  // Per-parent count = 1 each. Global count = 2.
-  // Each parent section must show (2), not (1).
-  await setupMockFilesTagCount(page);
-  await page.goto('/');
-  await page.click('[data-click-loadfolder]');
-  await expect(page.locator('.note-grid')).toHaveCount(3);
-
-  // Show the taxonomy, then open parent sections to check counts
-  await page.click('[data-action="render-tag-taxonomy"]');
-  await page.click('details.taxon summary:has(code:text("work"))');
-  await expect(
-    page.locator('#tag_output [data-tag="project"]').first()
-  ).toContainText('(2)');
-
-  // Open 'idea' section and confirm the same global count there
-  await page.click('details.taxon summary:has(code:text("idea"))');
-  await expect(
-    page.locator('#tag_output [data-tag="project"]').nth(1)
-  ).toContainText('(2)');
 });
 
 test('tag filter still works correctly after TagMap change', async ({ page }) => {

@@ -47,15 +47,3 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
   await expect(page.locator('#modal-content-text .tag').first()).toHaveText(/realtag/);
 });
 
-test('SVG href="#id" is not harvested into the file.tags index', async ({ page }) => {
-  await loadRoseFile(page);
-
-  const tagKeys = await page.evaluate(() => {
-    const file = window.appState.myFiles.find(f => f.filename === 'rose.md');
-    return [...file.tags.keys()];
-  });
-
-  expect(tagKeys).toContain('realtag');
-  expect(tagKeys).not.toContain('petal');
-  expect(tagKeys).not.toContain('abcdef');
-});

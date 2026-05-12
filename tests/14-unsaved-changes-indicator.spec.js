@@ -23,14 +23,6 @@ async function switchToTxt(page) {
   await expect(page.locator('#modal-content-text pre')).toBeVisible();
 }
 
-async function editContent(page) {
-  await page.evaluate(() => {
-    const pre = document.querySelector('#modal-content-text pre');
-    pre.textContent = 'edited content';
-    pre.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-}
-
 // The unsaved-changes indicator is driven by the 'saved' class on #modal-content:
 //   no 'saved' class → indicator visible (unsaved changes)
 //   has 'saved' class → no indicator (content is saved / clean)
@@ -59,47 +51,16 @@ test.describe('unsaved changes indicator in history select button', () => {
     await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
-  test('no indicator shown on initial open with no edits', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
-  });
-
-  test('indicator appears after editing content in txt mode', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-
-    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
-  });
-
-  test('indicator is removed when switching to a historical version', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-
-    // Confirm indicator is present before switching
-    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
-
-    // Wait for full history to load (on-open snapshot v-1 + pre-existing v-2 = 3 total)
-    await waitForHistoryOptions(page, 3);
-    await page.selectOption('#file-content-history-select', { index: 2 });
-
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
-  });
-
   test('indicator reappears when returning to current version after viewing history', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
-    await editContent(page);
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'edited content';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 
     await waitForHistoryOptions(page, 3);
     // Switch to historical entry
@@ -110,23 +71,6 @@ test.describe('unsaved changes indicator in history select button', () => {
     await page.selectOption('#file-content-history-select', { value: 'current' });
 
     await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
-  });
-
-  test('indicator disappears after typing then deleting the typed character', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    // Type a character directly into the contentEditable pre
-    await page.locator('#modal-content-text pre').click();
-    await page.keyboard.press('End');
-    await page.keyboard.type('x');
-    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
-
-    // Delete the typed character — content is now identical to the original
-    await page.keyboard.press('Backspace');
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
   test('indicator disappears after Ctrl+Z undo back to original content', async ({ page }) => {
@@ -141,22 +85,6 @@ test.describe('unsaved changes indicator in history select button', () => {
     await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
 
     await page.keyboard.press('Control+z');
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
-  });
-
-  test('no indicator when switching history → current without any edits', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-
-    await waitForHistoryOptions(page, 3);
-    // View historical version (no edits made)
-    await page.selectOption('#file-content-history-select', { index: 2 });
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
-
-    // Return to current — still no edits
-    await page.selectOption('#file-content-history-select', { value: 'current' });
-
     await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 

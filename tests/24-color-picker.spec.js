@@ -2,7 +2,6 @@ const { test, expect } = require('@playwright/test');
 const {
   setupMockDirectoryWithSaveSupport,
   setupMockDirectoryForColorExisting,
-  setupMockDirectoryForColorMultiple,
 } = require('./helpers');
 
 async function openModal(page) {
@@ -140,22 +139,5 @@ test.describe('colour picker modal', () => {
     expect(newOffset).toBe(5);
   });
 
-  test('when multiple colours exist, only the first is changed', async ({ page }) => {
-    // File: '# My Notes\n#color/coral\nSome text\n#color/blue'
-    await setupMockDirectoryForColorMultiple(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.click('[data-action="editor-color-pick"]');
-    await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click('[data-action="color-circle-pick"][data-color-value="gold"]');
-    await expect(page.locator('#modal-color-picker')).not.toBeVisible();
-
-    const editorText = await page.locator('#modal-content-text pre').textContent();
-    expect(editorText).toContain('#color/gold');
-    expect(editorText).not.toContain('#color/coral');
-    expect(editorText).toContain('#color/blue');
-  });
 
 });

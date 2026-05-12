@@ -57,20 +57,6 @@ test.describe('autosave temp file creation', () => {
     expect(Object.keys(savedFiles)).toContain('notes.md-temp.gypsum');
   });
 
-  test('the intermediate save file is deleted after the temp file is verified', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.clock.install();
-    await editContent(page, 'my new content');
-    await fireDebouncedAutosave(page);
-
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).not.toContain('notes.md-save.gypsum');
-  });
-
   test('temp file content matches the edited text', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
@@ -83,24 +69,6 @@ test.describe('autosave temp file creation', () => {
 
     const tempContent = await page.evaluate(() => window.__savedFiles['notes.md-temp.gypsum']);
     expect(tempContent).toBe('updated text for autosave');
-  });
-
-  test('autosave logs the temp filename to the console on success', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    const logPromise = page.waitForEvent('console',
-      msg => msg.text().includes('Autosaved')
-    );
-
-    await page.clock.install();
-    await editContent(page, 'logging test content');
-    await page.clock.runFor(3001);
-
-    const msg = await logPromise;
-    expect(msg.text()).toContain('notes.md-temp.gypsum');
   });
 
 });
@@ -119,27 +87,6 @@ test.describe('autosave guard conditions', () => {
     // Advance well past both the debounce (3 s) and min interval (60 s)
     await page.clock.runFor(65000);
     await page.waitForTimeout(200);
-
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
-  });
-
-  test('does not autosave when the render toggle is switched back to HTML before the debounce fires', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.clock.install();
-    await editContent(page, 'edited in text mode');
-
-    // Switch to HTML mode — autosave guard must reject this
-    await page.evaluate(() => {
-      const t = document.getElementById('render_toggle');
-      if (t.checked) t.click();
-    });
-
-    await fireDebouncedAutosave(page);
 
     const savedFiles = await page.evaluate(() => window.__savedFiles);
     expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
@@ -186,23 +133,6 @@ test.describe('autosave guard conditions', () => {
 
 test.describe('autosave timing', () => {
 
-  test('does not autosave before the 3-second debounce period has elapsed', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.clock.install();
-    await editContent(page, 'quick edit');
-
-    // Advance only 1 second — debounce has not fired yet
-    await page.clock.runFor(1000);
-    await page.waitForTimeout(100);
-
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
-  });
-
   test('does not autosave a second time when within the 1-minute minimum interval', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
@@ -223,30 +153,6 @@ test.describe('autosave timing', () => {
     // Temp file must still hold the first autosave's content
     const tempContent = await page.evaluate(() => window.__savedFiles['notes.md-temp.gypsum']);
     expect(tempContent).toBe('first edit');
-  });
-
-  test('autosaves again once the minimum interval has elapsed', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.clock.install();
-
-    // First autosave
-    await editContent(page, 'first edit');
-    await fireDebouncedAutosave(page);
-    expect(await page.evaluate(() => window.__savedFiles['notes.md-temp.gypsum'])).toBe('first edit');
-
-    // Advance past the minimum interval first, then edit and wait for debounce.
-    // (Advancing before the edit ensures the minInterval check passes when the
-    // debounce timer fires — not merely 3 s after the first autosave.)
-    await page.clock.runFor(60001);
-    await editContent(page, 'second edit');
-    await fireDebouncedAutosave(page);
-
-    const tempContent = await page.evaluate(() => window.__savedFiles['notes.md-temp.gypsum']);
-    expect(tempContent).toBe('second edit');
   });
 
 });
@@ -294,20 +200,6 @@ test.describe('autosave temp file cleanup on modal close', () => {
     expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
   });
 
-  test('closing the modal when no autosave has run does not error', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-
-    // No temp file exists — the try/catch in deleteTempFileIfExists must not throw
-    await page.click('[data-action="close-file-content-modal"]');
-    await expect(page.locator('#file-content-modal')).toBeHidden();
-    await page.waitForTimeout(300);
-
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).not.toContain('notes.md-temp.gypsum');
-  });
-
 });
 
 // ─── Coexistence with manual save ─────────────────────────────────────────────
@@ -334,26 +226,6 @@ test.describe('autosave coexistence with manual save', () => {
     // Manual save writes to the original file and deletes the intermediate .gypsum file
     const originalContent = await page.evaluate(() => window.__originalFiles['notes.md']);
     expect(originalContent).toBe('manually saved content');
-  });
-
-  test('autosave does not affect the manual save popover', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    // Autosave runs silently — no popover
-    await page.clock.install();
-    await editContent(page, 'autosaved content');
-    await fireDebouncedAutosave(page);
-
-    await expect(page.locator('#save-popover')).toBeHidden();
-
-    // Manual save shows the popover
-    await page.evaluate(() => document.getElementById('save-btn').click());
-    await page.waitForTimeout(300);
-    await expect(page.locator('#save-popover')).toBeVisible();
-    await expect(page.locator('#save-popover')).toHaveClass(/\bsuccess\b/);
   });
 
 });

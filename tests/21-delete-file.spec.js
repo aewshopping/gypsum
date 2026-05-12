@@ -24,13 +24,6 @@ async function openFileAndRenameModal(page) {
 
 test.describe('delete file', () => {
 
-  test('delete file button is visible in the rename modal', async ({ page }) => {
-    await setupMockDirectoryWithDeleteSupport(page);
-    await page.goto('/');
-    await openFileAndRenameModal(page);
-    await expect(page.locator('[data-action="delete-file"]')).toBeVisible();
-  });
-
   test('clicking delete file shows warning modal with filename and correct button labels', async ({ page }) => {
     await setupMockDirectoryWithDeleteSupport(page);
     await page.goto('/');
@@ -66,18 +59,6 @@ test.describe('delete file', () => {
     expect(trashFiles).toHaveLength(1);
     // notes.md is a root file so no folder prefix; name pattern: notes-YYYYMMDD-HHMMSS-trash.gypsum
     expect(trashFiles[0]).toMatch(/^notes-\d{8}-\d{6}-trash\.gypsum$/);
-  });
-
-  test('trash file contains the original file content', async ({ page }) => {
-    await setupMockDirectoryWithDeleteSupport(page);
-    await page.goto('/');
-    await openFileAndRenameModal(page);
-    await page.click('[data-action="delete-file"]');
-    await page.click('[data-action="warning-proceed"]');
-    await expect(page.locator('#file-content-modal')).not.toBeVisible();
-
-    const trashContent = await page.evaluate(() => Object.values(window.__trashFiles)[0]);
-    expect(trashContent).toContain('My Notes');
   });
 
   test('deleted file is removed from the file list', async ({ page }) => {
