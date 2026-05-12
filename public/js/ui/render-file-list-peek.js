@@ -12,7 +12,7 @@ import { checkFileOnPage } from './pagination/check-file-on-page.js';
  */
 export function renderFileList_peek(renderEverything) {
 
-    let file_html = `<div class="list-grid">`;
+    let file_html = `<div class="list-lanes">`;
 
     let index = 0;
     for (const file of appState.myFiles) {

@@ -1,0 +1,17 @@
+.list-lanes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    /* min width of cols is 350px and stretch to fill width of screen */
+    gap: 10px;
+
+    h3 {font-size: 0.9em;margin-top:4px}
+    p {font-size: 0.9em;}
+}
+
+@supports (grid-lanes: auto) {
+    .list-lanes {
+        display: grid-lanes;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}
