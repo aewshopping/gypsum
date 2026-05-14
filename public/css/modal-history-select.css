@@ -4,7 +4,7 @@
     font: 1em monospace;
     flex-grow: 1;
     min-width: 0px;
-    margin-inline: 6px;
+    height: 25px;
 
     >button {
         display: flex;
@@ -27,13 +27,14 @@
     }
 
     &::picker-icon {
-        content: "➜"; /* U+0279C */
+        content: "\276f"; /* U+0276f ❯ */
         rotate: 90deg;
         transition: 0.2s rotate;
     }
 
     &:open::picker-icon {
         rotate: -90deg;
+        transform: translateY(-4px); /* because the character is centralised */
     }
 
     option {
@@ -95,17 +96,27 @@
 }
 
 #file-options-btn {
-    cursor: pointer;
-    font: 1em monospace;
-    margin-block: 6px;
-    padding-block: 2px;
-    color: var(--colour-contr);
-    background-color: var(--colour-neutral-alt);
-    border: 1.5px solid var(--colour-compl-contr);
-    border-radius: 20px;
+    transition: margin 0.3s, color 0.4s, background-color 0.4s;
 
     &:hover {
-        box-shadow: var(--hover-box-shadow);
-        border: 1.5px solid var(--colour-compl-contr);
+        background-color: var(--colour-contr);
+        color: var(--colour-neutral);
     }
+}
+
+body:has(#file-options-btn:hover) :is(
+    #file-content-history-select,  
+    #file-options-btn svg, 
+    #file-options-btn) {
+    background-color: var(--colour-contr);
+    color: var(--colour-neutral);
+    box-shadow: none;
+}
+
+body:has(#file-options-btn:hover) #file-options-btn {
+    margin-left:-30px;
+}
+
+body:has(#file-options-btn:hover) #file-content-history-select::picker-icon {
+    display:none;
 }
