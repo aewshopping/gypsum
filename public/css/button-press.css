@@ -1,3 +1,5 @@
+/* This is for consistent styling of svg buttons and labels etc */
+
 .svg-wrapper-style {
     display:block;
     height: 25px;
@@ -14,39 +16,11 @@
     }
 }
 
-.svg-icon-style {
+.svg-wrapper-style > svg {
     height:100%;
     width:100%;
     color:var(--colour-contr);  
     
-    g, path {
-        stroke: currentColor;
-    }
-}
-
-.btn-press{
-    position:relative;
-    height: 25px;
-    width: 25px;
-    flex-shrink: 0;
-    border: 2px solid transparent;
-    border-radius: 4px;
-    padding: 0px;
-    background-color: transparent;
-
-    &:hover {
-        border: 2px solid var(--colour-contr);
-        box-shadow: var(--hover-box-shadow);
-    }    
-}
-
-#btn-press-enter-svg {
-    --colour-svg: var(--colour-contr);
-
-    height:100%;
-    width:100%;
-    color:var(--colour-svg);
-
     g, path {
         stroke: currentColor;
     }
