@@ -5,10 +5,11 @@
     flex-shrink: 0;
     border-radius: 4px;
     padding: 0px;
+    border: 1.5px solid transparent;
     background-color: var(--colour-neutral);
 
     &:hover {
-        border: 2px solid var(--colour-contr);
+        border: 1.5px solid var(--colour-contr);
         box-shadow: var(--hover-box-shadow);
     }
 }
@@ -44,24 +45,6 @@
 
     height:100%;
     width:100%;
-    color:var(--colour-svg);
-
-    g, path {
-        stroke: currentColor;
-    }
-}
-
-
-#btn-settings-svg {
-    --colour-svg: var(--colour-contr);
-
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform: translate(-50%, -50%);
-    width:100%;
-    height:auto;
-    padding-inline:2px;
     color:var(--colour-svg);
 
     g, path {
