@@ -2,9 +2,9 @@
     opacity: 0;
 }
 
-body:has(#modalmaxscreen:checked) #minmax-btn svg:nth-child(1) {
+body:has(#modalmaxscreen:checked) #minmax-label svg:nth-child(1) {
     display:none;
 }
-body:has(#modalmaxscreen:not(:checked)) #minmax-btn svg:nth-child(2) {
+body:has(#modalmaxscreen:not(:checked)) #minmax-label svg:nth-child(2) {
     display:none;
 }

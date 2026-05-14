@@ -2,18 +2,17 @@
     opacity:0;
 }
 
-#contentsearch-svg-open circle {
+#content-search-label svg:nth-child(2) circle {
         fill: currentColor;
 }
-#contentsearch-svg-closed {
+#content-search-label svg:nth-child(1) {
         padding-top:8px;
         height:auto;
 }
-body:has(#contentsearch:checked) #contentsearch-svg-closed {
+body:has(#contentsearch:checked) #content-search-label svg:nth-child(1) {
     display:none;
 }
 
-body:has(#contentsearch:not(:checked)) #contentsearch-svg-open {
+body:has(#contentsearch:not(:checked)) #content-search-label svg:nth-child(2) {
     display:none;
 }
-
