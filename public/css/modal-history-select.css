@@ -92,7 +92,7 @@
 #file-content-history-select::picker(select) {
     border: none;
     background-color: var(--colour-compl-alt-emph);
-    border-radius: 10px;
+    border-radius: 4px;
 }
 
 #file-options-btn {
