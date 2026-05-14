@@ -43,9 +43,6 @@
 body:has(#and_filter:checked) #filter-box{
     border: 1px solid var(--colour-compl-alt-emph);
 
-    &:has(#clear-filters-btn:hover){
-        border: 1px solid var(--colour-contr-warning);
+/*    &:has(#clear-filters-btn:hover){
+        border: 1px solid var(--colour-contr-warning);*/
     }
-
-}
-
