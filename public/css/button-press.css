@@ -1,3 +1,28 @@
+.svg-wrapper-style {
+    display:block;
+    height: 25px;
+    width: 25px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    padding: 0px;
+    background-color: var(--colour-neutral);
+
+    &:hover {
+        border: 2px solid var(--colour-contr);
+        box-shadow: var(--hover-box-shadow);
+    }
+}
+
+.svg-icon-style {
+    height:100%;
+    width:100%;
+    color:var(--colour-contr);  
+    
+    g, path {
+        stroke: currentColor;
+    }
+}
+
 .btn-press{
     position:relative;
     height: 25px;

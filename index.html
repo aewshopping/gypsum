@@ -108,12 +108,13 @@
 
         </div>
 
-        <div id="filter-output"></div>
-
-        <label for="toggle-search-highlights" class="filter-options toggle-search-highlights-label">
+        <label for="toggle-search-highlights" class="svg-wrapper-style filter-options-position filters-options-style" id="search-highlights-toggle">
+          <svg version="1.1" class="svg-icon-style" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="80" preserveAspectRatio="none"><defs><style class="style-fonts"></style></defs><g stroke="#1e1e1e" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(35.28 46.29)"><polygon points="0,0 -25.28,22.09 -0.13,41.49" fill="none"></polygon></g><g transform="translate(83.39 10)"><path d="M0 0 C0.27 9.59, 1.37 47.94, 1.65 57.53"></path></g><g transform="translate(85.78 67.31)"><path d="M0 0 C-11.23 0.12, -56.17 0.62, -67.41 0.74"></path></g></g></svg>
           <input type="checkbox" id="toggle-search-highlights" name="toggle-search-highlights" checked>
         </label>
-        <button class="clear-filters filter-options" data-action="clear-all-filters">clear</button>
+        <button id="clear-filters-btn" class="filter-options-position filters-options-style" data-action="clear-all-filters">clear</button>
+
+        <div id="filter-output"></div>
 
       </div>
     
