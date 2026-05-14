@@ -43,19 +43,28 @@
       </div>
       <div id="file-content-footer">
 
-        <div class="flex-row editor-btns">
-          <button data-action="editor-color-pick">color</button>
-          <button data-action="editor-undo">undo</button>
-          <button data-action="editor-redo">redo</button>
-        </div>
-
         <div class="flexgrow"></div>
 
-        <div class="flex-row label_group_text_toggle">
-          <div>html</div>
-          <label for="render_toggle" class="switch"><input type="checkbox" id="render_toggle" name="render_toggle"
-              data-action="toggle-render-text"><span class="slider"></span></label>
-          <div>txt</div>
+        <div class="content-editable-controls">
+          <div class="editor-btns">
+            <button data-action="editor-color-pick" class="svg-wrapper-style">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 99.8 92" width="99.8" height="92"><g id="main" stroke="#1e1e1e" fill="#1e1e1e" stroke-width="6" stroke-linecap="round"><defs><path id="c" d="M8.3 4.1c0 2.2-1.8 4-4.1 4s-4.1-1.8-4.1-4 1.8-4.1 4.1-4.1 4.1 1.9 4.1 4.1z"/></defs><use href="#c" x="32.1" y="24"/><use href="#c" x="21.6" y="40.9"/><use href="#c" x="52.4" y="20"/><use href="#c" x="67.5" y="31.3"/><path fill="none" d="M49.6 10c2.4.3 9.8.2 14.2 1.6 4.4 1.4 7.9 2.4 12.1 6.8 4.2 4.4 11.8 12.6 13.4 19.7 1.5 7.1-.9 18.2-4.1 22.7-3.2 4.4-10.8 3.8-15 3.8-4.3 0-7.1-3.2-10.5-3.8-3.3-.6-7.7-.9-9.5.2-1.8 1.1-2.6 4.2-1.5 6.5 1.1 2.2 7.1 4.7 8.3 7.1 1.3 2.4 3.5 6.4-.7 7.1-4.2.7-17.6 0-24.5-2.8-6.9-2.7-13.2-8.4-16.8-13.5-3.6-5.1-5-11.2-5-17.3 0-6.2 2.5-14.7 5-19.7 2.4-5 5.9-7.5 9.7-10.3 3.9-2.8 9.2-5.2 13.4-6.5 4.2-1.4 9.6-1.3 11.5-1.6"/></g></svg>
+            </button>
+            <button data-action="editor-undo" class="svg-wrapper-style">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 83.4 75.6" width="83.4" height="75.6"><g stroke="#1e1e1e" stroke-width="6" fill="none" stroke-linecap="round"><g transform="translate(24.1 64.9)"><path d="M0 0C6.9-0.5 33.9 3.3 41.2-3C48.6-9.3 53.4-31.5 44.2-37.7C35-43.9-4.3-39.7-14-40.1M0 0C6.9-0.5 33.9 3.3 41.2-3C48.6-9.3 53.4-31.5 44.2-37.7C35-43.9-4.3-39.7-14-40.1"/></g><g transform="translate(10.2 25.4)"><path d="M0 0C2.5 3 12.5 15.1 15 18.1M0 0C2.5 3 12.5 15.1 15 18.1"/></g><g transform="translate(10 24.6)"><path d="M0 0C2.8-2.4 13.8-12.2 16.6-14.6M0 0C2.8-2.4 13.8-12.2 16.6-14.6"/></g></g></svg>
+            </button>
+            <button data-action="editor-redo" class="svg-wrapper-style">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 83.6 75.9" width="83.6" height="75.9"><g stroke="#1e1e1e" stroke-width="6" fill="none" stroke-linecap="round"><g transform="translate(65 65.6)"><path d="M0 0C-7.8-0.6-38.4 2.7-46.7-3.7C-55-10.1-58.8-32.2-49.6-38.4C-40.4-44.5-1.1-40.4 8.6-40.8M0 0C-7.8-0.6-38.4 2.7-46.7-3.7C-55-10.1-58.8-32.2-49.6-38.4C-40.4-44.5-1.1-40.4 8.6-40.8"/></g><g transform="translate(73.4 25.4)"><path d="M0 0C-2.5 3-12.5 15.1-15 18.1M0 0C-2.5 3-12.5 15.1-15 18.1"/></g><g transform="translate(73.6 24.6)"><path d="M0 0C-2.8-2.4-13.8-12.2-16.6-14.6M0 0C-2.8-2.4-13.8-12.2-16.6-14.6"/></g></g></svg>
+            </button>
+          </div>
+        
+        
+            <div class="flex-row label_group_text_toggle">
+              <div>html</div>
+              <label for="render_toggle" class="switch"><input type="checkbox" id="render_toggle" name="render_toggle"
+                  data-action="toggle-render-text"><span class="slider"></span></label>
+              <div>txt</div>
+            </div>
         </div>
 
       </div>
