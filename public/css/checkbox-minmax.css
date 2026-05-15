@@ -1,7 +1,3 @@
-#modalmaxscreen{
-    opacity: 0;
-}
-
 body:has(#modalmaxscreen:checked) #minmax-label svg:nth-child(1) {
     display:none;
 }

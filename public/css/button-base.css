@@ -1,6 +1,7 @@
 /* This is for consistent styling of svg buttons and labels etc */
 
 .svg-wrapper-style {
+    position:relative;
     display:block;
     height: var(--btn-size);
     width: var(--btn-size);
@@ -20,7 +21,15 @@
     outline: 2px solid var(--colour-contr);
 }
 
+.svg-wrapper-style input{
+    position:absolute;
+    opacity:0;
+    top:0px;
+    left:0px;
+}
+
 .svg-wrapper-style > svg {
+    position:relative;
     height:100%;
     width:100%;
     color:var(--colour-contr);  

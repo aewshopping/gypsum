@@ -1,7 +1,3 @@
-#contentsearch{
-    opacity:0;
-}
-
 #content-search-label svg:nth-child(2) circle {
         fill: currentColor;
 }

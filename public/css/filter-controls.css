@@ -30,10 +30,7 @@
 
 #search-highlights-toggle-label {
     right:80px;
-
-    input {
-        opacity:0;
-    }
+	position:absolute;
 }
 
 #search-highlights-toggle-label svg g {
