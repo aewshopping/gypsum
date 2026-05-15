@@ -158,6 +158,7 @@ test.describe('save file functionality', () => {
     await page.waitForTimeout(100);
 
     await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
+    await expect(page.locator('#save-btn')).not.toHaveClass(/\bsave-error\b/);
   });
 
   test('save button does not show saved state when verification fails', async ({ page }) => {
@@ -209,6 +210,7 @@ test.describe('save file functionality', () => {
 
     // Verification fails so resetUnsavedBaseline is never called — saved class stays absent
     await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+    await expect(page.locator('#save-btn')).toHaveClass(/\bsave-error\b/);
   });
 
 });

@@ -25,14 +25,20 @@ export async function handleSaveFileCopy() {
         ? decodeModalHtml(editorEl.innerHTML)
         : getLiveRawContent();
 
+    const saveBtn = document.getElementById('save-btn');
+
     try {
         const verified = await saveFileCopy(snapshot, textToSave);
         if (verified) {
+            saveBtn?.classList.remove('save-error');
             resetUnsavedBaseline();
             updateUnsavedIndicator();
+            refreshFileAfterSave(snapshot);
+        } else {
+            saveBtn?.classList.add('save-error');
         }
-        if (verified) refreshFileAfterSave(snapshot);
     } catch (err) {
+        saveBtn?.classList.add('save-error');
         console.error('Save failed:', err);
     }
 }
