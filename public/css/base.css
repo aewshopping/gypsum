@@ -9,6 +9,7 @@
 	interpolate-size: allow-keywords; /* for animating details open and close */
     --box-shadow-color: var(--colour-compl-contr);
     --hover-box-shadow: 3px 3px 0px 0px var(--box-shadow-color);
+    --btn-size: 30px;
 }
 
 button {font: inherit;}

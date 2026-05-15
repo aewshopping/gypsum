@@ -6,7 +6,7 @@
         fill: currentColor;
 }
 #content-search-label svg:nth-child(1) {
-        padding-top:8px;
+        padding-top:40%;
         height:auto;
 }
 body:has(#contentsearch:checked) #content-search-label svg:nth-child(1) {

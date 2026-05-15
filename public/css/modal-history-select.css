@@ -1,10 +1,10 @@
 #file-content-history-select {
     border: 1.5px solid transparent;
     color: inherit;
-    font: 1em monospace;
+    font: 1.1em monospace;
     flex-grow: 1;
     min-width: 0px;
-    height: 25px;
+    height: var(--btn-size);
 
     >button {
         display: flex;
@@ -29,19 +29,21 @@
     &::picker-icon {
         content: "\276f"; /* U+0276f ❯ */
         rotate: 90deg;
-        transition: 0.2s rotate;
+        transition: 0.2s rotate, 0.2s transform;
+        transform: translateY(50%); /* because the character is not centralised */
+
     }
 
     &:open::picker-icon {
         rotate: -90deg;
-        transform: translateY(-4px); /* because the character is centralised */
+        transform: translateY(-35%); /* because the character is not centralised */
     }
 
     option {
         display: flex;
         align-items: center;
 
-        font: 1.1em monospace;
+        font: 1em monospace;
         padding: 4px;
         padding-left: 15px;
         margin: 10px;

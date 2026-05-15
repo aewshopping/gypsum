@@ -25,7 +25,7 @@
 
 #clear-filters-btn {
 	right:10px;
-	height:25px;
+	height:var(--btn-size);
 }
 
 #search-highlights-toggle-label {
