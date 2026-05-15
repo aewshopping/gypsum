@@ -10,15 +10,16 @@ let _cachedCols = 0;
 let _cachedRowsOnScreen = 0;
 
 /**
- * Computes the number of columns by finding the first element whose top edge
- * exceeds that of the first element (i.e. is on row 2).
+ * Computes the number of columns by finding the first element (after index 0)
+ * whose left edge matches that of the first element (i.e. is on row 2, column 0).
+ * Works for both standard CSS grid (row-first) and grid-lanes (column-first).
  * @param {Element[]} els
  * @returns {number}
  */
 function computeColumnCount(els) {
     if (els.length === 0) return 1;
-    const firstTop = els[0].getBoundingClientRect().top;
-    const cols = els.findIndex(el => el.getBoundingClientRect().top > firstTop);
+    const firstLeft = els[0].getBoundingClientRect().left;
+    const cols = els.findIndex((el, i) => i > 0 && el.getBoundingClientRect().left === firstLeft);
     return cols === -1 ? els.length : cols;
 }
 
