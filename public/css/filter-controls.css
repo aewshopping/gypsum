@@ -25,11 +25,12 @@
 
 #clear-filters-btn {
 	right:10px;
-	height:var(--btn-size);
+	position:absolute;
 }
 
+
 #search-highlights-toggle-label {
-    right:80px;
+    right:calc(10px + var(--btn-size) * 1.5);
 	position:absolute;
 }
 

@@ -8,13 +8,19 @@
     margin-block:20px;
     margin-inline: auto;
 
-        &:has(#clear-filters-btn:hover){
+    &:has(#clear-filters-btn:hover){
         border: 1px solid var(--colour-contr-warning);
     }
+ 
+    &:has(#filter-output:empty) {
+        display: none;
+    }
+
 }
 
 #filter-output {
     display:flex;
+    flex-wrap: wrap;
     gap: 4px;
 }
 
