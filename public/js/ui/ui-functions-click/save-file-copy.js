@@ -38,7 +38,7 @@ export async function handleSaveFileCopy() {
             setTimeout(() => {
                 arrowEl?.classList.remove('spinning');
                 updateUnsavedIndicator();
-            }, 600);
+            }, 900);
         } else {
             saveBtn?.classList.add('save-error');
         }

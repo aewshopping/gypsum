@@ -37,12 +37,12 @@
 
 @keyframes save-disk-spin {
     from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+    to   { transform: rotate(-540deg); }
 }
 
 #save-disk-arrow.spinning {
     transform-box: fill-box;
     transform-origin: center;
-    animation: save-disk-spin 0.6s linear;
+    animation: save-disk-spin 0.9s linear;
 }
 
