@@ -1,8 +1,3 @@
-#modal-content.current-version #save-btn:hover {
-    border: 2px solid var(--colour-contr);
-    box-shadow: var(--hover-box-shadow);
-}
-
 #save-btn {
     color: var(--colour-neutral);
     background-color: var(--colour-contr);
@@ -21,6 +16,11 @@
     background-color: var(--colour-neutral);
 }
 
+#modal-content.current-version #save-btn:hover {
+    border: 2px solid var(--colour-contr);
+    box-shadow: var(--hover-box-shadow);
+}
+
 #modal-content:not(.current-version) #save-btn {
     background: linear-gradient(
         to bottom right, 
@@ -28,5 +28,6 @@
         var(--colour-contr), 
         transparent calc(50% + 4%)
     ) no-repeat;
+    box-shadow: none;
 }
 
