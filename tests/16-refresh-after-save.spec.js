@@ -5,7 +5,7 @@ const { test, expect } = require('@playwright/test');
  *
  * The feature: after a successful manual save, appState is re-parsed from disk
  * and the UI (file list + tag taxonomy) is re-rendered in the background. The
- * save popover appears immediately; the refresh runs fire-and-forget.
+ * The save completes first; the refresh runs fire-and-forget in the background.
  *
  * Autosave intentionally does NOT trigger a refresh — it only writes a temp
  * file, not the original. No tests cover that case because autosave.js is

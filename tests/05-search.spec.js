@@ -10,7 +10,7 @@ test('searching filters files to only those that match', async ({ page }) => {
 
   // 'meeting' only appears in the filename meeting-notes.md
   await page.fill('#searchbox', 'meeting');
-  await page.click('#btn_search');
+  await page.click('[data-action="searchbox-search"]');
 
   await expect(page.locator('.note-grid')).toHaveCount(1);
   await expect(page.locator('.note-grid').first()).toContainText('meeting-notes');

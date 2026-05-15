@@ -23,11 +23,26 @@
 
 #modal-content:not(.current-version) #save-btn {
     background: linear-gradient(
-        to bottom right, 
-        transparent calc(50% - 4%), 
-        var(--colour-contr), 
+        to bottom right,
+        transparent calc(50% - 4%),
+        var(--colour-contr),
         transparent calc(50% + 4%)
     ) no-repeat;
     box-shadow: none;
+}
+
+#save-btn.save-error {
+    color: var(--colour-contr-warning);
+}
+
+@keyframes save-disk-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(-540deg); }
+}
+
+#save-disk-arrow.spinning {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: save-disk-spin 0.9s linear;
 }
 

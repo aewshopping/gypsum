@@ -148,7 +148,7 @@ test.describe('save file functionality', () => {
     expect(savedContent).not.toContain('&lt;');
   });
 
-  test('popover shows "Saved" after a successful save', async ({ page }) => {
+  test('save button shows saved state after a successful save', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
@@ -157,11 +157,11 @@ test.describe('save file functionality', () => {
     await clickSaveBtn(page);
     await page.waitForTimeout(100);
 
-    await expect(page.locator('#save-popover')).toBeVisible();
-    await expect(page.locator('#save-popover')).toHaveClass(/\bsuccess\b/);
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
+    await expect(page.locator('#save-btn')).not.toHaveClass(/\bsave-error\b/);
   });
 
-  test('popover shows "Save failed" when verification fails', async ({ page }) => {
+  test('save button does not show saved state when verification fails', async ({ page }) => {
     await page.addInitScript(() => {
       window.__backupFileContent = '';
       const fileContent = '# My Notes\nSome content here';
@@ -197,11 +197,20 @@ test.describe('save file functionality', () => {
     await openModal(page);
     await switchToTxt(page);
 
+    // Edit content so the saved class is removed before we attempt the save
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'edited content';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+
     await clickSaveBtn(page);
     await page.waitForTimeout(100);
 
-    await expect(page.locator('#save-popover')).toBeVisible();
-    await expect(page.locator('#save-popover')).toHaveClass(/\berror\b/);
+    // Verification fails so resetUnsavedBaseline is never called — saved class stays absent
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+    await expect(page.locator('#save-btn')).toHaveClass(/\bsave-error\b/);
   });
 
 });
