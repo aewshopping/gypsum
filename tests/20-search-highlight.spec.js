@@ -28,7 +28,7 @@ test.describe('search highlight (match) lifecycle', () => {
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.fill('#searchbox', 'meeting');
-        await page.click('#btn_search');
+        await page.click('[data-action="searchbox-search"]');
         await expect(page.locator('.note-grid')).toHaveCount(1);
 
         const hasMatch = await page.evaluate(() => CSS.highlights.has('match'));
@@ -42,7 +42,7 @@ test.describe('search highlight (match) lifecycle', () => {
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.fill('#searchbox', 'meeting');
-        await page.click('#btn_search');
+        await page.click('[data-action="searchbox-search"]');
         await expect(page.locator('.note-grid')).toHaveCount(1);
 
         await page.locator('.note-grid').first().click();
@@ -58,7 +58,7 @@ test.describe('search highlight (match) lifecycle', () => {
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.fill('#searchbox', 'meeting');
-        await page.click('#btn_search');
+        await page.click('[data-action="searchbox-search"]');
         await expect(page.locator('.note-grid')).toHaveCount(1);
 
         await page.locator('.note-grid').first().click();
@@ -82,7 +82,7 @@ test.describe('search highlight (match) lifecycle', () => {
         await expect(page.locator('.note-grid')).toHaveCount(1);
 
         await page.fill('#searchbox', 'notes');
-        await page.click('#btn_search');
+        await page.click('[data-action="searchbox-search"]');
 
         await page.locator('.note-grid').first().click();
         await expect(page.locator('#file-content-modal')).toBeVisible();
