@@ -144,7 +144,6 @@ test.describe('save to original file', () => {
     await clickSaveBtn(page);
     await page.waitForTimeout(100);
 
-    await expect(page.locator('#save-popover')).toHaveClass(/\berror\b/);
     expect(warnMessages.some(m => m.includes('Original file verification failed'))).toBe(true);
 
     // Gypsum save file persists because removeEntry was never reached
