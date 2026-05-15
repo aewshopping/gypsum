@@ -8,11 +8,12 @@
     flex-shrink: 0;
     border-radius: 5px;
     padding: 0px;
-    border: 1.5px solid transparent;
+    border: 2px solid transparent;
+    color: var(--colour-contr);
     background-color: var(--colour-neutral);
 
     &:hover {
-        border: 1.5px solid var(--colour-contr);
+        border: 2px solid var(--colour-contr);
         box-shadow: var(--hover-box-shadow);
     }
 }
@@ -32,7 +33,7 @@
     position:relative;
     height:100%;
     width:100%;
-    color:var(--colour-contr);  
+    color:inherit;  
     
     g, path {
         stroke: currentColor;

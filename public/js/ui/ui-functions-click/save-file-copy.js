@@ -6,28 +6,10 @@ import { resetUnsavedBaseline, getLiveRawContent, getEditorElement } from '../..
 import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
 import { refreshFileAfterSave } from '../../editing/refresh-file-state.js';
 
-let savePopoverTimer = null;
-
-/**
- * Briefly shows a popover above the save button indicating success or failure.
- * @param {boolean} success
- */
-function showSavePopover(success) {
-    const popover = document.getElementById('save-popover');
-    if (!popover) return;
-//    popover.textContent = success ? 'Saved' : 'Save failed'; //now doing this with css before triggered by class name
-//    popover.className = success ? 'success' : 'error';
-    popover.classList.toggle('success', success);
-    popover.classList.toggle('error', !success);
-    popover.showPopover();
-    clearTimeout(savePopoverTimer);
-    savePopoverTimer = setTimeout(() => { popover.hidePopover(); }, 1500);
-}
 
 /**
  * Saves a copy of the currently-viewed file content to the .gypsum folder.
  * Delegates the actual file write to saveFileCopy in editing/save-file-copy.js.
- * Shows a popover to indicate success or failure.
  * @async
  * @returns {Promise<void>}
  */
@@ -49,10 +31,8 @@ export async function handleSaveFileCopy() {
             resetUnsavedBaseline();
             updateUnsavedIndicator();
         }
-        showSavePopover(verified);
         if (verified) refreshFileAfterSave(snapshot);
     } catch (err) {
         console.error('Save failed:', err);
-        showSavePopover(false);
     }
 }

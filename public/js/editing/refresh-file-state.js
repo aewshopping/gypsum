@@ -11,8 +11,7 @@ import { sortAppStateFiles } from '../services/file-object-sort.js';
 /**
  * Re-parses the saved file from disk, updates appState, and re-renders
  * the tag taxonomy and file list. Called fire-and-forget after a successful
- * explicit save so the popover is shown immediately while state refreshes
- * in the background. Not called on autosave — only on user-initiated saves.
+ * explicit save. Not called on autosave — only on user-initiated saves.
  * @param {{ filepath: string, filename: string }} snapshot
  * @returns {Promise<void>}
  */

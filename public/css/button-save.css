@@ -1,76 +1,32 @@
-#save-btn {
-    cursor:pointer;
-    anchor-name: --save-btn;
-
-    &::after {
-        content: "➜"; /* U+0279C */        
-        display: inline-block;
-        padding-left: 3px;
-        width: 1.2em;
-        line-height: 1.1em;
-    }
-}
-
 #modal-content.current-version #save-btn:hover {
-    border: 1.5px solid var(--colour-contr);
+    border: 2px solid var(--colour-contr);
     box-shadow: var(--hover-box-shadow);
 }
 
-#modal-content.saved #save-btn {
-    border: 1.5px solid transparent;
-    color: var(--colour-contr);
-    background-color: var(--colour-neutral);
-
-    &::after {
-        content: "✓";
-        display: inline-block;
-        padding-left: 3px;
-        width: 1.2em;
-        line-height: 1.1em;
-    }
+#save-btn {
+    color: var(--colour-neutral);
+    background-color: var(--colour-contr);
 }
 
-.btn-save {
-    padding: 2px 4px 2px 4px;
-    background-color: var(--colour-contr);
-    border: 1.5px solid transparent;
-    color: var(--colour-neutral);
-    border-radius: 5px;
-    font:1.1em monospace;
-    flex-shrink: 0;
+#modal-content:not(.saved) #save-btn svg:nth-child(2) {
+    display:none;
+}
+#modal-content.saved #save-btn svg:nth-child(1) {
+    display:none;
+}
+
+#modal-content.saved #save-btn {
+    border: 2px solid transparent;
+    color: var(--colour-contr);
+    background-color: var(--colour-neutral);
 }
 
 #modal-content:not(.current-version) #save-btn {
     background: linear-gradient(
         to bottom right, 
-        transparent calc(50% - 1px), 
+        transparent calc(50% - 4%), 
         var(--colour-contr), 
-        transparent calc(50% + 1px)
-    );
+        transparent calc(50% + 4%)
+    ) no-repeat;
 }
 
-#save-popover {
-    inset: auto;
-    position-anchor: --save-btn;
-    top: anchor(top);
-    left: anchor(left);
-    padding-right:14px; /* hack to get it to over ::after part of btn */
-    white-space: nowrap;
-
-    &:hover {
-        box-shadow: var(--hover-box-shadow);
-    }
-
-    &.success {
-        &::before {
-            content: "saved";
-        }
-    }
-
-    &.error {
-        border-color: var(--colour-contr-warning);
-        &::before {
-            content: "save failed";
-        }
-    }
-}
