@@ -32,8 +32,13 @@ export async function handleSaveFileCopy() {
         if (verified) {
             saveBtn?.classList.remove('save-error');
             resetUnsavedBaseline();
-            updateUnsavedIndicator();
             refreshFileAfterSave(snapshot);
+            const arrowEl = document.getElementById('save-disk-arrow');
+            arrowEl?.classList.add('spinning');
+            setTimeout(() => {
+                arrowEl?.classList.remove('spinning');
+                updateUnsavedIndicator();
+            }, 600);
         } else {
             saveBtn?.classList.add('save-error');
         }

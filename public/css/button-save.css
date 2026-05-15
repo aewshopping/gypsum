@@ -35,3 +35,14 @@
     color: var(--colour-contr-warning);
 }
 
+@keyframes save-disk-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+#save-disk-arrow.spinning {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: save-disk-spin 0.6s linear;
+}
+
