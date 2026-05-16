@@ -1,18 +1,13 @@
 body:has(#toggle-search-highlights:checked) ::highlight(match) {
-    background-color: color-mix(in srgb, var(--colour-compl-emph) 60%, transparent);
+    background-color: color-mix(in srgb, var(--colour-highlight) var(--colour-highlight-mix-pct), transparent);
     color: inherit;
     border-radius: 4px;
     /* padding-block:1px; does this triggers layout reflow when highlighting applied? I say no by AI says yes. Don't really need it anyway */
     text-decoration-line: underline;
     text-decoration-style: dotted;
     text-underline-offset: 4px;
-    text-decoration-color: var(--colour-compl-emph);
+    text-decoration-color: var(--colour-highlight);
     text-decoration-thickness: 3px;
-}
-
-body:has(#and_filter:checked):has(#toggle-search-highlights:checked) ::highlight(match) {
-    background-color: color-mix(in srgb, var(--colour-compl-alt-emph) 30%, transparent);
-    text-decoration-color: var(--colour-compl-alt-emph);
 }
 
 ::highlight(diff-old) {

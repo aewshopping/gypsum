@@ -10,7 +10,7 @@
 	font: 1em monospace;
 	color: var(--colour-contr);
 	background-color:var(--colour-neutral);
-	border: 2px solid var(--colour-compl-emph) !important;
+	border: 2px solid var(--colour-highlight) !important;
 	border-radius: 6px;	
 
 	&:hover {
@@ -36,13 +36,7 @@
 
 #search-highlights-toggle-label svg g {
 	color:color-mix(in srgb,  var(--colour-contr) 70%, transparent 30%);
-	fill: var(--colour-compl-emph);
-}
-body:has(#and_filter:checked) #search-highlights-toggle-label svg g {
-	fill: var(--colour-compl-alt-emph);
-}
-body:has(#and_filter:checked) .filters-options-style {
-	border: 2px solid var(--colour-compl-alt-emph) !important;
+	fill: var(--colour-highlight);
 }
 
 body:has(#toggle-search-highlights:not(:checked)) #search-highlights-toggle-label svg g {
