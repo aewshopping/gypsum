@@ -16,6 +16,11 @@
     --colour-compl-alt-emph: #FF80AA; /* tag select */ /*Pink*/
     --colour-compl-alt-contr: DarkSlateGray; /* tag text */ /*MediumVioletRed*/
     --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
+
+    --colour-highlight:         var(--colour-compl-emph);
+    --colour-highlight-light:   var(--colour-compl-emph-light);
+    --colour-highlight-contr:   var(--colour-compl-emph-contr);
+    --colour-highlight-mix-pct: 60%;
     }
 
 :root:has(input[type="radio"]#glow:checked) {
@@ -56,6 +61,13 @@
     --colour-compl-alt-emph: #FF80AA; /* tag select */ /*Pink*/
     --colour-compl-alt-contr: black; /* tag text */ /*MediumVioletRed*/
     --colour-compl-alt-emph-contr: black; /* tag select text */
+}
+
+:root:has(#and_filter:checked) {
+    --colour-highlight:         var(--colour-compl-alt-emph);
+    --colour-highlight-light:   var(--colour-compl-alt-emph-light);
+    --colour-highlight-contr:   var(--colour-compl-alt-emph-contr);
+    --colour-highlight-mix-pct: 30%;
 }
 
 .color-dynamic {

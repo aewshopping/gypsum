@@ -1,5 +1,5 @@
 #filter-box{
-    border: 1px solid var(--colour-compl-emph);
+    border: 1px solid var(--colour-highlight);
     border-radius: 6px;
     padding: 16px 10px 10px 10px;
     position: relative;
@@ -25,7 +25,7 @@
 }
 
 .filter-pill {
-    font: 0.9em monospace;
+    font: 0.9em var(--fs-app);
     margin: 2px;
 
     &::before {
@@ -46,9 +46,3 @@
     }
 }
 
-body:has(#and_filter:checked) #filter-box{
-    border: 1px solid var(--colour-compl-alt-emph);
-
-/*    &:has(#clear-filters-btn:hover){
-        border: 1px solid var(--colour-contr-warning);*/
-    }

@@ -6,7 +6,6 @@
 
 #searchbox{
     background-color: var(--colour-neutral-alt);
-    --colour-highlight: var(--colour-compl-emph);
     --radius: 10px;
     --offset: 4px;
     --offset-negative: calc( var(--offset) * -1 );
@@ -16,7 +15,7 @@
         var(--colour-highlight) var(--offset) var(--offset-negative) var(--radius),
         var(--colour-highlight) var(--offset) var(--offset) var(--radius);
     color: var(--colour-contr);
-	font:1.1em monospace;
+	font:1.1em var(--fs-app);
     border: none;
     border-radius:4px;
     height: var(--btn-size);
@@ -29,9 +28,6 @@
     }
 }
 
-body:has(#and_filter:checked) #searchbox {
-    --colour-highlight: var(--colour-compl-alt-emph);
-}
 
 .searchbox-tag-btn {
     font-size:0.9em;
