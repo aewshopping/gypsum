@@ -25,7 +25,7 @@
 }
 
 .filter-pill {
-    font: 0.9em monospace;
+    font: 0.9em var(--fs-app);
     margin: 2px;
 
     &::before {

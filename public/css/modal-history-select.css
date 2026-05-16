@@ -1,7 +1,7 @@
 #file-content-history-select {
     border: 1.5px solid transparent;
     color: inherit;
-    font: 1.1em monospace;
+    font: 1.1em var(--fs-app);
     flex-grow: 1;
     min-width: 0px;
     height: var(--btn-size);
@@ -43,7 +43,7 @@
         display: flex;
         align-items: center;
 
-        font: 1em monospace;
+        font: 1em var(--fs-app);
         padding: 4px;
         padding-left: 15px;
         margin: 10px;

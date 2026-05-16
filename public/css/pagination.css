@@ -13,7 +13,7 @@
     padding: 0 8px;
     border-radius: 4px;
     border: 2px solid transparent;
-    font: 1.1em monospace;
+    font: 1.1em var(--fs-app);
     display: inline-flex; /* for where no btn and need inner elems like spans to be centred */
     align-items: center;
     justify-content: center;  

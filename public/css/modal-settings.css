@@ -124,6 +124,6 @@
     background-color: var(--colour-soften-3);
     border-radius: 4px;
     font-size: 1.1em;
-    font-family: monospace;
+    font-family: var(--fs-app);
     line-height: 1.5;
 }

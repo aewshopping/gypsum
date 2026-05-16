@@ -8,7 +8,7 @@
 	border: 2px solid transparent;
 	background-color: var(--colour-neutral);
 	border-radius: 4px;
-	font: 1.1em monospace;
+	font: 1.1em var(--fs-app);
 
 	/* apply focus style on keyboard focus but not mouseclick focus */
 	&:has(:focus-visible) {

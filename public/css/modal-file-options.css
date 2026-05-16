@@ -42,7 +42,7 @@
     border-radius: 4px;
     background: var(--colour-neutral);
     color: var(--colour-contr);
-    font: 1.1em monospace;
+    font: 1.1em var(--fs-app);
     transition: background-color 0.15s, border-color 0.15s;
 }
 
@@ -58,7 +58,7 @@
 }
 
 .file-options-field-row button {
-    font: 0.9rem monospace;
+    font: 0.9rem var(--fs-app);
     padding: 6px 16px;
     border-radius: 4px;
     cursor: pointer;
@@ -81,7 +81,7 @@
     padding: 6px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font: 0.9rem monospace;
+    font: 0.9rem var(--fs-app);
     background-color: var(--colour-compl-alt-emph-light);
     color: var(--colour-compl-emph-contr);
     border: 2px solid transparent;

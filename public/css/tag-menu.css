@@ -101,7 +101,7 @@
     top:0px;
     left:50%;
     transform: translateX(-50%);
-    font-family: monospace;
+    font-family: var(--fs-app);
     cursor: pointer;
     padding-inline: 5px;
     border-bottom-right-radius: 6px;

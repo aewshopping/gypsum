@@ -4,7 +4,7 @@
     flex-wrap: wrap;
     gap:10px;
     margin-bottom: 20px;
-    font: 1.1em monospace;
+    font: 1.1em var(--fs-app);
 }
 
 .sort-controls, .view-controls {
@@ -21,7 +21,7 @@
     border:none;
     cursor:pointer;
     min-width: 80px;
-    font: 1em monospace;
+    font: 1em var(--fs-app);
     color: var(--colour-contr);
     background-color: var(--colour-neutral-alt);
     &:hover {
