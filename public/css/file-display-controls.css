@@ -13,17 +13,16 @@
 }
 
 .file-display-controls-panel {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.3s ease;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease;
 }
 
 .file-display-controls-panel.open {
-    grid-template-rows: 1fr;
+    height: auto;
 }
 
 .file-display-controls-panel-inner {
-    overflow: hidden;
     display: flex;
     justify-content: flex-end;
     align-items: center;
