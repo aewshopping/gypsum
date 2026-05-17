@@ -12,12 +12,31 @@ window.appState = appState; // exposed for debugging and tests
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    document.querySelector('[data-click-loadfolder]').addEventListener('click', () => loadAndProcess(loadDirectoryFileHandles));
-    document.querySelector('[data-click-loadopfs]').addEventListener('click', () => loadAndProcess(loadFromOPFS));
+    document.querySelector('[data-click-loadfolder]').addEventListener('click', async () => {
+        const btn = document.getElementById('btn_loadDirectoryHandles');
+        try {
+            await loadDirectoryFileHandles(() => {
+                btn.classList.add('loading');
+                appState.myFiles = [];
+                renderFiles();
+            });
+            postLoad();
+        } finally {
+            btn.classList.remove('loading');
+        }
+    });
+
+    document.querySelector('[data-click-loadopfs]').addEventListener('click', () => {
+        document.getElementById('modal-settings').close();
+        loadAndProcess(loadFromOPFS);
+    });
 
     document.querySelector('[data-click-importtartoopfs]').addEventListener('click', async () => {
+        document.getElementById('modal-settings').close();
         const btn = document.getElementById('btn_loadDirectoryHandles');
         btn.classList.add('loading');
+        appState.myFiles = [];
+        renderFiles();
         const removeLoading = () => btn.classList.remove('loading');
         try {
             await importTarGzipToOPFS(() => {
@@ -63,6 +82,8 @@ function postLoad() {
 async function loadAndProcess(loaderFn) {
     const btn = document.getElementById('btn_loadDirectoryHandles');
     btn.classList.add('loading');
+    appState.myFiles = [];
+    renderFiles();
     try {
         await loaderFn();
         postLoad();

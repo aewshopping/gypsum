@@ -32,9 +32,10 @@ export async function getFilesRecursive(dirHandle, path = '') {
  * processes their metadata, and populates appState.
  * @async
  * @function loadDirectoryFileHandles
+ * @param {Function|null} onPickerResolved - Called after the picker resolves, before file loading begins.
  * @returns {Promise<void>}
  */
-export async function loadDirectoryFileHandles() {
+export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
@@ -42,6 +43,7 @@ export async function loadDirectoryFileHandles() {
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     appState.dirHandle = dirHandle;
     document.getElementById('btn-new-note').disabled = false;
+    onPickerResolved?.();
 
     const startTime = performance.now();
 

@@ -43,4 +43,5 @@ export function handleWarningProceed() {
 export function handleWarningCancel() {
     warningDialog.close();
     pendingCallback = null;
+    document.getElementById('btn_loadDirectoryHandles').classList.remove('loading');
 }
