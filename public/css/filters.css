@@ -4,7 +4,8 @@
     padding: 16px 10px 10px 10px;
     position: relative;
     max-width: 600px;
-    min-height: 46px;
+    /* min-height: 46px; not needed if not visible with no filters */
+    height:fit-content;
     margin-block:20px;
     margin-inline: auto;
 

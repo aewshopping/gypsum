@@ -70,6 +70,6 @@ export async function loadDirectoryFileHandles() {
 
     const fileCount = appState.myFiles.length;
     console.log(`Saved metadata for ${fileCount} files.`);
-    document.getElementById('fileCountElement').textContent = `${fileCount} files loaded, in ${durationSec} seconds`;
+    document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${durationSec}s | file system`;
 
 }

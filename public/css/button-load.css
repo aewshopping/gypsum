@@ -1,0 +1,34 @@
+#btn_loadDirectoryHandles {
+    display:flex;
+    align-items:center;
+    gap:4px;
+    background-color: var(--colour-neutral-alt);
+    color:var(--colour-contr);
+    border: 2px solid var(--colour-contr);
+    border-radius: 5px;
+    font-family: var(--fs-app);
+    font-size:1.1em;
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+
+    & .svg-wrapper-style {
+        background-color:transparent;
+    }
+
+    & .svg-wrapper-style:hover{
+        box-shadow: none;
+        border: 2px solid transparent;
+    }
+}
+
+#btn_loadDirectoryHandles:hover{
+    box-shadow: var(--hover-box-shadow);
+}
+
+#fileCountElement {
+    font-size: 1.1em;
+    color: var(--colour-contr);
+    font-family: var(--fs-app);
+}

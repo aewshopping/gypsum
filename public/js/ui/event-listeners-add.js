@@ -80,7 +80,7 @@ const clickActionHandlers = {
     'editor-color-pick': handleEditorColorPick,
     'color-circle-pick': handleColorCirclePick,
     'close-color-picker-outside': handleCloseColorPickerOutside,
-    'show-tag-taxonomy': handleShowTagTaxonomy,
+    'start-tag-search': handleShowTagTaxonomy,
     'hide-tag-taxonomy': handleHideTagTaxonomy,
     'render-tag-taxonomy': handleRenderTagTaxonomy,
     'file-options-open': handleFileOptionsOpen,

@@ -2,7 +2,7 @@
 
 .svg-wrapper-style {
     position:relative;
-    display:block;
+    display:inline-block;
     height: var(--btn-size);
     width: var(--btn-size);
     flex-shrink: 0;
