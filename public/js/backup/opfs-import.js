@@ -53,7 +53,7 @@ async function writeFilesToOPFS(entries, opfsRoot) {
         const writable = await fileHandle.createWritable();
         await writable.write(entry.text);
         await writable.close();
-        fileCountEl.textContent = `files: unpacking ${++count}/${total}`;
+        fileCountEl.textContent = `files: unpacking ${++count} of ${total}`;
     }
 }
 
