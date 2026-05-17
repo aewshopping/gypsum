@@ -38,6 +38,9 @@ async function clearOPFS(opfsRoot) {
  * @returns {Promise<void>}
  */
 async function writeFilesToOPFS(entries, opfsRoot) {
+    const total = entries.filter(e => e.type === 'file').length;
+    const fileCountEl = document.getElementById('fileCountElement');
+    let count = 0;
     for (const entry of entries) {
         if (entry.type !== 'file') continue;
         const parts = entry.name.split('/');
@@ -50,6 +53,7 @@ async function writeFilesToOPFS(entries, opfsRoot) {
         const writable = await fileHandle.createWritable();
         await writable.write(entry.text);
         await writable.close();
+        fileCountEl.textContent = `files: unpacking ${++count}/${total}`;
     }
 }
 
