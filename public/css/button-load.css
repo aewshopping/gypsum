@@ -44,8 +44,11 @@
 #load-folder-arrow {
     transform-box: fill-box;
     transform-origin: center;
+    stroke: transparent;
+    transition: stroke 0.2s;
 }
 
 #btn_loadDirectoryHandles.loading #load-folder-arrow {
     animation: load-folder-spin 1s linear infinite;
+    stroke: currentColor;
 }
