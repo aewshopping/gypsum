@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.classList.add('loading');
                 appState.myFiles = [];
                 renderFiles();
-                minDuration = new Promise(r => setTimeout(r, 1000));
+                minDuration = new Promise(r => setTimeout(r, 2000));
             });
             postLoad();
             await minDuration;

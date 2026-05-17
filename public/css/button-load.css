@@ -33,8 +33,8 @@
     font-family: var(--fs-app);
 }
 
-#btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style svg:nth-child(2) { display: none; }
-#btn_loadDirectoryHandles.loading .svg-wrapper-style svg:nth-child(1) { display: none; }
+#btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style #load-folder-arrow { opacity: 0; }
+
 
 @keyframes load-folder-spin {
     from { transform: rotate(0deg); }
@@ -44,11 +44,10 @@
 #load-folder-arrow {
     transform-box: fill-box;
     transform-origin: center;
-    stroke: transparent;
-    transition: stroke 0.2s;
+    transition: opacity 0.5s ease-in-out;
 }
 
 #btn_loadDirectoryHandles.loading #load-folder-arrow {
     animation: load-folder-spin 1s linear infinite;
-    stroke: currentColor;
+    transition: opacity 0.5s ease-in-out;
 }
