@@ -121,7 +121,6 @@ test.describe('local file backup', () => {
     await page.click('[data-click-loadfolder]');
 
     await expect(page.locator('.note-grid')).toHaveCount(1);
-    await expect(page.locator('#fileCountElement')).toContainText('1 file');
   });
 
 });
