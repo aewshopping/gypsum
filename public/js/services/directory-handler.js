@@ -54,7 +54,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     for (let i = 0; i < fileEntries.length; i++) {
         const { handle, filepath } = fileEntries[i];
         const fileObj = await getFileDataAndMetadata(handle, i);
-        fileCountEl.textContent = `file: ${i + 1}`;
+        fileCountEl.textContent = `files: ${i + 1}`;
         filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
     }
 
