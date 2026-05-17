@@ -31,6 +31,10 @@
     font-size: 1.1em;
     color: var(--colour-contr);
     font-family: var(--fs-app);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 #btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style #load-folder-arrow { opacity: 0; }
