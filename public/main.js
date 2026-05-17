@@ -15,11 +15,19 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('[data-click-loadfolder]').addEventListener('click', () => loadAndProcess(loadDirectoryFileHandles));
     document.querySelector('[data-click-loadopfs]').addEventListener('click', () => loadAndProcess(loadFromOPFS));
 
-    document.querySelector('[data-click-importtartoopfs]').addEventListener('click', () => {
-        importTarGzipToOPFS(() => {
-            postLoad();
-            document.getElementById('btn-load-opfs').disabled = false;
-        });
+    document.querySelector('[data-click-importtartoopfs]').addEventListener('click', async () => {
+        const btn = document.getElementById('btn_loadDirectoryHandles');
+        btn.classList.add('loading');
+        const removeLoading = () => btn.classList.remove('loading');
+        try {
+            await importTarGzipToOPFS(() => {
+                postLoad();
+                document.getElementById('btn-load-opfs').disabled = false;
+                removeLoading();
+            });
+        } catch {
+            removeLoading();
+        }
     });
 
     initViewSelect();
@@ -53,6 +61,12 @@ function postLoad() {
  * @returns {Promise<void>}
  */
 async function loadAndProcess(loaderFn) {
-    await loaderFn();
-    postLoad();
+    const btn = document.getElementById('btn_loadDirectoryHandles');
+    btn.classList.add('loading');
+    try {
+        await loaderFn();
+        postLoad();
+    } finally {
+        btn.classList.remove('loading');
+    }
 }
