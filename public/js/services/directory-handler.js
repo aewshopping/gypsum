@@ -71,7 +71,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     invalidateTagCache();
 
     const endTime = performance.now();
-    const durationSec = ((endTime - startTime) / 1000).toFixed(2);
+    const durationSec = ((endTime - startTime) / 1000).toFixed(1);
 
     const fileCount = appState.myFiles.length;
     console.log(`Saved metadata for ${fileCount} files.`);
