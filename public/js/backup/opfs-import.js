@@ -38,6 +38,9 @@ async function clearOPFS(opfsRoot) {
  * @returns {Promise<void>}
  */
 async function writeFilesToOPFS(entries, opfsRoot) {
+    const total = entries.filter(e => e.type === 'file').length;
+    const fileCountEl = document.getElementById('fileCountElement');
+    let count = 0;
     for (const entry of entries) {
         if (entry.type !== 'file') continue;
         const parts = entry.name.split('/');
@@ -50,15 +53,17 @@ async function writeFilesToOPFS(entries, opfsRoot) {
         const writable = await fileHandle.createWritable();
         await writable.write(entry.text);
         await writable.close();
+        fileCountEl.textContent = `files: unpacking ${++count} of ${total}`;
     }
 }
 
 /**
  * Reads all .txt/.md files from OPFS and populates appState. Mirrors loadDirectoryFileHandles().
  * @param {FileSystemDirectoryHandle} opfsRoot
+ * @param {number|null} outerStartTime - performance.now() timestamp from before unpacking, if available.
  * @returns {Promise<void>}
  */
-async function populateAppStateFromOPFS(opfsRoot) {
+async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
     appState.dirHandle = opfsRoot;
@@ -67,10 +72,14 @@ async function populateAppStateFromOPFS(opfsRoot) {
     const startTime = performance.now();
 
     const fileEntries = await getFilesRecursive(opfsRoot);
-    const filePromises = fileEntries.map(({ handle, filepath }, index) =>
-        getFileDataAndMetadata(handle, index).then(fileObj => ({ ...fileObj, filepath, id: filepath }))
-    );
-    const filesWithMetadata = await Promise.all(filePromises);
+    const fileCountEl = document.getElementById('fileCountElement');
+    const filesWithMetadata = [];
+    for (let i = 0; i < fileEntries.length; i++) {
+        const { handle, filepath } = fileEntries[i];
+        const fileObj = await getFileDataAndMetadata(handle, i);
+        fileCountEl.textContent = `files: ${i + 1} of ${fileEntries.length}`;
+        filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
+    }
 
     appState.myFileHandlesMap = filesWithMetadata.reduce((map, fileObject) => {
         map.set(fileObject.id, fileObject.handle);
@@ -81,9 +90,11 @@ async function populateAppStateFromOPFS(opfsRoot) {
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
 
-    const durationSec = ((performance.now() - startTime) / 1000).toFixed(2);
+    const endTime = performance.now();
+    const loadDurationSec = ((endTime - startTime) / 1000).toFixed(2); // pure file load; available for future console logging
+    const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
-    document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${durationSec}s | opfs`;
+    document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${displayDuration}s | opfs`;
 }
 
 /**
@@ -96,13 +107,14 @@ export async function importTarGzipToOPFS(onComplete) {
     const [fileHandle] = await window.showOpenFilePicker({
         types: [{ description: 'Gypsum backup', accept: { 'application/gzip': ['.gz'] } }],
     });
+    const importStartTime = performance.now();
     const file = await fileHandle.getFile();
     const entries = await parseTarGzip(await file.arrayBuffer());
     const opfsRoot = await navigator.storage.getDirectory();
 
     async function proceed() {
         await writeFilesToOPFS(entries, opfsRoot);
-        await populateAppStateFromOPFS(opfsRoot);
+        await populateAppStateFromOPFS(opfsRoot, importStartTime);
         onComplete();
     }
 

@@ -32,3 +32,20 @@
     color: var(--colour-contr);
     font-family: var(--fs-app);
 }
+
+#btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style svg:nth-child(2) { display: none; }
+#btn_loadDirectoryHandles.loading .svg-wrapper-style svg:nth-child(1) { display: none; }
+
+@keyframes load-folder-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+#load-folder-arrow {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+#btn_loadDirectoryHandles.loading #load-folder-arrow {
+    animation: load-folder-spin 1s linear infinite;
+}

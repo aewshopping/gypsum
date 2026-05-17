@@ -12,14 +12,42 @@ window.appState = appState; // exposed for debugging and tests
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    document.querySelector('[data-click-loadfolder]').addEventListener('click', () => loadAndProcess(loadDirectoryFileHandles));
-    document.querySelector('[data-click-loadopfs]').addEventListener('click', () => loadAndProcess(loadFromOPFS));
-
-    document.querySelector('[data-click-importtartoopfs]').addEventListener('click', () => {
-        importTarGzipToOPFS(() => {
+    document.querySelector('[data-click-loadfolder]').addEventListener('click', async () => {
+        const btn = document.getElementById('btn_loadDirectoryHandles');
+        try {
+            await loadDirectoryFileHandles(() => {
+                btn.classList.add('loading');
+                appState.myFiles = [];
+                renderFiles();
+            });
             postLoad();
-            document.getElementById('btn-load-opfs').disabled = false;
-        });
+        } finally {
+            btn.classList.remove('loading');
+        }
+    });
+
+    document.querySelector('[data-click-loadopfs]').addEventListener('click', () => {
+        document.getElementById('modal-settings').close();
+        loadAndProcess(loadFromOPFS);
+    });
+
+    document.querySelector('[data-click-importtartoopfs]').addEventListener('click', async () => {
+        document.getElementById('modal-settings').close();
+        const btn = document.getElementById('btn_loadDirectoryHandles');
+        btn.classList.add('loading');
+        appState.myFiles = [];
+        renderFiles();
+        document.getElementById('fileCountElement').textContent = 'file: unpacking';
+        const removeLoading = () => btn.classList.remove('loading');
+        try {
+            await importTarGzipToOPFS(() => {
+                postLoad();
+                document.getElementById('btn-load-opfs').disabled = false;
+                removeLoading();
+            });
+        } catch {
+            removeLoading();
+        }
     });
 
     initViewSelect();
@@ -53,6 +81,14 @@ function postLoad() {
  * @returns {Promise<void>}
  */
 async function loadAndProcess(loaderFn) {
-    await loaderFn();
-    postLoad();
+    const btn = document.getElementById('btn_loadDirectoryHandles');
+    btn.classList.add('loading');
+    appState.myFiles = [];
+    renderFiles();
+    try {
+        await loaderFn();
+        postLoad();
+    } finally {
+        btn.classList.remove('loading');
+    }
 }
