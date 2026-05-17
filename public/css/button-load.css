@@ -4,7 +4,7 @@
     gap:4px;
     background-color: var(--colour-neutral-alt);
     color:var(--colour-contr);
-    border: 2px solid var(--colour-contr);
+    border: 1.5px solid var(--colour-contr);
     border-radius: 5px;
     font-family: var(--fs-app);
     font-size:1.1em;
@@ -19,7 +19,7 @@
 
     & .svg-wrapper-style:hover{
         box-shadow: none;
-        border: 2px solid transparent;
+        border: 1.5px solid transparent;
     }
 }
 

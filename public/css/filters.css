@@ -8,6 +8,7 @@
     height:fit-content;
     margin-block:20px;
     margin-inline: auto;
+    margin-bottom:40px;
 
     &:has(#clear-filters-btn:hover){
         border: 1px solid var(--colour-contr-warning);

@@ -14,11 +14,11 @@ export const regex_title = /(?<=^# )(.*$)/;
 export const regex_tag = /(?<!["'=])#(?!([0-9a-fA-F]{3}){1,2}\b)(?:(\w+)\/)?(\w+)/;
 
 export const VIEWS = {
-    TABLE:  { value: "table",  label: "table"  },
-    CARDS:  { value: "cards",  label: "cards"  },
-    LIST:   { value: "list",   label: "list"   },
-    PEEK:   { value: "peek",   label: "peek"   },
-    SEARCH: { value: "search", label: "search" }
+    TABLE:  { value: "table",  label: "table view"  },
+    CARDS:  { value: "cards",  label: "cards view"  },
+    LIST:   { value: "list",   label: "list view"   },
+    PEEK:   { value: "peek",   label: "peek view"   },
+    SEARCH: { value: "search", label: "search view" }
 };
 
 export const SAVE_FOLDER = '.gypsum';

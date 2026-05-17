@@ -16,6 +16,10 @@
     height: 0;
     overflow: hidden;
     transition: height 0.3s ease;
+
+    &:focus-within {
+        height:auto;
+    }
 }
 
 .file-display-controls-panel.open {
@@ -35,10 +39,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    border-bottom: 1px solid var(--colour-contr);
-    border-right: 1px solid var(--colour-contr);
     padding:4px;
-    border-bottom-right-radius: 6px;
 }
 
 #view-select, #sort-select, .tag-taxonomy-btn {
@@ -51,6 +52,11 @@
     &:hover {
         background-color: revert;
     }
+}
+
+.tag-taxonomy-btn {
+    padding-block: 4px;
+    border-radius: 8px;
 }
 
 #sort-select {

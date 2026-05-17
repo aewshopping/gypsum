@@ -1,3 +1,7 @@
+.search-row {
+    margin-bottom: 40px;
+}
+
 .searchbox-container {
     position: relative;
     max-width: 600px;
