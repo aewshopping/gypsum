@@ -14,13 +14,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelector('[data-click-loadfolder]').addEventListener('click', async () => {
         const btn = document.getElementById('btn_loadDirectoryHandles');
+        let minDuration;
         try {
             await loadDirectoryFileHandles(() => {
                 btn.classList.add('loading');
                 appState.myFiles = [];
                 renderFiles();
+                minDuration = new Promise(r => setTimeout(r, 1000));
             });
             postLoad();
+            await minDuration;
         } finally {
             btn.classList.remove('loading');
         }
@@ -38,11 +41,13 @@ document.addEventListener('DOMContentLoaded', function () {
         appState.myFiles = [];
         renderFiles();
         document.getElementById('fileCountElement').textContent = 'file: unpacking';
+        const minDuration = new Promise(r => setTimeout(r, 1000));
         const removeLoading = () => btn.classList.remove('loading');
         try {
-            await importTarGzipToOPFS(() => {
+            await importTarGzipToOPFS(async () => {
                 postLoad();
                 document.getElementById('btn-load-opfs').disabled = false;
+                await minDuration;
                 removeLoading();
             });
         } catch {
@@ -85,9 +90,11 @@ async function loadAndProcess(loaderFn) {
     btn.classList.add('loading');
     appState.myFiles = [];
     renderFiles();
+    const minDuration = new Promise(r => setTimeout(r, 1000));
     try {
         await loaderFn();
         postLoad();
+        await minDuration;
     } finally {
         btn.classList.remove('loading');
     }
