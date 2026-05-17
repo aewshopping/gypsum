@@ -68,15 +68,14 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null) {
     const startTime = performance.now();
 
     const fileEntries = await getFilesRecursive(opfsRoot);
-    let loadCount = 0;
     const fileCountEl = document.getElementById('fileCountElement');
-    const filePromises = fileEntries.map(({ handle, filepath }, index) =>
-        getFileDataAndMetadata(handle, index).then(fileObj => {
-            fileCountEl.textContent = `file: ${++loadCount}`;
-            return { ...fileObj, filepath, id: filepath };
-        })
-    );
-    const filesWithMetadata = await Promise.all(filePromises);
+    const filesWithMetadata = [];
+    for (let i = 0; i < fileEntries.length; i++) {
+        const { handle, filepath } = fileEntries[i];
+        const fileObj = await getFileDataAndMetadata(handle, i);
+        fileCountEl.textContent = `file: ${i + 1}`;
+        filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
+    }
 
     appState.myFileHandlesMap = filesWithMetadata.reduce((map, fileObject) => {
         map.set(fileObject.id, fileObject.handle);
