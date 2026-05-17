@@ -56,9 +56,10 @@ async function writeFilesToOPFS(entries, opfsRoot) {
 /**
  * Reads all .txt/.md files from OPFS and populates appState. Mirrors loadDirectoryFileHandles().
  * @param {FileSystemDirectoryHandle} opfsRoot
+ * @param {number|null} outerStartTime - performance.now() timestamp from before unpacking, if available.
  * @returns {Promise<void>}
  */
-async function populateAppStateFromOPFS(opfsRoot) {
+async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
     appState.dirHandle = opfsRoot;
@@ -81,9 +82,11 @@ async function populateAppStateFromOPFS(opfsRoot) {
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
 
-    const durationSec = ((performance.now() - startTime) / 1000).toFixed(2);
+    const endTime = performance.now();
+    const loadDurationSec = ((endTime - startTime) / 1000).toFixed(2); // pure file load; available for future console logging
+    const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
-    document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${durationSec}s | opfs`;
+    document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${displayDuration}s | opfs`;
 }
 
 /**
@@ -96,13 +99,14 @@ export async function importTarGzipToOPFS(onComplete) {
     const [fileHandle] = await window.showOpenFilePicker({
         types: [{ description: 'Gypsum backup', accept: { 'application/gzip': ['.gz'] } }],
     });
+    const importStartTime = performance.now();
     const file = await fileHandle.getFile();
     const entries = await parseTarGzip(await file.arrayBuffer());
     const opfsRoot = await navigator.storage.getDirectory();
 
     async function proceed() {
         await writeFilesToOPFS(entries, opfsRoot);
-        await populateAppStateFromOPFS(opfsRoot);
+        await populateAppStateFromOPFS(opfsRoot, importStartTime);
         onComplete();
     }
 
