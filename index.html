@@ -147,28 +147,33 @@
       </div>
     
     <div class="file-display-controls margin-bottom">
-      <div class="flexgrow"></div>
 
-      <button title="show all tags"class="tag-taxonomy-btn" data-action="render-tag-taxonomy">show tags</button>
-      <div class="sort-controls">
-        sort:
-        <label for="sort-select">
-          <select id="sort-select" data-action="sort-select">
-          </select>
-        </label>
-
-          <label class="sort-direction-label" for="sort-direction">
-            <input type="checkbox" id="sort-direction" data-action="sort-direction-toggle">
+      <div class="file-display-controls-top">
+        <div class="view-controls">
+          view:
+          <label for="view-select">
+            <select id="view-select" data-action="view-select"></select>
           </label>
+        </div>
+        <div class="flexgrow"></div>
+        <button class="svg-wrapper-style" data-action="toggle-file-controls" title="controls"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><g stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor"/><line x1="3" y1="18" x2="21" y2="18"/><circle cx="9" cy="18" r="2" fill="currentColor"/></g></svg></button>
       </div>
 
-      <div class="view-controls">
-        view:
-        <label for="view-select">
-          <select id="view-select" data-action="view-select">
-          </select>
-        </label>
+      <div class="file-display-controls-panel" id="file-display-controls-panel">
+        <div class="file-display-controls-panel-inner">
+          <button title="show all tags" class="tag-taxonomy-btn" data-action="render-tag-taxonomy">show tags</button>
+          <div class="sort-controls">
+            sort:
+            <label for="sort-select">
+              <select id="sort-select" data-action="sort-select"></select>
+            </label>
+            <label class="sort-direction-label" for="sort-direction">
+              <input type="checkbox" id="sort-direction" data-action="sort-direction-toggle">
+            </label>
+          </div>
+        </div>
       </div>
+
     </div>
 
 
