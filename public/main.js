@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.classList.add('loading');
         appState.myFiles = [];
         renderFiles();
+        document.getElementById('fileCountElement').textContent = 'file: unpacking';
         const removeLoading = () => btn.classList.remove('loading');
         try {
             await importTarGzipToOPFS(() => {
