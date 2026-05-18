@@ -1,18 +1,18 @@
 @media print {
-  /* Hide all body children when a dialog has focus */
-  body:has(dialog:focus-within) > * {
+  /* Hide all body children when a dialog is open */
+  body:has(dialog[open]) > * {
     visibility: hidden;
   }
 
-  /* Reveal the focused dialog and all its descendants */
-  body:has(dialog:focus-within) :is(dialog:focus-within, dialog:focus-within *) {
+  /* Reveal the open dialog and all its descendants */
+  body:has(dialog[open]) :is(dialog[open], dialog[open] *) {
     visibility: visible;
   }
 
   /* Position the dialog to fill the print page.
      !important is required: #file-content-modal (ID selector) sets position: fixed and
      height: 100vh, which otherwise beats this element-selector rule. */
-  body:has(dialog:focus-within) dialog:focus-within {
+  body:has(dialog[open]) dialog[open] {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
@@ -29,7 +29,7 @@
      print page), clear overflow/height clamps, and remove transforms (e.g. the
      translateX(-50%) on #moving-file-content-container which shifts the panel off-page
      once position: fixed is removed). */
-  body:has(dialog:focus-within) dialog:focus-within * {
+  body:has(dialog[open]) dialog[open] * {
     position: static !important;
     overflow: visible !important;
     height: auto !important;
