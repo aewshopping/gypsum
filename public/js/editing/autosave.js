@@ -68,21 +68,22 @@ async function maybeAutosave() {
  */
 async function performAutosave(snapshot, textToSave) {
     const saveFilename = buildSaveFilename(snapshot.filepath, snapshot.filename);
+    const autosaveFilename = saveFilename.replace(/-save\.gypsum$/, '-autosave.gypsum');
     const tempFilename = saveFilename.replace(/-save\.gypsum$/, '-temp.gypsum');
 
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
 
-        const saveOk = await writeAndVerify(gypsumDir, saveFilename, textToSave);
+        const saveOk = await writeAndVerify(gypsumDir, autosaveFilename, textToSave);
         if (!saveOk) return;
 
-        // Read the on-disk save file and copy its content to the temp file.
-        // This follows the save file's verified bytes rather than in-memory content.
-        const saveContent = await (await (await gypsumDir.getFileHandle(saveFilename)).getFile()).text();
+        // Read the on-disk autosave file and copy its content to the temp file.
+        // This follows the autosave file's verified bytes rather than in-memory content.
+        const saveContent = await (await (await gypsumDir.getFileHandle(autosaveFilename)).getFile()).text();
         const tempOk = await writeAndVerify(gypsumDir, tempFilename, saveContent);
         if (!tempOk) return;
 
-        await gypsumDir.removeEntry(saveFilename);
+        await gypsumDir.removeEntry(autosaveFilename);
 
         lastAutosaveContent = textToSave;
         lastAutosaveTime = Date.now();

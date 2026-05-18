@@ -127,9 +127,12 @@ export async function migrateBackupsForRename({ oldFilename, oldFilepath, newFil
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER);
         const oldSave = buildSaveFilename(oldFilepath, oldFilename);
         const newSave = buildSaveFilename(newFilepath, newFilename);
+        const oldAutosave = oldSave.replace(/-save\.gypsum$/, '-autosave.gypsum');
+        const newAutosave = newSave.replace(/-save\.gypsum$/, '-autosave.gypsum');
         const oldTemp = oldSave.replace(/-save\.gypsum$/, '-temp.gypsum');
         const newTemp = newSave.replace(/-save\.gypsum$/, '-temp.gypsum');
         await moveTransientIfExists(gypsumDir, oldSave, newSave);
+        await moveTransientIfExists(gypsumDir, oldAutosave, newAutosave);
         await moveTransientIfExists(gypsumDir, oldTemp, newTemp);
     } catch (err) {
         if (err?.name !== 'NotFoundError') {
