@@ -26,7 +26,8 @@
     border-radius:4px;
     height: var(--btn-size);
     width: 100%;
-    padding-inline: 6px;
+    padding-left: 6px;
+    padding-right: calc( var(--btn-size) * 1.2);
 
     &::placeholder {
         color: color-mix(in srgb, var(--colour-contr) 60%, transparent);
