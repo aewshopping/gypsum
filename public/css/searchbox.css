@@ -34,15 +34,30 @@
 
 
 .searchbox-tag-btn {
-    font-size:0.9em;
-    cursor:pointer;
-    color: var(--colour-contr);
+    /* 1. Define the button as the container for size queries */
+    container-type: size;
+    
+    /* 2. Your existing positioning rules (defines the button height dynamically) */
     position: absolute;
     top: 3px;
     bottom: 3px;
-    right:6px;
+    right: 6px;
+    
+    /* 3. Layout fixes to center the '#' character perfectly */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding-block: 0px;
     padding-inline: 5px;
+    /* Adjust if the character hits the left/right edges */
+    
+    /* 4. Dynamic font scaling based on the button's calculated height */
+    font-size: 75cqh;
+    line-height: 1;
+    
+    /* 5. Your remaining styling properties */
+    cursor: pointer;
+    color: var(--colour-contr);
     border-radius: 4px;
     background-color: var(--colour-neutral);
     border: 1.5px solid transparent;
