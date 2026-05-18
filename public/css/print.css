@@ -6,7 +6,7 @@
   }
 
   /* Hide UI controls that should not appear in print */
-  body:has(dialog[open]) :is(input, button, label, .content-editable-controls) {
+  body:has(dialog[open]) :is(input, button, label, .content-editable-controls, #file-content-header) {
     display: none;
   }
 
