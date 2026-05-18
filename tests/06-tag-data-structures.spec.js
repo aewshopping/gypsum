@@ -73,7 +73,8 @@ test('tag filter still works correctly after TagMap change', async ({ page }) =>
   await page.click('[data-click-loadfolder]');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
-  // Show the taxonomy, then open 'work' to reveal 'project'
+  // Open the controls panel, show the taxonomy, then open 'work' to reveal 'project'
+  await page.click('[data-action="toggle-file-controls"]');
   await page.click('[data-action="render-tag-taxonomy"]');
   await page.click('details.taxon summary:has(code:text("work"))');
   await page.click('[data-action="tag-filter"][data-tag="project"]');
