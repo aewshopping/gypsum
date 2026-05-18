@@ -6,18 +6,7 @@
 
 
 .filters-options-style {
-	cursor:pointer;
-	font: 1em var(--fs-app);
-	color: var(--colour-contr);
-	background-color:var(--colour-neutral);
 	border: 2px solid var(--colour-highlight) !important;
-	border-radius: 6px;	
-
-	&:hover {
-		color: var(--colour-compl-emph-contr);
-		background-color: var(--colour-compl-emph-light);
-		border: 2px solid var(--colour-contr-warning);
-	}	
 }
 
 
@@ -26,6 +15,9 @@
 #clear-filters-btn {
 	right:10px;
 	position:absolute;
+	&:hover {
+		border: 2px solid var(--colour-contr-warning) !important;
+	}
 }
 
 

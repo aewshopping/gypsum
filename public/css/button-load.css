@@ -1,6 +1,7 @@
 #btn_loadDirectoryHandles {
     display:flex;
     align-items:center;
+    cursor: pointer;
     gap:4px;
     background-color: var(--colour-neutral-alt);
     color:var(--colour-contr);

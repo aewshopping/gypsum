@@ -1,6 +1,7 @@
 /* This is for consistent styling of svg buttons and labels etc */
 
 .svg-wrapper-style {
+    cursor: pointer;
     position:relative;
     display:inline-block;
     height: var(--btn-size);

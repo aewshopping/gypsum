@@ -1,5 +1,5 @@
 #filter-box{
-    border: 1px solid var(--colour-highlight);
+    border: 2px solid var(--colour-highlight);
     border-radius: 6px;
     padding: 16px 10px 10px 10px;
     position: relative;
@@ -11,7 +11,7 @@
     margin-bottom:40px;
 
     &:has(#clear-filters-btn:hover){
-        border: 1px solid var(--colour-contr-warning);
+        border: 2px solid var(--colour-contr-warning);
     }
  
     &:has(#filter-output:empty) {
