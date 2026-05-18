@@ -3,6 +3,7 @@
 }
 
 .searchbox-container {
+    container-type: size;
     position: relative;
     max-width: 600px;
     margin-inline: 10px;
@@ -34,9 +35,7 @@
 
 
 .searchbox-tag-btn {
-    /* 1. Define the button as the container for size queries */
-    container-type: size;
-    
+    /* 1. Define the parent of the button as the container for size queries */
     /* 2. Your existing positioning rules (defines the button height dynamically) */
     position: absolute;
     top: 3px;
