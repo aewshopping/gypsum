@@ -36,6 +36,7 @@
     height: auto !important;
     max-height: none !important;
     transform: none !important;
+    color: black !important;
   }
 
   /* pre has white-space: pre by default which breaks at screen column positions.
