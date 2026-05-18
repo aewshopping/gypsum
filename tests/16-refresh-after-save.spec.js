@@ -181,6 +181,7 @@ test.describe('tag taxonomy re-renders after manual save', () => {
   test('new tag appears in the taxonomy sidebar after save', async ({ page }) => {
     await setupWithContent(page, '# My Notes\nContent');
     await page.goto('/');
+    await page.click('[data-action="toggle-file-controls"]');
     await page.click('[data-action="render-tag-taxonomy"]');
     await openModal(page);
     await switchToTxt(page);
@@ -204,6 +205,7 @@ test.describe('active search filters are re-run after manual save', () => {
     // Load files, show taxonomy, and apply a filter for the tag
     await page.click('[data-click-loadfolder]');
     await expect(page.locator('.note-grid')).toHaveCount(1);
+    await page.click('[data-action="toggle-file-controls"]');
     await page.click('[data-action="render-tag-taxonomy"]');
     await page.click('details.taxon summary:has(code:text("orphan"))');
     await page.click('[data-action="tag-filter"][data-tag="searchtag"]');
