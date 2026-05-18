@@ -6,6 +6,7 @@ import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { updateMyFilesProperties } from '../services/file-props.js';
+import { PROGRESS_STEP_SIZE } from '../constants.js';
 
 /**
  * Returns true if OPFS already contains any .txt/.md files or non-hidden subdirectories.
@@ -37,10 +38,10 @@ async function clearOPFS(opfsRoot) {
  * @param {FileSystemDirectoryHandle} opfsRoot
  * @returns {Promise<void>}
  */
-async function writeFilesToOPFS(entries, opfsRoot) {
-    const total = entries.filter(e => e.type === 'file').length;
+async function writeFilesToOPFS(entries, opfsRoot, n, total) {
     const fileCountEl = document.getElementById('fileCountElement');
     let count = 0;
+    let pct = 0;
     for (const entry of entries) {
         if (entry.type !== 'file') continue;
         const parts = entry.name.split('/');
@@ -53,7 +54,7 @@ async function writeFilesToOPFS(entries, opfsRoot) {
         const writable = await fileHandle.createWritable();
         await writable.write(entry.text);
         await writable.close();
-        fileCountEl.textContent = `files: unpacking ${++count} of ${total}`;
+        if (++count % n === 0) fileCountEl.textContent = `unpacking: ${pct += PROGRESS_STEP_SIZE}% of ${total}`;
     }
 }
 
@@ -63,7 +64,7 @@ async function writeFilesToOPFS(entries, opfsRoot) {
  * @param {number|null} outerStartTime - performance.now() timestamp from before unpacking, if available.
  * @returns {Promise<void>}
  */
-async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null) {
+async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
     appState.dirHandle = opfsRoot;
@@ -72,12 +73,15 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null) {
     const startTime = performance.now();
 
     const fileEntries = await getFilesRecursive(opfsRoot);
+    const total = fileEntries.length;
+    const updateN = n ?? Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
     const fileCountEl = document.getElementById('fileCountElement');
     const filesWithMetadata = [];
-    for (let i = 0; i < fileEntries.length; i++) {
+    let pct = 0;
+    for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
         const fileObj = await getFileDataAndMetadata(handle, i);
-        fileCountEl.textContent = `files: ${i + 1} of ${fileEntries.length}`;
+        if (i % updateN === 0) fileCountEl.textContent = `files: ${pct += PROGRESS_STEP_SIZE}% of ${total}`;
         filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
     }
 
@@ -113,8 +117,10 @@ export async function importTarGzipToOPFS(onComplete) {
     const opfsRoot = await navigator.storage.getDirectory();
 
     async function proceed() {
-        await writeFilesToOPFS(entries, opfsRoot);
-        await populateAppStateFromOPFS(opfsRoot, importStartTime);
+        const total = entries.filter(e => e.type === 'file').length;
+        const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
+        await writeFilesToOPFS(entries, opfsRoot, n, total);
+        await populateAppStateFromOPFS(opfsRoot, importStartTime, n);
         onComplete();
     }
 

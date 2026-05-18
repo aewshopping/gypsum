@@ -3,6 +3,7 @@ import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { updateMyFilesProperties } from './file-props.js';
+import { PROGRESS_STEP_SIZE } from '../constants.js';
 
 /**
  * Recursively collects all .txt and .md file handles from a directory and its subdirectories.
@@ -51,10 +52,13 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     const fileCountEl = document.getElementById('fileCountElement');
     const filesWithMetadata = [];
-    for (let i = 0; i < fileEntries.length; i++) {
+    const total = fileEntries.length;
+    const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
+    let pct = 0;
+    for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
         const fileObj = await getFileDataAndMetadata(handle, i);
-        fileCountEl.textContent = `files: ${i + 1} of ${fileEntries.length}`;
+        if (i % n === 0) fileCountEl.textContent = `files: ${pct += PROGRESS_STEP_SIZE}% of ${total}`;
         filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
     }
 
