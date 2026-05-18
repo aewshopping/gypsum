@@ -1,0 +1,27 @@
+@media print {
+  /* If a dialog has focus, hide all other page elements */
+  body:has(dialog:focus-within) > * {
+    visibility: hidden;
+  }
+
+  /* Force the focused dialog and all its children to be visible */
+  body:has(dialog:focus-within) :is(dialog:focus-within, dialog:focus-within *) {
+    visibility: visible;
+  }
+
+  /* Format the focused dialog to occupy the full print page */
+  body:has(dialog:focus-within) dialog:focus-within {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  /* Hide the native browser backdrop layer */
+  dialog::backdrop {
+    display: none;
+  }
+}
