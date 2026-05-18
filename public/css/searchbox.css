@@ -4,6 +4,7 @@
 
 .searchbox-container {
     container-type: size;
+    height: var(--btn-size);
     position: relative;
     max-width: 600px;
     margin-inline: 10px;
