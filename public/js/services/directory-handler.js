@@ -54,11 +54,12 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const filesWithMetadata = [];
     const total = fileEntries.length;
     const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
+    const increment = n * 100 / total;
     let pct = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
         const fileObj = await getFileDataAndMetadata(handle, i);
-        if (i % n === 0) fileCountEl.textContent = `files: ${pct += PROGRESS_STEP_SIZE}% of ${total}`;
+        if (i % n === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
     }
 

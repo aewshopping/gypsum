@@ -40,6 +40,7 @@ async function clearOPFS(opfsRoot) {
  */
 async function writeFilesToOPFS(entries, opfsRoot, n, total) {
     const fileCountEl = document.getElementById('fileCountElement');
+    const increment = n * 100 / total;
     let count = 0;
     let pct = 0;
     for (const entry of entries) {
@@ -54,7 +55,7 @@ async function writeFilesToOPFS(entries, opfsRoot, n, total) {
         const writable = await fileHandle.createWritable();
         await writable.write(entry.text);
         await writable.close();
-        if (++count % n === 0) fileCountEl.textContent = `unpacking: ${pct += PROGRESS_STEP_SIZE}% of ${total}`;
+        if (++count % n === 0) fileCountEl.textContent = `unpacking: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
     }
 }
 
@@ -75,13 +76,14 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const fileEntries = await getFilesRecursive(opfsRoot);
     const total = fileEntries.length;
     const updateN = n ?? Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
+    const increment = updateN * 100 / total;
     const fileCountEl = document.getElementById('fileCountElement');
     const filesWithMetadata = [];
     let pct = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
         const fileObj = await getFileDataAndMetadata(handle, i);
-        if (i % updateN === 0) fileCountEl.textContent = `files: ${pct += PROGRESS_STEP_SIZE}% of ${total}`;
+        if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
     }
 
