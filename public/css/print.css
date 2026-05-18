@@ -1,0 +1,52 @@
+@media print {
+  /* Remove non-dialog elements from layout entirely — visibility: hidden preserves
+     dimensions and creates blank pages; display: none collapses them. */
+  body:has(dialog[open]) > *:not(dialog[open]) {
+    display: none !important;
+  }
+
+  /* Hide UI controls that should not appear in print */
+  body:has(dialog[open]) :is(input, button, label, .content-editable-controls, #file-content-header) {
+    display: none;
+  }
+
+  /* Reset the dialog to in-flow layout so the body height matches content height.
+     !important is required: #file-content-modal (ID selector) sets position: fixed
+     and height: 100vh, which otherwise beats this element-selector rule. */
+  body:has(dialog[open]) dialog[open] {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+
+  /* Reset all inner elements: undo fixed positioning (fixed elements repeat on every
+     print page), clear overflow/height clamps, and remove transforms (e.g. the
+     translateX(-50%) on #moving-file-content-container which shifts the panel off-page
+     once position: fixed is removed). */
+  body:has(dialog[open]) dialog[open] * {
+    position: static !important;
+    overflow: visible !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    transform: none !important;
+    color: black !important;
+  }
+
+  /* pre has white-space: pre by default which breaks at screen column positions.
+     pre-wrap keeps intentional line breaks but also wraps at the print page width. */
+  body:has(dialog[open]) dialog[open] pre {
+    white-space: pre-wrap;
+  }
+
+  /* Hide the native backdrop */
+  dialog::backdrop {
+    display: none;
+  }
+}
