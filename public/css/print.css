@@ -31,6 +31,8 @@
   body:has(dialog[open]) dialog[open] * {
     position: static !important;
     overflow: visible !important;
+    width: auto !important;
+    max-width: none !important;
     height: auto !important;
     max-height: none !important;
     transform: none !important;
