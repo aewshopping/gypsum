@@ -1,26 +1,43 @@
 @media print {
-  /* If a dialog has focus, hide all other page elements */
+  /* Hide all body children when a dialog has focus */
   body:has(dialog:focus-within) > * {
     visibility: hidden;
   }
 
-  /* Force the focused dialog and all its children to be visible */
+  /* Reveal the focused dialog and all its descendants */
   body:has(dialog:focus-within) :is(dialog:focus-within, dialog:focus-within *) {
     visibility: visible;
   }
 
-  /* Format the focused dialog to occupy the full print page */
+  /* Position the dialog to fill the print page.
+     !important is required: #file-content-modal (ID selector) sets position: fixed and
+     height: 100vh, which otherwise beats this element-selector rule. */
   body:has(dialog:focus-within) dialog:focus-within {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    border: none;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
   }
 
-  /* Hide the native browser backdrop layer */
+  /* Reset all inner elements: undo fixed positioning (fixed elements repeat on every
+     print page), clear overflow/height clamps, and remove transforms (e.g. the
+     translateX(-50%) on #moving-file-content-container which shifts the panel off-page
+     once position: fixed is removed). */
+  body:has(dialog:focus-within) dialog:focus-within * {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    transform: none !important;
+  }
+
+  /* Hide the native backdrop */
   dialog::backdrop {
     display: none;
   }
