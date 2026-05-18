@@ -1,21 +1,20 @@
 @media print {
-  /* Hide all body children when a dialog is open */
-  body:has(dialog[open]) > * {
-    visibility: hidden;
+  /* Remove non-dialog elements from layout entirely — visibility: hidden preserves
+     dimensions and creates blank pages; display: none collapses them. */
+  body:has(dialog[open]) > *:not(dialog[open]) {
+    display: none !important;
   }
 
-  /* Reveal the open dialog and all its descendants */
-  body:has(dialog[open]) :is(dialog[open], dialog[open] *) {
-    visibility: visible;
+  /* Hide UI controls that should not appear in print */
+  body:has(dialog[open]) :is(input, button, label, .content-editable-controls) {
+    display: none;
   }
 
-  /* Position the dialog to fill the print page.
-     !important is required: #file-content-modal (ID selector) sets position: fixed and
-     height: 100vh, which otherwise beats this element-selector rule. */
+  /* Reset the dialog to in-flow layout so the body height matches content height.
+     !important is required: #file-content-modal (ID selector) sets position: fixed
+     and height: 100vh, which otherwise beats this element-selector rule. */
   body:has(dialog[open]) dialog[open] {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
     width: 100% !important;
     height: auto !important;
     max-height: none !important;
@@ -35,6 +34,12 @@
     height: auto !important;
     max-height: none !important;
     transform: none !important;
+  }
+
+  /* pre has white-space: pre by default which breaks at screen column positions.
+     pre-wrap keeps intentional line breaks but also wraps at the print page width. */
+  body:has(dialog[open]) dialog[open] pre {
+    white-space: pre-wrap;
   }
 
   /* Hide the native backdrop */
