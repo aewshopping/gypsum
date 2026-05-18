@@ -1,21 +1,49 @@
+/* most of the complex css here is to animate the filter box open and closed which is a bit tricky with absolute positioning on child elements and from display none */
+
+.label_group_filter_toggle *, #search-highlights-toggle-label, #clear-filters-btn {
+    transition: height 0.5s ease, display 0.5s allow-discrete, padding 0.5s ease;
+
+    @starting-style {
+        height: 0;
+        padding-block:0;
+    }
+}
+
+#filter-box:has(#filter-output:empty) {
+
+    &, & :is(.label_group_filter_toggle, #search-highlights-toggle-label, #clear-filters-btn) {
+
+    display: none;
+    height: 0;
+    margin-block:0;
+    overflow: hidden;
+    padding-block:0;
+    transition: height 0.5s ease, display 0.5s allow-discrete, padding-block 0.5s ease, margin-block 0.5s ease;
+    }
+}
+
 #filter-box{
+    height: auto;
     border: 2px solid var(--colour-highlight);
     border-radius: 6px;
-    padding: 16px 10px 10px 10px;
+    padding-block: 16px 10px;
+    padding-inline: 10px;
     position: relative;
     max-width: 600px;
-    /* min-height: 46px; not needed if not visible with no filters */
-    height:fit-content;
     margin-block:20px;
     margin-inline: auto;
     margin-bottom:40px;
+    transition: height 0.5s ease, display 0.5s allow-discrete, padding-block 0.5s ease, margin-block 0.5s ease;
+
+    @starting-style {
+        height: 0;
+        padding-block:0;
+        margin-block:0;
+    }
+
 
     &:has(#clear-filters-btn:hover){
         border: 2px solid var(--colour-contr-warning);
-    }
- 
-    &:has(#filter-output:empty) {
-        display: none;
     }
 
 }
