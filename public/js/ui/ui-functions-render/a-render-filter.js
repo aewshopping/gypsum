@@ -31,7 +31,6 @@ function insertAndAnimate(el, html) {
     // before and after the DOM mutation and drive the transition in JS.
     const before = el.offsetHeight;
     el.style.transition = '';
-    el.style.height = before + 'px';
 
     function animateTo(target, done) {
         // Guard: if height is unchanged (e.g. match-count update with same pill layout),
@@ -59,6 +58,7 @@ function insertAndAnimate(el, html) {
         // Animate to 0 before mutating: if we mutated first, the parent CSS
         // display:none (triggered by #filter-output:empty) would hide the element
         // before the animation could play.
+        el.style.height = before + 'px';
         animateTo(0, () => { el.innerHTML = ''; });
     } else {
         el.innerHTML = html;
