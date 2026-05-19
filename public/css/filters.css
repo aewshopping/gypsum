@@ -46,6 +46,7 @@
     align-items: flex-start;
     gap: 6px;
     padding:16px 10px 8px 10px;
+    min-height: calc(var(--btn-size) + 16px + 8px);
     overflow: hidden;
 }
 
