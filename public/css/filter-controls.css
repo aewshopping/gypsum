@@ -26,12 +26,31 @@
 	position:absolute;
 }
 
-#search-highlights-toggle-label svg g {
-	color:color-mix(in srgb,  var(--colour-contr) 70%, transparent 30%);
-	fill: var(--colour-highlight);
+/* Define the default (checked) state variables */
+#search-highlights-toggle-label {
+  --nib-color: color-mix(in srgb, var(--colour-contr) 100%, transparent 0%);
+  --nib-fill: var(--colour-highlight);
+  --line-color: var(--colour-highlight);
+  --g-color: color-mix(in srgb, var(--colour-contr) 100%, transparent 0%);
+
+  & g {
+    color: var(--g-color);
+  }
+
+  & #highlight-nib {
+    color: var(--nib-color);
+    fill: var(--nib-fill);
+  }
+
+  & #highlight-line {
+    color: var(--line-color);
+  }
 }
 
-body:has(#toggle-search-highlights:not(:checked)) #search-highlights-toggle-label svg g {
-	color:color-mix(in srgb,  var(--colour-contr) 30%, transparent 70%);
-	fill:none;
+/* Update only the variable values for the Unchecked state */
+body:has(#toggle-search-highlights:not(:checked)) #search-highlights-toggle-label {
+  --g-color: color-mix(in srgb, var(--colour-contr) 30%, transparent 70%);
+  --nib-color: transparent;
+  --nib-fill: transparent;
+  --line-color: transparent;
 }
