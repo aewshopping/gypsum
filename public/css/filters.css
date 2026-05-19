@@ -16,14 +16,8 @@
 }
 
 
-#filter-box:has(#filter-output:empty) {
-    display:none;
-    transition: display 0.5s allow-discrete;
-    transition-delay: 0.5s;
-}
-
-
 #filter-box{
+    display: none;
     height: auto;
     border: 2px solid var(--colour-highlight);
     border-radius: 6px;
@@ -32,7 +26,11 @@
     margin-block:20px;
     margin-inline: auto;
     margin-bottom:40px;
-    transition: height 0.5s ease;
+    transition: display 0.5s allow-discrete, height 0.5s ease;
+
+    &:has(:not(#filter-output:empty)) {
+        display: block;
+    }
 
     &:has(#clear-filters-btn:hover){
         border: 2px solid var(--colour-contr-warning);
