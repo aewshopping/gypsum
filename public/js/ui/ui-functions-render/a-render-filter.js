@@ -62,7 +62,14 @@ function insertAndAnimate(el, html) {
         animateTo(0, () => { el.innerHTML = ''; });
     } else {
         el.innerHTML = html;
-        animateTo(el.scrollHeight);
+        // Temporarily release the height constraint so scrollHeight returns the
+        // true natural content height. With an explicit height set, scrollHeight
+        // returns max(clientHeight, contentHeight), which equals clientHeight when
+        // content shrinks — making before === after and skipping the animation.
+        el.style.height = 'auto';
+        const after = el.scrollHeight;
+        el.style.height = before + 'px';
+        animateTo(after);
     }
 }
 
