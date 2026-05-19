@@ -33,29 +33,37 @@ function insertAndAnimate(el, html) {
     el.style.transition = '';
     el.style.height = before + 'px';
 
-    el.innerHTML = html;
-
-    const after = el.scrollHeight;
-
-    // Guard: if height is unchanged (e.g. match-count update with same pill layout),
-    // reset immediately — otherwise the explicit px height would prevent correct
-    // re-layout on viewport resize.
-    if (before === after) {
-        el.style.height = 'auto';
-        return;
+    function animateTo(target, done) {
+        // Guard: if height is unchanged (e.g. match-count update with same pill layout),
+        // reset immediately — otherwise the explicit px height would prevent correct
+        // re-layout on viewport resize.
+        if (before === target) {
+            el.style.height = 'auto';
+            done?.();
+            return;
+        }
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                el.style.transition = 'height 0.3s ease';
+                el.style.height = target + 'px';
+            });
+        });
+        el.addEventListener('transitionend', () => {
+            el.style.height = 'auto';
+            el.style.transition = '';
+            done?.();
+        }, { once: true });
     }
 
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            el.style.transition = 'height 0.3s ease';
-            el.style.height = after + 'px';
-        });
-    });
-
-    el.addEventListener('transitionend', () => {
-        el.style.height = 'auto';
-        el.style.transition = '';
-    }, { once: true });
+    if (html === '') {
+        // Animate to 0 before mutating: if we mutated first, the parent CSS
+        // display:none (triggered by #filter-output:empty) would hide the element
+        // before the animation could play.
+        animateTo(0, () => { el.innerHTML = ''; });
+    } else {
+        el.innerHTML = html;
+        animateTo(el.scrollHeight);
+    }
 }
 
 /**
