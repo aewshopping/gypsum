@@ -43,6 +43,8 @@ async function writeFilesToOPFS(entries, opfsRoot, n, total) {
     const increment = n * 100 / total;
     let count = 0;
     let pct = 0;
+    fileCountEl.textContent = `unpacking: ${total}`;
+    fileCountEl.style.setProperty('--load-pct', 0);
     for (const entry of entries) {
         if (entry.type !== 'file') continue;
         const parts = entry.name.split('/');
@@ -55,7 +57,8 @@ async function writeFilesToOPFS(entries, opfsRoot, n, total) {
         const writable = await fileHandle.createWritable();
         await writable.write(entry.text);
         await writable.close();
-        if (++count % n === 0) fileCountEl.textContent = `unpacking: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
+        if (++count % n === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
+        // if (++count % n === 0) fileCountEl.textContent = `unpacking: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
     }
 }
 
@@ -80,10 +83,13 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const fileCountEl = document.getElementById('fileCountElement');
     const filesWithMetadata = [];
     let pct = 0;
+    fileCountEl.textContent = `files: ${total}`;
+    fileCountEl.style.setProperty('--load-pct', 0);
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
         const fileObj = await getFileDataAndMetadata(handle, i);
-        if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
+        if (i % updateN === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
+        // if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
     }
 
