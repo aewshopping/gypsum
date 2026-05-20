@@ -57,6 +57,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const increment = n * 100 / total;
     let pct = 0;
     fileCountEl.classList.remove('load-complete');
+    fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
     for (let i = 0; i < total; i++) {
@@ -84,6 +85,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     const fileCount = appState.myFiles.length;
     console.log(`Saved metadata for ${fileCount} files.`);
+    fileCountEl.classList.remove('loading');
     fileCountEl.classList.add('load-complete');
     document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${durationSec}s | file system`;
 
