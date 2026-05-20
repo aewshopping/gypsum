@@ -74,7 +74,7 @@
 #fileCountElement.loading::before,
 #fileCountElement.loading::after {
     opacity: 1;
-    transition: opacity 0s;
+    transition: none;
 }
 
 #btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style #load-folder-arrow { opacity: 0; }
