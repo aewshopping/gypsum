@@ -53,7 +53,7 @@
     /* Adjust if the character hits the left/right edges */
     
     /* 4. Dynamic font scaling based on the button's calculated height */
-    font-size: 75cqh;
+    font-size:65cqh;
     line-height: 1;
     
     /* 5. Your remaining styling properties */
