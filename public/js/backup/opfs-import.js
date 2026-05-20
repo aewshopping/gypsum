@@ -43,7 +43,6 @@ async function writeFilesToOPFS(entries, opfsRoot, n, total) {
     const increment = n * 100 / total;
     let count = 0;
     let pct = 0;
-    fileCountEl.classList.remove('load-complete');
     fileCountEl.classList.add('loading');
     fileCountEl.textContent = `unpacking: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
@@ -85,7 +84,6 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const fileCountEl = document.getElementById('fileCountElement');
     const filesWithMetadata = [];
     let pct = 0;
-    fileCountEl.classList.remove('load-complete');
     fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
@@ -111,7 +109,6 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
     fileCountEl.classList.remove('loading');
-    fileCountEl.classList.add('load-complete');
     document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${displayDuration}s | opfs`;
 }
 
