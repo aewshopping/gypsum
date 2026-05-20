@@ -40,34 +40,43 @@
     color: var(--colour-contr);
     font-family: var(--fs-app);
     white-space: nowrap;
-    overflow: hidden;
+    /* overflow: hidden; */
     text-overflow: ellipsis;
     min-width: 0;
     padding-left:6px;
     padding-block: 2px;
 }
 
+/* marks the load complete point for loader */
+#fileCountElement::after {
+    content: '|100%';
+    position: absolute;
+    left: 50dvw;
+}
+/* the loading progress bar */
 #fileCountElement::before {
     content: '';
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 150px;
+    width: 50dvw;
     height: 100%;
     background: color-mix(in srgb, var(--colour-contr-emph) 30%, transparent 70%);
     transform-origin: left center;
     transform: scaleX(calc(var(--load-pct) / 100));
-    transition: transform 0.1s;
-    /* will-change: transform; */
+    transition: transform 0.1s ease;
 }
 
+/* load-complete class added through css, which triggers loader bar fade out */
 @keyframes bar-fade-out {
     from { opacity: 1; }
     to   { opacity: 0; }
 }
-
-#fileCountElement.load-complete::before {
-    animation: bar-fade-out 0.5s ease 0.3s forwards;
+#fileCountElement.load-complete {
+    &::before,
+    &::after {
+        animation: bar-fade-out 0.5s ease 0.3s forwards;
+    }
 }
 
 #btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style #load-folder-arrow { opacity: 0; }
