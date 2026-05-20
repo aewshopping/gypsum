@@ -41,17 +41,22 @@
 }
 
 #filter-output {
+    --pad-top: calc(var(--btn-size) / 2 + 6px);
+    --pad-bot: 8px;
     display:flex;
     flex-wrap: wrap;
     align-items: flex-start;
     align-content: flex-start;
     gap: 6px;
-    padding:16px 10px 8px 10px;
-    min-height: calc(var(--btn-size) + 16px + 8px);
+    padding-inline: 10px;
+    padding-top: var(--pad-top);
+    padding-bottom: var(--pad-bot);
+    min-height: calc(var(--pad-top) + 24px + var(--pad-bot)); /* careful with 24px see .filter-pill height!*/
     overflow: hidden;
 }
 
 .filter-pill {
+    height: 24px; /* careful here just setting to align with #filter-output min-height, will break if font size changes!*/
     font: 1em var(--fs-app);
     border: 2px solid transparent;
 
@@ -61,7 +66,16 @@
         padding:0px;
         margin:0px;
     }
+    
+    &:has(.btn-delete-filter:hover) {
+        border: 2px solid var(--colour-contr-warning);
+    }
 }
+
+#filter-box:has(#clear-filters-btn:hover) .filter-pill {
+        border: 2px solid var(--colour-contr-warning);
+}
+
 
 .filter-pill[data-negate="true"] {
     box-shadow:
