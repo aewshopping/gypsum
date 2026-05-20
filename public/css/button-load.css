@@ -48,13 +48,21 @@
 }
 
 /* marks the load complete point for loader */
-#fileCountElement::after {
-    content: '|100%';
-    position: absolute;
-    left: 50dvw;
-    opacity: 0;
-    transition: opacity 0.5s ease 0.3s;
+#fileCountElement::after { /* TO ADD */
+  position:absolute;
+  content: "100%";
+  text-align:right;
+  padding-right:4px;
+  border-right:1.5px solid var(--colour-contr);
+  position: absolute;
+  width: 50dvw;
+  left:0;
+  height:100%;
+  bottom:0;
+  opacity: 0;
+  transition: opacity 0.5s ease 0.5s;
 }
+
 /* the loading progress bar */
 #fileCountElement::before {
     content: '';
