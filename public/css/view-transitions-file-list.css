@@ -1,0 +1,8 @@
+/* Suppress the default full-page crossfade so only the named per-card transitions animate.
+   Without this, the root snapshot (page with card-shaped holes) produces a distracting flash
+   behind the moving cards. The modal transition uses named elements for its own animations
+   and does not rely on the root crossfade, so this does not affect it. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+}

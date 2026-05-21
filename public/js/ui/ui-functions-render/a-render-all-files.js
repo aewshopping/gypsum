@@ -52,36 +52,48 @@ export function renderFiles(fullRender = true, keepPage = false) {
         visibleFiles.slice(start, start + PAGINATION_SIZE).map(f => f.id)
     );
 
-    // Remove stale pagination nav (required for the table fullRender=false path)
-    document.querySelector('.pagination')?.remove();
+    const doRender = () => {
+        // Remove stale pagination nav (required for the table fullRender=false path)
+        document.querySelector('.pagination')?.remove();
 
-    switch(appState.viewState) {
-        case VIEWS.CARDS.value:
-            renderFileList_grid(renderEverything);
-            break;
-        case VIEWS.TABLE.value:
-            renderFileList_table(renderEverything, fullRender);
-            break;
-        case VIEWS.LIST.value:
-            renderFileList_list(renderEverything);
-            break;
-        case VIEWS.PEEK.value:
-            renderFileList_peek(renderEverything);
-            break;
-        case VIEWS.SEARCH.value:
-            renderFileList_search(renderEverything);
-            break;
-        default:
-            renderFileList_grid(renderEverything);
-            break;
+        switch(appState.viewState) {
+            case VIEWS.CARDS.value:
+                renderFileList_grid(renderEverything);
+                break;
+            case VIEWS.TABLE.value:
+                renderFileList_table(renderEverything, fullRender);
+                break;
+            case VIEWS.LIST.value:
+                renderFileList_list(renderEverything);
+                break;
+            case VIEWS.PEEK.value:
+                renderFileList_peek(renderEverything);
+                break;
+            case VIEWS.SEARCH.value:
+                renderFileList_search(renderEverything);
+                break;
+            default:
+                renderFileList_grid(renderEverything);
+                break;
+        }
+
+        // Append pagination nav below the rendered content
+        const paginationHtml = renderPagination(visibleFiles.length);
+        if (paginationHtml) {
+            document.getElementById('output').insertAdjacentHTML('beforeend', paginationHtml);
+        }
+
+        applyHighlights(); // need to apply again because we have a complete refresh of output html
+    };
+
+    // Skip the transition if the file-content modal is open — renderFiles() can be called
+    // from inside handleOpenFileContent's startViewTransition callback (create-new-note flow),
+    // and nesting startViewTransition calls aborts the outer transition.
+    const modalOpen = document.getElementById('file-content-modal')?.open;
+    if (document.startViewTransition && !modalOpen) {
+        document.startViewTransition(doRender);
+    } else {
+        doRender();
     }
-
-    // Append pagination nav below the rendered content
-    const paginationHtml = renderPagination(visibleFiles.length);
-    if (paginationHtml) {
-        document.getElementById('output').insertAdjacentHTML('beforeend', paginationHtml);
-    }
-
-    applyHighlights(); // need to apply again because we have a complete refresh of output html
 
 }

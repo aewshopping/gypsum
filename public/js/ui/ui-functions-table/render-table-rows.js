@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { renderFilenamePlusOpenBtn } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
+import { fileTransitionName } from '../ui-functions-render/file-transition-name.js';
 
 /**
  * Renders the rows for the table view.
@@ -55,7 +56,7 @@ export function renderTableRows(current_props, renderEverything) {
             // this is the "wrapper" div that contains the table row elements rendered above
             const tagList = file.tags instanceof Map ? [...file.tags.keys()].join(" ") : "";
             rowsHtml += `
-                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" tabindex="0">
+                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" tabindex="0" style="view-transition-name: ${fileTransitionName(file.id)}">
                     ${cellsHtml}
                 </div>
             `;
