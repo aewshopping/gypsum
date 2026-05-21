@@ -4,14 +4,14 @@
     height:auto;
     overflow:hidden;
     /* border:2px solid greenyellow; */
-    transition: height 0.5s ease;
+    transition: height 0.5s ease 0.7s; /* delay transition on the way in to give view transitions on cards time to finish */
 }
 
 #filter-box-container:has(#filter-output:empty) {
     height:0px;
     overflow:hidden;
     /* border:2px solid red; */
-    transition: height 0.5s ease 0.5s; /* delay transition on the way out, also need to try to figure out how to transition height when child elements added */
+    transition: height 0.5s ease 0.6s; /* delay transition on the way out to give time for filter-pills to leave */
 
 }
 

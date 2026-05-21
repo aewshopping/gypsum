@@ -1,0 +1,13 @@
+/* Suppress the full-page crossfade only during file-list re-renders, not during other
+   transitions (e.g. the modal open/close). The class is added before startViewTransition
+   and removed in the finished callback in a-render-all-files.js. */
+html.file-list-transitioning::view-transition-old(root),
+html.file-list-transitioning::view-transition-new(root) {
+    animation: none;
+}
+
+/* Control the position/size animation for all named card groups during a re-render. */
+html.file-list-transitioning::view-transition-group(*) {
+    animation-duration: 350ms;
+    animation-timing-function: ease-out;
+}

@@ -32,7 +32,7 @@ export function renderFileList_list(renderEverything) {
             }
 
             file_html += `
-                <li>
+                <li data-vt-id="${file.id}">
                     <details>
                         <summary><span data-prop="filename">${filename_html}</span> ${tag_pills_html}</summary>
                         <ul>

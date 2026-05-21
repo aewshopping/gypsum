@@ -55,7 +55,7 @@ export function renderTableRows(current_props, renderEverything) {
             // this is the "wrapper" div that contains the table row elements rendered above
             const tagList = file.tags instanceof Map ? [...file.tags.keys()].join(" ") : "";
             rowsHtml += `
-                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" tabindex="0">
+                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" tabindex="0" data-vt-id="${file.id}">
                     ${cellsHtml}
                 </div>
             `;

@@ -10,6 +10,7 @@ import { VIEWS } from "../../constants.js";
 import { PAGINATION_SIZE } from "../../constants.js";
 import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 import { renderPagination } from "../pagination/render-pagination.js";
+import { fileTransitionName } from "./file-transition-name.js";
 
 /**
  * Orchestrates the rendering of files based on the current view state and active filters.
@@ -52,36 +53,62 @@ export function renderFiles(fullRender = true, keepPage = false) {
         visibleFiles.slice(start, start + PAGINATION_SIZE).map(f => f.id)
     );
 
-    // Remove stale pagination nav (required for the table fullRender=false path)
-    document.querySelector('.pagination')?.remove();
+    const doRender = () => {
+        // Remove stale pagination nav (required for the table fullRender=false path)
+        document.querySelector('.pagination')?.remove();
 
-    switch(appState.viewState) {
-        case VIEWS.CARDS.value:
-            renderFileList_grid(renderEverything);
-            break;
-        case VIEWS.TABLE.value:
-            renderFileList_table(renderEverything, fullRender);
-            break;
-        case VIEWS.LIST.value:
-            renderFileList_list(renderEverything);
-            break;
-        case VIEWS.PEEK.value:
-            renderFileList_peek(renderEverything);
-            break;
-        case VIEWS.SEARCH.value:
-            renderFileList_search(renderEverything);
-            break;
-        default:
-            renderFileList_grid(renderEverything);
-            break;
+        switch(appState.viewState) {
+            case VIEWS.CARDS.value:
+                renderFileList_grid(renderEverything);
+                break;
+            case VIEWS.TABLE.value:
+                renderFileList_table(renderEverything, fullRender);
+                break;
+            case VIEWS.LIST.value:
+                renderFileList_list(renderEverything);
+                break;
+            case VIEWS.PEEK.value:
+                renderFileList_peek(renderEverything);
+                break;
+            case VIEWS.SEARCH.value:
+                renderFileList_search(renderEverything);
+                break;
+            default:
+                renderFileList_grid(renderEverything);
+                break;
+        }
+
+        // Append pagination nav below the rendered content
+        const paginationHtml = renderPagination(visibleFiles.length);
+        if (paginationHtml) {
+            document.getElementById('output').insertAdjacentHTML('beforeend', paginationHtml);
+        }
+
+        applyHighlights(); // need to apply again because we have a complete refresh of output html
+    };
+
+    // Card transitions only run when the modal is closed — the ::backdrop pseudo-element
+    // is not captured by the View Transitions API, so it disappears behind the overlay
+    // whenever a card transition fires while the modal is open.
+    const modalOpen = document.getElementById('file-content-modal')?.open;
+    if (document.startViewTransition && !modalOpen) {
+        const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
+            el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
+        );
+        nameCards(); // apply to current cards so the "before" capture sees them
+        document.documentElement.classList.add('file-list-transitioning');
+        const transition = document.startViewTransition(() => {
+            doRender();
+            nameCards(); // apply to new cards so the "after" capture sees them
+        });
+        transition.finished.finally(() => {
+            document.documentElement.classList.remove('file-list-transitioning');
+            document.querySelectorAll('#output [data-vt-id]').forEach(
+                el => el.style.removeProperty('view-transition-name')
+            );
+        });
+    } else {
+        doRender();
     }
-
-    // Append pagination nav below the rendered content
-    const paginationHtml = renderPagination(visibleFiles.length);
-    if (paginationHtml) {
-        document.getElementById('output').insertAdjacentHTML('beforeend', paginationHtml);
-    }
-
-    applyHighlights(); // need to apply again because we have a complete refresh of output html
 
 }

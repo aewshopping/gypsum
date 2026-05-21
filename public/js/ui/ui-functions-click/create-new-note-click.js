@@ -53,11 +53,12 @@ export async function handleCreateNewNote(event, target) {
     // handleOpenFileContent reads fileId from target.dataset.fileId synchronously,
     // so we set and remove the attribute around the call with no async gap.
     target.dataset.fileId = newFilename;
-    handleOpenFileContent(event, target, () => {
-        activateTextMode();
+    const vt = handleOpenFileContent(event, target, activateTextMode);
+    delete target.dataset.fileId;
+
+    vt?.finished.then(() => {
         const { property, direction } = appState.sortState;
         sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
         renderFiles();
     });
-    delete target.dataset.fileId;
 }
