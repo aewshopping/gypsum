@@ -7,6 +7,7 @@ import { handleKeyboardNavigate } from './keyboard-navigate.js';
 import { handleSaveFileCopy } from './save-file-copy.js';
 import { handleFileOptionsOpen } from './file-options-click.js';
 import { handleCreateNewNote } from './create-new-note-click.js';
+import { handleClearFilters } from './clear-filters.js';
 import { handleEditorColorPick } from './editor-color-pick.js';
 import { handleToggleRenderText } from './toggle-render-text.js';
 import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
@@ -35,30 +36,29 @@ export function handleKeyboardShortcuts(evt) {
         }
     }
 
-    if (evt.altKey && evt.key === 'n') {
+    const noModalAltActions = {
+        'n': () => handleCreateNewNote(evt, document.getElementById('btn-new-note')),
+        'x': () => handleClearFilters(),
+    };
+    if (evt.altKey && noModalAltActions[evt.key] && !document.querySelector('dialog[open]')) {
         evt.preventDefault();
-        if (!document.querySelector('dialog[open]')) {
-            handleCreateNewNote(evt, document.getElementById('btn-new-note'));
-        }
+        noModalAltActions[evt.key]();
     }
 
-    // open colour picker
-    if (evt.altKey && evt.key === 'c') {
+    const contentModalAltActions = {
+        'c': () => handleEditorColorPick(),
+        't': () => {
+            const el = document.getElementById('render_toggle');
+            el.checked = !el.checked;
+            handleToggleRenderText();
+            document.querySelector(el.checked ? '#modal-content .text-editor' : '#modal-content')?.focus();
+        },
+    };
+    if (evt.altKey && contentModalAltActions[evt.key]) {
         const modal = document.getElementById('file-content-modal');
         if (modal?.open) {
             evt.preventDefault();
-            handleEditorColorPick();
-        }
-    }
-
-    // switch between html and text modes (need to check the input box first), gives focus to text editor if txt mode, and modal-content for scrolling if html mode
-    if (evt.altKey && evt.key === 't') {
-         const modal = document.getElementById('file-content-modal');
-        if (modal?.open) {
-            evt.preventDefault();
-            const el = document.getElementById('render_toggle'); el.checked = !el.checked;
-            handleToggleRenderText();
-            document.querySelector(el.checked ? '#modal-content .text-editor' : '#modal-content')?.focus();
+            contentModalAltActions[evt.key]();
         }
     }
 
