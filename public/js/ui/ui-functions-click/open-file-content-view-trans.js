@@ -87,7 +87,7 @@ window.addEventListener('beforeunload', (evt) => {
  * @param {HTMLElement} target - The element that triggered the modal opening.
  * @param {Function|null} [postLoad=null] - Optional callback invoked inside the transition
  *   after the file content has loaded. Used by create-new-note-click to activate txt mode.
- * @returns {void}
+ * @returns {ViewTransition|undefined}
  */
 export function handleOpenFileContent(event, target, postLoad = null) {
 
@@ -96,7 +96,7 @@ export function handleOpenFileContent(event, target, postLoad = null) {
   target.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
-  document.startViewTransition(async function () {
+  return document.startViewTransition(async function () {
 
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in

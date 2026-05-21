@@ -87,11 +87,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
         applyHighlights(); // need to apply again because we have a complete refresh of output html
     };
 
-    // Skip the transition if the file-content modal is open — renderFiles() can be called
-    // from inside handleOpenFileContent's startViewTransition callback (create-new-note flow),
-    // and nesting startViewTransition calls aborts the outer transition.
-    const modalOpen = document.getElementById('file-content-modal')?.open;
-    if (document.startViewTransition && !modalOpen) {
+    if (document.startViewTransition) {
         const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
             el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
         );
