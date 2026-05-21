@@ -93,6 +93,7 @@ export function handleOpenFileContent(event, target, postLoad = null) {
 
   const file_to_open = target.dataset.fileId;
   openedFileId = file_to_open;
+  target.style.removeProperty('view-transition-name'); // inline style from file list render would override the class rule
   target.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
@@ -164,7 +165,10 @@ export function doClose() {
 
     dialog.classList.remove("dialog-view"); // backdrop fade out
     movingbox.classList.remove("moving-file-content-view");
-    if (file_box) file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
+    if (file_box) {
+      file_box.style.removeProperty('view-transition-name'); // same inline style override issue as on open
+      file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
+    }
     movingbox.classList.add("opacity-0"); // hide modal otherwise it stays onscreen during animation
 
   });
