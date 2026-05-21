@@ -25,7 +25,7 @@ export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 
 export const PAGINATION_SIZE = 50;
-export const PROGRESS_STEP_SIZE = 5; // update loading progress every N percentage points
+export const PROGRESS_STEP_SIZE = 1; // update loading progress every N percentage points
 
 export const COLOR_NAMES = [
      'LightCoral','palevioletred','salmon','maroon', 'red', 'orangered','coral','lightsalmon','peru','orange', 'NavajoWhite', 'gold', 'yellow','lightgreen','darkseagreen', 'mediumseagreen', 'seagreen','aquamarine','mediumaquamarine','mediumturquoise','darkcyan','cadetblue', 'silver','dodgerblue','cornflowerblue','royalblue','darkblue','thistle','plum','violet','orchid','hotpink'
