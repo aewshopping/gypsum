@@ -87,7 +87,11 @@ export function renderFiles(fullRender = true, keepPage = false) {
         applyHighlights(); // need to apply again because we have a complete refresh of output html
     };
 
-    if (document.startViewTransition) {
+    // Card transitions only run when the modal is closed — the ::backdrop pseudo-element
+    // is not captured by the View Transitions API, so it disappears behind the overlay
+    // whenever a card transition fires while the modal is open.
+    const modalOpen = document.getElementById('file-content-modal')?.open;
+    if (document.startViewTransition && !modalOpen) {
         const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
             el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
         );
