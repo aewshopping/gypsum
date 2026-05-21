@@ -7,7 +7,6 @@ import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
 import { PAGINATION_SIZE } from '../constants.js';
-import { fileTransitionName } from './ui-functions-render/file-transition-name.js';
 
 /**
  * Renders the list of files as an ordered list.
@@ -33,7 +32,7 @@ export function renderFileList_list(renderEverything) {
             }
 
             file_html += `
-                <li style="view-transition-name: ${fileTransitionName(file.id)}">
+                <li data-vt-id="${file.id}">
                     <details>
                         <summary><span data-prop="filename">${filename_html}</span> ${tag_pills_html}</summary>
                         <ul>

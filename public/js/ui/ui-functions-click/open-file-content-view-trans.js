@@ -93,11 +93,6 @@ export function handleOpenFileContent(event, target, postLoad = null) {
 
   const file_to_open = target.dataset.fileId;
   openedFileId = file_to_open;
-  // Strip every card's vt-* name before this transition starts so that only
-  // moving-box-element and dialog-backdrop participate as named layers.
-  document.querySelectorAll('#output [style*="view-transition-name"]').forEach(
-    el => el.style.removeProperty('view-transition-name')
-  );
   target.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
@@ -157,11 +152,6 @@ export function doClose() {
   }
 
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view
-
-  // Same as on open: clear all card vt-* names before the close transition.
-  document.querySelectorAll('#output [style*="view-transition-name"]').forEach(
-    el => el.style.removeProperty('view-transition-name')
-  );
 
   // Re-query the target now: if the file list was re-rendered since open
   // (e.g. after save), the node captured on open is detached and would not

@@ -6,7 +6,6 @@ import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
-import { fileTransitionName } from './ui-functions-render/file-transition-name.js';
 
 /**
  * Renders the list of files as a grid of cards.
@@ -38,7 +37,7 @@ export function renderFileList_grid(renderEverything) {
   //      const tag_list = file.tags.join(" ");
         const filename_html = renderFilename(file.filepath);
         file_html += `
-        <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" style="view-transition-name: ${fileTransitionName(file.id)}">
+        <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}">
 
             <div data-prop="filename">${filename_html}</div>
 

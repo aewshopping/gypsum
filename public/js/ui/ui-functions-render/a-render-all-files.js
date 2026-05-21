@@ -10,6 +10,7 @@ import { VIEWS } from "../../constants.js";
 import { PAGINATION_SIZE } from "../../constants.js";
 import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 import { renderPagination } from "../pagination/render-pagination.js";
+import { fileTransitionName } from "./file-transition-name.js";
 
 /**
  * Orchestrates the rendering of files based on the current view state and active filters.
@@ -91,9 +92,20 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // and nesting startViewTransition calls aborts the outer transition.
     const modalOpen = document.getElementById('file-content-modal')?.open;
     if (document.startViewTransition && !modalOpen) {
+        const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
+            el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
+        );
+        nameCards(); // apply to current cards so the "before" capture sees them
         document.documentElement.classList.add('file-list-transitioning');
-        document.startViewTransition(doRender).finished.finally(() => {
+        const transition = document.startViewTransition(() => {
+            doRender();
+            nameCards(); // apply to new cards so the "after" capture sees them
+        });
+        transition.finished.finally(() => {
             document.documentElement.classList.remove('file-list-transitioning');
+            document.querySelectorAll('#output [data-vt-id]').forEach(
+                el => el.style.removeProperty('view-transition-name')
+            );
         });
     } else {
         doRender();
