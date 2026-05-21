@@ -1,8 +1,7 @@
-/* Suppress the default full-page crossfade so only the named per-card transitions animate.
-   Without this, the root snapshot (page with card-shaped holes) produces a distracting flash
-   behind the moving cards. The modal transition uses named elements for its own animations
-   and does not rely on the root crossfade, so this does not affect it. */
-::view-transition-old(root),
-::view-transition-new(root) {
+/* Suppress the full-page crossfade only during file-list re-renders, not during other
+   transitions (e.g. the modal open/close). The class is added before startViewTransition
+   and removed in the finished callback in a-render-all-files.js. */
+html.file-list-transitioning::view-transition-old(root),
+html.file-list-transitioning::view-transition-new(root) {
     animation: none;
 }

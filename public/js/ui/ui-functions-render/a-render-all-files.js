@@ -91,7 +91,10 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // and nesting startViewTransition calls aborts the outer transition.
     const modalOpen = document.getElementById('file-content-modal')?.open;
     if (document.startViewTransition && !modalOpen) {
-        document.startViewTransition(doRender);
+        document.documentElement.classList.add('file-list-transitioning');
+        document.startViewTransition(doRender).finished.finally(() => {
+            document.documentElement.classList.remove('file-list-transitioning');
+        });
     } else {
         doRender();
     }
