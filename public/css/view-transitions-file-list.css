@@ -5,3 +5,9 @@ html.file-list-transitioning::view-transition-old(root),
 html.file-list-transitioning::view-transition-new(root) {
     animation: none;
 }
+
+/* Control the position/size animation for all named card groups during a re-render. */
+html.file-list-transitioning::view-transition-group(*) {
+    animation-duration: 350ms;
+    animation-timing-function: ease-out;
+}
