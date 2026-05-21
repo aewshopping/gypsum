@@ -11,7 +11,7 @@ import { deleteFilterAndResults } from "./filter-delete.js";
  * @param {Event} evt The click event object
  * @param {Target} target The target object
  */
-export function handleTagClick(evt, target) {
+export async function handleTagClick(evt, target) {
 
     const tagName = target.dataset.tag;
     if (!tagName) {
@@ -31,22 +31,18 @@ export function handleTagClick(evt, target) {
 
             // set active status to true, so it will reactivate on rerender
             filters.get(filterid).active = true;
+            processSeachResults(); // renders files
 
         // no filter already created so we can go ahead and create a new one
-        // (if we had tried to create a new one with an identical filter already in existence, 
+        // (if we had tried to create a new one with an identical filter already in existence,
         // even if it wasn't active, the filter creation would just fail)
         } else {
 
             target.dataset.active = true; // because not all tags will be re-rendered (for eg in taxon or in modal)
             const searchObject = parseSearchString(tagName, "tags");
-            addFilterThenFindMatches(searchObject); // creates the filter.results map with matches
+            await addFilterThenFindMatches(searchObject); // waits for search; processSeachResults called inside
 
         }
-
-        // in both cases we now need to re render files
-        processSeachResults(); // renders files
-
-
 
     } else if (target.dataset.active === "true") { // need to DELETE search filter
 
