@@ -33,7 +33,7 @@ export function renderFileList_peek(renderEverything) {
             file_html += `
         <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}">
 
-            <h3 data-prop="title">${file.title}</h3>
+            <h3 class="color-dynamic" data-color="${file.color}" data-prop="title">${file.title}</h3>
 
             <p data-prop="contentPeek">${peekHtml ? peekHtml + '...' : ''}</p>
 
