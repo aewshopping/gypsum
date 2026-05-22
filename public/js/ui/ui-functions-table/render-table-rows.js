@@ -13,11 +13,13 @@ import { checkFileOnPage } from '../pagination/check-file-on-page.js';
  */
 export function renderTableRows(current_props, renderEverything) {
     let rowsHtml = '';
+    let index = 0;
 
     for (const file of appState.myFiles) {
         if (checkFileOnPage(file.id)) {
 
             const cellsHtml = current_props.map(prop => {
+                index++;
                 const value = file[prop.name];
                 let cellContent = '';
 
@@ -49,13 +51,13 @@ export function renderTableRows(current_props, renderEverything) {
                         cellContent = value || '';
                         break;
                 }
-                return `<div class="note-table-cell" data-prop="${prop.name}">${cellContent}</div>`;
+                return `<div class="note-table-cell keyboard-navigable" tabindex="0" data-index="${index}" data-prop="${prop.name}">${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above
             const tagList = file.tags instanceof Map ? [...file.tags.keys()].join(" ") : "";
             rowsHtml += `
-                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" tabindex="0" data-vt-id="${file.id}">
+                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" data-vt-id="${file.id}">
                     ${cellsHtml}
                 </div>
             `;
