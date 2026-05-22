@@ -188,4 +188,142 @@ test.describe('tar backup buttons', () => {
         expect(entryNames).toContain('.gypsum/notes-save.gypsum');
     });
 
+    test('backup tar entries carry the original lastModified timestamp', async ({ page }) => {
+        const FIXED_MTIME = new Date('2024-01-15T10:00:00Z').getTime();
+
+        await interceptDownload(page);
+        await page.addInitScript((fixedMtime) => {
+            const makeFile = (name, content) => {
+                const bytes = new TextEncoder().encode(content);
+                return {
+                    kind: 'file', name,
+                    getFile: async () => ({
+                        name,
+                        size: bytes.length,
+                        lastModified: fixedMtime,
+                        text: async () => content,
+                        arrayBuffer: async () => bytes.buffer,
+                    }),
+                };
+            };
+            window.showDirectoryPicker = async () => ({
+                kind: 'directory', name: 'root',
+                values: async function* () {
+                    yield makeFile('notes.txt', 'Fixed mtime note');
+                },
+                getDirectoryHandle: async () => { throw new DOMException('not found', 'NotFoundError'); },
+            });
+        }, FIXED_MTIME);
+
+        await page.goto('/');
+        await page.click('[data-click-loadfolder]');
+        await page.click('[data-action="open-settings-modal"]');
+        await page.click('[data-action="backup-content"]');
+        await page.waitForFunction(() => window.__capturedDownload?.filename != null);
+
+        const storedMtimeSec = await page.evaluate(async () => {
+            const { parseTarGzip } = await import('/public/js/backup/nanotar.js');
+            const buf = await window.__capturedDownload.blob.arrayBuffer();
+            const entries = await parseTarGzip(new Uint8Array(buf));
+            return entries.find(e => e.name === 'notes.txt')?.attrs?.mtime;
+        });
+
+        // nanotar writes mtime in seconds (truncated from ms), so allow ±1s rounding
+        expect(storedMtimeSec * 1000).toBeCloseTo(FIXED_MTIME, -3);
+    });
+
+    test('mtime.json is written to OPFS during import with correct timestamps', async ({ page }) => {
+        const FIXED_MTIME = new Date('2023-06-20T08:30:00Z').getTime();
+
+        await interceptDownload(page);
+
+        // Both the directory picker mock and the OPFS mock must be in addInitScript
+        // so they are present from the very start of the page load.
+        await page.addInitScript((fixedMtime) => {
+            const makeFile = (name, content) => {
+                const bytes = new TextEncoder().encode(content);
+                return {
+                    kind: 'file', name,
+                    getFile: async () => ({
+                        name, size: bytes.length, lastModified: fixedMtime,
+                        text: async () => content,
+                        arrayBuffer: async () => bytes.buffer,
+                    }),
+                };
+            };
+            window.showDirectoryPicker = async () => ({
+                kind: 'directory', name: 'root',
+                values: async function* () { yield makeFile('article.md', '# Article\nContent'); },
+                getDirectoryHandle: async () => { throw new DOMException('not found', 'NotFoundError'); },
+            });
+
+            // OPFS mock — flat map records all written files keyed by full path
+            const opfsFiles = {};
+            window.__opfsFiles = opfsFiles;
+
+            function makeWritable(path) {
+                let content = '';
+                return {
+                    write: async (data) => { content += typeof data === 'string' ? data : new TextDecoder().decode(data); },
+                    close: async () => { opfsFiles[path] = content; },
+                };
+            }
+
+            function makeDirHandle(prefix) {
+                return {
+                    keys: async function* () {},
+                    // values() enumerates files written at this prefix level so getFilesRecursive works
+                    values: async function* () {
+                        for (const path of Object.keys(opfsFiles)) {
+                            if (!path.startsWith(prefix)) continue;
+                            const rel = path.slice(prefix.length);
+                            if (rel.includes('/')) continue;
+                            if (!rel.endsWith('.md') && !rel.endsWith('.txt')) continue;
+                            const text = opfsFiles[path];
+                            yield {
+                                kind: 'file', name: rel,
+                                getFile: async () => ({
+                                    name: rel, lastModified: fixedMtime,
+                                    text: async () => text,
+                                    arrayBuffer: async () => new TextEncoder().encode(text).buffer,
+                                }),
+                            };
+                        }
+                    },
+                    removeEntry: async () => {},
+                    getDirectoryHandle: async (name) => makeDirHandle(`${prefix}${name}/`),
+                    getFileHandle: async (name) => ({
+                        createWritable: async () => makeWritable(`${prefix}${name}`),
+                        getFile: async () => {
+                            const text = opfsFiles[`${prefix}${name}`];
+                            if (text === undefined) throw new DOMException('not found', 'NotFoundError');
+                            return { text: async () => text, lastModified: fixedMtime, arrayBuffer: async () => new TextEncoder().encode(text).buffer };
+                        },
+                    }),
+                };
+            }
+            navigator.storage.getDirectory = async () => makeDirHandle('');
+        }, FIXED_MTIME);
+
+        await page.goto('/');
+        await page.click('[data-click-loadfolder]');
+        await page.click('[data-action="open-settings-modal"]');
+        await page.click('[data-action="backup-content"]');
+        await page.waitForFunction(() => window.__capturedDownload?.filename != null);
+
+        const mtimeJson = await page.evaluate(async () => {
+            const tarBytes = new Uint8Array(await window.__capturedDownload.blob.arrayBuffer());
+            window.showOpenFilePicker = async () => [{ getFile: async () => ({ arrayBuffer: async () => tarBytes.buffer }) }];
+
+            const { importTarGzipToOPFS } = await import('/public/js/backup/opfs-import.js');
+            await importTarGzipToOPFS(() => {});
+
+            return window.__opfsFiles['.gypsum/mtime.json'] ?? null;
+        });
+
+        expect(mtimeJson).not.toBeNull();
+        const parsed = JSON.parse(mtimeJson);
+        expect(parsed['article.md']).toBeCloseTo(FIXED_MTIME, -3);
+    });
+
 });

@@ -64,6 +64,36 @@ async function writeFilesToOPFS(entries, opfsRoot, n, total) {
 }
 
 /**
+ * Persists a filepath→mtime (ms) map to .gypsum/mtime.json in OPFS.
+ * @param {Map<string, number>} mtimeMap
+ * @param {FileSystemDirectoryHandle} opfsRoot
+ * @returns {Promise<void>}
+ */
+async function writeMtimeMap(mtimeMap, opfsRoot) {
+    const gypsumDir = await opfsRoot.getDirectoryHandle('.gypsum', { create: true });
+    const fileHandle = await gypsumDir.getFileHandle('mtime.json', { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(Object.fromEntries(mtimeMap)));
+    await writable.close();
+}
+
+/**
+ * Reads .gypsum/mtime.json from OPFS. Returns null if absent.
+ * @param {FileSystemDirectoryHandle} opfsRoot
+ * @returns {Promise<Map<string, number>|null>}
+ */
+async function readMtimeMap(opfsRoot) {
+    try {
+        const gypsumDir = await opfsRoot.getDirectoryHandle('.gypsum', { create: false });
+        const fileHandle = await gypsumDir.getFileHandle('mtime.json', { create: false });
+        const file = await fileHandle.getFile();
+        return new Map(Object.entries(JSON.parse(await file.text())));
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Reads all .txt/.md files from OPFS and populates appState. Mirrors loadDirectoryFileHandles().
  * @param {FileSystemDirectoryHandle} opfsRoot
  * @param {number|null} outerStartTime - performance.now() timestamp from before unpacking, if available.
@@ -75,6 +105,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;
 
+    const mtimeMap = await readMtimeMap(opfsRoot);
     const startTime = performance.now();
 
     const fileEntries = await getFilesRecursive(opfsRoot);
@@ -92,7 +123,8 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
         const fileObj = await getFileDataAndMetadata(handle, i);
         if (i % updateN === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
         // if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
-        filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
+        const lastModified = mtimeMap?.has(filepath) ? new Date(mtimeMap.get(filepath)) : fileObj.lastModified;
+        filesWithMetadata.push({ ...fileObj, filepath, id: filepath, lastModified });
     }
 
     appState.myFileHandlesMap = filesWithMetadata.reduce((map, fileObject) => {
@@ -127,10 +159,17 @@ export async function importTarGzipToOPFS(onComplete) {
     const entries = await parseTarGzip(await file.arrayBuffer());
     const opfsRoot = await navigator.storage.getDirectory();
 
+    const mtimeMap = new Map(
+        entries
+            .filter(e => e.type === 'file' && e.attrs?.mtime > 0)
+            .map(e => [e.name, e.attrs.mtime * 1000])
+    );
+
     async function proceed() {
         const total = entries.filter(e => e.type === 'file').length;
         const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
         await writeFilesToOPFS(entries, opfsRoot, n, total);
+        await writeMtimeMap(mtimeMap, opfsRoot);
         await populateAppStateFromOPFS(opfsRoot, importStartTime, n);
         onComplete();
     }
