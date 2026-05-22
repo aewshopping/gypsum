@@ -1,3 +1,7 @@
+:root {
+    --table-hover-bg: var(--colour-neutral-alt);
+}
+
 .table-wrapper {
     max-width: 100vw;
 }
@@ -22,7 +26,7 @@
     &:hover {
         background-color: color-mix(
             in oklch,
-            attr(data-color type(<color>), var(--colour-neutral-alt)) 80%,
+            attr(data-color type(<color>), var(--table-hover-bg)) 80%,
             var(--color-mono-contr, var(--colour-contr))
         );
 
@@ -94,4 +98,10 @@
     list-style-type: "- ";
     padding-left:12px;
     margin:0px;
+}
+
+/* column hover — selector managed by table-col-hover.js */
+.note-table-header .note-table-cell-header:has([data-property=""]),
+.note-table-header ~ .note-table .note-table-cell[data-prop=""] {
+    background-color: var(--table-hover-bg);
 }
