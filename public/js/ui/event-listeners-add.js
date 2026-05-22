@@ -34,6 +34,7 @@ import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.
 import { handleBackupContent, handleBackupFull } from './ui-functions-click/backup-click.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
+import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -46,6 +47,7 @@ export function addActionHandlers() {
     document.addEventListener("keydown", keyDownDelegate);
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
+    document.addEventListener('mouseover', handleTableColHover);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
             evt.preventDefault();
