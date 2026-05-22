@@ -30,13 +30,13 @@
         content: "\276f"; /* U+0276f ❯ */
         rotate: 90deg;
         transition: 0.2s rotate, 0.2s transform;
-        transform: translateY(50%); /* because the character is not centralised */
+        transform: translateY(10%); /* because the character is not centralised */
 
     }
 
     &:open::picker-icon {
         rotate: -90deg;
-        transform: translateY(-35%); /* because the character is not centralised */
+        transform: translateY(-10%); /* because the character is not centralised */
     }
 
     option {
