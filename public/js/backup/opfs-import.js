@@ -105,11 +105,11 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     invalidateTagCache();
 
     const endTime = performance.now();
-    const loadDurationSec = ((endTime - startTime) / 1000).toFixed(2); // pure file load; available for future console logging
+    const loadDurationSec = ((endTime - startTime) / 1000).toFixed(1); // pure file load; available for future console logging
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
     fileCountEl.classList.remove('loading');
-    document.getElementById('fileCountElement').textContent = `files: ${fileCount} | ${displayDuration}s | opfs`;
+    document.getElementById('fileCountElement').innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${displayDuration}s | opfs</span>`;
 }
 
 /**

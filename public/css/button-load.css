@@ -35,7 +35,10 @@
 }
 
 #fileCountElement {
+    --colour-load-msg: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral) 60%);
+
     position: relative;
+    isolation:isolate;
     font-size: 1.1em;
     color: var(--colour-contr);
     font-family: var(--fs-app);
@@ -48,7 +51,7 @@
 }
 
 /* marks the load complete point for loader */
-#fileCountElement::after { /* TO ADD */
+#fileCountElement::after {
   position:absolute;
   content: "100%";
   text-align:right;
@@ -71,10 +74,10 @@
     left: 0;
     width: 50dvw;
     height: 100%;
-    background: color-mix(in srgb, var(--colour-contr-emph) 30%, transparent 70%);
+    background: var(--colour-load-msg);
     transform-origin: left center;
     transform: scaleX(calc(var(--load-pct) / 100));
-    transition: transform 0.1s ease, opacity 0.5s ease 0.3s;
+    transition: transform 0.1s ease, opacity 0.5s ease 0.5s;
     opacity: 0;
 }
 
@@ -84,6 +87,8 @@
     opacity: 1;
     transition: none;
 }
+
+.load-finished-msg {color: var(--colour-load-msg);}
 
 #btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style #load-folder-arrow { opacity: 0; }
 
