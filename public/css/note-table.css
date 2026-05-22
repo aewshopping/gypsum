@@ -1,5 +1,5 @@
 :root {
-    --table-hover-bg: var(--colour-neutral-alt);
+    --table-hover-bg: color-mix(in oklch, var(--colour-neutral-alt) 80%, var(--color-mono-contr, var(--colour-contr)));
 }
 
 .table-wrapper {
@@ -26,7 +26,7 @@
     &:hover {
         background-color: color-mix(
             in oklch,
-            attr(data-color type(<color>), var(--table-hover-bg)) 80%,
+            attr(data-color type(<color>), var(--colour-neutral-alt)) 80%,
             var(--color-mono-contr, var(--colour-contr))
         );
 
