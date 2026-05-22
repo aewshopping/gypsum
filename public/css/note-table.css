@@ -20,8 +20,11 @@
     transition: height 0.35s ease;
 
     &:hover {
-        background-color: var(--colour-neutral-alt);
-        color: var(--colour-contr);
+        background-color: color-mix(
+            in oklch,
+            attr(data-color type(<color>), var(--colour-neutral-alt)) 80%,
+            var(--color-mono-contr, var(--colour-contr))
+        );
 
         .show-content-tag {
             background-color: var(--colour-neutral);
