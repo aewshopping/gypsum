@@ -534,17 +534,18 @@ async function setupMockDirectoryWithDeleteSupport(page) {
 }
 
 /**
- * Directory with a file containing an existing #color/coral tag, with full save support.
- * File: notes.md with content '# My Notes\n#color/coral\nText below'
+ * Directory with a file containing an existing #color/ tag, with full save support.
+ * File: notes.md with content '# My Notes\n#color/{colourName}\nText below'
  *
  * @param {import('@playwright/test').Page} page
+ * @param {string} [colourName] - The colour tag to embed; defaults to 'coral'.
  */
-async function setupMockDirectoryForColorExisting(page) {
-  await page.addInitScript(() => {
+async function setupMockDirectoryForColorExisting(page, colourName = 'coral') {
+  await page.addInitScript((colour) => {
     window.__savedFiles = {};
     window.__originalFiles = {};
     window.__backupFileContent = '';
-    const fileContent = '# My Notes\n#color/coral\nText below';
+    const fileContent = `# My Notes\n#color/${colour}\nText below`;
     const makeFile = (name, content) => ({
       kind: 'file', name,
       getFile: async () => ({
@@ -585,7 +586,7 @@ async function setupMockDirectoryForColorExisting(page) {
         throw new Error(`Unexpected: ${name}`);
       },
     });
-  });
+  }, colourName);
 }
 
 /**
