@@ -70,22 +70,26 @@
     --colour-highlight-mix-pct: 30%;
 }
 
+body:has(#show-user-file-colours:not(:checked)) {
+  --colours-suppress: true;
+}
+
 .color-dynamic {
-    --color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
-    background-color: attr(data-color type(<color>), var(--colour-neutral-alt)); 
-    color: var(--color-mono-contr); /* if null fall back will be color set elsewhere */
-    border-color: var(--color-mono-contr);
+    --color-mono-contr: if(style(--colours-suppress: true): unset; else: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100))));
+    background-color: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: attr(data-color type(<color>), var(--colour-neutral-alt)));
+    color: if(style(--colours-suppress: true): inherit; else: var(--color-mono-contr));
+    border-color: if(style(--colours-suppress: true): inherit; else: var(--color-mono-contr));
 }
 
 .color-dynamic-transparent-fallback {
-    --color-mono-contr: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100)));
-    background-color: attr(data-color type(<color>));
-    color: var(--color-mono-contr); /* if null fall back no color will be set ie transparent */
+    --color-mono-contr: if(style(--colours-suppress: true): unset; else: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100))));
+    background-color: if(style(--colours-suppress: true): transparent; else: attr(data-color type(<color>)));
+    color: if(style(--colours-suppress: true): inherit; else: var(--color-mono-contr));
 }
 
 .color-dynamic-fade {
-  --colour-bg: attr(data-color type(<color>), var(--colour-neutral-alt)); /* include fallback when no data-color */
+  --colour-bg: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: attr(data-color type(<color>), var(--colour-neutral-alt)));
   --colour-dynamic-fade: color-mix(in oklch, var(--colour-bg) 30%, var(--colour-neutral));
   background-color: var(--colour-dynamic-fade);
-  border-color: var(--colour-bg);
+  border-color: if(style(--colours-suppress: true): inherit; else: var(--colour-bg));
 }
