@@ -51,7 +51,7 @@ export function renderTableRows(current_props, renderEverything) {
                         cellContent = value || '';
                         break;
                 }
-                return `<div class="note-table-cell keyboard-navigable" tabindex="0" data-index="${index}" data-prop="${prop.name}">${cellContent}</div>`;
+                return `<div class="note-table-cell keyboard-navigable" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}">${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

@@ -103,5 +103,5 @@
 /* column hover — selector managed by table-col-hover.js */
 .note-table-header .note-table-cell-header:has([data-property=""]),
 .note-table-header ~ .note-table .note-table-cell[data-prop=""] {
-    background-color: var(--table-hover-bg);
+    background-color: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)));
 }
