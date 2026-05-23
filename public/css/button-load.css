@@ -110,7 +110,11 @@
 }
 
 :root:has(.load-finished-msg) #btn_loadDirectoryHandles:not(.loading) {
-    background-color: color-mix(in srgb, var(--colour-contr), transparent 50%);
+    background-color: color-mix(in srgb, var(--colour-neutral-alt), transparent 50%);
     color: color-mix(in srgb, var(--colour-contr), transparent 50%);
     border-color: color-mix(in srgb, var(--colour-contr), transparent 50%);
+
+    & .svg-wrapper-style {
+        color: color-mix(in srgb, var(--colour-contr), transparent 50%);
+    }
 }
