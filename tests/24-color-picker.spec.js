@@ -1,8 +1,25 @@
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 const {
   setupMockDirectoryWithSaveSupport,
   setupMockDirectoryForColorExisting,
 } = require('./helpers');
+
+// Parse COLOR_NAMES from the app's constants.js so tests adapt automatically when
+// the palette changes, without duplicating the list here.
+const constantsSrc = fs.readFileSync(
+  path.join(__dirname, '../public/js/constants.js'), 'utf8'
+);
+const ALL_COLOURS = constantsSrc
+  .match(/COLOR_NAMES\s*=\s*\[([^\]]+)\]/)[1]
+  .match(/'([^']+)'/g)
+  .map(s => s.slice(1, -1));
+
+// Two distinct colours used by tests 2 and 4. COLOUR_0 is pre-inserted in the mock
+// file; COLOUR_1 is the replacement chosen from the picker.
+const COLOUR_0 = ALL_COLOURS[0];
+const COLOUR_1 = ALL_COLOURS[1];
 
 async function openModal(page) {
   await page.click('[data-click-loadfolder]');
@@ -47,15 +64,15 @@ test.describe('colour picker modal', () => {
   });
 
   test('existing colour above cursor is replaced and cursor offset is adjusted', async ({ page }) => {
-    // File: '# My Notes\n#color/coral\nText below'
-    // #color/coral starts at text offset 11 (after '# My Notes\n')
-    // 'coral' = 5 chars, 'steelblue' = 9 chars, delta = +4
-    await setupMockDirectoryForColorExisting(page);
+    // File: '# My Notes\n#color/{COLOUR_0}\nText below'
+    // Cursor placed at end of file (after the tag), so the tag is "above" the cursor.
+    // Picking COLOUR_1 must replace COLOUR_0 and shift the cursor by the length delta.
+    await setupMockDirectoryForColorExisting(page, COLOUR_0);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
 
-    // Place cursor at end of file (after the colour tag, so it is "above" the cursor)
+    // Place cursor at the end of the file (after the colour tag).
     await page.locator('#modal-content-text pre').click();
     await page.evaluate(() => {
       const el = document.querySelector('#modal-content-text .text-editor');
@@ -70,20 +87,20 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click('[data-action="color-circle-pick"][data-color-value="orangered"]');
+    await page.click(`[data-action="color-circle-pick"][data-color-value="${COLOUR_1}"]`);
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
     const editorText = await page.locator('#modal-content-text pre').textContent();
-    expect(editorText).toContain('#color/orangered');
-    expect(editorText).not.toContain('#color/coral');
+    expect(editorText).toContain(`#color/${COLOUR_1}`);
+    expect(editorText).not.toContain(`#color/${COLOUR_0}`);
 
     const newOffset = await getCursorOffset(page);
-    const delta = 'orangered'.length - 'coral'.length; // 4
+    const delta = COLOUR_1.length - COLOUR_0.length;
     expect(newOffset).toBe(savedOffset + delta);
   });
 
   test('when no colour exists, new colour is added on a new line at the end', async ({ page }) => {
-    // File: '# My Notes\nSome content here' — no #color/ tag
+    // Picks whichever colour appears first in the modal rather than a hardcoded name.
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
@@ -91,7 +108,10 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click('[data-action="color-circle-pick"][data-color-value="coral"]');
+
+    const firstBtn = page.locator('[data-action="color-circle-pick"]').first();
+    const colourName = await firstBtn.getAttribute('data-color-value');
+    await firstBtn.click();
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
     // Use innerText (not textContent) so <br> elements appear as \n.
@@ -100,14 +120,14 @@ test.describe('colour picker modal', () => {
     );
     expect(editorText).toContain('# My Notes');
     expect(editorText).toContain('Some content here');
-    expect(editorText).toMatch(/\n\n#color\/coral\s*$/);
+    expect(editorText).toMatch(new RegExp(`\n\n#color\\/${colourName}\\s*$`));
   });
 
   test('cursor stays at its position when colour tag is below the cursor', async ({ page }) => {
-    // Trickiest case: cursor is BEFORE the #color/coral tag in the file (offset 5
-    // vs tag at offset 11). Replacing the tag must not shift the cursor.
-    // File: '# My Notes\n#color/coral\nText below'
-    await setupMockDirectoryForColorExisting(page);
+    // File: '# My Notes\n#color/{COLOUR_0}\nText below'
+    // Cursor placed at offset 5 ('# My |Notes'), before the tag on line 2.
+    // Picking COLOUR_1 must replace the tag without shifting the cursor.
+    await setupMockDirectoryForColorExisting(page, COLOUR_0);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
@@ -129,15 +149,14 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click('[data-action="color-circle-pick"][data-color-value="orangered"]');
+    await page.click(`[data-action="color-circle-pick"][data-color-value="${COLOUR_1}"]`);
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
-    await expect(page.locator('#modal-content-text pre')).toContainText('#color/orangered');
+    await expect(page.locator('#modal-content-text pre')).toContainText(`#color/${COLOUR_1}`);
 
-    // Tag was BELOW the cursor so no delta — cursor must stay at offset 5.
+    // Tag was below the cursor so no delta — cursor must stay at offset 5.
     const newOffset = await getCursorOffset(page);
     expect(newOffset).toBe(5);
   });
-
 
 });
