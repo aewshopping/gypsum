@@ -108,3 +108,9 @@
     animation: load-folder-spin 1s linear infinite;
     transition: opacity 0.5s ease-in-out;
 }
+
+:root:has(.load-finished-msg) #btn_loadDirectoryHandles:not(.loading) {
+    background-color: color-mix(in srgb, var(--colour-contr), transparent 50%);
+    color: color-mix(in srgb, var(--colour-contr), transparent 50%);
+    border-color: color-mix(in srgb, var(--colour-contr), transparent 50%);
+}
