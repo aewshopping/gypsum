@@ -49,16 +49,20 @@ async function collectGypsumFiles(dirHandle) {
 }
 
 /**
- * Convert file handle entries to the { name, data } format nanotar expects.
+ * Convert file handle entries to the { name, data, attrs } format nanotar expects.
  * @param {Array<{handle: FileSystemFileHandle, filepath: string}>} fileEntries
- * @returns {Promise<Array<{name: string, data: Uint8Array}>>}
+ * @returns {Promise<Array<{name: string, data: Uint8Array, attrs: {mtime: number}}>>}
  */
 async function toTarEntries(fileEntries) {
     return Promise.all(
-        fileEntries.map(async ({ handle, filepath }) => ({
-            name: filepath,
-            data: new Uint8Array(await (await handle.getFile()).arrayBuffer()),
-        }))
+        fileEntries.map(async ({ handle, filepath }) => {
+            const file = await handle.getFile();
+            return {
+                name: filepath,
+                data: new Uint8Array(await file.arrayBuffer()),
+                attrs: { mtime: file.lastModified },
+            };
+        })
     );
 }
 
