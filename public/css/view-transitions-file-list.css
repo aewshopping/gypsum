@@ -14,8 +14,8 @@ html.file-list-transitioning::view-transition-group(*) {
   overflow:hidden;
 }
 
-body:has(#file-transitions-enabled:not(:checked)) html.file-list-transitioning::view-transition-group(*),
-body:has(#file-transitions-enabled:not(:checked)) html.file-list-transitioning::view-transition-old(root),
-body:has(#file-transitions-enabled:not(:checked)) html.file-list-transitioning::view-transition-new(root) {
+html:has(#file-transitions-enabled:not(:checked)).file-list-transitioning::view-transition-group(*),
+html:has(#file-transitions-enabled:not(:checked)).file-list-transitioning::view-transition-old(root),
+html:has(#file-transitions-enabled:not(:checked)).file-list-transitioning::view-transition-new(root) {
   animation-duration: 0s;
 }
