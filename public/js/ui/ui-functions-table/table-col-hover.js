@@ -35,7 +35,7 @@ function updateColHoverRule(prop) {
     sheet.insertRule(
         `.note-table-header .note-table-cell-header:has([data-property=${val}]),` +
         `.note-table-header ~ .note-table .note-table-cell[data-prop=${val}]` +
-        `{ background-color: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr))); }`,
+        `{ background-color: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))); }`,
         index
     );
 }
