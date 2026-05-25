@@ -54,10 +54,11 @@
 #fileCountElement::after {
   position:absolute;
   content: "100%";
-  text-align:right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   padding-right:4px;
   border-right:1.5px solid var(--colour-contr);
-  position: absolute;
   width: 50dvw;
   left:0;
   height:100%;
