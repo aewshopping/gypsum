@@ -75,6 +75,7 @@
     width: 50dvw;
     height: 100%;
     background: var(--colour-load-msg);
+    z-index: -1;
     transform-origin: left center;
     transform: scaleX(calc(var(--load-pct) / 100));
     transition: transform 0.1s ease, opacity 0.5s ease 0.5s;
