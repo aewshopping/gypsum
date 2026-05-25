@@ -141,7 +141,10 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
     fileCountEl.classList.remove('loading');
-    document.getElementById('fileCountElement').innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${displayDuration}s | opfs</span>`;
+    fileCountEl.innerHTML = `files: ${fileCount} | ${displayDuration}s`;
+    setTimeout(() => {
+        fileCountEl.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | opfs</span>`;
+    }, 3000);
 }
 
 /**
