@@ -174,9 +174,11 @@ export async function importTarGzipToOPFS(onComplete) {
         const total = entries.filter(e => e.type === 'file').length;
         const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
         await writeFilesToOPFS(entries, opfsRoot, n, total);
-        writeMtimeMap(mtimeMap, opfsRoot).catch(() => {});
         await populateAppStateFromOPFS(opfsRoot, importStartTime, n, mtimeMap);
         onComplete();
+        // Must fire AFTER populateAppStateFromOPFS: concurrent getDirectoryHandle('.gypsum')
+        // and values() on the same OPFS root deadlock in Chromium.
+        writeMtimeMap(mtimeMap, opfsRoot).catch(() => {});
     }
 
     if (await hasOPFSContent(opfsRoot)) {

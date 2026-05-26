@@ -317,6 +317,8 @@ test.describe('tar backup buttons', () => {
 
             const { importTarGzipToOPFS } = await import('/public/js/backup/opfs-import.js');
             await importTarGzipToOPFS(() => {});
+            // writeMtimeMap is fire-and-forget; flush pending microtasks before reading.
+            await new Promise(r => setTimeout(r, 0));
 
             return window.__opfsFiles['.gypsum/mtime.json'] ?? null;
         });
@@ -351,6 +353,10 @@ test.describe('tar backup buttons', () => {
             });
 
             const opfsFiles = {};
+            // Shared flag: set true the moment writeMtimeMap calls getDirectoryHandle('.gypsum',
+            // {create:true}). In real Chromium this acquires a write lock on the root dir, so
+            // any concurrent values() on the same root will block — simulated here.
+            let gypsumWritePending = false;
 
             function makeWritable(path) {
                 let content = '';
@@ -364,6 +370,11 @@ test.describe('tar backup buttons', () => {
                 return {
                     keys: async function* () {},
                     values: async function* () {
+                        // Root-dir enumeration blocks while .gypsum is being written —
+                        // mirrors the Chromium OPFS write-lock that causes the real deadlock.
+                        if (!prefix && gypsumWritePending) {
+                            await new Promise(() => {}); // never resolves
+                        }
                         for (const path of Object.keys(opfsFiles)) {
                             if (!path.startsWith(prefix)) continue;
                             const rel = path.slice(prefix.length);
@@ -382,10 +393,11 @@ test.describe('tar backup buttons', () => {
                     },
                     removeEntry: async () => {},
                     getDirectoryHandle: async (name, options) => {
-                        // Simulate real OPFS behaviour: getDirectoryHandle('.gypsum', {create:true})
-                        // can hang indefinitely in Chromium after writeFilesToOPFS has run.
                         if (name === '.gypsum' && options?.create) {
-                            return new Promise(() => {}); // never resolves — mirrors the real freeze
+                            // Mark pending synchronously (before the await) so that any
+                            // concurrent values() call on the root sees the lock immediately.
+                            gypsumWritePending = true;
+                            return new Promise(() => {}); // never resolves — mirrors Chromium hang
                         }
                         return makeDirHandle(`${prefix}${name}/`);
                     },
