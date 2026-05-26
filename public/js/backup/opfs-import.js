@@ -97,15 +97,17 @@ async function readMtimeMap(opfsRoot) {
  * Reads all .txt/.md files from OPFS and populates appState. Mirrors loadDirectoryFileHandles().
  * @param {FileSystemDirectoryHandle} opfsRoot
  * @param {number|null} outerStartTime - performance.now() timestamp from before unpacking, if available.
+ * @param {number|null} n
+ * @param {Map<string, number>|null} mtimeMap - pre-built mtime map; if null, reads from OPFS.
  * @returns {Promise<void>}
  */
-async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null) {
+async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null, mtimeMap = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;
 
-    const mtimeMap = await readMtimeMap(opfsRoot);
+    if (mtimeMap === null) mtimeMap = await readMtimeMap(opfsRoot);
     const startTime = performance.now();
 
     const fileEntries = await getFilesRecursive(opfsRoot);
@@ -172,8 +174,12 @@ export async function importTarGzipToOPFS(onComplete) {
         const total = entries.filter(e => e.type === 'file').length;
         const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
         await writeFilesToOPFS(entries, opfsRoot, n, total);
-        await writeMtimeMap(mtimeMap, opfsRoot);
-        await populateAppStateFromOPFS(opfsRoot, importStartTime, n);
+        try {
+            await writeMtimeMap(mtimeMap, opfsRoot);
+        } catch {
+            // mtime persistence failed; import continues without stored dates
+        }
+        await populateAppStateFromOPFS(opfsRoot, importStartTime, n, mtimeMap);
         onComplete();
     }
 
