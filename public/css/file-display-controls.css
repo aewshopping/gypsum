@@ -54,6 +54,10 @@
     }
 }
 
+#view-select {
+    background-color: transparent;
+}
+
 .tag-taxonomy-btn {
     padding-block: 4px;
     border-radius: 8px;

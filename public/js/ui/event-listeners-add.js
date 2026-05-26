@@ -17,7 +17,7 @@ import { handleSortObject } from './ui-functions-click/sort-object.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
-import { handleSearchBoxClick, handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
+import { handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
 import { handleDeleteFilter } from './ui-functions-click/filter-delete.js';
 import { handleFilterToggleState } from './ui-functions-click/filter-toggle-state.js';
 import { handleHistorySelectChange } from './ui-functions-click/history-select-change.js';
@@ -70,7 +70,6 @@ const clickActionHandlers = {
     'warning-cancel': handleWarningCancel,
     'sort-object': handleSortObject,
     'toggle-render-text': handleToggleRenderText,
-    'searchbox-search': handleSearchBoxClick,
     'delete-filter': handleDeleteFilter,
     'filter-togglestate': handleFilterToggleState,
     'save-file-copy': handleSaveFileCopy,

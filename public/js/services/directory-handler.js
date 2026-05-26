@@ -85,6 +85,9 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const fileCount = appState.myFiles.length;
     console.log(`Saved metadata for ${fileCount} files.`);
     fileCountEl.classList.remove('loading');
-    document.getElementById('fileCountElement').innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${durationSec}s | file system</span>`;
+    fileCountEl.innerHTML = `files: ${fileCount} | ${durationSec}s`;
+    setTimeout(() => {
+        fileCountEl.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | file system</span>`;
+    }, 3000);
 
 }
