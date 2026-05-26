@@ -382,9 +382,10 @@ test.describe('tar backup buttons', () => {
                     },
                     removeEntry: async () => {},
                     getDirectoryHandle: async (name, options) => {
-                        // Simulate the bug: reading .gypsum with create:false fails after write
-                        if (name === '.gypsum' && !options?.create) {
-                            throw new DOMException('not found', 'NotFoundError');
+                        // Simulate real OPFS behaviour: getDirectoryHandle('.gypsum', {create:true})
+                        // can hang indefinitely in Chromium after writeFilesToOPFS has run.
+                        if (name === '.gypsum' && options?.create) {
+                            return new Promise(() => {}); // never resolves — mirrors the real freeze
                         }
                         return makeDirHandle(`${prefix}${name}/`);
                     },
@@ -407,18 +408,28 @@ test.describe('tar backup buttons', () => {
         await page.click('[data-action="backup-content"]');
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
 
-        const lastModifiedMs = await page.evaluate(async () => {
+        const outcome = await page.evaluate(async () => {
             const tarBytes = new Uint8Array(await window.__capturedDownload.blob.arrayBuffer());
             window.showOpenFilePicker = async () => [{ getFile: async () => ({ arrayBuffer: async () => tarBytes.buffer }) }];
 
             const { importTarGzipToOPFS } = await import('/public/js/backup/opfs-import.js');
-            await importTarGzipToOPFS(() => {});
 
-            return window.appState?.myFiles?.[0]?.lastModified?.getTime?.() ?? null;
+            // Race the import against a 5-second timeout to detect a hang.
+            const result = await Promise.race([
+                importTarGzipToOPFS(() => {}).then(() => 'completed'),
+                new Promise(r => setTimeout(() => r('timeout'), 5000)),
+            ]);
+
+            return {
+                result,
+                lastModified: window.appState?.myFiles?.[0]?.lastModified?.getTime?.() ?? null,
+            };
         });
 
-        // Should use the mtime from the tar entry (FIXED_MTIME), not the OPFS file time (IMPORT_TIME)
-        expect(lastModifiedMs).toBeCloseTo(FIXED_MTIME, -3);
+        // Import must complete (not hang) — this fails before the fire-and-forget fix
+        expect(outcome.result).toBe('completed');
+        // Must use mtime from tar entry (FIXED_MTIME), not the OPFS file time (IMPORT_TIME)
+        expect(outcome.lastModified).toBeCloseTo(FIXED_MTIME, -3);
     });
 
 });

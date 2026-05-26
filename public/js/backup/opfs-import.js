@@ -174,11 +174,7 @@ export async function importTarGzipToOPFS(onComplete) {
         const total = entries.filter(e => e.type === 'file').length;
         const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
         await writeFilesToOPFS(entries, opfsRoot, n, total);
-        try {
-            await writeMtimeMap(mtimeMap, opfsRoot);
-        } catch {
-            // mtime persistence failed; import continues without stored dates
-        }
+        writeMtimeMap(mtimeMap, opfsRoot).catch(() => {});
         await populateAppStateFromOPFS(opfsRoot, importStartTime, n, mtimeMap);
         onComplete();
     }
