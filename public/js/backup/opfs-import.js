@@ -97,15 +97,17 @@ async function readMtimeMap(opfsRoot) {
  * Reads all .txt/.md files from OPFS and populates appState. Mirrors loadDirectoryFileHandles().
  * @param {FileSystemDirectoryHandle} opfsRoot
  * @param {number|null} outerStartTime - performance.now() timestamp from before unpacking, if available.
+ * @param {number|null} n
+ * @param {Map<string, number>|null} mtimeMap - pre-built mtime map; if null, reads from OPFS.
  * @returns {Promise<void>}
  */
-async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null) {
+async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null, mtimeMap = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;
 
-    const mtimeMap = await readMtimeMap(opfsRoot);
+    if (mtimeMap === null) mtimeMap = await readMtimeMap(opfsRoot);
     const startTime = performance.now();
 
     const fileEntries = await getFilesRecursive(opfsRoot);
@@ -160,7 +162,12 @@ export async function importTarGzipToOPFS(onComplete) {
     const importStartTime = performance.now();
     const file = await fileHandle.getFile();
     const entries = await parseTarGzip(await file.arrayBuffer());
-    const opfsRoot = await navigator.storage.getDirectory();
+    let opfsRoot;
+    try {
+        opfsRoot = await navigator.storage.getDirectory();
+    } catch {
+        throw new Error('OPFS unavailable — serve the app from a web server or HTTPS');
+    }
 
     const mtimeMap = new Map(
         entries
@@ -172,9 +179,11 @@ export async function importTarGzipToOPFS(onComplete) {
         const total = entries.filter(e => e.type === 'file').length;
         const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
         await writeFilesToOPFS(entries, opfsRoot, n, total);
-        await writeMtimeMap(mtimeMap, opfsRoot);
-        await populateAppStateFromOPFS(opfsRoot, importStartTime, n);
+        await populateAppStateFromOPFS(opfsRoot, importStartTime, n, mtimeMap);
         onComplete();
+        // Must fire AFTER populateAppStateFromOPFS: concurrent getDirectoryHandle('.gypsum')
+        // and values() on the same OPFS root deadlock in Chromium.
+        writeMtimeMap(mtimeMap, opfsRoot).catch(() => {});
     }
 
     if (await hasOPFSContent(opfsRoot)) {
@@ -192,7 +201,12 @@ export async function importTarGzipToOPFS(onComplete) {
  * @returns {Promise<void>}
  */
 export async function loadFromOPFS() {
-    const opfsRoot = await navigator.storage.getDirectory();
+    let opfsRoot;
+    try {
+        opfsRoot = await navigator.storage.getDirectory();
+    } catch {
+        return;
+    }
     if (!(await hasOPFSContent(opfsRoot))) return;
     await populateAppStateFromOPFS(opfsRoot);
 }
@@ -202,7 +216,12 @@ export async function loadFromOPFS() {
  * @returns {Promise<void>}
  */
 export async function initOPFSButton() {
-    const opfsRoot = await navigator.storage.getDirectory();
+    let opfsRoot;
+    try {
+        opfsRoot = await navigator.storage.getDirectory();
+    } catch {
+        return;
+    }
     if (await hasOPFSContent(opfsRoot)) {
         document.getElementById('btn-load-opfs').disabled = false;
     }
