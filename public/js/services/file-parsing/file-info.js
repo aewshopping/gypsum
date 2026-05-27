@@ -117,7 +117,8 @@ function processTag({ childValue, parentValue }, tagState) {
 
         // Handle color tag extraction
         if ((lowerParent === "color" || lowerParent === "colour") && tagState.colorFirst === null) {
-            tagState.colorFirst = childValue;
+            const isHex = /^[0-9a-fA-F]{3,8}$/.test(childValue) && [3, 4, 6, 8].includes(childValue.length);
+            tagState.colorFirst = isHex ? `#${childValue}` : childValue;
         }
     }
 }
