@@ -31,6 +31,28 @@ export const COLOR_NAMES = [
      'LightPink','MistyRose','NavajoWhite','LemonChiffon','LightGreen','MediumAquaMarine','LightBlue','SkyBlue','Gainsboro','Lavender','Thistle','Plum'
 ];
 
+export const HTML_COLOR_NAMES = [
+    'black','palevioletred','pink','lightpink','snow','rosybrown','crimson','lightcoral',
+    'indianred','mistyrose','brown','firebrick','salmon','maroon','darkred','red',
+    'tomato','orangered','darksalmon','coral','lightsalmon','sienna','chocolate','saddlebrown',
+    'seashell','darkorange','sandybrown','peru','peachpuff','linen','orange','bisque',
+    'burlywood','tan','antiquewhite','navajowhite','blanchedalmond','papayawhip','moccasin','darkgoldenrod',
+    'wheat','oldlace','goldenrod','floralwhite','whitesmoke','lightgray','lightgrey','dimgray',
+    'dimgrey','gray','grey','darkgray','darkgrey','silver','white','gainsboro',
+    'gold','cornsilk','lemonchiffon','khaki','palegoldenrod','darkkhaki','ivory','beige',
+    'lightyellow','lightgoldenrodyellow','yellow','olive','darkolivegreen','olivedrab','yellowgreen','greenyellow',
+    'chartreuse','lawngreen','darkgreen','green','lime','limegreen','forestgreen','palegreen',
+    'lightgreen','darkseagreen','honeydew','springgreen','seagreen','mediumseagreen','mediumspringgreen','mintcream',
+    'mediumaquamarine','aquamarine','turquoise','lightseagreen','mediumturquoise','darkcyan','teal','aqua',
+    'cyan','darkslategray','darkslategrey','paleturquoise','lightcyan','darkturquoise','azure','cadetblue',
+    'powderblue','lightblue','skyblue','deepskyblue','lightskyblue','aliceblue','steelblue','slategray',
+    'slategrey','lightslategray','lightslategrey','dodgerblue','lightsteelblue','cornflowerblue','blue','darkblue',
+    'mediumblue','navy','royalblue','midnightblue','mediumslateblue','slateblue','lavender','darkslateblue',
+    'ghostwhite','mediumpurple','blueviolet','indigo','rebeccapurple','darkviolet','darkorchid','mediumorchid',
+    'thistle','plum','violet','darkmagenta','fuchsia','magenta','purple','orchid',
+    'mediumvioletred','hotpink','lavenderblush','deeppink',
+];
+
 // Matches #color/name or #colour/name in plain text file content.
 // Lookbehind requires a space or newline before the tag.
 // Lookahead requires a space, newline, or end of string after.
