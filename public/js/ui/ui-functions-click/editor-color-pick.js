@@ -72,6 +72,9 @@ function buildColorPickerContent() {
 
     container.innerHTML = '';
     container.appendChild(row1);
+    const divider = document.createElement('hr');
+    divider.className = 'color-picker-divider';
+    container.appendChild(divider);
     container.appendChild(extraWrapper);
 }
 
