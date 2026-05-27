@@ -34,7 +34,7 @@ function makeCircleButton(name) {
     const btn = document.createElement('button');
     btn.className = 'color-circle';
     btn.dataset.action = 'color-circle-pick';
-    btn.dataset.colorValue = name;
+    btn.dataset.colorValue = name.startsWith('#') ? name.slice(1) : name;
     btn.title = name;
     if (name !== 'nocolor') btn.style.backgroundColor = name;
     return btn;
@@ -101,7 +101,8 @@ export function handleEditorColorPick() {
 export function handleColorCirclePick(_evt, actionEl) {
     const colorName = actionEl.dataset.colorValue;
     document.getElementById('modal-color-picker').close();
-    const colorValue = colorName === 'nocolor' ? '' : colorName;
+    const isHex = /^[0-9a-fA-F]{3,8}$/.test(colorName) && [3, 4, 6, 8].includes(colorName.length);
+    const colorValue = colorName === 'nocolor' ? '' : (isHex ? `#${colorName}` : colorName);
     document.getElementById('file-content-header').dataset.color = colorValue;
     document.getElementById('modal-content').dataset.color = colorValue;
     const newOffset = applyColorToEditor(colorName, pendingSavedOffset);
