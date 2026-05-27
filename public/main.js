@@ -50,8 +50,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 await minDuration;
                 removeLoading();
             });
-        } catch {
+        } catch (err) {
             removeLoading();
+            document.getElementById('fileCountElement').textContent = err?.message ?? '';
         }
     });
 

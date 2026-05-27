@@ -162,7 +162,12 @@ export async function importTarGzipToOPFS(onComplete) {
     const importStartTime = performance.now();
     const file = await fileHandle.getFile();
     const entries = await parseTarGzip(await file.arrayBuffer());
-    const opfsRoot = await navigator.storage.getDirectory();
+    let opfsRoot;
+    try {
+        opfsRoot = await navigator.storage.getDirectory();
+    } catch {
+        throw new Error('OPFS unavailable — serve the app from a web server or HTTPS');
+    }
 
     const mtimeMap = new Map(
         entries
@@ -196,7 +201,12 @@ export async function importTarGzipToOPFS(onComplete) {
  * @returns {Promise<void>}
  */
 export async function loadFromOPFS() {
-    const opfsRoot = await navigator.storage.getDirectory();
+    let opfsRoot;
+    try {
+        opfsRoot = await navigator.storage.getDirectory();
+    } catch {
+        return;
+    }
     if (!(await hasOPFSContent(opfsRoot))) return;
     await populateAppStateFromOPFS(opfsRoot);
 }
@@ -206,7 +216,12 @@ export async function loadFromOPFS() {
  * @returns {Promise<void>}
  */
 export async function initOPFSButton() {
-    const opfsRoot = await navigator.storage.getDirectory();
+    let opfsRoot;
+    try {
+        opfsRoot = await navigator.storage.getDirectory();
+    } catch {
+        return;
+    }
     if (await hasOPFSContent(opfsRoot)) {
         document.getElementById('btn-load-opfs').disabled = false;
     }
