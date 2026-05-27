@@ -31,59 +31,26 @@ export const COLOR_NAMES = [
      'LightPink','MistyRose','NavajoWhite','LemonChiffon','LightGreen','MediumAquaMarine','LightBlue','SkyBlue','Gainsboro','Lavender','Thistle','Plum'
 ];
 
-// All 148 standard CSS named colours, ordered by hue for display in the expanded picker row.
-// Includes all colours from COLOR_NAMES (filtered out at runtime).
 export const HTML_COLOR_NAMES = [
-    // reds
-    'red','darkred','firebrick','indianred','lightcoral','salmon','darksalmon','lightsalmon','rosybrown',
-    // orange-reds
-    'tomato','orangered','coral',
-    // oranges
-    'darkorange','orange',
-    // browns
-    'saddlebrown','sienna','peru','chocolate','maroon','brown',
-    // golden yellows
-    'darkgoldenrod','goldenrod','gold','palegoldenrod',
-    // yellows
-    'yellow','lightyellow','lemonchiffon','papayawhip','moccasin','peachpuff','navajowhite',
-    'wheat','cornsilk','bisque','blanchedalmond','antiquewhite','burlywood','tan','sandybrown',
-    'lightgoldenrodyellow',
-    // khaki & olive
-    'darkkhaki','khaki',
-    // yellow-greens
-    'greenyellow','yellowgreen','chartreuse','lawngreen','olivedrab','olive','darkolivegreen',
-    // greens
-    'lime','limegreen','green','darkgreen','forestgreen','darkseagreen','seagreen',
-    'mediumseagreen','palegreen','lightgreen',
-    // spring greens
-    'springgreen','mediumspringgreen','mediumaquamarine','aquamarine',
-    // teals & cyans
-    'turquoise','mediumturquoise','lightseagreen','darkturquoise','darkcyan','teal',
-    'cyan','aqua','lightcyan','paleturquoise',
-    // blue-greens
-    'cadetblue','lightsteelblue','powderblue','lightblue','skyblue','lightskyblue','deepskyblue',
-    // blues
-    'steelblue','dodgerblue','cornflowerblue','royalblue','blue','mediumblue','darkblue',
-    'navy','midnightblue',
-    // blue-purples
-    'slateblue','mediumslateblue','darkslateblue','mediumpurple','rebeccapurple','blueviolet','indigo',
-    // violets & orchids
-    'darkviolet','darkorchid','mediumorchid','orchid','violet',
-    // magentas
-    'purple','darkmagenta','fuchsia','magenta',
-    // pinks
-    'mediumvioletred','deeppink','hotpink','palevioletred','crimson','pink','lightpink',
-    // near-white pinks & lavenders
-    'mistyrose','lavenderblush','lavender','thistle','plum',
-    // whites & near-whites
-    'white','snow','honeydew','mintcream','azure','aliceblue','ghostwhite','whitesmoke',
-    'seashell','beige','oldlace','floralwhite','ivory','linen',
-    // grays
-    'gainsboro','lightgray','lightgrey','silver','darkgray','darkgrey','gray','grey',
-    'lightslategray','lightslategrey','slategray','slategrey','dimgray','dimgrey',
-    'darkslategray','darkslategrey',
-    // black
-    'black',
+    'black','palevioletred','pink','lightpink','snow','rosybrown','crimson','lightcoral',
+    'indianred','mistyrose','brown','firebrick','salmon','maroon','darkred','red',
+    'tomato','orangered','darksalmon','coral','lightsalmon','sienna','chocolate','saddlebrown',
+    'seashell','darkorange','sandybrown','peru','peachpuff','linen','orange','bisque',
+    'burlywood','tan','antiquewhite','navajowhite','blanchedalmond','papayawhip','moccasin','darkgoldenrod',
+    'wheat','oldlace','goldenrod','floralwhite','whitesmoke','lightgray','lightgrey','dimgray',
+    'dimgrey','gray','grey','darkgray','darkgrey','silver','white','gainsboro',
+    'gold','cornsilk','lemonchiffon','khaki','palegoldenrod','darkkhaki','ivory','beige',
+    'lightyellow','lightgoldenrodyellow','yellow','olive','darkolivegreen','olivedrab','yellowgreen','greenyellow',
+    'chartreuse','lawngreen','darkgreen','green','lime','limegreen','forestgreen','palegreen',
+    'lightgreen','darkseagreen','honeydew','springgreen','seagreen','mediumseagreen','mediumspringgreen','mintcream',
+    'mediumaquamarine','aquamarine','turquoise','lightseagreen','mediumturquoise','darkcyan','teal','aqua',
+    'cyan','darkslategray','darkslategrey','paleturquoise','lightcyan','darkturquoise','azure','cadetblue',
+    'powderblue','lightblue','skyblue','deepskyblue','lightskyblue','aliceblue','steelblue','slategray',
+    'slategrey','lightslategray','lightslategrey','dodgerblue','lightsteelblue','cornflowerblue','blue','darkblue',
+    'mediumblue','navy','royalblue','midnightblue','mediumslateblue','slateblue','lavender','darkslateblue',
+    'ghostwhite','mediumpurple','blueviolet','indigo','rebeccapurple','darkviolet','darkorchid','mediumorchid',
+    'thistle','plum','violet','darkmagenta','fuchsia','magenta','purple','orchid',
+    'mediumvioletred','hotpink','lavenderblush','deeppink',
 ];
 
 // Matches #color/name or #colour/name in plain text file content.
