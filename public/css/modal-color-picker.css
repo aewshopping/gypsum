@@ -13,10 +13,34 @@
     background-color: var(--colour-neutral-alt);
     color: var(--colour-contr);
     padding: 0;
+
+    /* Configures the transition for opening and closing */
+    transition: transform 0.3s ease-out, display 0.3s ease-out allow-discrete, overlay 0.3s ease-out allow-discrete;
+    transform: translateY(0);
 }
 
+/* Defines the initial state before the dialog opens */
+@starting-style {
+    #modal-color-picker {
+        transform: translateY(100%);
+    }
+}
+
+/* Defines the state when the dialog is closed (for the exit animation) */
+#modal-color-picker:not([open]) {
+    transform: translateY(100%);
+}
+
+/* Optional: Animate the backdrop fading in */
 #modal-color-picker::backdrop {
     background: rgba(0, 0, 0, 0.4);
+    transition: display 0.3s allow-discrete, overlay 0.3s allow-discrete, background-color 0.3s ease-out;
+}
+
+@starting-style {
+    #modal-color-picker::backdrop {
+        background-color: rgba(0, 0, 0, 0);
+    }
 }
 
 #color-picker-content {
