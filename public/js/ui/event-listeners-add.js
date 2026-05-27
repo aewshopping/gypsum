@@ -28,6 +28,7 @@ import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } f
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside, captureEditorCursorOffset } from './ui-functions-click/editor-color-pick.js';
+import { handleColorPickerExpand } from './ui-functions-click/color-picker-expand.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
@@ -82,6 +83,7 @@ const clickActionHandlers = {
     'editor-color-pick': handleEditorColorPick,
     'color-circle-pick': handleColorCirclePick,
     'close-color-picker-outside': handleCloseColorPickerOutside,
+    'color-picker-expand': handleColorPickerExpand,
     'start-tag-search': handleShowTagTaxonomy,
     'hide-tag-taxonomy': handleHideTagTaxonomy,
     'render-tag-taxonomy': handleRenderTagTaxonomy,

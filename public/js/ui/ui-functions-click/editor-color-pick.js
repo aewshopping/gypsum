@@ -1,4 +1,4 @@
-import { COLOR_NAMES } from '../../constants.js';
+import { COLOR_NAMES, HTML_COLOR_NAMES } from '../../constants.js';
 import { getEditorElement } from '../../editing/manage-unsaved-changes.js';
 import { saveCursorOffset, restoreCursorOffset, applyColorToEditor } from '../../editing/color-pick-apply.js';
 import { handleSaveFileCopy } from './save-file-copy.js';
@@ -26,21 +26,53 @@ export function resetEditorCursorOffset() {
     storedCursorOffset = null;
 }
 
+/**
+ * @param {string} name
+ * @returns {HTMLButtonElement}
+ */
+function makeCircleButton(name) {
+    const btn = document.createElement('button');
+    btn.className = 'color-circle';
+    btn.dataset.action = 'color-circle-pick';
+    btn.dataset.colorValue = name;
+    btn.title = name;
+    if (name !== 'nocolor') btn.style.backgroundColor = name;
+    return btn;
+}
+
 function buildColorPickerContent() {
+    const dialog = document.getElementById('modal-color-picker');
     const container = document.getElementById('color-picker-content');
-    const row = document.createElement('div');
-    row.className = 'color-circles-row';
+
+    // Reset expanded state on each open
+    dialog.classList.remove('expanded');
+    const expandBtn = document.getElementById('color-picker-expand-btn');
+    expandBtn.setAttribute('aria-expanded', 'false');
+    expandBtn.title = 'Show more colours';
+
+    // Row 1: nocolor first, then the curated COLOR_NAMES
+    const row1 = document.createElement('div');
+    row1.className = 'color-circles-row';
+    row1.appendChild(makeCircleButton('nocolor'));
     for (const name of COLOR_NAMES) {
-        const btn = document.createElement('button');
-        btn.className = 'color-circle';
-        btn.dataset.action = 'color-circle-pick';
-        btn.dataset.colorValue = name;
-        btn.title = name;
-        if (name !== 'nocolor') btn.style.backgroundColor = name;
-        row.appendChild(btn);
+        row1.appendChild(makeCircleButton(name));
     }
+
+    // Row 2: remaining HTML named colours, filtered and pre-ordered by hue
+    const existing = new Set(COLOR_NAMES.map(n => n.toLowerCase()));
+    const extra = HTML_COLOR_NAMES.filter(n => !existing.has(n));
+    const extraWrapper = document.createElement('div');
+    extraWrapper.id = 'color-picker-extra';
+    const row2 = document.createElement('div');
+    row2.className = 'color-circles-row color-circles-row--extra';
+    for (const name of extra) {
+        row2.appendChild(makeCircleButton(name));
+    }
+    extraWrapper.appendChild(row2);
+
     container.innerHTML = '';
-    container.appendChild(row);
+    container.appendChild(row1);
+    container.appendChild(extraWrapper);
 }
 
 /**
