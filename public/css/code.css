@@ -9,6 +9,7 @@ pre {
     padding-inline: 10px;
 }
 
-.pre-text-enlarge {
+.text-editor-style {
     font-size: 0.975em;
+    font-family: var(--fontfam-app);
 }

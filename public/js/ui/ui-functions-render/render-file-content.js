@@ -44,7 +44,7 @@ export function fileContentRender() {
             liveEditor.style.display = '';
         } else {
             const preElement = document.createElement('pre');
-            preElement.classList.add('pre-text-enlarge');
+            preElement.classList.add('text-editor-style');
             preElement.classList.add('text-editor');
             preElement.contentEditable = 'plaintext-only';
             preElement.innerHTML = appState.editSession.activeRaw
@@ -61,7 +61,7 @@ export function fileContentRender() {
         if (isTxtMode) {
             // Historical txt view — read-only pre, no .text-editor class
             const preElement = document.createElement('pre');
-            preElement.classList.add('pre-text-enlarge');
+            preElement.classList.add('text-editor-style');
             preElement.classList.add('historical-snapshot');
             preElement.contentEditable = 'false';
             preElement.innerHTML = appState.editSession.activeRaw
