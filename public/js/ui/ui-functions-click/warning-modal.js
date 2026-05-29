@@ -1,7 +1,7 @@
 /**
- * @file Configurable warning/confirmation modal. A single module-level callback
- * is stored so the same dialog element can be reused for different confirm flows
- * (e.g. "close with unsaved changes" and "delete file").
+ * @file Configurable warning/confirmation modal. A single module-level resolve
+ * function is stored so the same dialog element can be reused for different
+ * confirm flows (e.g. "close with unsaved changes", "delete file", "overwrite OPFS").
  */
 
 const warningDialog = document.getElementById('modal-unsaved-warning');
@@ -9,39 +9,42 @@ const warningText   = document.getElementById('modal-unsaved-warning-text');
 const proceedBtn    = document.getElementById('modal-unsaved-warning-proceed');
 const cancelBtn     = document.getElementById('modal-unsaved-warning-cancel');
 
-let pendingCallback = null;
+let pendingResolve = null;
 
 /**
  * Populates and shows the warning dialog.
  * @param {string} mainText - Body text of the warning.
  * @param {string} proceedText - Label for the destructive-action button.
  * @param {string} cancelText - Label for the cancel button.
- * @param {Function} onProceed - Called (synchronously) when the proceed button is clicked.
+ * @returns {Promise<boolean>} Resolves true if the user clicked proceed, false if cancelled.
  */
-export function showWarningModal(mainText, proceedText, cancelText, onProceed) {
-    warningText.textContent  = mainText;
-    proceedBtn.textContent   = proceedText;
-    cancelBtn.textContent    = cancelText;
-    pendingCallback = onProceed;
-    warningDialog.showModal();
-    warningDialog.focus();
+export function showWarningModal(mainText, proceedText, cancelText) {
+    warningText.textContent = mainText;
+    proceedBtn.textContent  = proceedText;
+    cancelBtn.textContent   = cancelText;
+    return new Promise(resolve => {
+        pendingResolve = resolve;
+        warningDialog.showModal();
+        warningDialog.focus();
+    });
 }
 
 /**
- * Handles the proceed button click: closes the dialog and fires the stored callback.
+ * Handles the proceed button click: closes the dialog and resolves the promise.
  */
 export function handleWarningProceed() {
     warningDialog.close();
-    const cb = pendingCallback;
-    pendingCallback = null;
-    cb?.();
+    const resolve = pendingResolve;
+    pendingResolve = null;
+    resolve?.(true);
 }
 
 /**
- * Handles the cancel button click: closes the dialog and discards the stored callback.
+ * Handles the cancel button click: closes the dialog and resolves the promise.
  */
 export function handleWarningCancel() {
     warningDialog.close();
-    pendingCallback = null;
-    document.getElementById('btn_loadDirectoryHandles').classList.remove('loading');
+    const resolve = pendingResolve;
+    pendingResolve = null;
+    resolve?.(false);
 }

@@ -52,7 +52,9 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         } catch (err) {
             removeLoading();
-            document.getElementById('fileCountElement').textContent = err?.message ?? '';
+            if (err?.name !== 'AbortError') {
+                document.getElementById('fileCountElement').textContent = err?.message ?? '';
+            }
         }
     });
 

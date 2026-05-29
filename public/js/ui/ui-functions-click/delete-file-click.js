@@ -85,7 +85,7 @@ async function handleDeleteFileConfirmed() {
  * Shows a confirmation warning before proceeding.
  * @param {Event} evt
  */
-export function handleDeleteFile(evt) {
+export async function handleDeleteFile(evt) {
     evt.preventDefault();
     if (!appState.dirHandle) return;
 
@@ -93,10 +93,7 @@ export function handleDeleteFile(evt) {
     const file = appState.myFiles.find(f => f.id === fileId);
     if (!file) return;
 
-    showWarningModal(
-        `Move "${file.filename}" to trash?`,
-        'Delete',
-        'Cancel',
-        handleDeleteFileConfirmed,
-    );
+    if (await showWarningModal(`Move "${file.filename}" to trash?`, 'Delete', 'Cancel')) {
+        handleDeleteFileConfirmed();
+    }
 }

@@ -27,7 +27,9 @@ async function hasOPFSContent(opfsRoot) {
  * @returns {Promise<void>}
  */
 async function clearOPFS(opfsRoot) {
-    for await (const name of opfsRoot.keys()) {
+    const names = [];
+    for await (const name of opfsRoot.keys()) names.push(name);
+    for (const name of names) {
         await opfsRoot.removeEntry(name, { recursive: true });
     }
 }
@@ -187,13 +189,11 @@ export async function importTarGzipToOPFS(onComplete) {
     }
 
     if (await hasOPFSContent(opfsRoot)) {
-        showWarningModal('OPFS already contains imported files. Overwrite them?', 'Overwrite', 'Cancel', async () => {
-            await clearOPFS(opfsRoot);
-            await proceed();
-        });
-    } else {
-        await proceed();
+        const confirmed = await showWarningModal('OPFS already contains imported files. Overwrite them?', 'Overwrite', 'Cancel');
+        if (!confirmed) throw new DOMException('', 'AbortError');
+        await clearOPFS(opfsRoot);
     }
+    await proceed();
 }
 
 /**
