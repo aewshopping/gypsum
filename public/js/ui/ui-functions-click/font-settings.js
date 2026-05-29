@@ -86,25 +86,31 @@ export function handleFontStyleHeadersChange(_evt, el) {
  * @returns {void}
  */
 export function handleResetFontStyleApp() {
-    root.style.setProperty('--fontfam-app', DEFAULTS.fontStyleApp);
     const select = document.querySelector('[data-action="font-style-app-change"]');
-    if (select) select.value = DEFAULTS.fontStyleApp;
+    if (!select) return;
+    const defaultValue = select.options[0].value;
+    root.style.setProperty('--fontfam-app', defaultValue);
+    select.value = defaultValue;
 }
 
 /**
  * @returns {void}
  */
 export function handleResetFontStyleText() {
-    root.style.setProperty('--fontfam-html', DEFAULTS.fontStyleText);
     const select = document.querySelector('[data-action="font-style-text-change"]');
-    if (select) select.value = DEFAULTS.fontStyleText;
+    if (!select) return;
+    const defaultValue = select.options[0].value;
+    root.style.setProperty('--fontfam-html', defaultValue);
+    select.value = defaultValue;
 }
 
 /**
  * @returns {void}
  */
 export function handleResetFontStyleHeaders() {
-    root.style.setProperty('--fontfam-headers', DEFAULTS.fontStyleHeaders);
     const select = document.querySelector('[data-action="font-style-headers-change"]');
-    if (select) select.value = DEFAULTS.fontStyleHeaders;
+    if (!select) return;
+    const defaultValue = select.options[0].value;
+    root.style.setProperty('--fontfam-headers', defaultValue);
+    select.value = defaultValue;
 }
