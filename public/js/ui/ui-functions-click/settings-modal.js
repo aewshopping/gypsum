@@ -22,13 +22,18 @@ export function handleCloseSettings() {
 }
 
 /**
- * Closes the Settings modal when the user clicks on the backdrop
- * (i.e. on the dialog element itself rather than any of its children).
+ * Closes the Settings modal when the user clicks on the backdrop — i.e. outside
+ * the dialog's visible bounding box. Clicking inside the dialog's padding (which
+ * also sets event.target to the dialog element) intentionally does NOT close it.
  * @param {Event} event - The click event.
  * @returns {void}
  */
 export function handleCloseSettingsOutside(event) {
-    if (event.target === dialog) {
+    const rect = dialog.getBoundingClientRect();
+    if (
+        event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top  || event.clientY > rect.bottom
+    ) {
         dialog.close();
     }
 }
