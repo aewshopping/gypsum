@@ -28,7 +28,16 @@ export const PAGINATION_SIZE = 50;
 export const PROGRESS_STEP_SIZE = 1; // update loading progress every N percentage points
 
 export const COLOR_NAMES = [
-     'LightPink','MistyRose','NavajoWhite','LemonChiffon','LightGreen','MediumAquaMarine','LightBlue','SkyBlue','Gainsboro','Lavender','Thistle','Plum'
+  "#f0cbc8", // Pastel Rose
+  "#f0d8c8", // Pastel Terracotta
+  "#f0e6c8", // Pastel Ochre
+  "#e2f0c8", // Pastel Sage
+  "#cef0c8", // Pastel Mint
+  "#c8f0de", // Pastel Aqua
+  "#c8e6f0", // Pastel Sky
+  "#ccc8f0", // Pastel Lavender
+  "#e2c8f0", // Pastel Orchid
+  "#f0c8e5"  // Pastel Carnation
 ];
 
 export const HTML_COLOR_NAMES = [
