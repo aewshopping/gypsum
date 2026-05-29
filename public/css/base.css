@@ -12,11 +12,11 @@
     --btn-size-base: 30px;
     --btn-size-multiple: 1;
     --btn-size: calc(var(--btn-size-base) * var(--btn-size-multiple));
-    --fontfam-app-input: monospace;
-    --fontfam-app-label: Arial, Helvetica, sans-serif;
-    --fontfam-html: Arial, Helvetica, sans-serif;
-    --fontfam-mkdwn: monospace;
-    --fontfam-headers: Trebuchet MS, Arial, Helvetica, sans-serif;
+    --fontfam-app-input: "Consolas", monospace;
+    --fontfam-app-label: "Arial", "Helvetica", sans-serif;
+    --fontfam-html: "Arial", "Helvetica", sans-serif;
+    --fontfam-mkdwn: "Consolas", monospace;
+    --fontfam-headers: "Trebuchet MS", "Arial", "Helvetica", sans-serif;
     --fsize-app-multiple: 1;
     --fsize-filetext-multiple: 1; 
 }
