@@ -9,7 +9,9 @@
 	interpolate-size: allow-keywords; /* for animating details open and close */
     --box-shadow-color: var(--colour-compl-contr);
     --hover-box-shadow: 3px 3px 0px 0px var(--box-shadow-color);
-    --btn-size: 30px;
+    --btn-size-base: 30px;
+    --btn-size-multiple: 1;
+    --btn-size: calc(var(--btn-size-base) * var(--btn-size-multiple));
     --fontfam-app: monospace;
     --fontfam-html: Arial, Helvetica, sans-serif;
     --fontfam-headers: Trebuchet MS, Arial, Helvetica, sans-serif;

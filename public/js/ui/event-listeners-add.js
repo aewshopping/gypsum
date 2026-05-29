@@ -33,6 +33,7 @@ import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy }
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 import { handleBackupContent, handleBackupFull } from './ui-functions-click/backup-click.js';
+import { handleButtonSizeChange } from './ui-functions-click/button-size.js';
 import {
     handleFontSizeAppChange, handleFontSizeFileChange,
     handleFontStyleAppChange, handleFontStyleTextChange, handleFontStyleHeadersChange,
@@ -123,6 +124,7 @@ const changeActionHandlers = {
     'font-style-headers-change': handleFontStyleHeadersChange,
     'font-size-app-change': handleFontSizeAppChange,
     'font-size-file-change': handleFontSizeFileChange,
+    'button-size-change': handleButtonSizeChange,
 };
 
 const keyUpActionHandlers = {
