@@ -1,5 +1,7 @@
 // Open/close handlers for the Settings modal.
 
+import { populateFontSelects } from '../../services/font-loader.js';
+
 const dialog = document.getElementById('modal-settings');
 
 /**
@@ -7,6 +9,7 @@ const dialog = document.getElementById('modal-settings');
  * @returns {void}
  */
 export function handleOpenSettings() {
+    populateFontSelects();
     dialog.showModal();
 }
 

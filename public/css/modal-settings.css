@@ -36,6 +36,27 @@
     cursor: not-allowed;
 }
 
+.settings-control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.settings-reset-btn {
+    padding: 0 4px;
+    border: none;
+    background: transparent;
+    color: var(--colour-contr);
+    opacity: 0.35;
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1;
+}
+
+.settings-reset-btn:hover {
+    opacity: 1;
+}
+
 .settings-backup-btns {
     display: flex;
     gap: 8px;
