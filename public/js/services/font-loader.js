@@ -76,7 +76,7 @@ export function populateFontSelects() {
         const currentFont = primaryFontName(computed.getPropertyValue(cssVar).trim());
         if (currentFont) {
             select.value = currentFont;
-            select.style.fontFamily = currentFont;
+            select.dataset.font = currentFont;
         }
     }
 }
