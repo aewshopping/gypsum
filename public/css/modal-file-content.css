@@ -109,3 +109,7 @@ html {
     outline: none; /* focus-within targets parent element border*/
   }
 }
+
+.modal-content-peek {
+  font-family: var(--fontfam-html);
+}

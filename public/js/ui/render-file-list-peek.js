@@ -35,7 +35,7 @@ export function renderFileList_peek(renderEverything) {
 
             <h3 class="color-dynamic" data-color="${file.color}" data-prop="title">${file.title}</h3>
 
-            <p data-prop="contentPeek">${peekHtml ? peekHtml + '...' : ''}</p>
+            <p class="modal-content-peek" data-prop="contentPeek">${peekHtml ? peekHtml + '...' : ''}</p>
 
             <div data-prop="tags">${tag_pills_html}</div>
 
