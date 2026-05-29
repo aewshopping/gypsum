@@ -1,27 +1,22 @@
 :root {
-    --colour-neutral: ivory; /* bg */ /*WhiteSmoke #F6FFFC #80AAFF*/
-    --colour-neutral-alt: khaki; /* card bg */ /* white / lightgoldenrodyellow */
-    --colour-contr: DarkSlateGray; /* text */
-    --colour-contr-emph: RoyalBlue;  /* h1 */
+    --colour-neutral: rgb(241, 241, 241); /* bg */
+    --colour-neutral-alt: white; /* card bg */
+    --colour-contr: black; /* text */
+    --colour-contr-emph: black;  /* h1 */
     --colour-contr-warning: #cd3158;
 
-    --colour-compl: PaleTurquoise;  /* btn */
-    --colour-compl-emph-light: LightYellow;  /* btn hover */
+    --colour-compl: LightGrey;  /* btn */
+    --colour-compl-emph-light: Silver;  /* btn hover */
     --colour-compl-emph: #FFD480; /* btn select */ /*gold*/
-    --colour-compl-contr: DarkSlateGray; /* btn text */
-    --colour-compl-emph-contr: DarkSlateGray; /* btn select text */
+    --colour-compl-contr: black; /* btn text */
+    --colour-compl-emph-contr: black; /* btn select text */
 
-    --colour-compl-alt: PaleTurquoise; /* tag */
-    --colour-compl-alt-emph-light: MistyRose; /* tag hover */
+    --colour-compl-alt: LightGrey; /* tag */
+    --colour-compl-alt-emph-light: Silver; /* tag hover */
     --colour-compl-alt-emph: #FF80AA; /* tag select */ /*Pink*/
-    --colour-compl-alt-contr: DarkSlateGray; /* tag text */ /*MediumVioletRed*/
-    --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
-
-    --colour-highlight:         var(--colour-compl-emph);
-    --colour-highlight-light:   var(--colour-compl-emph-light);
-    --colour-highlight-contr:   var(--colour-compl-emph-contr);
-    --colour-highlight-mix-pct: 60%;
-    }
+    --colour-compl-alt-contr: black; /* tag text */ /*MediumVioletRed*/
+    --colour-compl-alt-emph-contr: black; /* tag select text */
+}    
 
 :root:has(input[type="radio"]#glow:checked) {
     --colour-neutral: DarkSlateGray; /* bg */
@@ -43,24 +38,31 @@
     --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
 }
 
-:root:has(input[type="radio"]#blackandwhite:checked) {
-    --colour-neutral: rgb(241, 241, 241); /* bg */
-    --colour-neutral-alt: white; /* card bg */
-    --colour-contr: black; /* text */
-    --colour-contr-emph: black;  /* h1 */
+:root:has(input[type="radio"]#snow:checked) {
+    --colour-neutral: ivory; /* bg */ /*WhiteSmoke #F6FFFC #80AAFF*/
+    --colour-neutral-alt: khaki; /* card bg */ /* white / lightgoldenrodyellow */
+    --colour-contr: DarkSlateGray; /* text */
+    --colour-contr-emph: RoyalBlue;  /* h1 */
     --colour-contr-warning: #cd3158;
 
-    --colour-compl: LightGrey;  /* btn */
-    --colour-compl-emph-light: Silver;  /* btn hover */
+    --colour-compl: PaleTurquoise;  /* btn */
+    --colour-compl-emph-light: LightYellow;  /* btn hover */
     --colour-compl-emph: #FFD480; /* btn select */ /*gold*/
-    --colour-compl-contr: black; /* btn text */
-    --colour-compl-emph-contr: black; /* btn select text */
+    --colour-compl-contr: DarkSlateGray; /* btn text */
+    --colour-compl-emph-contr: DarkSlateGray; /* btn select text */
 
-    --colour-compl-alt: LightGrey; /* tag */
-    --colour-compl-alt-emph-light: Silver; /* tag hover */
+    --colour-compl-alt: PaleTurquoise; /* tag */
+    --colour-compl-alt-emph-light: MistyRose; /* tag hover */
     --colour-compl-alt-emph: #FF80AA; /* tag select */ /*Pink*/
-    --colour-compl-alt-contr: black; /* tag text */ /*MediumVioletRed*/
-    --colour-compl-alt-emph-contr: black; /* tag select text */
+    --colour-compl-alt-contr: DarkSlateGray; /* tag text */ /*MediumVioletRed*/
+    --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
+    }
+
+:root {
+    --colour-highlight:         var(--colour-compl-emph);
+    --colour-highlight-light:   var(--colour-compl-emph-light);
+    --colour-highlight-contr:   var(--colour-compl-emph-contr);
+    --colour-highlight-mix-pct: 60%;
 }
 
 :root:has(#and_filter:checked) {
