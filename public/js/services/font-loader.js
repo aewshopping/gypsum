@@ -53,6 +53,7 @@ export function populateFontSelects() {
                 const opt = document.createElement('option');
                 opt.value = font;
                 opt.textContent = font;
+                opt.style.fontFamily = font;
                 select.appendChild(opt);
             }
         }
