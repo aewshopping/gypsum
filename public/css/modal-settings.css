@@ -123,7 +123,7 @@
     border: 1px solid var(--colour-soften-2);
     background-color: var(--colour-soften-3);
     border-radius: 4px;
-    font-size: 1.1em;
+    font-size: 0.89375em;
     font-family: var(--fs-app);
     line-height: 1.5;
 }

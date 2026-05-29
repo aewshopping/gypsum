@@ -28,6 +28,12 @@ th, td {
     text-align: left; /* Align text as needed */
 }
 body {
+    --fs-xsmall: 0.8rem;
+    --fs-small: 0.9rem;
+    --fs-medium: 1rem;
+    --fs-large: 1.1rem;
+    --fs-xlarge: 1.2rem;
+    font-size: var(--fs-medium);
     font-family: Arial, Helvetica, sans-serif;
     background-color: var(--colour-neutral);
     color: var(--colour-contr);

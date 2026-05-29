@@ -3,7 +3,7 @@
     flex-direction: column;
     gap: 0;
     margin-bottom: 20px;
-    font: 1.1em var(--fs-app);
+    font: 0.89375em var(--fs-app); /* size replicating 14.3px */
 }
 
 .file-display-controls-top {
@@ -46,7 +46,7 @@
     border:none;
     cursor:pointer;
     min-width: 80px;
-    font: 1em var(--fs-app);
+    /* font: 1em var(--fs-app); */
     color: var(--colour-contr);
     background-color: var(--colour-neutral-alt);
     &:hover {

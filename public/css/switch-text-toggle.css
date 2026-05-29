@@ -9,7 +9,7 @@
 	border-radius: 5px;
 	color: var(--colour-contr);
 	margin-right:-2px;
-	font: 1.1em var(--fs-app);
+	font: 0.89375em var(--fs-app);
   
 	/* apply focus style on keyboard focus but not mouseclick focus */
 	&:has(:focus-visible) {

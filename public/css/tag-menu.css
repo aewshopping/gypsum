@@ -18,6 +18,7 @@
 
   summary {
     cursor: pointer;
+    font-size: 0.8125em;
 
     &::marker {
       content: "+ ";
@@ -102,6 +103,7 @@
     left:50%;
     transform: translateX(-50%);
     font-family: var(--fs-app);
+    font-size: 0.8125em;
     cursor: pointer;
     padding-inline: 5px;
     border-bottom-right-radius: 6px;

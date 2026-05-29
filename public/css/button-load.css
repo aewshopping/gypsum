@@ -14,7 +14,7 @@
     border: 1.5px solid var(--colour-contr);
     border-radius: 5px;
     font-family: var(--fs-app);
-    font-size:1.1em;
+    font-size:0.8125em; /* replicates unstyled UI of 13px where default size is 16px */
 
     &:focus-visible {
         outline: 2px solid var(--colour-contr);
@@ -39,7 +39,7 @@
 
     position: relative;
     isolation:isolate;
-    font-size: 1.1em;
+    font-size: 0.8125em;
     color: var(--colour-contr);
     font-family: var(--fs-app);
     white-space: nowrap;
