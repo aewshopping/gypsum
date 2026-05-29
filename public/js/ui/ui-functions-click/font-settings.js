@@ -96,6 +96,7 @@ export function handleResetFontSizeFile() {
  */
 function setFontStyle(el, cssVar) {
     root.style.setProperty(cssVar, el.value);
+    el.style.fontFamily = el.value;
 }
 
 /**
@@ -118,7 +119,10 @@ function primaryFontName(cssValue) {
 function resetFontStyle(cssVar, action, defaultValue) {
     root.style.setProperty(cssVar, defaultValue);
     const select = document.querySelector(`[data-action="${action}"]`);
-    if (select) select.value = primaryFontName(defaultValue);
+    if (select) {
+        select.value = primaryFontName(defaultValue);
+        select.style.fontFamily = primaryFontName(defaultValue);
+    }
 }
 
 /**
