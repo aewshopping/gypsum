@@ -99,7 +99,17 @@ function setFontStyle(el, cssVar) {
 }
 
 /**
- * Resets a font-family CSS variable to its default and resets the select to its first option.
+ * Extracts the primary font name from a CSS font-family value.
+ * e.g. `"Consolas", monospace` → `Consolas`
+ * @param {string} cssValue
+ * @returns {string}
+ */
+function primaryFontName(cssValue) {
+    return cssValue.split(',')[0].trim().replace(/^["']|["']$/g, '');
+}
+
+/**
+ * Resets a font-family CSS variable to its default and syncs the select to show that font.
  * @param {string} cssVar
  * @param {string} action
  * @param {string} defaultValue
@@ -108,7 +118,7 @@ function setFontStyle(el, cssVar) {
 function resetFontStyle(cssVar, action, defaultValue) {
     root.style.setProperty(cssVar, defaultValue);
     const select = document.querySelector(`[data-action="${action}"]`);
-    if (select) select.value = select.options[0].value;
+    if (select) select.value = primaryFontName(defaultValue);
 }
 
 /**
