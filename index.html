@@ -187,9 +187,9 @@
     <div class="settings-row">
       <span class="settings-label">Colour theme</span>
       <div class="color-select-radio">
+        <label class="formcontrol"><input type="radio" name="radio" id="blackandwhite" checked />b&w</label>
         <label class="formcontrol"><input type="radio" name="radio" />snow</label>
         <label class="formcontrol"><input type="radio" name="radio" id="glow" />glow</label>
-        <label class="formcontrol"><input type="radio" name="radio" id="blackandwhite" checked />b&w</label>
       </div>
     </div>
 
@@ -199,12 +199,21 @@
     </label>
 
     <label class="settings-row">
-      <span class="settings-label">Font size (text file)</span>
+      <span class="settings-label">Font style (app)</span>
+      <select disabled>
+        <option>sans-serif</option>
+        <option>serif</option>
+        <option>monospace</option>
+      </select>
+    </label>    
+
+    <label class="settings-row">
+      <span class="settings-label">Font size (file)</span>
       <input type="range" min="12" max="32" disabled>
     </label>
 
     <label class="settings-row">
-      <span class="settings-label">Font style</span>
+      <span class="settings-label">Font style (text)</span>
       <select disabled>
         <option>sans-serif</option>
         <option>serif</option>
@@ -213,17 +222,21 @@
     </label>
 
     <label class="settings-row">
+      <span class="settings-label">Font style (headers)</span>
+      <select disabled>
+        <option>trebuchet ms</option>
+        <option>serif</option>
+        <option>monospace</option>
+      </select>
+    </label>
+
+    <label class="settings-row">
       <span class="settings-label">Pagination size</span>
-      <input type="number" min="10" max="200" disabled>
+      <input type="number" min="10" max="1000" disabled>
     </label>
 
     <div class="settings-row">
-      <span class="settings-label">Tag autocomplete</span>
-      <label class="switch"><input type="checkbox" disabled><span class="slider"></span></label>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">File transitions enabled</span>
+      <span class="settings-label">Animate file filtering</span>
       <label class="switch"><input type="checkbox" id="file-transitions-enabled" checked><span class="slider"></span></label>
     </div>
 
