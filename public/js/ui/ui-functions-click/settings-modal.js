@@ -4,6 +4,11 @@ import { populateFontSelects } from '../../services/font-loader.js';
 
 const dialog = document.getElementById('modal-settings');
 
+let pressedOnBackdrop = false;
+dialog.addEventListener('pointerdown', (evt) => {
+    pressedOnBackdrop = evt.target === dialog;
+});
+
 /**
  * Opens the Settings modal.
  * @returns {void}
@@ -22,18 +27,14 @@ export function handleCloseSettings() {
 }
 
 /**
- * Closes the Settings modal when the user clicks on the backdrop — i.e. outside
- * the dialog's visible bounding box. Clicking inside the dialog's padding (which
- * also sets event.target to the dialog element) intentionally does NOT close it.
+ * Closes the Settings modal when the user clicks on the backdrop.
+ * Requires both the press and release to be on the dialog backdrop so that
+ * a drag starting inside the modal doesn't accidentally close it.
  * @param {Event} event - The click event.
  * @returns {void}
  */
 export function handleCloseSettingsOutside(event) {
-    const rect = dialog.getBoundingClientRect();
-    if (
-        event.clientX < rect.left || event.clientX > rect.right ||
-        event.clientY < rect.top  || event.clientY > rect.bottom
-    ) {
+    if (event.target === dialog && pressedOnBackdrop) {
         dialog.close();
     }
 }
