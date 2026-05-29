@@ -13,7 +13,7 @@ const constantsSrc = fs.readFileSync(
 );
 const ALL_COLOURS = constantsSrc
   .match(/COLOR_NAMES\s*=\s*\[([^\]]+)\]/)[1]
-  .match(/'([^']+)'/g)
+  .match(/["']([^"']+)["']/g)
   .map(s => s.slice(1, -1));
 
 // Two distinct colours used by tests 2 and 4. COLOUR_0 is pre-inserted in the mock
