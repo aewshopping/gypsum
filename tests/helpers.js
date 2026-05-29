@@ -545,7 +545,8 @@ async function setupMockDirectoryForColorExisting(page, colourName = 'coral') {
     window.__savedFiles = {};
     window.__originalFiles = {};
     window.__backupFileContent = '';
-    const fileContent = `# My Notes\n#color/${colour}\nText below`;
+    const bareColour = colour.startsWith('#') ? colour.slice(1) : colour;
+    const fileContent = `# My Notes\n#color/${bareColour}\nText below`;
     const makeFile = (name, content) => ({
       kind: 'file', name,
       getFile: async () => ({

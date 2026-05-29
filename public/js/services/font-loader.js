@@ -31,20 +31,35 @@ let populated = false;
  * this function appends additional detected fonts alphabetically, skipping any already listed.
  * Only runs once — subsequent calls are no-ops.
  */
+const CSS_VAR_FOR_ACTION = {
+    'font-style-app-label-change': '--fontfam-app-label',
+    'font-style-app-input-change': '--fontfam-app-input',
+    'font-style-html-change':      '--fontfam-html',
+    'font-style-text-change':      '--fontfam-mkdwn',
+    'font-style-headers-change':   '--fontfam-headers',
+};
+
+/**
+ * Extracts the primary font name from a CSS font-family value.
+ * e.g. `"Consolas", monospace` → `Consolas`
+ * @param {string} cssValue
+ * @returns {string}
+ */
+function primaryFontName(cssValue) {
+    return cssValue.split(',')[0].trim().replace(/^["']|["']$/g, '');
+}
+
 export function populateFontSelects() {
     if (populated) return;
     populated = true;
 
-    const selects = [
-        document.querySelector('[data-action="font-style-app-change"]'),
-        document.querySelector('[data-action="font-style-text-change"]'),
-        document.querySelector('[data-action="font-style-headers-change"]'),
-    ];
-
+    const computed = getComputedStyle(document.documentElement);
     const availableFonts = COMMON_FONTS.filter(isFontAvailable).sort();
 
-    for (const select of selects) {
+    for (const [action, cssVar] of Object.entries(CSS_VAR_FOR_ACTION)) {
+        const select = document.querySelector(`[data-action="${action}"]`);
         if (!select) continue;
+
         const existing = new Set(
             Array.from(select.options).map(o => o.value.toLowerCase())
         );
@@ -56,6 +71,12 @@ export function populateFontSelects() {
                 opt.style.fontFamily = font;
                 select.appendChild(opt);
             }
+        }
+
+        const currentFont = primaryFontName(computed.getPropertyValue(cssVar).trim());
+        if (currentFont) {
+            select.value = currentFont;
+            select.dataset.font = currentFont;
         }
     }
 }

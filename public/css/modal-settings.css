@@ -39,6 +39,11 @@
     font-size: 0.89375em;
 }
 
+/* Font-style selects self-identify their font via data-font; use that instead of --fontfam-app-input */
+[data-font] {
+    font-family: attr(data-font), monospace;
+}
+
 .settings-number-input {
     width: 3.5em;
     padding: 2px 4px;

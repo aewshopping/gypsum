@@ -87,12 +87,12 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click(`[data-action="color-circle-pick"][data-color-value="${COLOUR_1}"]`);
+    await page.click(`[data-action="color-circle-pick"][data-color-value="${COLOUR_1.replace(/^#/, '')}"]`);
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
     const editorText = await page.locator('#modal-content-text pre').textContent();
-    expect(editorText).toContain(`#color/${COLOUR_1}`);
-    expect(editorText).not.toContain(`#color/${COLOUR_0}`);
+    expect(editorText).toContain(`#color/${COLOUR_1.replace(/^#/, '')}`);
+    expect(editorText).not.toContain(`#color/${COLOUR_0.replace(/^#/, '')}`);
 
     const newOffset = await getCursorOffset(page);
     const delta = COLOUR_1.length - COLOUR_0.length;
@@ -149,10 +149,10 @@ test.describe('colour picker modal', () => {
 
     await page.click('[data-action="editor-color-pick"]');
     await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click(`[data-action="color-circle-pick"][data-color-value="${COLOUR_1}"]`);
+    await page.click(`[data-action="color-circle-pick"][data-color-value="${COLOUR_1.replace(/^#/, '')}"]`);
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();
 
-    await expect(page.locator('#modal-content-text pre')).toContainText(`#color/${COLOUR_1}`);
+    await expect(page.locator('#modal-content-text pre')).toContainText(`#color/${COLOUR_1.replace(/^#/, '')}`);
 
     // Tag was below the cursor so no delta — cursor must stay at offset 5.
     const newOffset = await getCursorOffset(page);
