@@ -102,6 +102,7 @@ html {
 
 #modal-content-text {
   margin-bottom: 200px; /* to allow scrolling below last bit of text for easier reading */
+  font-size: calc(1em * var(--fsize-filetext-multiple));
 
   & > pre {
     outline: none; /* focus-within targets parent element border*/

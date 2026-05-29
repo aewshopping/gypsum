@@ -10,7 +10,11 @@
     --box-shadow-color: var(--colour-compl-contr);
     --hover-box-shadow: 3px 3px 0px 0px var(--box-shadow-color);
     --btn-size: 30px;
-    --fs-app: monospace;
+    --fontfam-app: monospace;
+    --fontfam-html: Arial, Helvetica, sans-serif;
+    --fontfam-headers: Trebuchet MS, Arial, Helvetica, sans-serif;
+    --fsize-app-multiple: 1;
+    --fsize-filetext-multiple: 1; 
 }
 
 button {font: inherit;}
@@ -28,15 +32,12 @@ th, td {
     text-align: left; /* Align text as needed */
 }
 body {
-    --fs-xsmall: 0.8rem;
-    --fs-small: 0.9rem;
-    --fs-medium: 1rem;
-    --fs-large: 1.1rem;
-    --fs-xlarge: 1.2rem;
-    font-size: var(--fs-medium);
-    font-family: Arial, Helvetica, sans-serif;
+    font-size: calc(1rem * var(--fsize-app-multiple));
+    font-family: var(--fontfam-html);
     background-color: var(--colour-neutral);
     color: var(--colour-contr);
 }
-h1, h2, h3, h4 {color: var(--colour-contr-emph);
+h1, h2, h3, h4 {
+    color: var(--colour-contr-emph);
+    font-family: var(--fontfam-headers);
 }

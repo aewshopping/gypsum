@@ -124,6 +124,6 @@
     background-color: var(--colour-soften-3);
     border-radius: 4px;
     font-size: 0.89375em;
-    font-family: var(--fs-app);
+    font-family: var(--fontfam-app);
     line-height: 1.5;
 }
