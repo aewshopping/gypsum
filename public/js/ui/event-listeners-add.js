@@ -121,6 +121,8 @@ const changeActionHandlers = {
     'font-style-app-change': handleFontStyleAppChange,
     'font-style-text-change': handleFontStyleTextChange,
     'font-style-headers-change': handleFontStyleHeadersChange,
+    'font-size-app-change': handleFontSizeAppChange,
+    'font-size-file-change': handleFontSizeFileChange,
 };
 
 const keyUpActionHandlers = {
@@ -131,8 +133,6 @@ const keyUpActionHandlers = {
 const inputActionHandlers = {
     'file-content-edit': handleFileContentInput,
     'search-files': handleSearchboxAutocomplete,
-    'font-size-app-change': handleFontSizeAppChange,
-    'font-size-file-change': handleFontSizeFileChange,
 };
 
 /**

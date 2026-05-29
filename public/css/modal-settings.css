@@ -42,6 +42,17 @@
     gap: 6px;
 }
 
+.settings-number-input {
+    width: 4.5em;
+    padding: 2px 4px;
+    border: 1px solid var(--colour-contr);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--colour-contr);
+    font: inherit;
+    text-align: center;
+}
+
 .settings-reset-btn {
     padding: 0 4px;
     border: none;

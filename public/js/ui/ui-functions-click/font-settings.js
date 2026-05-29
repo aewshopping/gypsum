@@ -23,7 +23,9 @@ const DEFAULTS = {
  * @returns {void}
  */
 export function handleFontSizeAppChange(_evt, el) {
-    root.style.setProperty('--fsize-app-multiple', el.value);
+    const value = clampFontSize(el.value);
+    el.value = value;
+    root.style.setProperty('--fsize-app-multiple', value);
 }
 
 /**
@@ -32,7 +34,19 @@ export function handleFontSizeAppChange(_evt, el) {
  * @returns {void}
  */
 export function handleFontSizeFileChange(_evt, el) {
-    root.style.setProperty('--fsize-filetext-multiple', el.value);
+    const value = clampFontSize(el.value);
+    el.value = value;
+    root.style.setProperty('--fsize-filetext-multiple', value);
+}
+
+/**
+ * Clamps a font size multiplier to [0.5, 2] rounded to 1 decimal place.
+ * @param {string} raw
+ * @returns {string}
+ */
+function clampFontSize(raw) {
+    const n = Math.min(2, Math.max(0.5, parseFloat(raw) || 1));
+    return Math.round(n * 10) / 10 + '';
 }
 
 /**
