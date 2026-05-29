@@ -11,5 +11,5 @@ pre {
 
 .text-editor-style {
     font-size: 0.975em;
-    font-family: var(--fontfam-app);
+    font-family: var(--fontfam-mkdwn);
 }

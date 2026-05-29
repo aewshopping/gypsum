@@ -10,7 +10,7 @@ const computed = getComputedStyle(root);
 const DEFAULTS = {
     fontSizeApp:     computed.getPropertyValue('--fsize-app-multiple').trim(),
     fontSizeFile:    computed.getPropertyValue('--fsize-filetext-multiple').trim(),
-    fontStyleApp:    computed.getPropertyValue('--fontfam-app').trim(),
+    fontStyleApp:    computed.getPropertyValue('--fontfam-app-input').trim(),
     fontStyleText:   computed.getPropertyValue('--fontfam-html').trim(),
     fontStyleHeaders: computed.getPropertyValue('--fontfam-headers').trim(),
 };
@@ -75,7 +75,7 @@ export function handleResetFontSizeFile() {
  * @returns {void}
  */
 export function handleFontStyleAppChange(_evt, el) {
-    root.style.setProperty('--fontfam-app', el.value);
+    root.style.setProperty('--fontfam-app-input', el.value);
 }
 
 /**
@@ -103,7 +103,7 @@ export function handleResetFontStyleApp() {
     const select = document.querySelector('[data-action="font-style-app-change"]');
     if (!select) return;
     const defaultValue = select.options[0].value;
-    root.style.setProperty('--fontfam-app', defaultValue);
+    root.style.setProperty('--fontfam-app-input', defaultValue);
     select.value = defaultValue;
 }
 

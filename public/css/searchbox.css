@@ -21,7 +21,7 @@
         var(--colour-highlight) var(--offset) var(--offset-negative) var(--radius),
         var(--colour-highlight) var(--offset) var(--offset) var(--radius);
     color: var(--colour-contr);
-	font:0.89375em var(--fontfam-app);
+	font:0.89375em var(--fontfam-app-input);
     border: none;
     border-radius:4px;
     height: var(--btn-size);

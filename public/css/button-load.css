@@ -13,7 +13,7 @@
     color:var(--colour-contr);
     border: 1.5px solid var(--colour-contr);
     border-radius: 5px;
-    font-family: var(--fontfam-app);
+    font-family: var(--fontfam-app-input);
     font-size:0.8125em; /* replicates unstyled UI of 13px where default size is 16px */
 
     &:focus-visible {
@@ -41,7 +41,7 @@
     isolation:isolate;
     font-size: 0.8125em;
     color: var(--colour-contr);
-    font-family: var(--fontfam-app);
+    font-family: var(--fontfam-app-input);
     white-space: nowrap;
     /* overflow: hidden; */
     text-overflow: ellipsis;

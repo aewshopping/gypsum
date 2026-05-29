@@ -57,7 +57,7 @@
 
 .filter-pill {
     height: 24px; /* careful here just setting to align with #filter-output min-height, will break if font size changes!*/
-    font: 0.8125em var(--fontfam-app);
+    font: 0.8125em var(--fontfam-app-input);
     border: 2px solid transparent;
 
     &::before {

@@ -40,3 +40,28 @@
         stroke: currentColor;
     }
 }
+
+
+/* This is for consistent styling of normal buttons */
+
+.btn-base-style {
+    display:flex;
+    align-items:center;
+    cursor: pointer;
+    padding-inline:8px;
+    padding-block: 4px;
+    gap:4px;
+    background-color: var(--colour-neutral-alt);
+    color:var(--colour-contr);
+    border: 1.5px solid var(--colour-contr);
+    border-radius: 5px;
+    font-family: var(--fontfam-app-input);
+    font-size:0.89375em; /* replicates unstyled UI of 13px where default size is 16px */
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+    &:hover{
+        box-shadow: var(--hover-box-shadow);
+    }
+}

@@ -102,7 +102,7 @@
     top:0px;
     left:50%;
     transform: translateX(-50%);
-    font-family: var(--fontfam-app);
+    font-family: var(--fontfam-app-input);
     font-size: 0.8125em;
     cursor: pointer;
     padding-inline: 5px;

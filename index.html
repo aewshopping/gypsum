@@ -182,7 +182,10 @@
 
   <dialog id="modal-settings" data-action="close-settings-outside">
     <button class="modal-close-btn" data-action="close-settings-modal">✕</button>
-    <h2 class="settings-title">Settings</h2>
+
+    <h2 class="menu-title">Menu</h2>
+
+    <h3>Settings</h3>
 
     <div class="settings-row">
       <span class="settings-label">Colour theme</span>
@@ -190,63 +193,6 @@
         <label class="formcontrol"><input type="radio" name="radio" id="blackandwhite" checked />b&w</label>
         <label class="formcontrol"><input type="radio" name="radio" id="snow"/>snow</label>
         <label class="formcontrol"><input type="radio" name="radio" id="glow" />glow</label>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">Font size (app)</span>
-      <div class="settings-control-group">
-        <input type="number" class="settings-number-input" min="0.5" max="2" step="0.1" value="1" data-action="font-size-app-change">
-        <button class="settings-reset-btn" data-action="reset-font-size-app">↺</button>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">Font style (app)</span>
-      <div class="settings-control-group">
-        <select data-action="font-style-app-change">
-          <option value="monospace">monospace</option>
-        </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-app">↺</button>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">Font size (file)</span>
-      <div class="settings-control-group">
-        <input type="number" class="settings-number-input" min="0.5" max="2" step="0.1" value="1" data-action="font-size-file-change">
-        <button class="settings-reset-btn" data-action="reset-font-size-file">↺</button>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">Font style (text)</span>
-      <div class="settings-control-group">
-        <select data-action="font-style-text-change">
-          <option value="Arial, Helvetica, sans-serif">Arial</option>
-        </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-text">↺</button>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">Font style (headers)</span>
-      <div class="settings-control-group">
-        <select data-action="font-style-headers-change">
-          <option value="Trebuchet MS, Arial, Helvetica, sans-serif">Trebuchet MS</option>
-        </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-headers">↺</button>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">Button size</span>
-      <div class="settings-control-group">
-        <select data-action="button-size-change">
-          <option value="1">normal</option>
-          <option value="1.2">large</option>
-        </select>
-        <button class="settings-reset-btn" data-action="reset-button-size">↺</button>
       </div>
     </div>
 
@@ -265,24 +211,107 @@
       <label class="switch"><input type="checkbox" id="show-user-file-colours" checked><span class="slider"></span></label>
     </div>
 
+    <h4>Interface</h4>
+
+    <div class="settings-row">
+      <span class="settings-label">Font size</span>
+      <div class="settings-control-group">
+        <input type="number" class="settings-number-input" min="0.5" max="2" step="0.1" value="1" data-action="font-size-app-change">
+        <button class="settings-reset-btn" data-action="reset-font-size-app">↺</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Font style label</span>
+      <div class="settings-control-group">
+        <select data-action="font-style-app-change">
+          <option value="arial">arial</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-app-label">↺</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Font style input</span>
+      <div class="settings-control-group">
+        <select data-action="font-style-app-change">
+          <option value="monospace">monospace</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-app-input">↺</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Button size</span>
+      <div class="settings-control-group">
+        <select data-action="button-size-change">
+          <option value="1">normal</option>
+          <option value="1.2">large</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-button-size">↺</button>
+      </div>
+    </div>
+
+    <h4>Text files</h4>
+
+    <div class="settings-row">
+      <span class="settings-label">Font size</span>
+      <div class="settings-control-group">
+        <input type="number" class="settings-number-input" min="0.5" max="2" step="0.1" value="1" data-action="font-size-file-change">
+        <button class="settings-reset-btn" data-action="reset-font-size-file">↺</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Font style (html)</span>
+      <div class="settings-control-group">
+        <select data-action="font-style-html-change">
+          <option value="Arial, Helvetica, sans-serif">Arial</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-html">↺</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Font style (text)</span>
+      <div class="settings-control-group">
+        <select data-action="font-style-text-change">
+          <option value="monospace">Arial</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-text">↺</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Font style (headers)</span>
+      <div class="settings-control-group">
+        <select data-action="font-style-headers-change">
+          <option value="Trebuchet MS, Arial, Helvetica, sans-serif">Trebuchet MS</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-headers">↺</button>
+      </div>
+    </div>
+
+    <h4>Backups</h4>
+
     <div class="settings-row">
       <span class="settings-label">Backup</span>
       <div class="settings-backup-btns">
-        <button class="settings-action-btn" data-action="backup-content">Content only</button>
-        <button class="settings-action-btn" data-action="backup-full">Full backup</button>
+        <button class="btn-base-style" data-action="backup-content">Content only</button>
+        <button class="btn-base-style" data-action="backup-full">Full backup</button>
       </div>
     </div>
 
     <div class="settings-row">
       <span class="settings-label">Restore</span>
       <div class="settings-backup-btns">
-        <button id="btn-import-opfs" data-click-importtartoopfs>Import backup</button>
-        <button id="btn-load-opfs" data-click-loadopfs disabled>Open OPFS</button>
+        <button class="btn-base-style" id="btn-import-opfs" data-click-importtartoopfs>Import backup</button>
+        <button class="btn-base-style" id="btn-load-opfs" data-click-loadopfs disabled>Open OPFS</button>
       </div>
     </div>
 
     <div class="settings-shortcuts">
-      <h3 class="settings-shortcuts-heading">Keyboard shortcuts</h3>
+      <h3>Keyboard shortcuts</h3>
 
       <div class="settings-shortcuts-group">
         <h4 class="settings-shortcuts-group-heading">Main view</h4>

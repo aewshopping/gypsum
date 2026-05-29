@@ -102,6 +102,7 @@ html {
 
 #modal-content-text {
   margin-bottom: 200px; /* to allow scrolling below last bit of text for easier reading */
+  font-family: var(--fontfam-html);
   font-size: calc(1em * var(--fsize-filetext-multiple));
 
   & > pre {

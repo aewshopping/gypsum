@@ -12,8 +12,10 @@
     --btn-size-base: 30px;
     --btn-size-multiple: 1;
     --btn-size: calc(var(--btn-size-base) * var(--btn-size-multiple));
-    --fontfam-app: monospace;
+    --fontfam-app-input: monospace;
+    --fontfam-app-label: Arial, Helvetica, sans-serif;
     --fontfam-html: Arial, Helvetica, sans-serif;
+    --fontfam-mkdwn: monospace;
     --fontfam-headers: Trebuchet MS, Arial, Helvetica, sans-serif;
     --fsize-app-multiple: 1;
     --fsize-filetext-multiple: 1; 
@@ -35,7 +37,7 @@ th, td {
 }
 body {
     font-size: calc(1rem * var(--fsize-app-multiple));
-    font-family: var(--fontfam-html);
+    font-family: var(--fontfam-app-label);
     background-color: var(--colour-neutral);
     color: var(--colour-contr);
 }
