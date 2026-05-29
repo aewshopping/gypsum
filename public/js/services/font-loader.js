@@ -36,7 +36,9 @@ export function populateFontSelects() {
     populated = true;
 
     const selects = [
-        document.querySelector('[data-action="font-style-app-change"]'),
+        document.querySelector('[data-action="font-style-app-label-change"]'),
+        document.querySelector('[data-action="font-style-app-input-change"]'),
+        document.querySelector('[data-action="font-style-html-change"]'),
         document.querySelector('[data-action="font-style-text-change"]'),
         document.querySelector('[data-action="font-style-headers-change"]'),
     ];

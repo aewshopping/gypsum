@@ -8,10 +8,12 @@ const root = document.documentElement;
 
 const computed = getComputedStyle(root);
 const DEFAULTS = {
-    fontSizeApp:     computed.getPropertyValue('--fsize-app-multiple').trim(),
-    fontSizeFile:    computed.getPropertyValue('--fsize-filetext-multiple').trim(),
-    fontStyleApp:    computed.getPropertyValue('--fontfam-app-input').trim(),
-    fontStyleText:   computed.getPropertyValue('--fontfam-html').trim(),
+    fontSizeApp:      computed.getPropertyValue('--fsize-app-multiple').trim(),
+    fontSizeFile:     computed.getPropertyValue('--fsize-filetext-multiple').trim(),
+    fontStyleAppLabel: computed.getPropertyValue('--fontfam-app-label').trim(),
+    fontStyleAppInput: computed.getPropertyValue('--fontfam-app-input').trim(),
+    fontStyleHtml:    computed.getPropertyValue('--fontfam-html').trim(),
+    fontStyleMkdwn:   computed.getPropertyValue('--fontfam-mkdwn').trim(),
     fontStyleHeaders: computed.getPropertyValue('--fontfam-headers').trim(),
 };
 
@@ -74,7 +76,16 @@ export function handleResetFontSizeFile() {
  * @param {HTMLSelectElement} el
  * @returns {void}
  */
-export function handleFontStyleAppChange(_evt, el) {
+export function handleFontStyleAppLabelChange(_evt, el) {
+    root.style.setProperty('--fontfam-app-label', el.value);
+}
+
+/**
+ * @param {Event} _evt
+ * @param {HTMLSelectElement} el
+ * @returns {void}
+ */
+export function handleFontStyleAppInputChange(_evt, el) {
     root.style.setProperty('--fontfam-app-input', el.value);
 }
 
@@ -83,8 +94,17 @@ export function handleFontStyleAppChange(_evt, el) {
  * @param {HTMLSelectElement} el
  * @returns {void}
  */
-export function handleFontStyleTextChange(_evt, el) {
+export function handleFontStyleHtmlChange(_evt, el) {
     root.style.setProperty('--fontfam-html', el.value);
+}
+
+/**
+ * @param {Event} _evt
+ * @param {HTMLSelectElement} el
+ * @returns {void}
+ */
+export function handleFontStyleTextChange(_evt, el) {
+    root.style.setProperty('--fontfam-mkdwn', el.value);
 }
 
 /**
@@ -99,12 +119,31 @@ export function handleFontStyleHeadersChange(_evt, el) {
 /**
  * @returns {void}
  */
-export function handleResetFontStyleApp() {
-    const select = document.querySelector('[data-action="font-style-app-change"]');
+export function handleResetFontStyleAppLabel() {
+    const select = document.querySelector('[data-action="font-style-app-label-change"]');
     if (!select) return;
-    const defaultValue = select.options[0].value;
-    root.style.setProperty('--fontfam-app-input', defaultValue);
-    select.value = defaultValue;
+    root.style.setProperty('--fontfam-app-label', DEFAULTS.fontStyleAppLabel);
+    select.value = select.options[0].value;
+}
+
+/**
+ * @returns {void}
+ */
+export function handleResetFontStyleAppInput() {
+    const select = document.querySelector('[data-action="font-style-app-input-change"]');
+    if (!select) return;
+    root.style.setProperty('--fontfam-app-input', DEFAULTS.fontStyleAppInput);
+    select.value = select.options[0].value;
+}
+
+/**
+ * @returns {void}
+ */
+export function handleResetFontStyleHtml() {
+    const select = document.querySelector('[data-action="font-style-html-change"]');
+    if (!select) return;
+    root.style.setProperty('--fontfam-html', DEFAULTS.fontStyleHtml);
+    select.value = select.options[0].value;
 }
 
 /**
@@ -113,9 +152,8 @@ export function handleResetFontStyleApp() {
 export function handleResetFontStyleText() {
     const select = document.querySelector('[data-action="font-style-text-change"]');
     if (!select) return;
-    const defaultValue = select.options[0].value;
-    root.style.setProperty('--fontfam-html', defaultValue);
-    select.value = defaultValue;
+    root.style.setProperty('--fontfam-mkdwn', DEFAULTS.fontStyleMkdwn);
+    select.value = select.options[0].value;
 }
 
 /**
@@ -124,7 +162,6 @@ export function handleResetFontStyleText() {
 export function handleResetFontStyleHeaders() {
     const select = document.querySelector('[data-action="font-style-headers-change"]');
     if (!select) return;
-    const defaultValue = select.options[0].value;
-    root.style.setProperty('--fontfam-headers', defaultValue);
-    select.value = defaultValue;
+    root.style.setProperty('--fontfam-headers', DEFAULTS.fontStyleHeaders);
+    select.value = select.options[0].value;
 }

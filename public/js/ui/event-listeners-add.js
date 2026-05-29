@@ -36,9 +36,11 @@ import { handleBackupContent, handleBackupFull } from './ui-functions-click/back
 import { handleButtonSizeChange, handleResetButtonSize } from './ui-functions-click/button-size.js';
 import {
     handleFontSizeAppChange, handleFontSizeFileChange,
-    handleFontStyleAppChange, handleFontStyleTextChange, handleFontStyleHeadersChange,
+    handleFontStyleAppLabelChange, handleFontStyleAppInputChange,
+    handleFontStyleHtmlChange, handleFontStyleTextChange, handleFontStyleHeadersChange,
     handleResetFontSizeApp, handleResetFontSizeFile,
-    handleResetFontStyleApp, handleResetFontStyleText, handleResetFontStyleHeaders,
+    handleResetFontStyleAppLabel, handleResetFontStyleAppInput,
+    handleResetFontStyleHtml, handleResetFontStyleText, handleResetFontStyleHeaders,
 } from './ui-functions-click/font-settings.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
@@ -105,7 +107,9 @@ const clickActionHandlers = {
     'toggle-file-controls': handleToggleFileControls,
     'reset-font-size-app': handleResetFontSizeApp,
     'reset-font-size-file': handleResetFontSizeFile,
-    'reset-font-style-app': handleResetFontStyleApp,
+    'reset-font-style-app-label': handleResetFontStyleAppLabel,
+    'reset-font-style-app-input': handleResetFontStyleAppInput,
+    'reset-font-style-html': handleResetFontStyleHtml,
     'reset-font-style-text': handleResetFontStyleText,
     'reset-font-style-headers': handleResetFontStyleHeaders,
     'reset-button-size': handleResetButtonSize,
@@ -120,7 +124,9 @@ const changeActionHandlers = {
     'history-select-change': handleHistorySelectChange,
     'sort-select': handleSortSelectChange,
     'sort-direction-toggle': handleSortDirectionChange,
-    'font-style-app-change': handleFontStyleAppChange,
+    'font-style-app-label-change': handleFontStyleAppLabelChange,
+    'font-style-app-input-change': handleFontStyleAppInputChange,
+    'font-style-html-change': handleFontStyleHtmlChange,
     'font-style-text-change': handleFontStyleTextChange,
     'font-style-headers-change': handleFontStyleHeadersChange,
     'font-size-app-change': handleFontSizeAppChange,
