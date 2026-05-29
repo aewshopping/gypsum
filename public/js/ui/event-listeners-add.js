@@ -33,6 +33,13 @@ import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy }
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 import { handleBackupContent, handleBackupFull } from './ui-functions-click/backup-click.js';
+import { handleButtonSizeChange, handleResetButtonSize } from './ui-functions-click/button-size.js';
+import {
+    handleFontSizeAppChange, handleFontSizeFileChange,
+    handleFontStyleAppChange, handleFontStyleTextChange, handleFontStyleHeadersChange,
+    handleResetFontSizeApp, handleResetFontSizeFile,
+    handleResetFontStyleApp, handleResetFontStyleText, handleResetFontStyleHeaders,
+} from './ui-functions-click/font-settings.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
@@ -96,6 +103,12 @@ const clickActionHandlers = {
     'backup-content': handleBackupContent,
     'backup-full': handleBackupFull,
     'toggle-file-controls': handleToggleFileControls,
+    'reset-font-size-app': handleResetFontSizeApp,
+    'reset-font-size-file': handleResetFontSizeFile,
+    'reset-font-style-app': handleResetFontStyleApp,
+    'reset-font-style-text': handleResetFontStyleText,
+    'reset-font-style-headers': handleResetFontStyleHeaders,
+    'reset-button-size': handleResetButtonSize,
 };
 
 const changeActionHandlers = {
@@ -107,6 +120,12 @@ const changeActionHandlers = {
     'history-select-change': handleHistorySelectChange,
     'sort-select': handleSortSelectChange,
     'sort-direction-toggle': handleSortDirectionChange,
+    'font-style-app-change': handleFontStyleAppChange,
+    'font-style-text-change': handleFontStyleTextChange,
+    'font-style-headers-change': handleFontStyleHeadersChange,
+    'font-size-app-change': handleFontSizeAppChange,
+    'font-size-file-change': handleFontSizeFileChange,
+    'button-size-change': handleButtonSizeChange,
 };
 
 const keyUpActionHandlers = {

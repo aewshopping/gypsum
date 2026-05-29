@@ -193,42 +193,62 @@
       </div>
     </div>
 
-    <label class="settings-row">
+    <div class="settings-row">
       <span class="settings-label">Font size (app)</span>
-      <input type="range" min="12" max="24" disabled>
-    </label>
+      <div class="settings-control-group">
+        <input type="number" class="settings-number-input" min="0.5" max="2" step="0.1" value="1" data-action="font-size-app-change">
+        <button class="settings-reset-btn" data-action="reset-font-size-app">↺</button>
+      </div>
+    </div>
 
-    <label class="settings-row">
+    <div class="settings-row">
       <span class="settings-label">Font style (app)</span>
-      <select disabled>
-        <option>sans-serif</option>
-        <option>serif</option>
-        <option>monospace</option>
-      </select>
-    </label>    
+      <div class="settings-control-group">
+        <select data-action="font-style-app-change">
+          <option value="monospace">monospace</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-app">↺</button>
+      </div>
+    </div>
 
-    <label class="settings-row">
+    <div class="settings-row">
       <span class="settings-label">Font size (file)</span>
-      <input type="range" min="12" max="32" disabled>
-    </label>
+      <div class="settings-control-group">
+        <input type="number" class="settings-number-input" min="0.5" max="2" step="0.1" value="1" data-action="font-size-file-change">
+        <button class="settings-reset-btn" data-action="reset-font-size-file">↺</button>
+      </div>
+    </div>
 
-    <label class="settings-row">
+    <div class="settings-row">
       <span class="settings-label">Font style (text)</span>
-      <select disabled>
-        <option>sans-serif</option>
-        <option>serif</option>
-        <option>monospace</option>
-      </select>
-    </label>
+      <div class="settings-control-group">
+        <select data-action="font-style-text-change">
+          <option value="Arial, Helvetica, sans-serif">Arial</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-text">↺</button>
+      </div>
+    </div>
 
-    <label class="settings-row">
+    <div class="settings-row">
       <span class="settings-label">Font style (headers)</span>
-      <select disabled>
-        <option>trebuchet ms</option>
-        <option>serif</option>
-        <option>monospace</option>
-      </select>
-    </label>
+      <div class="settings-control-group">
+        <select data-action="font-style-headers-change">
+          <option value="Trebuchet MS, Arial, Helvetica, sans-serif">Trebuchet MS</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-headers">↺</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Button size</span>
+      <div class="settings-control-group">
+        <select data-action="button-size-change">
+          <option value="1">normal</option>
+          <option value="1.2">large</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-button-size">↺</button>
+      </div>
+    </div>
 
     <label class="settings-row">
       <span class="settings-label">Pagination size</span>
