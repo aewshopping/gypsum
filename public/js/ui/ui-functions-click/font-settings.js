@@ -20,29 +20,17 @@ const DEFAULTS = {
 // ── Font size ──────────────────────────────────────────────────────────────
 
 /**
- * Clamps a font size multiplier to [0.5, 2] rounded to 1 decimal place.
- * @param {string} raw
- * @returns {string}
- */
-function clampFontSize(raw) {
-    const n = Math.min(2, Math.max(0.5, parseFloat(raw) || 1));
-    return Math.round(n * 10) / 10 + '';
-}
-
-/**
- * Sets a font-size CSS variable and syncs the input element's displayed value.
+ * Sets a font-size CSS variable from a radio button's value.
  * @param {HTMLInputElement} el
  * @param {string} cssVar
  * @returns {void}
  */
 function setFontSize(el, cssVar) {
-    const value = clampFontSize(el.value);
-    el.value = value;
-    root.style.setProperty(cssVar, value);
+    root.style.setProperty(cssVar, el.value);
 }
 
 /**
- * Resets a font-size CSS variable to its default and updates the number input.
+ * Resets a font-size CSS variable to its default and checks the matching radio button.
  * @param {string} cssVar
  * @param {string} action
  * @param {string} defaultValue
@@ -50,8 +38,8 @@ function setFontSize(el, cssVar) {
  */
 function resetFontSize(cssVar, action, defaultValue) {
     root.style.setProperty(cssVar, defaultValue);
-    const input = document.querySelector(`[data-action="${action}"]`);
-    if (input) input.value = defaultValue;
+    const radio = document.querySelector(`[data-action="${action}"][value="${defaultValue}"]`);
+    if (radio) radio.checked = true;
 }
 
 /**
