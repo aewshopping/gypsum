@@ -199,10 +199,12 @@ export function doClose() {
  * Shows the unsaved changes warning dialog if there are unsaved edits.
  * @returns {void}
  */
-export function handleCloseModal() {
+export async function handleCloseModal() {
 
   if (hasUnsavedChanges()) {
-    showWarningModal('You have unsaved changes', 'Discard changes', 'Keep editing', doClose);
+    if (await showWarningModal('You have unsaved changes', 'Discard changes', 'Keep editing')) {
+      doClose();
+    }
     return;
   }
   doClose();
