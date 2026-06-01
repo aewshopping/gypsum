@@ -2,9 +2,6 @@
 export const TAG_JOINER = " "; // previously " | "
 export const TAGGER = "tagselected"; // to link with css tag highlighting
 export const NOTE = "note-table";
-export const COPYTHIS = "copyflag";
-export const COPYATTR = "filename";
-
 // pattern matching when parsing files
 // match the text on a line that starts with '# ' - grp 1
 export const regex_title = /(?<=^# )(.*$)/;
