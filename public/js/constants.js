@@ -21,7 +21,8 @@ export const VIEWS = {
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 
-export const PAGINATION_SIZE = 50;
+export let PAGINATION_SIZE = 50;
+export function setPaginationSize(n) { PAGINATION_SIZE = n; }
 export const PROGRESS_STEP_SIZE = 1; // update loading progress every N percentage points
 
 export const COLOR_NAMES = [

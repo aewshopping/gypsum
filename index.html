@@ -196,10 +196,13 @@
       </div>
     </div>
 
-    <label class="settings-row">
+    <div class="settings-row">
       <span class="settings-label">Pagination size</span>
-      <input type="number" min="10" max="1000" disabled>
-    </label>
+      <div class="settings-control-group">
+        <input id="pagination-size-input" type="number" min="10" max="1000" step="1" data-action="pagination-size-change">
+        <button class="settings-reset-btn" data-action="reset-pagination-size">↺</button>
+      </div>
+    </div>
 
     <div class="settings-row">
       <span class="settings-label">Animate file filtering</span>
