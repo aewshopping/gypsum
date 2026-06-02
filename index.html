@@ -196,10 +196,13 @@
       </div>
     </div>
 
-    <label class="settings-row">
+    <div class="settings-row">
       <span class="settings-label">Pagination size</span>
-      <input type="number" min="10" max="1000" disabled>
-    </label>
+      <div class="settings-control-group">
+        <input id="pagination-size-input" type="number" min="10" max="1000" step="1" data-action="pagination-size-change">
+        <button class="settings-reset-btn" data-action="reset-pagination-size">↺</button>
+      </div>
+    </div>
 
     <div class="settings-row">
       <span class="settings-label">Animate file filtering</span>
@@ -261,7 +264,7 @@
       <div class="settings-control-group">
         <label class="formcontrol"><input type="radio" name="font-size-file" value="0.8" data-action="font-size-file-change">S</label>
         <label class="formcontrol"><input type="radio" name="font-size-file" value="1" checked data-action="font-size-file-change">M</label>
-        <label class="formcontrol"><input type="radio" name="font-size-file" value="1.2" data-action="font-size-file-change">L</label>
+        <label class="formcontrol"><input type="radio" name="font-size-file" value="1.4" data-action="font-size-file-change">L</label>
         <button class="settings-reset-btn" data-action="reset-font-size-file">↺</button>
       </div>
     </div>

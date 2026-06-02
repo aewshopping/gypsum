@@ -42,6 +42,7 @@ import {
     handleResetFontStyleHtml, handleResetFontStyleText, handleResetFontStyleHeaders,
 } from './ui-functions-click/font-settings.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
+import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 
@@ -111,6 +112,7 @@ const clickActionHandlers = {
     'reset-font-style-text': handleResetFontStyleText,
     'reset-font-style-headers': handleResetFontStyleHeaders,
     'reset-button-size': handleResetButtonSize,
+    'reset-pagination-size': handleResetPaginationSize,
 };
 
 const changeActionHandlers = {
@@ -130,6 +132,7 @@ const changeActionHandlers = {
     'font-size-app-change': handleFontSizeAppChange,
     'font-size-file-change': handleFontSizeFileChange,
     'button-size-change': handleButtonSizeChange,
+    'pagination-size-change': handlePaginationSizeChange,
 };
 
 const keyUpActionHandlers = {
