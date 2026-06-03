@@ -4,6 +4,7 @@ import { detectEditorTrigger, detectSearchboxTrigger, filterTags } from './tag-q
 import { createPopup, repopulatePopup, destroyPopup, moveActiveItem } from './tag-popup.js';
 import { handlePopupKeydown } from './tag-keyboard-nav.js';
 import { replaceEditorTag, replaceSearchboxTag } from './tag-replace.js';
+import { handleSearchBoxClick } from '../ui/ui-functions-click/searchbox-search-click.js';
 
 let _popup = null;          // HTMLElement|null
 let _context = null;        // 'editor'|'searchbox'|null
@@ -148,8 +149,10 @@ function _applySelection(tag) {
         replaceSearchboxTag(_anchorEl, tag, _triggerStart);
     }
     const anchor = _anchorEl;
+    const wasSearchbox = _context === 'searchbox';
     _dismiss();
     anchor?.focus();
+    if (wasSearchbox) handleSearchBoxClick();
 }
 
 function _dismiss() {

@@ -186,14 +186,15 @@ test.describe('tag autocomplete — searchbox', () => {
     await expect(page.locator('.tag-autocomplete-popup')).toContainText('personal');
   });
 
-  test('clicking an item fills the searchbox value', async ({ page }) => {
+  test('clicking an item triggers the search immediately', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
     await loadFiles(page);
     await page.fill('#searchbox', 'tags:p');
     await page.locator('.tag-autocomplete-item').filter({ hasText: 'personal' }).click();
     await expect(page.locator('.tag-autocomplete-popup')).not.toBeVisible();
-    await expect(page.locator('#searchbox')).toHaveValue('tags:personal');
+    // shopping.txt and big-ideas.md both have #personal
+    await expect(page.locator('.note-grid')).toHaveCount(2);
   });
 
   test('Enter with no active item dismisses popup and runs search', async ({ page }) => {
