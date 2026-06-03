@@ -10,7 +10,7 @@ const DEFAULT_MULTIPLE = getComputedStyle(root).getPropertyValue('--btn-size-mul
 
 /**
  * @param {Event} _evt
- * @param {HTMLSelectElement} el
+ * @param {HTMLInputElement} el
  * @returns {void}
  */
 export function handleButtonSizeChange(_evt, el) {
@@ -22,6 +22,6 @@ export function handleButtonSizeChange(_evt, el) {
  */
 export function handleResetButtonSize() {
     root.style.setProperty('--btn-size-multiple', DEFAULT_MULTIPLE);
-    const select = document.querySelector('[data-action="button-size-change"]');
-    if (select) select.value = DEFAULT_MULTIPLE;
+    const radio = document.querySelector(`[data-action="button-size-change"][value="${DEFAULT_MULTIPLE}"]`);
+    if (radio) radio.checked = true;
 }
