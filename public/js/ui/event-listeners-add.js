@@ -23,7 +23,7 @@ import { handleHistorySelectChange } from './ui-functions-click/history-select-c
 import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleKeyboardShortcuts } from './ui-functions-click/keyboard-shortcuts.js';
-import { handleOpenSettings, handleCloseSettings, handleCloseSettingsOutside } from './ui-functions-click/settings-modal.js';
+import { handleOpenSettings, handleCloseSettings } from './ui-functions-click/settings-modal.js';
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside, captureEditorCursorOffset } from './ui-functions-click/editor-color-pick.js';
@@ -85,7 +85,6 @@ const clickActionHandlers = {
     'change-page': handlePageChange,
     'open-settings-modal': handleOpenSettings,
     'close-settings-modal': handleCloseSettings,
-    'close-settings-outside': handleCloseSettingsOutside,
     'editor-undo': handleEditorUndo,
     'editor-redo': handleEditorRedo,
     'editor-color-pick': handleEditorColorPick,
