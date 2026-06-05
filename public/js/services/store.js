@@ -29,7 +29,7 @@ export const appState = {
         onlyProperties: " press / for search "
       }
     },
-    excludedProperties: ["handle", "show"],
+    excludedProperties: ["handle", "show", "contentPeek"],
     filters: new Map(),
     results: new Map(),
     matchingFiles: new Map()
