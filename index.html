@@ -8,6 +8,9 @@
   <!-- inlining icon as part of single file app approach. This is the twemoji pencil icon -->
   <link rel="icon" type="image/png"
     href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAsVBMVEVHcEzZnoLZnoLZnoLM1t3qWW7ZnoL/zE3qWW7ZnoLZnoKZqrWisbzZnoLZnoLZnoLqWW4pLzMpLzMpLzPZnoLqWW7qWW7ZnoLZnoLqWW4pLzPqWW7qWW67x9DV1MUpLzPqWW4pLzPZnoLZnoIpLzPZnoLM1t0pLzOZqrXqWW7J09ujsr3/zE3nr27DkHjCztb8zVacrbi5xs7W1MLfiJg0NjhKREKXdGQ/PT1rWVF2YFZwkFC4AAAAJXRSTlMA7yAQYGBgYBDPgGBgcL/fgIBwz49wIJ9Q799Qn2BgYM8gQDAQun1/XwAAAWBJREFUeNrt0GdywlAMRWG5Aqb3DiGJCyW9Z/8LSygzF2eCxnryT58FfCNdOm/Qb7W8Mmkrz9b7xlOtc7U+5akdSCoHvbo5OVHk5uRED9WcnKcEks5JknlOzjN2UjrRpiaDZpecrWynwWUnSSQ39RlnuxHs1OKcKFoIIM55eSxlhTze2e2ySuUx72SXpqwjkTzGEUqMI5NcxhFKjCOTqowjlBhHJs0ZR7hTytFINcaR7gRHeRMcpeTCUUoLOEqptCukQiqkQsog3Y1UEpzQcjQSnDAMSCPBCZtkLME55KskOGGDDCU4p2yVBCesk4EEB1XIRIKDbDMJDn4zkOCgBplIcJBjIsFBPhlIcNCQpBKcVBaJJTipbsTSyPoXCkicEzT/Kvff7xMyyW+knI+3OI6XZJTda+KevRN3yTS7XjlCX/GhFZnn+MPf6T+PUId0XfcmR6hN6pZdXKRs1Wm3b38Ai5w9ZKhA8zsAAAAASUVORK5CYII=">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="/images/icon-192.png">
+  <meta name="theme-color" content="#f1f1f1">
   <base target="_blank">
   <link rel="stylesheet" href="public/style.css">
 </head>
@@ -393,6 +396,11 @@
   <button id="btn-new-note" data-action="create-new-note" disabled>+</button>
 
 </body>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js');
+  }
+</script>
 <script type="module" src="public/main.js"></script>
 
 </html>
