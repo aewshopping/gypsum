@@ -21,17 +21,29 @@ test('service worker registers and activates', async ({ page }) => {
 });
 
 // Validates the cache-fallback path of the network-first strategy.
-// First load: SW activates and responses are stored in cache via the network-first fetch handler.
-// Second load (offline): network requests fail, SW falls back to cache — app still renders.
+// The SW must control the page (clients.claim) before assets are cached.
+// Only after a controlled online visit will the cache be populated enough
+// to serve the app offline.
 test('app falls back to cache when offline', async ({ page, context }) => {
-  // First visit — network succeeds, responses are cached
+  // First visit — wait for SW to actually control this page (not just be active)
   await page.goto('/');
-  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.evaluate(() =>
+    new Promise((resolve) => {
+      if (navigator.serviceWorker.controller) return resolve();
+      navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+    })
+  );
+
+  // Second visit online — SW now intercepts all fetches and caches them
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 
   // Cut the network
   await context.setOffline(true);
 
-  // Reload — SW tries network (fails), serves from cache
+  // Third load offline — SW must serve everything from cache
   await page.reload();
-  await expect(page.locator('body')).toBeVisible();
+
+  // Assert a real app UI element rendered, not just that <body> exists
+  await expect(page.locator('#btn_loadDirectoryHandles')).toBeVisible();
 });
