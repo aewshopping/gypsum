@@ -1,18 +1,21 @@
 const CACHE_NAME = 'gypsum-v1';
+const PRECACHE_URLS = ['./', './public/style.css', './public/main.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {
-  // Pre-cache the app shell so it's available offline before any fetch fires
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.add('/'))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
 });
 
 self.addEventListener('activate', (event) => {
-  // Delete caches from previous SW versions
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      ),
+    ])
   );
 });
 
