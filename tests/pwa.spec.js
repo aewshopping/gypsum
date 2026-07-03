@@ -47,3 +47,72 @@ test('app falls back to cache when offline', async ({ page, context }) => {
   // Assert a real app UI element rendered, not just that <body> exists
   await expect(page.locator('#btn_loadDirectoryHandles')).toBeVisible();
 });
+
+// Validates the manifest-version check: an unchanged version must not trigger a
+// re-fetch of cached assets. Tampering with a cached asset and confirming it survives
+// a reload proves the service worker served it from cache untouched.
+test('unchanged manifest version serves assets from cache untouched', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() =>
+    new Promise((resolve) => {
+      if (navigator.serviceWorker.controller) return resolve();
+      navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+    })
+  );
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+
+  await page.evaluate(async () => {
+    const cache = await caches.open((await caches.keys())[0]);
+    const original = await cache.match('./public/style.css');
+    const text = await original.text();
+    await cache.put('./public/style.css', new Response(`${text}\n/* tampered */`, { headers: original.headers }));
+  });
+
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+
+  const cachedText = await page.evaluate(async () => {
+    const cache = await caches.open((await caches.keys())[0]);
+    return (await cache.match('./public/style.css')).text();
+  });
+  expect(cachedText).toContain('/* tampered */');
+});
+
+// Validates the other half of the manifest-version check: a bumped version must
+// trigger a real refresh, overwriting stale cached assets.
+test('bumped manifest version refreshes cached assets', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() =>
+    new Promise((resolve) => {
+      if (navigator.serviceWorker.controller) return resolve();
+      navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+    })
+  );
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+
+  // Force a mismatch: lower the cached manifest's version, and tamper with a cached
+  // asset so we can detect whether the refresh overwrites it.
+  await page.evaluate(async () => {
+    const cache = await caches.open((await caches.keys())[0]);
+
+    const manifestResponse = await cache.match('./manifest.json');
+    const manifest = await manifestResponse.json();
+    manifest.version = '0.0.0';
+    await cache.put('./manifest.json', new Response(JSON.stringify(manifest), { headers: manifestResponse.headers }));
+
+    const cssResponse = await cache.match('./public/style.css');
+    const text = await cssResponse.text();
+    await cache.put('./public/style.css', new Response(`${text}\n/* stale */`, { headers: cssResponse.headers }));
+  });
+
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+
+  const cachedText = await page.evaluate(async () => {
+    const cache = await caches.open((await caches.keys())[0]);
+    return (await cache.match('./public/style.css')).text();
+  });
+  expect(cachedText).not.toContain('/* stale */');
+});

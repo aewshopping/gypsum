@@ -1,4 +1,5 @@
-const CACHE_NAME = 'gypsum-v1';
+const CACHE_NAME = 'gypsum-v1'; // stable bucket name — invalidation is now driven by
+                                // manifest.json's version field, not this constant.
 const PRECACHE_URLS = ['./', './public/style.css', './public/main.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -9,32 +10,67 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    Promise.all([
-      self.clients.claim(),
-      caches.keys().then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-      ),
-    ])
-  );
+  event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener('fetch', (event) => {
-  // Only handle same-origin GET requests
-  if (event.request.method !== 'GET') return;
-  if (!event.request.url.startsWith(self.location.origin)) return;
+// True if the cached manifest.json has a different version than the one just fetched
+// from the network — or if nothing is cached yet (first install).
+async function versionHasChanged(cache, freshManifest) {
+  const cached = await cache.match('./manifest.json');
+  if (!cached) return true;
+  const cachedManifest = await cached.json();
+  return cachedManifest.version !== freshManifest.version;
+}
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Network succeeded — update the cache and return the fresh response
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      })
-      .catch(() =>
-        // Network failed — serve from cache if available
-        caches.match(event.request)
-      )
-  );
+// Re-fetches the precache set fresh (bypassing HTTP cache) and only then wipes the old
+// cache — if any fetch fails, the existing (working, offline-safe) cache is left untouched
+// and the update is simply retried on the next navigation. Stale JS modules under
+// public/js/** (never listed in PRECACHE_URLS) get evicted by the wipe too; they're
+// repopulated on demand by handleAsset() as the page re-imports them.
+async function refreshPrecache(cache, manifestResponse) {
+  const otherUrls = PRECACHE_URLS.filter((url) => url !== './manifest.json');
+  const otherResponses = await Promise.all(otherUrls.map((url) => fetch(url, { cache: 'no-store' })));
+
+  await Promise.all((await cache.keys()).map((req) => cache.delete(req)));
+  await cache.put('./manifest.json', manifestResponse);
+  await Promise.all(otherUrls.map((url, i) => cache.put(url, otherResponses[i])));
+}
+
+// Runs once per navigation: cheap manifest.json check, full refresh only on a version bump.
+async function handleNavigate(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const manifestResponse = await fetch('./manifest.json', { cache: 'no-store' });
+    const freshManifest = await manifestResponse.clone().json();
+    if (await versionHasChanged(cache, freshManifest)) {
+      await refreshPrecache(cache, manifestResponse);
+    }
+  } catch {
+    // Offline, or the check/refresh failed — fall through and serve whatever is cached.
+  }
+
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  return (await cache.match('./')) || fetch(request);
+}
+
+// Cache-first for everything else: correct because handleNavigate above already
+// guarantees the cache is current as of this navigation.
+async function handleAsset(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  cache.put(request, response.clone());
+  return response;
+}
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+  if (!request.url.startsWith(self.location.origin)) return;
+
+  event.respondWith(request.mode === 'navigate' ? handleNavigate(request) : handleAsset(request));
 });
