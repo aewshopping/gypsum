@@ -80,8 +80,10 @@ test('unchanged manifest version serves assets from cache untouched', async ({ p
 });
 
 // Validates the other half of the manifest-version check: a bumped version must
-// trigger a real refresh, overwriting stale cached assets.
-test('bumped manifest version refreshes cached assets', async ({ page }) => {
+// trigger a real refresh, overwriting stale cached assets, and reload the page.
+// The check now runs in the background after the page is served from cache, so we
+// poll the cache rather than asserting immediately after reload() resolves.
+test('bumped manifest version refreshes cached assets and reloads the page', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() =>
     new Promise((resolve) => {
@@ -93,7 +95,7 @@ test('bumped manifest version refreshes cached assets', async ({ page }) => {
   await page.waitForLoadState('networkidle');
 
   // Force a mismatch: lower the cached manifest's version, and tamper with a cached
-  // asset so we can detect whether the refresh overwrites it.
+  // asset so we can detect whether the background refresh overwrites it.
   await page.evaluate(async () => {
     const cache = await caches.open((await caches.keys())[0]);
 
@@ -107,12 +109,17 @@ test('bumped manifest version refreshes cached assets', async ({ page }) => {
     await cache.put('./public/style.css', new Response(`${text}\n/* stale */`, { headers: cssResponse.headers }));
   });
 
+  // This reload is served instantly from the (tampered) cache; checkForUpdate then runs
+  // in the background, refreshes the cache, and messages the page to reload a second time.
   await page.reload();
-  await page.waitForLoadState('networkidle');
 
-  const cachedText = await page.evaluate(async () => {
+  await page.waitForFunction(async () => {
     const cache = await caches.open((await caches.keys())[0]);
-    return (await cache.match('./public/style.css')).text();
-  });
-  expect(cachedText).not.toContain('/* stale */');
+    const res = await cache.match('./public/style.css');
+    const text = await res.text();
+    return !text.includes('/* stale */');
+  }, { timeout: 10000 });
+
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('#btn_loadDirectoryHandles')).toBeVisible();
 });

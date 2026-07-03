@@ -36,8 +36,11 @@ async function refreshPrecache(cache, manifestResponse) {
   await Promise.all(otherUrls.map((url, i) => cache.put(url, otherResponses[i])));
 }
 
-// Runs once per navigation: cheap manifest.json check, full refresh only on a version bump.
-async function handleNavigate(request) {
+// Runs in the background, after a navigation has already been served from cache. Checks
+// manifest.json on the network; on a version bump, refreshes the cache and tells open tabs
+// to reload. The app's existing beforeunload/unsaved-changes guard protects in-progress
+// edits when that reload actually happens.
+async function checkForUpdate() {
   const cache = await caches.open(CACHE_NAME);
 
   try {
@@ -45,18 +48,24 @@ async function handleNavigate(request) {
     const freshManifest = await manifestResponse.clone().json();
     if (await versionHasChanged(cache, freshManifest)) {
       await refreshPrecache(cache, manifestResponse);
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach((client) => client.postMessage({ type: 'gypsum-update-ready' }));
     }
   } catch {
-    // Offline, or the check/refresh failed — fall through and serve whatever is cached.
+    // Offline, or the check/refresh failed — the next navigation just retries.
   }
-
-  const cached = await cache.match(request);
-  if (cached) return cached;
-  return (await cache.match('./')) || fetch(request);
 }
 
-// Cache-first for everything else: correct because handleNavigate above already
-// guarantees the cache is current as of this navigation.
+// Serves immediately from cache when available; only touches the network on a cache miss
+// (e.g. the very first visit, before anything is precached).
+async function handleNavigate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  return fetch(request);
+}
+
+// Cache-first for everything else.
 async function handleAsset(request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
@@ -72,5 +81,11 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   if (!request.url.startsWith(self.location.origin)) return;
 
-  event.respondWith(request.mode === 'navigate' ? handleNavigate(request) : handleAsset(request));
+  if (request.mode === 'navigate') {
+    event.respondWith(handleNavigate(request));
+    event.waitUntil(checkForUpdate());
+    return;
+  }
+
+  event.respondWith(handleAsset(request));
 });
