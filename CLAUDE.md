@@ -202,6 +202,10 @@ the matching browser binary.
   non-obvious.
 - **Do not add error handling for impossible cases.** Trust the app's internal invariants.
   Only validate at genuine system boundaries (user input, File System API responses).
+- **Bump the manifest version on every change.** `manifest.json`'s `version` field drives
+  the service worker's cache-invalidation check (see `service-worker.js`). Any code change
+  must bump the **minor** version (e.g. `1.0.0` → `1.1.0`) by default, unless the user
+  explicitly asks for a different bump (major or patch).
 
 ---
 
