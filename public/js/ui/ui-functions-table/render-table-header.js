@@ -9,7 +9,7 @@ export function renderTableHeader(current_props) {
 
     // Generate the header cell HTML
     const headerCellsHtml = current_props
-        .map(prop => `<div class="note-table-cell-header flex-row">${prop.name}<span class="flexgrow"> </span><span data-property="${prop.name}" data-action="sort-object" class="sort-by-prop-trigger">˅</span></div>`)
+        .map(prop => `<div class="note-table-cell-header flex-row">${prop.name}<span class="flexgrow"> </span><span data-property="${prop.name}" data-action="sort-object" class="sort-by-prop-trigger" data-tip="sort by ${prop.name}">˅</span></div>`)
         .join('');
 
     // Generate the grid-template-columns value for the CSS

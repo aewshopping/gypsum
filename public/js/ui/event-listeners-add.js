@@ -45,6 +45,7 @@ import { handleToggleFileControls } from './ui-functions-click/handle-toggle-fil
 import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
+import { initTooltip } from './tooltip.js';
 
 /**
  * Adds event listeners to the document for click, change, and keyup events.
@@ -52,6 +53,7 @@ import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
  */
 export function addActionHandlers() {
     initTagAutocomplete();
+    initTooltip();
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
     document.addEventListener("keydown", keyDownDelegate);

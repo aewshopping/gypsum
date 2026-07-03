@@ -35,7 +35,7 @@ function makeCircleButton(name) {
     btn.className = 'color-circle';
     btn.dataset.action = 'color-circle-pick';
     btn.dataset.colorValue = name.startsWith('#') ? name.slice(1) : name;
-    btn.title = name;
+    btn.dataset.tip = name;
     if (name !== 'nocolor') btn.style.backgroundColor = name;
     return btn;
 }
@@ -48,7 +48,7 @@ function buildColorPickerContent() {
     dialog.classList.remove('expanded');
     const expandBtn = document.getElementById('color-picker-expand-btn');
     expandBtn.setAttribute('aria-expanded', 'false');
-    expandBtn.title = 'Show more colours';
+    expandBtn.dataset.tip = 'show more colours';
 
     // Row 1: nocolor first, then the curated COLOR_NAMES
     const row1 = document.createElement('div');

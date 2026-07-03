@@ -15,7 +15,7 @@ function buildFilterHtml() {
             propertyLabel = filterObj.property;
             operator = filterObj.operator;
         }
-        html += `<button class="tag filter-pill" data-filterid="${filterId}" data-action="filter-togglestate" data-active="${isActive}" data-negate="${isNegate}">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})<button class="btn-delete-filter" data-filterid="${filterId}" data-action="delete-filter">✕</button></button>`;
+        html += `<button class="tag filter-pill" data-filterid="${filterId}" data-action="filter-togglestate" data-active="${isActive}" data-negate="${isNegate}" data-tip="toggle filter">${propertyLabel}${operator}${filterObj.searchValue}(${filterObj.matchCount})<button class="btn-delete-filter" data-filterid="${filterId}" data-action="delete-filter" data-tip="remove filter">✕</button></button>`;
     }
     return html;
 }

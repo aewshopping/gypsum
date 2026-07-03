@@ -15,5 +15,5 @@ export function renderFilename(filename) {
  * @returns {string} The HTML string for the rendered filename and button.
  */
 export function renderFilenamePlusOpenBtn(filename, color, fileId) {
-    return `<span class="show-content-tag color-dynamic" data-color="${color}" data-file-id="${fileId}" data-action="open-file-content-modal">open</span><i>${filename}</i>`;
+    return `<span class="show-content-tag color-dynamic" data-color="${color}" data-file-id="${fileId}" data-action="open-file-content-modal" data-tip="open file">open</span><i>${filename}</i>`;
 }

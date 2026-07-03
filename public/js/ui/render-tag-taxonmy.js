@@ -20,7 +20,7 @@ export function renderTagTaxonomy() {
 
     let taxon_html = `<div class="border-top-straight border-bottom-straight margin-bottom padding-top">
         <div id="tag_output">
-            <div class="tag-taxon-hide-btn" data-action="hide-tag-taxonomy"># hide tags</div>`;
+            <div class="tag-taxon-hide-btn" data-action="hide-tag-taxonomy" data-tip="hide tags"># hide tags</div>`;
 
     for (const [parentName, childMap] of appState.myParentMap) {
 
