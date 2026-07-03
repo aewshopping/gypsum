@@ -48,7 +48,7 @@ export function renderPagination(totalVisible) {
         } else if (item === c) {
             html += `<span class="pagination-elem-style pagination-current">${item}</span>`;
         } else {
-            html += `<button class="pagination-elem-style pagination-btn" data-action="change-page" data-page="${item}">${item}</button>`;
+            html += `<button class="pagination-elem-style pagination-btn" data-action="change-page" data-page="${item}" data-tip="go to page ${item}">${item}</button>`;
         }
     }
 
