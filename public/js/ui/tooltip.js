@@ -88,8 +88,6 @@ function _show(el) {
  */
 function _hide() {
     _tooltipEl.classList.remove('visible');
-    if (_anchoredEl) _anchoredEl.style.removeProperty('anchor-name');
-    _anchoredEl = null;
     _visible = false;
 }
 
