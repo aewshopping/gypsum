@@ -180,7 +180,19 @@
 
     <div id="tag-taxonomy-container"></div>
 
-    <div id="output"></div>
+    <div id="output">
+      <div class="empty-state">
+        <h1>Gypsum</h1>
+        <p>A viewer for the text and markdown files on your computer.</p>
+        <p>Click <strong>folder</strong> (top left) to choose a folder of .txt / .md files.
+          Everything stays in your browser — nothing is uploaded.</p>
+        <p class="empty-state-shortcuts">
+          <span><kbd>/</kbd> search</span>
+          <span><kbd>#</kbd> tag search</span>
+          <span><kbd>?</kbd> settings</span>
+        </p>
+      </div>
+    </div>
   </main>
 
   <dialog id="modal-settings" closedby="any">
@@ -333,6 +345,7 @@
           <div><dt></dt><dd><kbd>Ctrl</kbd>+<kbd>→</kbd> etc</dd></div>
           <div><dt></dt><dd><kbd>PgUp</kbd> / <kbd>PgDn</kbd></dd></div>
           <div><dt>Open file</dt><dd><kbd>Enter</kbd> / <kbd>Space</kbd></dd></div>
+          <div><dt>Clear all filters</dt><dd><kbd>Alt</kbd>+<kbd>x</kbd></dd></div>
           <div><dt>Open settings</dt><dd><kbd>?</kbd></dd></div>
         </dl>
       </div>
