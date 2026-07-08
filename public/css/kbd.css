@@ -1,0 +1,14 @@
+kbd {
+    --colour-soften-1: var(--colour-contr);
+    --colour-soften-2: color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral) 40%);
+    --colour-soften-3: color-mix(in srgb, var(--colour-contr) 5%, var(--colour-neutral) 95%);
+    padding: 1px 5px;
+    margin-inline: 2px;
+    color: var(--colour-soften-1);
+    border: 1px solid var(--colour-soften-2);
+    background-color: var(--colour-soften-3);
+    border-radius: 4px;
+    font-size: 0.89375em;
+    font-family: var(--fontfam-app-input);
+    line-height: 1.5;
+}
