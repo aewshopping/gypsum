@@ -1,0 +1,52 @@
+/* Welcome block shown in #output before a folder is loaded (static markup in
+   index.html) and the "no files match" message rendered by a-render-all-files.js. */
+
+.empty-state {
+    max-width: 480px;
+    margin: 10vh auto 0;
+    padding: 20px 28px;
+    text-align: center;
+    background-color: var(--colour-neutral-alt);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: var(--colour-contr);
+}
+
+.empty-state h1 {
+    color: var(--colour-contr-emph);
+    margin: 0 0 12px;
+}
+
+.empty-state p {
+    margin: 0 0 12px;
+}
+
+.empty-state p:last-child {
+    margin-bottom: 0;
+}
+
+.empty-state-shortcuts {
+    display: flex;
+    justify-content: center;
+    column-gap: 18px;
+    flex-wrap: wrap;
+}
+
+.empty-state-shortcuts span {
+    white-space: nowrap;
+}
+
+.empty-state kbd {
+    --colour-soften-1: color-mix(in srgb, var(--colour-contr) 90%, transparent 10%);
+    --colour-soften-2: color-mix(in srgb, var(--colour-contr) 60%, transparent 40%);
+    --colour-soften-3: color-mix(in srgb, var(--colour-contr) 5%, transparent 95%);
+    padding: 1px 5px;
+    margin-inline: 2px;
+    color: var(--colour-soften-1);
+    border: 1px solid var(--colour-soften-2);
+    background-color: var(--colour-soften-3);
+    border-radius: 4px;
+    font-size: 0.89375em;
+    font-family: var(--fontfam-app-input);
+    line-height: 1.5;
+}

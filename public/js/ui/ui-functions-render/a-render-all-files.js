@@ -57,6 +57,19 @@ export function renderFiles(fullRender = true, keepPage = false) {
         // Remove stale pagination nav (required for the table fullRender=false path)
         document.querySelector('.pagination')?.remove();
 
+        // Files are loaded but the active filters exclude all of them — show a
+        // message instead of a silently blank page. Safe to skip the view renderers:
+        // the table's fullRender=false path is only reachable from the header's own
+        // sort trigger, which is not in the DOM while this message is shown.
+        if (appState.myFiles.length > 0 && visibleFiles.length === 0) {
+            document.getElementById('output').innerHTML = `
+                <div class="empty-state">
+                    <p>No files match your filters.</p>
+                    <p>Press <kbd>Alt</kbd>+<kbd>x</kbd> or use the clear filters button to reset.</p>
+                </div>`;
+            return;
+        }
+
         switch(appState.viewState) {
             case VIEWS.CARDS.value:
                 renderFileList_grid(renderEverything);
