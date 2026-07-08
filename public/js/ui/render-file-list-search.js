@@ -14,8 +14,10 @@ export function renderFileList_search(renderEverything) {
     let file_html = `
             <div class="search-results-view">`;
 
+    let index = 0;
     for (const file of appState.myFiles) {
         if (checkFileOnPage(file.id)) {
+            index++;
 
             const filename_html = renderFilename(file.filepath);
 
@@ -25,8 +27,9 @@ export function renderFileList_search(renderEverything) {
                 tag_pills_html += renderTags(tag);
             }
 
+            const openFileTip = index <= 9 ? `open file (${index})` : 'open file';
             file_html += `
-                <div class="search-view-item color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="open file">
+                <div class="search-view-item color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="${openFileTip}">
 
                     <div class="search-view-fileinfo">
                         <div class="note-search" data-color="${file.color}">
