@@ -36,7 +36,7 @@ export function renderFileList_grid(renderEverything) {
         // construct the html for the file as a whole, pulling in file content and tag pills from above.
   //      const tag_list = file.tags.join(" ");
         const filename_html = renderFilename(file.filepath);
-        const openFileTip = index <= 9 ? `open file (${index})` : 'open file';
+        const openFileTip = index <= 9 ? `open file (press ${index})` : 'open file';
         file_html += `
         <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="${openFileTip}">
 
