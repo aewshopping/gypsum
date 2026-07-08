@@ -27,9 +27,9 @@ export function renderFileList_search(renderEverything) {
                 tag_pills_html += renderTags(tag);
             }
 
-            const openFileTip = index <= 9 ? `open file (press ${index})` : 'open file';
+            const openFileShortcut = index <= 9 ? ` data-shortcut="${index}"` : '';
             file_html += `
-                <div class="search-view-item color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="${openFileTip}">
+                <div class="search-view-item color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="open file"${openFileShortcut}>
 
                     <div class="search-view-fileinfo">
                         <div class="note-search" data-color="${file.color}">
