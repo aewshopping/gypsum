@@ -30,7 +30,7 @@ export function renderFileList_peek(renderEverything) {
                 .replace(/>/g, '&gt;')
                 .replace(/\n/g, '<br>');
 
-            const openFileTip = index <= 9 ? `open file (press ${index})` : 'open file';
+            const openFileTip = index <= 9 ? `open file | ${index}` : 'open file';
             file_html += `
         <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="${openFileTip}">
 
