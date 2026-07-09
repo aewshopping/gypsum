@@ -35,3 +35,18 @@
 .empty-state-shortcuts span {
     white-space: nowrap;
 }
+
+.empty-state kbd {
+    --colour-soften-1: color-mix(in srgb, var(--colour-contr) 90%, transparent 10%);
+    --colour-soften-2: color-mix(in srgb, var(--colour-contr) 60%, transparent 40%);
+    --colour-soften-3: color-mix(in srgb, var(--colour-contr) 5%, transparent 95%);
+    padding: 1px 5px;
+    margin-inline: 2px;
+    color: var(--colour-soften-1);
+    border: 1px solid var(--colour-soften-2);
+    background-color: var(--colour-soften-3);
+    border-radius: 4px;
+    font-size: 0.89375em;
+    font-family: var(--fontfam-app-input);
+    line-height: 1.5;
+}

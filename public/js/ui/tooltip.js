@@ -77,32 +77,10 @@ function _show(el) {
     if (_anchoredEl && _anchoredEl !== el) _anchoredEl.style.removeProperty('anchor-name');
     el.style.setProperty('anchor-name', TOOLTIP_ANCHOR_NAME);
     _anchoredEl = el;
-    _renderTipContent(el);
+    _tooltipEl.textContent = el.dataset.tip;
     _reparentToContext(el);
     _tooltipEl.classList.add('visible');
     _visible = true;
-}
-
-/**
- * Renders the tip text, followed by a <kbd> badge per key if the element
- * declares a shortcut. Built with textContent/createElement (never
- * innerHTML) since data-tip on some elements (e.g. tag filters) is derived
- * from user file/tag content.
- * @param {HTMLElement} el
- * @returns {void}
- */
-function _renderTipContent(el) {
-    _tooltipEl.textContent = '';
-    _tooltipEl.append(el.dataset.tip);
-    const shortcut = el.dataset.shortcut;
-    if (!shortcut) return;
-    _tooltipEl.append(' ');
-    shortcut.split('+').forEach((key, i) => {
-        if (i > 0) _tooltipEl.append('+');
-        const kbd = document.createElement('kbd');
-        kbd.textContent = key;
-        _tooltipEl.append(kbd);
-    });
 }
 
 /**
