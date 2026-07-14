@@ -1,7 +1,8 @@
 import { parseYaml } from '../../services/file-parsing/yaml-parse.js';
 
 /**
- * Escapes HTML-significant characters in a string so it can be safely injected into markup.
+ * Escapes HTML-significant characters in a string so it can be safely injected into markup,
+ * including as a quoted attribute value.
  * @param {string} value - The raw string to escape.
  * @returns {string} The escaped string.
  */
@@ -9,18 +10,26 @@ function escapeHtml(value) {
     return value
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 /**
  * Renders the HTML for a single property value, based on its type.
- * Arrays are rendered as tag-style pills; null is rendered as blank; everything else as text.
+ * Arrays are rendered as clickable, tag-style pills (each one triggers a search filter for
+ * `property:value`, the same syntax and pathway the search box uses); null is rendered as
+ * blank; everything else as text.
+ * @param {string} property - The property name the value belongs to.
  * @param {*} value - The property value, as produced by parseYaml.
  * @returns {string} The HTML string for the value cell.
  */
-function renderPropertyValue(value) {
+function renderPropertyValue(property, value) {
     if (Array.isArray(value)) {
-        return value.map(item => `<span class="tag tag-pill">${escapeHtml(String(item))}</span>`).join('');
+        return value.map(item => {
+            const itemText = escapeHtml(String(item));
+            return `<span class="tag tag-pill" data-action="property-filter" data-property="${escapeHtml(property)}" data-value="${itemText}" data-tip="search ${escapeHtml(property)}: ${itemText}">${itemText}</span>`;
+        }).join('');
     }
     if (value === null) {
         return '';
@@ -46,7 +55,7 @@ export function renderFrontmatterProperties(text) {
     }
 
     const rowsHtml = entries.map(([name, value]) =>
-        `<div class="frontmatter-prop-name">${escapeHtml(name)}</div><div class="frontmatter-prop-value">${renderPropertyValue(value)}</div>`
+        `<div class="frontmatter-prop-name">${escapeHtml(name)}</div><div class="frontmatter-prop-value">${renderPropertyValue(name, value)}</div>`
     ).join('');
 
     return `<div class="frontmatter-properties"><div class="frontmatter-properties-heading">Properties</div><div class="frontmatter-properties-grid">${rowsHtml}</div></div>`;

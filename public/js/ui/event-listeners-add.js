@@ -4,6 +4,7 @@
  */
 
 import { handleTagClick } from './ui-functions-click/tag-filter-click.js';
+import { handlePropertyFilterClick } from './ui-functions-click/property-filter-click.js';
 import { handleFilterModeToggle } from './ui-functions-click/filter-mode-toggle.js';
 import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
@@ -73,6 +74,7 @@ export function addActionHandlers() {
 // Map 'data-action' names from html to their handler functions.
 const clickActionHandlers = {
     'tag-filter': handleTagClick,
+    'property-filter': handlePropertyFilterClick,
     'clear-all-filters': handleClearFilters,
     'open-file-content-modal': handleOpenFileContent,
     'close-file-content-modal': handleCloseModal,
