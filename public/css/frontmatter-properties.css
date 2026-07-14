@@ -1,0 +1,28 @@
+.frontmatter-properties {
+    margin-bottom: 1em;
+}
+
+.frontmatter-properties-heading {
+    font-family: var(--fontfam-headers);
+    color: var(--colour-contr-emph);
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.frontmatter-properties-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+    font-family: var(--fontfam-mkdwn);
+}
+
+.frontmatter-prop-name {
+    white-space: nowrap;
+    color: var(--colour-contr);
+    opacity: 0.7;
+}
+
+.frontmatter-prop-value {
+    overflow-wrap: anywhere;
+}
