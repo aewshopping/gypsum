@@ -25,7 +25,7 @@ function escapeHtml(value) {
 function renderPill(property, rawValue) {
     const valueText = escapeHtml(String(rawValue));
     const propertyText = escapeHtml(property);
-    return `<span class="tag tag-pill" data-action="property-filter" data-property="${propertyText}" data-value="${valueText}" data-tip="search ${propertyText}: ${valueText}">${valueText}</span>`;
+    return `<span class="tag tag-pill" data-action="property-filter" data-property="${propertyText}" data-value="${valueText}" data-prop="${propertyText}" data-tip="search ${propertyText}: ${valueText}">${valueText}</span>`;
 }
 
 /**
