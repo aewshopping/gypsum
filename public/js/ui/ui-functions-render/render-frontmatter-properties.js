@@ -67,5 +67,5 @@ export function renderFrontmatterProperties(text) {
         `<div class="frontmatter-prop-name">${escapeHtml(name)}</div><div class="frontmatter-prop-value">${renderPropertyValue(name, value)}</div>`
     ).join('');
 
-    return `<div class="frontmatter-properties"><div class="frontmatter-properties-heading">Properties</div><div class="frontmatter-properties-grid">${rowsHtml}</div></div>`;
+    return `<div class="frontmatter-properties"><div class="frontmatter-properties-grid">${rowsHtml}</div></div>`;
 }

@@ -1,20 +1,18 @@
 .frontmatter-properties {
-    margin-bottom: 1em;
+    margin-block: 30px;
+    padding: 10px;
+    background-color: var(--colour-neutral-alt);
+    border-radius: 6px;
+    font-size: calc(0.9rem * var(--fsize-filetext-multiple));
 }
 
-.frontmatter-properties-heading {
-    font-family: var(--fontfam-headers);
-    color: var(--colour-contr-emph);
-    font-weight: bold;
-    margin-bottom: 4px;
-}
 
 .frontmatter-properties-grid {
     display: grid;
     grid-template-columns: auto 1fr;
     column-gap: 12px;
     row-gap: 4px;
-    font-family: var(--fontfam-mkdwn);
+    font-family: var(--fontfam-html);
 }
 
 .frontmatter-prop-name {
