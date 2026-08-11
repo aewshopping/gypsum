@@ -10,7 +10,8 @@ const tagSet = new Set();
 /**
  * Parses a string of text, finds tags (e.g., #tag, #category/tag), and wraps them in HTML `<span>` elements
  * for styling and interaction. Skips `#` preceded by `"`, `'`, `=` or `:` (so HTML attribute values
- * like SVG `href="#id"` and inline CSS like `style="fill:#ff0000"` survive).
+ * like SVG `href="#id"` and compact inline CSS like `style="fill:#ff0000"` survive), or by an
+ * unclosed `{` (so formatted CSS rule bodies like `.cls-1 { fill: #ffffff; }` survive too).
  *
  * @param {string} text The input text to parse for tags.
  * @returns {string} The text with tags replaced by HTML `<span>` elements.
@@ -21,13 +22,17 @@ export function tagParser(text) {
 	returnActiveTags(); //mutates tagSet
 
 	// Match #tag and #category/tag, skipping '#' preceded by a quote, '=' or ':' — those mark
-	// HTML attribute values (e.g. SVG <use href="#petal"/>) or inline CSS (style="fill:#ff0000")
-	// rather than real tags. This also naturally excludes hex colours in that markup, without
-	// excluding ordinary words that happen to look like hex (e.g. "bbc", "decade") when typed
-	// as a real tag.
+	// HTML attribute values (e.g. SVG <use href="#petal"/>) or compact inline CSS
+	// (style="fill:#ff0000") rather than real tags. Also skips '#' inside an unclosed '{' — CSS
+	// rule bodies (e.g. ".cls-1 { fill: #ffffff; stroke: #1e1e1e; }") however they're
+	// formatted/spaced. Curly braces essentially never wrap ordinary prose, unlike ':', so this
+	// is safe to apply even across whitespace; a literal, unclosed '{' used for non-CSS prose
+	// with a real tag before the eventual '}' would be wrongly excluded, but that's rare enough
+	// to accept. This also naturally excludes hex colours in that markup, without excluding
+	// ordinary words that happen to look like hex (e.g. "bbc", "decade") when typed as a real tag.
 	// Two branches: simple #tag (groups 1-2) and #parent/child (groups 3-4),
 	// matching the structure `tagreplacer` expects.
-	const TAG_REGEX = /(?<!["'=:])(#)(\w+)\b(?!\/)|(?<!["'=:])(#\w+\/)(\w+)\b/gm;
+	const TAG_REGEX = /(?<!["'=:]|\{[^}]{0,300})(#)(\w+)\b(?!\/)|(?<!["'=:]|\{[^}]{0,300})(#\w+\/)(\w+)\b/gm;
 
 	return text.replace(TAG_REGEX, tagreplacer).trim();
 }

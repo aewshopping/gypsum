@@ -1,16 +1,18 @@
 const { test, expect } = require('@playwright/test');
 
-// Mock a file whose body contains inline SVG (with href="#petal" and an inline
-// style="fill:#ff0000" declaration), a real tag, and a bare hex-looking word. Two separate
-// tag-matching paths need to ignore `#petal` and `#ff0000` (markup context, via the
-// quote/'='/':' lookbehind) while still picking up `#realtag` and `#abcdef` (typed as tags,
-// with nothing marking them as markup):
+// Mock a file whose body contains inline SVG (with href="#petal", a <style> block of
+// formatted/braced CSS, and an inline style="fill:#ff0000" declaration), a real tag, and a
+// bare hex-looking word. Two separate tag-matching paths need to ignore `#petal`, the braced
+// CSS hex colours, and `#ff0000` (all markup context, via the quote/'='/':'/'{' lookbehind)
+// while still picking up `#realtag` and `#abcdef` (typed as tags, with nothing marking them
+// as markup):
 //   1. tagParser (render-time) — injects <span class="tag"> into rendered HTML
 //   2. regex_tag in file-info.js (load-time) — builds file.tags Map for filters
 async function loadRoseFile(page) {
   await page.addInitScript(() => {
     const content =
       '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
+      '<style>.cls-1 { fill: #ffffff; stroke: #1e1e1e; }</style>' +
       '<defs><ellipse id="petal" cx="100" cy="70" rx="15" ry="30" style="fill:#ff0000"/></defs>' +
       '<use href="#petal"/>' +
       '</svg>\n\n' +
@@ -44,8 +46,9 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
   );
   expect(useHref).toBe('#petal');
 
-  // Two tag spans should be rendered — `#realtag` and `#abcdef` — but not `#petal` or the
-  // `#ff0000` inside the SVG's style attribute, which are markup, not tags.
+  // Two tag spans should be rendered — `#realtag` and `#abcdef` — but not `#petal`, the
+  // `#ff0000` inside the SVG's style attribute, or the `#ffffff`/`#1e1e1e` inside the
+  // formatted, braced <style> block, all of which are markup, not tags.
   const tagCount = await page.locator('#modal-content-text .tag').count();
   expect(tagCount).toBe(2);
   const tagTexts = await page.locator('#modal-content-text .tag').allTextContents();
