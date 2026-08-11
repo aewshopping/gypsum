@@ -9,8 +9,8 @@ const tagSet = new Set();
 
 /**
  * Parses a string of text, finds tags (e.g., #tag, #category/tag), and wraps them in HTML `<span>` elements
- * for styling and interaction. Skips `#` preceded by `"`, `'`, or `=` (so HTML attribute values like
- * SVG `href="#id"` survive) and `#` that introduces a hex colour (`#fff`, `#00ff00`).
+ * for styling and interaction. Skips `#` preceded by `"`, `'`, `=` or `:` (so HTML attribute values
+ * like SVG `href="#id"` and inline CSS like `style="fill:#ff0000"` survive).
  *
  * @param {string} text The input text to parse for tags.
  * @returns {string} The text with tags replaced by HTML `<span>` elements.
@@ -20,16 +20,14 @@ export function tagParser(text) {
 
 	returnActiveTags(); //mutates tagSet
 
-	// Match #tag and #category/tag, skipping two cases that look like tags but aren't:
-	//   (?<!["'=])  – '#' preceded by a quote or '=' is inside an HTML attribute
-	//                 value (e.g. SVG <use href="#petal"/>) — leave the markup alone.
-	//   (?!(?:[0-9a-fA-F]{3}){1,2}\b)
-	//               – '#' followed by a 3- or 6-char hex sequence is a CSS colour
-	//                 (#fff, #00ff00) — not a tag. Non-capturing so the replacer's
-	//                 p1..p4 positions are unaffected.
+	// Match #tag and #category/tag, skipping '#' preceded by a quote, '=' or ':' — those mark
+	// HTML attribute values (e.g. SVG <use href="#petal"/>) or inline CSS (style="fill:#ff0000")
+	// rather than real tags. This also naturally excludes hex colours in that markup, without
+	// excluding ordinary words that happen to look like hex (e.g. "bbc", "decade") when typed
+	// as a real tag.
 	// Two branches: simple #tag (groups 1-2) and #parent/child (groups 3-4),
 	// matching the structure `tagreplacer` expects.
-	const TAG_REGEX = /(?<!["'=])(#)(?!(?:[0-9a-fA-F]{3}){1,2}\b)(\w+)\b(?!\/)|(?<!["'=])(#\w+\/)(\w+)\b/gm;
+	const TAG_REGEX = /(?<!["'=:])(#)(\w+)\b(?!\/)|(?<!["'=:])(#\w+\/)(\w+)\b/gm;
 
 	return text.replace(TAG_REGEX, tagreplacer).trim();
 }

@@ -6,9 +6,11 @@ export const NOTE = "note-table";
 // match the text on a line that starts with '# ' - grp 1
 export const regex_title = /(?<=^# )(.*$)/;
 // grp 1 - the whole #string, grp 2 - the parent text (if exists), grp 3 - the tag text.
-// Negative lookbehind skips '#' preceded by '"', "'" or '=' (HTML attribute values like SVG href="#id").
-// Negative lookahead skips hex colours (#fff, #00ff00).
-export const regex_tag = /(?<!["'=])#(?!([0-9a-fA-F]{3}){1,2}\b)(?:(\w+)\/)?(\w+)/;
+// Negative lookbehind skips '#' preceded by '"', "'", '=' or ':' (HTML attribute values like
+// SVG href="#id", and inline CSS like style="fill:#ff0000"). This also naturally excludes hex
+// colours in that markup, without excluding ordinary words that happen to look like hex
+// (e.g. "bbc", "decade") when typed as a real tag.
+export const regex_tag = /(?<!["'=:])#(?:(\w+)\/)?(\w+)/;
 
 export const VIEWS = {
     TABLE:  { value: "table",  label: "table view"  },

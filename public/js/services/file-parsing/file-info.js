@@ -137,8 +137,8 @@ function extractMatches(fileContent, regex_all, regex_tag_match, tagState) {
     let titleFirst = null;
     const matches = fileContent.matchAll(regex_all);
 
-    // regex_all groups: 1 = title, 3 = tag parent, 4 = tag child
-    for (const [, titleValue, , parentValue, childValue] of matches) {
+    // regex_all groups: 1 = title, 2 = tag parent, 3 = tag child
+    for (const [, titleValue, parentValue, childValue] of matches) {
 
         // 1. Process Title
         if (titleFirst === null && titleValue) {
@@ -193,8 +193,8 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
         // Markdown H1 *was* found. Check it for tags.
         const titleTagMatches = finalTitle.matchAll(regex_tag_match);
 
-        // regex_tag_match groups: 2 = tag parent, 3 = tag child
-        for (const [, , parentValue, childValue] of titleTagMatches) {
+        // regex_tag_match groups: 1 = tag parent, 2 = tag child
+        for (const [, parentValue, childValue] of titleTagMatches) {
             processTag({ childValue, parentValue }, tagState);
         }
     }

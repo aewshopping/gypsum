@@ -1,18 +1,21 @@
 const { test, expect } = require('@playwright/test');
 
-// Mock a file whose body contains inline SVG (with href="#petal"), a real tag,
-// and a hex colour. Two separate tag-matching paths need to ignore `#petal`:
+// Mock a file whose body contains inline SVG (with href="#petal" and an inline
+// style="fill:#ff0000" declaration), a real tag, and a bare hex-looking word. Two separate
+// tag-matching paths need to ignore `#petal` and `#ff0000` (markup context, via the
+// quote/'='/':' lookbehind) while still picking up `#realtag` and `#abcdef` (typed as tags,
+// with nothing marking them as markup):
 //   1. tagParser (render-time) — injects <span class="tag"> into rendered HTML
 //   2. regex_tag in file-info.js (load-time) — builds file.tags Map for filters
 async function loadRoseFile(page) {
   await page.addInitScript(() => {
     const content =
       '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
-      '<defs><ellipse id="petal" cx="100" cy="70" rx="15" ry="30" fill="purple"/></defs>' +
+      '<defs><ellipse id="petal" cx="100" cy="70" rx="15" ry="30" style="fill:#ff0000"/></defs>' +
       '<use href="#petal"/>' +
       '</svg>\n\n' +
       'A real tag: #realtag\n\n' +
-      'A hex colour: #abcdef\n';
+      'A hex-looking tag: #abcdef\n';
 
     const makeFile = (name, c) => ({
       kind: 'file', name,
@@ -41,9 +44,12 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
   );
   expect(useHref).toBe('#petal');
 
-  // Exactly one tag span should be rendered — from `#realtag`, not `#petal` or `#abcdef`.
+  // Two tag spans should be rendered — `#realtag` and `#abcdef` — but not `#petal` or the
+  // `#ff0000` inside the SVG's style attribute, which are markup, not tags.
   const tagCount = await page.locator('#modal-content-text .tag').count();
-  expect(tagCount).toBe(1);
-  await expect(page.locator('#modal-content-text .tag').first()).toHaveText(/realtag/);
+  expect(tagCount).toBe(2);
+  const tagTexts = await page.locator('#modal-content-text .tag').allTextContents();
+  expect(tagTexts.some(t => /realtag/.test(t))).toBe(true);
+  expect(tagTexts.some(t => /abcdef/.test(t))).toBe(true);
 });
 
