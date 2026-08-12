@@ -1,20 +1,27 @@
 const { test, expect } = require('@playwright/test');
 
-// Mock a file whose body contains inline SVG (with href="#petal", a <style> block of
-// formatted/braced CSS, and an inline style="fill:#ff0000" declaration), a real tag, and a
-// bare hex-looking word. Two separate tag-matching paths need to ignore `#petal`, the braced
-// CSS hex colours, and `#ff0000` (all markup context, via the quote/'='/':'/'{' lookbehind)
-// while still picking up `#realtag` and `#abcdef` (typed as tags, with nothing marking them
-// as markup):
+// Mock a file whose body contains inline SVG — with nested groups, sibling <style> blocks of
+// formatted/braced CSS at different nesting depths, an inline style="fill:#ff0000"
+// declaration, and href="#petal" — a real tag, and a bare hex-looking word. Two separate
+// tag-matching paths need to ignore everything inside the markup (via
+// findProtectedSpans/isProtected, see protected-spans.js) while still picking up `#realtag`
+// and `#abcdef` (typed as tags, with nothing marking them as markup):
 //   1. tagParser (render-time) — injects <span class="tag"> into rendered HTML
 //   2. regex_tag in file-info.js (load-time) — builds file.tags Map for filters
 async function loadRoseFile(page) {
   await page.addInitScript(() => {
     const content =
       '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
-      '<style>.cls-1 { fill: #ffffff; stroke: #1e1e1e; }</style>' +
-      '<defs><ellipse id="petal" cx="100" cy="70" rx="15" ry="30" style="fill:#ff0000"/></defs>' +
-      '<use href="#petal"/>' +
+      '<defs>' +
+        '<style>.cls-1 { fill: #ffffff; stroke: #1e1e1e; }</style>' +
+        '<style>.cls-2 { fill: #123456; }</style>' + // sibling style block
+        '<ellipse id="petal" cx="100" cy="70" rx="15" ry="30" style="fill:#ff0000"/>' +
+      '</defs>' +
+      '<g fill="#333333">' +
+        '<g stroke="#444444">' +
+          '<use href="#petal"/>' +
+        '</g>' +
+      '</g>' +
       '</svg>\n\n' +
       'A real tag: #realtag\n\n' +
       'A hex-looking tag: #abcdef\n';
@@ -47,8 +54,9 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
   expect(useHref).toBe('#petal');
 
   // Two tag spans should be rendered — `#realtag` and `#abcdef` — but not `#petal`, the
-  // `#ff0000` inside the SVG's style attribute, or the `#ffffff`/`#1e1e1e` inside the
-  // formatted, braced <style> block, all of which are markup, not tags.
+  // `#ff0000` style attribute, either sibling <style> block's hex colours, or the
+  // `#333333`/`#444444` fill/stroke attributes on the nested <g> elements — all of which are
+  // markup, not tags, regardless of nesting depth.
   const tagCount = await page.locator('#modal-content-text .tag').count();
   expect(tagCount).toBe(2);
   const tagTexts = await page.locator('#modal-content-text .tag').allTextContents();

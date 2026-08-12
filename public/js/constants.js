@@ -6,15 +6,11 @@ export const NOTE = "note-table";
 // match the text on a line that starts with '# ' - grp 1
 export const regex_title = /(?<=^# )(.*$)/;
 // grp 1 - the whole #string, grp 2 - the parent text (if exists), grp 3 - the tag text.
-// Negative lookbehind skips '#' preceded by '"', "'", '=' or ':' (HTML attribute values like
-// SVG href="#id", and compact inline CSS like style="fill:#ff0000"), or by an unclosed '{'
-// (CSS rule bodies like ".cls-1 { fill: #ffffff; }", however they're formatted/spaced —
-// curly braces essentially never wrap ordinary prose, unlike ':', so this is safe to apply
-// even with whitespace inside; a literal, unclosed '{' used for non-CSS prose with a real tag
-// before the eventual '}' would be wrongly excluded, but that's rare enough to accept).
-// This also naturally excludes hex colours in that markup, without excluding ordinary words
-// that happen to look like hex (e.g. "bbc", "decade") when typed as a real tag.
-export const regex_tag = /(?<!["'=:]|\{[^}]{0,300})#(?:(\w+)\/)?(\w+)/;
+// No lookbehind: matches are filtered by the caller using findProtectedSpans/isProtected
+// (see protected-spans.js) to skip '#' that lands inside HTML markup — e.g. an embedded SVG's
+// href="#id" or a <style> block's CSS. That's both more correct (handles any markup shape,
+// not specific punctuation) and much faster than a variable-length lookbehind.
+export const regex_tag = /#(?:(\w+)\/)?(\w+)/;
 
 export const VIEWS = {
     TABLE:  { value: "table",  label: "table view"  },
