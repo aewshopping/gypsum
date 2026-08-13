@@ -1,18 +1,34 @@
 const { test, expect } = require('@playwright/test');
 
-// Mock a file whose body contains inline SVG (with href="#petal"), a real tag,
-// and a hex colour. Two separate tag-matching paths need to ignore `#petal`:
+// Mock a file whose body contains inline SVG — with nested groups, sibling <style> blocks of
+// formatted/braced CSS at different nesting depths, an inline style="fill:#ff0000"
+// declaration, and href="#petal" — plus markdown code (a single-backtick span, a
+// double-backtick-escaped span, and a fenced code block), a real tag, and a bare hex-looking
+// word. Two separate tag-matching paths need to ignore everything inside the markup and code
+// (via findProtectedSpans/isProtected, see protected-spans.js) while still picking up
+// `#realtag` and `#abcdef` (typed as tags, with nothing marking them as markup/code):
 //   1. tagParser (render-time) — injects <span class="tag"> into rendered HTML
 //   2. regex_tag in file-info.js (load-time) — builds file.tags Map for filters
 async function loadRoseFile(page) {
   await page.addInitScript(() => {
     const content =
       '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' +
-      '<defs><ellipse id="petal" cx="100" cy="70" rx="15" ry="30" fill="purple"/></defs>' +
-      '<use href="#petal"/>' +
+      '<defs>' +
+        '<style>.cls-1 { fill: #ffffff; stroke: #1e1e1e; }</style>' +
+        '<style>.cls-2 { fill: #123456; }</style>' + // sibling style block
+        '<ellipse id="petal" cx="100" cy="70" rx="15" ry="30" style="fill:#ff0000"/>' +
+      '</defs>' +
+      '<g fill="#333333">' +
+        '<g stroke="#444444">' +
+          '<use href="#petal"/>' +
+        '</g>' +
+      '</g>' +
       '</svg>\n\n' +
       'A real tag: #realtag\n\n' +
-      'A hex colour: #abcdef\n';
+      'A hex-looking tag: #abcdef\n\n' +
+      'Inline code: `git checkout #branch` should stay literal.\n\n' +
+      'Escaped: `` `#nested` `` should also stay literal.\n\n' +
+      '```css\n#selector { color: red; }\n```\n';
 
     const makeFile = (name, c) => ({
       kind: 'file', name,
@@ -41,9 +57,25 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
   );
   expect(useHref).toBe('#petal');
 
-  // Exactly one tag span should be rendered — from `#realtag`, not `#petal` or `#abcdef`.
+  // Two tag spans should be rendered — `#realtag` and `#abcdef` — but not `#petal`, the
+  // `#ff0000` style attribute, either sibling <style> block's hex colours, the
+  // `#333333`/`#444444` fill/stroke attributes on the nested <g> elements, or `#branch`/
+  // `#nested`/`#selector` inside code — all of which are markup or code, not tags, regardless
+  // of nesting depth.
   const tagCount = await page.locator('#modal-content-text .tag').count();
-  expect(tagCount).toBe(1);
-  await expect(page.locator('#modal-content-text .tag').first()).toHaveText(/realtag/);
+  expect(tagCount).toBe(2);
+  const tagTexts = await page.locator('#modal-content-text .tag').allTextContents();
+  expect(tagTexts.some(t => /realtag/.test(t))).toBe(true);
+  expect(tagTexts.some(t => /abcdef/.test(t))).toBe(true);
+
+  // Code content must render literally, with no leaked/corrupted tag-span markup inside it —
+  // this is the actual bug: tagParser runs before the markdown renderer, so without protection
+  // it wraps '#branch' etc. in a <span> *before* marked() treats the backticks as literal,
+  // producing visibly broken escaped-HTML text in the rendered code.
+  const codeTexts = await page.locator('#modal-content-text code').allTextContents();
+  expect(codeTexts.some(t => t.includes('git checkout #branch'))).toBe(true);
+  expect(codeTexts.some(t => t.includes('`#nested`'))).toBe(true);
+  expect(codeTexts.some(t => t.includes('#selector { color: red; }'))).toBe(true);
+  expect(await page.locator('#modal-content-text code .tag').count()).toBe(0);
 });
 

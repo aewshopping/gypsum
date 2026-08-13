@@ -2,6 +2,7 @@ import { regex_title, regex_tag } from '../../constants.js';
 import { parseYaml } from './yaml-parse.js';
 import { findFrontMatterIndices } from './yaml-find.js';
 import { updateMyFilesProperties } from '../file-props.js';
+import { findProtectedSpans, isProtected } from './protected-spans.js';
 
 /**
  * @file Extracts metadata from file content, including title, tags, and YAML front matter.
@@ -70,9 +71,10 @@ function parseFileContent(fileContent, frontMatterIndices) {
         tagMap: new Map(),  // Map<childTagName, {count: number, parents: Set<string>}>
         colorFirst: null,
     };
+    const protectedSpans = findProtectedSpans(fileContent);
 
     // 1. Extract Matches and get Initial Title
-    const { titleFirst: initialTitle } = extractMatches(fileContent, regex_all, regex_tag_match, tagState);
+    const { titleFirst: initialTitle } = extractMatches(fileContent, regex_all, tagState, protectedSpans);
 
     // 2. Finalize Title and Content Preview
     const titleFirst = getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, frontMatterIndices);
@@ -129,16 +131,17 @@ function processTag({ childValue, parentValue }, tagState) {
  *
  * @param {string} fileContent - The text to parse.
  * @param {RegExp} regex_all - Combined regex for title and tags.
- * @param {RegExp} regex_tag_match - Regex specifically for tags (used for title inspection).
  * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>, colorFirst: string | null}} tagState - State object to pass to processTag.
+ * @param {Array<[number, number]>} protectedSpans - HTML markup spans to skip; see protected-spans.js.
  * @returns {{titleFirst: string | null}} - The first encountered title.
  */
-function extractMatches(fileContent, regex_all, regex_tag_match, tagState) {
+function extractMatches(fileContent, regex_all, tagState, protectedSpans) {
     let titleFirst = null;
     const matches = fileContent.matchAll(regex_all);
 
-    // regex_all groups: 1 = title, 3 = tag parent, 4 = tag child
-    for (const [, titleValue, , parentValue, childValue] of matches) {
+    // regex_all groups: 1 = title, 2 = tag parent, 3 = tag child
+    for (const match of matches) {
+        const [, titleValue, parentValue, childValue] = match;
 
         // 1. Process Title
         if (titleFirst === null && titleValue) {
@@ -146,7 +149,9 @@ function extractMatches(fileContent, regex_all, regex_tag_match, tagState) {
         }
 
         // 2. Process Tag
-        processTag({ childValue, parentValue }, tagState);
+        if (childValue && !isProtected(match.index, protectedSpans)) {
+            processTag({ childValue, parentValue }, tagState);
+        }
     }
     return { titleFirst };
 }
@@ -190,12 +195,18 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
         const result = findFirstContentLine(lines, 0, frontMatterIndices);
         finalTitle = result ? result.lineText.substring(0, 180) : '';
     } else {
-        // Markdown H1 *was* found. Check it for tags.
+        // Markdown H1 *was* found. Check it for tags. finalTitle is a substring of fileContent,
+        // so its own protected spans are computed fresh here rather than reusing the
+        // fileContent-wide spans, which would be in the wrong coordinate space.
+        const titleProtectedSpans = findProtectedSpans(finalTitle);
         const titleTagMatches = finalTitle.matchAll(regex_tag_match);
 
-        // regex_tag_match groups: 2 = tag parent, 3 = tag child
-        for (const [, , parentValue, childValue] of titleTagMatches) {
-            processTag({ childValue, parentValue }, tagState);
+        // regex_tag_match groups: 1 = tag parent, 2 = tag child
+        for (const match of titleTagMatches) {
+            const [, parentValue, childValue] = match;
+            if (!isProtected(match.index, titleProtectedSpans)) {
+                processTag({ childValue, parentValue }, tagState);
+            }
         }
     }
 

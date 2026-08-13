@@ -6,9 +6,11 @@ export const NOTE = "note-table";
 // match the text on a line that starts with '# ' - grp 1
 export const regex_title = /(?<=^# )(.*$)/;
 // grp 1 - the whole #string, grp 2 - the parent text (if exists), grp 3 - the tag text.
-// Negative lookbehind skips '#' preceded by '"', "'" or '=' (HTML attribute values like SVG href="#id").
-// Negative lookahead skips hex colours (#fff, #00ff00).
-export const regex_tag = /(?<!["'=])#(?!([0-9a-fA-F]{3}){1,2}\b)(?:(\w+)\/)?(\w+)/;
+// No lookbehind: matches are filtered by the caller using findProtectedSpans/isProtected
+// (see protected-spans.js) to skip '#' that lands inside HTML markup — e.g. an embedded SVG's
+// href="#id" or a <style> block's CSS. That's both more correct (handles any markup shape,
+// not specific punctuation) and much faster than a variable-length lookbehind.
+export const regex_tag = /#(?:(\w+)\/)?(\w+)/;
 
 export const VIEWS = {
     TABLE:  { value: "table",  label: "table view"  },
