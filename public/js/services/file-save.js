@@ -35,12 +35,21 @@ export function buildSaveFilename(filepath, filename) {
 /**
  * Converts a contentEditable pre element's innerHTML to plain text for saving.
  * Replaces <br> tags with newlines and decodes HTML entities.
+ *
+ * &nbsp; decodes to an actual U+00A0 character rather than a plain space: browsers
+ * serialize a real non-breaking space in the DOM (e.g. from pasted content) as the
+ * literal entity &nbsp;, and without this rule that six-character string would be
+ * written to the saved file verbatim instead of the single whitespace character it
+ * represents. This must run before the &amp; decode: a user who deliberately typed
+ * the literal text "&nbsp;" has it serialized as "&amp;nbsp;", which only collapses
+ * to a bare "&nbsp;" (and would wrongly be caught by this rule) once &amp; is decoded.
  * @param {string} innerHTML
  * @returns {string}
  */
 export function decodeModalHtml(innerHTML) {
     return innerHTML
         .replace(/<br>/gi, '\n')
+        .replace(/&nbsp;/g, '\u00A0')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>');
