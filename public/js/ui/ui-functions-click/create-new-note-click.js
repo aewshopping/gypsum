@@ -46,7 +46,7 @@ export async function handleCreateNewNote(event, target) {
     await writable.close();
 
     const fileObj = await getFileDataAndMetadata(newHandle, appState.myFiles.length);
-    const newFile = { ...fileObj, filepath: newFilename, id: newFilename };
+    const newFile = { ...fileObj, filepath: newFilename, internalId: newFilename };
     appState.myFiles.push(newFile);
     appState.myFileHandlesMap.set(newFilename, newHandle);
 

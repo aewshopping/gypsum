@@ -128,7 +128,7 @@ export async function renameFile({ file, newFolder, newName }) {
         file.handle = newHandle;
         file.filename = newName;
         file.filepath = newFilepath;
-        file.id = newFilepath;
+        file.internalId = newFilepath;
         // file.lastModified is intentionally left at its original value. The
         // on-disk mtime of the new copy is unavoidably "now" (the File System
         // Access API exposes no way to preserve it), but keeping the session

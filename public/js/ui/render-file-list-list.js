@@ -21,7 +21,7 @@ export function renderFileList_list(renderEverything) {
     let file_html = `<ol class="list-view" start="${startNumber}">`;
 
     for (const file of appState.myFiles) {
-        if (checkFileOnPage(file.id)) {
+        if (checkFileOnPage(file.internalId)) {
 
             const filename_html = renderFilename(file.filepath);
 
@@ -32,11 +32,11 @@ export function renderFileList_list(renderEverything) {
             }
 
             file_html += `
-                <li data-vt-id="${file.id}">
+                <li data-vt-id="${file.internalId}">
                     <details>
                         <summary><span data-prop="filename">${filename_html}</span> ${tag_pills_html}</summary>
                         <ul>
-                        <li><span class="show-content-tag color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-tip="open file">open</span></li>
+                        <li><span class="show-content-tag color-dynamic" data-color="${file.color}" data-file-id="${file.internalId}" data-action="open-file-content-modal" data-tip="open file">open</span></li>
                         `;
             for (const key in file) {
                 const value = file[key];

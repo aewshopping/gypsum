@@ -103,7 +103,7 @@ export function handleOpenFileContent(event, target, postLoad = null) {
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
     target.classList.remove("moving-file-content-view");
 
-    const fileObj = appState.myFiles.find(f => f.id === file_to_open);
+    const fileObj = appState.myFiles.find(f => f.internalId === file_to_open);
     initHistorySelect(fileObj?.filepath ?? file_to_open);
     document.getElementById('file-content-header').dataset.color = target.dataset.color;
     scrollingContent.dataset.color=target.dataset.color;

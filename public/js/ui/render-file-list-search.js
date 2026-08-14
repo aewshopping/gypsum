@@ -16,7 +16,7 @@ export function renderFileList_search(renderEverything) {
 
     let index = 0;
     for (const file of appState.myFiles) {
-        if (checkFileOnPage(file.id)) {
+        if (checkFileOnPage(file.internalId)) {
             index++;
 
             const filename_html = renderFilename(file.filepath);
@@ -29,7 +29,7 @@ export function renderFileList_search(renderEverything) {
 
             const openFileTip = index <= 9 ? `open file | ${index}` : 'open file';
             file_html += `
-                <div class="search-view-item color-dynamic" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="${openFileTip}">
+                <div class="search-view-item color-dynamic" data-color="${file.color}" data-file-id="${file.internalId}" data-action="open-file-content-modal" data-vt-id="${file.internalId}" data-tip="${openFileTip}">
 
                     <div class="search-view-fileinfo">
                         <div class="note-search" data-color="${file.color}">
@@ -39,7 +39,7 @@ export function renderFileList_search(renderEverything) {
                         </div>
                     </div>`;
 
-            const matchingFilters = appState.search.matchingFiles.get(file.id);
+            const matchingFilters = appState.search.matchingFiles.get(file.internalId);
 
             //  console.log(matchingFilters);
 

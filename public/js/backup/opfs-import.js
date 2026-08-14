@@ -128,11 +128,11 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
         if (i % updateN === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
         // if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         const lastModified = mtimeMap?.has(filepath) ? new Date(mtimeMap.get(filepath)) : fileObj.lastModified;
-        filesWithMetadata.push({ ...fileObj, filepath, id: filepath, lastModified });
+        filesWithMetadata.push({ ...fileObj, filepath, internalId: filepath, lastModified });
     }
 
     appState.myFileHandlesMap = filesWithMetadata.reduce((map, fileObject) => {
-        map.set(fileObject.id, fileObject.handle);
+        map.set(fileObject.internalId, fileObject.handle);
         return map;
     }, new Map());
     appState.myFiles = filesWithMetadata;
