@@ -1,4 +1,5 @@
 import { appState } from '../../services/store.js';
+import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
 
 /**
  * Toggles a task-list checkbox's `[ ]`/`[x]` marker in the live raw text when the rendered
@@ -36,4 +37,6 @@ export function handleCheckboxToggle(evt, actionElement) {
             .replace(/>/g, '&gt;')
             .replace(/\r\n|\r|\n/g, '<br>');
     }
+
+    if (!session.isDirty) { session.isDirty = true; updateUnsavedIndicator(); }
 }
