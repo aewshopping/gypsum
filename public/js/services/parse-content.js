@@ -24,9 +24,12 @@ const PROPERTIES_PLACEHOLDER = '<div data-gypsum-properties-placeholder></div>';
  * the diff highlighter can map raw-text lines to DOM elements directly.
  *
  * @param {string} text - Raw file content.
+ * @param {boolean} [liveCheckboxes=false] - Renders task-list checkboxes without `disabled`.
+ *   Pass true only when parsing the live/current version of a file — historical snapshots
+ *   should stay read-only.
  * @returns {string} Parsed HTML string ready for injection into the DOM.
  */
-export function parseContent(text) {
+export function parseContent(text, liveCheckboxes = false) {
     // Matches marked's own internal \r\n/\r -> \n normalization, so our offsets and its
     // token.raw values agree on the same character positions.
     const normalized = text.replace(/\r\n|\r/g, '\n');
@@ -36,7 +39,7 @@ export function parseContent(text) {
     const placeholderLine = indices ? indices.start + 1 : 0;
 
     const transformed = tagParser(replaceFrontMatter(normalized, PROPERTIES_PLACEHOLDER));
-    const renderer = new SourceTrackingRenderer(transformed, lineOffset, placeholderLine);
+    const renderer = new SourceTrackingRenderer(transformed, lineOffset, placeholderLine, liveCheckboxes);
     const rendered = marked(transformed, { renderer });
     // Tagged with its own line so a change anywhere in the front matter block highlights the
     // whole properties panel in HTML mode, the same way any other changed block does.

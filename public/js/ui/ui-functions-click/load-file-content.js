@@ -36,7 +36,7 @@ export async function loadContentModal(fileId) {
         content: raw,
     };
 
-    session.activeHtml = parseContent(raw);
+    session.activeHtml = parseContent(raw, true);
     session.liveHtml = session.activeHtml;
 
     setIsCurrentVersion(true);

@@ -51,8 +51,11 @@ export class SourceTrackingRenderer extends Renderer {
      *   `indices.end - indices.start` from `findFrontMatterIndices`, or 0 if none.
      * @param {number} [placeholderLine=0] - 1-based line number of the placeholder in
      *   `sourceText`. Lines at or before this need no correction.
+     * @param {boolean} [liveCheckboxes=false] - Renders task-list checkboxes without `disabled`
+     *   when true. Historical snapshots should stay read-only, so callers pass this only when
+     *   parsing the live/current version of a file.
      */
-    constructor(sourceText, lineOffset = 0, placeholderLine = 0) {
+    constructor(sourceText, lineOffset = 0, placeholderLine = 0, liveCheckboxes = false) {
         super();
 
         // Character offset, not a running line count: advancing it is exact (token.raw is by
@@ -104,6 +107,13 @@ export class SourceTrackingRenderer extends Renderer {
         // {checked}, since the "[ ] "/"[x] " marker is stripped from the source before the
         // item's body is parsed. Its line is always the enclosing list item's line, set above.
         const baseCheckbox = Renderer.prototype.checkbox;
-        this.checkbox = (token) => tagWithLine(baseCheckbox.call(this, token), this.currentListItemLine);
+        this.checkbox = (token) => {
+            const rawHtml = baseCheckbox.call(this, token);
+            // Base output is always "<input [checked=\"\" ]disabled=\"\" type=\"checkbox\">" —
+            // stripping this fixed substring is what makes the checkbox clickable on the live
+            // render. Safe as a plain string op since marked.eos.js is vendored/pinned.
+            const html = liveCheckboxes ? rawHtml.replace('disabled="" ', '') : rawHtml;
+            return tagWithLine(html, this.currentListItemLine);
+        };
     }
 }
