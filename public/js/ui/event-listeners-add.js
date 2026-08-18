@@ -30,6 +30,7 @@ import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside, captureEditorCursorOffset } from './ui-functions-click/editor-color-pick.js';
 import { handleColorPickerExpand } from './ui-functions-click/color-picker-expand.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
+import { handleCheckboxToggle } from './ui-functions-click/checkbox-toggle.js';
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 import { handleBackupContent, handleBackupFull } from './ui-functions-click/backup-click.js';
@@ -136,6 +137,7 @@ const changeActionHandlers = {
     'font-size-file-change': handleFontSizeFileChange,
     'button-size-change': handleButtonSizeChange,
     'pagination-size-change': handlePaginationSizeChange,
+    'checkbox-toggle': handleCheckboxToggle,
 };
 
 const keyUpActionHandlers = {

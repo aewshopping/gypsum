@@ -110,9 +110,12 @@ export class SourceTrackingRenderer extends Renderer {
         this.checkbox = (token) => {
             const rawHtml = baseCheckbox.call(this, token);
             // Base output is always "<input [checked=\"\" ]disabled=\"\" type=\"checkbox\">" —
-            // stripping this fixed substring is what makes the checkbox clickable on the live
-            // render. Safe as a plain string op since marked.eos.js is vendored/pinned.
-            const html = liveCheckboxes ? rawHtml.replace('disabled="" ', '') : rawHtml;
+            // replacing this fixed substring both makes the checkbox clickable on the live
+            // render and wires it to the checkbox-toggle click handler. Safe as a plain string
+            // op since marked.eos.js is vendored/pinned.
+            const html = liveCheckboxes
+                ? rawHtml.replace('disabled="" ', 'data-action="checkbox-toggle" ')
+                : rawHtml;
             return tagWithLine(html, this.currentListItemLine);
         };
     }
