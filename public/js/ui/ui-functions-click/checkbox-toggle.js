@@ -1,4 +1,5 @@
 import { appState } from '../../services/store.js';
+import { refreshDirtyState } from '../../editing/manage-unsaved-changes.js';
 import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
 
 /**
@@ -38,5 +39,6 @@ export function handleCheckboxToggle(evt, actionElement) {
             .replace(/\r\n|\r|\n/g, '<br>');
     }
 
-    if (!session.isDirty) { session.isDirty = true; updateUnsavedIndicator(); }
+    refreshDirtyState(newRaw);
+    updateUnsavedIndicator();
 }
