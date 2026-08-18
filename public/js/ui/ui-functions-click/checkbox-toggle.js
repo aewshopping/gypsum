@@ -38,6 +38,5 @@ export function handleCheckboxToggle(evt, actionElement) {
             .replace(/\r\n|\r|\n/g, '<br>');
     }
 
-    session.isDirty = true;
-    updateUnsavedIndicator();
+    if (!session.isDirty) { session.isDirty = true; updateUnsavedIndicator(); }
 }
