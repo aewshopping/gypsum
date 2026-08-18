@@ -1,5 +1,6 @@
 import { appState } from '../../services/store.js';
 import { scheduleAutosave } from '../../editing/autosave.js';
+import { refreshDirtyState } from '../../editing/manage-unsaved-changes.js';
 import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
 import { handleEditorAutocomplete } from '../../autocomplete/tag-autocomplete.js';
 
@@ -26,7 +27,7 @@ export function handleFileContentInput(evt) {
     // Slow path: same textContent length — might have reverted; innerText read required
     session.liveRaw = pre.innerText;
     session.activeRaw = session.liveRaw;
-    session.isDirty = session.liveRaw.trimEnd() !== session.openNormalized;
+    refreshDirtyState(session.liveRaw);
     updateUnsavedIndicator();
     handleEditorAutocomplete(evt);
 }
