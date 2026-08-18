@@ -32,7 +32,7 @@ const REENTRANT_METHODS = new Set(['blockquote', 'listitem']);
  * @param {number} line - 1-based source line to record.
  * @returns {string} The fragment with the attribute inserted, or unchanged if empty/not a tag.
  */
-function tagWithLine(html, line) {
+export function tagWithLine(html, line) {
     const tagEnd = html.indexOf('>');
     if (!html.startsWith('<') || tagEnd === -1) return html;
     return html.slice(0, tagEnd) + ` data-src-line-start="${line}"` + html.slice(tagEnd);

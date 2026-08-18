@@ -3,7 +3,7 @@ import { tagParser } from './file-tagparser.js';
 import { replaceFrontMatter } from './file-parsing/yaml-replace-frontmatter.js';
 import { findFrontMatterIndices } from './file-parsing/yaml-find.js';
 import { renderFrontmatterProperties } from '../ui/ui-functions-render/render-frontmatter-properties.js';
-import { SourceTrackingRenderer } from './marked-source-tracking-renderer.js';
+import { SourceTrackingRenderer, tagWithLine } from './marked-source-tracking-renderer.js';
 
 // Recognized by marked() as an opaque HTML block (no <p> wrapping, no inline processing) and
 // passed through byte-for-byte. Contains no '#', so tagParser's #tag regex ignores it too.
@@ -38,5 +38,8 @@ export function parseContent(text) {
     const transformed = tagParser(replaceFrontMatter(normalized, PROPERTIES_PLACEHOLDER));
     const renderer = new SourceTrackingRenderer(transformed, lineOffset, placeholderLine);
     const rendered = marked(transformed, { renderer });
-    return rendered.replace(PROPERTIES_PLACEHOLDER, () => propertiesHtml);
+    // Tagged with its own line so a change anywhere in the front matter block highlights the
+    // whole properties panel in HTML mode, the same way any other changed block does.
+    const taggedPropertiesHtml = indices ? tagWithLine(propertiesHtml, placeholderLine) : propertiesHtml;
+    return rendered.replace(PROPERTIES_PLACEHOLDER, () => taggedPropertiesHtml);
 }
