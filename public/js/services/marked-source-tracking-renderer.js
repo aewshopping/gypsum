@@ -64,6 +64,10 @@ export class SourceTrackingRenderer extends Renderer {
         // and corrupting nextOffset for everything after.
         this.suppressed = false;
 
+        // Line of the list item currently being rendered — checkbox() reads this, since it gets
+        // no token of its own to compute a line from (see below).
+        this.currentListItemLine = null;
+
         for (const name of TRACKED_METHODS) {
             const base = Renderer.prototype[name];
             this[name] = (token) => {
@@ -80,6 +84,10 @@ export class SourceTrackingRenderer extends Renderer {
                 }
 
                 const startOffset = foundAt;
+                const rawLine = sourceText.slice(0, startOffset).split('\n').length;
+                const reportedLine = rawLine + (rawLine > placeholderLine ? lineOffset : 0);
+                if (name === 'listitem') this.currentListItemLine = reportedLine;
+
                 const isReentrant = REENTRANT_METHODS.has(name);
                 if (isReentrant) this.suppressed = true;
                 const html = base.call(this, token);
@@ -88,10 +96,14 @@ export class SourceTrackingRenderer extends Renderer {
                 // token.raw is always authoritative here, regardless of what the super call did.
                 this.nextOffset = startOffset + token.raw.length;
 
-                const rawLine = sourceText.slice(0, startOffset).split('\n').length;
-                const reportedLine = rawLine + (rawLine > placeholderLine ? lineOffset : 0);
                 return tagWithLine(html, reportedLine);
             };
         }
+
+        // checkbox() gets no token of its own — listitem() calls it directly with just
+        // {checked}, since the "[ ] "/"[x] " marker is stripped from the source before the
+        // item's body is parsed. Its line is always the enclosing list item's line, set above.
+        const baseCheckbox = Renderer.prototype.checkbox;
+        this.checkbox = (token) => tagWithLine(baseCheckbox.call(this, token), this.currentListItemLine);
     }
 }
