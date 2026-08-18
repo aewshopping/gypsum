@@ -11,7 +11,7 @@ import { fileContentRender } from '../ui-functions-render/render-file-content.js
 export function handleToggleRenderText() {
     if (getIsCurrentVersion()) {
         syncFromDom(); // appState.editState still holds the outgoing mode here — guard is correct
-        appState.editSession.activeHtml = parseContent(appState.editSession.activeRaw);
+        appState.editSession.activeHtml = parseContent(appState.editSession.activeRaw, true);
         appState.editSession.liveHtml = appState.editSession.activeHtml;
     }
     appState.editState = document.getElementById('render_toggle').checked;

@@ -1,5 +1,3 @@
-import { parseContent } from '../../services/parse-content.js';
-import { searchContainer } from './treewalker-highlight.js';
 import diff from './fast-diff.js'; // Swapped to fast-diff
 
 const DIFF_HIGHLIGHT_NAME = 'diff-old';
@@ -70,7 +68,6 @@ export function applyDiffHighlights(oldContent, currentContent) {
     const container = document.getElementById('modal-content-text');
     if (!container) return;
 
-    const oldLines = oldContent.split(/\r?\n/).map(line => line.trimEnd());
     const isTxtMode = document.getElementById('render_toggle').checked;
     const ranges = [];
 
@@ -102,21 +99,31 @@ export function applyDiffHighlights(oldContent, currentContent) {
             ranges.push(range);
         }
     } else {
-        // Handle HTML mode: finding text within rendered elements (headings, list items, etc.)
-        const tempDiv = document.createElement('div');
+        // HTML mode: use data-src-line-start (added by SourceTrackingRenderer) to find the
+        // element containing each changed line directly, instead of re-parsing lines and
+        // text-searching the DOM.
+        // input (task-list checkboxes) carries the same line as its enclosing <li> for future
+        // click-to-toggle use, but a highlight should land on the <li>'s visible content, not
+        // the checkbox glyph itself, so exclude it from competing for the "most specific match".
+        const tracked = [...container.querySelectorAll('[data-src-line-start]:not(input)')];
+        const matched = new Set();
         for (const pos of lostOrChangedPositions) {
-            // Retrieve the actual string content from the old version using the index
-            const lineToSearch = oldLines[pos];
-            if (!lineToSearch) continue;
-
-            // Convert raw markdown/text into HTML, then extract the plain text for searching
-            tempDiv.innerHTML = parseContent(lineToSearch);
-            const renderedText = tempDiv.textContent.trim();
-
-            // If the line resulted in visible text, search the DOM for it and add to ranges
-            if (renderedText) {
-                searchContainer(container, renderedText, ranges);
+            const targetLine = pos + 1; // lostOrChangedPositions is 0-based; the attribute is 1-based
+            // querySelectorAll returns document order, which is non-decreasing in start line
+            // (nested elements start at or after their ancestor), so the last element with
+            // startLine <= targetLine is the most specific (deepest) match.
+            let match = null;
+            for (const el of tracked) {
+                const startLine = Number(el.dataset.srcLineStart);
+                if (startLine <= targetLine) match = el;
+                else break;
             }
+            if (match) matched.add(match);
+        }
+        for (const el of matched) {
+            const range = new Range();
+            range.selectNodeContents(el);
+            ranges.push(range);
         }
     }
 

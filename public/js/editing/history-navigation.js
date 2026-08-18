@@ -23,7 +23,7 @@ export function restoreCurrentContent() {
 export function loadHistoricalContent(historicalRaw) {
     if (getIsCurrentVersion()) {
         syncFromDom();
-        appState.editSession.liveHtml = parseContent(appState.editSession.liveRaw);
+        appState.editSession.liveHtml = parseContent(appState.editSession.liveRaw, true);
     }
 
     setIsCurrentVersion(false);

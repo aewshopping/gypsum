@@ -102,8 +102,8 @@ test.describe('contentEditable state in TXT mode', () => {
 
     // \n\n in the raw text is a markdown paragraph break → two separate <p> elements.
     const html = await page.locator('#modal-content-text').innerHTML();
-    expect(html).toMatch(/<p>.*paragraph one.*<\/p>/s);
-    expect(html).toMatch(/<p>.*paragraph two.*<\/p>/s);
+    expect(html).toMatch(/<p[^>]*>.*paragraph one.*<\/p>/s);
+    expect(html).toMatch(/<p[^>]*>.*paragraph two.*<\/p>/s);
   });
 
   test('line breaks in the source file are rendered as <br> elements in TXT mode', async ({ page }) => {
