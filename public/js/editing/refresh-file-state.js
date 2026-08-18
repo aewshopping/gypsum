@@ -30,7 +30,7 @@ export async function refreshFileAfterSave(snapshot) {
         appState.myFiles[fileIndex] = {
             ...freshFile,
             handle: existingFile.handle,
-            id: existingFile.id,
+            internalId: existingFile.internalId,
             filepath: existingFile.filepath,
         };
 

@@ -34,7 +34,7 @@ function buildTrashFilename(file) {
  */
 async function handleDeleteFileConfirmed() {
     const fileId = appState.openFileSnapshot?.filepath;
-    const file = appState.myFiles.find(f => f.id === fileId);
+    const file = appState.myFiles.find(f => f.internalId === fileId);
 
     // Phase A — Filesystem (try/catch: no state mutations if this fails)
     let trashDir;
@@ -90,7 +90,7 @@ export async function handleDeleteFile(evt) {
     if (!appState.dirHandle) return;
 
     const fileId = appState.openFileSnapshot?.filepath;
-    const file = appState.myFiles.find(f => f.id === fileId);
+    const file = appState.myFiles.find(f => f.internalId === fileId);
     if (!file) return;
 
     if (await showWarningModal(`Move "${file.filename}" to trash?`, 'Delete', 'Cancel')) {

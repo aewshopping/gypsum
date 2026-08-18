@@ -39,7 +39,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // Compute the full visible list for pagination math; appState.myFiles is never mutated
     const visibleFiles = renderEverything
         ? appState.myFiles
-        : appState.myFiles.filter(f => checkFilesToShow(f.id) === true);
+        : appState.myFiles.filter(f => checkFilesToShow(f.internalId) === true);
 
     // Clamp current page in case a filter reduces the total number of pages
     const totalPages = Math.max(1, Math.ceil(visibleFiles.length / PAGINATION_SIZE));
@@ -50,7 +50,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // Store the IDs for the current page so renderers can check membership via checkFileOnPage
     const start = (appState.paginationState.currentPage - 1) * PAGINATION_SIZE;
     appState.paginationState.pageFileIds = new Set(
-        visibleFiles.slice(start, start + PAGINATION_SIZE).map(f => f.id)
+        visibleFiles.slice(start, start + PAGINATION_SIZE).map(f => f.internalId)
     );
 
     const doRender = () => {

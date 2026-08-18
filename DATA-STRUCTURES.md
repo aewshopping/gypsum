@@ -17,7 +17,7 @@ Each entry in `appState.myFiles` is a plain object with these properties:
 | `tags` | `Map<string, {count: number, parents: Set<string>}>` | See below |
 | `color` | `string \| null` | Value of the first `#color/<name>` tag, or `null` |
 | `lastModified` | `Date` | File modification date |
-| `id` | `string` | Unique ID, format `"a0"`, `"a1"`, … |
+| `internalId` | `string` | Internal unique ID, currently equal to `filepath`. Named `internalId` (not `id`) so it never clashes with a user's own YAML `id:` frontmatter property |
 | `…yamlData` | various | Any YAML front-matter properties are merged in directly |
 
 ### `file.tags` — the TagMap
@@ -148,7 +148,7 @@ appState.paginationState = {
 2. The list is sliced to `PAGINATION_SIZE` entries starting at `(currentPage - 1) * PAGINATION_SIZE`.
 3. The IDs of that slice are stored as a `Set` in `pageFileIds`.
 
-Each view renderer calls `checkFileOnPage(file.id)` (`pagination/check-file-on-page.js`), which is a single `pageFileIds.has(fileId)` lookup. Because `pageFileIds` was already built from the correctly filtered list, no second filter check is needed.
+Each view renderer calls `checkFileOnPage(file.internalId)` (`pagination/check-file-on-page.js`), which is a single `pageFileIds.has(fileId)` lookup. Because `pageFileIds` was already built from the correctly filtered list, no second filter check is needed.
 
 `currentPage` resets to `1` on every render except when triggered by a page-button click (`handle-page-change.js` passes `keepPage=true`). It is also clamped to the last available page if a filter reduces the total number of pages.
 

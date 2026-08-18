@@ -27,7 +27,7 @@ function getErrorSlot() { return document.getElementById(errorSlotId); }
 function getCurrentFile() {
     const filepath = appState.openFileSnapshot?.filepath;
     if (!filepath) return null;
-    return appState.myFiles.find(f => f.id === filepath) ?? null;
+    return appState.myFiles.find(f => f.internalId === filepath) ?? null;
 }
 
 /**

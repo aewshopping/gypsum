@@ -77,7 +77,7 @@ export const propertySortMap = new Map();
  */
 export const FILE_PROPERTIES = new Map([
   ['sizeInBytes', {label: 'size', type: 'number', column_width: 120, display_order: 6 }],
-  ['id', { type: 'string', column_width: 40, display_order: 1 }],
+  ['internalId', { type: 'string', column_width: 40, display_order: 1 }],
   ['title', { type: 'string', column_width: 350, display_order: 2 }],
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
   ['lastModified', {label: 'last modified', type: 'date', column_width: 150, display_order: 4 }],
@@ -100,6 +100,6 @@ export const FILE_PROPERTIES = new Map([
  */
 export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
   hidden_always: ['handle', 'show', 'content'],
-  hidden_at_start: ['id', 'color', 'filepath', 'contentPeek'], // could in future add check box functionality to show current cols ticked and these cols unticked
+  hidden_at_start: ['internalId', 'color', 'filepath', 'contentPeek'], // could in future add check box functionality to show current cols ticked and these cols unticked
   current_props: [],
 };

@@ -23,7 +23,7 @@ export function renderFileList_grid(renderEverything) {
     let index = 0;
     for (const file of appState.myFiles) {
 
-        if (checkFileOnPage(file.id)) {
+        if (checkFileOnPage(file.internalId)) {
      //   console.log(file);
             index++;
 
@@ -38,7 +38,7 @@ export function renderFileList_grid(renderEverything) {
         const filename_html = renderFilename(file.filepath);
         const openFileTip = index <= 9 ? `open file | ${index}` : 'open file';
         file_html += `
-        <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.id}" data-action="open-file-content-modal" data-vt-id="${file.id}" data-tip="${openFileTip}">
+        <div class="note-grid keyboard-navigable color-dynamic" tabindex="0" data-index="${index}" data-color="${file.color}" data-file-id="${file.internalId}" data-action="open-file-content-modal" data-vt-id="${file.internalId}" data-tip="${openFileTip}">
 
             <div data-prop="filename">${filename_html}</div>
 

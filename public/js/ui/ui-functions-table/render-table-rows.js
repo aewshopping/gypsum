@@ -16,7 +16,7 @@ export function renderTableRows(current_props, renderEverything) {
     let index = 0;
 
     for (const file of appState.myFiles) {
-        if (checkFileOnPage(file.id)) {
+        if (checkFileOnPage(file.internalId)) {
 
             const cellsHtml = current_props.map(prop => {
                 index++;
@@ -27,7 +27,7 @@ export function renderTableRows(current_props, renderEverything) {
                 switch (prop.type) {
                     case 'string':
                         if (prop.name === 'filename') {
-                            cellContent = renderFilenamePlusOpenBtn(file.filepath || '', file.color, file.id); // so that it shows the "copy filename" thing (note updated to be full filepath incl filename now we are looking at folders)
+                            cellContent = renderFilenamePlusOpenBtn(file.filepath || '', file.color, file.internalId); // so that it shows the "copy filename" thing (note updated to be full filepath incl filename now we are looking at folders)
                         } else {
                             cellContent = value || '';
                         }
@@ -57,7 +57,7 @@ export function renderTableRows(current_props, renderEverything) {
             // this is the "wrapper" div that contains the table row elements rendered above
             const tagList = file.tags instanceof Map ? [...file.tags.keys()].join(" ") : "";
             rowsHtml += `
-                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" data-vt-id="${file.id}">
+                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" data-vt-id="${file.internalId}">
                     ${cellsHtml}
                 </div>
             `;

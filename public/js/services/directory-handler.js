@@ -64,11 +64,11 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
         const fileObj = await getFileDataAndMetadata(handle, i);
         if (i % n === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
         // if (i % n === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
-        filesWithMetadata.push({ ...fileObj, filepath, id: filepath });
+        filesWithMetadata.push({ ...fileObj, filepath, internalId: filepath });
     }
 
     const fileHandleMap = filesWithMetadata.reduce((map, fileObject) => {
-        map.set(fileObject.id, fileObject.handle);
+        map.set(fileObject.internalId, fileObject.handle);
         return map;
     }, new Map());
 

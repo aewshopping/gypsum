@@ -8,7 +8,7 @@ const search = appState.search;
  * a non-negated filter is satisfied when the file positively matched it; a negated
  * filter is satisfied when the file did NOT positively match it.
  *
- * @param {string} fileId The ID of the file to check.
+ * @param {string} fileId The internal ID of the file to check.
  * @returns {boolean} Whether the file should be shown.
  */
 export function checkFilesToShow(fileId) {

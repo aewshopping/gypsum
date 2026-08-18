@@ -29,7 +29,7 @@ export async function loadContentModal(fileId) {
     session.openTextLen = session.openNormalized.replace(/\n/g, '').length; // \n → <br> in DOM, invisible to textContent
     session.isDirty = false;
 
-    const fileObj = appState.myFiles.find(f => f.id === fileId);
+    const fileObj = appState.myFiles.find(f => f.internalId === fileId);
     appState.openFileSnapshot = {
         filepath: fileObj?.filepath ?? fileId,
         filename: fileObj?.filename ?? fileId,
