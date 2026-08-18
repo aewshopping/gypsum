@@ -102,7 +102,10 @@ export function applyDiffHighlights(oldContent, currentContent) {
         // HTML mode: use data-src-line-start (added by SourceTrackingRenderer) to find the
         // element containing each changed line directly, instead of re-parsing lines and
         // text-searching the DOM.
-        const tracked = [...container.querySelectorAll('[data-src-line-start]')];
+        // input (task-list checkboxes) carries the same line as its enclosing <li> for future
+        // click-to-toggle use, but a highlight should land on the <li>'s visible content, not
+        // the checkbox glyph itself, so exclude it from competing for the "most specific match".
+        const tracked = [...container.querySelectorAll('[data-src-line-start]:not(input)')];
         const matched = new Set();
         for (const pos of lostOrChangedPositions) {
             const targetLine = pos + 1; // lostOrChangedPositions is 0-based; the attribute is 1-based
