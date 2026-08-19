@@ -192,6 +192,12 @@
   </main>
 
   <dialog id="modal-settings" closedby="any">
+    <svg style="display: none;">
+      <symbol id="icon-reset" viewBox="0 0 50 45">
+        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6" d="M18.474 10.552c-.83.41-3.58.51-4.99 2.44-1.42 1.94-3.47 5.96-3.48 9.16s1.36 7.8 3.42 10.04c2.06 2.25 5.73 3.11 8.95 3.43s7.67-.14 10.37-1.49c2.69-1.35 4.92-4.08 5.78-6.62s.33-6.12-.63-8.64c-.95-2.52-4.24-5.4-5.09-6.48m-14.33-1.84c-.83.41-3.58.51-4.99 2.44-1.42 1.94-3.47 5.96-3.48 9.16s1.36 7.8 3.42 10.04c2.06 2.25 5.73 3.11 8.95 3.43s7.67-.14 10.37-1.49c2.69-1.35 4.92-4.08 5.78-6.62s.33-6.12-.63-8.64c-.95-2.52-4.24-5.4-5.09-6.48"/>
+        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6" d="M31.524 10c-.62 1.7-3.08 8.48-3.7 10.17m3.7-10.17c-.62 1.7-3.08 8.48-3.7 10.17M32.21 10.268c1.9.33 9.51 1.66 11.41 2m-11.41-2c1.9.33 9.51 1.66 11.41 2"/>
+      </symbol>
+    </svg>
     <button class="modal-close-btn" data-action="close-settings-modal" data-tip="close settings">✕</button>
 
     <h2 class="menu-title">Menu</h2>
@@ -211,7 +217,11 @@
       <span class="settings-label">Pagination size</span>
       <div class="settings-control-group">
         <input id="pagination-size-input" type="number" min="10" max="1000" step="1" data-action="pagination-size-change" data-tip="files per page">
-        <button class="settings-reset-btn" data-action="reset-pagination-size" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-pagination-size" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -233,7 +243,11 @@
         <label class="formcontrol"><input type="radio" name="font-size-app" value="0.8" data-action="font-size-app-change" data-tip="small text">S</label>
         <label class="formcontrol"><input type="radio" name="font-size-app" value="1" checked data-action="font-size-app-change" data-tip="medium text">M</label>
         <label class="formcontrol"><input type="radio" name="font-size-app" value="1.2" data-action="font-size-app-change" data-tip="large text">L</label>
-        <button class="settings-reset-btn" data-action="reset-font-size-app" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-font-size-app" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -243,7 +257,11 @@
         <select data-action="font-style-app-label-change" data-tip="label font">
           <option value="Arial, Helvetica, sans-serif">Arial</option>
         </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-app-label" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-font-style-app-label" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -253,7 +271,11 @@
         <select data-action="font-style-app-input-change" data-tip="input font">
           <option value="Consolas">Consolas</option>
         </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-app-input" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-font-style-app-input" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -262,7 +284,11 @@
       <div class="settings-control-group">
         <label><input type="radio" name="button-size" data-action="button-size-change" value="1" checked data-tip="medium buttons"> M</label>
         <label><input type="radio" name="button-size" data-action="button-size-change" value="1.2" data-tip="large buttons"> L</label>
-        <button class="settings-reset-btn" data-action="reset-button-size" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-button-size" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -274,7 +300,11 @@
         <label class="formcontrol"><input type="radio" name="font-size-file" value="0.8" data-action="font-size-file-change" data-tip="small text">S</label>
         <label class="formcontrol"><input type="radio" name="font-size-file" value="1" checked data-action="font-size-file-change" data-tip="medium text">M</label>
         <label class="formcontrol"><input type="radio" name="font-size-file" value="1.4" data-action="font-size-file-change" data-tip="large text">L</label>
-        <button class="settings-reset-btn" data-action="reset-font-size-file" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-font-size-file" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -284,7 +314,11 @@
         <select data-action="font-style-html-change" data-tip="html font">
           <option value="Arial, Helvetica, sans-serif">Arial</option>
         </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-html" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-font-style-html" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -294,7 +328,11 @@
         <select data-action="font-style-text-change" data-tip="plain text font">
           <option value="Consolas">Consolas</option>
         </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-text" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-font-style-text" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -304,7 +342,11 @@
         <select data-action="font-style-headers-change" data-tip="headers font">
           <option value="Trebuchet MS, Arial, Helvetica, sans-serif">Trebuchet MS</option>
         </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-headers" data-tip="reset to default">↺</button>
+        <button class="settings-reset-btn" data-action="reset-font-style-headers" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
       </div>
     </div>
 

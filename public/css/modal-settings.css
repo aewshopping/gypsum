@@ -56,18 +56,23 @@
 }
 
 .settings-reset-btn {
-    padding: 0 4px;
+    width: 1.2em;
+    height: 1.2em;
+    padding: 0;
+    margin-left:2px;
     border: none;
     background: transparent;
-    color: var(--colour-contr);
-    opacity: 0.35;
     cursor: pointer;
-    font-size: 1em;
-    line-height: 1;
+    opacity: 0.4;
+}
+.reset-icon {
+  width: 100%;
+  height: 100%;
+  color: var(--colour-contr);
 }
 
 .settings-reset-btn:hover {
-    opacity: 1;
+    opacity: 0.8;
 }
 
 .settings-backup-btns {
