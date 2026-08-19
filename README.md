@@ -8,7 +8,9 @@ This is built for my personal use so I don't make any guarantees about how well 
 
 - Because it works client side in the browser you can use it on any computer. Either served as a normal webpage or just download the single bundled html file. Unlike Obsidian you don't need to download a massive desktop application.
 - It does have depencencies (for example `marked.js` and `fast diff`) but those are included as bundled files rather than using the official cdn. Ie no *remote* dependencies are used.
-- Because I decided to use ES Modules the downloaded files and directories will not work directly on the file system. I am therefore bundling the js with a github action and saving as an artefact. The artefact bundles all js and css into a single file that can be downloaded.
+- Because I decided to use ES Modules the downloaded files and directories will not work directly on the file system. I am
+  - bundling the js with a github action and saving as an artefact that can be downloaded from the actions area.
+  - serving on github pages as a pwa that works offline.
 - The idea is that I can use it on a train with a bad wifi.
 - It is also intended to be simple enough for me to understand not only now but in the future too, so that it is easier to modify and muck around with.
 
