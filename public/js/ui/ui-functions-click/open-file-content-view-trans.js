@@ -16,6 +16,7 @@ import { resetEditorCursorOffset } from './editor-color-pick.js';
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const scrollingContent = document.getElementById("modal-content");
+const newNoteBtn = document.getElementById("btn-new-note"); // stands in as the animation origin when a file has no card on screen
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
 
@@ -152,6 +153,18 @@ export function handeCloseModalOutside(event, target) {
 
 
 /**
+ * Finds a file's card in the file list — the element the modal animates out of and back into.
+ * Returns null when the file has no card, which the active filters or the current pagination
+ * page can cause.
+ * @param {string} fileId
+ * @returns {HTMLElement|null}
+ */
+export function findFileCard(fileId) {
+    return document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(fileId)}"]`);
+}
+
+
+/**
  * Runs the view transition that closes the file content modal.
  * @returns {Promise<void>} Resolves once the modal is closed and its content cleared.
  */
@@ -172,15 +185,18 @@ export function doClose() {
   // Re-query the target now: if the file list was re-rendered since open
   // (e.g. after save), the node captured on open is detached and would not
   // participate in the view transition.
-  const file_box = openedFileId
-    ? document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(openedFileId)}"]`)
-    : null;
+  const file_box = openedFileId ? findFileCard(openedFileId) : null;
+
+  // Shrink back into the new-note button when the file has no card, so the modal morphs
+  // instead of popping. A null openedFileId means the caller cleared it deliberately —
+  // delete does this — and there really is nothing to animate back to.
+  const animateTo = openedFileId ? (file_box ?? newNoteBtn) : null;
 
   const transition = document.startViewTransition(function () {
 
     dialog.classList.remove("dialog-view"); // backdrop fade out
     movingbox.classList.remove("moving-file-content-view");
-    if (file_box) file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
+    if (animateTo) animateTo.classList.add("moving-file-content-view"); // animating **back to** file target view
     movingbox.classList.add("opacity-0"); // hide modal otherwise it stays onscreen during animation
 
   });
@@ -196,7 +212,7 @@ export function doClose() {
     clearDiffHighlights();
     highlightPropMatches();
 
-    if (file_box) file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
+    if (animateTo) animateTo.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
 

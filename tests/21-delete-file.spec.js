@@ -22,6 +22,20 @@ async function openFileAndRenameModal(page) {
   await expect(page.locator('#modal-file-options')).toBeVisible();
 }
 
+/**
+ * Records whether #btn-new-note ever carries the modal transition-name class. The class can be
+ * added and removed inside a single tick, so polling the live DOM misses it.
+ */
+async function watchNewNoteTransitionClass(page) {
+  await page.evaluate(() => {
+    const btn = document.getElementById('btn-new-note');
+    window.__btnGotTransitionClass = btn.classList.contains('moving-file-content-view');
+    new MutationObserver(() => {
+      if (btn.classList.contains('moving-file-content-view')) window.__btnGotTransitionClass = true;
+    }).observe(btn, { attributes: true, attributeFilter: ['class'] });
+  });
+}
+
 test.describe('delete file', () => {
 
   test('clicking delete file shows warning modal with filename and correct button labels', async ({ page }) => {
@@ -69,6 +83,19 @@ test.describe('delete file', () => {
     await page.click('[data-action="warning-proceed"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
     await expect(page.locator('.note-grid')).toHaveCount(0);
+  });
+
+  test('deleting does not animate the note into the new-note button', async ({ page }) => {
+    // delete clears openedFileId on purpose — the file is gone, so the modal fades out.
+    // Flying it into the "new note" button would read as the opposite of what happened.
+    await setupMockDirectoryWithDeleteSupport(page);
+    await page.goto('/');
+    await openFileAndRenameModal(page);
+    await page.click('[data-action="delete-file"]');
+    await watchNewNoteTransitionClass(page);
+    await page.click('[data-action="warning-proceed"]');
+    await expect(page.locator('#file-content-modal')).not.toBeVisible();
+    expect(await page.evaluate(() => window.__btnGotTransitionClass)).toBe(false);
   });
 
 });
