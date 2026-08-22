@@ -645,4 +645,66 @@ async function setupMockDirectoryForColorMultiple(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple };
+/**
+ * Injects a mock directory whose notes contain [[internal links]] of every shape the
+ * parser has to handle: resolved, path-qualified, aliased, unresolved, extension-less
+ * (which must NOT resolve) and one inside a code fence.
+ *
+ * Directory structure:
+ *   root/
+ *     hub.md              links out to everything
+ *     shopping.txt        link target, also reachable as a bare filename
+ *     my long note.md     filename with spaces, for the autocomplete trigger
+ *     subdir/
+ *       nested.md         link target that must be reached path-qualified
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesWithLinks(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file',
+        name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      const makeDir = (name, entries) => ({
+        kind: 'directory',
+        name,
+        values: async function* () { yield* entries; },
+      });
+
+      const hub = [
+        '# Hub',
+        '',
+        'A plain link to [[shopping.txt]] here.',
+        'A path link to [[subdir/nested.md]] here.',
+        'An aliased link to [[shopping.txt|groceries]] here.',
+        'A broken link to [[does-not-exist.md]] here.',
+        'An extensionless link to [[shopping]] here.',
+        '',
+        '```',
+        'a fenced [[shopping.txt]] link',
+        '```',
+        '',
+        'And `an inline [[shopping.txt]] link` too.',
+      ].join('\n');
+
+      return makeDir('root', [
+        makeFile('hub.md', hub),
+        makeFile('shopping.txt', 'Shopping list\n\nMilk, eggs, bread #personal'),
+        makeFile('my long note.md', '# My Long Note\n\nNothing to see.'),
+        makeDir('subdir', [
+          makeFile('nested.md', '# Nested Note\n\nThe nested target. #personal'),
+        ]),
+      ]);
+    };
+  });
+}
+
+module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };

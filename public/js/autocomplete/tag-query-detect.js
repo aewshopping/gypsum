@@ -14,6 +14,20 @@ export function detectEditorTrigger(textBeforeCaret) {
 }
 
 /**
+ * Detects whether the text before the caret ends with an unclosed '[[' internal-link trigger.
+ * An empty query is allowed, so a bare '[[' opens the full note list. Brackets and newlines
+ * are excluded from the query so an earlier, already-closed link cannot be re-triggered.
+ * @param {string} textBeforeCaret
+ * @returns {{ query: string, triggerStart: number }|null}
+ *   triggerStart: char offset of the first '[' in textBeforeCaret
+ */
+export function detectEditorLinkTrigger(textBeforeCaret) {
+    const match = textBeforeCaret.match(/\[\[([^\[\]\n]*)$/);
+    if (!match) return null;
+    return { query: match[1], triggerStart: match.index };
+}
+
+/**
  * Detects whether the searchbox text before the caret ends with a 'tags:...' trigger.
  * @param {string} value - Full searchbox value.
  * @param {number} caretPos - selectionStart of the input.
@@ -29,6 +43,7 @@ export function detectSearchboxTrigger(value, caretPos) {
 /**
  * Case-insensitive substring filter over tagArray, capped at maxResults.
  * Results are sorted so prefix matches come before mid-word matches, both groups alphabetical.
+ * Also used for the internal-link note list, which is a plain sorted string array too.
  * @param {string[]} tagArray - Must be pre-sorted alphabetically.
  * @param {string} query
  * @param {number} [maxResults=50]

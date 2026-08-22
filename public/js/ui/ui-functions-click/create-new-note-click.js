@@ -4,6 +4,7 @@ import { handleOpenFileContent } from './open-file-content-view-trans.js';
 import { activateTextMode } from '../../editing/activate-text-mode.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
+import { invalidateNoteNameIndex } from '../../services/internal-links/note-name-index.js';
 
 /**
  * Finds the first available note-N.txt filename by querying the real filesystem.
@@ -48,6 +49,7 @@ export async function handleCreateNewNote(event, target) {
     const fileObj = await getFileDataAndMetadata(newHandle, appState.myFiles.length);
     const newFile = { ...fileObj, filepath: newFilename, internalId: newFilename };
     appState.myFiles.push(newFile);
+    invalidateNoteNameIndex(); // the new note becomes linkable immediately
     appState.myFileHandlesMap.set(newFilename, newHandle);
 
     // handleOpenFileContent reads fileId from target.dataset.fileId synchronously,

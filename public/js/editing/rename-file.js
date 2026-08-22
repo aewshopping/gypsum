@@ -1,4 +1,5 @@
 import { appState } from '../services/store.js';
+import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
 import { extractDirFromFilepath, writeAndVerifyHandle } from '../services/file-save.js';
 
 /**
@@ -129,6 +130,7 @@ export async function renameFile({ file, newFolder, newName }) {
         file.filename = newName;
         file.filepath = newFilepath;
         file.internalId = newFilepath;
+        invalidateNoteNameIndex(); // internal links resolve by filename/filepath
         // file.lastModified is intentionally left at its original value. The
         // on-disk mtime of the new copy is unavoidably "now" (the File System
         // Access API exposes no way to preserve it), but keeping the session

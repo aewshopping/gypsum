@@ -5,6 +5,7 @@ import { getFilesRecursive } from '../services/directory-handler.js';
 import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
+import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
 import { updateMyFilesProperties } from '../services/file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 
@@ -139,6 +140,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     updateMyFilesProperties(appState.myFiles[0], 1);
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
+    invalidateNoteNameIndex();
 
     const endTime = performance.now();
     const loadDurationSec = ((endTime - startTime) / 1000).toFixed(1); // pure file load; available for future console logging
