@@ -101,10 +101,9 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
 
   openedFileId = file_to_open;
   if (animateFrom) animateFrom.classList.add("moving-file-content-view"); // animate *from* this element
-  const armEasingCleanup = useOffscreenEasing(animateFrom);
 
   // 3. Animate the move (State 1 -> State 2)
-  const transition = document.startViewTransition(async function () {
+  return document.startViewTransition(async function () {
 
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
@@ -120,9 +119,6 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
     if (postLoad) await postLoad();
   });
-
-  armEasingCleanup(transition);
-  return transition;
 }
 
 
@@ -157,25 +153,6 @@ export function handeCloseModalOutside(event, target) {
 }
 
 
-
-
-/**
- * Applies the plain-ease override while the modal travels to or from the off-screen target,
- * and clears it once the transition settles. A no-op for the usual card transitions, which
- * keep the spring. Must be called before startViewTransition so the class is set when the
- * pseudo-element animations are built.
- * @param {HTMLElement|null} el - The element being animated to or from.
- * @returns {(transition: ViewTransition|undefined) => void} Call with the transition to arm cleanup.
- */
-function useOffscreenEasing(el) {
-    if (el !== offscreenNoteTarget) return () => {};
-    document.documentElement.classList.add('offscreen-note-transitioning');
-    return (transition) => {
-        transition?.finished.finally(
-            () => document.documentElement.classList.remove('offscreen-note-transitioning')
-        );
-    };
-}
 
 
 /**
@@ -218,8 +195,6 @@ export function doClose() {
   // there really is nothing to animate back to.
   const animateTo = openedFileId ? (file_box ?? offscreenNoteTarget) : null;
 
-  const armEasingCleanup = useOffscreenEasing(animateTo);
-
   const transition = document.startViewTransition(function () {
 
     dialog.classList.remove("dialog-view"); // backdrop fade out
@@ -228,8 +203,6 @@ export function doClose() {
     movingbox.classList.add("opacity-0"); // hide modal otherwise it stays onscreen during animation
 
   });
-
-  armEasingCleanup(transition);
 
   return transition.finished.then(async () => {
     dialog.close();

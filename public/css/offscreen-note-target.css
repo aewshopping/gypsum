@@ -11,12 +11,3 @@
     height: var(--new-note-size);
     pointer-events: none;
 }
-
-/* The modal's shared spring easing covers ~90% of its distance in the first 100ms. That reads
-   well landing on a card you can see, but travelling to a point past the screen edge the modal
-   simply blinks out — there is nothing left on screen to watch it arrive. Swap in a plain ease
-   for these transitions only, so the slide off (and back on) is legible.
-   Gated on a class on <html>, the same way view-transitions-file-list.css scopes its rules. */
-html.offscreen-note-transitioning::view-transition-group(moving-box-element) {
-    animation-timing-function: ease-in-out;
-}
