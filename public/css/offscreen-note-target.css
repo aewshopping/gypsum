@@ -1,0 +1,13 @@
+/* Stand-in origin for a file with no card on screen — filtered out, or on another pagination
+   page. The modal animates out of and back into this point, so it sweeps in from beyond the
+   right edge instead of popping into existence.
+   Geometry only: it paints nothing and sits flush outside the viewport, so it is never seen at
+   rest. Same vertical position and size as #btn-new-note. */
+#offscreen-note-target {
+    position: fixed;
+    bottom: var(--new-note-inset);
+    right: calc(-1 * var(--new-note-size)); /* flush outside the right edge */
+    width: var(--new-note-size);
+    height: var(--new-note-size);
+    pointer-events: none;
+}

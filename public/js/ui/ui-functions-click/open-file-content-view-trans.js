@@ -16,7 +16,10 @@ import { resetEditorCursorOffset } from './editor-color-pick.js';
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const scrollingContent = document.getElementById("modal-content");
-const newNoteBtn = document.getElementById("btn-new-note"); // stands in as the animation origin when a file has no card on screen
+// Sits flush outside the right edge, level with the new-note button. Stands in as the
+// animation origin when a file has no card on screen, so the modal sweeps in from off-screen
+// rather than appearing to come out of the new-note button, which would imply a note was made.
+export const offscreenNoteTarget = document.getElementById("offscreen-note-target");
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
 
@@ -187,10 +190,10 @@ export function doClose() {
   // participate in the view transition.
   const file_box = openedFileId ? findFileCard(openedFileId) : null;
 
-  // Shrink back into the new-note button when the file has no card, so the modal morphs
-  // instead of popping. A null openedFileId means the caller cleared it deliberately —
-  // delete does this — and there really is nothing to animate back to.
-  const animateTo = openedFileId ? (file_box ?? newNoteBtn) : null;
+  // Sweep back off-screen when the file has no card, so the modal moves instead of popping.
+  // A null openedFileId means the caller cleared it deliberately — delete does this — and
+  // there really is nothing to animate back to.
+  const animateTo = openedFileId ? (file_box ?? offscreenNoteTarget) : null;
 
   const transition = document.startViewTransition(function () {
 

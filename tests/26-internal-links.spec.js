@@ -74,21 +74,21 @@ test.describe('internal links — rendering', () => {
 
 });
 
-// Records whether #btn-new-note ever carries the transition-name class. The class can be
-// added and removed inside a single tick when transitions run fast, so polling the live DOM
+// Records whether #offscreen-note-target ever carries the transition-name class. The class can
+// be added and removed inside a single tick when transitions run fast, so polling the live DOM
 // misses it — watch for the mutation instead.
-async function watchNewNoteTransitionClass(page) {
+async function watchOffscreenTargetTransitionClass(page) {
   await page.evaluate(() => {
-    const btn = document.getElementById('btn-new-note');
-    window.__btnGotTransitionClass = btn.classList.contains('moving-file-content-view');
+    const btn = document.getElementById('offscreen-note-target');
+    window.__offscreenGotTransitionClass = btn.classList.contains('moving-file-content-view');
     new MutationObserver(() => {
-      if (btn.classList.contains('moving-file-content-view')) window.__btnGotTransitionClass = true;
+      if (btn.classList.contains('moving-file-content-view')) window.__offscreenGotTransitionClass = true;
     }).observe(btn, { attributes: true, attributeFilter: ['class'] });
   });
 }
 
 // Shrinks the page to one card so a link target is absent from the file list, leaving
-// nothing for the modal to animate out of except the new-note button.
+// nothing for the modal to animate out of except the off-screen target.
 async function shrinkToOnePage(page) {
   await page.evaluate(async () => {
     const { setPaginationSize } = await import('/public/js/constants.js');
@@ -121,7 +121,7 @@ test.describe('internal links — navigation', () => {
     await expect(page.locator('#modal-content-text')).toContainText('The nested target');
   });
 
-  test('opening a card-less note leaves no transition name on the new-note button', async ({ page }) => {
+  test('opening a card-less note leaves no transition name on the off-screen target', async ({ page }) => {
     // Two elements sharing view-transition-name silently break the NEXT transition,
     // so the class must be stripped once the open transition settles.
     await setupMockFilesWithLinks(page);
@@ -130,10 +130,10 @@ test.describe('internal links — navigation', () => {
     await shrinkToOnePage(page);
     await page.locator('a.internal-link[data-link-target="subdir/nested.md"]').click();
     await expect(page.locator('#modal-content-text')).toContainText('The nested target');
-    await expect(page.locator('#btn-new-note')).not.toHaveClass(/moving-file-content-view/);
+    await expect(page.locator('#offscreen-note-target')).not.toHaveClass(/moving-file-content-view/);
   });
 
-  test('closing a card-less note animates back into the new-note button', async ({ page }) => {
+  test('closing a card-less note animates back into the off-screen target', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
     await openHub(page);
@@ -141,16 +141,16 @@ test.describe('internal links — navigation', () => {
     await page.locator('a.internal-link[data-link-target="subdir/nested.md"]').click();
     await expect(page.locator('#modal-content-text')).toContainText('The nested target');
 
-    await watchNewNoteTransitionClass(page);
+    await watchOffscreenTargetTransitionClass(page);
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
-    expect(await page.evaluate(() => window.__btnGotTransitionClass)).toBe(true);
-    await expect(page.locator('#btn-new-note')).not.toHaveClass(/moving-file-content-view/);
+    expect(await page.evaluate(() => window.__offscreenGotTransitionClass)).toBe(true);
+    await expect(page.locator('#offscreen-note-target')).not.toHaveClass(/moving-file-content-view/);
   });
 
-  test('closing a card-less note does not park focus on the new-note button', async ({ page }) => {
-    // Focus there would turn a stray Enter into a new note.
+  test('closing a card-less note does not park focus on the off-screen target', async ({ page }) => {
+    // The target is inert and unfocusable; focus must stay off it.
     await setupMockFilesWithLinks(page);
     await page.goto('/');
     await openHub(page);
@@ -159,7 +159,7 @@ test.describe('internal links — navigation', () => {
     await expect(page.locator('#modal-content-text')).toContainText('The nested target');
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
-    expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('btn-new-note');
+    expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('offscreen-note-target');
   });
 
   test('closing returns focus to the card, keeping arrow-key navigation alive', async ({ page }) => {

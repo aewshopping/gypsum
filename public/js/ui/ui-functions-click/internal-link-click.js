@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { handleCloseModal, openFileContent, findFileCard } from './open-file-content-view-trans.js';
+import { handleCloseModal, openFileContent, findFileCard, offscreenNoteTarget } from './open-file-content-view-trans.js';
 
 /**
  * Handles a click on an [[internal link]] in the rendered note. Closes the current note —
@@ -17,8 +17,8 @@ export async function handleInternalLinkClick(evt, actionElement) {
     if (!await handleCloseModal()) return; // user chose to keep editing
 
     // The linked file may have no card on screen — the active filters or the current
-    // pagination page can exclude it — so grow the modal out of the new-note button instead.
+    // pagination page can exclude it — so sweep the modal in from off-screen instead.
     const file = appState.myFiles.find(f => f.internalId === fileId);
 
-    openFileContent(fileId, file.color, findFileCard(fileId) ?? document.getElementById('btn-new-note'));
+    openFileContent(fileId, file.color, findFileCard(fileId) ?? offscreenNoteTarget);
 }
