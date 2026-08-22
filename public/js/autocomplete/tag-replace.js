@@ -15,6 +15,22 @@ export function replaceEditorTag(query, selectedTag) {
 }
 
 /**
+ * Replaces the '[[query' token before the caret with a complete '[[selectedNote]]',
+ * leaving the caret after the closing brackets. Same execCommand approach as
+ * replaceEditorTag, so it lands as a single undoable step.
+ * @param {string} query - The partial note name already typed (without '[[').
+ * @param {string} selectedNote - The chosen note name, including its extension.
+ * @returns {void}
+ */
+export function replaceEditorLink(query, selectedNote) {
+    const sel = window.getSelection();
+    for (let i = 0; i < query.length + 2; i++) { // + 2 for the '[[' itself
+        sel.modify('extend', 'backward', 'character');
+    }
+    document.execCommand('insertText', false, '[[' + selectedNote + ']]');
+}
+
+/**
  * Replaces the partial query after 'tags:' in the searchbox with selectedTag.
  * @param {HTMLInputElement} inputEl
  * @param {string} selectedTag

@@ -12,6 +12,12 @@ export const regex_title = /(?<=^# )(.*$)/;
 // not specific punctuation) and much faster than a variable-length lookbehind.
 export const regex_tag = /#(?:(\w+)\/)?(\w+)/;
 
+// grp 1 - the link target (a filename or path, always with its extension); grp 2 - the optional
+// display text after '|'. Neither part may contain a bracket or a newline, so an unclosed '[['
+// never swallows the rest of the note. Like regex_tag, matches inside code are skipped by the
+// caller via findProtectedSpans/isProtected rather than by the pattern.
+export const regex_internal_link = /\[\[([^\[\]\n|]+?)(?:\|([^\[\]\n]*))?\]\]/;
+
 export const VIEWS = {
     TABLE:  { value: "table",  label: "table view"  },
     CARDS:  { value: "cards",  label: "cards view"  },

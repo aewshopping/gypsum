@@ -1,5 +1,6 @@
 import { marked } from './marked.eos.js';
 import { tagParser } from './file-tagparser.js';
+import { internalLinkParser } from './internal-links/internal-link-parser.js';
 import { replaceFrontMatter } from './file-parsing/yaml-replace-frontmatter.js';
 import { findFrontMatterIndices } from './file-parsing/yaml-find.js';
 import { renderFrontmatterProperties } from '../ui/ui-functions-render/render-frontmatter-properties.js';
@@ -38,7 +39,9 @@ export function parseContent(text, liveCheckboxes = false) {
     const lineOffset = indices ? indices.end - indices.start : 0;
     const placeholderLine = indices ? indices.start + 1 : 0;
 
-    const transformed = tagParser(replaceFrontMatter(normalized, PROPERTIES_PLACEHOLDER));
+    // internalLinkParser runs first so the '#' it emits (href="#") lands inside an HTML tag,
+    // where tagParser's protected-span check already leaves it alone.
+    const transformed = tagParser(internalLinkParser(replaceFrontMatter(normalized, PROPERTIES_PLACEHOLDER)));
     const renderer = new SourceTrackingRenderer(transformed, lineOffset, placeholderLine, liveCheckboxes);
     const rendered = marked(transformed, { renderer });
     // Tagged with its own line so a change anywhere in the front matter block highlights the

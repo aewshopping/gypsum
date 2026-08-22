@@ -116,6 +116,9 @@ test('bumped manifest version refreshes cached assets and reloads the page', asy
   await page.waitForFunction(async () => {
     const cache = await caches.open((await caches.keys())[0]);
     const res = await cache.match('./public/style.css');
+    // refreshPrecache() wipes the whole cache before repopulating it, so a miss here
+    // means the refresh is mid-flight — keep polling rather than throwing.
+    if (!res) return false;
     const text = await res.text();
     return !text.includes('/* stale */');
   }, { timeout: 10000 });

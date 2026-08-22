@@ -4,6 +4,7 @@ import { doClose, setOpenedFileId } from './open-file-content-view-trans.js';
 import { resolveTargetDir, copyFile } from '../../editing/rename-file.js';
 import { buildParentMap } from '../../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../../autocomplete/tag-cache.js';
+import { invalidateNoteNameIndex } from '../../services/internal-links/note-name-index.js';
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
 import { SAVE_FOLDER } from '../../constants.js';
 
@@ -69,6 +70,7 @@ async function handleDeleteFileConfirmed() {
 
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
+    invalidateNoteNameIndex();
 
     // Phase C — Close modals
     setOpenedFileId(null);

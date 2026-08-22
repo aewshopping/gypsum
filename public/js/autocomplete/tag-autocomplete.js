@@ -1,13 +1,15 @@
 import { appState } from '../services/store.js';
 import { getTagArray } from './tag-cache.js';
-import { detectEditorTrigger, detectSearchboxTrigger, filterTags } from './tag-query-detect.js';
+import { getNoteNameArray } from '../services/internal-links/note-name-index.js';
+import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, filterTags } from './tag-query-detect.js';
 import { createPopup, repopulatePopup, destroyPopup, moveActiveItem } from './tag-popup.js';
 import { handlePopupKeydown } from './tag-keyboard-nav.js';
-import { replaceEditorTag, replaceSearchboxTag } from './tag-replace.js';
+import { replaceEditorTag, replaceEditorLink, replaceSearchboxTag } from './tag-replace.js';
 import { handleSearchBoxClick } from '../ui/ui-functions-click/searchbox-search-click.js';
 
 let _popup = null;          // HTMLElement|null
 let _context = null;        // 'editor'|'searchbox'|null
+let _kind = null;           // 'tag'|'link'|null — what the editor popup is completing
 let _triggerStart = null;   // number
 let _query = null;          // string
 let _anchorEl = null;       // HTMLElement
@@ -45,10 +47,14 @@ export function handleEditorAutocomplete(evt) {
     // no cloneContents() allocation, stops as soon as the caret node is reached.
     const textBeforeCaret = _textBeforeCaret(evt.target, caret);
 
-    const trigger = detectEditorTrigger(textBeforeCaret);
+    // Link first: '[[' is unambiguous, and a note name may itself contain a '#'.
+    const linkTrigger = detectEditorLinkTrigger(textBeforeCaret);
+    const trigger = linkTrigger ?? detectEditorTrigger(textBeforeCaret);
     if (!trigger) { _dismiss(); return; }
 
-    const items = filterTags(getTagArray(), trigger.query);
+    const kind = linkTrigger ? 'link' : 'tag';
+    const source = kind === 'link' ? getNoteNameArray() : getTagArray();
+    const items = filterTags(source, trigger.query);
     if (!items.length) { _dismiss(); return; }
 
     _updateEditorProxy(caret);
@@ -67,6 +73,7 @@ export function handleEditorAutocomplete(evt) {
     _query = trigger.query;
     _triggerStart = trigger.triggerStart;
     _anchorEl = evt.target;
+    _kind = kind;
 }
 
 /**
@@ -144,7 +151,8 @@ export function handleAutocompleteClickOutside(evt) {
  */
 function _applySelection(tag) {
     if (_context === 'editor') {
-        replaceEditorTag(_query, tag);
+        if (_kind === 'link') replaceEditorLink(_query, tag);
+        else replaceEditorTag(_query, tag);
     } else {
         replaceSearchboxTag(_anchorEl, tag, _triggerStart);
     }
@@ -162,6 +170,7 @@ function _dismiss() {
     _triggerStart = null;
     _query = null;
     _anchorEl = null;
+    _kind = null;
 }
 
 /**
@@ -179,12 +188,12 @@ function _updateEditorProxy(caret) {
 }
 
 /**
- * Returns enough text before the caret to evaluate the trigger regex, substituting
+ * Returns enough text before the caret to evaluate the trigger regexes, substituting
  * '\n' for <br> elements. Collects at most MAX chars working backward from the caret,
- * stopping earlier at the first space/newline. This keeps cost O(1) regardless of
- * file size or line length — including pathological cases like base64-encoded images
- * which form one huge space-free line (those would cause a large allocation and
- * full-line scan without the cap).
+ * stopping earlier at a newline. Spaces are not a stopping point because internal-link
+ * note names contain them. The MAX cap is what keeps cost O(1) regardless of file size or
+ * line length — including pathological cases like base64-encoded images which form one
+ * huge space-free line (those would cause a large allocation and full-line scan without it).
  * @param {HTMLElement} pre
  * @param {Range} caret - Collapsed range at the cursor position.
  * @returns {string}
@@ -198,7 +207,7 @@ function _textBeforeCaret(pre, caret) {
         ? startContainer.data.slice(Math.max(0, startOffset - MAX), startOffset)
         : '';
 
-    if (suffix.length >= MAX || suffix.includes(' ') || suffix.includes('\n')) return suffix;
+    if (suffix.length >= MAX || suffix.includes('\n')) return suffix;
 
     // Walk backward through preceding siblings, staying within the MAX budget.
     let sib = startContainer.nodeType === Node.TEXT_NODE
@@ -210,7 +219,7 @@ function _textBeforeCaret(pre, caret) {
         if (sib.nodeType === Node.TEXT_NODE) {
             const take = Math.min(sib.data.length, MAX - suffix.length);
             suffix = sib.data.slice(sib.data.length - take) + suffix;
-            if (sib.data.includes(' ') || sib.data.includes('\n')) break;
+            if (sib.data.includes('\n')) break;
         }
         sib = sib.previousSibling;
     }

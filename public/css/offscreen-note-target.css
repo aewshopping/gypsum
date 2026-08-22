@@ -1,0 +1,22 @@
+/* Stand-in origin for a file with no card on screen — filtered out, or on another pagination
+   page. The modal animates out of and back into this point, so it sweeps in from beyond the
+   right edge instead of popping into existence.
+   Sits well outside the viewport, so it is never seen at rest. Same vertical position and size
+   as #btn-new-note.
+
+   It must paint a real background: a transparent element gives the view transition nothing to
+   snapshot, which breaks the close animation. Matches #moving-file-content-container so the
+   modal keeps a consistent surface colour all the way to the endpoint. */
+#offscreen-note-target {
+    position: fixed;
+    bottom: var(--new-note-inset);
+    /* Two widths clear of the edge. One width only just clears it, and the spring easing
+       undershoots before it settles, swinging the element back far enough for its edge to
+       show at the right of the screen. */
+    right: calc(-2 * var(--new-note-size));
+    width: var(--new-note-size);
+    height: var(--new-note-size);
+    background-color: var(--colour-neutral-alt);
+    border-radius: 8px; /* matches .note-grid, so it corners like a card */
+    pointer-events: none;
+}

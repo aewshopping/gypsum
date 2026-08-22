@@ -1,9 +1,16 @@
+:root {
+    /* Shared with #offscreen-note-target, which mirrors this button's geometry so the file
+       modal can animate to and from a fixed point level with it, just off the right edge. */
+    --new-note-size: 80px;
+    --new-note-inset: 24px;
+}
+
 #btn-new-note {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 80px;
-    height: 80px;
+    bottom: var(--new-note-inset);
+    right: var(--new-note-inset);
+    width: var(--new-note-size);
+    height: var(--new-note-size);
     border-radius: 20%;
     border: 1.5px solid color-mix(in srgb, var(--colour-contr), transparent 50%);
     background-color: var(--colour-neutral-alt);

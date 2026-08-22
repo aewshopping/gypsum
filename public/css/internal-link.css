@@ -1,0 +1,17 @@
+.internal-link {
+    color: var(--colour-contr);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.internal-link:hover {
+    text-decoration-style: solid;
+}
+
+/* No file matches the name, so there is nothing to open — creating it is not supported yet. */
+.internal-link[data-unresolved="true"] {
+    color: color-mix(in srgb, var(--colour-contr) 45%, transparent 55%);
+    cursor: default;
+}

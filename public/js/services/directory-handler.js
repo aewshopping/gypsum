@@ -2,6 +2,7 @@ import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
+import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
 import { updateMyFilesProperties } from './file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 
@@ -78,6 +79,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
+    invalidateNoteNameIndex();
 
     const endTime = performance.now();
     const durationSec = ((endTime - startTime) / 1000).toFixed(1);

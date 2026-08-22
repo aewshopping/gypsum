@@ -22,6 +22,20 @@ async function openFileAndRenameModal(page) {
   await expect(page.locator('#modal-file-options')).toBeVisible();
 }
 
+/**
+ * Records whether #offscreen-note-target ever carries the modal transition-name class. The class can be
+ * added and removed inside a single tick, so polling the live DOM misses it.
+ */
+async function watchOffscreenTargetTransitionClass(page) {
+  await page.evaluate(() => {
+    const btn = document.getElementById('offscreen-note-target');
+    window.__offscreenGotTransitionClass = btn.classList.contains('moving-file-content-view');
+    new MutationObserver(() => {
+      if (btn.classList.contains('moving-file-content-view')) window.__offscreenGotTransitionClass = true;
+    }).observe(btn, { attributes: true, attributeFilter: ['class'] });
+  });
+}
+
 test.describe('delete file', () => {
 
   test('clicking delete file shows warning modal with filename and correct button labels', async ({ page }) => {
@@ -69,6 +83,19 @@ test.describe('delete file', () => {
     await page.click('[data-action="warning-proceed"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
     await expect(page.locator('.note-grid')).toHaveCount(0);
+  });
+
+  test('deleting does not animate the note into the off-screen target', async ({ page }) => {
+    // delete clears openedFileId on purpose — the file is gone, so the modal fades out.
+    // Sweeping it off-screen would imply it went somewhere rather than being removed.
+    await setupMockDirectoryWithDeleteSupport(page);
+    await page.goto('/');
+    await openFileAndRenameModal(page);
+    await page.click('[data-action="delete-file"]');
+    await watchOffscreenTargetTransitionClass(page);
+    await page.click('[data-action="warning-proceed"]');
+    await expect(page.locator('#file-content-modal')).not.toBeVisible();
+    expect(await page.evaluate(() => window.__offscreenGotTransitionClass)).toBe(false);
   });
 
 });

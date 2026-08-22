@@ -16,6 +16,10 @@ import { resetEditorCursorOffset } from './editor-color-pick.js';
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
 const scrollingContent = document.getElementById("modal-content");
+// Sits flush outside the right edge, level with the new-note button. Stands in as the
+// animation origin when a file has no card on screen, so the modal sweeps in from off-screen
+// rather than appearing to come out of the new-note button, which would imply a note was made.
+export const offscreenNoteTarget = document.getElementById("offscreen-note-target");
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
 
@@ -82,18 +86,21 @@ window.addEventListener('beforeunload', (evt) => {
 });
 
 /**
- * Handles the click event to open the file content modal with a view transition.
- * @param {Event} event - The click event.
- * @param {HTMLElement} target - The element that triggered the modal opening.
+ * Opens a file in the content modal with a view transition.
+ * @param {string} file_to_open - internalId of the file to open.
+ * @param {string} color - Colour to tint the modal header and content with.
+ * @param {HTMLElement|null} [animateFrom=null] - Element to animate the modal out of, normally
+ *   the file's card. Null when the file has no card on screen — an internal link can point at a
+ *   file that the active filters or the current pagination page exclude from the list. The modal
+ *   then simply fades in, and doClose() already tolerates the card being absent on the way back.
  * @param {Function|null} [postLoad=null] - Optional callback invoked inside the transition
  *   after the file content has loaded. Used by create-new-note-click to activate txt mode.
  * @returns {ViewTransition|undefined}
  */
-export function handleOpenFileContent(event, target, postLoad = null) {
+export function openFileContent(file_to_open, color, animateFrom = null, postLoad = null) {
 
-  const file_to_open = target.dataset.fileId;
   openedFileId = file_to_open;
-  target.classList.add("moving-file-content-view"); // animate *from* this element
+  if (animateFrom) animateFrom.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
   return document.startViewTransition(async function () {
@@ -101,17 +108,30 @@ export function handleOpenFileContent(event, target, postLoad = null) {
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
-    target.classList.remove("moving-file-content-view");
+    if (animateFrom) animateFrom.classList.remove("moving-file-content-view");
 
     const fileObj = appState.myFiles.find(f => f.internalId === file_to_open);
     initHistorySelect(fileObj?.filepath ?? file_to_open);
-    document.getElementById('file-content-header').dataset.color = target.dataset.color;
-    scrollingContent.dataset.color=target.dataset.color;
+    document.getElementById('file-content-header').dataset.color = color;
+    scrollingContent.dataset.color=color;
     resetAutosave();
     await loadContentModal(file_to_open);
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
     if (postLoad) await postLoad();
   });
+}
+
+
+/**
+ * Handles the click event to open the file content modal, animating out of the clicked card.
+ * @param {Event} event - The click event.
+ * @param {HTMLElement} target - The element that triggered the modal opening.
+ * @param {Function|null} [postLoad=null] - Optional callback invoked inside the transition
+ *   after the file content has loaded.
+ * @returns {ViewTransition|undefined}
+ */
+export function handleOpenFileContent(event, target, postLoad = null) {
+  return openFileContent(target.dataset.fileId, target.dataset.color, target, postLoad);
 }
 
 
@@ -136,8 +156,20 @@ export function handeCloseModalOutside(event, target) {
 
 
 /**
+ * Finds a file's card in the file list — the element the modal animates out of and back into.
+ * Returns null when the file has no card, which the active filters or the current pagination
+ * page can cause.
+ * @param {string} fileId
+ * @returns {HTMLElement|null}
+ */
+export function findFileCard(fileId) {
+    return document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(fileId)}"]`);
+}
+
+
+/**
  * Runs the view transition that closes the file content modal.
- * @returns {void}
+ * @returns {Promise<void>} Resolves once the modal is closed and its content cleared.
  */
 export function doClose() {
 
@@ -156,20 +188,23 @@ export function doClose() {
   // Re-query the target now: if the file list was re-rendered since open
   // (e.g. after save), the node captured on open is detached and would not
   // participate in the view transition.
-  const file_box = openedFileId
-    ? document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(openedFileId)}"]`)
-    : null;
+  const file_box = openedFileId ? findFileCard(openedFileId) : null;
+
+  // Sweep back off-screen when the file has no card, so the modal moves instead of popping.
+  // A null openedFileId means the caller cleared it deliberately — delete does this — and
+  // there really is nothing to animate back to.
+  const animateTo = openedFileId ? (file_box ?? offscreenNoteTarget) : null;
 
   const transition = document.startViewTransition(function () {
 
     dialog.classList.remove("dialog-view"); // backdrop fade out
     movingbox.classList.remove("moving-file-content-view");
-    if (file_box) file_box.classList.add("moving-file-content-view"); // animating **back to** file target view
+    if (animateTo) animateTo.classList.add("moving-file-content-view"); // animating **back to** file target view
     movingbox.classList.add("opacity-0"); // hide modal otherwise it stays onscreen during animation
 
   });
 
-  transition.finished.then(async () => {
+  return transition.finished.then(async () => {
     dialog.close();
     document.getElementById('modal-content-text').innerHTML = '';
     // Clear both named highlights whose ranges may point to the just-removed
@@ -180,7 +215,7 @@ export function doClose() {
     clearDiffHighlights();
     highlightPropMatches();
 
-    if (file_box) file_box.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
+    if (animateTo) animateTo.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("opacity-0"); // make sure everything removed ready for next time
 
@@ -197,17 +232,20 @@ export function doClose() {
 /**
  * Handles closing the file content modal with a view transition.
  * Shows the unsaved changes warning dialog if there are unsaved edits.
- * @returns {void}
+ * @returns {Promise<boolean>} True once the modal has closed, false if the user chose to keep
+ *   editing. internal-link-click awaits this before opening the linked note.
  */
 export async function handleCloseModal() {
 
   if (hasUnsavedChanges()) {
     if (await showWarningModal('You have unsaved changes', 'Discard changes', 'Keep editing')) {
-      doClose();
+      await doClose();
+      return true;
     }
-    return;
+    return false;
   }
-  doClose();
+  await doClose();
+  return true;
 
 }
 
