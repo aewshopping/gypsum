@@ -739,4 +739,17 @@ async function setupMockFilesLongName(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };
+/**
+ * Clicks the mock folder picker. The folder button lives inside the recent files panel, so the
+ * panel is opened to reach it and closed again afterwards, leaving the app in the state it starts
+ * in — otherwise every later measurement would be shifted by the width of an open panel.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function loadFolder(page) {
+  await page.click('#btn-recent-open');
+  await page.click('[data-click-loadfolder]');
+  await page.click('[data-action="close-recent-panel"]');
+}
+
+module.exports = { loadFolder, setupMockFiles, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithHistoryLinePool } = require('./helpers');
+const { setupMockDirectoryWithHistoryLinePool, loadFolder } = require('./helpers');
 
 // Helper: wait until the history select has at least N options populated.
 async function waitForHistoryOptions(page, count) {
@@ -12,7 +12,7 @@ async function waitForHistoryOptions(page, count) {
 test.describe('diff highlighting', () => {
 
   async function openModal(page) {
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     // Wait for both the on-open snapshot (v-1) and the historical entry (v-2) = 3 total

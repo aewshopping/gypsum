@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithHistory } = require('./helpers');
+const { setupMockDirectoryWithHistory, loadFolder } = require('./helpers');
 
 async function waitForHistoryOptions(page, count) {
   await page.waitForFunction((n) => {
@@ -9,7 +9,7 @@ async function waitForHistoryOptions(page, count) {
 }
 
 async function openModal(page) {
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
   await waitForHistoryOptions(page, 1);
@@ -43,7 +43,7 @@ test.describe('unsaved changes indicator in history select button', () => {
       });
     });
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForHistoryOptions(page, 1);

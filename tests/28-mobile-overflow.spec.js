@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFilesLongName } = require('./helpers');
+const { setupMockFilesLongName, loadFolder } = require('./helpers');
 
 // Nothing may make the page wider than the screen. On mobile the layout viewport inflates to the
 // document's scroll width as soon as something does, and every percentage- and viewport-sized box
@@ -20,15 +20,14 @@ function overflowPx(page) {
 
 /** Opens the panel and waits for the slide-in to finish, so measurements are taken at rest. */
 async function openPanel(page) {
-  await page.locator('#sidebar-recent-handle').click();
-  await expect(page.locator('#sidebar-recent-toggle')).toBeChecked();
+  await page.locator('#btn-recent-open').click();
   await expect.poll(() => page.locator('#sidebar-recent')
     .evaluate(el => Math.round(el.getBoundingClientRect().left))).toBe(0);
 }
 
 async function loadFiles(page) {
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid').first()).toBeVisible();
 }
 

@@ -1,11 +1,11 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles } = require('./helpers');
+const { setupMockFiles, loadFolder } = require('./helpers');
 
 test('clicking a tag filters files to only those with that tag', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
 
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Open the controls panel, show the taxonomy, then open 'work' to reveal 'project'

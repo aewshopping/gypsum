@@ -1,12 +1,12 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles } = require('./helpers');
+const { setupMockFiles, loadFolder } = require('./helpers');
 
 // setupMockFiles: meeting-notes.md ("Quarterly Review"), shopping.txt, big-ideas.md ("Big Ideas",
 // tagged #color/coral).
 
 async function loadFiles(page) {
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid').first()).toBeVisible();
 }
 
@@ -20,9 +20,11 @@ async function closeModal(page) {
   await expect(page.locator('#file-content-modal')).toBeHidden();
 }
 
+/** Opens the panel and waits for the slide-in to finish. */
 async function openPanel(page) {
-  await page.locator('#sidebar-recent-handle').click();
-  await expect(page.locator('#sidebar-recent-toggle')).toBeChecked();
+  await page.locator('#btn-recent-open').click();
+  await expect.poll(() => page.locator('#sidebar-recent')
+    .evaluate(el => Math.round(el.getBoundingClientRect().left))).toBe(0);
 }
 
 test.describe('recent files panel', () => {
@@ -77,15 +79,19 @@ test.describe('recent files panel', () => {
   test('the open panel pushes the page and the file modal right', async ({ page }) => {
     await setupMockFiles(page);
     await loadFiles(page);
-    await openCard(page, 'Quarterly Review');
 
     const modalLeft = () => page.locator('#moving-file-content-container')
       .evaluate(el => el.getBoundingClientRect().left);
-    const closedLeft = await modalLeft();
 
+    await openCard(page, 'Quarterly Review');
+    const closedLeft = await modalLeft();
+    await closeModal(page);
+
+    // The panel has to be opened first: its button sits on the page, which a modal makes inert.
     await openPanel(page);
     await expect(page.locator('body')).not.toHaveCSS('padding-inline-start', '0px');
-    await expect.poll(modalLeft).toBeGreaterThan(closedLeft);
+    await openCard(page, 'Quarterly Review');
+    expect(await modalLeft()).toBeGreaterThan(closedLeft);
   });
 
   test('an entry stays clickable while a file is open', async ({ page }) => {
@@ -93,11 +99,11 @@ test.describe('recent files panel', () => {
     await loadFiles(page);
     await openCard(page, 'Quarterly Review');
     await closeModal(page);
+    await openPanel(page);
     await openCard(page, 'Big Ideas');
 
     // A modal dialog makes everything outside it inert, so this only works because the panel is
     // parked inside the dialog while it is open.
-    await openPanel(page);
     const entry = page.locator('.sidebar-recent-item[data-file-id="meeting-notes.md"]');
     await expect(entry).toBeVisible();
     await entry.click();

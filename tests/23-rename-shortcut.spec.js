@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithDeleteSupport } = require('./helpers');
+const { setupMockDirectoryWithDeleteSupport, loadFolder } = require('./helpers');
 
 async function waitForHistoryOptions(page, count) {
   await page.waitForFunction((n) => {
@@ -13,7 +13,7 @@ test.describe('ctrl+shift+s rename shortcut', () => {
   test('opens the rename modal when the file content modal is open', async ({ page }) => {
     await setupMockDirectoryWithDeleteSupport(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForHistoryOptions(page, 1);
@@ -26,7 +26,7 @@ test.describe('ctrl+shift+s rename shortcut', () => {
   test('does nothing when the file content modal is closed', async ({ page }) => {
     await setupMockDirectoryWithDeleteSupport(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
 
     await page.keyboard.press('Control+Shift+S');
 

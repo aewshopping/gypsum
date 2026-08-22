@@ -19,6 +19,9 @@
     --fontfam-headers: "Trebuchet MS", "Arial", "Helvetica", sans-serif;
     --fsize-app-multiple: 1;
     --fsize-filetext-multiple: 1; 
+    /* The browser default, named so anything that has to sit flush with the page edge can cancel
+       it out rather than repeating the number. */
+    --page-inline-margin: 8px;
 }
 
 /* A filename or word with no break opportunities would otherwise widen the file list past the
@@ -43,6 +46,7 @@ th, td {
     text-align: left; /* Align text as needed */
 }
 body {
+    margin-inline: var(--page-inline-margin);
     font-size: calc(1rem * var(--fsize-app-multiple));
     font-family: var(--fontfam-app-label);
     background-color: var(--colour-neutral);

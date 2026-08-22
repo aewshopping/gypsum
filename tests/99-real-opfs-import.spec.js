@@ -4,6 +4,7 @@
  * Captures every console.log from opfs-import.js to show exactly where execution stops.
  */
 const { test, expect } = require('@playwright/test');
+const { loadFolder } = require('./helpers');
 
 test('full backup+import cycle works with real OPFS', async ({ page }) => {
     const logs = [];
@@ -55,7 +56,7 @@ test('full backup+import cycle works with real OPFS', async ({ page }) => {
     await page.goto('/');
 
     // Load files via the mock directory picker.
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid')).toHaveCount(3, { timeout: 10000 });
 
     // Create a content backup.

@@ -4,6 +4,7 @@ const path = require('path');
 const {
   setupMockDirectoryWithSaveSupport,
   setupMockDirectoryForColorExisting,
+  loadFolder,
 } = require('./helpers');
 
 // Parse COLOR_NAMES from the app's constants.js so tests adapt automatically when
@@ -22,7 +23,7 @@ const COLOUR_0 = ALL_COLOURS[0];
 const COLOUR_1 = ALL_COLOURS[1];
 
 async function openModal(page) {
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
 }

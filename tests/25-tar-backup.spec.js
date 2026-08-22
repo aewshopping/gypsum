@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { loadFolder } = require('./helpers');
 
 /**
  * Intercepts URL.createObjectURL and the anchor click in the download trigger,
@@ -109,7 +110,7 @@ test.describe('tar backup buttons', () => {
         await setupMockDirectoryForBackup(page);
 
         await page.goto('/');
-        await page.click('[data-click-loadfolder]');
+        await loadFolder(page);
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.click('[data-action="open-settings-modal"]');
@@ -126,7 +127,7 @@ test.describe('tar backup buttons', () => {
         await setupMockDirectoryForBackup(page);
 
         await page.goto('/');
-        await page.click('[data-click-loadfolder]');
+        await loadFolder(page);
 
         await page.click('[data-action="open-settings-modal"]');
         await page.click('[data-action="backup-full"]');
@@ -142,7 +143,7 @@ test.describe('tar backup buttons', () => {
         await setupMockDirectoryForBackup(page);
 
         await page.goto('/');
-        await page.click('[data-click-loadfolder]');
+        await loadFolder(page);
 
         await page.click('[data-action="open-settings-modal"]');
         await page.click('[data-action="backup-content"]');
@@ -167,7 +168,7 @@ test.describe('tar backup buttons', () => {
         await setupMockDirectoryForBackup(page);
 
         await page.goto('/');
-        await page.click('[data-click-loadfolder]');
+        await loadFolder(page);
 
         await page.click('[data-action="open-settings-modal"]');
         await page.click('[data-action="backup-full"]');
@@ -216,7 +217,7 @@ test.describe('tar backup buttons', () => {
         }, FIXED_MTIME);
 
         await page.goto('/');
-        await page.click('[data-click-loadfolder]');
+        await loadFolder(page);
         await page.click('[data-action="open-settings-modal"]');
         await page.click('[data-action="backup-content"]');
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
@@ -306,7 +307,7 @@ test.describe('tar backup buttons', () => {
         }, FIXED_MTIME);
 
         await page.goto('/');
-        await page.click('[data-click-loadfolder]');
+        await loadFolder(page);
         await page.click('[data-action="open-settings-modal"]');
         await page.click('[data-action="backup-content"]');
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
@@ -415,7 +416,7 @@ test.describe('tar backup buttons', () => {
         }, [FIXED_MTIME, IMPORT_TIME]);
 
         await page.goto('/');
-        await page.click('[data-click-loadfolder]');
+        await loadFolder(page);
         await page.click('[data-action="open-settings-modal"]');
         await page.click('[data-action="backup-content"]');
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);

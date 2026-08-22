@@ -17,7 +17,13 @@
     transition: --sidebar-width 250ms ease;
 }
 
-:root:has(#sidebar-recent-toggle:checked) {
+/* The panel is open when a button has said so, or when focus is inside it. The focus half is what
+   lets the folder button be tabbed to while the panel is shut: it is the first control in the
+   document, and reaching it slides the panel out. --sidebar-open carries the same state to the
+   rules below that cannot be written as a descendant selector. */
+:root.sidebar-recent-open,
+:root:has(#sidebar-recent:focus-within) {
+    --sidebar-open: true;
     --sidebar-width: var(--sidebar-size);
 }
 
@@ -37,32 +43,28 @@
     background-color: var(--colour-neutral-alt);
 }
 
-/* Rides the panel's outer edge, so it is always on screen and always within reach — including
-   while the panel is parked inside the file modal. */
-#sidebar-recent-handle {
-    position: absolute;
-    inset-inline-start: 100%;
-    top: 50%;
-    translate: 0 -50%;
-    height: calc(2 * var(--btn-size));
-    /* Outlined on three sides so the tab reads as part of the panel even where it overlaps
-       something the same colour as itself. */
-    border: 1.5px solid var(--colour-contr);
-    border-inline-start: none;
-    border-radius: 0 5px 5px 0;
-    background-color: var(--colour-neutral-alt);
+/* The button that opens the panel sits in the page toolbar, not on the panel, and is pulled out
+   to the very edge of the page past the body margin. No border or shadow: it is the plain glyph. */
+#btn-recent-open {
+    margin-inline-start: calc(-1 * var(--page-inline-margin));
+    background-color: transparent;
 
     &:hover {
-        box-shadow: var(--hover-box-shadow);
+        border-color: transparent;
+        box-shadow: none;
     }
 }
 
-#sidebar-recent-handle > svg {
-    transition: rotate 250ms ease;
+/* The folder button takes the width it is given; the close button keeps its own size. */
+.sidebar-recent-top {
+    display: flex;
+    align-items: start;
+    gap: 4px;
 }
 
-:root:has(#sidebar-recent-toggle:checked) #sidebar-recent-handle > svg {
-    rotate: 180deg;
+.sidebar-recent-top #btn_loadDirectoryHandles {
+    flex: 1;
+    min-width: 0;
 }
 
 .sidebar-recent-title {
@@ -77,14 +79,11 @@
     flex-direction: column;
     gap: 4px;
 
-    /* Closed, the panel sits off-screen, where its buttons would still be reachable by tab.
-       The transition holds the hide back until the slide-out has finished. */
-    visibility: hidden;
+    /* Closed, the panel sits off-screen, where these buttons would still be reachable by tab —
+       unlike the folder button above, which is meant to be. The transition holds the hide back
+       until the slide-out has finished. */
+    visibility: if(style(--sidebar-open: true): visible; else: hidden);
     transition: visibility 250ms;
-}
-
-:root:has(#sidebar-recent-toggle:checked) #sidebar-recent-list {
-    visibility: visible;
 }
 
 .sidebar-recent-item {
@@ -118,8 +117,8 @@
    each entry is all it takes for the browser to animate one moving up the list and the others
    sliding down to make room. The name comes from the markup but is applied here, so it only counts
    while the panel is open — a closed panel then adds nothing to the transition. */
-:root:has(#sidebar-recent-toggle:checked) .sidebar-recent-item {
-    view-transition-name: attr(data-vt-name type(<custom-ident>));
+.sidebar-recent-item {
+    view-transition-name: if(style(--sidebar-open: true): attr(data-vt-name type(<custom-ident>)); else: none);
     view-transition-class: recent-entry;
 }
 

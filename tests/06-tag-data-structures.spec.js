@@ -1,10 +1,10 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles } = require('./helpers');
+const { setupMockFiles, loadFolder } = require('./helpers');
 
 test('file.tags is a Map after loading', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   const tagsIsMap = await page.evaluate(() => {
@@ -17,7 +17,7 @@ test('file.tags is a Map after loading', async ({ page }) => {
 test('file.tags Map has correct entries for a hierarchical tag', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   const tagEntry = await page.evaluate(() => {
@@ -33,7 +33,7 @@ test('file.tags Map has correct entries for a hierarchical tag', async ({ page }
 test('appState.myParentMap is built with correct parent/child structure', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   const mapInfo = await page.evaluate(() => {
@@ -56,7 +56,7 @@ test('appState.myParentMap is built with correct parent/child structure', async 
 test('orphan tags appear under orphan key in myParentMap', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // 'personal' only ever appears as #personal (no named parent), so it should be an orphan
@@ -70,7 +70,7 @@ test('orphan tags appear under orphan key in myParentMap', async ({ page }) => {
 test('tag filter still works correctly after TagMap change', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   // Open the controls panel, show the taxonomy, then open 'work' to reveal 'project'

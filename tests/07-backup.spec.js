@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithWrite, setupMockFiles } = require('./helpers');
+const { setupMockDirectoryWithWrite, setupMockFiles, loadFolder } = require('./helpers');
 
 // Helper: wait until window.__backupFileContent parses to at least N snapshots
 async function waitForBackupEntries(page, count) {
@@ -17,7 +17,7 @@ test.describe('local file backup', () => {
   test('writes open entry to history.gypsum when file modal is opened', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid')).toHaveCount(1);
 
     await page.locator('.note-grid').first().click();
@@ -37,7 +37,7 @@ test.describe('local file backup', () => {
   test('deduplicates close event when content unchanged, making no write', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
@@ -94,7 +94,7 @@ test.describe('local file backup', () => {
     });
 
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid')).toHaveCount(2);
 
     // Open first file
@@ -118,7 +118,7 @@ test.describe('local file backup', () => {
   test('history.gypsum does not appear in the file list', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
 
     await expect(page.locator('.note-grid')).toHaveCount(1);
   });

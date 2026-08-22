@@ -235,7 +235,7 @@ export function doClose() {
   });
 
   return transition.finished.then(async () => {
-    document.body.append(sidebarRecent); // back out of the dialog before it closes — see openFileContent
+    document.body.prepend(sidebarRecent); // back to the front of the body — see openFileContent
     delete dialog.dataset.fileId;
     dialog.close();
     document.getElementById('modal-content-text').innerHTML = '';
