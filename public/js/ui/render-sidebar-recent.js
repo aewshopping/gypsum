@@ -4,6 +4,7 @@
 
 import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
+import { fileTransitionName } from './ui-functions-render/file-transition-name.js';
 
 /**
  * Renders the recent files list into the side panel.
@@ -20,9 +21,13 @@ export function renderSidebarRecent() {
     const entries_html = [...appState.recentFiles]
         .map(fileId => filesById.get(fileId))
         .filter(file => file !== undefined)
+        // The 'recent-' prefix keeps these names clear of the ones a-render-all-files.js puts on
+        // the grid cards — two elements may not carry the same view-transition-name at once.
+        // sidebar-recent.css turns the name on, but only while the panel is open.
         .map(file => `
             <button class="sidebar-recent-item color-dynamic" data-color="${file.color}"
                     data-file-id="${file.internalId}" data-action="open-recent-file"
+                    data-vt-name="recent-${fileTransitionName(file.internalId)}"
                     ${file.internalId === openFileId ? 'data-current' : ''}
                     data-tip="open file">${renderFilename(file.filepath)}</button>`)
         .join('');

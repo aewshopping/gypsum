@@ -109,6 +109,21 @@
     }
 }
 
+/* Opening a file re-renders this list inside the view transition that opens the modal, so naming
+   each entry is all it takes for the browser to animate one moving up the list and the others
+   sliding down to make room. The name comes from the markup but is applied here, so it only counts
+   while the panel is open — a closed panel then adds nothing to the transition. */
+:root:has(#sidebar-recent-toggle:checked) .sidebar-recent-item {
+    view-transition-name: attr(data-vt-name type(<custom-ident>));
+    view-transition-class: recent-entry;
+}
+
+/* The shared class is what lets one rule reach every entry's animation, whatever it is named. */
+::view-transition-group(*.recent-entry) {
+    animation-duration: 500ms;
+    animation-timing-function: ease-in-out;
+}
+
 /* The file currently open in the modal. */
 .sidebar-recent-item[data-current] {
     box-shadow: inset 4px 0 0 0 currentColor;
