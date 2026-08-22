@@ -115,18 +115,12 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
   if (animateFrom) animateFrom.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
-  return document.startViewTransition(async function () {
+  const transition = document.startViewTransition(async function () {
 
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
     if (animateFrom) animateFrom.classList.remove("moving-file-content-view");
-
-    // A modal dialog makes every node outside it inert, so the recent files panel would freeze
-    // for as long as a file is open. Parking it inside the dialog keeps it clickable; it is
-    // position: fixed, so it does not move on screen. doClose puts it back before the dialog
-    // closes — a closed dialog is display: none, and would take the panel with it.
-    dialog.append(sidebarRecent);
 
     dialog.dataset.fileId = file_to_open; // lets the panel mark the entry that is on screen
     recordFileOpen(file_to_open);
@@ -141,6 +135,20 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
     if (postLoad) await postLoad();
   });
+
+  // A modal dialog makes every node outside it inert, so the recent files panel would freeze for
+  // as long as a file is open. Parking it inside the dialog keeps it clickable; it is
+  // position: fixed, so it does not move on screen. doClose puts it back before the dialog closes
+  // — a closed dialog is display: none, and would take the panel with it.
+  //
+  // It waits for the transition rather than moving with the rest: a view transition does not
+  // capture anything in the top layer, so a panel that were already inside the open dialog would
+  // be missing from the "after" snapshot, and its entries would vanish for the length of the
+  // animation instead of sliding to their new places. The dialog.open check is for a modal closed
+  // before its own opening animation finished — the panel belongs in the body then.
+  transition.finished.then(() => { if (dialog.open) dialog.append(sidebarRecent); });
+
+  return transition;
 }
 
 
