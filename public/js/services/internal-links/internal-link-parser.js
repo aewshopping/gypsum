@@ -1,14 +1,13 @@
 /**
  * @file Turns [[internal links]] in raw note text into HTML anchors before markdown runs.
  */
+import { regex_internal_link } from '../../constants.js';
 import { findProtectedSpans, isProtected } from '../file-parsing/protected-spans.js';
 import { resolveNoteName } from './note-name-index.js';
 
-// Group 1 - the link target (a filename or path, always with its extension).
-// Group 2 - the optional display text after a '|'.
-// Neither part may contain a bracket or a newline, so an unclosed '[[' never swallows
-// the rest of the note.
-const LINK_REGEX = /\[\[([^\[\]\n|]+?)(?:\|([^\[\]\n]*))?\]\]/g;
+// Same source as the file-load scanner uses, so rendered links and the internalLink
+// property can never drift apart. See constants.js for the group numbering.
+const LINK_REGEX = new RegExp(regex_internal_link.source, 'g');
 
 let protectedSpans = [];
 

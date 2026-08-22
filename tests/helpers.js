@@ -689,16 +689,17 @@ async function setupMockFilesWithLinks(page) {
         'An extensionless link to [[shopping]] here.',
         '',
         '```',
-        'a fenced [[shopping.txt]] link',
+        'a fenced [[fenced-only.md]] link',
         '```',
         '',
-        'And `an inline [[shopping.txt]] link` too.',
+        'And `an inline [[inline-only.md]] link` too.',
       ].join('\n');
 
       return makeDir('root', [
         makeFile('hub.md', hub),
         makeFile('shopping.txt', 'Shopping list\n\nMilk, eggs, bread #personal'),
         makeFile('my long note.md', '# My Long Note\n\nNothing to see.'),
+        makeFile('titled-link.md', '# See [[shopping.txt]]\n\nThe link lives in the H1.'),
         makeDir('subdir', [
           makeFile('nested.md', '# Nested Note\n\nThe nested target. #personal'),
         ]),

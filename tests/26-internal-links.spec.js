@@ -66,8 +66,8 @@ test.describe('internal links — rendering', () => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
     await openHub(page);
-    await expect(page.locator('#modal-content-text pre code')).toContainText('[[shopping.txt]]');
-    await expect(page.locator('#modal-content-text p code')).toContainText('[[shopping.txt]]');
+    await expect(page.locator('#modal-content-text pre code')).toContainText('[[fenced-only.md]]');
+    await expect(page.locator('#modal-content-text p code')).toContainText('[[inline-only.md]]');
     // Only the four out-of-code links produced anchors (shopping, nested, alias).
     await expect(page.locator('#modal-content-text a.internal-link')).toHaveCount(3);
   });
@@ -238,6 +238,99 @@ test.describe('internal links — note picker', () => {
     await page.keyboard.type('\n[[my long');
     await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
     await expect(page.locator('.tag-autocomplete-popup')).toContainText('my long note.md');
+  });
+
+});
+
+test.describe('internal links — internalLink property', () => {
+
+  // Collected during the initial folder parse, in the same single matchAll pass that
+  // already extracts title and tags — no extra scan of the file.
+
+  const linksFor = (page, id) => page.evaluate(
+    (fileId) => window.appState.myFiles.find(f => f.internalId === fileId)?.internalLink,
+    id);
+
+  test('link targets are collected on load', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+    const links = await linksFor(page, 'hub.md');
+    expect(links).toContain('shopping.txt');
+    expect(links).toContain('subdir/nested.md');
+  });
+
+  test('raw text is stored, so targets with no matching file are kept', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+    // Proves ids are not resolved at parse time — an unresolved link would vanish.
+    expect(await linksFor(page, 'hub.md')).toContain('does-not-exist.md');
+  });
+
+  test('the alias is stripped and a repeated target appears once', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+    const links = await linksFor(page, 'hub.md');
+    expect(links).not.toContain('groceries');
+    // hub.md links to shopping.txt twice: once plain, once aliased.
+    expect(links.filter(l => l === 'shopping.txt')).toHaveLength(1);
+  });
+
+  test('links inside code fences and inline code are not collected', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+    const links = await linksFor(page, 'hub.md');
+    // These targets appear ONLY inside code, so dedupe cannot mask a leak.
+    expect(links).not.toContain('fenced-only.md');
+    expect(links).not.toContain('inline-only.md');
+    // The four real links, deduped: shopping.txt (plain + aliased), subdir/nested.md,
+    // does-not-exist.md, and the extensionless 'shopping' — raw text, so it is kept.
+    expect(links).toEqual(['shopping.txt', 'subdir/nested.md', 'does-not-exist.md', 'shopping']);
+  });
+
+  test('a link in the H1 title is collected', async ({ page }) => {
+    // regex_title consumes the whole '# ' line, so the combined regex never sees a link
+    // there — getInitialTitle has to re-scan, the same way it does for tags.
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+    expect(await linksFor(page, 'titled-link.md')).toEqual(['shopping.txt']);
+  });
+
+  test('a file with no links still carries the key as an empty array', async ({ page }) => {
+    // Properties are registered from myFiles[0] only, so the key must never be omitted.
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+    expect(await linksFor(page, 'shopping.txt')).toEqual([]);
+  });
+
+  test('title, tags and colour still parse correctly alongside links', async ({ page }) => {
+    // Guards the appended capture group: inserting it would shift the destructuring.
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await page.click('[data-click-loadfolder]');
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+    const hub = await page.evaluate(() => {
+      const f = window.appState.myFiles.find(x => x.internalId === 'hub.md');
+      return { title: f.title, tags: [...f.tags.keys()] };
+    });
+    expect(hub.title).toBe('Hub');
+    const nested = await page.evaluate(() => {
+      const f = window.appState.myFiles.find(x => x.internalId === 'subdir/nested.md');
+      return { title: f.title, tags: [...f.tags.keys()] };
+    });
+    expect(nested.title).toBe('Nested Note');
+    expect(nested.tags).toContain('personal');
   });
 
 });

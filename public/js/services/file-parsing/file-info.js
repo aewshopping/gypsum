@@ -1,4 +1,4 @@
-import { regex_title, regex_tag } from '../../constants.js';
+import { regex_title, regex_tag, regex_internal_link } from '../../constants.js';
 import { parseYaml } from './yaml-parse.js';
 import { findFrontMatterIndices } from './yaml-find.js';
 import { updateMyFilesProperties } from '../file-props.js';
@@ -46,15 +46,21 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         contentPeek: tagData.contentPeek,
         tags: tagData.tagMap,
         color: tagData.colorFirst,
+        // Always present, [] when the file has no links: properties are registered from
+        // myFiles[0] alone, so omitting the key would unregister it for the whole session.
+        internalLink: tagData.links,
         lastModified: new Date(file.lastModified),
         ...(yamlData)
     };
 
 }
 
-const regex_pattern = `${regex_title.source}|${regex_tag.source}`;
+// The link source is APPENDED, never inserted: group numbers in regex_all are positional and
+// extractMatches destructures them, so putting it last leaves title/tag groups 1-3 untouched.
+const regex_pattern = `${regex_title.source}|${regex_tag.source}|${regex_internal_link.source}`;
 const regex_all = new RegExp(regex_pattern, "gm");
 const regex_tag_match = new RegExp(regex_tag.source, "gm");
+const regex_link_match = new RegExp(regex_internal_link.source, "gm");
 
 const PEEK_TARGET_CHARS = 100;
 const PEEK_MAX_CHARS = 130;
@@ -70,6 +76,7 @@ function parseFileContent(fileContent, frontMatterIndices) {
     let tagState = {
         tagMap: new Map(),  // Map<childTagName, {count: number, parents: Set<string>}>
         colorFirst: null,
+        links: new Set(),   // deduped: a note linking twice to the same file lists it once
     };
     const protectedSpans = findProtectedSpans(fileContent);
 
@@ -86,6 +93,7 @@ function parseFileContent(fileContent, frontMatterIndices) {
         contentPeek,
         tagMap: tagState.tagMap,
         colorFirst: tagState.colorFirst,
+        links: [...tagState.links],
     };
 }
 
@@ -139,9 +147,10 @@ function extractMatches(fileContent, regex_all, tagState, protectedSpans) {
     let titleFirst = null;
     const matches = fileContent.matchAll(regex_all);
 
-    // regex_all groups: 1 = title, 2 = tag parent, 3 = tag child
+    // regex_all groups: 1 = title, 2 = tag parent, 3 = tag child, 4 = internal link target
+    // (group 5, a link's display text, is deliberately unused — we store what it points at)
     for (const match of matches) {
-        const [, titleValue, parentValue, childValue] = match;
+        const [, titleValue, parentValue, childValue, linkTarget] = match;
 
         // 1. Process Title
         if (titleFirst === null && titleValue) {
@@ -151,6 +160,11 @@ function extractMatches(fileContent, regex_all, tagState, protectedSpans) {
         // 2. Process Tag
         if (childValue && !isProtected(match.index, protectedSpans)) {
             processTag({ childValue, parentValue }, tagState);
+        }
+
+        // 3. Process internal link — same protection check, so links inside code are ignored
+        if (linkTarget && !isProtected(match.index, protectedSpans)) {
+            tagState.links.add(linkTarget.trim());
         }
     }
     return { titleFirst };
@@ -206,6 +220,15 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
             const [, parentValue, childValue] = match;
             if (!isProtected(match.index, titleProtectedSpans)) {
                 processTag({ childValue, parentValue }, tagState);
+            }
+        }
+
+        // Links in the title need the same treatment: regex_title matches '(.*$)' after '# ',
+        // so the H1 line is consumed whole and the combined regex never sees a '[[link]]' in it.
+        for (const match of finalTitle.matchAll(regex_link_match)) {
+            const [, linkTarget] = match;
+            if (!isProtected(match.index, titleProtectedSpans)) {
+                tagState.links.add(linkTarget.trim());
             }
         }
     }
