@@ -1,4 +1,6 @@
 #modal-color-picker {
+    /* Note: left and width here are overridden in sidebar-push.css so the sheet is pushed right
+       when the recent files panel is open. */
     position: fixed;
     bottom: 0;
     left: 0;

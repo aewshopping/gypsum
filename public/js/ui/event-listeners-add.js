@@ -10,6 +10,7 @@ import { handleClearFilters } from './ui-functions-click/clear-filters.js';
 import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
 import { handleInternalLinkClick } from './ui-functions-click/internal-link-click.js';
+import { handleRecentFileClick } from './ui-functions-click/recent-file-click.js';
 import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/warning-modal.js';
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
@@ -80,6 +81,7 @@ const clickActionHandlers = {
     'clear-all-filters': handleClearFilters,
     'open-file-content-modal': handleOpenFileContent,
     'open-internal-link': handleInternalLinkClick,
+    'open-recent-file': handleRecentFileClick,
     'close-file-content-modal': handleCloseModal,
     'close-file-content-outside': handeCloseModalOutside,
     'warning-proceed': handleWarningProceed,

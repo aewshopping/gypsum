@@ -1,0 +1,65 @@
+/* How everything gets out of the recent files panel's way.
+
+   Opening the panel pushes the whole page right — including the file modal and the dimmed
+   backdrop behind it. Every offset here is derived from --sidebar-width (declared in
+   sidebar-recent.css), so they all move together, and all of them animate from that variable's
+   single transition.
+
+   Anything in normal flow is handled by the body padding. Anything in the top layer escapes the
+   body box and has to be offset in its own right, which is what the rest of this file does. */
+
+body {
+    padding-inline-start: var(--sidebar-width);
+}
+
+/* Dialogs are laid out against the viewport. The UA gives a modal dialog inset: 0 and
+   margin: auto, so moving its inline start re-centres it in the space that is left. */
+dialog {
+    inset-inline-start: var(--sidebar-width);
+}
+
+/* ::backdrop inherits from the dialog it belongs to, so it picks up --sidebar-width — and picks
+   up the override below for the settings menu too. Should a browser not inherit into ::backdrop,
+   the registered initial value of 0px applies and the backdrop simply covers the full width. */
+dialog::backdrop {
+    inset-inline-start: var(--sidebar-width);
+}
+
+/* The settings menu deliberately sits on top of every layer, so it — and its backdrop — stay
+   centred on the whole viewport. Zeroing the variable exempts it from every rule above. */
+#modal-settings {
+    --sidebar-width: 0px;
+}
+
+/* These three set their own position at ID specificity, so they need overriding by name rather
+   than through the element rules above. */
+
+#file-content-modal {
+    left: var(--sidebar-width);
+    width: calc(100vw - var(--sidebar-width));
+}
+
+/* Fixed, so it centres on the viewport rather than on its parent dialog: shift the centre point
+   by half the panel to land in the middle of what is left. */
+#moving-file-content-container {
+    left: calc(50% + var(--sidebar-width) / 2);
+    max-width: calc(100% - var(--sidebar-width));
+}
+
+#modal-color-picker {
+    left: var(--sidebar-width);
+    width: auto;
+}
+
+@media print {
+    /* While a file is open the panel lives inside the dialog, where print.css would otherwise
+       flatten it into the printed note. */
+    #sidebar-recent {
+        display: none !important;
+    }
+
+    /* Zeroing the variable drops every offset above, so an open panel cannot indent the page. */
+    :root {
+        --sidebar-width: 0px !important;
+    }
+}

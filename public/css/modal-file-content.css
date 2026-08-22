@@ -6,6 +6,8 @@
   }
 
 #file-content-modal {
+  /* Note: left and width here are overridden in sidebar-push.css so the modal is pushed right
+     when the recent files panel is open. */
   /* Remove default centering and ensure it covers the viewport for correct positioning */
   position: fixed;
   border: none;
@@ -21,6 +23,7 @@
 }
 
 #moving-file-content-container {
+  /* Note: left and max-width here are overridden in sidebar-push.css — see that file. */
   /* Mandatory CSS property */
 /*  view-transition-name: moving-box-element;*/
   position: fixed;

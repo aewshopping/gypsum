@@ -449,6 +449,18 @@
   <!-- Geometry-only anchor for the file modal's view transition — see offscreen-note-target.css -->
   <div id="offscreen-note-target" aria-hidden="true"></div>
 
+  <!-- Recent files panel. Its toggle lives inside it rather than in the top toolbar so that it
+       travels with the panel when the file modal parks it in the top layer — see sidebar-push.css
+       and openFileContent(). -->
+  <aside id="sidebar-recent" aria-label="Recently opened files">
+    <label id="sidebar-recent-handle" class="svg-wrapper-style" data-tip="recently opened files">
+      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 50" width="30" height="50"><g stroke="currentColor" fill="none" stroke-width="4" stroke-linecap="round"><path d="M9 10c2.1 2.4 8.5 9.6 11 14-2.4 4.2-8.8 13.4-11 16"/></g></svg>
+      <input type="checkbox" id="sidebar-recent-toggle">
+    </label>
+    <h2 class="sidebar-recent-title">Recent</h2>
+    <div id="sidebar-recent-list"></div>
+  </aside>
+
   <div id="tooltip" aria-hidden="true"></div>
 
 </body>

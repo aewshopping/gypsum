@@ -15,6 +15,7 @@ import { VIEWS } from "../constants.js";
  *   alphabetically, then 'orphan', then 'all'.
  * @property {string} viewState - The current view mode (e.g., 'cards', 'table').
  * @property {{property: string, direction: string}} sortState - The current sorting state.
+ * @property {Array<string>} recentFiles - internalIds of files opened this session, newest first.
  */
 export const appState = {
   myFiles: [],
@@ -60,6 +61,9 @@ export const appState = {
   historyEntries: [],    // backup entries for the currently-open file, newest-first
 
   tagTaxonomyVisible: false,  // true when the tag taxonomy is currently rendered in the DOM
+
+  recentFiles: [],       // internalIds of files opened this session, newest first. Duplicates are
+                         // expected — this is a history of opens, not a set of distinct files.
 }
 
 /**

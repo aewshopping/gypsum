@@ -1,0 +1,121 @@
+/* The recent files side panel, and the one variable that drives it.
+
+   --sidebar-width is the single source of truth for how far the panel is open. The panel reads
+   it to slide itself in; everything else on the page reads it to get out of the way — see
+   sidebar-push.css. It is registered as a <length> so it can be transitioned: because it is an
+   inherited registered property, animating it on :root animates every offset derived from it,
+   in lockstep, from this one declaration. */
+
+@property --sidebar-width {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 0px;
+}
+
+:root {
+    --sidebar-size: min(240px, 40vw);
+    transition: --sidebar-width 250ms ease;
+}
+
+:root:has(#sidebar-recent-toggle:checked) {
+    --sidebar-width: var(--sidebar-size);
+}
+
+#sidebar-recent {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 20; /* above #btn-new-note, which sits at 10 */
+    width: var(--sidebar-size);
+    /* Fully off-screen when the variable is 0, flush with the edge at full width. */
+    translate: calc(var(--sidebar-width) - var(--sidebar-size));
+
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background-color: var(--colour-neutral-alt);
+    border-inline-end: 1.5px solid var(--colour-contr);
+}
+
+/* Rides the panel's outer edge, so it is always on screen and always within reach — including
+   while the panel is parked inside the file modal. */
+#sidebar-recent-handle {
+    position: absolute;
+    inset-inline-start: 100%;
+    top: 50%;
+    translate: 0 -50%;
+    height: calc(2 * var(--btn-size));
+    /* Outlined on three sides so the tab reads as part of the panel even where it overlaps
+       something the same colour as itself. */
+    border: 1.5px solid var(--colour-contr);
+    border-inline-start: none;
+    border-radius: 0 5px 5px 0;
+    background-color: var(--colour-neutral-alt);
+
+    &:hover {
+        box-shadow: var(--hover-box-shadow);
+    }
+}
+
+#sidebar-recent-handle > svg {
+    transition: rotate 250ms ease;
+}
+
+:root:has(#sidebar-recent-toggle:checked) #sidebar-recent-handle > svg {
+    rotate: 180deg;
+}
+
+.sidebar-recent-title {
+    margin: 0;
+    font-size: 1em;
+}
+
+#sidebar-recent-list {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    /* Closed, the panel sits off-screen, where its buttons would still be reachable by tab.
+       The transition holds the hide back until the slide-out has finished. */
+    visibility: hidden;
+    transition: visibility 250ms;
+}
+
+:root:has(#sidebar-recent-toggle:checked) #sidebar-recent-list {
+    visibility: visible;
+}
+
+.sidebar-recent-item {
+    cursor: pointer;
+    text-align: start;
+    padding: 5px 8px;
+    /* Width and style only: .color-dynamic supplies the border colour that contrasts with the
+       file's own colour. */
+    border-width: 1.5px;
+    border-style: solid;
+    border-radius: 5px;
+    font-size: 0.89375em;
+    overflow-wrap: anywhere; /* a long path wraps rather than overflowing the narrow panel */
+
+    &:hover {
+        box-shadow: var(--hover-box-shadow);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+}
+
+/* The file currently open in the modal. */
+.sidebar-recent-item[data-current] {
+    box-shadow: inset 4px 0 0 0 currentColor;
+}
+
+.sidebar-recent-empty {
+    margin: 0;
+    font-size: 0.89375em;
+    opacity: 0.6;
+}
