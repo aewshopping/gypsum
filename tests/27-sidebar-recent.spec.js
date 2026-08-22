@@ -27,7 +27,7 @@ async function openPanel(page) {
 
 test.describe('recent files panel', () => {
 
-  test('starts empty and lists opened files newest first, keeping duplicates', async ({ page }) => {
+  test('starts empty and lists each file once, most recently opened first', async ({ page }) => {
     await setupMockFiles(page);
     await loadFiles(page);
 
@@ -43,12 +43,12 @@ test.describe('recent files panel', () => {
     await expect(items.nth(0)).toHaveAttribute('data-file-id', 'big-ideas.md');
     await expect(items.nth(1)).toHaveAttribute('data-file-id', 'meeting-notes.md');
 
-    // Re-opening a file adds another entry rather than moving the existing one: it is a history.
+    // Re-opening a listed file moves it back to the top rather than adding a second entry.
     await openCard(page, 'Quarterly Review');
     await closeModal(page);
-    await expect(items).toHaveCount(3);
+    await expect(items).toHaveCount(2);
     await expect(items.nth(0)).toHaveAttribute('data-file-id', 'meeting-notes.md');
-    await expect(items.nth(2)).toHaveAttribute('data-file-id', 'meeting-notes.md');
+    await expect(items.nth(1)).toHaveAttribute('data-file-id', 'big-ideas.md');
   });
 
   test('an entry carries the file colour', async ({ page }) => {
@@ -111,9 +111,17 @@ test.describe('recent files panel', () => {
     await loadFiles(page);
     await openCard(page, 'Big Ideas');
 
-    await expect(page.locator('.sidebar-recent-item[data-current]')).toHaveAttribute('data-file-id', 'big-ideas.md');
+    const marked = page.locator('.sidebar-recent-item[data-current]');
+    await expect(marked).toHaveAttribute('data-file-id', 'big-ideas.md');
     await closeModal(page);
-    await expect(page.locator('.sidebar-recent-item[data-current]')).toHaveCount(0);
+    await expect(marked).toHaveCount(0);
+
+    // Re-opening a file already in the list must light up one row, not every visit to that file.
+    await openCard(page, 'Quarterly Review');
+    await closeModal(page);
+    await openCard(page, 'Big Ideas');
+    await expect(marked).toHaveCount(1);
+    await expect(marked).toHaveAttribute('data-file-id', 'big-ideas.md');
   });
 
   test('a renamed file keeps its place in the panel under the new name', async ({ page }) => {

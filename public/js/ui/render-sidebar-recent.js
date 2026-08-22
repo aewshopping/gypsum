@@ -1,5 +1,5 @@
 /**
- * @file Renders the recent files side panel — every file opened this session, newest first.
+ * @file Renders the recent files side panel — each file opened this session, most recent first.
  */
 
 import { appState } from '../services/store.js';
@@ -17,15 +17,13 @@ export function renderSidebarRecent() {
     // The modal records the file it is showing, so the entry you are looking at can be marked.
     const openFileId = document.getElementById('file-content-modal').dataset.fileId ?? '';
 
-    const entries_html = appState.recentFiles
+    const entries_html = [...appState.recentFiles]
         .map(fileId => filesById.get(fileId))
         .filter(file => file !== undefined)
-        // Opening a file puts it at the top of the list, so only the newest entry can be the one
-        // on screen — older entries for the same file are past visits and stay unmarked.
-        .map((file, index) => `
+        .map(file => `
             <button class="sidebar-recent-item color-dynamic" data-color="${file.color}"
                     data-file-id="${file.internalId}" data-action="open-recent-file"
-                    ${index === 0 && file.internalId === openFileId ? 'data-current' : ''}
+                    ${file.internalId === openFileId ? 'data-current' : ''}
                     data-tip="open file">${renderFilename(file.filepath)}</button>`)
         .join('');
 

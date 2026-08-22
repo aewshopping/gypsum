@@ -15,7 +15,8 @@ import { VIEWS } from "../constants.js";
  *   alphabetically, then 'orphan', then 'all'.
  * @property {string} viewState - The current view mode (e.g., 'cards', 'table').
  * @property {{property: string, direction: string}} sortState - The current sorting state.
- * @property {Array<string>} recentFiles - internalIds of files opened this session, newest first.
+ * @property {Set<string>} recentFiles - internalIds of files opened this session, most recently
+ *   opened first. Each file appears once.
  */
 export const appState = {
   myFiles: [],
@@ -62,8 +63,8 @@ export const appState = {
 
   tagTaxonomyVisible: false,  // true when the tag taxonomy is currently rendered in the DOM
 
-  recentFiles: [],       // internalIds of files opened this session, newest first. Duplicates are
-                         // expected — this is a history of opens, not a set of distinct files.
+  recentFiles: new Set(),  // internalIds of files opened this session, most recently opened first.
+                           // Each file appears once: re-opening one moves it back to the top.
 }
 
 /**
