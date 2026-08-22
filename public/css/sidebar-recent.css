@@ -35,7 +35,6 @@
     gap: 8px;
     padding: 10px;
     background-color: var(--colour-neutral-alt);
-    border-inline-end: 1.5px solid var(--colour-contr);
 }
 
 /* Rides the panel's outer edge, so it is always on screen and always within reach — including
@@ -92,13 +91,19 @@
     cursor: pointer;
     text-align: start;
     padding: 5px 8px;
-    /* Width and style only: .color-dynamic supplies the border colour that contrasts with the
-       file's own colour. */
-    border-width: 1.5px;
-    border-style: solid;
+    border: none;
     border-radius: 5px;
     font-size: 0.89375em;
-    overflow-wrap: anywhere; /* a long path wraps rather than overflowing the narrow panel */
+
+    /* Every entry is one line high, whatever the title, so the rows are all the same size. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* .color-dynamic falls back to --colour-neutral-alt for a file with no colour of its own.
+       Repointing the variable here — rather than restating that rule — leaves an uncoloured
+       entry sitting on the page background instead of the card background. */
+    --colour-neutral-alt: var(--colour-neutral);
 
     &:hover {
         box-shadow: var(--hover-box-shadow);

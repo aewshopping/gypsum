@@ -3,7 +3,6 @@
  */
 
 import { appState } from '../services/store.js';
-import { renderFilename } from './ui-functions-render/render-filename.js';
 import { fileTransitionName } from './ui-functions-render/file-transition-name.js';
 
 /**
@@ -29,7 +28,7 @@ export function renderSidebarRecent() {
                     data-file-id="${file.internalId}" data-action="open-recent-file"
                     data-vt-name="recent-${fileTransitionName(file.internalId)}"
                     ${file.internalId === openFileId ? 'data-current' : ''}
-                    data-tip="open file">${renderFilename(file.filepath)}</button>`)
+                    data-tip="open file">${file.title || file.filename}</button>`)
         .join('');
 
     document.getElementById('sidebar-recent-list').innerHTML =
