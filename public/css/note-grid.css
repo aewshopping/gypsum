@@ -1,7 +1,9 @@
 .list-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    /* min width of cols is 350px and stretch to fill width of screen */
+    grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
+    /* min width of cols is 350px and stretch to fill width of screen — the min() lets a column
+       drop below 350px on a screen narrower than that, which it must, or the grid pushes the
+       page wider than the viewport */
     gap: 10px;
 }
 

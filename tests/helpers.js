@@ -708,4 +708,35 @@ async function setupMockFilesWithLinks(page) {
   });
 }
 
-module.exports = { setupMockFiles, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };
+/**
+ * Injects a mock version of window.showDirectoryPicker whose files include one with a filename
+ * that offers no break opportunities — no spaces, hyphens or slashes. Used to check that a name
+ * like that wraps instead of widening the page.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesLongName(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('averyveryextremelylongfilenamewithabsolutelynobreakopportunities.md', '# Long\n\nA note whose filename cannot be broken #personal');
+          yield makeFile('shopping.txt', 'Shopping list\n\nMilk, eggs, bread #personal');
+          yield makeFile('big-ideas.md', '# Big Ideas\n\nLong term thinking #personal #color/coral');
+        },
+      };
+    };
+  });
+}
+
+module.exports = { setupMockFiles, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };

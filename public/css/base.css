@@ -21,6 +21,13 @@
     --fsize-filetext-multiple: 1; 
 }
 
+/* A filename or word with no break opportunities would otherwise widen the file list past the
+   screen. One rule covers every view: each renders its own markup, and the search view shares no
+   class with the others. */
+#output {
+    overflow-wrap: anywhere;
+}
+
 button {font: inherit;}
 img {max-width: 100%;
     padding: 10px;
