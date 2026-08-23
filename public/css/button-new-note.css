@@ -19,7 +19,7 @@
     font-size: 40px;
     line-height: 1;
     cursor: pointer;
-    z-index: 10;
+    z-index: var(--layer-page-float);
 
     &:hover {
         box-shadow: 

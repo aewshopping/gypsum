@@ -22,6 +22,14 @@
     /* The browser default, named so anything that has to sit flush with the page edge can cancel
        it out rather than repeating the number. */
     --page-inline-margin: 8px;
+
+    /* Paint order for the handful of things that overlap, listed bottom to top. The recent panel
+       is parked inside the file dialog while a file is open, which would otherwise put its tab
+       over the file on a screen too narrow for the two to sit side by side. So the open file
+       outranks it: the panel may cover the page and the dialog's backdrop, never the file. */
+    --layer-page-float: 10;    /* the new note button */
+    --layer-recent-panel: 20;
+    --layer-open-file: 30;
 }
 
 /* A filename or word with no break opportunities would otherwise widen the file list past the
