@@ -49,8 +49,16 @@
 
 /* The button that opens and closes the panel sits in the page toolbar, not on the panel. Squared
    off on the side the panel arrives from and rounded on the other, in the panel's own colour, so
-   it reads as a tab belonging to it. No border or shadow: the glyph carries it. */
+   it reads as a tab belonging to it. No border or shadow: the glyph carries it.
+
+   Its box runs all the way to the page edge, so nothing shows between the tab and the panel it
+   belongs to, but the glyph stays where the toolbar puts everything else: the negative margin
+   cancels the page margin and the padding hands it straight back, with the width grown to match
+   so the glyph itself is not squeezed. */
 #btn-recent-toggle {
+    margin-inline-start: calc(-1 * var(--page-inline-margin));
+    padding-inline-start: var(--page-inline-margin);
+    width: calc(var(--btn-size) + var(--page-inline-margin));
     background-color: var(--colour-neutral-alt);
     border-radius: 0 5px 5px 0;
 
