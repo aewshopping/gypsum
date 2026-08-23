@@ -40,6 +40,10 @@
     flex-direction: column;
     gap: 8px;
     padding: 10px;
+    /* Puts the folder button on the same centre line as the page's top row, which starts at the
+       body margin and is centred on a plain icon button. The folder button is a little taller —
+       it carries a border the icon buttons do not — so half that difference comes off here. */
+    padding-block-start: calc(var(--page-inline-margin) - 2px);
     background-color: var(--colour-neutral-alt);
 }
 
@@ -55,10 +59,11 @@
     }
 }
 
-/* The folder button takes the width it is given; the close button keeps its own size. */
+/* The folder button takes the width it is given; the close button keeps its own size, centred on
+   the folder button rather than hung from the top of the row. */
 .sidebar-recent-top {
     display: flex;
-    align-items: start;
+    align-items: center;
     gap: 4px;
 }
 
