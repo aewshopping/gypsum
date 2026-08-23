@@ -79,6 +79,22 @@
     inset-inline-start: calc(100% - (var(--btn-size) + var(--page-inline-margin)) * var(--sidebar-progress));
     top: var(--page-inline-margin);
 
+    /* Shut, the tab is left hovering over the page, and the sticky search row scrolls up
+       underneath it — close enough to sit on top of the content search button and swallow its
+       clicks. Nothing inside a fixed ancestor can scroll away of its own accord, so it is driven
+       off by the scroll position instead, and comes back the moment you return to the top.
+
+       Not while the panel is open: the tab belongs to the panel then, which does not scroll
+       either. And not while a dialog is open, because the page cannot scroll at all then — see
+       modal-backdrop.css — so the tab would be frozen wherever the last scroll left it. */
+    animation-name: if(style(--sidebar-open: true): none; else: recent-tab-scroll-away);
+    animation-fill-mode: both;
+    animation-timing-function: linear;
+    animation-timeline: scroll(root block);
+    /* The sticky row reaches the top of the screen at about 48px of scroll, so the tab is clear
+       before it arrives. A taller toolbar only delays the row, so the order holds either way. */
+    animation-range: 0 40px;
+
     padding-inline-start: var(--page-inline-margin);
     width: calc(var(--btn-size) + var(--page-inline-margin));
     background-color: var(--colour-neutral-alt);
@@ -88,6 +104,15 @@
         border-color: transparent;
         box-shadow: none;
     }
+}
+
+/* Far enough up to clear the top of the screen: the tab's own bottom edge. */
+@keyframes recent-tab-scroll-away {
+    to { translate: 0 calc(-1 * (var(--btn-size) + var(--page-inline-margin))); }
+}
+
+body:has(dialog[open]) #btn-recent-toggle {
+    animation-name: none;
 }
 
 /* The other half of that: the toolbar keeps clear of the tab while the panel is shut, and closes
