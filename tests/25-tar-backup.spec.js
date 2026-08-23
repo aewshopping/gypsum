@@ -101,8 +101,8 @@ test.describe('tar backup buttons', () => {
     test('both backup buttons are visible in the settings modal', async ({ page }) => {
         await page.goto('/');
         await page.click('[data-action="open-settings-modal"]');
-        await expect(page.locator('[data-action="backup-content"]')).toBeVisible();
-        await expect(page.locator('[data-action="backup-full"]')).toBeVisible();
+        await expect(page.locator('#modal-settings [data-action="backup-content"]')).toBeVisible();
+        await expect(page.locator('#modal-settings [data-action="backup-full"]')).toBeVisible();
     });
 
     test('content backup triggers download with correct filename pattern', async ({ page }) => {
@@ -114,7 +114,7 @@ test.describe('tar backup buttons', () => {
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.click('[data-action="open-settings-modal"]');
-        await page.click('[data-action="backup-content"]');
+        await page.click('#modal-settings [data-action="backup-content"]');
 
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
         const filename = await page.evaluate(() => window.__capturedDownload.filename);
@@ -130,7 +130,7 @@ test.describe('tar backup buttons', () => {
         await loadFolder(page);
 
         await page.click('[data-action="open-settings-modal"]');
-        await page.click('[data-action="backup-full"]');
+        await page.click('#modal-settings [data-action="backup-full"]');
 
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
         const filename = await page.evaluate(() => window.__capturedDownload.filename);
@@ -146,7 +146,7 @@ test.describe('tar backup buttons', () => {
         await loadFolder(page);
 
         await page.click('[data-action="open-settings-modal"]');
-        await page.click('[data-action="backup-content"]');
+        await page.click('#modal-settings [data-action="backup-content"]');
 
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
 
@@ -171,7 +171,7 @@ test.describe('tar backup buttons', () => {
         await loadFolder(page);
 
         await page.click('[data-action="open-settings-modal"]');
-        await page.click('[data-action="backup-full"]');
+        await page.click('#modal-settings [data-action="backup-full"]');
 
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
 
@@ -219,7 +219,7 @@ test.describe('tar backup buttons', () => {
         await page.goto('/');
         await loadFolder(page);
         await page.click('[data-action="open-settings-modal"]');
-        await page.click('[data-action="backup-content"]');
+        await page.click('#modal-settings [data-action="backup-content"]');
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
 
         const storedMtimeSec = await page.evaluate(async () => {
@@ -309,7 +309,7 @@ test.describe('tar backup buttons', () => {
         await page.goto('/');
         await loadFolder(page);
         await page.click('[data-action="open-settings-modal"]');
-        await page.click('[data-action="backup-content"]');
+        await page.click('#modal-settings [data-action="backup-content"]');
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
 
         const mtimeJson = await page.evaluate(async () => {
@@ -418,7 +418,7 @@ test.describe('tar backup buttons', () => {
         await page.goto('/');
         await loadFolder(page);
         await page.click('[data-action="open-settings-modal"]');
-        await page.click('[data-action="backup-content"]');
+        await page.click('#modal-settings [data-action="backup-content"]');
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
 
         const outcome = await page.evaluate(async () => {
