@@ -4,31 +4,6 @@
     initial-value: 0;
 }
 
-#btn_loadDirectoryHandles {
-    display:flex;
-    align-items:center;
-    cursor: pointer;
-    gap:4px;
-    background-color: var(--colour-neutral-alt);
-    color:var(--colour-contr);
-    border: 1.5px solid var(--colour-contr);
-    border-radius: 5px;
-    font-family: var(--fontfam-app-input);
-    font-size:0.8125em; /* replicates unstyled UI of 13px where default size is 16px */
-
-    &:focus-visible {
-        outline: 2px solid var(--colour-contr);
-    }
-
-    & .svg-wrapper-style:hover{
-        box-shadow: none;
-        border: 1.5px solid transparent;
-    }
-}
-
-#btn_loadDirectoryHandles:hover{
-    box-shadow: var(--hover-box-shadow);
-}
 
 #fileCountElement {
     --colour-load-msg: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral) 60%);

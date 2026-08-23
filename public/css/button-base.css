@@ -38,6 +38,7 @@
     background-color: color-mix(in oklch, var(--colour-neutral-alt) 55%, transparent);
 }
 
+
 .svg-wrapper-style input{
     position:absolute;
     opacity:0;
@@ -78,5 +79,32 @@
     }
     &:hover{
         box-shadow: var(--hover-box-shadow);
+    }
+}
+
+.btn-menu {
+    background-color: var(--colour-neutral-alt);
+    color:var(--colour-contr);
+    border: none; /* 1.5px solid var(--colour-contr);*/
+    border-radius: 5px;
+    display:flex;
+    align-items:center;
+    cursor: pointer;
+    gap:4px;
+    font-family: var(--fontfam-app-input);
+    font-size:0.8125em; /* replicates unstyled UI of 13px where default size is 16px */
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+
+    & .svg-wrapper-style:hover{
+        box-shadow: none;
+        border: 2px solid transparent;
+    }
+
+    &:hover {
+        background-color: var(--colour-neutral);
+
     }
 }
