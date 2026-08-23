@@ -20,10 +20,6 @@
         outline: 2px solid var(--colour-contr);
     }
 
-    & .svg-wrapper-style {
-        background-color:transparent;
-    }
-
     & .svg-wrapper-style:hover{
         box-shadow: none;
         border: 1.5px solid transparent;

@@ -1,5 +1,10 @@
 #save-btn {
     color: var(--colour-neutral);
+}
+
+/* Unsaved is the one state that shouts: an inverted plate, whatever colour the file carries. Every
+   other state leaves the background to .svg-bg-tint, so the button sits with the ones beside it. */
+#modal-content:not(.saved) #save-btn {
     background-color: var(--colour-contr);
 }
 
@@ -13,7 +18,6 @@
 #modal-content.saved #save-btn {
     border: 2px solid transparent;
     color: var(--colour-contr);
-    background-color: var(--colour-neutral);
 }
 
 #modal-content.current-version #save-btn:hover {
@@ -22,12 +26,12 @@
 }
 
 #modal-content:not(.current-version) #save-btn {
-    background: linear-gradient(
+    background-image: linear-gradient(
         to bottom right,
         transparent calc(50% - 4%),
-        var(--colour-contr),
+        currentColor,
         transparent calc(50% + 4%)
-    ) no-repeat;
+    );
     box-shadow: none;
 }
 
