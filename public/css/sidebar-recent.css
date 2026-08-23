@@ -1,10 +1,19 @@
 /* The recent files side panel, and the one variable that drives it.
 
-   --sidebar-width is the single source of truth for how far the panel is open. The panel reads
-   it to slide itself in; everything else on the page reads it to get out of the way — see
-   sidebar-push.css. It is registered as a <length> so it can be transitioned: because it is an
-   inherited registered property, animating it on :root animates every offset derived from it,
-   in lockstep, from this one declaration. */
+   --sidebar-progress is how far open the panel is, 0 to 1, and it is the only thing that
+   animates. Three quantities are derived from it and so cannot drift apart: how far the panel has
+   slid, where the toggle sits within the panel, and how much room the toolbar leaves for the
+   toggle. --sidebar-width is the length the rest of the app reads — see sidebar-push.css — and it
+   is registered as a <length> so those consumers get a resolved length rather than a calc.
+
+   Both are registered and inherited, so animating the one number on :root re-resolves every offset
+   derived from it, in lockstep, from a single transition declaration. */
+
+@property --sidebar-progress {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+}
 
 @property --sidebar-width {
     syntax: '<length>';
@@ -14,7 +23,8 @@
 
 :root {
     --sidebar-size: min(240px, 40vw);
-    transition: --sidebar-width 250ms ease;
+    --sidebar-width: calc(var(--sidebar-size) * var(--sidebar-progress));
+    transition: --sidebar-progress 250ms ease;
 }
 
 /* The panel is open when a button has said so, or when focus is inside it. The focus half is what
@@ -24,7 +34,7 @@
 :root.sidebar-recent-open,
 :root:has(#sidebar-recent:focus-within) {
     --sidebar-open: true;
-    --sidebar-width: var(--sidebar-size);
+    --sidebar-progress: 1;
 }
 
 #sidebar-recent {
@@ -47,26 +57,24 @@
     background-color: var(--colour-neutral-alt);
 }
 
-/* The button that opens and closes the panel sits in the page toolbar, not on the panel. Squared
-   off on the side the panel arrives from and rounded on the other, in the panel's own colour, so
-   it reads as a tab belonging to it. No border or shadow: the glyph carries it.
+/* The tab that opens and closes the panel. Squared off on the side the panel arrives from and
+   rounded on the other, in the panel's own colour, so it reads as part of the panel. No border or
+   shadow: the glyph carries it. The padding keeps that glyph level with the toolbar's buttons
+   while the box itself runs on to the page edge, and the width is grown to match so the glyph is
+   not squeezed into a narrower content box.
 
-   Its box runs all the way to the page edge, so nothing shows between the tab and the panel it
-   belongs to, but the glyph stays where the toolbar puts everything else: the negative margin
-   cancels the page margin and the padding hands it straight back, with the width grown to match
-   so the glyph itself is not squeezed. */
+   It is a child of the panel rather than of the toolbar, which is what keeps it reachable while a
+   file is open: the panel is parked inside the dialog then, and the top layer paints above the
+   page and takes no part in its inertness. A tab left behind in the toolbar would be both covered
+   and dead exactly when it is needed.
+
+   Shut, it hangs off the panel's outer edge, which puts it at the edge of the page; open, it
+   tucks its own width back inside. Riding the panel means the slide comes for free — only this
+   offset has to change, and it is derived from the same progress. */
 #btn-recent-toggle {
-    /* Open, it pulls left by its own width on top of that, which lands it just inside the panel's
-       edge — and since a negative margin shrinks the item rather than merely moving it, the rest
-       of the row comes along and no gap opens up. Its own transition matches the panel's, so the
-       two travel together. It has to outrank the panel to be seen once it is inside it. */
-    margin-inline-start: if(
-        style(--sidebar-open: true): calc(-1 * (var(--btn-size) + 2 * var(--page-inline-margin)));
-        else: calc(-1 * var(--page-inline-margin))
-    );
-    transition: margin-inline-start 250ms ease;
-    position: relative;
-    z-index: 21;
+    position: absolute;
+    inset-inline-start: calc(100% - (var(--btn-size) + var(--page-inline-margin)) * var(--sidebar-progress));
+    top: var(--page-inline-margin);
 
     padding-inline-start: var(--page-inline-margin);
     width: calc(var(--btn-size) + var(--page-inline-margin));
@@ -77,6 +85,12 @@
         border-color: transparent;
         box-shadow: none;
     }
+}
+
+/* The other half of that: the toolbar keeps clear of the tab while the panel is shut, and closes
+   the space up as the tab moves inside the panel, so the row never has a gap at its head. */
+#app-toolbar {
+    padding-inline-start: calc((var(--btn-size) + 4px) * (1 - var(--sidebar-progress)));
 }
 
 /* The panel is a flex column, so its children stretch to the full width by default. That is right
