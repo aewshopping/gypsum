@@ -3,11 +3,11 @@
  */
 
 /**
- * Opens the recent files panel.
+ * Opens the recent files panel, or closes it again if it is already open.
  * @returns {void}
  */
-export function handleOpenRecentPanel() {
-    document.documentElement.classList.add('sidebar-recent-open');
+export function handleToggleRecentPanel() {
+    document.documentElement.classList.toggle('sidebar-recent-open');
 }
 
 /**
@@ -25,5 +25,5 @@ export function handleOpenRecentPanel() {
 export function handleCloseRecentPanel(evt, actionElement) {
     document.documentElement.classList.remove('sidebar-recent-open');
     actionElement.blur();
-    document.getElementById('btn-recent-open').focus();
+    document.getElementById('btn-recent-toggle').focus();
 }

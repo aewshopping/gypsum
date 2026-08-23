@@ -20,7 +20,7 @@ function overflowPx(page) {
 
 /** Opens the panel and waits for the slide-in to finish, so measurements are taken at rest. */
 async function openPanel(page) {
-  await page.locator('#btn-recent-open').click();
+  await page.locator('#btn-recent-toggle').click();
   await expect.poll(() => page.locator('#sidebar-recent')
     .evaluate(el => Math.round(el.getBoundingClientRect().left))).toBe(0);
 }

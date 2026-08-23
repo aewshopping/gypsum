@@ -22,7 +22,7 @@ async function closeModal(page) {
 
 /** Opens the panel and waits for the slide-in to finish. */
 async function openPanel(page) {
-  await page.locator('#btn-recent-open').click();
+  await page.locator('#btn-recent-toggle').click();
   await expect.poll(() => page.locator('#sidebar-recent')
     .evaluate(el => Math.round(el.getBoundingClientRect().left))).toBe(0);
 }

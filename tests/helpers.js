@@ -747,7 +747,7 @@ async function setupMockFilesLongName(page) {
  * @param {import('@playwright/test').Page} page
  */
 async function loadFolder(page) {
-  await page.click('#btn-recent-open');
+  await page.click('#btn-recent-toggle');
   await page.click('[data-click-loadfolder]');
   await page.click('[data-action="close-recent-panel"]');
 }

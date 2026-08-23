@@ -47,11 +47,12 @@
     background-color: var(--colour-neutral-alt);
 }
 
-/* The button that opens the panel sits in the page toolbar, not on the panel, and is pulled out
-   to the very edge of the page past the body margin. No border or shadow: it is the plain glyph. */
-#btn-recent-open {
-    margin-inline-start: calc(-1 * var(--page-inline-margin));
-    background-color: transparent;
+/* The button that opens and closes the panel sits in the page toolbar, not on the panel. Squared
+   off on the side the panel arrives from and rounded on the other, in the panel's own colour, so
+   it reads as a tab belonging to it. No border or shadow: the glyph carries it. */
+#btn-recent-toggle {
+    background-color: var(--colour-neutral-alt);
+    border-radius: 0 5px 5px 0;
 
     &:hover {
         border-color: transparent;
