@@ -43,11 +43,17 @@
     color: var(--colour-contr);
     font-family: var(--fontfam-app-input);
     white-space: nowrap;
-    /* overflow: hidden; */
     text-overflow: ellipsis;
     min-width: 0;
     padding-left:6px;
     padding-block: 2px;
+}
+
+/* Squeezed narrow — a phone with the side panel open — the nowrap text above would otherwise
+   spill out of the box flex has shrunk, widening the whole page. Not while loading, though: the
+   progress bar below is 50dvw wide and would be clipped to the box. */
+#fileCountElement:not(.loading) {
+    overflow: hidden;
 }
 
 /* marks the load complete point for loader */
@@ -109,17 +115,4 @@
 #btn_loadDirectoryHandles.loading #load-folder-arrow {
     animation: load-folder-spin 1s linear infinite;
     transition: opacity 0.5s ease-in-out;
-}
-
-:root:has(.load-finished-msg) #btn_loadDirectoryHandles:not(.loading) {
-    background-color: color-mix(in srgb, var(--colour-neutral-alt), transparent 50%);
-    border: 1.5px solid transparent;
-
-    & span {
-        color: color-mix(in srgb, var(--colour-contr), transparent 50%);
-    }
-
-    & .svg-wrapper-style {
-        color: color-mix(in srgb, var(--colour-contr), transparent 50%);
-    }
 }

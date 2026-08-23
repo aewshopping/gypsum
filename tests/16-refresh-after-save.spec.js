@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { loadFolder } = require('./helpers');
 
 /**
  * Tests for refreshFileAfterSave.
@@ -83,7 +84,7 @@ async function waitForHistoryOptions(page, count) {
 }
 
 async function openModal(page) {
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
   await waitForHistoryOptions(page, 1);
@@ -203,7 +204,7 @@ test.describe('active search filters are re-run after manual save', () => {
     await page.goto('/');
 
     // Load files, show taxonomy, and apply a filter for the tag
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid')).toHaveCount(1);
     await page.click('[data-action="toggle-file-controls"]');
     await page.click('[data-action="render-tag-taxonomy"]');

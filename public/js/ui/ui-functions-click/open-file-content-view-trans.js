@@ -12,6 +12,8 @@ import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights
 import { clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 import { showWarningModal } from './warning-modal.js';
 import { resetEditorCursorOffset } from './editor-color-pick.js';
+import { recordFileOpen } from '../../services/recent-files.js';
+import { renderSidebarRecent } from '../render-sidebar-recent.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -20,6 +22,7 @@ const scrollingContent = document.getElementById("modal-content");
 // animation origin when a file has no card on screen, so the modal sweeps in from off-screen
 // rather than appearing to come out of the new-note button, which would imply a note was made.
 export const offscreenNoteTarget = document.getElementById("offscreen-note-target");
+const sidebarRecent = document.getElementById("sidebar-recent");
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
 
@@ -63,10 +66,19 @@ observer.observe(movingbox, { childList: true, subtree: true });
  * Updates the tracked "opened file id" used by the close animation to find
  * the originating card. Call after a rename so the close animation targets
  * the renamed card rather than the (now-gone) old one.
- * @param {string} newFileId
+ * @param {string} newFileId - The file's new id, or null when there is no longer a file on screen.
  */
 export function setOpenedFileId(newFileId) {
     openedFileId = newFileId;
+
+    // The file on screen now has a different id, so the recent files panel needs an entry under
+    // that id — its old one refers to a file that no longer exists and drops out on the next
+    // render. A delete passes null: doClose is already on its way to clearing up.
+    if (newFileId) {
+        dialog.dataset.fileId = newFileId;
+        recordFileOpen(newFileId);
+        renderSidebarRecent();
+    }
 }
 
 dialog.addEventListener('cancel', (evt) => {
@@ -103,12 +115,16 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
   if (animateFrom) animateFrom.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
-  return document.startViewTransition(async function () {
+  const transition = document.startViewTransition(async function () {
 
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
     movingbox.classList.add("moving-file-content-view");  // animate *to* this file target element
     if (animateFrom) animateFrom.classList.remove("moving-file-content-view");
+
+    dialog.dataset.fileId = file_to_open; // lets the panel mark the entry that is on screen
+    recordFileOpen(file_to_open);
+    renderSidebarRecent();
 
     const fileObj = appState.myFiles.find(f => f.internalId === file_to_open);
     initHistorySelect(fileObj?.filepath ?? file_to_open);
@@ -119,6 +135,20 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
     scrollingContent.scrollTop = 0; // reset scroll position to top of page, rather than wherever you were on previous note on close.
     if (postLoad) await postLoad();
   });
+
+  // A modal dialog makes every node outside it inert, so the recent files panel would freeze for
+  // as long as a file is open. Parking it inside the dialog keeps it clickable; it is
+  // position: fixed, so it does not move on screen. doClose puts it back before the dialog closes
+  // — a closed dialog is display: none, and would take the panel with it.
+  //
+  // It waits for the transition rather than moving with the rest: a view transition does not
+  // capture anything in the top layer, so a panel that were already inside the open dialog would
+  // be missing from the "after" snapshot, and its entries would vanish for the length of the
+  // animation instead of sliding to their new places. The dialog.open check is for a modal closed
+  // before its own opening animation finished — the panel belongs in the body then.
+  transition.finished.then(() => { if (dialog.open) dialog.append(sidebarRecent); });
+
+  return transition;
 }
 
 
@@ -183,6 +213,11 @@ export function doClose() {
     saveBackupEntry(appState.closeSnapshot, 'close');
   }
 
+  // Out of the dialog before the transition is captured, not after it finishes. Parked inside,
+  // the panel is part of the dialog's own snapshot, so it would be animated out along with the
+  // modal's backdrop and flicker against the copy of itself in the new state.
+  document.body.prepend(sidebarRecent);
+
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view
 
   // Re-query the target now: if the file list was re-rendered since open
@@ -205,6 +240,7 @@ export function doClose() {
   });
 
   return transition.finished.then(async () => {
+    delete dialog.dataset.fileId;
     dialog.close();
     document.getElementById('modal-content-text').innerHTML = '';
     // Clear both named highlights whose ranges may point to the just-removed
@@ -214,6 +250,7 @@ export function doClose() {
     // (The observer also fires here but the dialog.open guard causes it to skip.)
     clearDiffHighlights();
     highlightPropMatches();
+    renderSidebarRecent(); // no file on screen now, so drop the "currently open" marker
 
     if (animateTo) animateTo.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time
     movingbox.classList.remove("moving-file-content-view"); // make sure everything removed ready for next time

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithDeleteSupport } = require('./helpers');
+const { setupMockDirectoryWithDeleteSupport, loadFolder } = require('./helpers');
 
 async function waitForHistoryOptions(page, count) {
   await page.waitForFunction((n) => {
@@ -13,7 +13,7 @@ async function waitForHistoryOptions(page, count) {
  * opens the rename modal (via the rename button inside the history select).
  */
 async function openFileAndRenameModal(page) {
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
   await waitForHistoryOptions(page, 1);

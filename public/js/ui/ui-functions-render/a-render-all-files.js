@@ -11,6 +11,7 @@ import { PAGINATION_SIZE } from "../../constants.js";
 import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 import { renderPagination } from "../pagination/render-pagination.js";
 import { fileTransitionName } from "./file-transition-name.js";
+import { renderSidebarRecent } from "../render-sidebar-recent.js";
 
 /**
  * Orchestrates the rendering of files based on the current view state and active filters.
@@ -99,6 +100,11 @@ export function renderFiles(fullRender = true, keepPage = false) {
 
         applyHighlights(); // need to apply again because we have a complete refresh of output html
     };
+
+    // The panel is not part of the filtered output, so it renders outside doRender — which sits
+    // inside a view transition, and returns early when the filters match nothing. Entries for
+    // files that have gone drop out here.
+    renderSidebarRecent();
 
     // Card transitions only run when the modal is closed — the ::backdrop pseudo-element
     // is not captured by the View Transitions API, so it disappears behind the overlay

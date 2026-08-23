@@ -1,0 +1,199 @@
+/* The recent files side panel, and the one variable that drives it.
+
+   --sidebar-progress is how far open the panel is, 0 to 1, and it is the only thing that
+   animates. Two quantities are derived from it and so cannot drift apart: how far the panel has
+   slid, and how wide the toolbar's button is. --sidebar-width is the length the rest of the app
+   reads — see sidebar-push.css — and it is registered as a <length> so those consumers get a
+   resolved length rather than a calc.
+
+   Both are registered and inherited, so animating the one number on :root re-resolves every offset
+   derived from it, in lockstep, from a single transition declaration. */
+
+@property --sidebar-progress {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+}
+
+@property --sidebar-width {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 0px;
+}
+
+:root {
+    --sidebar-size: min(240px, 40vw);
+    --sidebar-width: calc(var(--sidebar-size) * var(--sidebar-progress));
+    transition: --sidebar-progress 250ms ease;
+}
+
+/* The panel is open when a button has said so, or when focus is inside it. The focus half is what
+   lets the folder button be tabbed to while the panel is shut: it is the first control in the
+   document, and reaching it slides the panel out. --sidebar-open carries the same state to the
+   rules below that cannot be written as a descendant selector. */
+:root.sidebar-recent-open,
+:root:has(#sidebar-recent:focus-within) {
+    --sidebar-open: true;
+    --sidebar-progress: 1;
+}
+
+#sidebar-recent {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 20; /* above #btn-new-note, which sits at 10 */
+    width: var(--sidebar-size);
+    /* Fully off-screen when the variable is 0, flush with the edge at full width. */
+    translate: calc(var(--sidebar-width) - var(--sidebar-size));
+
+    /* Rounded on the side that faces the page, like the cards. */
+    border-radius: 0 5px 5px 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    /* Puts the folder button on the same centre line as the page's top row, which starts at the
+       body margin and is centred on a plain icon button. The folder button is a little taller —
+       it carries a border the icon buttons do not — so half that difference comes off here. */
+    padding-block-start: calc(var(--page-inline-margin) - 2px);
+    background-color: var(--colour-neutral-alt);
+}
+
+/* Collapses to nothing while the panel is open, which carries its own close button then. Both
+   parts scale on the same progress the panel slides on, so the row closes up as the panel arrives.
+   The border term is needed because .svg-wrapper-style carries a 2px transparent border that
+   box-sizing: border-box cannot shrink past, so width alone would leave 4px behind. */
+#btn-recent-toggle {
+    width: calc(var(--btn-size) * (1 - var(--sidebar-progress)));
+    border-width: calc(2px * (1 - var(--sidebar-progress)));
+}
+
+/* Plain glyphs, both of them: no border or shadow on hover. */
+#btn-recent-toggle:hover,
+#btn-recent-close:hover {
+    border-color: transparent;
+    box-shadow: none;
+}
+
+/* Three sections down the panel: this one and the footer take the height they need, and the list
+   between them takes whatever is left. */
+.sidebar-recent-header {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* The folder button and the close button share the panel's first line, one at each end. */
+.sidebar-recent-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.sidebar-recent-title {
+    margin: 0;
+    font-size: 1em;
+}
+
+.sidebar-recent-footer {
+    flex: none;
+    font-size: 0.8125em;
+    opacity: 0.6;
+
+    /* The app styles no links of its own, so this one would otherwise arrive in browser blue. */
+    & a {
+        color: inherit;
+    }
+}
+
+#sidebar-recent-list {
+    /* Grows and shrinks with the height of the screen. min-height is what lets it be shorter than
+       its contents at all — an auto minimum would push the footer off the bottom instead. */
+    flex: 1;
+    min-height: 0;
+
+    /* Naming the list makes it a group of its own, which the entries below nest inside — see the
+       clip further down. Only while the panel is open, like the entries themselves. */
+    view-transition-name: if(style(--sidebar-open: true): recent-list; else: none);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    /* Closed, the panel sits off-screen, where these buttons would still be reachable by tab —
+       unlike the folder button above, which is meant to be. The transition holds the hide back
+       until the slide-out has finished. */
+    visibility: if(style(--sidebar-open: true): visible; else: hidden);
+    transition: visibility 250ms;
+}
+
+.sidebar-recent-item {
+    /* Rows keep their height when the list is longer than the space for it. Without this they are
+       flex items like any other and squash to fit, so the list never overflows and never scrolls. */
+    flex-shrink: 0;
+    cursor: pointer;
+    text-align: start;
+    padding: 5px 8px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.89375em;
+
+    /* Every entry is one line high, whatever the title, so the rows are all the same size. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* .color-dynamic falls back to --colour-neutral-alt for a file with no colour of its own.
+       Repointing the variable here — rather than restating that rule — leaves an uncoloured
+       entry sitting on the page background instead of the card background. */
+    --colour-neutral-alt: var(--colour-neutral);
+
+    &:hover {
+        box-shadow: var(--hover-box-shadow);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+}
+
+/* Opening a file re-renders this list inside the view transition that opens the modal, so naming
+   each entry is all it takes for the browser to animate one moving up the list and the others
+   sliding down to make room. The name comes from the markup but is applied here, so it only counts
+   while the panel is open — a closed panel then adds nothing to the transition. */
+.sidebar-recent-item {
+    view-transition-name: if(style(--sidebar-open: true): attr(data-vt-name type(<custom-ident>)); else: none);
+    view-transition-class: recent-entry;
+    /* Nests each entry's group inside the list's, rather than leaving them all as siblings at the
+       root of the transition. Without it an entry animating from below the fold is not clipped by
+       anything and travels over the footer, because a snapshot does not inherit the scroll
+       container's clip the way the live element does. */
+    view-transition-group: nearest;
+}
+
+/* And the clip that nesting exists for: the entries are held inside the list's bounds while they
+   move, exactly as they are when they are not animating. */
+::view-transition-group(recent-list) {
+    overflow: clip;
+}
+
+/* The shared class is what lets one rule reach every entry's animation, whatever it is named. */
+::view-transition-group(*.recent-entry) {
+    animation-duration: 500ms;
+    animation-timing-function: ease-in-out;
+}
+
+/* The file currently open in the modal. */
+.sidebar-recent-item[data-current] {
+    box-shadow: inset 4px 0 0 0 currentColor;
+}
+
+.sidebar-recent-empty {
+    margin: 0;
+    font-size: 0.89375em;
+    opacity: 0.6;
+}

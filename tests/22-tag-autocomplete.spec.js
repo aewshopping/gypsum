@@ -1,10 +1,10 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles } = require('./helpers');
+const { setupMockFiles, loadFolder } = require('./helpers');
 
 // setupMockFiles has files with: #work/project, #personal, #color/coral
 
 async function loadFiles(page) {
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid').first()).toBeVisible();
 }
 
@@ -59,7 +59,7 @@ test.describe('tag autocomplete — editor', () => {
       });
     }, longLine);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await page.evaluate(() => {
       const t = document.getElementById('render_toggle');
@@ -103,7 +103,7 @@ test.describe('tag autocomplete — editor', () => {
       });
     }, longLine);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await page.evaluate(() => {
       const t = document.getElementById('render_toggle');
@@ -230,7 +230,7 @@ test.describe('tag autocomplete — tag list contents', () => {
       });
     });
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await page.evaluate(() => {
       const t = document.getElementById('render_toggle');

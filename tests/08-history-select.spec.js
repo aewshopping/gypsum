@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithWrite, setupMockDirectoryWithHistory } = require('./helpers');
+const { setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, loadFolder } = require('./helpers');
 
 // Helper: wait until the history select has at least N options populated.
 // Needed because readBackupHistory runs as a fire-and-forget async call.
@@ -14,7 +14,7 @@ test.describe('history select — layout and displayed text', () => {
 
   // Open the modal and wait for the initial "current" option.
   async function openModal(page) {
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForHistoryOptions(page, 1);
@@ -69,7 +69,7 @@ test.describe('history select in file content modal', () => {
   test('select shows on-open snapshot as first history entry', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
@@ -89,7 +89,7 @@ test.describe('history select in file content modal', () => {
   test('timestamps are formatted as yyyy-mm-dd hh:mm:ss', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
@@ -106,7 +106,7 @@ test.describe('history select in file content modal', () => {
   test('selecting a historical entry renders that content in the modal', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 
@@ -120,7 +120,7 @@ test.describe('history select in file content modal', () => {
   test('selecting current after a historical entry restores the current file content', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await page.locator('.note-grid').first().click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
 

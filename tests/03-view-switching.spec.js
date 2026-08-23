@@ -1,11 +1,11 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles } = require('./helpers');
+const { setupMockFiles, loadFolder } = require('./helpers');
 
 test('switching to table view shows column headers', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
 
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   await page.selectOption('#view-select', 'table');

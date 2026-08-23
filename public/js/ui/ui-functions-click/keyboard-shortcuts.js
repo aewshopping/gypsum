@@ -13,6 +13,7 @@ import { handleToggleRenderText } from './toggle-render-text.js';
 import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
 import { handleOpenSettings } from './settings-modal.js';
+import { handleToggleRecentPanel } from './recent-panel-toggle.js';
 import { appState } from '../../services/store.js';
 
 /**
@@ -39,6 +40,10 @@ export function handleKeyboardShortcuts(evt) {
     const noModalAltActions = {
         'n': () => handleCreateNewNote(evt, document.getElementById('btn-new-note')),
         'x': () => handleClearFilters(),
+        // The picker is bound as an anonymous listener in main.js, so the button is the handle.
+        // A click from a keydown keeps the user activation showDirectoryPicker needs.
+        'o': () => document.getElementById('btn_loadDirectoryHandles').click(),
+        'b': () => handleToggleRecentPanel(),
     };
     if (evt.altKey && noModalAltActions[evt.key] && !document.querySelector('dialog[open]')) {
         evt.preventDefault();
@@ -59,6 +64,20 @@ export function handleKeyboardShortcuts(evt) {
         if (modal?.open) {
             evt.preventDefault();
             contentModalAltActions[evt.key]();
+        }
+    }
+
+    // Alt keys that also work while a file is open, but not while the text editor has focus — Alt
+    // is how special characters are typed in there. Kept apart from the map above, whose keys are
+    // editor actions and are meant to fire while editing.
+    const readingFileAltActions = {
+        'b': () => handleToggleRecentPanel(),
+    };
+    if (evt.altKey && readingFileAltActions[evt.key]) {
+        const modal = document.getElementById('file-content-modal');
+        if (modal?.open && !document.activeElement?.isContentEditable) {
+            evt.preventDefault();
+            readingFileAltActions[evt.key]();
         }
     }
 

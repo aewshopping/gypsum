@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave } = require('./helpers');
+const { setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, loadFolder } = require('./helpers');
 
 // Shared helpers (same patterns as 12-save-button.spec.js)
 
@@ -11,7 +11,7 @@ async function waitForHistoryOptions(page, count) {
 }
 
 async function openModal(page) {
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
   await waitForHistoryOptions(page, 1);

@@ -1,11 +1,11 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFilesWithLinks } = require('./helpers');
+const { setupMockFilesWithLinks, loadFolder } = require('./helpers');
 
 // setupMockFilesWithLinks: hub.md links to shopping.txt, subdir/nested.md, a missing
 // file, and an extensionless name; plus fenced/inline-code links that must stay literal.
 
 async function openHub(page) {
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid').first()).toBeVisible();
   await page.locator('.note-grid', { hasText: 'Hub' }).click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
@@ -167,7 +167,7 @@ test.describe('internal links — navigation', () => {
     // losing focus on close silently kills card navigation.
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
 
     const firstId = await page.locator('.note-grid').first().getAttribute('data-file-id');
@@ -254,7 +254,7 @@ test.describe('internal links — internalLink property', () => {
   test('link targets are collected on load', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
     const links = await linksFor(page, 'hub.md');
     expect(links).toContain('shopping.txt');
@@ -264,7 +264,7 @@ test.describe('internal links — internalLink property', () => {
   test('raw text is stored, so targets with no matching file are kept', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
     // Proves ids are not resolved at parse time — an unresolved link would vanish.
     expect(await linksFor(page, 'hub.md')).toContain('does-not-exist.md');
@@ -273,7 +273,7 @@ test.describe('internal links — internalLink property', () => {
   test('the alias is stripped and a repeated target appears once', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
     const links = await linksFor(page, 'hub.md');
     expect(links).not.toContain('groceries');
@@ -284,7 +284,7 @@ test.describe('internal links — internalLink property', () => {
   test('links inside code fences and inline code are not collected', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
     const links = await linksFor(page, 'hub.md');
     // These targets appear ONLY inside code, so dedupe cannot mask a leak.
@@ -300,7 +300,7 @@ test.describe('internal links — internalLink property', () => {
     // there — getInitialTitle has to re-scan, the same way it does for tags.
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
     expect(await linksFor(page, 'titled-link.md')).toEqual(['shopping.txt']);
   });
@@ -309,7 +309,7 @@ test.describe('internal links — internalLink property', () => {
     // Properties are registered from myFiles[0] only, so the key must never be omitted.
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
     expect(await linksFor(page, 'shopping.txt')).toEqual([]);
   });
@@ -318,7 +318,7 @@ test.describe('internal links — internalLink property', () => {
     // Guards the appended capture group: inserting it would shift the destructuring.
     await setupMockFilesWithLinks(page);
     await page.goto('/');
-    await page.click('[data-click-loadfolder]');
+    await loadFolder(page);
     await expect(page.locator('.note-grid').first()).toBeVisible();
     const hub = await page.evaluate(() => {
       const f = window.appState.myFiles.find(x => x.internalId === 'hub.md');

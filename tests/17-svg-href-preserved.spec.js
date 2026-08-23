@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { loadFolder } = require('./helpers');
 
 // Mock a file whose body contains inline SVG — with nested groups, sibling <style> blocks of
 // formatted/braced CSS at different nesting depths, an inline style="fill:#ff0000"
@@ -42,7 +43,7 @@ async function loadRoseFile(page) {
   });
 
   await page.goto('/');
-  await page.click('[data-click-loadfolder]');
+  await loadFolder(page);
   await expect(page.locator('.note-grid')).toHaveCount(1);
 }
 
