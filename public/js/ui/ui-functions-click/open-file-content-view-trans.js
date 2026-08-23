@@ -213,6 +213,11 @@ export function doClose() {
     saveBackupEntry(appState.closeSnapshot, 'close');
   }
 
+  // Out of the dialog before the transition is captured, not after it finishes. Parked inside,
+  // the panel is part of the dialog's own snapshot, so it would be animated out along with the
+  // modal's backdrop and flicker against the copy of itself in the new state.
+  document.body.prepend(sidebarRecent);
+
   movingbox.classList.add("moving-file-content-view"); // make sure animating **from** modal view
 
   // Re-query the target now: if the file list was re-rendered since open
@@ -235,7 +240,6 @@ export function doClose() {
   });
 
   return transition.finished.then(async () => {
-    document.body.prepend(sidebarRecent); // back to the front of the body — see openFileContent
     delete dialog.dataset.fileId;
     dialog.close();
     document.getElementById('modal-content-text').innerHTML = '';
