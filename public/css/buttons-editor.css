@@ -28,7 +28,7 @@ body:not(:has(#render_toggle:checked)) .editor-btns {
 }
 
 .content-editable-controls {
-    background-color: rgba(var(--colour-neutral), 50%);  
+    background-color: color-mix(in oklch, var(--colour-neutral) 50%, transparent);
     backdrop-filter: blur(3px);
     border-top-left-radius: 16px;
     pointer-events: auto; /* because I am rendering inert the element it is inside to allow user to click on the horizontal scrollbar if needed */

@@ -11,7 +11,10 @@
     padding: 0px;
     border: 2px solid transparent;
     color: var(--colour-contr);
-    background-color: var(--colour-neutral);
+    /* Colour is not this class's business — the two classes below carry it. Transparent is stated
+       rather than left out because a <button> with no author background falls back to the UA's own
+       `buttonface`, not to nothing, so omitting it plates the button in browser grey. */
+    background-color: transparent;
 
     &:hover {
         border: 2px solid var(--colour-contr);
@@ -21,6 +24,18 @@
 
 .svg-wrapper-style:has(:focus-visible) {
     outline: 2px solid var(--colour-contr);
+}
+
+/* Sits on the page background. */
+.svg-bg-solid {
+    background-color: var(--colour-neutral);
+}
+
+/* Sits on a background the user picked, so it cannot name a colour of its own: it veils whatever
+   is behind it, just enough to carry the glyph. On a file with no colour the veil is
+   --colour-neutral-alt over --colour-neutral-alt, and disappears by itself. */
+.svg-bg-tint {
+    background-color: color-mix(in oklch, var(--colour-neutral-alt) 55%, transparent);
 }
 
 .svg-wrapper-style input{
