@@ -23,18 +23,19 @@
   <aside id="sidebar-recent" aria-label="Recently opened files">
 
     <div class="sidebar-recent-header">
-      <button data-tip="choose your folder" id="btn_loadDirectoryHandles" data-click-loadfolder>
-        <div class="svg-wrapper-style">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 53.3 51.6" width="53.3" height="51.6"><g stroke="#1e1e1e" fill="none" stroke-width="4" stroke-linecap="round"><g id="load-folder-arrow"><g transform="translate(30.2 23.3) rotate(7.9 -2.8 5.3)"><path d="M0 0c.4.2 1.7.2 2.3 1 .7.9 1.6 2.6 1.6 3.9 0 1.4-.6 3.3-1.5 4.3-1 1-2.7 1.4-4.2 1.5-1.5.2-3.6 0-4.8-.6-1.3-.6-2.3-1.7-2.7-2.8-.4-1.1-.2-2.6.3-3.7.4-1 1.9-2.3 2.3-2.7"/></g><g transform="translate(24.6 22.8) rotate(7.9 .9 2.4)"><path d="M0 0c.3.8 1.4 3.9 1.7 4.7"/></g><g transform="translate(24.5 22.4) rotate(7.9 -2.7 .5)"><path d="M0 0c-.9.2-4.4.8-5.3.9"/></g></g><g transform="translate(10 10.4)"><path d="M0 0c.3 4.6-1.1 22.7 1.9 27.8 3 5.1 11.2 3 16.1 2.9 4.9-.1 11.1.7 13.4-3.3 2.3-4 2.7-17.1.2-20.6-2.5-3.6-11.9.2-15.3-.9-3.4-1.1-2.2-4.9-4.9-5.9C11.4-1 4.6 0 0 0"/></g></g></svg>
-        </div>
-        <span>folder</span>
-      </button>
+      <div class="sidebar-recent-header-row">
+        <button data-tip="choose your folder" id="btn_loadDirectoryHandles" data-click-loadfolder>
+          <div class="svg-wrapper-style">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 53.3 51.6" width="53.3" height="51.6"><g stroke="#1e1e1e" fill="none" stroke-width="4" stroke-linecap="round"><g id="load-folder-arrow"><g transform="translate(30.2 23.3) rotate(7.9 -2.8 5.3)"><path d="M0 0c.4.2 1.7.2 2.3 1 .7.9 1.6 2.6 1.6 3.9 0 1.4-.6 3.3-1.5 4.3-1 1-2.7 1.4-4.2 1.5-1.5.2-3.6 0-4.8-.6-1.3-.6-2.3-1.7-2.7-2.8-.4-1.1-.2-2.6.3-3.7.4-1 1.9-2.3 2.3-2.7"/></g><g transform="translate(24.6 22.8) rotate(7.9 .9 2.4)"><path d="M0 0c.3.8 1.4 3.9 1.7 4.7"/></g><g transform="translate(24.5 22.4) rotate(7.9 -2.7 .5)"><path d="M0 0c-.9.2-4.4.8-5.3.9"/></g></g><g transform="translate(10 10.4)"><path d="M0 0c.3 4.6-1.1 22.7 1.9 27.8 3 5.1 11.2 3 16.1 2.9 4.9-.1 11.1.7 13.4-3.3 2.3-4 2.7-17.1.2-20.6-2.5-3.6-11.9.2-15.3-.9-3.4-1.1-2.2-4.9-4.9-5.9C11.4-1 4.6 0 0 0"/></g></g></svg>
+          </div>
+          <span>folder</span>
+        </button>
+        <button id="btn-recent-close" class="svg-wrapper-style" data-action="close-recent-panel" data-tip="close panel">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 44" width="50" height="44"><g stroke="currentColor" fill="none" stroke-width="4" stroke-linecap="round"><path d="M8 8c4-.4 30-.6 34 0 2 .3 2.6 2 2.8 4.4.3 4 .4 15 0 19-.2 2.4-.8 4-2.8 4.4-4 .6-30 .4-34 0-2-.4-2.6-2-2.8-4.4-.3-4-.3-15 0-19C5.4 10 6 8.4 8 8"/><path d="M19 8.6c-.3 6-.4 21 0 27"/></g></svg>
+        </button>
+      </div>
       <h2 class="sidebar-recent-title">Recent</h2>
     </div>
-
-    <button id="btn-recent-toggle" class="svg-wrapper-style" data-action="toggle-recent-panel" data-tip="recent files">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 44" width="50" height="44"><g stroke="currentColor" fill="none" stroke-width="4" stroke-linecap="round"><path d="M8 8c4-.4 30-.6 34 0 2 .3 2.6 2 2.8 4.4.3 4 .4 15 0 19-.2 2.4-.8 4-2.8 4.4-4 .6-30 .4-34 0-2-.4-2.6-2-2.8-4.4-.3-4-.3-15 0-19C5.4 10 6 8.4 8 8"/><path d="M19 8.6c-.3 6-.4 21 0 27"/></g></svg>
-    </button>
 
     <div id="sidebar-recent-list"></div>
 
@@ -105,7 +106,10 @@
     </div>
   </dialog>
 
-  <div class="flex-row" id="app-toolbar">
+  <div class="flex-row">
+    <button id="btn-recent-toggle" class="svg-wrapper-style" data-action="toggle-recent-panel" data-tip="recent files">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 44" width="50" height="44"><g stroke="currentColor" fill="none" stroke-width="4" stroke-linecap="round"><path d="M8 8c4-.4 30-.6 34 0 2 .3 2.6 2 2.8 4.4.3 4 .4 15 0 19-.2 2.4-.8 4-2.8 4.4-4 .6-30 .4-34 0-2-.4-2.6-2-2.8-4.4-.3-4-.3-15 0-19C5.4 10 6 8.4 8 8"/><path d="M19 8.6c-.3 6-.4 21 0 27"/></g></svg>
+    </button>
     <span id=fileCountElement>files: 0</span>
 
     <div class="flexgrow"></div>

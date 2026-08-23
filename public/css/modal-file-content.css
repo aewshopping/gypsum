@@ -24,7 +24,6 @@
 
 #moving-file-content-container {
   /* Note: left and max-width here are overridden in sidebar-push.css — see that file. */
-  z-index: var(--layer-open-file); /* the recent panel is parked in this dialog and must stay under */
   /* Mandatory CSS property */
 /*  view-transition-name: moving-box-element;*/
   position: fixed;

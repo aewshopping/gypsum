@@ -11,7 +11,7 @@ import { handleViewSelect } from './ui-functions-click/view-change.js';
 import { handleCloseModal, handleOpenFileContent, handeCloseModalOutside } from './ui-functions-click/open-file-content-view-trans.js';
 import { handleInternalLinkClick } from './ui-functions-click/internal-link-click.js';
 import { handleRecentFileClick } from './ui-functions-click/recent-file-click.js';
-import { handleToggleRecentPanel } from './ui-functions-click/recent-panel-toggle.js';
+import { handleToggleRecentPanel, handleCloseRecentPanel } from './ui-functions-click/recent-panel-toggle.js';
 import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/warning-modal.js';
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
@@ -84,6 +84,7 @@ const clickActionHandlers = {
     'open-internal-link': handleInternalLinkClick,
     'open-recent-file': handleRecentFileClick,
     'toggle-recent-panel': handleToggleRecentPanel,
+    'close-recent-panel': handleCloseRecentPanel,
     'close-file-content-modal': handleCloseModal,
     'close-file-content-outside': handeCloseModalOutside,
     'warning-proceed': handleWarningProceed,

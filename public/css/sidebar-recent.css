@@ -1,10 +1,10 @@
 /* The recent files side panel, and the one variable that drives it.
 
    --sidebar-progress is how far open the panel is, 0 to 1, and it is the only thing that
-   animates. Three quantities are derived from it and so cannot drift apart: how far the panel has
-   slid, where the toggle sits within the panel, and how much room the toolbar leaves for the
-   toggle. --sidebar-width is the length the rest of the app reads — see sidebar-push.css — and it
-   is registered as a <length> so those consumers get a resolved length rather than a calc.
+   animates. Two quantities are derived from it and so cannot drift apart: how far the panel has
+   slid, and how wide the toolbar's button is. --sidebar-width is the length the rest of the app
+   reads — see sidebar-push.css — and it is registered as a <length> so those consumers get a
+   resolved length rather than a calc.
 
    Both are registered and inherited, so animating the one number on :root re-resolves every offset
    derived from it, in lockstep, from a single transition declaration. */
@@ -41,12 +41,12 @@
     position: fixed;
     inset-block: 0;
     inset-inline-start: 0;
-    z-index: var(--layer-recent-panel);
+    z-index: 20; /* above #btn-new-note, which sits at 10 */
     width: var(--sidebar-size);
     /* Fully off-screen when the variable is 0, flush with the edge at full width. */
     translate: calc(var(--sidebar-width) - var(--sidebar-size));
 
-    /* Rounded on the side that faces the page, like the tab and the cards. */
+    /* Rounded on the side that faces the page, like the cards. */
     border-radius: 0 5px 5px 0;
 
     display: flex;
@@ -60,76 +60,37 @@
     background-color: var(--colour-neutral-alt);
 }
 
-/* The tab that opens and closes the panel. Squared off on the side the panel arrives from and
-   rounded on the other, in the panel's own colour, so it reads as part of the panel. No border or
-   shadow: the glyph carries it. The padding keeps that glyph level with the toolbar's buttons
-   while the box itself runs on to the page edge, and the width is grown to match so the glyph is
-   not squeezed into a narrower content box.
-
-   It is a child of the panel rather than of the toolbar, which is what keeps it reachable while a
-   file is open: the panel is parked inside the dialog then, and the top layer paints above the
-   page and takes no part in its inertness. A tab left behind in the toolbar would be both covered
-   and dead exactly when it is needed.
-
-   Shut, it hangs off the panel's outer edge, which puts it at the edge of the page; open, it
-   tucks its own width back inside. Riding the panel means the slide comes for free — only this
-   offset has to change, and it is derived from the same progress. */
+/* Collapses to nothing while the panel is open, which carries its own close button then. Both
+   parts scale on the same progress the panel slides on, so the row closes up as the panel arrives.
+   The border term is needed because .svg-wrapper-style carries a 2px transparent border that
+   box-sizing: border-box cannot shrink past, so width alone would leave 4px behind. */
 #btn-recent-toggle {
-    position: absolute;
-    inset-inline-start: calc(100% - (var(--btn-size) + var(--page-inline-margin)) * var(--sidebar-progress));
-    top: var(--page-inline-margin);
-
-    /* Shut, the tab is left hovering over the page, and the sticky search row scrolls up
-       underneath it — close enough to sit on top of the content search button and swallow its
-       clicks. Nothing inside a fixed ancestor can scroll away of its own accord, so it is driven
-       off by the scroll position instead, and comes back the moment you return to the top.
-
-       Not while the panel is open: the tab belongs to the panel then, which does not scroll
-       either. And not while a dialog is open, because the page cannot scroll at all then — see
-       modal-backdrop.css — so the tab would be frozen wherever the last scroll left it. */
-    animation-name: if(style(--sidebar-open: true): none; else: recent-tab-scroll-away);
-    animation-fill-mode: both;
-    animation-timing-function: linear;
-    animation-timeline: scroll(root block);
-    /* The sticky row reaches the top of the screen at about 48px of scroll, so the tab is clear
-       before it arrives. A taller toolbar only delays the row, so the order holds either way. */
-    animation-range: 0 40px;
-
-    padding-inline-start: var(--page-inline-margin);
-    width: calc(var(--btn-size) + var(--page-inline-margin));
-    background-color: var(--colour-neutral-alt);
-    border-radius: 0 5px 5px 0;
-
-    &:hover {
-        border-color: transparent;
-        box-shadow: none;
-    }
+    width: calc(var(--btn-size) * (1 - var(--sidebar-progress)));
+    border-width: calc(2px * (1 - var(--sidebar-progress)));
 }
 
-/* Far enough up to clear the top of the screen: the tab's own bottom edge. */
-@keyframes recent-tab-scroll-away {
-    to { translate: 0 calc(-1 * (var(--btn-size) + var(--page-inline-margin))); }
-}
-
-body:has(dialog[open]) #btn-recent-toggle {
-    animation-name: none;
-}
-
-/* The other half of that: the toolbar keeps clear of the tab while the panel is shut, and closes
-   the space up as the tab moves inside the panel, so the row never has a gap at its head. */
-#app-toolbar {
-    padding-inline-start: calc((var(--btn-size) + 4px) * (1 - var(--sidebar-progress)));
+/* Plain glyphs, both of them: no border or shadow on hover. */
+#btn-recent-toggle:hover,
+#btn-recent-close:hover {
+    border-color: transparent;
+    box-shadow: none;
 }
 
 /* Three sections down the panel: this one and the footer take the height they need, and the list
-   between them takes whatever is left. align-items keeps the folder button as wide as its label
-   rather than stretched across the panel. */
+   between them takes whatever is left. */
 .sidebar-recent-header {
     flex: none;
     display: flex;
     flex-direction: column;
-    align-items: start;
     gap: 8px;
+}
+
+/* The folder button and the close button share the panel's first line, one at each end. */
+.sidebar-recent-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
 }
 
 .sidebar-recent-title {
