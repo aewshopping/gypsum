@@ -56,7 +56,18 @@
    cancels the page margin and the padding hands it straight back, with the width grown to match
    so the glyph itself is not squeezed. */
 #btn-recent-toggle {
-    margin-inline-start: calc(-1 * var(--page-inline-margin));
+    /* Open, it pulls left by its own width on top of that, which lands it just inside the panel's
+       edge — and since a negative margin shrinks the item rather than merely moving it, the rest
+       of the row comes along and no gap opens up. Its own transition matches the panel's, so the
+       two travel together. It has to outrank the panel to be seen once it is inside it. */
+    margin-inline-start: if(
+        style(--sidebar-open: true): calc(-1 * (var(--btn-size) + 2 * var(--page-inline-margin)));
+        else: calc(-1 * var(--page-inline-margin))
+    );
+    transition: margin-inline-start 250ms ease;
+    position: relative;
+    z-index: 21;
+
     padding-inline-start: var(--page-inline-margin);
     width: calc(var(--btn-size) + var(--page-inline-margin));
     background-color: var(--colour-neutral-alt);
@@ -68,17 +79,10 @@
     }
 }
 
-/* The folder button takes the width it is given; the close button keeps its own size, centred on
-   the folder button rather than hung from the top of the row. */
-.sidebar-recent-top {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.sidebar-recent-top #btn_loadDirectoryHandles {
-    flex: 1;
-    min-width: 0;
+/* The panel is a flex column, so its children stretch to the full width by default. That is right
+   for the list rows but not for this: it takes only the width it needs. */
+#sidebar-recent #btn_loadDirectoryHandles {
+    align-self: start;
 }
 
 .sidebar-recent-title {

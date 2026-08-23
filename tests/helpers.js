@@ -749,7 +749,7 @@ async function setupMockFilesLongName(page) {
 async function loadFolder(page) {
   await page.click('#btn-recent-toggle');
   await page.click('[data-click-loadfolder]');
-  await page.click('[data-action="close-recent-panel"]');
+  await page.click('#btn-recent-toggle');
 }
 
 module.exports = { loadFolder, setupMockFiles, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };
