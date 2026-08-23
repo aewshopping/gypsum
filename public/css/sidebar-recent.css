@@ -46,6 +46,9 @@
     /* Fully off-screen when the variable is 0, flush with the edge at full width. */
     translate: calc(var(--sidebar-width) - var(--sidebar-size));
 
+    /* Rounded on the side that faces the page, like the tab and the cards. */
+    border-radius: 0 5px 5px 0;
+
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -125,6 +128,10 @@
        its contents at all — an auto minimum would push the footer off the bottom instead. */
     flex: 1;
     min-height: 0;
+
+    /* Naming the list makes it a group of its own, which the entries below nest inside — see the
+       clip further down. Only while the panel is open, like the entries themselves. */
+    view-transition-name: if(style(--sidebar-open: true): recent-list; else: none);
     overflow-y: auto;
     overscroll-behavior: contain;
     display: flex;
@@ -175,6 +182,17 @@
 .sidebar-recent-item {
     view-transition-name: if(style(--sidebar-open: true): attr(data-vt-name type(<custom-ident>)); else: none);
     view-transition-class: recent-entry;
+    /* Nests each entry's group inside the list's, rather than leaving them all as siblings at the
+       root of the transition. Without it an entry animating from below the fold is not clipped by
+       anything and travels over the footer, because a snapshot does not inherit the scroll
+       container's clip the way the live element does. */
+    view-transition-group: nearest;
+}
+
+/* And the clip that nesting exists for: the entries are held inside the list's bounds while they
+   move, exactly as they are when they are not animating. */
+::view-transition-group(recent-list) {
+    overflow: clip;
 }
 
 /* The shared class is what lets one rule reach every entry's animation, whatever it is named. */
