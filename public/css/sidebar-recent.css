@@ -93,10 +93,15 @@
     padding-inline-start: calc((var(--btn-size) + 4px) * (1 - var(--sidebar-progress)));
 }
 
-/* The panel is a flex column, so its children stretch to the full width by default. That is right
-   for the list rows but not for this: it takes only the width it needs. */
-#sidebar-recent #btn_loadDirectoryHandles {
-    align-self: start;
+/* Three sections down the panel: this one and the footer take the height they need, and the list
+   between them takes whatever is left. align-items keeps the folder button as wide as its label
+   rather than stretched across the panel. */
+.sidebar-recent-header {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 8px;
 }
 
 .sidebar-recent-title {
@@ -104,7 +109,22 @@
     font-size: 1em;
 }
 
+.sidebar-recent-footer {
+    flex: none;
+    font-size: 0.8125em;
+    opacity: 0.6;
+
+    /* The app styles no links of its own, so this one would otherwise arrive in browser blue. */
+    & a {
+        color: inherit;
+    }
+}
+
 #sidebar-recent-list {
+    /* Grows and shrinks with the height of the screen. min-height is what lets it be shorter than
+       its contents at all — an auto minimum would push the footer off the bottom instead. */
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
     display: flex;
@@ -119,6 +139,9 @@
 }
 
 .sidebar-recent-item {
+    /* Rows keep their height when the list is longer than the space for it. Without this they are
+       flex items like any other and squash to fit, so the list never overflows and never scrolls. */
+    flex-shrink: 0;
     cursor: pointer;
     text-align: start;
     padding: 5px 8px;
