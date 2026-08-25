@@ -77,8 +77,13 @@
     &:focus-visible {
         outline: 2px solid var(--colour-contr);
     }
-    &:hover{
+    &:hover:not(:disabled){
         box-shadow: var(--hover-box-shadow);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
     }
 }
 
@@ -94,6 +99,11 @@
     font-family: var(--fontfam-app-input);
     font-size:0.8125em; /* replicates unstyled UI of 13px where default size is 16px */
 
+    /* The panel is narrow enough to wrap these labels, and a wrapped line would centre itself
+       under the first, away from the icon. One line, hard left against the icon instead. */
+    text-align: left;
+    white-space: nowrap;
+
     &:focus-visible {
         outline: 2px solid var(--colour-contr);
     }
@@ -103,8 +113,13 @@
         border: 2px solid transparent;
     }
 
-    &:hover {
+    &:hover:not(:disabled) {
         background-color: var(--colour-neutral);
 
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
     }
 }
