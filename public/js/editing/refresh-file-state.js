@@ -11,8 +11,10 @@ import { sortAppStateFiles } from '../services/file-object-sort.js';
 
 /**
  * Re-parses the saved file from disk, updates appState, and re-renders
- * the tag taxonomy and file list. Called fire-and-forget after a successful
- * explicit save. Not called on autosave — only on user-initiated saves.
+ * the tag taxonomy and file list. Called fire-and-forget after a successful save —
+ * immediately on a manual save, and from an idle callback on autosave.
+ * renderFiles keeps the current page: the file list sits behind the open modal, and an
+ * autosave must not silently jump it back to page 1 while the user is typing.
  * @param {{ filepath: string, filename: string }} snapshot
  * @returns {Promise<void>}
  */
@@ -50,7 +52,7 @@ export async function refreshFileAfterSave(snapshot) {
 
         const { property, direction } = appState.sortState;
         sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
-        renderFiles();
+        renderFiles(true, true);
 
         if (appState.search.filters.size > 0) {
             const filterIds = [...appState.search.filters.keys()];

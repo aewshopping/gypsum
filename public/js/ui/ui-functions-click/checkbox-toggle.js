@@ -1,6 +1,7 @@
 import { appState } from '../../services/store.js';
 import { refreshDirtyState } from '../../editing/manage-unsaved-changes.js';
 import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
+import { scheduleAutosave } from '../../editing/autosave.js';
 
 /**
  * Toggles a task-list checkbox's `[ ]`/`[x]` marker in the live raw text when the rendered
@@ -41,4 +42,5 @@ export function handleCheckboxToggle(evt, actionElement) {
 
     refreshDirtyState(newRaw);
     updateUnsavedIndicator();
+    scheduleAutosave();
 }

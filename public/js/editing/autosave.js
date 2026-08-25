@@ -2,56 +2,102 @@ import { appState } from '../services/store.js';
 import { getIsCurrentVersion } from './editable-state.js';
 import { SAVE_FOLDER } from '../constants.js';
 import { buildSaveFilename, decodeModalHtml, writeAndVerify } from '../services/file-save.js';
+import { getEditorElement, getLiveRawContent } from './manage-unsaved-changes.js';
+import { saveCurrentFile } from './save-current-file.js';
 
-const DEBOUNCE_MS = 3000;    // pause in typing before attempting autosave
-const MIN_INTERVAL_MS = 60_000; // minimum time between successful autosaves
+const PAUSE_MS = 3000;          // pause in typing that triggers a save
+const INTERVAL_MS = 60_000;     // ceiling between saves while typing continuously
+const MIN_INTERVAL_MS = 60_000; // minimum gap between silent temp-file writes (autosave off)
 
-let autosaveTimer = null;
+let pauseTimer = null;
+let intervalTimer = null;
+let saveInFlight = false;
 let lastAutosaveContent = null; // null means "use openFileSnapshot as baseline"
-let lastAutosaveTime = 0;       // epoch ms of last successful autosave
+let lastAutosaveTime = 0;       // epoch ms of the last silent temp-file write
 
 /**
- * Schedules an autosave attempt after the user pauses typing.
- * Call this on every input event in the file editor.
- * Resets the debounce timer so only the final pause triggers the attempt.
+ * Schedules the next autosave. Call this on every edit to the open file.
+ * The pause timer restarts on each call, so it only fires once typing stops. The interval
+ * timer is armed once and never pushed back, so continuous typing still saves regularly.
+ * Both cost well under a microsecond, which is why the typing hot path can afford them.
+ * @returns {void}
  */
 export function scheduleAutosave() {
-    clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(maybeAutosave, DEBOUNCE_MS);
+    clearTimeout(pauseTimer);
+    pauseTimer = setTimeout(runAutosave, PAUSE_MS);
+    if (!intervalTimer) intervalTimer = setTimeout(runAutosave, INTERVAL_MS);
 }
 
 /**
- * Cancels any pending autosave timer and resets tracking state.
+ * Cancels any pending autosave and resets tracking state.
  * Call this when the file modal opens or closes.
+ * @returns {void}
  */
 export function resetAutosave() {
-    clearTimeout(autosaveTimer);
-    autosaveTimer = null;
+    clearTimeout(pauseTimer);
+    clearTimeout(intervalTimer);
+    pauseTimer = null;
+    intervalTimer = null;
     lastAutosaveContent = null;
     lastAutosaveTime = 0;
 }
 
 /**
- * Checks all conditions and, if met, performs an autosave.
- * Runs after the debounce timer fires.
+ * Checks the guard conditions and, if they pass, saves the open file — writing through to
+ * the original when the Autosave setting is on, or a silent recovery copy when it is off.
+ * Runs when either timer fires; both are cleared here so the next edit restarts the clock.
+ * @async
+ * @returns {Promise<void>}
  */
-async function maybeAutosave() {
-    if (Date.now() - lastAutosaveTime < MIN_INTERVAL_MS) return;
+async function runAutosave() {
+    clearTimeout(pauseTimer);
+    clearTimeout(intervalTimer);
+    pauseTimer = null;
+    intervalTimer = null;
 
-    const renderToggle = document.getElementById('render_toggle');
-    if (!renderToggle?.checked) return;
+    // Keystrokes landing during a write are not dropped — retry after the next pause.
+    if (saveInFlight) {
+        pauseTimer = setTimeout(runAutosave, PAUSE_MS);
+        return;
+    }
+
+    // Cheapest guard first: it needs no DOM read, so an unchanged file never pays the cost
+    // of serialising the editor. A manual save clears isDirty, which suppresses a pending
+    // autosave without autosave.js needing a back-reference into the save path.
+    if (!appState.editSession.isDirty) return;
     if (!getIsCurrentVersion()) return;
     if (!appState.dirHandle) return;
+    if (!appState.openFileSnapshot) return;
 
-    const snapshot = appState.openFileSnapshot;
-    if (!snapshot) return;
+    saveInFlight = true;
+    try {
+        if (document.getElementById('autosave-enabled')?.checked) {
+            await saveCurrentFile({ idleRefresh: true });
+        } else {
+            await silentAutosave(appState.openFileSnapshot);
+        }
+    } finally {
+        saveInFlight = false;
+    }
+}
 
-    const preElement = document.querySelector('#modal-content-text pre');
-    if (!preElement) return;
+/**
+ * Autosave-off path: writes a verified {name}-temp.gypsum recovery copy and leaves the
+ * original file untouched. Rate-limited to once a minute, and deleted by doClose() when
+ * the modal closes.
+ * @async
+ * @param {{ filepath: string, filename: string, content: string }} snapshot
+ * @returns {Promise<void>}
+ */
+async function silentAutosave(snapshot) {
+    if (Date.now() - lastAutosaveTime < MIN_INTERVAL_MS) return;
 
-    const textToSave = decodeModalHtml(preElement.innerHTML);
+    const editorEl = getEditorElement();
+    const textToSave = editorEl
+        ? decodeModalHtml(editorEl.innerHTML)
+        : getLiveRawContent();
 
-    // Skip if content unchanged since the last autosave (or since the file was opened)
+    // Skip if content is unchanged since the last autosave (or since the file was opened)
     const baseline = lastAutosaveContent ?? snapshot.content;
     if (textToSave === baseline) return;
 
@@ -59,7 +105,7 @@ async function maybeAutosave() {
 }
 
 /**
- * Executes the full autosave sequence:
+ * Executes the full silent autosave sequence:
  *   1. Write content to the save file and verify.
  *   2. Read the verified save file and write its content to the temp file.
  *   3. If the temp file is verified, delete the save file — leaving only the temp file.

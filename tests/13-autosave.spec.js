@@ -33,13 +33,114 @@ async function editContent(page, text) {
   }, text);
 }
 
-// Advance the fake clock past the 3-second debounce, then wait for async file ops.
+// The Autosave setting defaults to on, which writes through to the original file.
+// The silent temp-file path below is the autosave-off behaviour, so those tests
+// switch the setting off first.
+async function setAutosave(page, enabled) {
+  await page.evaluate((on) => {
+    document.getElementById('autosave-enabled').checked = on;
+  }, enabled);
+}
+
+// Advance the fake clock past the 3-second pause, then wait for async file ops.
 async function fireDebouncedAutosave(page) {
   await page.clock.runFor(3001);
   await page.waitForTimeout(300);
 }
 
-// ─── Temp file creation ───────────────────────────────────────────────────────
+// ─── Writing through to the original file (autosave on) ──────────────────────
+
+test.describe('autosave writes through to the original file', () => {
+
+  test('saves the original file after a pause in typing', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.clock.install();
+    await editContent(page, 'written straight through');
+    await fireDebouncedAutosave(page);
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('written straight through');
+  });
+
+  test('leaves no temp file behind — it uses the manual save path', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.clock.install();
+    await editContent(page, 'no temp file for this one');
+    await fireDebouncedAutosave(page);
+
+    const savedFiles = await page.evaluate(() => Object.keys(window.__savedFiles));
+    expect(savedFiles).not.toContain('notes.md-temp.gypsum');
+    // The intermediate -save.gypsum is deleted once the original is verified
+    expect(savedFiles).not.toContain('notes.md-save.gypsum');
+  });
+
+  test('marks the file as saved once the save icon finishes spinning', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.clock.install();
+    await editContent(page, 'content that will be autosaved');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/saved/);
+
+    await fireDebouncedAutosave(page);
+    await page.clock.runFor(900); // the save-icon spin, after which the indicator updates
+
+    await expect(page.locator('#modal-content')).toHaveClass(/saved/);
+  });
+
+  test('closing after an autosave raises no unsaved-changes warning', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.clock.install();
+    await editContent(page, 'autosaved before closing');
+    await fireDebouncedAutosave(page);
+
+    await page.click('[data-action="close-file-content-modal"]');
+    await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+  });
+
+  test('saves at the interval when typing never pauses for long enough', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await page.clock.install();
+
+    // Edit every 2 seconds so the 3-second pause timer never fires
+    for (let i = 0; i < 20; i++) {
+      await editContent(page, `continuous edit ${i}`);
+      await page.clock.runFor(2000);
+    }
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBeUndefined();
+
+    // Keep going past the 60-second ceiling
+    for (let i = 20; i < 30; i++) {
+      await editContent(page, `continuous edit ${i}`);
+      await page.clock.runFor(2000);
+    }
+    await page.waitForTimeout(300);
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toMatch(/^continuous edit \d+$/);
+  });
+
+});
+
+// ─── Temp file creation (autosave off) ───────────────────────────────────────
 
 test.describe('autosave temp file creation', () => {
 
@@ -48,6 +149,7 @@ test.describe('autosave temp file creation', () => {
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
     await page.clock.install();
     await editContent(page, 'my new content');
@@ -62,6 +164,7 @@ test.describe('autosave temp file creation', () => {
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
     await page.clock.install();
     await editContent(page, 'updated text for autosave');
@@ -69,6 +172,20 @@ test.describe('autosave temp file creation', () => {
 
     const tempContent = await page.evaluate(() => window.__savedFiles['notes.md-temp.gypsum']);
     expect(tempContent).toBe('updated text for autosave');
+  });
+
+  test('leaves the original file untouched', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await setAutosave(page, false);
+
+    await page.clock.install();
+    await editContent(page, 'only the temp file should hold this');
+    await fireDebouncedAutosave(page);
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBeUndefined();
   });
 
 });
@@ -82,6 +199,7 @@ test.describe('autosave guard conditions', () => {
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
     await page.clock.install();
     // Advance well past both the debounce (3 s) and min interval (60 s)
@@ -98,6 +216,7 @@ test.describe('autosave guard conditions', () => {
     await openModal(page);
     await waitForHistoryOptions(page, 3);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
     await page.clock.install();
     // Schedule an autosave while viewing the current version
@@ -117,6 +236,7 @@ test.describe('autosave guard conditions', () => {
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
     await page.clock.install();
     // Set content back to exactly the original file content
@@ -133,11 +253,12 @@ test.describe('autosave guard conditions', () => {
 
 test.describe('autosave timing', () => {
 
-  test('does not autosave a second time when within the 1-minute minimum interval', async ({ page }) => {
+  test('does not write the temp file a second time within the 1-minute minimum interval', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
     await page.clock.install();
 
@@ -183,6 +304,7 @@ test.describe('autosave temp file cleanup on modal close', () => {
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
     // Inject a temp file directly, simulating a previous autosave run
     await page.evaluate(() => { window.__savedFiles['notes.md-temp.gypsum'] = 'autosaved content'; });
@@ -206,13 +328,14 @@ test.describe('autosave temp file cleanup on modal close', () => {
 
 test.describe('autosave coexistence with manual save', () => {
 
-  test('manual save (Ctrl+S) still produces a save file after autosave has run', async ({ page }) => {
+  test('manual save (Ctrl+S) still writes the original after a silent autosave has run', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
+    await setAutosave(page, false);
 
-    // Trigger autosave first
+    // Trigger the silent autosave first
     await page.clock.install();
     await editContent(page, 'autosaved content');
     await fireDebouncedAutosave(page);

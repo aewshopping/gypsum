@@ -8,9 +8,8 @@ const { loadFolder } = require('./helpers');
  * and the UI (file list + tag taxonomy) is re-rendered in the background. The
  * The save completes first; the refresh runs fire-and-forget in the background.
  *
- * Autosave intentionally does NOT trigger a refresh — it only writes a temp
- * file, not the original. No tests cover that case because autosave.js is
- * deliberately unmodified by this feature.
+ * Autosave takes the same path but defers the refresh to an idle callback, so
+ * these tests use the manual save button to keep the timing deterministic.
  */
 
 // ─── Mock setup ───────────────────────────────────────────────────────────────
