@@ -248,3 +248,80 @@ test.describe('Ctrl+S keyboard shortcut', () => {
   });
 
 });
+
+// ─── Unsaved-state prominence follows the Autosave setting ───────────────────
+
+/**
+ * Reads the computed background and text colour of the save button, plus the background of
+ * a neighbouring header button, which is the plain .svg-bg-tint the save button should match
+ * when it is not shouting.
+ */
+async function saveBtnColours(page) {
+  return page.evaluate(() => {
+    const btn = document.getElementById('save-btn');
+    const neighbour = document.querySelector('[data-action="editor-undo"]');
+    return {
+      background: getComputedStyle(btn).backgroundColor,
+      color: getComputedStyle(btn).color,
+      neighbourBackground: getComputedStyle(neighbour).backgroundColor,
+    };
+  });
+}
+
+test.describe('unsaved save button prominence', () => {
+
+  // The fake clock is installed but never advanced, so the pause timer never fires and the
+  // file stays in the unsaved state for the whole test.
+  async function openDirtyFile(page) {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await page.clock.install();
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'unsaved edits';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await expect(page.locator('#modal-content')).not.toHaveClass(/saved/);
+  }
+
+  test('shouts with an inverted plate when autosave is off', async ({ page }) => {
+    await openDirtyFile(page);
+    await page.evaluate(() => { document.getElementById('autosave-enabled').checked = false; });
+
+    const { background, neighbourBackground } = await saveBtnColours(page);
+    expect(background).not.toBe(neighbourBackground);
+  });
+
+  test('sits with its neighbours when autosave is on', async ({ page }) => {
+    await openDirtyFile(page);
+
+    const { background, neighbourBackground } = await saveBtnColours(page);
+    expect(background).toBe(neighbourBackground);
+  });
+
+  test('the glyph colour flips from inverse to positive with the setting', async ({ page }) => {
+    await openDirtyFile(page);
+    const on = await saveBtnColours(page);
+
+    await page.evaluate(() => { document.getElementById('autosave-enabled').checked = false; });
+    const off = await saveBtnColours(page);
+
+    expect(on.color).not.toBe(off.color);
+  });
+
+  test('a failed save still shouts even with autosave on', async ({ page }) => {
+    await openDirtyFile(page);
+    const positive = await saveBtnColours(page);
+
+    await page.evaluate(() => document.getElementById('save-btn').classList.add('save-error'));
+    const errored = await saveBtnColours(page);
+
+    // The plate comes back — a write that is not reaching disk has to be noticed
+    expect(errored.background).not.toBe(errored.neighbourBackground);
+    // and the glyph takes the warning colour rather than the positive one
+    expect(errored.color).not.toBe(positive.color);
+  });
+
+});

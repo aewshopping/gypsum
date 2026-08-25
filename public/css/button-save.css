@@ -3,9 +3,21 @@
 }
 
 /* Unsaved is the one state that shouts: an inverted plate, whatever colour the file carries. Every
-   other state leaves the background to .svg-bg-tint, so the button sits with the ones beside it. */
-#modal-content:not(.saved) #save-btn {
+   other state leaves the background to .svg-bg-tint, so the button sits with the ones beside it.
+   A failed save keeps the plate whatever the autosave setting says — that is exactly when the user
+   has to notice the file is not reaching disk. */
+body:has(#autosave-enabled:not(:checked)) #modal-content:not(.saved) #save-btn,
+#modal-content:not(.saved) #save-btn.save-error {
     background-color: var(--colour-contr);
+}
+
+/* With autosave on, unsaved is a passing state the user has nothing to do about, so it stops
+   shouting: no plate, and the same colouring as saved. The two states still differ by glyph
+   (the svg:nth-child swap below), so which one is showing stays readable — it just no longer
+   competes for attention. Suppressing the plate has to be done by not matching the rule above
+   rather than by overriding it, because saved takes its background from .svg-bg-tint. */
+body:has(#autosave-enabled:checked) #modal-content:not(.saved) #save-btn:not(.save-error) {
+    color: var(--colour-contr);
 }
 
 #modal-content:not(.saved) #save-btn svg:nth-child(2) {
