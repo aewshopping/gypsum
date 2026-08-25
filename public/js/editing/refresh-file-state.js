@@ -9,16 +9,34 @@ import { searchFiles } from '../ui/ui-functions-search/a-search-files.js';
 import { processSeachResults } from '../ui/ui-functions-search/a-search-orchestrator.js';
 import { sortAppStateFiles } from '../services/file-object-sort.js';
 
+let queuedRefresh = null;
+
+/**
+ * Queues the post-save refresh. Deferred to an idle callback because the work below is the
+ * most expensive thing in the save path, and autosave can fire it while the user is still
+ * typing. Only one refresh is ever pending — a burst of autosaves replaces the queued one
+ * rather than stacking up full re-renders, and the newer snapshot reads fresher disk state
+ * anyway.
+ * @param {{ filepath: string, filename: string }} snapshot
+ * @returns {void}
+ */
+export function refreshFileAfterSave(snapshot) {
+    if (queuedRefresh !== null) cancelIdleCallback(queuedRefresh);
+    queuedRefresh = requestIdleCallback(() => {
+        queuedRefresh = null;
+        applyRefresh(snapshot);
+    }, { timeout: 2000 });
+}
+
 /**
  * Re-parses the saved file from disk, updates appState, and re-renders
- * the tag taxonomy and file list. Called fire-and-forget after a successful save —
- * immediately on a manual save, and from an idle callback on autosave.
- * renderFiles keeps the current page: the file list sits behind the open modal, and an
- * autosave must not silently jump it back to page 1 while the user is typing.
+ * the tag taxonomy and file list.
+ * renderFiles keeps the current page: the file list sits behind the open modal, and a
+ * save must not silently jump it back to page 1 while the user is typing.
  * @param {{ filepath: string, filename: string }} snapshot
  * @returns {Promise<void>}
  */
-export async function refreshFileAfterSave(snapshot) {
+async function applyRefresh(snapshot) {
     try {
         const fileIndex = appState.myFiles.findIndex(f => f.filepath === snapshot.filepath);
         if (fileIndex === -1) return;

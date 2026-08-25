@@ -6,10 +6,8 @@ const { loadFolder } = require('./helpers');
  *
  * The feature: after a successful manual save, appState is re-parsed from disk
  * and the UI (file list + tag taxonomy) is re-rendered in the background. The
- * The save completes first; the refresh runs fire-and-forget in the background.
- *
- * Autosave takes the same path but defers the refresh to an idle callback, so
- * these tests use the manual save button to keep the timing deterministic.
+ * The save completes first; the refresh is queued on an idle callback, so these
+ * tests poll for the settled state rather than waiting a fixed interval.
  */
 
 // ─── Mock setup ───────────────────────────────────────────────────────────────
@@ -120,12 +118,10 @@ test.describe('appState.myFiles is updated after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# Updated Title\nContent here');
     await clickSaveBtn(page);
-    await page.waitForTimeout(150);
 
-    const title = await page.evaluate(() =>
+    await expect.poll(() => page.evaluate(() =>
       window.appState.myFiles.find(f => f.filename === 'notes.md')?.title
-    );
-    expect(title).toBe('Updated Title');
+    )).toBe('Updated Title');
   });
 
 });
@@ -141,12 +137,10 @@ test.describe('appState.myParentMap is rebuilt after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent #brandnewtag');
     await clickSaveBtn(page);
-    await page.waitForTimeout(150);
 
-    const inMap = await page.evaluate(() =>
+    await expect.poll(() => page.evaluate(() =>
       window.appState.myParentMap.get('all')?.has('brandnewtag') ?? false
-    );
-    expect(inMap).toBe(true);
+    )).toBe(true);
   });
 
 });
@@ -162,14 +156,9 @@ test.describe('modal color updates after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent #color/coral');
     await clickSaveBtn(page);
-    await page.waitForTimeout(150);
 
-    const colors = await page.evaluate(() => ({
-      header: document.getElementById('file-content-header').dataset.color,
-      content: document.getElementById('modal-content').dataset.color,
-    }));
-    expect(colors.header).toBe('coral');
-    expect(colors.content).toBe('coral');
+    await expect(page.locator('#file-content-header')).toHaveAttribute('data-color', 'coral');
+    await expect(page.locator('#modal-content')).toHaveAttribute('data-color', 'coral');
   });
 
 });
@@ -187,7 +176,6 @@ test.describe('tag taxonomy re-renders after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent #addedtag');
     await clickSaveBtn(page);
-    await page.waitForTimeout(150);
 
     await expect(page.locator('#tag_output [data-tag="addedtag"]').first()).toBeAttached();
   });
@@ -218,13 +206,11 @@ test.describe('active search filters are re-run after manual save', () => {
     await switchToTxt(page);
     await editContent(page, '# My Notes\nContent');
     await clickSaveBtn(page);
-    await page.waitForTimeout(150);
 
     // After refresh, the file no longer matches the filter
-    const matchingCount = await page.evaluate(() =>
+    await expect.poll(() => page.evaluate(() =>
       window.appState.search.matchingFiles.size
-    );
-    expect(matchingCount).toBe(0);
+    )).toBe(0);
   });
 
 });

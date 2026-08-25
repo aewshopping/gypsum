@@ -72,7 +72,7 @@ async function runAutosave() {
     saveInFlight = true;
     try {
         if (document.getElementById('autosave-enabled')?.checked) {
-            await saveCurrentFile({ idleRefresh: true });
+            await saveCurrentFile();
         } else {
             await silentAutosave(appState.openFileSnapshot);
         }
