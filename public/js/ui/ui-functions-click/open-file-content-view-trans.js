@@ -7,7 +7,7 @@ import { hasUnsavedChanges } from '../../editing/manage-unsaved-changes.js';
 import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
-import { resetAutosave, deleteTempFileIfExists } from '../../editing/autosave.js';
+import { resetAutosave, deleteTempFileIfExists, flushAutosave } from '../../editing/autosave.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';
 import { showWarningModal } from './warning-modal.js';
@@ -269,10 +269,18 @@ export function doClose() {
 /**
  * Handles closing the file content modal with a view transition.
  * Shows the unsaved changes warning dialog if there are unsaved edits.
+ *
+ * Every user-facing close route lands here — the close button, Escape via the dialog's
+ * cancel listener, and a click outside — so it is the one place the closing save belongs.
+ * Not doClose(), which delete-file-click calls directly to skip the warning: saving a file
+ * that was just deleted would put it back. A successful flush clears the dirty flag, so
+ * the warning below is skipped; a failed write leaves it set and the user is still asked.
  * @returns {Promise<boolean>} True once the modal has closed, false if the user chose to keep
  *   editing. internal-link-click awaits this before opening the linked note.
  */
 export async function handleCloseModal() {
+
+  await flushAutosave();
 
   if (hasUnsavedChanges()) {
     if (await showWarningModal('You have unsaved changes', 'Discard changes', 'Keep editing')) {

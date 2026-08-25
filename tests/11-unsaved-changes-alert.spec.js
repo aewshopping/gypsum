@@ -1,6 +1,14 @@
 const { test, expect } = require('@playwright/test');
 const { setupMockDirectoryWithHistory, loadFolder } = require('./helpers');
 
+/**
+ * These run with Autosave at its default (on), but setupMockDirectoryWithHistory has no
+ * save support — so the flush in handleCloseModal attempts a save, fails, and leaves the
+ * dirty flag set. That is deliberate coverage of the fallback: a failed write must still
+ * warn rather than silently discard. For the plain autosave-off behaviour, see
+ * 13-autosave.spec.js.
+ */
+
 async function waitForHistoryOptions(page, count) {
   await page.waitForFunction((n) => {
     const sel = document.getElementById('file-content-history-select');

@@ -112,7 +112,7 @@ test.describe('autosave writes through to the original file', () => {
     await expect(page.locator('#file-content-modal')).toBeHidden();
   });
 
-  test('saves at the interval when typing never pauses for long enough', async ({ page }) => {
+  test('saves at the edit ceiling when typing never pauses for long enough', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
@@ -120,22 +120,127 @@ test.describe('autosave writes through to the original file', () => {
 
     await page.clock.install();
 
-    // Edit every 2 seconds so the 3-second pause timer never fires
-    for (let i = 0; i < 20; i++) {
-      await editContent(page, `continuous edit ${i}`);
-      await page.clock.runFor(2000);
-    }
+    // MAX_EDITS in autosave.js. One short of the ceiling, with the clock never advanced
+    // far enough for the pause timer, nothing is written.
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      for (let i = 0; i < 199; i++) {
+        pre.textContent = `edit ${i}`;
+        pre.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    await page.clock.runFor(100);
     await page.waitForTimeout(200);
     expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBeUndefined();
 
-    // Keep going past the 60-second ceiling
-    for (let i = 20; i < 30; i++) {
-      await editContent(page, `continuous edit ${i}`);
-      await page.clock.runFor(2000);
-    }
+    // The 200th edit hits the ceiling and schedules at zero delay
+    await editContent(page, 'the two hundredth edit');
+    await page.clock.runFor(1);
     await page.waitForTimeout(300);
 
-    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toMatch(/^continuous edit \d+$/);
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('the two hundredth edit');
+  });
+
+});
+
+// ─── Saving on the way out (autosave on) ─────────────────────────────────────
+
+test.describe('autosave saves when the user leaves', () => {
+
+  test('saves when the window loses focus', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await editContent(page, 'edited then tabbed away');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.waitForTimeout(300);
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('edited then tabbed away');
+  });
+
+  test('saves when the page becomes hidden', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await editContent(page, 'edited then backgrounded');
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.waitForTimeout(300);
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('edited then backgrounded');
+  });
+
+  test('saves when the modal is closed with the close button', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await editContent(page, 'saved by the close button');
+    await page.click('[data-action="close-file-content-modal"]');
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('saved by the close button');
+  });
+
+  test('saves when the modal is closed with Escape', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await editContent(page, 'saved by escape');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('saved by escape');
+  });
+
+  test('saves when the modal is closed by clicking outside it', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await editContent(page, 'saved by clicking outside');
+    // Press and release on the dialog itself — the backdrop — not on its content
+    await page.locator('#file-content-modal').click({ position: { x: 4, y: 4 } });
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('saved by clicking outside');
+  });
+
+  test('closing raises no unsaved-changes warning while autosave is on', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await editContent(page, 'no warning expected');
+    await page.click('[data-action="close-file-content-modal"]');
+
+    await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+  });
+
+  test('closing still warns when autosave is off, and writes nothing', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await setAutosave(page, false);
+
+    await editContent(page, 'should not reach disk');
+    await page.click('[data-action="close-file-content-modal"]');
+
+    await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBeUndefined();
   });
 
 });

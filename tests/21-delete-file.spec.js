@@ -75,6 +75,44 @@ test.describe('delete file', () => {
     expect(trashFiles[0]).toMatch(/^notes-\d{8}-\d{6}-trash\.gypsum$/);
   });
 
+  test('deleting a file with unsaved edits does not write it back', async ({ page }) => {
+    // delete-file-click calls doClose() directly, bypassing handleCloseModal and so the
+    // closing autosave — a file that was just deleted must not be saved back to disk.
+    // The mock throws on any .gypsum handle other than history.gypsum, so an attempted
+    // save surfaces as a logged 'Save failed:'.
+    const saveErrors = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && msg.text().includes('Save failed')) saveErrors.push(msg.text());
+    });
+
+    await setupMockDirectoryWithDeleteSupport(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await waitForHistoryOptions(page, 1);
+
+    // Dirty the file so a save would have something to write
+    await page.evaluate(() => {
+      const t = document.getElementById('render_toggle');
+      if (!t.checked) t.click();
+    });
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'edits that must not survive the delete';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await page.evaluate(() => document.getElementById('file-options-btn').click());
+    await expect(page.locator('#modal-file-options')).toBeVisible();
+    await page.click('[data-action="delete-file"]');
+    await page.click('[data-action="warning-proceed"]');
+    await expect(page.locator('#file-content-modal')).not.toBeVisible();
+
+    expect(saveErrors).toHaveLength(0);
+    await expect(page.locator('.note-grid')).toHaveCount(0);
+  });
+
   test('deleted file is removed from the file list', async ({ page }) => {
     await setupMockDirectoryWithDeleteSupport(page);
     await page.goto('/');

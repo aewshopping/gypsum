@@ -6,26 +6,32 @@ import { getEditorElement, getLiveRawContent } from './manage-unsaved-changes.js
 import { saveCurrentFile } from './save-current-file.js';
 
 const PAUSE_MS = 3000;          // pause in typing that triggers a save
-const INTERVAL_MS = 60_000;     // ceiling between saves while typing continuously
+const MAX_EDITS = 200;          // edits since the last save that force one, however fast the typing
 const MIN_INTERVAL_MS = 60_000; // minimum gap between silent temp-file writes (autosave off)
 
 let pauseTimer = null;
-let intervalTimer = null;
+let editsSinceSave = 0;
 let saveInFlight = false;
 let lastAutosaveContent = null; // null means "use openFileSnapshot as baseline"
 let lastAutosaveTime = 0;       // epoch ms of the last silent temp-file write
 
 /**
  * Schedules the next autosave. Call this on every edit to the open file.
- * The pause timer restarts on each call, so it only fires once typing stops. The interval
- * timer is armed once and never pushed back, so continuous typing still saves regularly.
- * Both cost well under a microsecond, which is why the typing hot path can afford them.
+ * The timer restarts on each call, so it normally only fires once typing stops. MAX_EDITS
+ * is the ceiling for someone who never pauses: it bounds work lost to a crash by edits
+ * made rather than by seconds elapsed, which is the unit that actually matters (and the
+ * one vim's updatecount and emacs' auto-save-interval use).
+ *
+ * Counting input events rather than characters is an approximation — a paste is one event,
+ * a held backspace is many — but it errs toward saving sooner on the destructive case.
+ *
+ * A zero delay rather than calling runAutosave() directly: the ceiling is reached from
+ * inside the input handler, and the save must not run in the keystroke's own task.
  * @returns {void}
  */
 export function scheduleAutosave() {
     clearTimeout(pauseTimer);
-    pauseTimer = setTimeout(runAutosave, PAUSE_MS);
-    if (!intervalTimer) intervalTimer = setTimeout(runAutosave, INTERVAL_MS);
+    pauseTimer = setTimeout(runAutosave, ++editsSinceSave >= MAX_EDITS ? 0 : PAUSE_MS);
 }
 
 /**
@@ -35,25 +41,38 @@ export function scheduleAutosave() {
  */
 export function resetAutosave() {
     clearTimeout(pauseTimer);
-    clearTimeout(intervalTimer);
     pauseTimer = null;
-    intervalTimer = null;
+    editsSinceSave = 0;
     lastAutosaveContent = null;
     lastAutosaveTime = 0;
 }
 
 /**
+ * Saves immediately, bypassing the pause timer, when the Autosave setting is on.
+ * Called when the user closes the file. No-op when the setting is off: the silent temp
+ * file is deleted on close anyway, so writing one on the way out would be wasted work.
+ * @async
+ * @returns {Promise<void>}
+ */
+export async function flushAutosave() {
+    if (!document.getElementById('autosave-enabled')?.checked) return;
+    await runAutosave();
+}
+
+/**
  * Checks the guard conditions and, if they pass, saves the open file — writing through to
  * the original when the Autosave setting is on, or a silent recovery copy when it is off.
- * Runs when either timer fires; both are cleared here so the next edit restarts the clock.
+ * The timer and edit count are cleared here so the next edit restarts the clock. The count
+ * resets even on the paths that return at a guard: left above the ceiling it would
+ * schedule a fresh no-op attempt on every subsequent keystroke, and a skipped save has
+ * nothing to write anyway.
  * @async
  * @returns {Promise<void>}
  */
 async function runAutosave() {
     clearTimeout(pauseTimer);
-    clearTimeout(intervalTimer);
     pauseTimer = null;
-    intervalTimer = null;
+    editsSinceSave = 0;
 
     // Keystrokes landing during a write are not dropped — retry after the next pause.
     if (saveInFlight) {
@@ -157,3 +176,20 @@ export async function deleteTempFileIfExists(snapshot) {
         // temp file does not exist or folder is inaccessible — nothing to clean up
     }
 }
+
+// 'blur' is the DOM's name for losing focus — nothing to do with visual blurring. On
+// window it means the browser window stopped being the active one (alt-tab, another app,
+// another monitor); element blur does not bubble, so clicking around inside the modal does
+// not reach here, and neither does closing it — handleCloseModal covers that.
+// visibilitychange covers a different case: the page not being shown at all. Neither event
+// subsumes the other, so both are registered. blur catches desktop alt-tab and
+// second-monitor; visibilitychange catches a backgrounded PWA on mobile, where the OS may
+// kill the tab without a blur.
+//
+// These call runAutosave rather than flushAutosave so that with Autosave off they still
+// refresh the silent crash-recovery temp file — which, unlike on close, is not about to be
+// deleted.
+window.addEventListener('blur', runAutosave);
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) runAutosave();
+});
