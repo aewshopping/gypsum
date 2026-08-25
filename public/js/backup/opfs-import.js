@@ -109,6 +109,8 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     appState.myFilesProperties.clear();
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;
+    document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"]')
+        .forEach(btn => { btn.disabled = false; });
 
     if (mtimeMap === null) mtimeMap = await readMtimeMap(opfsRoot);
     const startTime = performance.now();

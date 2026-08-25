@@ -37,6 +37,7 @@ import { handleCheckboxToggle } from './ui-functions-click/checkbox-toggle.js';
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
 import { handleBackupContent, handleBackupFull } from './ui-functions-click/backup-click.js';
+import { handleLoadFolder, handleLoadOPFS, handleImportOPFS } from './ui-functions-click/load-files-click.js';
 import { handleButtonSizeChange, handleResetButtonSize } from './ui-functions-click/button-size.js';
 import {
     handleFontSizeAppChange, handleFontSizeFileChange,
@@ -114,6 +115,9 @@ const clickActionHandlers = {
     'create-new-note': handleCreateNewNote,
     'backup-content': handleBackupContent,
     'backup-full': handleBackupFull,
+    'load-folder': handleLoadFolder,
+    'load-opfs': handleLoadOPFS,
+    'import-opfs': handleImportOPFS,
     'toggle-file-controls': handleToggleFileControls,
     'reset-font-size-app': handleResetFontSizeApp,
     'reset-font-size-file': handleResetFontSizeFile,

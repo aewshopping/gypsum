@@ -40,8 +40,8 @@ export function handleKeyboardShortcuts(evt) {
     const noModalAltActions = {
         'n': () => handleCreateNewNote(evt, document.getElementById('btn-new-note')),
         'x': () => handleClearFilters(),
-        // The picker is bound as an anonymous listener in main.js, so the button is the handle.
-        // A click from a keydown keeps the user activation showDirectoryPicker needs.
+        // Going through the button rather than the handler is deliberate: a click from a
+        // keydown keeps the user activation showDirectoryPicker needs.
         'o': () => document.getElementById('btn_loadDirectoryHandles').click(),
         'b': () => handleToggleRecentPanel(),
     };
