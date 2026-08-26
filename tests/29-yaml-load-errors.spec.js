@@ -82,6 +82,29 @@ test('one unreadable file is skipped, and the rest of the folder still loads', a
   expect(pageErrors).toEqual([]);
 });
 
+test('the settled load line is entirely inside the faded span, separators included', async ({ page }) => {
+  await setupMockFilesBrokenYaml(page);
+  await page.goto('/');
+  await loadFolder(page);
+
+  // the faded message only replaces the duration one ~3s after the bar finishes
+  const faded = page.locator('#fileCountElement .load-finished-msg');
+  await expect(faded).toContainText('file system', { timeout: 10000 });
+
+  // Nothing may sit outside the faded span — a stray separator there would inherit the
+  // element's full-contrast colour and break the line up. Descendant selectors elsewhere in
+  // this file match either way, so this is what actually pins the fix.
+  const outside = await page.evaluate(() => {
+    const el = document.getElementById('fileCountElement');
+    return [...el.childNodes]
+      .filter(node => !(node.nodeType === 1 && node.classList.contains('load-finished-msg')))
+      .map(node => node.textContent);
+  });
+  expect(outside).toEqual([]);
+
+  await expect(faded.locator('.load-error-nudge')).toHaveText('2 yaml errors');
+});
+
 test('the unreadable count is not clickable — there is nothing to filter to', async ({ page }) => {
   await setupMockFilesUnreadable(page);
   await page.goto('/');
