@@ -126,9 +126,17 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
+    let unreadableCount = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
-        const fileObj = await getFileDataAndMetadata(handle, i);
+        let fileObj;
+        try {
+            fileObj = await getFileDataAndMetadata(handle, i);
+        } catch {
+            // Skip it rather than let one bad file abort the whole load — see directory-handler.js.
+            unreadableCount++;
+            continue;
+        }
         if (i % updateN === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
         // if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         const lastModified = mtimeMap?.has(filepath) ? new Date(mtimeMap.get(filepath)) : fileObj.lastModified;
@@ -140,7 +148,8 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
         return map;
     }, new Map());
     appState.myFiles = filesWithMetadata;
-    updateMyFilesProperties(appState.myFiles[0], 1);
+    // An empty OPFS is a valid starting point, so there may be no first file to read from.
+    if (appState.myFiles.length > 0) updateMyFilesProperties(appState.myFiles[0], 1);
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
     invalidateNoteNameIndex();
@@ -149,8 +158,9 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const loadDurationSec = ((endTime - startTime) / 1000).toFixed(1); // pure file load; available for future console logging
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
-    const errorCount = appState.myFiles.filter(file => file.errorOnLoad).length;
-    finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs', errorCount);
+    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad).length;
+    finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs',
+        { yamlErrors, unreadable: unreadableCount });
 }
 
 /**

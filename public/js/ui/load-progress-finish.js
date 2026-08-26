@@ -1,19 +1,31 @@
 /**
- * Builds the clickable "n yaml errors" nudge appended to the finished-load message.
- * Clicking it runs a `errorOnLoad:yaml` filter through the usual property-filter pathway,
- * narrowing the list to exactly the files whose front matter did not read cleanly.
- * @param {number} errorCount - how many files had YAML lines skipped
- * @returns {string} the HTML for the nudge, or '' when every file read cleanly
+ * Builds the phrases appended to the finished-load message when something went wrong.
+ *
+ * The yaml phrase is clickable: it runs an `errorOnLoad:yaml` filter through the usual
+ * property-filter pathway, narrowing the list to those files. The unreadable phrase is not —
+ * files that could not be read are absent from myFiles, so there is nothing to filter to.
+ *
+ * @param {number} yamlErrors - how many loaded files had front-matter problems
+ * @param {number} unreadable - how many files could not be read at all, and were skipped
+ * @returns {string} the HTML to append, or '' when the load was clean
  */
-function renderLoadErrorNudge(errorCount) {
-    if (errorCount === 0) {
-        return '';
+function renderLoadProblems(yamlErrors, unreadable) {
+    let html = '';
+
+    if (yamlErrors > 0) {
+        const plural = yamlErrors === 1 ? '' : 's';
+        html += ` | <span class="load-error-nudge" data-action="property-filter"`
+            + ` data-property="errorOnLoad" data-value="yaml"`
+            + ` data-tip="show the ${yamlErrors} file${plural} with unreadable yaml">`
+            + `${yamlErrors} yaml error${plural}</span>`;
     }
-    const plural = errorCount === 1 ? '' : 's';
-    return ` | <span class="load-error-nudge" data-action="property-filter"`
-        + ` data-property="errorOnLoad" data-value="yaml"`
-        + ` data-tip="show the ${errorCount} file${plural} with unreadable yaml">`
-        + `${errorCount} yaml error${plural}</span>`;
+
+    if (unreadable > 0) {
+        html += ` | <span class="load-error-note"`
+            + ` data-tip="skipped: could not be opened">${unreadable} unreadable</span>`;
+    }
+
+    return html;
 }
 
 /**
@@ -24,14 +36,15 @@ function renderLoadErrorNudge(errorCount) {
  * @param {number} fileCount - number of files loaded
  * @param {string} durationText - how long the load took, in seconds, e.g. "0.4"
  * @param {string} sourceLabel - where the files came from, e.g. "file system" or "opfs"
- * @param {number} [errorCount=0] - number of files whose YAML front matter did not read cleanly
+ * @param {{yamlErrors?: number, unreadable?: number}} [problems] - counts of what went wrong
  * @returns {void}
  */
-export function finishLoadProgress(el, fileCount, durationText, sourceLabel, errorCount = 0) {
+export function finishLoadProgress(el, fileCount, durationText, sourceLabel,
+                                   { yamlErrors = 0, unreadable = 0 } = {}) {
     const style = getComputedStyle(el);
     const seconds = prop => parseFloat(style.getPropertyValue(prop));
     const fadeMs = (seconds('--load-fade-delay') + seconds('--load-fade-duration')) * 1000;
-    const nudge = renderLoadErrorNudge(errorCount);
+    const problems = renderLoadProblems(yamlErrors, unreadable);
 
     // the loop only steps the bar every nth file, so it can stop just short of the 100% marker
     el.style.setProperty('--load-pct', 100);
@@ -40,9 +53,9 @@ export function finishLoadProgress(el, fileCount, durationText, sourceLabel, err
 
     setTimeout(() => {
         el.classList.remove('load-fading');
-        el.innerHTML = `files: ${fileCount} | ${durationText}s${nudge}`;
+        el.innerHTML = `files: ${fileCount} | ${durationText}s${problems}`;
         setTimeout(() => {
-            el.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${sourceLabel}</span>${nudge}`;
+            el.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${sourceLabel}</span>${problems}`;
         }, 3000);
     }, fadeMs);
 }

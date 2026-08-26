@@ -56,6 +56,10 @@ export const appState = {
     isDirty:        false,
   },
 
+  isLoading: false,      // true while a load is in flight. Files are cleared and re-rendered at
+                         // the start of a load, so this is what tells "loading" apart from
+                         // "loaded, and the folder is empty" — see a-render-all-files.js
+
   dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
   openFileSnapshot: null,    // { filepath, filename, content } captured when modal opens
   closeSnapshot: null,   // { filepath, filename, content } captured just before modal closes

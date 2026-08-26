@@ -63,9 +63,18 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
+    let unreadableCount = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
-        const fileObj = await getFileDataAndMetadata(handle, i);
+        let fileObj;
+        try {
+            fileObj = await getFileDataAndMetadata(handle, i);
+        } catch {
+            // Deleted or permission revoked since the directory was listed. Skip it rather than
+            // let one bad file abort the whole load; a stub object would only mislead the renderers.
+            unreadableCount++;
+            continue;
+        }
         if (i % n === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
         // if (i % n === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         filesWithMetadata.push({ ...fileObj, filepath, internalId: filepath });
@@ -78,7 +87,8 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     appState.myFileHandlesMap = fileHandleMap;
     appState.myFiles = filesWithMetadata;
-    updateMyFilesProperties(appState.myFiles[0], 1);
+    // An empty folder is a valid starting point, so there may be no first file to read from.
+    if (appState.myFiles.length > 0) updateMyFilesProperties(appState.myFiles[0], 1);
 
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
@@ -88,8 +98,9 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const durationSec = ((endTime - startTime) / 1000).toFixed(1);
 
     const fileCount = appState.myFiles.length;
-    const errorCount = appState.myFiles.filter(file => file.errorOnLoad).length;
+    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad).length;
     console.log(`Saved metadata for ${fileCount} files.`);
-    finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system', errorCount);
+    finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system',
+        { yamlErrors, unreadable: unreadableCount });
 
 }

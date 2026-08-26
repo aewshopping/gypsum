@@ -5,6 +5,8 @@ import { activateTextMode } from '../../editing/activate-text-mode.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { invalidateNoteNameIndex } from '../../services/internal-links/note-name-index.js';
+import { updateMyFilesProperties } from '../../services/file-props.js';
+import { populateSortSelect } from '../ui-elements-load/sort-select-load.js';
 
 /**
  * Finds the first available note-N.txt filename by querying the real filesystem.
@@ -49,6 +51,10 @@ export async function handleCreateNewNote(event, target) {
     const fileObj = await getFileDataAndMetadata(newHandle, appState.myFiles.length);
     const newFile = { ...fileObj, filepath: newFilename, internalId: newFilename };
     appState.myFiles.push(newFile);
+    // Core properties are otherwise only registered from myFiles[0] at load, so in a folder that
+    // started empty this is what gives the sort dropdown and table columns anything to show.
+    updateMyFilesProperties(newFile, 1);
+    populateSortSelect();
     invalidateNoteNameIndex(); // the new note becomes linkable immediately
     appState.myFileHandlesMap.set(newFilename, newHandle);
 

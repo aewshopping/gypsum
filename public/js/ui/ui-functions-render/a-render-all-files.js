@@ -58,6 +58,18 @@ export function renderFiles(fullRender = true, keepPage = false) {
         // Remove stale pagination nav (required for the table fullRender=false path)
         document.querySelector('.pagination')?.remove();
 
+        // A folder is open and finished loading, but holds no notes. Not an error: creating the
+        // first note from here is a supported way to start. Gated on isLoading because every
+        // load clears myFiles and re-renders before reading the folder.
+        if (appState.dirHandle && !appState.isLoading && appState.myFiles.length === 0) {
+            document.getElementById('output').innerHTML = `
+                <div class="empty-state">
+                    <p>No notes in this folder yet.</p>
+                    <p>Press <kbd>Alt</kbd>+<kbd>n</kbd> or the <strong>+</strong> button to create one.</p>
+                </div>`;
+            return;
+        }
+
         // Files are loaded but the active filters exclude all of them — show a
         // message instead of a silently blank page. Safe to skip the view renderers:
         // the table's fullRender=false path is only reachable from the header's own

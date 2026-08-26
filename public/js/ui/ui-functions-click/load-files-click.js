@@ -25,6 +25,7 @@ export async function handleLoadFolder() {
         await loadDirectoryFileHandles(() => {
             btn.classList.add('loading');
             appState.myFiles = [];
+            appState.isLoading = true;
             renderFiles();
             minDuration = new Promise(r => setTimeout(r, 2000));
         });
@@ -52,10 +53,14 @@ export async function handleImportOPFS() {
     const btn = document.getElementById('btn_loadDirectoryHandles');
     btn.classList.add('loading');
     appState.myFiles = [];
+    appState.isLoading = true;
     renderFiles();
     document.getElementById('fileCountElement').textContent = 'file: unpacking';
     const minDuration = new Promise(r => setTimeout(r, 1000));
-    const removeLoading = () => btn.classList.remove('loading');
+    const removeLoading = () => {
+        appState.isLoading = false;
+        btn.classList.remove('loading');
+    };
     try {
         await importTarGzipToOPFS(async () => {
             postLoad();
@@ -76,6 +81,9 @@ export async function handleImportOPFS() {
  * All loading paths run this after populating appState.
  */
 function postLoad() {
+    // Cleared before renderFiles below, or the empty-folder message is suppressed on the very
+    // render that should show it.
+    appState.isLoading = false;
     if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     const sortProp = appState.sortState.property;
     sortAppStateFiles(sortProp, FILE_PROPERTIES.get(sortProp).type, appState.sortState.direction);
@@ -93,6 +101,7 @@ async function loadAndProcess(loaderFn) {
     const btn = document.getElementById('btn_loadDirectoryHandles');
     btn.classList.add('loading');
     appState.myFiles = [];
+    appState.isLoading = true;
     renderFiles();
     const minDuration = new Promise(r => setTimeout(r, 1000));
     try {
