@@ -147,10 +147,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
 
-    /* .color-dynamic falls back to --colour-neutral-alt for a file with no colour of its own.
-       Repointing the variable here — rather than restating that rule — leaves an uncoloured
-       entry sitting on the page background instead of the card background. */
-    --colour-neutral-alt: var(--colour-neutral);
+    /* An entry for a file with no colour of its own sits on the page background rather than the
+       card background, so it disappears into the panel; a file that has a colour still shows it.
+       Repointing the fallback is what leaves the file's own colour alone — see colors.css. */
+    --colour-file-fallback: var(--colour-neutral);
 
     &:hover {
         box-shadow: var(--hover-box-shadow);
