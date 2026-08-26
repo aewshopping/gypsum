@@ -1,0 +1,16 @@
+/* The "3 yaml errors" nudge appended to the finished-load message in #fileCountElement.
+   Deliberately quiet: a broken front matter is worth mentioning once, not worth alarming
+   anyone about. Clicking it filters the list down to the affected files. */
+
+.load-error-nudge {
+    color: color-mix(in srgb, var(--colour-contr-warning) 55%, var(--colour-neutral) 45%);
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.load-error-nudge:hover,
+.load-error-nudge:focus-visible {
+    color: var(--colour-contr-warning);
+}

@@ -740,6 +740,42 @@ async function setupMockFilesLongName(page) {
 }
 
 /**
+ * Injects a mock version of window.showDirectoryPicker into the page before the app's
+ * JavaScript runs. Two of the three files have front matter the forgiving YAML parser cannot
+ * fully read, so the load-error nudge and the errorOnLoad property both have something to
+ * report.
+ *
+ *   - broken-yaml.md: two unreadable lines (no colon, and no parent key for the list item)
+ *   - half-broken.md: one unreadable line, alongside front matter that parses fine
+ *   - clean-yaml.md:  front matter that reads cleanly, so errorOnLoad stays null
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesBrokenYaml(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('broken-yaml.md', '---\ntitle: Broken Note\nthis line has no colon\n- orphaned list item\n---\n\n# Broken Note\n\nBody text #personal');
+          yield makeFile('half-broken.md', '---\ntitle: Half Broken\nalso missing a colon\n---\n\n# Half Broken\n\nBody text #personal');
+          yield makeFile('clean-yaml.md', '---\ntitle: Clean Note\npeople:\n  - alice\n---\n\n# Clean Note\n\nBody text #personal');
+        },
+      };
+    };
+  });
+}
+
+/**
  * Clicks the mock folder picker. The folder button lives inside the recent files panel, so the
  * panel is opened to reach it and closed again afterwards, leaving the app in the state it starts
  * in — otherwise every later measurement would be shifted by the width of an open panel.
@@ -752,4 +788,4 @@ async function loadFolder(page) {
   await page.click('#btn-recent-close');
 }
 
-module.exports = { loadFolder, setupMockFiles, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };
+module.exports = { loadFolder, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };

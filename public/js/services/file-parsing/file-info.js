@@ -22,7 +22,8 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
     const content = await file.text();
     const frontMatterIndices = findFrontMatterIndices(content);
     const tagData = parseFileContent(content, frontMatterIndices);
-    const yamlData = parseYaml(content);
+    const yamlErrors = [];
+    const yamlData = parseYaml(content, yamlErrors);
     updateMyFilesProperties(yamlData, 2);
 
     // Merge YAML tags into the TagMap as orphan tags, then remove from yamlData
@@ -50,7 +51,12 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         // myFiles[0] alone, so omitting the key would unregister it for the whole session.
         internalLink: tagData.links,
         lastModified: new Date(file.lastModified),
-        ...(yamlData)
+        ...(yamlData),
+        // After the spread, so a file with a real `errorOnLoad` front-matter key cannot mask it,
+        // and null rather than absent when the YAML read cleanly — for the same reason as above.
+        errorOnLoad: yamlErrors.length === 0
+            ? null
+            : `yaml: ${yamlErrors.length} line${yamlErrors.length === 1 ? '' : 's'} skipped`,
     };
 
 }

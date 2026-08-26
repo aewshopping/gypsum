@@ -4,10 +4,14 @@ import { getFrontMatterLines } from "./yaml-block-extract.js";
  * Simple YAML Parser - vibe coded by google gemini 30 Sept 2025
  * A lightweight YAML parser for basic front-matter data extraction.
  *
+ * The parser is forgiving: a line it cannot make sense of is skipped rather than thrown on.
+ * Pass an array as `errors` to find out which lines those were.
+ *
  * @param {string} yamlString - The raw YAML content.
+ * @param {string[]} [errors] - Collects a short reason per skipped line. Mutated in place.
  * @returns {object} The parsed JavaScript object.
  */
-export const parseYaml = (yamlString) => {
+export const parseYaml = (yamlString, errors = []) => {
     // Call function to handle finding and slicing the lines
 
     const lines = getFrontMatterLines(yamlString);
@@ -84,7 +88,7 @@ export const parseYaml = (yamlString) => {
             const currentContext2 = stack[stack.length - 1];
             const parentContext = stack[stack.length - 2];
             if (!parentContext) {
-                console.error(`[YAML Error] Root level list item unsupported: ${trimmedLine}`);
+                errors.push(`root level list item unsupported: ${trimmedLine}`);
                 continue;
             }
             const keyToUpdate = currentContext2.key;
@@ -103,10 +107,10 @@ export const parseYaml = (yamlString) => {
                     arrayRef.push(coerceValue(valueContent));
                 }
             } else {
-                console.error(`[YAML Error] Failed to find parent key for list item: ${trimmedLine}`);
+                errors.push(`no parent key for list item: ${trimmedLine}`);
             }
         } else {
-            console.warn(`[YAML Warning] Skipping unrecognized line: ${trimmedLine}`);
+            errors.push(`unrecognised line: ${trimmedLine}`);
         }
     }
     return root;

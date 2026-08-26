@@ -88,7 +88,8 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const durationSec = ((endTime - startTime) / 1000).toFixed(1);
 
     const fileCount = appState.myFiles.length;
+    const errorCount = appState.myFiles.filter(file => file.errorOnLoad).length;
     console.log(`Saved metadata for ${fileCount} files.`);
-    finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system');
+    finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system', errorCount);
 
 }

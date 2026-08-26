@@ -149,7 +149,8 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const loadDurationSec = ((endTime - startTime) / 1000).toFixed(1); // pure file load; available for future console logging
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
-    finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs');
+    const errorCount = appState.myFiles.filter(file => file.errorOnLoad).length;
+    finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs', errorCount);
 }
 
 /**
