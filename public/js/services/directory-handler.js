@@ -71,8 +71,12 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
         try {
             fileObj = await getFileDataAndMetadata(handle, i);
         } catch {
-            // Deleted or permission revoked since the directory was listed. Skip it rather than
-            // let one bad file abort the whole load; a stub object would only mislead the renderers.
+            // Never about the file's contents — text() decodes anything, substituting U+FFFD for
+            // what it cannot. This is the listing having gone stale between the directory walk
+            // above and this read: usually a cloud-sync placeholder (OneDrive on-demand, Dropbox
+            // online-only, iCloud optimised) whose bytes are not on disk, or a file a sync client
+            // moved mid-load. Skip it rather than let one file abort the whole load; a stub object
+            // would only mislead the renderers.
             unreadableCount++;
             continue;
         }
