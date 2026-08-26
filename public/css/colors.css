@@ -59,6 +59,11 @@
     }
 
 :root {
+    /* What a file with no #color/ tag of its own paints. It has its own name so that a context
+       wanting uncoloured items on a different ground can repoint just this — see
+       sidebar-recent.css — rather than shadowing the card-background token it defaults to. */
+    --colour-file-fallback: var(--colour-neutral-alt);
+
     --colour-highlight:         var(--colour-compl-emph);
     --colour-highlight-light:   var(--colour-compl-emph-light);
     --colour-highlight-contr:   var(--colour-compl-emph-contr);
@@ -78,7 +83,7 @@ body:has(#show-user-file-colours:not(:checked)) {
 
 .color-dynamic {
     --color-mono-contr: if(style(--colours-suppress: true): unset; else: hsl(from attr(data-color type(<color>)) 0 0 calc(round(100 - l, 100))));
-    background-color: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: attr(data-color type(<color>), var(--colour-neutral-alt)));
+    background-color: if(style(--colours-suppress: true): var(--colour-file-fallback); else: attr(data-color type(<color>), var(--colour-file-fallback)));
     color: if(style(--colours-suppress: true): inherit; else: var(--color-mono-contr));
     border-color: if(style(--colours-suppress: true): inherit; else: var(--color-mono-contr));
 }
@@ -90,7 +95,7 @@ body:has(#show-user-file-colours:not(:checked)) {
 }
 
 .color-dynamic-fade {
-  --colour-bg: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: attr(data-color type(<color>), var(--colour-neutral-alt)));
+  --colour-bg: if(style(--colours-suppress: true): var(--colour-file-fallback); else: attr(data-color type(<color>), var(--colour-file-fallback)));
   --colour-dynamic-fade: color-mix(in oklch, var(--colour-bg) 30%, var(--colour-neutral));
   background-color: var(--colour-dynamic-fade);
   border-color: if(style(--colours-suppress: true): inherit; else: var(--colour-bg));

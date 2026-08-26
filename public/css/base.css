@@ -56,3 +56,8 @@ h1, h2, h3, h4 {
     color: var(--colour-contr-emph);
     font-family: var(--fontfam-headers);
 }
+
+::selection {
+  background-color: color-mix(in oklch, RoyalBlue 40%, var(--colour-neutral-alt)); 
+  color: var(--colour-contr);
+}

@@ -8,6 +8,7 @@ import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
 import { updateMyFilesProperties } from '../services/file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
+import { finishLoadProgress } from '../ui/load-progress-finish.js';
 
 /**
  * Returns true if OPFS already contains any .txt/.md files or non-hidden subdirectories.
@@ -148,11 +149,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const loadDurationSec = ((endTime - startTime) / 1000).toFixed(1); // pure file load; available for future console logging
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
-    fileCountEl.classList.remove('loading');
-    fileCountEl.innerHTML = `files: ${fileCount} | ${displayDuration}s`;
-    setTimeout(() => {
-        fileCountEl.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | opfs</span>`;
-    }, 3000);
+    finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs');
 }
 
 /**

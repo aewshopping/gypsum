@@ -5,6 +5,7 @@ import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
 import { updateMyFilesProperties } from './file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
+import { finishLoadProgress } from '../ui/load-progress-finish.js';
 
 /**
  * Recursively collects all .txt and .md file handles from a directory and its subdirectories.
@@ -88,10 +89,6 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     const fileCount = appState.myFiles.length;
     console.log(`Saved metadata for ${fileCount} files.`);
-    fileCountEl.classList.remove('loading');
-    fileCountEl.innerHTML = `files: ${fileCount} | ${durationSec}s`;
-    setTimeout(() => {
-        fileCountEl.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | file system</span>`;
-    }, 3000);
+    finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system');
 
 }
