@@ -134,7 +134,11 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
         try {
             fileObj = await getFileDataAndMetadata(handle, i);
         } catch {
-            // Skip it rather than let one bad file abort the whole load — see directory-handler.js.
+            // Same stale-listing window as the folder loader, but not for its cloud-sync reasons:
+            // OPFS is per-origin and shared by every tab, so an import in a second tab runs
+            // clearOPFS() and deletes the entries this walk collected. The storage is evictable
+            // too — persist() is never requested — so the browser may clear it under disk
+            // pressure. Skip the file rather than let one abort the whole load.
             unreadableCount++;
             continue;
         }
