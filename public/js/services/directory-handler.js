@@ -3,7 +3,7 @@ import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
-import { updateMyFilesProperties } from './file-props.js';
+import { seedCoreFileProperties } from './file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
 
@@ -42,6 +42,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
+    seedCoreFileProperties();
 
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     appState.dirHandle = dirHandle;
@@ -87,8 +88,6 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     appState.myFileHandlesMap = fileHandleMap;
     appState.myFiles = filesWithMetadata;
-    // An empty folder is a valid starting point, so there may be no first file to read from.
-    if (appState.myFiles.length > 0) updateMyFilesProperties(appState.myFiles[0], 1);
 
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();

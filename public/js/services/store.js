@@ -103,6 +103,18 @@ export const FILE_PROPERTIES = new Map([
 ]);
 
 /**
+ * The keys every file object carries whatever its content: those written literally into the object
+ * returned by getFileDataAndMetadata (file-parsing/file-info.js), plus filepath and internalId
+ * added by the loaders. Seeded into myFilesProperties at the start of a load, so the sort
+ * dropdown, table columns and property search work even in a folder with no files in it.
+ *
+ * Add to this when adding a property to that return literal.
+ * @type {string[]}
+ */
+export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',
+  'tags', 'color', 'internalLink', 'lastModified', 'errorOnLoad', 'filepath', 'internalId'];
+
+/**
  * Defines which columns are hidden in the table view.
  * @type {object}
  * @property {Array<string>} hidden_always - Properties that are never shown in the table.

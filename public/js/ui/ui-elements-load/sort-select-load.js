@@ -32,13 +32,7 @@ export function populateSortSelect() {
         .filter(([key]) => !TABLE_VIEW_COLUMNS.hidden_always.includes(key))
         .sort(([, a], [, b]) => (a.display_order ?? 99) - (b.display_order ?? 99));
 
-    // An empty folder registers no properties, and an empty select is a dead control. Fall back
-    // to the default sort property, the same single option initSortSelect seeds at startup.
-    const options = entries.length > 0
-        ? entries
-        : [[appState.sortState.property, FILE_PROPERTIES.get(appState.sortState.property) ?? {}]];
-
-    for (const [key, props] of options) {
+    for (const [key, props] of entries) {
         const option = document.createElement('option');
         option.value = key;
         option.textContent = props.label ?? key;

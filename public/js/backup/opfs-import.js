@@ -6,7 +6,7 @@ import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
-import { updateMyFilesProperties } from '../services/file-props.js';
+import { seedCoreFileProperties } from '../services/file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
 
@@ -108,6 +108,7 @@ async function readMtimeMap(opfsRoot) {
 async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null, mtimeMap = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
+    seedCoreFileProperties();
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;
     document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"]')
@@ -148,8 +149,6 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
         return map;
     }, new Map());
     appState.myFiles = filesWithMetadata;
-    // An empty OPFS is a valid starting point, so there may be no first file to read from.
-    if (appState.myFiles.length > 0) updateMyFilesProperties(appState.myFiles[0], 1);
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
     invalidateNoteNameIndex();
