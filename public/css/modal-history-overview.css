@@ -29,12 +29,19 @@
 }
 
 #history-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Sized to the widest row so every row stretches to match and the list scrolls sideways as
+   one. min-width keeps it filling the dialog when the rows are narrower than it. */
+.history-rows {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  width: max-content;
+  min-width: 100%;
 }
 
 .history-row {
@@ -48,14 +55,15 @@
   background-color: var(--colour-neutral);
 }
 
-/* Only the text scrolls. min-width lets it shrink below its content, which a flex item
-   otherwise refuses to do — without it the buttons get pushed off the edge instead. */
-.history-row-text {
+.history-row-main {
   flex: 1;
-  min-width: 0;
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.history-row-text {
   white-space: nowrap;
-  scrollbar-width: thin;
 }
 
 .history-row-meta {
@@ -64,10 +72,52 @@
   margin-inline-start: 0.5rem;
 }
 
+/* Size at a glance, drawn like the load progress bar: a full-width block scaled down by a
+   percentage, so the widths compare directly down the column. Every row is the same width,
+   which is what makes the comparison honest. */
+.history-row-bar {
+  /* The track is the whole scale, and the largest file fills it — every other bar is a
+     fraction of the same length, so the comparison is rebased rather than clipped. 80dvw
+     keeps the longest bar on screen; the rem cap keeps it inside the dialog, which is
+     narrower than the viewport once there is room for it to be. */
+  width: min(80dvw, 38rem);
+  align-self: start;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral) 60%);
+  transform-origin: left center;
+  transform: scaleX(calc(var(--size-pct) / 100));
+}
+
+/* The list scrolls sideways as a whole, which would carry the actions off the edge — on a
+   phone that is every row. Sticking them to the right keeps them reachable at any scroll
+   position; the background masks the text passing underneath. */
+.history-row-actions {
+  position: sticky;
+  right: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline-start: 0.5rem;
+  background-color: var(--colour-neutral);
+}
+
 .history-row-btn {
   flex-shrink: 0;
-  min-width: 5.25rem;
-  text-align: center;
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.45;
+}
+
+.history-row-icon {
+  width: 100%;
+  height: 100%;
+  color: var(--colour-contr);
 }
 
 /* File is no longer in the folder — deleted, or moved outside the app */
@@ -77,7 +127,6 @@
   text-decoration-thickness: 1px;
 }
 
-.history-row-btn,
 .history-clear-btn {
   padding: 0.2rem 0.6rem;
   border: 1px solid var(--colour-contr);
@@ -88,7 +137,10 @@
   cursor: pointer;
 }
 
-.history-row-btn:hover,
+.history-row-btn:hover {
+  opacity: 0.9;
+}
+
 .history-clear-btn:hover {
   background-color: var(--colour-contr);
   color: var(--colour-neutral-alt);
@@ -127,9 +179,8 @@
   }
 
   .history-row-btn {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.85em;
-    min-width: 4.5rem;
+    width: 1.5em;
+    height: 1.5em;
   }
 }
 

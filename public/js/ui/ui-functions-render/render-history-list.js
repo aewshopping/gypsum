@@ -10,17 +10,6 @@ function formatBytes(bytes) {
 }
 
 /**
- * Formats an ISO 8601 timestamp as "yyyy-mm-dd" (UTC).
- * Date only: the overview is scanned down a column, and the time of day says nothing
- * useful about which file is worth attention.
- * @param {string} isoString
- * @returns {string}
- */
-function formatTimestamp(isoString) {
-    return isoString.slice(0, 10);
-}
-
-/**
  * Renders the one-line totals shown above the list.
  * @param {{totalBytes: number, files: Array<{versions: number}>}} summary
  * @returns {string}
@@ -42,23 +31,38 @@ export function renderHistoryTotals({ totalBytes, files }) {
  * @returns {string} HTML string for the list container's innerHTML.
  */
 export function renderHistoryList(files) {
+    // Bars are scaled against the biggest file, so the longest bar is always full width and
+    // the rest read as a share of it — the comparison is between rows, not against a total.
+    const largest = Math.max(1, ...files.map(file => file.reclaimBytes));
+
     const rows = files.map(file => {
         const data = `data-filepath="${file.filepath}" data-filename="${file.filename}" data-file-id="${file.filepath}"`;
         const action = file.missing
-            ? `<button class="history-row-btn" data-action="history-recreate" ${data} data-tip="recreate this file from its newest version">recreate</button>`
-            : `<button class="history-row-btn" data-action="history-open-file" ${data} data-tip="open this file">open</button>`;
+            ? `<button class="history-row-btn" data-action="history-recreate" ${data} data-tip="recreate this file from its newest version">` +
+                `<svg class="history-row-icon"><use href="#icon-history-recreate"></use></svg></button>`
+            : `<button class="history-row-btn" data-action="history-open-file" ${data} data-tip="open this file">` +
+                `<svg class="history-row-icon"><use href="#icon-history-open"></use></svg></button>`;
 
-        // The text scrolls inside its own box rather than the row scrolling as a whole: a long
-        // filename must not push the buttons out of reach, which on a phone is every row.
         return `<div class="history-row${file.missing ? ' history-row-missing' : ''}">` +
-                 `<span class="history-row-text">` +
-                   `<span class="history-row-name">${file.filename}</span>` +
-                   `<span class="history-row-meta">${file.versions} version${file.versions === 1 ? '' : 's'} · ${formatTimestamp(file.newest)} · ${formatBytes(file.reclaimBytes)}</span>` +
+                 `<span class="history-row-main">` +
+                   `<span class="history-row-text">` +
+                     `<span class="history-row-name">${file.filename}</span>` +
+                     `<span class="history-row-meta">${file.versions} version${file.versions === 1 ? '' : 's'} · ${formatBytes(file.reclaimBytes)}</span>` +
+                   `</span>` +
+                   `<span class="history-row-bar" style="--size-pct: ${Math.round((file.reclaimBytes / largest) * 100)}"></span>` +
                  `</span>` +
-                 action +
-                 `<button class="history-row-btn history-row-btn-delete" data-action="history-delete" ${data} data-tip="delete this file's history">delete</button>` +
+                 // Sticky, so the actions stay put while the row text scrolls under them
+                 `<span class="history-row-actions">` +
+                   action +
+                   `<button class="history-row-btn history-row-btn-delete" data-action="history-delete" ${data} data-tip="delete this file's history">` +
+                     `<svg class="history-row-icon"><use href="#icon-history-delete"></use></svg></button>` +
+                 `</span>` +
                `</div>`;
     }).join('');
 
-    return rows || `<p class="history-empty">No history recorded yet.</p>`;
+    // One wrapper sized to the widest row, so the list scrolls sideways as a whole and every
+    // row keeps the same width — rather than each row scrolling on its own.
+    return rows
+        ? `<div class="history-rows">${rows}</div>`
+        : `<p class="history-empty">No history recorded yet.</p>`;
 }
