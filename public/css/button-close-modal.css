@@ -1,4 +1,10 @@
 .modal-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6em;
+    height: 1.6em;
+    padding: 2px;
     background-color: transparent;
     border:1.5px solid transparent;
     border-radius: 5px;
@@ -11,7 +17,16 @@
     }
 }
 
-#modal-settings .modal-close-btn,  #modal-file-options .modal-close-btn {
+.modal-close-icon {
+    width: 100%;
+    height: 100%;
+    color: inherit;
+}
+
+#modal-settings .modal-close-btn,
+#modal-file-options .modal-close-btn,
+#modal-history .modal-close-btn,
+#modal-unsaved-warning .modal-close-btn {
     position: absolute;
     top: 8px;
     right: 8px;

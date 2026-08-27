@@ -52,6 +52,17 @@
   </aside>
 
 
+  <!-- Shared icon sprite. Lives at document level because several dialogs <use> it, and a
+       symbol inside one dialog would be an odd place for the others to reach into. -->
+  <svg style="display: none;">
+    <symbol id="icon-close" viewBox="0 0 66.3 64.5">
+      <g fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+        <g transform="translate(10 10.4)"><path d="M0 0 C3.8 3.3 15.5 12.6 23 19.8 C30.4 27 41.1 39.2 44.7 43"/></g>
+        <g transform="translate(10.8 54.5)"><path d="M0 0 C3.6 -3.9 13.9 -15.7 21.4 -23.1 C29 -30.6 41.5 -41 45.5 -44.5"/></g>
+      </g>
+    </symbol>
+  </svg>
+
   <dialog id="file-content-modal" data-action="close-file-content-outside">
     <!-- The inner element which is tracked by the view-transition-name -->
     <div id="moving-file-content-container">
@@ -78,7 +89,7 @@
 
           </label>
           <button class="svg-wrapper-style svg-bg-tint" data-action="close-file-content-modal" data-tip="close">
-            <svg id="close-svg" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 66.3 64.5" width="66.3" height="64.5"><g fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linecap="round"><defs><path id="a8f2" d="M0 0 C3.8 3.3 15.5 12.6 23 19.8 C30.4 27 41.1 39.2 44.7 43"/></defs><g transform="translate(10 10.4)"><use href="#a8f2"/></g><g transform="translate(10.8 54.5)"><path d="M0 0 C3.6 -3.9 13.9 -15.7 21.4 -23.1 C29 -30.6 41.5 -41 45.5 -44.5"/></g></g></svg>
+            <svg viewBox="0 0 66.3 64.5" width="66.3" height="64.5"><use href="#icon-close"></use></svg>
           </button>
         </div>
         <div id="modal-content-text" data-prop="content"></div>
@@ -228,7 +239,7 @@
         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6" d="M31.524 10c-.62 1.7-3.08 8.48-3.7 10.17m3.7-10.17c-.62 1.7-3.08 8.48-3.7 10.17M32.21 10.268c1.9.33 9.51 1.66 11.41 2m-11.41-2c1.9.33 9.51 1.66 11.41 2"/>
       </symbol>
     </svg>
-    <button class="modal-close-btn" data-action="close-settings-modal" data-tip="close settings">✕</button>
+    <button class="modal-close-btn" data-action="close-settings-modal" data-tip="close settings"><svg class="modal-close-icon"><use href="#icon-close"></use></svg></button>
 
     <h2 class="menu-title">Menu</h2>
 
@@ -468,6 +479,7 @@
   </dialog>
 
   <dialog id="modal-unsaved-warning">
+    <button class="modal-close-btn" data-action="warning-cancel" data-tip="close"><svg class="modal-close-icon"><use href="#icon-close"></use></svg></button>
     <p id="modal-unsaved-warning-text"></p>
     <div class="unsaved-warning-buttons">
       <button id="modal-unsaved-warning-proceed" class="unsaved-warning-button-discard" data-action="warning-proceed" data-tip="discard changes"></button>
@@ -476,7 +488,7 @@
   </dialog>
 
   <dialog id="modal-file-options" closedby="any">
-    <button class="modal-close-btn" data-action="file-options-cancel" data-tip="close">✕</button>
+    <button class="modal-close-btn" data-action="file-options-cancel" data-tip="close"><svg class="modal-close-icon"><use href="#icon-close"></use></svg></button>
     <h2>File options</h2>
     <form class="file-options-form">
       <div class="file-options-field">
@@ -517,7 +529,7 @@
               d="M4 7h16M9.5 7V4.5h5V7M6.5 7 7.5 20h9l1-13"/>
       </symbol>
     </svg>
-    <button class="modal-close-btn" data-action="close-history-modal" data-tip="close">✕</button>
+    <button class="modal-close-btn" data-action="close-history-modal" data-tip="close"><svg class="modal-close-icon"><use href="#icon-close"></use></svg></button>
     <h2 class="menu-title">File history</h2>
     <p class="history-note">A safety net, not a backup &mdash; keep your own backups too.</p>
     <p id="history-summary-line"></p>

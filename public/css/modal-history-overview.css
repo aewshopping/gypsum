@@ -77,10 +77,10 @@
    which is what makes the comparison honest. */
 .history-row-bar {
   /* The track is the whole scale, and the largest file fills it — every other bar is a
-     fraction of the same length, so the comparison is rebased rather than clipped. 80dvw
+     fraction of the same length, so the comparison is rebased rather than clipped. 60dvw
      keeps the longest bar on screen; the rem cap keeps it inside the dialog, which is
      narrower than the viewport once there is room for it to be. */
-  width: min(80dvw, 38rem);
+  width: min(60dvw, 38rem);
   align-self: start;
   height: 4px;
   border-radius: 2px;
