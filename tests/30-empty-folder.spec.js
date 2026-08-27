@@ -129,3 +129,27 @@ test('opening an empty OPFS lands on the empty-folder prompt, ready for a first 
   await expect(page.locator('#fileCountElement')).toContainText('files: 0');
   expect(pageErrors).toEqual([]);
 });
+
+test('an unavailable OPFS says so on click, rather than doing nothing', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', err => pageErrors.push(err.message));
+
+  // Simulates the app opened from file:// — the API is present but refuses.
+  await page.addInitScript(() => {
+    navigator.storage.getDirectory = async () => {
+      throw new DOMException('not allowed here', 'SecurityError');
+    };
+  });
+
+  await page.goto('/');
+  await page.click('#btn-recent-toggle');
+  await page.click('[data-action="load-opfs"]');
+  await page.click('#btn-recent-close');
+
+  await expect(page.locator('#fileCountElement')).toContainText('OPFS unavailable');
+
+  // The throw has to be caught, or it becomes an unhandled rejection and leaves isLoading set,
+  // which gates the empty-folder message on every later render.
+  expect(pageErrors).toEqual([]);
+  expect(await page.evaluate(() => window.appState.isLoading)).toBe(false);
+});

@@ -107,6 +107,11 @@ async function loadAndProcess(loaderFn) {
         await loaderFn();
         postLoad();
         await minDuration;
+    } catch (err) {
+        // postLoad never ran, so isLoading is still set — and the empty-folder message in
+        // a-render-all-files.js is gated on it, which would poison every later render.
+        appState.isLoading = false;
+        document.getElementById('fileCountElement').textContent = err?.message ?? '';
     } finally {
         btn.classList.remove('loading');
     }
