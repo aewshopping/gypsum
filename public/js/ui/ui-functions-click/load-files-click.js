@@ -64,7 +64,6 @@ export async function handleImportOPFS() {
     try {
         await importTarGzipToOPFS(async () => {
             postLoad();
-            document.getElementById('btn-load-opfs').disabled = false;
             await minDuration;
             removeLoading();
         });

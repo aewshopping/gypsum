@@ -212,7 +212,8 @@ export async function importTarGzipToOPFS(onComplete) {
 }
 
 /**
- * Loads files already in OPFS into appState without re-importing. No-ops if OPFS is empty.
+ * Loads files already in OPFS into appState without re-importing. An empty OPFS is a valid
+ * starting point, so it loads to zero files rather than doing nothing.
  * @returns {Promise<void>}
  */
 export async function loadFromOPFS() {
@@ -222,22 +223,5 @@ export async function loadFromOPFS() {
     } catch {
         return;
     }
-    if (!(await hasOPFSContent(opfsRoot))) return;
     await populateAppStateFromOPFS(opfsRoot);
-}
-
-/**
- * Checks OPFS on startup and enables the "Open OPFS" button if content is present.
- * @returns {Promise<void>}
- */
-export async function initOPFSButton() {
-    let opfsRoot;
-    try {
-        opfsRoot = await navigator.storage.getDirectory();
-    } catch {
-        return;
-    }
-    if (await hasOPFSContent(opfsRoot)) {
-        document.getElementById('btn-load-opfs').disabled = false;
-    }
 }
