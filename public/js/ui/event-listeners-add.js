@@ -28,6 +28,11 @@ import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleKeyboardShortcuts } from './ui-functions-click/keyboard-shortcuts.js';
 import { handleOpenSettings, handleCloseSettings } from './ui-functions-click/settings-modal.js';
+import { handleOpenHistory, handleCloseHistory } from './ui-functions-click/history-modal.js';
+import { handleHistoryDelete } from './ui-functions-click/history-delete-click.js';
+import { handleHistoryClear } from './ui-functions-click/history-clear-click.js';
+import { handleHistoryOpenFile } from './ui-functions-click/history-open-file-click.js';
+import { handleHistoryRecreate } from './ui-functions-click/history-recreate-click.js';
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside, captureEditorCursorOffset } from './ui-functions-click/editor-color-pick.js';
@@ -98,6 +103,12 @@ const clickActionHandlers = {
     'change-page': handlePageChange,
     'open-settings-modal': handleOpenSettings,
     'close-settings-modal': handleCloseSettings,
+    'open-history-modal': handleOpenHistory,
+    'close-history-modal': handleCloseHistory,
+    'history-delete': handleHistoryDelete,
+    'history-clear': handleHistoryClear,
+    'history-open-file': handleHistoryOpenFile,
+    'history-recreate': handleHistoryRecreate,
     'editor-undo': handleEditorUndo,
     'editor-redo': handleEditorRedo,
     'editor-color-pick': handleEditorColorPick,

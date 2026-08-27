@@ -1,7 +1,7 @@
 import { appState } from '../services/store.js';
 import { parseContent } from '../services/parse-content.js';
-import { syncFromDom } from './manage-unsaved-changes.js';
-import { getIsCurrentVersion, setIsCurrentVersion } from './editable-state.js';
+import { syncFromDom } from '../editing/manage-unsaved-changes.js';
+import { getIsCurrentVersion, setIsCurrentVersion } from '../editing/editable-state.js';
 import { fileContentRender } from '../ui/ui-functions-render/render-file-content.js';
 
 /**

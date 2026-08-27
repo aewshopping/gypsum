@@ -6,7 +6,7 @@ import { loadContentModal } from './load-file-content.js';
 import { hasUnsavedChanges, getCurrentRawContent } from '../../editing/manage-unsaved-changes.js';
 import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
-import { saveBackupEntry } from '../../editing/local-backup.js';
+import { saveBackupEntry } from '../../history/local-backup.js';
 import { resetAutosave, deleteTempFileIfExists, flushAutosave } from '../../editing/autosave.js';
 import { highlightPropMatches } from '../ui-functions-highlight/apply-highlights.js';
 import { clearDiffHighlights } from '../ui-functions-highlight/diff-highlight.js';

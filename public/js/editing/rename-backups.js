@@ -52,10 +52,10 @@ async function rewriteHistoryFile({ oldFilename, oldFilepath, newFilename, newFi
     let toWrite;
     if (Array.isArray(parsed)) {
         parsed.forEach(retag);
-        if (changed) toWrite = JSON.stringify(parsed, null, 2);
+        if (changed) toWrite = JSON.stringify(parsed);
     } else if (parsed && Array.isArray(parsed.snapshots)) {
         parsed.snapshots.forEach(retag);
-        if (changed) toWrite = JSON.stringify(parsed, null, 2);
+        if (changed) toWrite = JSON.stringify(parsed);
     }
 
     if (toWrite === undefined) return [];

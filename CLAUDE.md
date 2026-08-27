@@ -127,6 +127,7 @@ in `event-listeners-add.js` maps action names to handler functions.
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
+| `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |
 | `public/css/` | Component-scoped CSS modules |
 | `inline-scripts-from-files.js` | Build-time bundler (do not run manually) |
 | `.github/workflows/bundle.yaml` | CI/CD pipeline — produces single-file HTML artefact |

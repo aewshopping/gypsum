@@ -385,6 +385,18 @@
       </div>
     </div>
 
+    <h4>File history</h4>
+    <div class="settings-backup-btns">
+
+      <button class="btn-menu" data-action="open-history-modal" disabled data-tip="see and manage saved file versions">
+        <div class="svg-wrapper-style">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"><circle cx="25" cy="25" r="16"/><path d="M25 15v10l7 5"/></g></svg>
+        </div>
+        <span>file history</span>
+      </button>
+
+    </div>
+
     <h4>Import and export</h4>
     <div class="settings-backup-btns">
 
@@ -487,6 +499,15 @@
       </div>
     </form>
     <datalist id="gypsum-folders"></datalist>
+  </dialog>
+
+  <dialog id="modal-history" closedby="any">
+    <button class="modal-close-btn" data-action="close-history-modal" data-tip="close">✕</button>
+    <h2 class="menu-title">File history</h2>
+    <p class="history-note">A safety net, not a backup &mdash; keep your own backups too.</p>
+    <p id="history-summary-line"></p>
+    <div id="history-list"></div>
+    <button class="history-clear-btn" data-action="history-clear" data-tip="delete all saved versions">clear all history</button>
   </dialog>
 
   <dialog id="modal-color-picker" data-action="close-color-picker-outside">
