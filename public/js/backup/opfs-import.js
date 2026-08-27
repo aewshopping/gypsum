@@ -10,6 +10,10 @@ import { seedCoreFileProperties } from '../services/file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
 
+// Thrown by both OPFS entry points, so the two cannot drift. The usual cause is the app
+// being opened from file:// rather than served.
+const OPFS_UNAVAILABLE = 'OPFS unavailable — serve the app from a web server or HTTPS';
+
 /**
  * Returns true if OPFS already contains any .txt/.md files or non-hidden subdirectories.
  * @param {FileSystemDirectoryHandle} opfsRoot
@@ -183,7 +187,7 @@ export async function importTarGzipToOPFS(onComplete) {
     try {
         opfsRoot = await navigator.storage.getDirectory();
     } catch {
-        throw new Error('OPFS unavailable — serve the app from a web server or HTTPS');
+        throw new Error(OPFS_UNAVAILABLE);
     }
 
     const mtimeMap = new Map(
@@ -212,32 +216,18 @@ export async function importTarGzipToOPFS(onComplete) {
 }
 
 /**
- * Loads files already in OPFS into appState without re-importing. No-ops if OPFS is empty.
+ * Loads files already in OPFS into appState without re-importing. An empty OPFS is a valid
+ * starting point, so it loads to zero files rather than doing nothing.
  * @returns {Promise<void>}
+ * @throws {Error} OPFS_UNAVAILABLE when the storage cannot be reached — caught by the caller and
+ *   shown to the user, rather than swallowed into a click that appears to do nothing.
  */
 export async function loadFromOPFS() {
     let opfsRoot;
     try {
         opfsRoot = await navigator.storage.getDirectory();
     } catch {
-        return;
+        throw new Error(OPFS_UNAVAILABLE);
     }
-    if (!(await hasOPFSContent(opfsRoot))) return;
     await populateAppStateFromOPFS(opfsRoot);
-}
-
-/**
- * Checks OPFS on startup and enables the "Open OPFS" button if content is present.
- * @returns {Promise<void>}
- */
-export async function initOPFSButton() {
-    let opfsRoot;
-    try {
-        opfsRoot = await navigator.storage.getDirectory();
-    } catch {
-        return;
-    }
-    if (await hasOPFSContent(opfsRoot)) {
-        document.getElementById('btn-load-opfs').disabled = false;
-    }
 }

@@ -1,4 +1,3 @@
-import { initOPFSButton } from './js/backup/opfs-import.js';
 import { appState } from './js/services/store.js';
 import { initSortSelect } from './js/ui/ui-elements-load/sort-select-load.js';
 import { initViewSelect } from './js/ui/ui-elements-load/views-select-load.js';
@@ -10,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     initViewSelect();
     initSortSelect();
-    initOPFSButton();
 
     const searchbox = document.getElementById('searchbox');
     const searchmode = appState.search.depth.searchMode;

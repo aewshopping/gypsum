@@ -95,3 +95,61 @@ test('the empty-folder message does not flash while a real folder is loading', a
   await page.click('#btn-recent-close');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 });
+
+test('the open-OPFS button is enabled from a cold start', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#btn-recent-toggle');
+
+  // It used to ship disabled and only switch on if OPFS already held files, which made an empty
+  // OPFS unreachable.
+  await expect(page.locator('#btn-load-opfs')).toBeEnabled();
+});
+
+test('opening an empty OPFS lands on the empty-folder prompt, ready for a first note', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', err => pageErrors.push(err.message));
+
+  await page.goto('/');
+
+  // Real OPFS, not a mock — the helpers stub showDirectoryPicker, not navigator.storage. Cleared
+  // first so the test cannot inherit state from another run.
+  await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const names = [];
+    for await (const name of root.keys()) names.push(name);
+    for (const name of names) await root.removeEntry(name, { recursive: true });
+  });
+
+  await page.click('#btn-recent-toggle');
+  await page.click('[data-action="load-opfs"]');
+  await page.click('#btn-recent-close');
+
+  await expect(page.locator('#output .empty-state')).toContainText('No notes in this folder yet');
+  await expect(page.locator('#btn-new-note')).toBeEnabled();
+  await expect(page.locator('#fileCountElement')).toContainText('files: 0');
+  expect(pageErrors).toEqual([]);
+});
+
+test('an unavailable OPFS says so on click, rather than doing nothing', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', err => pageErrors.push(err.message));
+
+  // Simulates the app opened from file:// — the API is present but refuses.
+  await page.addInitScript(() => {
+    navigator.storage.getDirectory = async () => {
+      throw new DOMException('not allowed here', 'SecurityError');
+    };
+  });
+
+  await page.goto('/');
+  await page.click('#btn-recent-toggle');
+  await page.click('[data-action="load-opfs"]');
+  await page.click('#btn-recent-close');
+
+  await expect(page.locator('#fileCountElement')).toContainText('OPFS unavailable');
+
+  // The throw has to be caught, or it becomes an unhandled rejection and leaves isLoading set,
+  // which gates the empty-folder message on every later render.
+  expect(pageErrors).toEqual([]);
+  expect(await page.evaluate(() => window.appState.isLoading)).toBe(false);
+});
