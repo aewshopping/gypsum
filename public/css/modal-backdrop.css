@@ -26,12 +26,19 @@ body:has(dialog[open]) {
 /* if screen bigger than X stable at all times */
   html {scrollbar-gutter: stable;}
 
+/* to allow open dialog to take up full screen space on small screens, does mean a layout shift when dialog closes so don't want to do on larger screens where screen real estate less critical */
 @media (max-width: 600px) {
-  /* to allow open dialog to take up fall screen space on small screens, does mean a layout shift when dialog closes so don't want to do on larger screens where screen real estate less critical */
   html:has(dialog[open]) {scrollbar-gutter: auto;}
+}
 
-  /* perhaps overkill - small screens will get modal all the way to the edge. Remove border radius so it also goes all the way to the corner... */
-  html:has(dialog[open]) #moving-file-content-container {
-    border-radius:0px;
-  }
+/* The same call again, but made against the room the dialog is actually left with once the recent
+   files panel has taken its share. This one cannot be driven off --modal-has-room the way the
+   modal's own rules are: scrollbar-gutter takes a keyword rather than a length, and html has no
+   ancestor to hang a style query on, so it names the viewport width instead. The panel is capped
+   at 240px (--sidebar-size, in sidebar-recent.css), so 600px of room left over is an 840px
+   viewport. Under 600px the panel is 40vw and the dialog is cramped either way, which the query
+   above already covers. */
+@media (max-width: 840px) {
+  :root.sidebar-recent-open:has(dialog[open]),
+  :root:has(#sidebar-recent:focus-within):has(dialog[open]) {scrollbar-gutter: auto;}
 }
