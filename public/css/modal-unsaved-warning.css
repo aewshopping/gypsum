@@ -1,9 +1,6 @@
 #modal-unsaved-warning {
-    position: relative; /* containing block for the close button */
     margin: auto;
-    /* Extra top padding clears the close button, which the centred message would otherwise
-       run under — the longest warning text reaches the corner it sits in. */
-    padding: 42px 32px 24px;
+    padding: 24px 32px;
     border: 2px solid var(--colour-contr);
     border-radius: 6px;
     background-color: var(--colour-neutral-alt);

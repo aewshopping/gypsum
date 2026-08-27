@@ -25,8 +25,7 @@
 
 #modal-settings .modal-close-btn,
 #modal-file-options .modal-close-btn,
-#modal-history .modal-close-btn,
-#modal-unsaved-warning .modal-close-btn {
+#modal-history .modal-close-btn {
     position: absolute;
     top: 8px;
     right: 8px;
