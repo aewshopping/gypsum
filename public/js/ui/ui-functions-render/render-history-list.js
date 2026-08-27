@@ -10,14 +10,14 @@ function formatBytes(bytes) {
 }
 
 /**
- * Formats an ISO 8601 timestamp as "yyyy-mm-dd hh:mm" (UTC).
- * Shorter than the history select's format: the overview shows dates for scanning,
- * not for telling two snapshots seconds apart from each other.
+ * Formats an ISO 8601 timestamp as "yyyy-mm-dd" (UTC).
+ * Date only: the overview is scanned down a column, and the time of day says nothing
+ * useful about which file is worth attention.
  * @param {string} isoString
  * @returns {string}
  */
 function formatTimestamp(isoString) {
-    return isoString.replace('T', ' ').slice(0, 16);
+    return isoString.slice(0, 10);
 }
 
 /**

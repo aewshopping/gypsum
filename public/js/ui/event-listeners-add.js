@@ -28,7 +28,7 @@ import { handleSaveFileCopy } from './ui-functions-click/save-file-copy.js';
 import { handlePageChange } from './pagination/handle-page-change.js';
 import { handleKeyboardShortcuts } from './ui-functions-click/keyboard-shortcuts.js';
 import { handleOpenSettings, handleCloseSettings } from './ui-functions-click/settings-modal.js';
-import { handleOpenHistory, handleCloseHistory } from './ui-functions-click/history-modal.js';
+import { handleOpenHistory, handleCloseHistory, handleHistorySort } from './ui-functions-click/history-modal.js';
 import { handleHistoryDelete } from './ui-functions-click/history-delete-click.js';
 import { handleHistoryClear } from './ui-functions-click/history-clear-click.js';
 import { handleHistoryOpenFile } from './ui-functions-click/history-open-file-click.js';
@@ -148,6 +148,7 @@ const changeActionHandlers = {
     'toggle-content-search': handleContentSearchToggle,
     'toggle-fullscreen': handleFullscreenToggle,
     'history-select-change': handleHistorySelectChange,
+    'history-sort': handleHistorySort,
     'sort-select': handleSortSelectChange,
     'sort-direction-toggle': handleSortDirectionChange,
     'font-style-app-label-change': handleFontStyleAppLabelChange,

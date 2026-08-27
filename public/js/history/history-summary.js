@@ -40,7 +40,8 @@ function countFilesPerLine(snapshots, keyOf) {
 }
 
 /**
- * Reads history.gypsum and summarises it one row per file, most recently snapshotted first.
+ * Reads history.gypsum and summarises it one row per file. Order is the caller's business:
+ * the history modal sorts the rows by whichever property its sort select names.
  *
  * `reclaimBytes` is what deleting that file's history would actually free: its own snapshot
  * records, plus the pool lines no other file references. Lines shared with another file are
@@ -100,8 +101,6 @@ export async function readHistorySummary() {
             for (const ref of exclusiveLines) row.reclaimBytes += lines[ref].length + 3; // quotes + comma
             return row;
         });
-        files.sort((a, b) => b.newest.localeCompare(a.newest));
-
         return { totalBytes: text.length, files };
     } catch {
         return empty;

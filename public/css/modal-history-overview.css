@@ -1,4 +1,6 @@
 #modal-history {
+  display: flex;
+  flex-direction: column;
   margin: auto;
   max-width: min(46rem, 92vw);
   width: max-content;
@@ -21,14 +23,14 @@
 
 #history-summary-line {
   margin: 0 0 1rem;
-  font-weight: bold;
 }
 
 #history-list {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  max-height: min(24rem, 50vh);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -36,20 +38,26 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   padding: 0.4rem 0.5rem;
   border-radius: 4px;
   background-color: var(--colour-neutral);
 }
 
-.history-row-name {
-  font-weight: bold;
-  word-break: break-all;
+.history-row-name,
+.history-row-meta {
+  white-space: nowrap;
 }
 
 .history-row-meta {
   opacity: 0.75;
   font-size: 0.85em;
+}
+
+/* Buttons keep their width when the row scrolls; without this flex shrinks them to their text */
+.history-row-btn {
+  flex-shrink: 0;
 }
 
 /* File is no longer in the folder — deleted, or moved outside the app */
@@ -83,4 +91,11 @@
 .history-empty {
   margin: 0;
   opacity: 0.75;
+}
+
+.history-sort-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }

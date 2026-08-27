@@ -506,6 +506,15 @@
     <h2 class="menu-title">File history</h2>
     <p class="history-note">A safety net, not a backup &mdash; keep your own backups too.</p>
     <p id="history-summary-line"></p>
+    <label for="history-sort-select" class="history-sort-label">
+      Sort:
+      <select id="history-sort-select" data-action="history-sort" data-tip="change sort order">
+        <option value="size">largest first</option>
+        <option value="versions">most versions</option>
+        <option value="recent">most recent</option>
+        <option value="name">name</option>
+      </select>
+    </label>
     <div id="history-list"></div>
     <button class="history-clear-btn" data-action="history-clear" data-tip="delete all saved versions">clear all history</button>
   </dialog>

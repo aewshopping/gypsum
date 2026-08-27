@@ -26,8 +26,10 @@ dialog::backdrop {
 }
 
 /* The settings menu deliberately sits on top of every layer, so it — and its backdrop — stay
-   centred on the whole viewport. Zeroing the variable exempts it from every rule above. */
-#modal-settings {
+   centred on the whole viewport. The file history modal opens from it and stacks on top, so it
+   belongs in the same case. Zeroing the variable exempts them from every rule above. */
+#modal-settings,
+#modal-history {
     --sidebar-width: 0px;
 }
 
