@@ -114,6 +114,7 @@
        its contents at all — an auto minimum would push the footer off the bottom instead. */
     flex: 1;
     min-height: 0;
+    padding:4px;
 
     /* Naming the list makes it a group of its own, which the entries below nest inside — see the
        clip further down. Only while the panel is open, like the entries themselves. */
@@ -138,7 +139,7 @@
     cursor: pointer;
     text-align: start;
     padding: 5px 8px;
-    border: none;
+    border: 2px solid transparent;
     border-radius: 5px;
     font-size: 0.89375em;
 
@@ -153,6 +154,7 @@
     --colour-file-fallback: var(--colour-neutral);
 
     &:hover {
+        border: 2px solid var(--colour-contr);
         box-shadow: var(--hover-box-shadow);
     }
 
