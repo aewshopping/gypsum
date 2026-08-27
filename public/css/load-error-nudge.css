@@ -1,0 +1,26 @@
+/* The "3 yaml errors" nudge appended to the finished-load message in #fileCountElement.
+   Deliberately quiet: a broken front matter is worth mentioning once, not worth alarming
+   anyone about. Clicking it filters the list down to the affected files. */
+
+/* Mixed against currentColor rather than a fixed value, so the tint sits at the lightness of
+   whatever state the line is in — full contrast on the first message, faded once it settles —
+   and follows each theme's text colour instead of assuming a light background. */
+.load-error-nudge,
+.load-error-note {
+    color: color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%);
+}
+
+.load-error-nudge {
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.load-error-nudge:hover,
+.load-error-nudge:focus-visible {
+    color: var(--colour-contr-warning);
+}
+
+/* .load-error-note shares the colour above but none of the affordances: files that could not be
+   opened are absent from myFiles, so there is nothing to click through to. */

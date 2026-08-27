@@ -1,4 +1,4 @@
-import { appState, FILE_PROPERTIES } from './store.js';
+import { appState, FILE_PROPERTIES, CORE_FILE_PROPERTIES } from './store.js';
 
 
 /**
@@ -41,4 +41,14 @@ export function updateMyFilesProperties(myObject, order = 1) {
             }
         }
     });
+}
+
+/**
+ * Registers the properties every file object always carries, whichever files are loaded — or
+ * none at all. Called at the start of a load, after myFilesProperties is cleared, so the baseline
+ * is in place before individual files add their own front-matter keys on top.
+ * @returns {void}
+ */
+export function seedCoreFileProperties() {
+    updateMyFilesProperties(Object.fromEntries(CORE_FILE_PROPERTIES.map(key => [key, null])), 1);
 }

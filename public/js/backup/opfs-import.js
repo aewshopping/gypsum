@@ -6,7 +6,7 @@ import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
-import { updateMyFilesProperties } from '../services/file-props.js';
+import { seedCoreFileProperties } from '../services/file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
 
@@ -108,6 +108,7 @@ async function readMtimeMap(opfsRoot) {
 async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null, mtimeMap = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
+    seedCoreFileProperties();
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;
     document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"]')
@@ -126,9 +127,21 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
+    let unreadableCount = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
-        const fileObj = await getFileDataAndMetadata(handle, i);
+        let fileObj;
+        try {
+            fileObj = await getFileDataAndMetadata(handle, i);
+        } catch {
+            // Same stale-listing window as the folder loader, but not for its cloud-sync reasons:
+            // OPFS is per-origin and shared by every tab, so an import in a second tab runs
+            // clearOPFS() and deletes the entries this walk collected. The storage is evictable
+            // too — persist() is never requested — so the browser may clear it under disk
+            // pressure. Skip the file rather than let one abort the whole load.
+            unreadableCount++;
+            continue;
+        }
         if (i % updateN === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
         // if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         const lastModified = mtimeMap?.has(filepath) ? new Date(mtimeMap.get(filepath)) : fileObj.lastModified;
@@ -140,7 +153,6 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
         return map;
     }, new Map());
     appState.myFiles = filesWithMetadata;
-    updateMyFilesProperties(appState.myFiles[0], 1);
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
     invalidateNoteNameIndex();
@@ -149,7 +161,9 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const loadDurationSec = ((endTime - startTime) / 1000).toFixed(1); // pure file load; available for future console logging
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
-    finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs');
+    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad).length;
+    finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs',
+        { yamlErrors, unreadable: unreadableCount });
 }
 
 /**

@@ -31,7 +31,7 @@ export const appState = {
         onlyProperties: " press / for search "
       }
     },
-    excludedProperties: ["handle", "show", "contentPeek"],
+    excludedProperties: ["handle", "show", "contentPeek", "errorOnLoad"],
     filters: new Map(),
     results: new Map(),
     matchingFiles: new Map()
@@ -55,6 +55,10 @@ export const appState = {
     openTextLen:    0,    // length of openNormalized without \n chars (fast-path gate)
     isDirty:        false,
   },
+
+  isLoading: false,      // true while a load is in flight. Files are cleared and re-rendered at
+                         // the start of a load, so this is what tells "loading" apart from
+                         // "loaded, and the folder is empty" — see a-render-all-files.js
 
   dirHandle: null,       // FileSystemDirectoryHandle — set by directory loader, null otherwise
   openFileSnapshot: null,    // { filepath, filename, content } captured when modal opens
@@ -95,7 +99,20 @@ export const FILE_PROPERTIES = new Map([
   ['internalLink', {label: 'links', type: 'array', search_type: 'string', column_width: 250, display_order: 10 }],
   ['filepath', { type: 'string', column_width: 300, display_order: 12 }],
   ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 13 }],
+  ['errorOnLoad', { label: 'load error', type: 'string', column_width: 200, display_order: 14 }],
 ]);
+
+/**
+ * The keys every file object carries whatever its content: those written literally into the object
+ * returned by getFileDataAndMetadata (file-parsing/file-info.js), plus filepath and internalId
+ * added by the loaders. Seeded into myFilesProperties at the start of a load, so the sort
+ * dropdown, table columns and property search work even in a folder with no files in it.
+ *
+ * Add to this when adding a property to that return literal.
+ * @type {string[]}
+ */
+export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',
+  'tags', 'color', 'internalLink', 'lastModified', 'errorOnLoad', 'filepath', 'internalId'];
 
 /**
  * Defines which columns are hidden in the table view.
@@ -106,6 +123,6 @@ export const FILE_PROPERTIES = new Map([
  */
 export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
   hidden_always: ['handle', 'show', 'content'],
-  hidden_at_start: ['internalId', 'color', 'filepath', 'contentPeek', 'internalLink'], // could in future add check box functionality to show current cols ticked and these cols unticked
+  hidden_at_start: ['internalId', 'color', 'filepath', 'contentPeek', 'internalLink', 'errorOnLoad'], // could in future add check box functionality to show current cols ticked and these cols unticked
   current_props: [],
 };

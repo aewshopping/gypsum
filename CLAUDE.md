@@ -96,7 +96,10 @@ in `event-listeners-add.js` maps action names to handler functions.
 1. Add it to `FILE_PROPERTIES` in `store.js` with `type`, `column_width`, `display_order`.
 2. Populate it in `file-info.js` (or a new `file-parsing/` module if the logic is non-trivial).
 3. Handle its type in `file-object-sort.js` if it needs sorting.
-4. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
+4. If every file carries it — i.e. you added it to the return literal in `file-info.js` rather
+   than deriving it from front matter — add it to `CORE_FILE_PROPERTIES` in `store.js` too.
+   That list is what registers properties when a folder holds no files.
+5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
 
 ### Search / filter architecture
 

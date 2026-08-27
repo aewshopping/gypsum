@@ -3,7 +3,7 @@ import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
-import { updateMyFilesProperties } from './file-props.js';
+import { seedCoreFileProperties } from './file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
 
@@ -42,6 +42,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     appState.myFilesProperties.clear();
+    seedCoreFileProperties();
 
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     appState.dirHandle = dirHandle;
@@ -63,9 +64,22 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
+    let unreadableCount = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
-        const fileObj = await getFileDataAndMetadata(handle, i);
+        let fileObj;
+        try {
+            fileObj = await getFileDataAndMetadata(handle, i);
+        } catch {
+            // Never about the file's contents — text() decodes anything, substituting U+FFFD for
+            // what it cannot. This is the listing having gone stale between the directory walk
+            // above and this read: usually a cloud-sync placeholder (OneDrive on-demand, Dropbox
+            // online-only, iCloud optimised) whose bytes are not on disk, or a file a sync client
+            // moved mid-load. Skip it rather than let one file abort the whole load; a stub object
+            // would only mislead the renderers.
+            unreadableCount++;
+            continue;
+        }
         if (i % n === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
         // if (i % n === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
         filesWithMetadata.push({ ...fileObj, filepath, internalId: filepath });
@@ -78,7 +92,6 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     appState.myFileHandlesMap = fileHandleMap;
     appState.myFiles = filesWithMetadata;
-    updateMyFilesProperties(appState.myFiles[0], 1);
 
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
@@ -88,7 +101,9 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const durationSec = ((endTime - startTime) / 1000).toFixed(1);
 
     const fileCount = appState.myFiles.length;
+    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad).length;
     console.log(`Saved metadata for ${fileCount} files.`);
-    finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system');
+    finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system',
+        { yamlErrors, unreadable: unreadableCount });
 
 }

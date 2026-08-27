@@ -8,6 +8,31 @@ import { findProtectedSpans, isProtected } from './protected-spans.js';
  * @file Extracts metadata from file content, including title, tags, and YAML front matter.
  */
 
+// Front matter is spread over the file object, so a key colliding with one of these would replace
+// app-owned data — a bogus `handle` alone breaks save, rename, delete and content search. `tags`
+// is handled separately below, merged into the TagMap rather than dropped.
+const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'internalId',
+                       'contentPeek', 'internalLink', 'errorOnLoad', 'lastModified'];
+
+/**
+ * Summarises what the YAML front matter got wrong, for the errorOnLoad property.
+ * @param {string[]} skippedLines - reasons collected by parseYaml, one per unreadable line.
+ * @param {string[]} shadowedKeys - reserved keys that were dropped from the front matter.
+ * @returns {string|null} A short summary, or null when the front matter read cleanly.
+ */
+function summariseYamlProblems(skippedLines, shadowedKeys) {
+    const parts = [];
+    if (skippedLines.length > 0) {
+        parts.push(`${skippedLines.length} line${skippedLines.length === 1 ? '' : 's'} skipped`);
+    }
+    if (shadowedKeys.length > 0) {
+        const names = shadowedKeys.map(key => `"${key}"`).join(', ');
+        parts.push(`key${shadowedKeys.length === 1 ? '' : 's'} ${names} ignored`);
+    }
+    // The "yaml" prefix is what the load-message nudge filters on — see load-progress-finish.js.
+    return parts.length === 0 ? null : `yaml: ${parts.join(', ')}`;
+}
+
 /**
  * Processes a file handle to extract its content and metadata.
  * It reads the file, parses its content for tags and YAML front matter,
@@ -22,7 +47,13 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
     const content = await file.text();
     const frontMatterIndices = findFrontMatterIndices(content);
     const tagData = parseFileContent(content, frontMatterIndices);
-    const yamlData = parseYaml(content);
+    const yamlErrors = [];
+    const yamlData = parseYaml(content, yamlErrors);
+
+    // Stripped before registration so a shadowing key never becomes a searchable property either.
+    const shadowedKeys = RESERVED_KEYS.filter(key => key in yamlData);
+    for (const key of shadowedKeys) delete yamlData[key];
+
     updateMyFilesProperties(yamlData, 2);
 
     // Merge YAML tags into the TagMap as orphan tags, then remove from yamlData
@@ -50,7 +81,9 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         // myFiles[0] alone, so omitting the key would unregister it for the whole session.
         internalLink: tagData.links,
         lastModified: new Date(file.lastModified),
-        ...(yamlData)
+        ...(yamlData),
+        // Null rather than absent when the front matter read cleanly, for the same reason as above.
+        errorOnLoad: summariseYamlProblems(yamlErrors, shadowedKeys),
     };
 
 }

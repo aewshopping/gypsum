@@ -740,6 +740,191 @@ async function setupMockFilesLongName(page) {
 }
 
 /**
+ * Injects a mock version of window.showDirectoryPicker into the page before the app's
+ * JavaScript runs. Two of the three files have front matter the forgiving YAML parser cannot
+ * fully read, so the load-error nudge and the errorOnLoad property both have something to
+ * report.
+ *
+ *   - broken-yaml.md: two unreadable lines (no colon, and no parent key for the list item)
+ *   - half-broken.md: one unreadable line, alongside front matter that parses fine
+ *   - clean-yaml.md:  front matter that reads cleanly, so errorOnLoad stays null
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesBrokenYaml(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('broken-yaml.md', '---\ntitle: Broken Note\nthis line has no colon\n- orphaned list item\n---\n\n# Broken Note\n\nBody text #personal');
+          yield makeFile('half-broken.md', '---\ntitle: Half Broken\nalso missing a colon\n---\n\n# Half Broken\n\nBody text #personal');
+          yield makeFile('clean-yaml.md', '---\ntitle: Clean Note\npeople:\n  - alice\n---\n\n# Clean Note\n\nBody text #personal');
+        },
+      };
+    };
+  });
+}
+
+/**
+ * Injects a mock picker where one of three files cannot be read — simulating a file deleted or
+ * its permission revoked between the directory being listed and the file being opened. The other
+ * two must still load.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesUnreadable(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('readable-one.md', '# One\n\nBody text #work');
+          yield {
+            kind: 'file', name: 'vanished.md',
+            getFile: async () => {
+              throw new DOMException('A requested file could not be found', 'NotFoundError');
+            },
+          };
+          yield makeFile('readable-two.md', '# Two\n\nBody text #work');
+        },
+      };
+    };
+  });
+}
+
+/**
+ * Injects a mock picker where every file is unreadable, so nothing survives the load. Exercises
+ * the same empty-appState path an empty folder takes.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesAllUnreadable(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () {
+        for (const name of ['gone-a.md', 'gone-b.md']) {
+          yield {
+            kind: 'file', name,
+            getFile: async () => {
+              throw new DOMException('A requested file could not be found', 'NotFoundError');
+            },
+          };
+        }
+      },
+    });
+  });
+}
+
+/**
+ * Injects a mock picker with one file whose front matter uses keys that collide with core file
+ * object properties. Those keys must be dropped rather than allowed to overwrite app-owned data —
+ * a bogus `handle` would break save, rename, delete and content search.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesShadowingYaml(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('shadow.md', '---\ntitle: Shadowed\nhandle: oops\nfilename: fake.md\n---\n\n# Shadowed\n\nBody #work');
+          yield makeFile('normal.md', '# Normal\n\nBody #work');
+        },
+      };
+    };
+  });
+}
+
+/**
+ * Injects a mock picker for an empty folder that supports creating notes: root-level
+ * getFileHandle throws for { create: false } — which is how findUnusedFilename settles on
+ * note-1.txt — and returns a writable handle for { create: true }.
+ *
+ * Files created through it persist in window.__createdFiles, so a note survives being re-read
+ * by getFileDataAndMetadata after it is written. Sub-directories are supported (the delete path
+ * copies into .gypsum/trash first), backed by the same map under a path prefix.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockEmptyDirectoryWithCreate(page) {
+  await page.addInitScript(() => {
+    window.__createdFiles = new Map();
+
+    const makeHandle = (path, name) => ({
+      kind: 'file', name,
+      getFile: async () => {
+        const content = window.__createdFiles.get(path) ?? '';
+        return {
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        };
+      },
+      createWritable: async () => ({
+        write: async (content) => { window.__createdFiles.set(path, content); },
+        close: async () => {},
+      }),
+    });
+
+    // Only the root directory lists files — sub-directories exist to receive trashed copies,
+    // and the app never enumerates them.
+    const makeDir = (prefix) => ({
+      kind: 'directory', name: prefix || 'root',
+      values: async function* () {
+        if (prefix) return;
+        for (const path of window.__createdFiles.keys()) {
+          if (!path.includes('/')) yield makeHandle(path, path);
+        }
+      },
+      getDirectoryHandle: async (name) => makeDir(`${prefix}${name}/`),
+      getFileHandle: async (name, options = {}) => {
+        const path = `${prefix}${name}`;
+        if (options.create) {
+          if (!window.__createdFiles.has(path)) window.__createdFiles.set(path, '');
+          return makeHandle(path, name);
+        }
+        if (window.__createdFiles.has(path)) return makeHandle(path, name);
+        throw new DOMException(`${name} not found`, 'NotFoundError');
+      },
+      removeEntry: async (name) => { window.__createdFiles.delete(`${prefix}${name}`); },
+    });
+
+    window.showDirectoryPicker = async () => makeDir('');
+  });
+}
+
+/**
  * Clicks the mock folder picker. The folder button lives inside the recent files panel, so the
  * panel is opened to reach it and closed again afterwards, leaving the app in the state it starts
  * in — otherwise every later measurement would be shifted by the width of an open panel.
@@ -752,4 +937,4 @@ async function loadFolder(page) {
   await page.click('#btn-recent-close');
 }
 
-module.exports = { loadFolder, setupMockFiles, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };
+module.exports = { loadFolder, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };
