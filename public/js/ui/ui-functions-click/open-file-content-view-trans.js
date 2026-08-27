@@ -3,7 +3,7 @@
 // - note if you have lots of html elements on the page (say > 400!) this slows down the view transition
 
 import { loadContentModal } from './load-file-content.js';
-import { hasUnsavedChanges } from '../../editing/manage-unsaved-changes.js';
+import { hasUnsavedChanges, getCurrentRawContent } from '../../editing/manage-unsaved-changes.js';
 import { initHistorySelect } from './setup-history-select.js';
 import { appState } from '../../services/store.js';
 import { saveBackupEntry } from '../../editing/local-backup.js';
@@ -208,8 +208,10 @@ export function doClose() {
 
   const snapshotToClean = appState.openFileSnapshot ?? null; // capture now before transition runs
 
+  // Read the live content before the transition starts: the modal's content is wiped in
+  // the transition's finished callback, so this is the last point the editor DOM is intact.
   if (appState.openFileSnapshot) {
-    appState.closeSnapshot = { ...appState.openFileSnapshot }; // identical for now; will differ once editing lands
+    appState.closeSnapshot = { ...appState.openFileSnapshot, content: getCurrentRawContent() };
     saveBackupEntry(appState.closeSnapshot, 'close');
   }
 

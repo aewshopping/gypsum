@@ -1,4 +1,5 @@
 import { appState } from '../services/store.js';
+import { decodeModalHtml } from '../services/file-save.js';
 
 /**
  * Returns the editable content element when in txt mode, null in html mode.
@@ -63,6 +64,22 @@ export function refreshDirtyState(raw) {
  */
 export function getLiveRawContent() {
     return appState.editSession.liveRaw;
+}
+
+/**
+ * Returns the raw text of the open file as it stands right now: read straight from the
+ * editor DOM in txt mode, or from the edit session in html mode where there is no editable
+ * element. Shared by every consumer that needs the current content — the save path, the
+ * silent autosave and the closing history snapshot — so none of them can drift apart.
+ *
+ * Safe while a historical version is on screen: fileContentRender only hides the live
+ * editor and renders history into a separate element without the .text-editor class,
+ * so getEditorElement() keeps returning the live content.
+ * @returns {string}
+ */
+export function getCurrentRawContent() {
+    const editorEl = getEditorElement();
+    return editorEl ? decodeModalHtml(editorEl.innerHTML) : getLiveRawContent();
 }
 
 /**
