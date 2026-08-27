@@ -1,6 +1,6 @@
 import { appState } from '../../services/store.js';
 import { parseContent } from '../../services/parse-content.js';
-import { saveBackupEntry } from '../../editing/local-backup.js';
+import { saveBackupEntry } from '../../history/local-backup.js';
 import { loadHistorySelect } from './setup-history-select.js';
 import { setIsCurrentVersion } from '../../editing/editable-state.js';
 import { fileContentRender } from '../ui-functions-render/render-file-content.js';

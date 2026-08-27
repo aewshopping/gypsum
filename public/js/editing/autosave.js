@@ -1,8 +1,8 @@
 import { appState } from '../services/store.js';
 import { getIsCurrentVersion } from './editable-state.js';
 import { SAVE_FOLDER } from '../constants.js';
-import { buildSaveFilename, decodeModalHtml, writeAndVerify } from '../services/file-save.js';
-import { getEditorElement, getLiveRawContent } from './manage-unsaved-changes.js';
+import { buildSaveFilename, writeAndVerify } from '../services/file-save.js';
+import { getCurrentRawContent } from './manage-unsaved-changes.js';
 import { saveCurrentFile } from './save-current-file.js';
 
 const PAUSE_MS = 3000;          // pause in typing that triggers a save
@@ -111,10 +111,7 @@ async function runAutosave() {
 async function silentAutosave(snapshot) {
     if (Date.now() - lastAutosaveTime < MIN_INTERVAL_MS) return;
 
-    const editorEl = getEditorElement();
-    const textToSave = editorEl
-        ? decodeModalHtml(editorEl.innerHTML)
-        : getLiveRawContent();
+    const textToSave = getCurrentRawContent();
 
     // Skip if content is unchanged since the last autosave (or since the file was opened)
     const baseline = lastAutosaveContent ?? snapshot.content;

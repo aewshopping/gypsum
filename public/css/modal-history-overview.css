@@ -1,0 +1,208 @@
+#modal-history[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+#modal-history {
+  margin: auto;
+  max-width: min(46rem, 92vw);
+  width: max-content;
+  padding: 1.5rem;
+  border: 2px solid var(--colour-contr);
+  border-radius: 8px;
+  background-color: var(--colour-neutral-alt);
+  color: var(--colour-contr);
+}
+
+#modal-history::backdrop {
+  background-color: rgba(0, 0, 0, 0.65);
+}
+
+.history-note {
+  margin: 0 0 0.5rem;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+#history-summary-line {
+  margin: 0 0 1rem;
+}
+
+#history-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Sized to the widest row so every row stretches to match and the list scrolls sideways as
+   one. min-width keeps it filling the dialog when the rows are narrower than it. */
+.history-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: max-content;
+  min-width: 100%;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  flex-shrink: 0; /* a row is a flex item of the list: without this a short window squashes it */
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  background-color: var(--colour-neutral);
+}
+
+.history-row-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.history-row-text {
+  white-space: nowrap;
+}
+
+.history-row-meta {
+  opacity: 0.75;
+  font-size: 0.85em;
+  margin-inline-start: 0.5rem;
+}
+
+/* Size at a glance, drawn like the load progress bar: a full-width block scaled down by a
+   percentage, so the widths compare directly down the column. Every row is the same width,
+   which is what makes the comparison honest. */
+.history-row-bar {
+  /* The track is the whole scale, and the largest file fills it — every other bar is a
+     fraction of the same length, so the comparison is rebased rather than clipped. 60dvw
+     keeps the longest bar on screen; the rem cap keeps it inside the dialog, which is
+     narrower than the viewport once there is room for it to be. */
+  width: min(60dvw, 38rem);
+  align-self: start;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral) 60%);
+  transform-origin: left center;
+  transform: scaleX(calc(var(--size-pct) / 100));
+}
+
+/* The list scrolls sideways as a whole, which would carry the actions off the edge — on a
+   phone that is every row. Sticking them to the right keeps them reachable at any scroll
+   position; the background masks the text passing underneath. */
+.history-row-actions {
+  position: sticky;
+  right: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline-start: 0.5rem;
+  background-color: var(--colour-neutral);
+}
+
+.history-row-btn {
+  flex-shrink: 0;
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.45;
+}
+
+.history-row-icon {
+  width: 100%;
+  height: 100%;
+  color: var(--colour-contr);
+}
+
+/* File is no longer in the folder — deleted, or moved outside the app */
+.history-row-missing .history-row-name {
+  font-style: italic;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.history-clear-btn {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--colour-contr);
+  border-radius: 4px;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.history-row-btn:hover {
+  opacity: 0.9;
+}
+
+.history-clear-btn:hover {
+  background-color: var(--colour-contr);
+  color: var(--colour-neutral-alt);
+}
+
+.history-clear-btn {
+  margin-top: 1rem;
+}
+
+.history-empty {
+  margin: 0;
+  opacity: 0.75;
+}
+
+.history-sort-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* An explicit display beats the UA's [hidden] rule, so restore it by hand */
+.history-sort-label[hidden] {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  #modal-history {
+    padding: 1rem 0.75rem;
+    max-width: 96vw;
+  }
+
+  .history-row {
+    padding: 0.4rem;
+    gap: 0.35rem;
+  }
+
+  .history-row-btn {
+    width: 1.5em;
+    height: 1.5em;
+  }
+}
+
+@media (max-height: 620px) {
+  #modal-history {
+    padding: 1rem 1.25rem;
+  }
+
+  #modal-history .menu-title {
+    margin-bottom: 0.25rem;
+  }
+
+  .history-note {
+    display: none; /* the reminder is worth a line only when there is room for the list too */
+  }
+
+  #history-summary-line,
+  .history-sort-label {
+    margin-bottom: 0.5rem;
+  }
+
+  .history-clear-btn {
+    margin-top: 0.5rem;
+  }
+}

@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { readBackupHistory } from '../../editing/backup-history-read.js';
+import { readBackupHistory } from '../../history/backup-history-read.js';
 import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
 import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
 

@@ -47,7 +47,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     appState.dirHandle = dirHandle;
     document.getElementById('btn-new-note').disabled = false;
-    document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"]')
+    document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"], [data-action="open-history-modal"]')
         .forEach(btn => { btn.disabled = false; });
     onPickerResolved?.();
 

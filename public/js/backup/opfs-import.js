@@ -115,7 +115,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     seedCoreFileProperties();
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;
-    document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"]')
+    document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"], [data-action="open-history-modal"]')
         .forEach(btn => { btn.disabled = false; });
 
     if (mtimeMap === null) mtimeMap = await readMtimeMap(opfsRoot);

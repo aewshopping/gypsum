@@ -1,8 +1,7 @@
 import { appState } from '../services/store.js';
 import { getIsCurrentVersion } from './editable-state.js';
-import { decodeModalHtml } from '../services/file-save.js';
 import { saveFileCopy } from './save-file-copy.js';
-import { resetUnsavedBaseline, getLiveRawContent, getEditorElement } from './manage-unsaved-changes.js';
+import { resetUnsavedBaseline, getCurrentRawContent } from './manage-unsaved-changes.js';
 import { updateUnsavedIndicator } from '../ui/ui-functions-render/render-file-content.js';
 import { refreshFileAfterSave } from './refresh-file-state.js';
 
@@ -20,10 +19,7 @@ export async function saveCurrentFile() {
     const snapshot = appState.openFileSnapshot;
     if (!snapshot) return;
 
-    const editorEl = getEditorElement();
-    const textToSave = editorEl
-        ? decodeModalHtml(editorEl.innerHTML)
-        : getLiveRawContent();
+    const textToSave = getCurrentRawContent();
 
     const saveBtn = document.getElementById('save-btn');
 
