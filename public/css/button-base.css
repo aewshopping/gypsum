@@ -90,6 +90,7 @@
 .btn-menu {
     background-color: var(--colour-neutral-alt);
     color:var(--colour-contr);
+    width: 100%;
     border: none; /* 1.5px solid var(--colour-contr);*/
     border-radius: 5px;
     display:flex;

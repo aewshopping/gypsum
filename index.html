@@ -41,18 +41,6 @@
         </div>
         <span>open opfs</span>
       </button>
-      <button class="btn-menu" data-action="backup-full" disabled data-tip="create tarball export file">
-        <div class="svg-wrapper-style">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M10.295 28.118c4.13.05 20.67.23 24.81.28m-24.81-.28c4.13.05 20.67.23 24.81.28"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M10.295 44.285c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4m-.56 34.29c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4M26.462 14.181c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55m-1.11-27.6c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55"/></svg>
-        </div>
-        <span>export</span>
-      </button>
-      <button class="btn-menu" id="btn-import-opfs" data-action="import-opfs" data-tip="import tarball file to opfs">
-        <div class="svg-wrapper-style">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M36.484 26.167c-4.13-.05-20.67-.23-24.81-.28m24.81.28c-4.13-.05-20.67-.23-24.81-.28"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M36.484 10c.05 2.65.37 10.17.28 15.89-.09 5.71-.7 15.33-.84 18.4m.56-34.29c.05 2.65.37 10.17.28 15.89-.09 5.71-.7 15.33-.84 18.4M20.317 40.104c-1.72-2.51-10.13-10.45-10.31-15.05-.19-4.6 7.66-10.45 9.2-12.55m1.11 27.6c-1.72-2.51-10.13-10.45-10.31-15.05-.19-4.6 7.66-10.45 9.2-12.55"/></svg>
-        </div>
-        <span>import to opfs</span>
-      </button>
       <p>Recent files</p>
     </div>
 
@@ -397,14 +385,31 @@
       </div>
     </div>
 
-    <h4>Backups</h4>
+    <h4>Import and export</h4>
+    <div class="settings-backup-btns">
 
-    <div class="settings-row">
-      <span class="settings-label">Backup</span>
-      <div class="settings-backup-btns">
-        <button class="btn-base-style" data-action="backup-content" disabled data-tip="back up file contents only">Content only</button>
-        <button class="btn-base-style" data-action="backup-full" disabled data-tip="back up everything">Full backup</button>
-      </div>
+      <button class="btn-menu" id="btn-import-opfs" data-action="import-opfs" data-tip="import tarball file to opfs">
+        <div class="svg-wrapper-style">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M36.484 26.167c-4.13-.05-20.67-.23-24.81-.28m24.81.28c-4.13-.05-20.67-.23-24.81-.28"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M36.484 10c.05 2.65.37 10.17.28 15.89-.09 5.71-.7 15.33-.84 18.4m.56-34.29c.05 2.65.37 10.17.28 15.89-.09 5.71-.7 15.33-.84 18.4M20.317 40.104c-1.72-2.51-10.13-10.45-10.31-15.05-.19-4.6 7.66-10.45 9.2-12.55m1.11 27.6c-1.72-2.51-10.13-10.45-10.31-15.05-.19-4.6 7.66-10.45 9.2-12.55"/></svg>
+        </div>
+        <span>import to opfs</span>
+      </button>
+
+
+      <button class="btn-menu" data-action="backup-full" disabled data-tip="create tarball export file">
+        <div class="svg-wrapper-style">
+          <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="5 5 35 45"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M16.768 28.397h18.34m-18.34 0h18.34M10.295 44.285c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4m-.56 34.29c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4M16.558 44.285c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4m-.56 34.29c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4M26.462 14.181c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55m-1.11-27.6c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55"/></svg>
+        </div>
+        <span>export all</span>
+      </button>
+
+      <button class="btn-menu" data-action="backup-content" disabled data-tip="backup .txt and .md files only">
+        <div class="svg-wrapper-style">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M10.295 28.118c4.13.05 20.67.23 24.81.28m-24.81-.28c4.13.05 20.67.23 24.81.28"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M10.295 44.285c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4m-.56 34.29c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4M26.462 14.181c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55m-1.11-27.6c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55"/></svg>
+        </div>
+        <span>export files</span>
+      </button>  
+      
     </div>
 
     <div class="settings-shortcuts">

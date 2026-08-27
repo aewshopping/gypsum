@@ -123,7 +123,7 @@
     overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 4px;   
 
     /* Closed, the panel sits off-screen, where these buttons would still be reachable by tab —
        unlike the folder button above, which is meant to be. The transition holds the hide back
