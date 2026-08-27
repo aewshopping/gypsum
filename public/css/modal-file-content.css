@@ -5,6 +5,21 @@
     initial-value: 20px;
   }
 
+  @property --modal-has-room {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 1px;
+  }
+
+:root {
+  /* 1px when the modal has 600px or more of room, 0px below - the breakpoint the rules further
+     down multiply up. It has to be measured against the space left over once the recent files
+     panel has taken its share, which a media query cannot read: media queries see the viewport
+     and cannot read a custom property. Multiplying the difference past both ends of the clamp
+     turns what would be a ramp into a hard switch at exactly 600px of remaining room. */
+  --modal-has-room: clamp(0px, (100vw - var(--sidebar-width) - 600px) * 1000, 1px);
+}
+
 #file-content-modal {
   /* Note: left and width here are overridden in sidebar-push.css so the modal is pushed right
      when the recent files panel is open. */
@@ -28,13 +43,12 @@
 /*  view-transition-name: moving-box-element;*/
   position: fixed;
   background-color: var(--colour-neutral-alt);
-  border-radius: 10px;
 /*  max-height: 95vh;*/
   pointer-events: auto;
   /* stuff below to blend in scroll bar*/
 /*  border-top: solid 2px var(--colour-neutral-alt);
   border-right: solid 2px var(--colour-neutral-alt);*/
-  border-radius: 8px;
+  border-radius: calc(var(--modal-has-room) * 8);
   overflow: hidden;
   background-color: var(--colour-neutral-alt); /* starting colour */
   left: 50%;
@@ -52,15 +66,10 @@
 }
 
 body{
-  --modal-top-bottom-margin: 20px;
+  /* Zero on a screen too small to spare it, so the open file uses the full height. */
+  --modal-top-bottom-margin: calc(var(--modal-has-room) * 20);
   --maximise-modal-transition: 0.2s;
 
-  @media (max-width: 600px) {
-    /* to allow open dialog to take up fall screen space on small screens */
-    /* note 600px figure also used on scrollbar-gutter but can't put css vars in media queries so hard coded */
-    --modal-top-bottom-margin: 0px;
-  }
-  
   :has(#modalmaxscreen:checked) #moving-file-content-container {
     /* tick the box for modal maximise, mainly useful for viewing svg diagrams */
     --modal-top-bottom-margin: 0px;

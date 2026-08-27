@@ -174,3 +174,32 @@ test.describe('recent files panel', () => {
   });
 
 });
+
+// The open file goes full height, and loses its rounded corners, once it has under 600px to work
+// with. The panel takes 240px of that, so at this width the two states differ: 700px of room with
+// the panel shut, 460px with it open. A viewport-only breakpoint reads both as roomy.
+test.describe('the file modal measures its breakpoint against the room the panel leaves it', () => {
+
+  test.use({ viewport: { width: 700, height: 800 } });
+
+  /** The container's distance from the top of the screen, and its corner rounding. */
+  const modalEdge = (page) => page.locator('#moving-file-content-container').evaluate(el => ({
+    top: Math.round(el.getBoundingClientRect().top),
+    radius: getComputedStyle(el).borderTopLeftRadius,
+  }));
+
+  test('roomy with the panel shut, cramped with it open', async ({ page }) => {
+    await setupMockFiles(page);
+    await loadFiles(page);
+
+    await openCard(page, 'Quarterly Review');
+    await expect.poll(() => modalEdge(page), 'panel shut').toEqual({ top: 20, radius: '8px' });
+    await closeModal(page);
+
+    // The panel has to be opened first: its button sits on the page, which a modal makes inert.
+    await openPanel(page);
+    await openCard(page, 'Quarterly Review');
+    await expect.poll(() => modalEdge(page), 'panel open').toEqual({ top: 0, radius: '0px' });
+  });
+
+});
