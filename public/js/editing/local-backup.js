@@ -38,7 +38,8 @@ function parseHistory(text) {
  * the line pool format — each unique line is stored once; snapshots reference
  * lines by index. Evicts the oldest snapshot when MAX_SNAPSHOTS is reached,
  * then garbage-collects unreferenced lines.
- * Does nothing silently if no directory handle is available (file picker path).
+ * Does nothing silently if no directory handle is available (file picker path),
+ * or if the snapshot has no content.
  *
  * @async
  * @param {{ filepath: string, filename: string, content: string }} snapshot
@@ -47,6 +48,9 @@ function parseHistory(text) {
  */
 export async function saveBackupEntry(snapshot, event) {
     if (!appState.dirHandle) return;
+    // An empty file has no state worth versioning — recording it would put a blank
+    // v-1 at the head of every newly-created note's history.
+    if (!snapshot.content.trim()) return null;
 
     try {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
