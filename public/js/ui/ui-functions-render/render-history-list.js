@@ -26,7 +26,7 @@ function formatTimestamp(isoString) {
  * @returns {string}
  */
 export function renderHistoryTotals({ totalBytes, files }) {
-    if (!files.length) return 'No history recorded yet.';
+    if (!files.length) return ''; // the list's empty state says it; twice is once too many
     const versions = files.reduce((sum, file) => sum + file.versions, 0);
     return `${formatBytes(totalBytes)} · ${versions} version${versions === 1 ? '' : 's'} · ${files.length} file${files.length === 1 ? '' : 's'}`;
 }
@@ -48,10 +48,13 @@ export function renderHistoryList(files) {
             ? `<button class="history-row-btn" data-action="history-recreate" ${data} data-tip="recreate this file from its newest version">recreate</button>`
             : `<button class="history-row-btn" data-action="history-open-file" ${data} data-tip="open this file">open</button>`;
 
+        // The text scrolls inside its own box rather than the row scrolling as a whole: a long
+        // filename must not push the buttons out of reach, which on a phone is every row.
         return `<div class="history-row${file.missing ? ' history-row-missing' : ''}">` +
-                 `<span class="history-row-name">${file.filename}</span>` +
-                 `<span class="history-row-meta">${file.versions} version${file.versions === 1 ? '' : 's'} · ${formatTimestamp(file.newest)} · ${formatBytes(file.reclaimBytes)}</span>` +
-                 `<span class="flexgrow"></span>` +
+                 `<span class="history-row-text">` +
+                   `<span class="history-row-name">${file.filename}</span>` +
+                   `<span class="history-row-meta">${file.versions} version${file.versions === 1 ? '' : 's'} · ${formatTimestamp(file.newest)} · ${formatBytes(file.reclaimBytes)}</span>` +
+                 `</span>` +
                  action +
                  `<button class="history-row-btn history-row-btn-delete" data-action="history-delete" ${data} data-tip="delete this file's history">delete</button>` +
                `</div>`;

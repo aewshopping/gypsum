@@ -1,6 +1,9 @@
-#modal-history {
+#modal-history[open] {
   display: flex;
   flex-direction: column;
+}
+
+#modal-history {
   margin: auto;
   max-width: min(46rem, 92vw);
   width: max-content;
@@ -39,25 +42,32 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-shrink: 0; /* a row is a flex item of the list: without this a short window squashes it */
   padding: 0.4rem 0.5rem;
   border-radius: 4px;
   background-color: var(--colour-neutral);
 }
 
-.history-row-name,
-.history-row-meta {
+/* Only the text scrolls. min-width lets it shrink below its content, which a flex item
+   otherwise refuses to do — without it the buttons get pushed off the edge instead. */
+.history-row-text {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
   white-space: nowrap;
+  scrollbar-width: thin;
 }
 
 .history-row-meta {
   opacity: 0.75;
   font-size: 0.85em;
+  margin-inline-start: 0.5rem;
 }
 
-/* Buttons keep their width when the row scrolls; without this flex shrinks them to their text */
 .history-row-btn {
   flex-shrink: 0;
+  min-width: 5.25rem;
+  text-align: center;
 }
 
 /* File is no longer in the folder — deleted, or moved outside the app */
@@ -98,4 +108,50 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+/* An explicit display beats the UA's [hidden] rule, so restore it by hand */
+.history-sort-label[hidden] {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  #modal-history {
+    padding: 1rem 0.75rem;
+    max-width: 96vw;
+  }
+
+  .history-row {
+    padding: 0.4rem;
+    gap: 0.35rem;
+  }
+
+  .history-row-btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85em;
+    min-width: 4.5rem;
+  }
+}
+
+@media (max-height: 620px) {
+  #modal-history {
+    padding: 1rem 1.25rem;
+  }
+
+  #modal-history .menu-title {
+    margin-bottom: 0.25rem;
+  }
+
+  .history-note {
+    display: none; /* the reminder is worth a line only when there is room for the list too */
+  }
+
+  #history-summary-line,
+  .history-sort-label {
+    margin-bottom: 0.5rem;
+  }
+
+  .history-clear-btn {
+    margin-top: 0.5rem;
+  }
 }

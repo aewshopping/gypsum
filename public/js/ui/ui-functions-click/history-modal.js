@@ -26,7 +26,12 @@ export async function refreshHistoryModal() {
     const choice = document.getElementById('history-sort-select').value;
     const files = [...summary.files].sort(compareByProperty(...SORT_OPTIONS[choice]));
 
-    document.getElementById('history-summary-line').textContent = renderHistoryTotals(summary);
+    const totals = document.getElementById('history-summary-line');
+    totals.textContent = renderHistoryTotals(summary);
+    totals.hidden = files.length === 0;
+
+    // Nothing to order when the list is empty
+    document.getElementById('history-sort-select').parentElement.hidden = files.length === 0;
     document.getElementById('history-list').innerHTML = renderHistoryList(files);
 }
 
