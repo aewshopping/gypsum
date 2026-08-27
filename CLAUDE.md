@@ -34,8 +34,7 @@ These are non-negotiable. Do not work against them.
 - The entire JS codebase is ~900 lines across ~60 modules. Keep that spirit.
 - Prefer clarity over cleverness. Future-you (or a non-expert collaborator) should be able
   to read any file cold and understand what it does within a minute.
-- Do not introduce abstractions for hypothetical future needs. If three similar lines of code
-  exist in one place, that is fine. Premature abstraction makes the codebase harder to follow.
+- Do not introduce abstractions for hypothetical future needs. Premature abstraction makes the codebase harder to follow.
 
 ### 4. One file, one responsibility
 - Each module handles a single logical concern.
@@ -145,8 +144,9 @@ npx serve .
 
 Open `http://localhost:8000` in the browser. All changes to `public/` are reflected on reload.
 
-There is no hot reload, no watcher, no dev server with special features. A plain file server
-is intentional and sufficient.
+There is no hot reload, no watcher, no dev server with special features. A plain file server is intentional and sufficient.
+
+Make use of screenshots when you have introduced new features. Relying on your expectations for how the app will be behave is not sufficiently reliable and should be verified with screenshots where possible.
 
 ### Running tests (Playwright)
 
