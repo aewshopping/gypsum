@@ -700,6 +700,15 @@ async function setupMockFilesWithLinks(page) {
         makeFile('shopping.txt', 'Shopping list\n\nMilk, eggs, bread #personal'),
         makeFile('my long note.md', '# My Long Note\n\nNothing to see.'),
         makeFile('titled-link.md', '# See [[shopping.txt]]\n\nThe link lives in the H1.'),
+        makeFile('extensionless.md', [
+          '# Extensionless',
+          '',
+          'A path link to [[subdir/nested]] here.',
+          'An aliased link to [[shopping | the groceries]] here.',
+          'Both types exist for [[ambig]] here.',
+        ].join('\n')),
+        makeFile('ambig.txt', 'The .txt one, which an extensionless link should prefer.'),
+        makeFile('ambig.md', '# Ambig\n\nThe .md one.'),
         makeDir('subdir', [
           makeFile('nested.md', '# Nested Note\n\nThe nested target. #personal'),
         ]),
@@ -925,6 +934,69 @@ async function setupMockEmptyDirectoryWithCreate(page) {
 }
 
 /**
+ * Injects a mock window.showDirectoryPicker over a writable folder seeded with two notes,
+ * for the create-a-note-from-an-unresolved-link flow. Sub-directories are created on demand
+ * and record their files under a path prefix, so a note created at 'a/b/c.txt' shows up in
+ * window.__createdFiles under that full path and its folders in window.__createdDirs.
+ * Only the root enumerates, which is all the folder load walks.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithNoteCreation(page) {
+  await page.addInitScript(() => {
+    window.__createdFiles = new Map([
+      ['hub.md', '# Hub\n\nA link to [[shopping.txt]] here.\n'],
+      ['shopping.txt', 'Milk, eggs, bread'],
+    ]);
+    window.__createdDirs = new Set();
+
+    const makeHandle = (path, name) => ({
+      kind: 'file', name,
+      getFile: async () => {
+        const content = window.__createdFiles.get(path) ?? '';
+        return {
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        };
+      },
+      createWritable: async () => ({
+        write: async (content) => { window.__createdFiles.set(path, content); },
+        close: async () => {},
+      }),
+    });
+
+    const makeDir = (prefix) => ({
+      kind: 'directory', name: prefix || 'root',
+      values: async function* () {
+        if (prefix) return;
+        for (const path of window.__createdFiles.keys()) {
+          if (!path.includes('/')) yield makeHandle(path, path);
+        }
+      },
+      getDirectoryHandle: async (name) => {
+        window.__createdDirs.add(`${prefix}${name}`);
+        return makeDir(`${prefix}${name}/`);
+      },
+      // create: true returns an existing file untouched, as the real API does.
+      getFileHandle: async (name, options = {}) => {
+        const path = `${prefix}${name}`;
+        if (window.__createdFiles.has(path)) return makeHandle(path, name);
+        if (options.create) {
+          window.__createdFiles.set(path, '');
+          return makeHandle(path, name);
+        }
+        throw new DOMException(`${name} not found`, 'NotFoundError');
+      },
+      removeEntry: async (name) => { window.__createdFiles.delete(`${prefix}${name}`); },
+    });
+
+    window.showDirectoryPicker = async () => makeDir('');
+  });
+}
+
+/**
  * Clicks the mock folder picker. The folder button lives inside the recent files panel, so the
  * panel is opened to reach it and closed again afterwards, leaving the app in the state it starts
  * in — otherwise every later measurement would be shifted by the width of an open panel.
@@ -937,4 +1009,4 @@ async function loadFolder(page) {
   await page.click('#btn-recent-close');
 }
 
-module.exports = { loadFolder, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks };
+module.exports = { loadFolder, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation };

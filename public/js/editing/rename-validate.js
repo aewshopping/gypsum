@@ -1,9 +1,10 @@
 /**
- * @file Pure validation for the rename-file flow. No DOM or filesystem access.
+ * @file Pure validation for filenames and folder paths. No DOM or filesystem access.
+ * Used by the rename flow and, via link-target-path.js, by the create-note-from-link flow.
  */
 
-const VALID_EXTENSIONS = ['.txt', '.md'];
-const FORBIDDEN_IN_FILENAME = /[\/\\\x00-\x1f]/;
+export const VALID_EXTENSIONS = ['.txt', '.md'];
+export const FORBIDDEN_IN_FILENAME = /[\/\\\x00-\x1f]/;
 
 /**
  * Normalises a folder path: trims, strips leading/trailing slashes, splits on '/',
@@ -13,7 +14,7 @@ const FORBIDDEN_IN_FILENAME = /[\/\\\x00-\x1f]/;
  * @param {string} raw
  * @returns {string|null}
  */
-function normaliseFolder(raw) {
+export function normaliseFolder(raw) {
     const trimmed = (raw ?? '').trim().replace(/^\/+|\/+$/g, '');
     if (trimmed === '') return '';
     const segments = trimmed.split('/').filter(s => s !== '');

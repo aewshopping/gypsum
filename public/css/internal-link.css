@@ -10,7 +10,8 @@
     text-decoration-style: solid;
 }
 
-/* No file matches the name, so there is nothing to open — creating it is not supported yet. */
+/* No file matches the name, so there is nothing to open. The note is created from the
+   editor instead, by pressing Enter right after the link's closing ']]'. */
 .internal-link[data-unresolved="true"] {
     color: color-mix(in srgb, var(--colour-contr) 45%, transparent 55%);
     cursor: default;

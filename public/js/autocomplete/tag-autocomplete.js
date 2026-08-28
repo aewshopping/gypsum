@@ -1,19 +1,22 @@
 import { appState } from '../services/store.js';
 import { getTagArray } from './tag-cache.js';
-import { getNoteNameArray } from '../services/internal-links/note-name-index.js';
-import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, filterTags } from './tag-query-detect.js';
+import { getNoteNameArray, resolveNoteName } from '../services/internal-links/note-name-index.js';
+import { linkTargetToFilepath } from '../services/internal-links/link-target-path.js';
+import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, detectCompletedLink, filterTags } from './tag-query-detect.js';
 import { createPopup, repopulatePopup, destroyPopup, moveActiveItem } from './tag-popup.js';
 import { handlePopupKeydown } from './tag-keyboard-nav.js';
 import { replaceEditorTag, replaceEditorLink, replaceSearchboxTag } from './tag-replace.js';
 import { handleSearchBoxClick } from '../ui/ui-functions-click/searchbox-search-click.js';
+import { createNoteFromLink } from '../ui/ui-functions-click/create-linked-note.js';
 
 let _popup = null;          // HTMLElement|null
 let _context = null;        // 'editor'|'searchbox'|null
-let _kind = null;           // 'tag'|'link'|null — what the editor popup is completing
+let _kind = null;           // 'tag'|'link'|'create-link'|null — what the editor popup is completing
 let _triggerStart = null;   // number
 let _query = null;          // string
 let _anchorEl = null;       // HTMLElement
 let _proxy = null;          // #tag-ac-proxy — zero-size fixed div inside the dialog
+let _pendingNote = null;    // {folder, filename, filepath} the 'create-link' popup would create
 
 /**
  * Creates the proxy div once and appends it to the editor dialog.
@@ -110,7 +113,7 @@ export function handleSearchboxAutocomplete(evt) {
  * @returns {boolean} true if the event was consumed (caller should return early)
  */
 export function handleAutocompleteKeydown(evt) {
-    if (!_popup) return false;
+    if (!_popup) return _maybeOpenCreatePopup(evt);
 
     const cmd = handlePopupKeydown(evt, _popup);
 
@@ -131,7 +134,8 @@ export function handleAutocompleteKeydown(evt) {
     }
     if (cmd.action === 'select') {
         evt.preventDefault();
-        _applySelection(cmd.tag);
+        if (_kind === 'create-link') _createPendingNote();
+        else _applySelection(cmd.tag);
         return true;
     }
     return false;
@@ -171,6 +175,58 @@ function _dismiss() {
     _query = null;
     _anchorEl = null;
     _kind = null;
+    _pendingNote = null;
+}
+
+/**
+ * Opens a one-item popup offering to create the note an unresolved link points at, when
+ * Enter is pressed with the caret right after the ']]' that closes it. Returns false for
+ * every other Enter, leaving it to insert a newline as usual.
+ *
+ * The single item is pre-selected, so the Enter that follows confirms it — handlePopupKeydown
+ * only selects when an item is active.
+ *
+ * @param {KeyboardEvent} evt
+ * @returns {boolean} true if the popup was opened and the event consumed.
+ */
+function _maybeOpenCreatePopup(evt) {
+    if (evt.key !== 'Enter' || !appState.editState) return false;
+
+    const editor = evt.target.closest?.('[data-action="file-content-edit"]');
+    if (!editor) return false;
+
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return false;
+    const caret = sel.getRangeAt(0);
+
+    const link = detectCompletedLink(_textBeforeCaret(editor, caret));
+    if (!link) return false;
+    if (resolveNoteName(link.target) !== null) return false; // the link already goes somewhere
+
+    const pending = linkTargetToFilepath(link.target);
+    if (!pending) return false; // names nothing creatable, e.g. a hidden folder
+
+    evt.preventDefault();
+    _updateEditorProxy(caret);
+
+    const dialog = document.getElementById('file-content-modal');
+    _popup = createPopup([pending.filepath], dialog, '--tag-ac-editor', _createPendingNote, '');
+    moveActiveItem(_popup, 'next');
+    _context = 'editor';
+    _kind = 'create-link';
+    _pendingNote = pending;
+    return true;
+}
+
+/**
+ * Creates the note the 'create-link' popup is offering and navigates to it. Nothing is
+ * inserted into the editor: the link that triggered this is already written.
+ * @returns {void}
+ */
+function _createPendingNote() {
+    const pending = _pendingNote;
+    _dismiss();
+    createNoteFromLink(pending);
 }
 
 /**

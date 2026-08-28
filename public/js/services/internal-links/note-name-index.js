@@ -1,4 +1,5 @@
 import { appState } from '../store.js';
+import { VALID_EXTENSIONS } from '../../editing/rename-validate.js';
 
 let _index = null;
 
@@ -43,7 +44,8 @@ function build() {
 
 /**
  * Returns the alphabetically sorted list of link names to offer in the note picker.
- * Extensions are included — a link is always written with one.
+ * Extensions are included: the picker always writes a link that resolves exactly,
+ * even though resolveNoteName would also accept the name without one.
  * Result is cached until invalidateNoteNameIndex() is called.
  * @returns {string[]}
  */
@@ -54,16 +56,26 @@ export function getNoteNameArray() {
 
 /**
  * Resolves the text inside [[...]] to a file's internalId.
- * Tries the full path first so 'work/notes.md' beats a root-level 'notes.md'.
- * Matching is exact apart from case and surrounding whitespace: a name written
- * without its extension does not resolve.
- * @param {string} name - Raw link text, e.g. 'shopping.txt' or 'work/notes.md'.
+ * A name written without a supported extension is tried again with '.txt' and then
+ * '.md' appended, so '[[bob]]' finds 'bob.txt' — and keeps resolving after the link
+ * has been used to create that file, which is written as '.txt'. Each candidate is
+ * tried as a full path before a bare filename, so 'work/notes.md' beats a root-level
+ * 'notes.md'. Matching is otherwise exact apart from case and surrounding whitespace.
+ * @param {string} name - Raw link text, e.g. 'shopping.txt', 'work/notes.md' or 'bob'.
  * @returns {string|null} The internalId of the matching file, or null if there is none.
  */
 export function resolveNoteName(name) {
     if (!_index) _index = build();
     const key = name.trim().toLowerCase();
-    return _index.byPath.get(key) ?? _index.byFilename.get(key) ?? null;
+    const candidates = VALID_EXTENSIONS.some(ext => key.endsWith(ext))
+        ? [key]
+        : [key, ...VALID_EXTENSIONS.map(ext => key + ext)];
+
+    for (const candidate of candidates) {
+        const fileId = _index.byPath.get(candidate) ?? _index.byFilename.get(candidate);
+        if (fileId !== undefined) return fileId;
+    }
+    return null;
 }
 
 /**
