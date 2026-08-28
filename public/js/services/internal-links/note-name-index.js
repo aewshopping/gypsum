@@ -1,4 +1,5 @@
 import { appState } from '../store.js';
+import { VALID_EXTENSIONS } from '../../editing/rename-validate.js';
 
 let _index = null;
 
@@ -7,12 +8,12 @@ let _index = null;
  * Two maps are kept because a link may be written either path-qualified
  * ('work/notes.md', which is the internalId itself) or as a bare filename
  * ('notes.md'). Both are keyed lowercase so matching is case-insensitive.
+ * The picker list is always path-qualified, whichever form a hand-written link uses.
  * @returns {{byPath: Map<string, string>, byFilename: Map<string, string>, names: string[]}}
  */
 function build() {
     const byPath = new Map();
     const byFilename = new Map();
-    const clashes = new Set();
 
     for (const file of appState.myFiles) {
         byPath.set(file.filepath.toLowerCase(), file.internalId);
@@ -25,17 +26,16 @@ function build() {
         }
         // Two files share a filename. Shortest path wins, ties broken alphabetically —
         // an arbitrary but stable choice, so a bare link always resolves to the same file.
-        clashes.add(key);
         if (file.filepath.length < existing.length ||
             (file.filepath.length === existing.length && file.filepath < existing)) {
             byFilename.set(key, file.internalId);
         }
     }
 
-    // Offer the bare filename where it is unique, the full path where it is not, so every
-    // entry the picker inserts resolves back to exactly the file it was chosen from.
+    // Always offer the full path: it is the internalId, so every entry the picker inserts
+    // resolves straight through byPath, and the folder is part of what the query matches.
     const names = appState.myFiles
-        .map(file => clashes.has(file.filename.toLowerCase()) ? file.filepath : file.filename)
+        .map(file => file.filepath)
         .sort((a, b) => a.localeCompare(b));
 
     return { byPath, byFilename, names };
@@ -43,7 +43,9 @@ function build() {
 
 /**
  * Returns the alphabetically sorted list of link names to offer in the note picker.
- * Extensions are included — a link is always written with one.
+ * Each entry is a full path with its extension, so the picker always writes a link that
+ * resolves exactly — even though resolveNoteName also accepts a bare or extensionless name.
+ * Sorting by path groups a folder's notes together.
  * Result is cached until invalidateNoteNameIndex() is called.
  * @returns {string[]}
  */
@@ -54,16 +56,26 @@ export function getNoteNameArray() {
 
 /**
  * Resolves the text inside [[...]] to a file's internalId.
- * Tries the full path first so 'work/notes.md' beats a root-level 'notes.md'.
- * Matching is exact apart from case and surrounding whitespace: a name written
- * without its extension does not resolve.
- * @param {string} name - Raw link text, e.g. 'shopping.txt' or 'work/notes.md'.
+ * A name written without a supported extension is tried again with '.txt' and then
+ * '.md' appended, so '[[bob]]' finds 'bob.txt' — and keeps resolving after the link
+ * has been used to create that file, which is written as '.txt'. Each candidate is
+ * tried as a full path before a bare filename, so 'work/notes.md' beats a root-level
+ * 'notes.md'. Matching is otherwise exact apart from case and surrounding whitespace.
+ * @param {string} name - Raw link text, e.g. 'shopping.txt', 'work/notes.md' or 'bob'.
  * @returns {string|null} The internalId of the matching file, or null if there is none.
  */
 export function resolveNoteName(name) {
     if (!_index) _index = build();
     const key = name.trim().toLowerCase();
-    return _index.byPath.get(key) ?? _index.byFilename.get(key) ?? null;
+    const candidates = VALID_EXTENSIONS.some(ext => key.endsWith(ext))
+        ? [key]
+        : [key, ...VALID_EXTENSIONS.map(ext => key + ext)];
+
+    for (const candidate of candidates) {
+        const fileId = _index.byPath.get(candidate) ?? _index.byFilename.get(candidate);
+        if (fileId !== undefined) return fileId;
+    }
+    return null;
 }
 
 /**

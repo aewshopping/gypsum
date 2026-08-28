@@ -1,15 +1,26 @@
 /**
- * Wraps the first occurrence of query (case-insensitive) in tag with a <b> element.
- * Tag names are word characters only, so no HTML escaping is needed.
+ * Escapes text for use in HTML body content.
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Wraps the first occurrence of query (case-insensitive) in tag with a highlight span.
+ * Items are not always word characters — the note picker lists filenames, and the
+ * create-note item is text the user typed inside [[...]] — so every part is escaped.
  * @param {string} tag
  * @param {string} query
  * @returns {string}
  */
 function highlightMatch(tag, query) {
-    if (!query) return tag;
-    const i = tag.toLowerCase().indexOf(query.toLowerCase());
-    if (i === -1) return tag;
-    return tag.slice(0, i) + '<span class="tag-autocomplete-match">' + tag.slice(i, i + query.length) + '</span>' + tag.slice(i + query.length);
+    const i = query ? tag.toLowerCase().indexOf(query.toLowerCase()) : -1;
+    if (i === -1) return escapeHtml(tag);
+    return escapeHtml(tag.slice(0, i))
+        + '<span class="tag-autocomplete-match">' + escapeHtml(tag.slice(i, i + query.length)) + '</span>'
+        + escapeHtml(tag.slice(i + query.length));
 }
 
 /**

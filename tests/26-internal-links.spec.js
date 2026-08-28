@@ -3,11 +3,19 @@ const { setupMockFilesWithLinks, loadFolder } = require('./helpers');
 
 // setupMockFilesWithLinks: hub.md links to shopping.txt, subdir/nested.md, a missing
 // file, and an extensionless name; plus fenced/inline-code links that must stay literal.
+// extensionless.md carries the path-qualified, aliased and .txt-vs-.md extensionless cases.
 
 async function openHub(page) {
   await loadFolder(page);
   await expect(page.locator('.note-grid').first()).toBeVisible();
   await page.locator('.note-grid', { hasText: 'Hub' }).click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+}
+
+async function openExtensionless(page) {
+  await loadFolder(page);
+  await expect(page.locator('.note-grid').first()).toBeVisible();
+  await page.locator('.note-grid[data-file-id="extensionless.md"]').click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
 }
 
@@ -54,12 +62,36 @@ test.describe('internal links — rendering', () => {
     await expect(page.locator('a.internal-link', { hasText: 'does-not-exist.md' })).toHaveCount(0);
   });
 
-  test('a name without its extension does not resolve', async ({ page }) => {
+  test('a name without its extension falls back to .txt', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
     await openHub(page);
-    // 'shopping' must not fall back to shopping.txt — matching is exact apart from case.
-    await expect(page.locator('span.internal-link[data-unresolved="true"]', { hasText: /^shopping$/ })).toBeVisible();
+    const link = page.locator('a.internal-link', { hasText: /^shopping$/ });
+    await expect(link).toHaveAttribute('data-link-target', 'shopping.txt');
+  });
+
+  test('a name without its extension falls back to .md when there is no .txt', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openExtensionless(page);
+    const link = page.locator('a.internal-link', { hasText: /^subdir\/nested$/ });
+    await expect(link).toHaveAttribute('data-link-target', 'subdir/nested.md');
+  });
+
+  test('.txt wins over .md when both exist for an extensionless name', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openExtensionless(page);
+    const link = page.locator('a.internal-link', { hasText: /^ambig$/ });
+    await expect(link).toHaveAttribute('data-link-target', 'ambig.txt');
+  });
+
+  test('an extensionless link still honours its alias', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openExtensionless(page);
+    const link = page.locator('a.internal-link', { hasText: 'the groceries' });
+    await expect(link).toHaveAttribute('data-link-target', 'shopping.txt');
   });
 
   test('links inside code fences and inline code stay literal', async ({ page }) => {
@@ -68,8 +100,9 @@ test.describe('internal links — rendering', () => {
     await openHub(page);
     await expect(page.locator('#modal-content-text pre code')).toContainText('[[fenced-only.md]]');
     await expect(page.locator('#modal-content-text p code')).toContainText('[[inline-only.md]]');
-    // Only the four out-of-code links produced anchors (shopping, nested, alias).
-    await expect(page.locator('#modal-content-text a.internal-link')).toHaveCount(3);
+    // Four of the five out-of-code links resolved; only does-not-exist.md did not.
+    await expect(page.locator('#modal-content-text a.internal-link')).toHaveCount(4);
+    await expect(page.locator('#modal-content-text span.internal-link[data-unresolved="true"]')).toHaveCount(1);
   });
 
 });
@@ -227,6 +260,59 @@ test.describe('internal links — note picker', () => {
     await page.keyboard.press('Enter');
     await expect(page.locator('#modal-content-text pre')).toContainText('[[shopping.txt]]');
     await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
+  });
+
+  test('an ordinary completion popup carries no create styling', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[');
+    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
+    await expect(page.locator('.tag-autocomplete-popup')).not.toHaveAttribute('data-kind', /.*/);
+    expect(await page.locator('.tag-autocomplete-popup')
+      .evaluate(el => getComputedStyle(el).borderTopStyle)).toBe('solid');
+  });
+
+  test('a note in a folder is offered by its full path', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[nested');
+    await expect(page.locator('.tag-autocomplete-item')).toHaveCount(1);
+    await expect(page.locator('.tag-autocomplete-item')).toHaveText('subdir/nested.md');
+  });
+
+  test('a folder name matches the notes inside it', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[subdir');
+    await expect(page.locator('.tag-autocomplete-item')).toHaveText('subdir/nested.md');
+  });
+
+  test('selecting a note in a folder inserts a link that resolves', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[nested');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#modal-content-text pre')).toContainText('[[subdir/nested.md]]');
+
+    // Back to html view: the inserted link must resolve, not render inert.
+    await page.evaluate(() => {
+      const toggle = document.getElementById('render_toggle');
+      if (toggle.checked) toggle.click();
+    });
+    await expect(page.locator('a.internal-link[data-link-target="subdir/nested.md"]').last()).toBeVisible();
   });
 
   test('a query containing spaces still matches — the caret walk must not stop at a space', async ({ page }) => {

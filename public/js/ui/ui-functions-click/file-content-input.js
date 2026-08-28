@@ -2,7 +2,7 @@ import { appState } from '../../services/store.js';
 import { scheduleAutosave } from '../../editing/autosave.js';
 import { refreshDirtyState } from '../../editing/manage-unsaved-changes.js';
 import { updateUnsavedIndicator } from '../ui-functions-render/render-file-content.js';
-import { handleEditorAutocomplete } from '../../autocomplete/tag-autocomplete.js';
+import { handleEditorAutocomplete } from '../../autocomplete/autocomplete.js';
 
 /**
  * Updates dirty state and the unsaved indicator on each edit.

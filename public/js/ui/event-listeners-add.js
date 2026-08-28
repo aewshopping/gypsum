@@ -54,7 +54,8 @@ import {
 } from './ui-functions-click/font-settings.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
 import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
-import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside, initTagAutocomplete } from '../autocomplete/tag-autocomplete.js';
+import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
+import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { initTooltip } from './tooltip.js';
 
@@ -63,7 +64,7 @@ import { initTooltip } from './tooltip.js';
  * This function is called once when the application starts.
  */
 export function addActionHandlers() {
-    initTagAutocomplete();
+    initPopupAnchor();
     initTooltip();
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);

@@ -1,3 +1,7 @@
+import { regex_internal_link } from '../constants.js';
+
+const COMPLETED_LINK_REGEX = new RegExp(regex_internal_link.source + '$');
+
 /**
  * Detects whether the text before the caret ends with a '#tag' trigger.
  * Group 1 is '' (start of string) or a single space/newline, ensuring '#' is not
@@ -25,6 +29,20 @@ export function detectEditorLinkTrigger(textBeforeCaret) {
     const match = textBeforeCaret.match(/\[\[([^\[\]\n]*)$/);
     if (!match) return null;
     return { query: match[1], triggerStart: match.index };
+}
+
+/**
+ * Detects whether the caret sits immediately after the ']]' of a complete internal link.
+ * Built from the same regex_internal_link the renderer and the file-load scanner use, so
+ * the target read here is exactly the one that would be resolved, anchored with '$' so it
+ * only fires at the closing brackets. Any '|alias' part is discarded.
+ * @param {string} textBeforeCaret
+ * @returns {{ target: string }|null} target: the link target, trimmed.
+ */
+export function detectCompletedLink(textBeforeCaret) {
+    const match = textBeforeCaret.match(COMPLETED_LINK_REGEX);
+    if (!match) return null;
+    return { target: match[1].trim() };
 }
 
 /**

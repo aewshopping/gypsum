@@ -29,9 +29,10 @@ function escapeHtml(text) {
 
 /**
  * Replaces [[note.md]] and [[note.md|label]] with an anchor carrying the resolved file id.
- * A link whose target matches no loaded file renders as inert text instead - creating the
- * missing note is not supported yet. Links inside code fences and inline code are left as
- * written, using the same protected-span check tagParser uses.
+ * A link whose target matches no loaded file renders as inert text instead; the note is
+ * created from the editor, by pressing Enter right after the closing ']]'. Links inside
+ * code fences and inline code are left as written, using the same protected-span check
+ * tagParser uses.
  *
  * @param {string} text The note text, after front matter has been swapped for its placeholder.
  * @returns {string} The text with internal links replaced by HTML.

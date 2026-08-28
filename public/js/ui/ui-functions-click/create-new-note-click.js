@@ -1,10 +1,9 @@
 import { appState, FILE_PROPERTIES } from '../../services/store.js';
-import { getFileDataAndMetadata } from '../../services/file-parsing/file-info.js';
+import { createEmptyNote } from '../../services/create-note.js';
 import { handleOpenFileContent } from './open-file-content-view-trans.js';
 import { activateTextMode } from '../../editing/activate-text-mode.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
-import { invalidateNoteNameIndex } from '../../services/internal-links/note-name-index.js';
 
 /**
  * Finds the first available note-N.txt filename by querying the real filesystem.
@@ -40,17 +39,7 @@ export async function handleCreateNewNote(event, target) {
     if (!appState.dirHandle) return;
 
     const newFilename = await findUnusedFilename(appState.dirHandle);
-
-    const newHandle = await appState.dirHandle.getFileHandle(newFilename, { create: true });
-    const writable = await newHandle.createWritable();
-    await writable.write('');
-    await writable.close();
-
-    const fileObj = await getFileDataAndMetadata(newHandle, appState.myFiles.length);
-    const newFile = { ...fileObj, filepath: newFilename, internalId: newFilename };
-    appState.myFiles.push(newFile);
-    invalidateNoteNameIndex(); // the new note becomes linkable immediately
-    appState.myFileHandlesMap.set(newFilename, newHandle);
+    await createEmptyNote('', newFilename);
 
     // handleOpenFileContent reads fileId from target.dataset.fileId synchronously,
     // so we set and remove the attribute around the call with no async gap.
