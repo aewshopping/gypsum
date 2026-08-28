@@ -262,6 +262,46 @@ test.describe('internal links — note picker', () => {
     await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
   });
 
+  test('a note in a folder is offered by its full path', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[nested');
+    await expect(page.locator('.tag-autocomplete-item')).toHaveCount(1);
+    await expect(page.locator('.tag-autocomplete-item')).toHaveText('subdir/nested.md');
+  });
+
+  test('a folder name matches the notes inside it', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[subdir');
+    await expect(page.locator('.tag-autocomplete-item')).toHaveText('subdir/nested.md');
+  });
+
+  test('selecting a note in a folder inserts a link that resolves', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[nested');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#modal-content-text pre')).toContainText('[[subdir/nested.md]]');
+
+    // Back to html view: the inserted link must resolve, not render inert.
+    await page.evaluate(() => {
+      const toggle = document.getElementById('render_toggle');
+      if (toggle.checked) toggle.click();
+    });
+    await expect(page.locator('a.internal-link[data-link-target="subdir/nested.md"]').last()).toBeVisible();
+  });
+
   test('a query containing spaces still matches — the caret walk must not stop at a space', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');

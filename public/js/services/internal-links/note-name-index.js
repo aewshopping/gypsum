@@ -8,12 +8,12 @@ let _index = null;
  * Two maps are kept because a link may be written either path-qualified
  * ('work/notes.md', which is the internalId itself) or as a bare filename
  * ('notes.md'). Both are keyed lowercase so matching is case-insensitive.
+ * The picker list is always path-qualified, whichever form a hand-written link uses.
  * @returns {{byPath: Map<string, string>, byFilename: Map<string, string>, names: string[]}}
  */
 function build() {
     const byPath = new Map();
     const byFilename = new Map();
-    const clashes = new Set();
 
     for (const file of appState.myFiles) {
         byPath.set(file.filepath.toLowerCase(), file.internalId);
@@ -26,17 +26,16 @@ function build() {
         }
         // Two files share a filename. Shortest path wins, ties broken alphabetically —
         // an arbitrary but stable choice, so a bare link always resolves to the same file.
-        clashes.add(key);
         if (file.filepath.length < existing.length ||
             (file.filepath.length === existing.length && file.filepath < existing)) {
             byFilename.set(key, file.internalId);
         }
     }
 
-    // Offer the bare filename where it is unique, the full path where it is not, so every
-    // entry the picker inserts resolves back to exactly the file it was chosen from.
+    // Always offer the full path: it is the internalId, so every entry the picker inserts
+    // resolves straight through byPath, and the folder is part of what the query matches.
     const names = appState.myFiles
-        .map(file => clashes.has(file.filename.toLowerCase()) ? file.filepath : file.filename)
+        .map(file => file.filepath)
         .sort((a, b) => a.localeCompare(b));
 
     return { byPath, byFilename, names };
@@ -44,8 +43,9 @@ function build() {
 
 /**
  * Returns the alphabetically sorted list of link names to offer in the note picker.
- * Extensions are included: the picker always writes a link that resolves exactly,
- * even though resolveNoteName would also accept the name without one.
+ * Each entry is a full path with its extension, so the picker always writes a link that
+ * resolves exactly — even though resolveNoteName also accepts a bare or extensionless name.
+ * Sorting by path groups a folder's notes together.
  * Result is cached until invalidateNoteNameIndex() is called.
  * @returns {string[]}
  */
