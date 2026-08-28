@@ -64,7 +64,9 @@ export function handleEditorAutocomplete(evt) {
 
     const onSelect = (tag) => { _applySelection(tag); };
 
-    if (!_popup || _context !== 'editor') {
+    // A create-note popup is never recycled into a completion list: it is a different act,
+    // and discarding the element is what guarantees none of its styling can carry over.
+    if (!_popup || _context !== 'editor' || _kind === 'create-link') {
         destroyPopup(_popup);
         const dialog = document.getElementById('file-content-modal');
         _popup = createPopup(items, dialog, '--tag-ac-editor', onSelect, trigger.query);
@@ -211,6 +213,7 @@ function _maybeOpenCreatePopup(evt) {
 
     const dialog = document.getElementById('file-content-modal');
     _popup = createPopup([pending.filepath], dialog, '--tag-ac-editor', _createPendingNote, '');
+    _popup.dataset.kind = 'create'; // styles the popup as an offer to create, not to complete
     moveActiveItem(_popup, 'next');
     _context = 'editor';
     _kind = 'create-link';

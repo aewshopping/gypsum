@@ -66,3 +66,19 @@
     background-color: var(--colour-contr);
     color: var(--colour-neutral);
 }
+
+/* The create-a-note offer, not a completion. A dashed edge for 'does not exist yet', and the
+   '+' from #btn-new-note for 'this will create it'. The glyph inherits the item's colour so
+   it inverts with the row — this popup's single item is active from the moment it opens. */
+.tag-autocomplete-popup[data-kind="create"] {
+    border-style: dashed;
+    /* This popup's one item is active from the moment it opens, and an active row fills the
+       popup edge to edge with --colour-contr — the same colour as the border, which would
+       hide it. The gutter keeps a strip of background behind the dashed edge so it reads. */
+    padding: 3px;
+}
+
+.tag-autocomplete-popup[data-kind="create"] .tag-autocomplete-item::before {
+    content: '+';
+    margin-right: 8px;
+}

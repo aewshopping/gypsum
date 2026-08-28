@@ -262,6 +262,19 @@ test.describe('internal links — note picker', () => {
     await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
   });
 
+  test('an ordinary completion popup carries no create styling', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await openHubInTextMode(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n[[');
+    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
+    await expect(page.locator('.tag-autocomplete-popup')).not.toHaveAttribute('data-kind', /.*/);
+    expect(await page.locator('.tag-autocomplete-popup')
+      .evaluate(el => getComputedStyle(el).borderTopStyle)).toBe('solid');
+  });
+
   test('a note in a folder is offered by its full path', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
