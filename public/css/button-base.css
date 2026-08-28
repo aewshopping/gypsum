@@ -24,6 +24,13 @@
     color: inherit;
 }
 
+/* For an icon button that overlaps something it has to cover rather than let show through — the
+   two that straddle the filter box's edge sit on its border line. --colour-neutral because that is
+   the page behind it. */
+.svg-bg-solid {
+    background-color: var(--colour-neutral);
+}
+
 .svg-wrapper-style:has(:focus-visible) {
     outline: 2px solid var(--colour-contr);
 }
