@@ -1,14 +1,6 @@
 /* This is for consistent styling of svg buttons and labels etc */
 
 .svg-wrapper-style {
-    /* The colour the glyph settles at. currentColor, not --colour-contr, so a button follows
-       whatever it is sitting on: on the page that is the body's --colour-contr, but in the file
-       modal header it is --color-mono-contr, the black-or-white the user's file colour needs.
-       A state wanting a colour of its own — the save button's inverted plate — repoints this
-       rather than setting `color`, so the hover below still reaches it without an ID-level
-       hover rule of its own. */
-    --svg-icon-colour: currentColor;
-
     cursor: pointer;
     position:relative;
     display:inline-block;
@@ -25,11 +17,11 @@
        stated rather than left out because a <button> with no author background falls back to the
        UA's own `buttonface`, not to nothing, so omitting it plates the button in browser grey. */
     background-color: transparent;
-    color: color-mix(in srgb, var(--svg-icon-colour), transparent 40%);
 
-    &:hover {
-        color: var(--svg-icon-colour);
-    }
+    /* Follows whatever it sits on: --colour-contr on the page, but --color-mono-contr in the file
+       modal header, the black-or-white the user's file colour needs. A <button> has to be told —
+       the UA sheet hands it `buttontext` otherwise. */
+    color: inherit;
 }
 
 .svg-wrapper-style:has(:focus-visible) {
@@ -47,11 +39,21 @@
     position:relative;
     height:100%;
     width:100%;
-    color:inherit;  
-    
+
+    /* The resting state is the glyph, faded. Opacity on the whole drawing rather than a
+       translucent colour, because a translucent colour is applied per shape: these glyphs stroke
+       over their own fills and repeat paths on top of themselves, so the overlaps composite back
+       towards solid while the lone strokes go faint, and one icon fades unevenly against itself
+       and against its neighbours. Fading the finished picture is the same multiplier everywhere. */
+    opacity: 0.6;
+
     g, path {
         stroke: currentColor;
     }
+}
+
+.svg-wrapper-style:hover > svg {
+    opacity: 1;
 }
 
 
@@ -107,9 +109,9 @@
     }
 
     /* This button has a label, so its glyph is not the thing being hovered — the whole row is.
-       Tracking the label rather than dimming on its own is what keeps the two reading as one. */
-    & .svg-wrapper-style {
-        color: inherit;
+       Holding it at full strength alongside the text is what keeps the two reading as one. */
+    & .svg-wrapper-style > svg {
+        opacity: 1;
     }
 
     &:hover:not(:disabled) {

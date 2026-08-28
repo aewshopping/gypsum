@@ -41,7 +41,7 @@ export async function handleLoadFolder() {
  * @returns {void}
  */
 export function handleLoadOPFS() {
-    loadAndProcess(loadFromOPFS);
+    loadAndProcess(loadFromOPFS, 'btn-load-opfs');
 }
 
 /**
@@ -50,7 +50,7 @@ export function handleLoadOPFS() {
  * @returns {Promise<void>}
  */
 export async function handleImportOPFS() {
-    const btn = document.getElementById('btn_loadDirectoryHandles');
+    const btn = document.getElementById('btn-import-opfs');
     btn.classList.add('loading');
     appState.myFiles = [];
     appState.isLoading = true;
@@ -94,10 +94,11 @@ function postLoad() {
 /**
  * Calls a loader function then runs shared post-load steps.
  * @param {Function} loaderFn - Async function that populates appState.myFiles.
+ * @param {string} btnId - Id of the button that was pressed; it wears .loading while the load runs.
  * @returns {Promise<void>}
  */
-async function loadAndProcess(loaderFn) {
-    const btn = document.getElementById('btn_loadDirectoryHandles');
+async function loadAndProcess(loaderFn, btnId) {
+    const btn = document.getElementById(btnId);
     btn.classList.add('loading');
     appState.myFiles = [];
     appState.isLoading = true;

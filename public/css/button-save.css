@@ -1,5 +1,5 @@
 #save-btn {
-    --svg-icon-colour: var(--colour-neutral);
+    color: var(--colour-neutral);
 }
 
 /* Unsaved is the one state that shouts: an inverted plate, whatever colour the file carries. Every
@@ -15,12 +15,9 @@ body:has(#autosave-enabled:not(:checked)) #modal-content:not(.saved) #save-btn,
    shouting: no plate, and the same colouring as saved. The two states still differ by glyph
    (the svg:nth-child swap below), so which one is showing stays readable — it just no longer
    competes for attention. Suppressing the plate has to be done by not matching the rule above
-   rather than by overriding it, because the button has no background of its own to fall back to.
-
-   These states set --svg-icon-colour rather than `color` so that the shared hover in
-   button-base.css still reaches them — an ID setting `color` would swallow it. */
+   rather than by overriding it, because the button has no background of its own to fall back to. */
 body:has(#autosave-enabled:checked) #modal-content:not(.saved) #save-btn:not(.save-error) {
-    --svg-icon-colour: currentColor;
+    color: inherit;
 }
 
 #modal-content:not(.saved) #save-btn svg:nth-child(2) {
@@ -31,7 +28,7 @@ body:has(#autosave-enabled:checked) #modal-content:not(.saved) #save-btn:not(.sa
 }
 
 #modal-content.saved #save-btn {
-    --svg-icon-colour: currentColor;
+    color: inherit;
 }
 
 #modal-content:not(.current-version) #save-btn {
@@ -44,7 +41,7 @@ body:has(#autosave-enabled:checked) #modal-content:not(.saved) #save-btn:not(.sa
 }
 
 #save-btn.save-error {
-    --svg-icon-colour: var(--colour-contr-warning);
+    color: var(--colour-contr-warning);
 }
 
 @keyframes save-disk-spin {

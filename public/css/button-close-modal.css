@@ -1,27 +1,5 @@
-.modal-close-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.6em;
-    height: 1.6em;
-    padding: 2px;
-    background-color: transparent;
-    border:1.5px solid transparent;
-    border-radius: 5px;
-    cursor:pointer;
-    color: var(--colour-compl-contr);
-
-    &:hover {
-        border:1.5px solid var(--colour-compl-contr);
-        box-shadow: var(--hover-box-shadow);
-    }
-}
-
-.modal-close-icon {
-    width: 100%;
-    height: 100%;
-    color: inherit;
-}
+/* The close buttons in these three dialogs are .svg-wrapper-style like every other square icon
+   button — see button-base.css. All this class does now is put them in the corner. */
 
 #modal-settings .modal-close-btn,
 #modal-file-options .modal-close-btn,
