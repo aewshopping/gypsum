@@ -1,6 +1,14 @@
 /* This is for consistent styling of svg buttons and labels etc */
 
 .svg-wrapper-style {
+    /* The colour the glyph settles at. currentColor, not --colour-contr, so a button follows
+       whatever it is sitting on: on the page that is the body's --colour-contr, but in the file
+       modal header it is --color-mono-contr, the black-or-white the user's file colour needs.
+       A state wanting a colour of its own — the save button's inverted plate — repoints this
+       rather than setting `color`, so the hover below still reaches it without an ID-level
+       hover rule of its own. */
+    --svg-icon-colour: currentColor;
+
     cursor: pointer;
     position:relative;
     display:inline-block;
@@ -9,35 +17,24 @@
     flex-shrink: 0;
     border-radius: 5px;
     padding: 0px;
+    /* Never shown by this class, but it keeps every icon button one size whether or not something
+       else draws on it — see .filters-options-style, and #btn-recent-toggle's width animation. */
     border: 2px solid transparent;
-    color: var(--colour-contr);
-    /* Colour is not this class's business — the two classes below carry it. Transparent is stated
-       rather than left out because a <button> with no author background falls back to the UA's own
-       `buttonface`, not to nothing, so omitting it plates the button in browser grey. */
+
+    /* The button is nothing but its glyph: no plate at rest, none on hover either. Transparent is
+       stated rather than left out because a <button> with no author background falls back to the
+       UA's own `buttonface`, not to nothing, so omitting it plates the button in browser grey. */
     background-color: transparent;
+    color: color-mix(in srgb, var(--svg-icon-colour), transparent 40%);
 
     &:hover {
-        border: 2px solid var(--colour-contr);
-        box-shadow: var(--hover-box-shadow);
+        color: var(--svg-icon-colour);
     }
 }
 
 .svg-wrapper-style:has(:focus-visible) {
     outline: 2px solid var(--colour-contr);
 }
-
-/* Sits on the page background. */
-.svg-bg-solid {
-    background-color: var(--colour-neutral);
-}
-
-/* Sits on a background the user picked, so it cannot name a colour of its own: it veils whatever
-   is behind it, just enough to carry the glyph. On a file with no colour the veil is
-   --colour-neutral-alt over --colour-neutral-alt, and disappears by itself. */
-.svg-bg-tint {
-    background-color: color-mix(in oklch, var(--colour-neutral-alt) 55%, transparent);
-}
-
 
 .svg-wrapper-style input{
     position:absolute;
@@ -109,9 +106,10 @@
         outline: 2px solid var(--colour-contr);
     }
 
-    & .svg-wrapper-style:hover{
-        box-shadow: none;
-        border: 2px solid transparent;
+    /* This button has a label, so its glyph is not the thing being hovered — the whole row is.
+       Tracking the label rather than dimming on its own is what keeps the two reading as one. */
+    & .svg-wrapper-style {
+        color: inherit;
     }
 
     &:hover:not(:disabled) {

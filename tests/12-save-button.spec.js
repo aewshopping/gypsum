@@ -253,8 +253,8 @@ test.describe('Ctrl+S keyboard shortcut', () => {
 
 /**
  * Reads the computed background and text colour of the save button, plus the background of
- * a neighbouring header button, which is the plain .svg-bg-tint the save button should match
- * when it is not shouting.
+ * a neighbouring header button, which is the plain transparent icon button the save button
+ * should match when it is not shouting.
  */
 async function saveBtnColours(page) {
   return page.evaluate(() => {

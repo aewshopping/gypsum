@@ -69,13 +69,6 @@
     border-width: calc(2px * (1 - var(--sidebar-progress)));
 }
 
-/* Plain glyphs, both of them: no border or shadow on hover. */
-/*#btn-recent-toggle:hover,
-#btn-recent-close:hover {
-    border-color: transparent;
-    box-shadow: none;
-}*/
-
 /* Three sections down the panel: this one and the footer take the height they need, and the list
    between them takes whatever is left. */
 .sidebar-recent-header {

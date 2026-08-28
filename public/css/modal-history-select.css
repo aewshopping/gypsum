@@ -97,6 +97,9 @@
     border-radius: 4px;
 }
 
+/* The one deliberate exception to the shared icon-button hover in button-base.css: this button
+   does not just brighten, it inverts to a solid plate and slides left over the history select,
+   which inverts along with it. The rules are ID-level, so they outrank the shared one cleanly. */
 #file-options-btn {
     transition: margin 0.3s, color 0.4s, background-color 0.4s;
 
@@ -112,7 +115,6 @@ body:has(#file-options-btn:hover) :is(
     #file-options-btn) {
     background-color: var(--colour-contr);
     color: var(--colour-neutral);
-    box-shadow: none;
 }
 
 body:has(#file-options-btn:hover) #file-options-btn {
