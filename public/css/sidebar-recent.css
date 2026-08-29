@@ -90,11 +90,6 @@
     flex: none;
     font-size: 0.8125em;
     opacity: 0.8;
-
-    /* The app styles no links of its own, so this one would otherwise arrive in browser blue. */
-    & a {
-        color: inherit;
-    }
 }
 
 #sidebar-recent-list {
