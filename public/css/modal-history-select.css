@@ -110,8 +110,7 @@
 }
 
 body:has(#file-options-btn:hover) :is(
-    #file-content-history-select,  
-    #file-options-btn svg, 
+    #file-content-history-select,
     #file-options-btn) {
     background-color: var(--colour-contr);
     color: var(--colour-neutral);

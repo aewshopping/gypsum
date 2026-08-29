@@ -19,13 +19,16 @@
    warning-coloured, which is the part that says what clearing will do — see filters.css. */
 #clear-filters-btn {
 	right:10px;
+	/* Re-stated, not redundant: .svg-wrapper-style also sets position (relative), ties with
+	   .filter-options-position on specificity, and wins on import order — button-base.css is
+	   imported long after this file. An id outranks them both. */
 	position:absolute;
 }
 
 
 #search-highlights-toggle-label {
     right:calc(10px + var(--btn-size) * 1.5);
-	position:absolute;
+	position:absolute; /* see #clear-filters-btn above */
 }
 
 /* Define the default (checked) state variables */

@@ -18,13 +18,7 @@
 	align-items: left;
 }
 
-.flex-wrap {
-	flex-wrap: wrap;
-	gap:5px;
-}
-
 .flexgrow {flex-grow: 10}
-.flexgrow-weak {flex-grow: 1}
 
 .justify-content-center {
 	justify-content: center;
@@ -39,7 +33,6 @@
 	z-index:1;
 }
 
-
 .opacity-0 {
 	opacity:0;
 	/* visibility: hidden */ /* <-- more performant? */
@@ -50,8 +43,4 @@
 }
 .padding-top {
 	padding-top: 20px;
-}
-
-.test-outline > * {
-border: 1px solid red;
 }

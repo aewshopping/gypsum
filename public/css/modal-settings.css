@@ -44,17 +44,6 @@
     font-family: attr(data-font), monospace;
 }
 
-.settings-number-input {
-    width: 3.5em;
-    padding: 2px 4px;
-    border: 1px solid var(--colour-contr);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--colour-contr);
-    font: inherit;
-    text-align: center;
-}
-
 .settings-reset-btn {
     width: 1.2em;
     height: 1.2em;
@@ -87,13 +76,6 @@
     column-gap: 20px;
     row-gap: 4px;
     padding-top: 16px;
-}
-
-.settings-shortcuts-heading {
-    grid-column: 1 / -1;
-    margin: 0 0 8px;
-    font-size: 1em;
-    font-weight: 600;
 }
 
 .settings-shortcuts-group {

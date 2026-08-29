@@ -86,11 +86,6 @@
     gap: 4px;
 }
 
-.sidebar-recent-title {
-    margin: 0;
-    font-size: 1em;
-}
-
 .sidebar-recent-footer {
     flex: none;
     font-size: 0.8125em;
