@@ -53,6 +53,7 @@
        towards solid while the lone strokes go faint, and one icon fades unevenly against itself
        and against its neighbours. Fading the finished picture is the same multiplier everywhere. */
     opacity: 0.6;
+    transition: opacity 0.2s;
 
     g, path {
         stroke: currentColor;
