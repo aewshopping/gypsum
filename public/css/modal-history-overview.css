@@ -3,25 +3,15 @@
   flex-direction: column;
 }
 
+/* Sized to its list rather than to a fixed width — the shell it shares is in modal-info.css. */
 #modal-history {
-  margin: auto;
   max-width: min(46rem, 92vw);
   width: max-content;
-  padding: 1.5rem;
-  border: 2px solid var(--colour-contr);
-  border-radius: 8px;
-  background-color: var(--colour-neutral-alt);
-  color: var(--colour-contr);
-}
-
-#modal-history::backdrop {
-  background-color: rgba(0, 0, 0, 0.65);
 }
 
 .history-note {
   margin: 0 0 0.5rem;
   font-style: italic;
-  opacity: 0.75;
 }
 
 #history-summary-line {
@@ -52,7 +42,7 @@
   flex-shrink: 0; /* a row is a flex item of the list: without this a short window squashes it */
   padding: 0.4rem 0.5rem;
   border-radius: 4px;
-  background-color: var(--colour-neutral);
+  background-color: var(--colour-neutral-alt);
 }
 
 .history-row-main {
@@ -67,7 +57,6 @@
 }
 
 .history-row-meta {
-  opacity: 0.75;
   font-size: 0.85em;
   margin-inline-start: 0.5rem;
 }
@@ -84,7 +73,7 @@
   align-self: start;
   height: 4px;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral) 60%);
+  background: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral-alt) 60%);
   transform-origin: left center;
   transform: scaleX(calc(var(--size-pct) / 100));
 }
@@ -100,7 +89,8 @@
   align-items: center;
   gap: 0.5rem;
   padding-inline-start: 0.5rem;
-  background-color: var(--colour-neutral);
+  /* Must stay identical to .history-row: this is the mask that hides text scrolling under it. */
+  background-color: var(--colour-neutral-alt);
 }
 
 .history-row-btn {
@@ -143,7 +133,7 @@
 
 .history-clear-btn:hover {
   background-color: var(--colour-contr);
-  color: var(--colour-neutral-alt);
+  color: var(--colour-neutral);
 }
 
 .history-clear-btn {
@@ -152,7 +142,6 @@
 
 .history-empty {
   margin: 0;
-  opacity: 0.75;
 }
 
 .history-sort-label {
@@ -189,7 +178,7 @@
     padding: 1rem 1.25rem;
   }
 
-  #modal-history .menu-title {
+  #modal-history h2 {
     margin-bottom: 0.25rem;
   }
 

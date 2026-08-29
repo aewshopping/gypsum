@@ -1,22 +1,3 @@
-#modal-settings {
-    margin: auto;
-    padding: 24px 32px;
-    position: relative;
-    border: 2px solid var(--colour-contr);
-    border-radius: 6px;
-    background-color: var(--colour-neutral-alt);
-    color: var(--colour-contr);
-    min-width: 320px;
-}
-
-#modal-settings::backdrop {
-    background: rgba(0, 0, 0, 0.65);
-}
-
-#modal-settings .menu-title {
-    margin-top:0;
-}
-
 #modal-settings .settings-row {
     display: flex;
     align-items: center;
@@ -42,17 +23,6 @@
 /* Font-style selects self-identify their font via data-font; use that instead of --fontfam-app-input */
 [data-font] {
     font-family: attr(data-font), monospace;
-}
-
-.settings-number-input {
-    width: 3.5em;
-    padding: 2px 4px;
-    border: 1px solid var(--colour-contr);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--colour-contr);
-    font: inherit;
-    text-align: center;
 }
 
 .settings-reset-btn {
@@ -87,13 +57,6 @@
     column-gap: 20px;
     row-gap: 4px;
     padding-top: 16px;
-}
-
-.settings-shortcuts-heading {
-    grid-column: 1 / -1;
-    margin: 0 0 8px;
-    font-size: 1em;
-    font-weight: 600;
 }
 
 .settings-shortcuts-group {

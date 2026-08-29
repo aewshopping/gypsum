@@ -5,25 +5,30 @@
 }
 
 
-.filters-options-style {
-	border: 2px solid var(--colour-highlight) !important;
+/* The two buttons that straddle the filter box's edge wear its border, so they read as part of it
+   rather than as loose icons. Named with .svg-wrapper-style so it outranks that class's own
+   transparent border — this file is imported long before button-base.css. */
+.svg-wrapper-style.filters-options-style {
+	border: 2px solid var(--colour-highlight);
 }
 
 
 
 
+/* No hover styling of its own: hovering it turns #filter-box and every .filter-pill inside
+   warning-coloured, which is the part that says what clearing will do — see filters.css. */
 #clear-filters-btn {
 	right:10px;
+	/* Re-stated, not redundant: .svg-wrapper-style also sets position (relative), ties with
+	   .filter-options-position on specificity, and wins on import order — button-base.css is
+	   imported long after this file. An id outranks them both. */
 	position:absolute;
-	&:hover {
-		border: 2px solid var(--colour-contr-warning) !important;
-	}
 }
 
 
 #search-highlights-toggle-label {
     right:calc(10px + var(--btn-size) * 1.5);
-	position:absolute;
+	position:absolute; /* see #clear-filters-btn above */
 }
 
 /* Define the default (checked) state variables */

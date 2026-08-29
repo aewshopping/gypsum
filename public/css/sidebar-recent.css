@@ -69,13 +69,6 @@
     border-width: calc(2px * (1 - var(--sidebar-progress)));
 }
 
-/* Plain glyphs, both of them: no border or shadow on hover. */
-/*#btn-recent-toggle:hover,
-#btn-recent-close:hover {
-    border-color: transparent;
-    box-shadow: none;
-}*/
-
 /* Three sections down the panel: this one and the footer take the height they need, and the list
    between them takes whatever is left. */
 .sidebar-recent-header {
@@ -93,20 +86,10 @@
     gap: 4px;
 }
 
-.sidebar-recent-title {
-    margin: 0;
-    font-size: 1em;
-}
-
 .sidebar-recent-footer {
     flex: none;
     font-size: 0.8125em;
     opacity: 0.8;
-
-    /* The app styles no links of its own, so this one would otherwise arrive in browser blue. */
-    & a {
-        color: inherit;
-    }
 }
 
 #sidebar-recent-list {

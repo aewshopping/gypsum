@@ -1,17 +1,3 @@
-#modal-file-options {
-    margin: auto;
-    padding: 4px 28px 24px 28px;
-    border: 2px solid var(--colour-contr);
-    border-radius: 6px;
-    background-color: var(--colour-neutral-alt);
-    color: var(--colour-contr);
-    min-width: 320px;
-}
-
-#modal-file-options::backdrop {
-    background: rgba(0, 0, 0, 0.65);
-}
-
 .file-options-form {
     display: flex;
     flex-direction: column;
@@ -39,7 +25,7 @@
     padding: 6px 8px;
     border: 1px solid var(--colour-contr);
     border-radius: 4px;
-    background: var(--colour-neutral);
+    background: var(--colour-neutral-alt);
     color: var(--colour-contr);
     font: 0.804375em var(--fontfam-app-input);
     transition: background-color 0.15s, border-color 0.15s;
@@ -56,39 +42,7 @@
     font-size: 0.85em;
 }
 
-.file-options-field-row button {
-    font: 0.9em var(--fontfam-app-input);
-    padding: 6px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    background: var(--colour-compl);
-    color: var(--colour-contr);
-    border: 2px solid transparent;
-
-    &:hover, &:focus-within {
-        background-color: var(--colour-compl-emph-light);
-        border: 2px solid var(--colour-compl-emph-contr);
-        color: var(--colour-compl-emph-contr);
-        box-shadow: 3px 3px 0px 0px var(--colour-compl-emph-contr);
-    }
-}
-
-
-
-.file-options-button-delete {
+/* Appearance comes from .btn-action / .btn-action-danger in button-base.css; this is layout. */
+.file-options-form .btn-action-danger {
     align-self: center;
-    padding: 6px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font: 0.9em var(--fontfam-app-input);
-    background-color: var(--colour-compl-alt-emph-light);
-    color: var(--colour-compl-emph-contr);
-    border: 2px solid transparent;
-
-    &:hover, &:focus-within {
-        background-color: var(--colour-compl-alt-emph);
-        border: 2px solid var(--colour-contr-warning);
-        color: var(--colour-compl-alt-emph-light);
-        box-shadow: 3px 3px 0px 0px var(--colour-contr-warning);
-    }
 }

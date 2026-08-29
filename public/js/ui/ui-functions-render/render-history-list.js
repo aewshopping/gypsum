@@ -47,7 +47,7 @@ export function renderHistoryList(files) {
                  `<span class="history-row-main">` +
                    `<span class="history-row-text">` +
                      `<span class="history-row-name">${file.filename}</span>` +
-                     `<span class="history-row-meta">${file.versions} version${file.versions === 1 ? '' : 's'} · ${formatBytes(file.reclaimBytes)}</span>` +
+                     `<span class="history-row-meta text-muted">${file.versions} version${file.versions === 1 ? '' : 's'} · ${formatBytes(file.reclaimBytes)}</span>` +
                    `</span>` +
                    `<span class="history-row-bar" style="--size-pct: ${Math.round((file.reclaimBytes / largest) * 100)}"></span>` +
                  `</span>` +
@@ -64,5 +64,5 @@ export function renderHistoryList(files) {
     // row keeps the same width — rather than each row scrolling on its own.
     return rows
         ? `<div class="history-rows">${rows}</div>`
-        : `<p class="history-empty">No history recorded yet.</p>`;
+        : `<p class="history-empty text-muted">No history recorded yet.</p>`;
 }

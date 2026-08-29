@@ -6,6 +6,10 @@
     min-width: 0px;
     height: var(--btn-size);
 
+    /* The closed state: this button is what the select shows when the picker is shut. It rests at
+       the same weight as the header's icon glyphs and comes up to full while the picker is open.
+       The opacity goes here rather than on the <select>, which also generates ::picker(select) —
+       that lives in the top layer and must not be faded along with the closed state. */
     >button {
         display: flex;
         align-items: center;
@@ -13,6 +17,12 @@
         width: 100%;
         white-space: nowrap;
         overflow: hidden;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+
+    &:open > button {
+        opacity: 1;
     }
 
     .opt-filename {
@@ -31,7 +41,7 @@
         rotate: 90deg;
         transition: 0.2s rotate, 0.2s transform;
         transform: translateY(10%); /* because the character is not centralised */
-
+        opacity: 0.6; /* the resting weight every icon glyph sits at — see button-base.css */
     }
 
     &:open::picker-icon {
@@ -97,6 +107,9 @@
     border-radius: 4px;
 }
 
+/* The one deliberate exception to the shared icon-button hover in button-base.css: this button
+   does not just brighten, it inverts to a solid plate and slides left over the history select,
+   which inverts along with it. The rules are ID-level, so they outrank the shared one cleanly. */
 #file-options-btn {
     transition: margin 0.3s, color 0.4s, background-color 0.4s;
 
@@ -107,12 +120,10 @@
 }
 
 body:has(#file-options-btn:hover) :is(
-    #file-content-history-select,  
-    #file-options-btn svg, 
+    #file-content-history-select,
     #file-options-btn) {
     background-color: var(--colour-contr);
     color: var(--colour-neutral);
-    box-shadow: none;
 }
 
 body:has(#file-options-btn:hover) #file-options-btn {

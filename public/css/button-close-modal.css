@@ -1,31 +1,11 @@
-.modal-close-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.6em;
-    height: 1.6em;
-    padding: 2px;
-    background-color: transparent;
-    border:1.5px solid transparent;
-    border-radius: 5px;
-    cursor:pointer;
-    color: var(--colour-compl-contr);
+/* The close buttons in these dialogs are .svg-wrapper-style like every other square icon button —
+   see button-base.css. All this class does is put them in the corner.
 
-    &:hover {
-        border:1.5px solid var(--colour-compl-contr);
-        box-shadow: var(--hover-box-shadow);
-    }
-}
+   Both classes are named because .svg-wrapper-style sets position (relative) too. One class each
+   is a specificity tie, and button-base.css is imported after this file, so it would win and the
+   button would fall back into the flow at the top left. */
 
-.modal-close-icon {
-    width: 100%;
-    height: 100%;
-    color: inherit;
-}
-
-#modal-settings .modal-close-btn,
-#modal-file-options .modal-close-btn,
-#modal-history .modal-close-btn {
+.modal-close-btn.svg-wrapper-style {
     position: absolute;
     top: 8px;
     right: 8px;

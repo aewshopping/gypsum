@@ -9,35 +9,31 @@
     flex-shrink: 0;
     border-radius: 5px;
     padding: 0px;
+    /* Never shown by this class, but it keeps every icon button one size whether or not something
+       else draws on it — see .filters-options-style, and #btn-recent-toggle's width animation. */
     border: 2px solid transparent;
-    color: var(--colour-contr);
-    /* Colour is not this class's business — the two classes below carry it. Transparent is stated
-       rather than left out because a <button> with no author background falls back to the UA's own
-       `buttonface`, not to nothing, so omitting it plates the button in browser grey. */
+
+    /* The button is nothing but its glyph: no plate at rest, none on hover either. Transparent is
+       stated rather than left out because a <button> with no author background falls back to the
+       UA's own `buttonface`, not to nothing, so omitting it plates the button in browser grey. */
     background-color: transparent;
 
-    &:hover {
-        border: 2px solid var(--colour-contr);
-        box-shadow: var(--hover-box-shadow);
-    }
+    /* Follows whatever it sits on: --colour-contr on the page, but --color-mono-contr in the file
+       modal header, the black-or-white the user's file colour needs. A <button> has to be told —
+       the UA sheet hands it `buttontext` otherwise. */
+    color: inherit;
+}
+
+/* For an icon button that overlaps something it has to cover rather than let show through — the
+   two that straddle the filter box's edge sit on its border line. --colour-neutral because that is
+   the page behind it. */
+.svg-bg-solid {
+    background-color: var(--colour-neutral);
 }
 
 .svg-wrapper-style:has(:focus-visible) {
     outline: 2px solid var(--colour-contr);
 }
-
-/* Sits on the page background. */
-.svg-bg-solid {
-    background-color: var(--colour-neutral);
-}
-
-/* Sits on a background the user picked, so it cannot name a colour of its own: it veils whatever
-   is behind it, just enough to carry the glyph. On a file with no colour the veil is
-   --colour-neutral-alt over --colour-neutral-alt, and disappears by itself. */
-.svg-bg-tint {
-    background-color: color-mix(in oklch, var(--colour-neutral-alt) 55%, transparent);
-}
-
 
 .svg-wrapper-style input{
     position:absolute;
@@ -50,11 +46,22 @@
     position:relative;
     height:100%;
     width:100%;
-    color:inherit;  
-    
+
+    /* The resting state is the glyph, faded. Opacity on the whole drawing rather than a
+       translucent colour, because a translucent colour is applied per shape: these glyphs stroke
+       over their own fills and repeat paths on top of themselves, so the overlaps composite back
+       towards solid while the lone strokes go faint, and one icon fades unevenly against itself
+       and against its neighbours. Fading the finished picture is the same multiplier everywhere. */
+    opacity: 0.6;
+    transition: opacity 0.2s;
+
     g, path {
         stroke: currentColor;
     }
+}
+
+.svg-wrapper-style:hover > svg {
+    opacity: 1;
 }
 
 
@@ -109,9 +116,10 @@
         outline: 2px solid var(--colour-contr);
     }
 
-    & .svg-wrapper-style:hover{
-        box-shadow: none;
-        border: 2px solid transparent;
+    /* This button has a label, so its glyph is not the thing being hovered — the whole row is.
+       Holding it at full strength alongside the text is what keeps the two reading as one. */
+    & .svg-wrapper-style > svg {
+        opacity: 1;
     }
 
     &:hover:not(:disabled) {
@@ -122,5 +130,40 @@
     &:disabled {
         opacity: 0.4;
         cursor: not-allowed;
+    }
+}
+
+
+/* Buttons that commit an action in a dialog: move, rename, keep editing. */
+
+.btn-action {
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font: 0.9em var(--fontfam-app-input);
+    background-color: var(--colour-compl);
+    color: var(--colour-contr);
+    border: 2px solid transparent;
+
+    &:hover, &:focus-within {
+        background-color: var(--colour-compl-emph-light);
+        border-color: var(--colour-compl-emph-contr);
+        color: var(--colour-compl-emph-contr);
+        box-shadow: 3px 3px 0px 0px var(--colour-compl-emph-contr);
+    }
+}
+
+/* Worn with .btn-action by the ones that destroy something — delete a file, discard edits. Only
+   the colours differ, so only the colours are stated. */
+
+.btn-action-danger {
+    background-color: var(--colour-compl-alt-emph-light);
+    color: var(--colour-compl-emph-contr);
+
+    &:hover, &:focus-within {
+        background-color: var(--colour-compl-alt-emph);
+        border-color: var(--colour-contr-warning);
+        color: var(--colour-compl-alt-emph-light);
+        box-shadow: 3px 3px 0px 0px var(--colour-contr-warning);
     }
 }
