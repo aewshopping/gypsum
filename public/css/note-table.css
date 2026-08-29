@@ -3,7 +3,7 @@
 
     /* The grid lines, between rows and between columns. Deliberately faint: they should separate
        the cells without ruling the table. */
-    --table-line: 1px solid color-mix(in srgb, var(--colour-contr) 40%, transparent);
+    --table-line: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
 }
 
 .table-wrapper {
