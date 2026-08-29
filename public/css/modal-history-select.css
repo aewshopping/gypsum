@@ -6,6 +6,10 @@
     min-width: 0px;
     height: var(--btn-size);
 
+    /* The closed state: this button is what the select shows when the picker is shut. It rests at
+       the same weight as the header's icon glyphs and comes up to full while the picker is open.
+       The opacity goes here rather than on the <select>, which also generates ::picker(select) —
+       that lives in the top layer and must not be faded along with the closed state. */
     >button {
         display: flex;
         align-items: center;
@@ -13,6 +17,12 @@
         width: 100%;
         white-space: nowrap;
         overflow: hidden;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+
+    &:open > button {
+        opacity: 1;
     }
 
     .opt-filename {
