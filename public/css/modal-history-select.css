@@ -31,7 +31,7 @@
         rotate: 90deg;
         transition: 0.2s rotate, 0.2s transform;
         transform: translateY(10%); /* because the character is not centralised */
-
+        opacity: 0.6; /* the resting weight every icon glyph sits at — see button-base.css */
     }
 
     &:open::picker-icon {
