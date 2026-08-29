@@ -1,0 +1,22 @@
+/* The shell shared by the dialogs that present information rather than a document: settings, file
+   options and file history. Each of them used to carry its own copy of all of this. Anything only
+   one of them needs stays in that modal's own file. */
+
+.info-modal {
+    margin: auto;
+    padding: 24px 28px;
+    border: 2px solid var(--colour-contr);
+    border-radius: 6px;
+    background-color: var(--colour-neutral);
+    color: var(--colour-contr);
+    min-width: 320px;
+}
+
+.info-modal::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+/* The close button holds the top-right corner, so the first heading gives up its top margin. */
+.info-modal h2 {
+    margin-top: 0;
+}

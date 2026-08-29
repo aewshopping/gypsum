@@ -232,7 +232,7 @@
     </div>
   </main>
 
-  <dialog id="modal-settings" closedby="any">
+  <dialog id="modal-settings" class="info-modal" closedby="any">
     <svg style="display: none;">
       <symbol id="icon-reset" viewBox="0 0 50 45">
         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6" d="M18.474 10.552c-.83.41-3.58.51-4.99 2.44-1.42 1.94-3.47 5.96-3.48 9.16s1.36 7.8 3.42 10.04c2.06 2.25 5.73 3.11 8.95 3.43s7.67-.14 10.37-1.49c2.69-1.35 4.92-4.08 5.78-6.62s.33-6.12-.63-8.64c-.95-2.52-4.24-5.4-5.09-6.48m-14.33-1.84c-.83.41-3.58.51-4.99 2.44-1.42 1.94-3.47 5.96-3.48 9.16s1.36 7.8 3.42 10.04c2.06 2.25 5.73 3.11 8.95 3.43s7.67-.14 10.37-1.49c2.69-1.35 4.92-4.08 5.78-6.62s.33-6.12-.63-8.64c-.95-2.52-4.24-5.4-5.09-6.48"/>
@@ -481,12 +481,12 @@
   <dialog id="modal-unsaved-warning">
     <p id="modal-unsaved-warning-text"></p>
     <div class="unsaved-warning-buttons">
-      <button id="modal-unsaved-warning-proceed" class="unsaved-warning-button-discard" data-action="warning-proceed" data-tip="discard changes"></button>
-      <button id="modal-unsaved-warning-cancel" class="unsaved-warning-button-keep" data-action="warning-cancel" data-tip="keep editing"></button>
+      <button id="modal-unsaved-warning-proceed" class="btn-action btn-action-danger" data-action="warning-proceed" data-tip="discard changes"></button>
+      <button id="modal-unsaved-warning-cancel" class="btn-action" data-action="warning-cancel" data-tip="keep editing"></button>
     </div>
   </dialog>
 
-  <dialog id="modal-file-options" closedby="any">
+  <dialog id="modal-file-options" class="info-modal" closedby="any">
     <button class="modal-close-btn svg-wrapper-style" data-action="file-options-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
     <h2>File options</h2>
     <form class="file-options-form">
@@ -494,25 +494,25 @@
         <label for="file-options-folder-input">Change folder:</label>
         <div class="file-options-field-row">
           <input id="file-options-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
-          <button type="button" data-action="file-options-move-confirm" data-tip="move file">move</button>
+          <button type="button" class="btn-action" data-action="file-options-move-confirm" data-tip="move file">move</button>
         </div>
       </div>
       <div class="file-options-field">
         <label for="rename-name-input">Change filename:</label>
         <div class="file-options-field-row">
           <input id="rename-name-input" type="text" autocomplete="off">
-          <button type="button" data-action="rename-confirm" data-tip="rename file">rename</button>
+          <button type="button" class="btn-action" data-action="rename-confirm" data-tip="rename file">rename</button>
         </div>
       </div>
       <p id="file-options-error-slot" class="file-options-error"></p>
       <div class="flex-column">
-        <button type="button" class="file-options-button-delete" data-action="delete-file" data-tip="delete file">delete file</button>
+        <button type="button" class="btn-action btn-action-danger" data-action="delete-file" data-tip="delete file">delete file</button>
       </div>
     </form>
     <datalist id="gypsum-folders"></datalist>
   </dialog>
 
-  <dialog id="modal-history" closedby="any">
+  <dialog id="modal-history" class="info-modal" closedby="any">
     <!-- Placeholder row icons, same sprite pattern as the settings modal's reset button -->
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
       <symbol id="icon-history-open" viewBox="0 0 50 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M24.3 26.31c1.71-1.741 7.817-7.91 10.266-10.48 2.434-2.57 3.673-4.114 4.405-4.937M24.299 26.31c1.71-1.741 7.818-7.91 10.267-10.48 2.434-2.57 3.673-4.114 4.405-4.937"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M40.333 20.126c-.175-1.497.633-7.3-1.036-8.982-1.677-1.69-7.516-.956-9.01-1.142m10.046 10.124c-.175-1.497.633-7.3-1.036-8.982-1.677-1.69-7.516-.956-9.01-1.142M24.243 14.7c-1.23.02-5.15-.6-7.41.13-2.26.74-5.12.85-6.16 4.28-1.05 3.43-.71 12.77-.09 16.31.61 3.53 1.33 3.99 3.77 4.9 2.44.9 7.43.67 10.85.53 3.42-.13 7.5-.16 9.66-1.33 2.16-1.18 2.78-3.69 3.31-5.71.54-2.02-.07-5.34-.09-6.41m-13.84-12.7c-1.23.02-5.15-.6-7.41.13-2.26.74-5.12.85-6.16 4.28-1.05 3.43-.71 12.77-.09 16.31.61 3.53 1.33 3.99 3.77 4.9 2.44.9 7.43.67 10.85.53 3.42-.13 7.5-.16 9.66-1.33 2.16-1.18 2.78-3.69 3.31-5.71.54-2.02-.07-5.34-.09-6.41"/></symbol>
@@ -521,7 +521,7 @@
     </svg>
     <button class="modal-close-btn svg-wrapper-style" data-action="close-history-modal" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
     <h2 class="menu-title" data-tip="capped at the 200 most recently edited files, and up to the 15 latest edits on each file">Historic file versions</h2>
-    <p class="history-note" data-tip="Don't worry, it is impossible to delete the actual file here! You can also resurrect files that have been deleted outside the app if they still exist in gypsum's history snapshot.">Previous versions stored as a handy safety net, but please backup your files elsewhere too!</p>
+    <p class="history-note text-muted" data-tip="Don't worry, it is impossible to delete the actual file here! You can also resurrect files that have been deleted outside the app if they still exist in gypsum's history snapshot.">Previous versions stored as a handy safety net, but please backup your files elsewhere too!</p>
     <p id="history-summary-line"></p>
     <label for="history-sort-select" class="history-sort-label">
       Sort:

@@ -44,3 +44,8 @@
 .padding-top {
 	padding-top: 20px;
 }
+
+/* One level of secondary text: notes, counts, empty states. */
+.text-muted {
+	opacity: 0.75;
+}
