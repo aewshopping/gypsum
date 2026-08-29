@@ -1,5 +1,9 @@
 :root {
     --table-hover-bg: color-mix(in oklch, var(--colour-neutral-alt) 80%, var(--color-mono-contr, var(--colour-contr)));
+
+    /* The grid lines, between rows and between columns. Deliberately faint: they should separate
+       the cells without ruling the table. */
+    --table-line: 1px solid color-mix(in srgb, var(--colour-contr) 40%, transparent);
 }
 
 .table-wrapper {
@@ -55,8 +59,8 @@
 
 .note-table-cell {
     overflow: hidden;
-    border-top: 1px solid var(--colour-contr);
-    border-right: 1px solid var(--colour-contr);
+    border-top: var(--table-line);
+    border-right: var(--table-line);
     padding: 6px;
 }
 
@@ -74,8 +78,8 @@
 
 .note-table-cell-header {
     overflow: hidden;
-    border-right: 1px solid var(--colour-contr);
-    border-bottom: 1px solid var(--colour-contr);
+    border-right: var(--table-line);
+    border-bottom: var(--table-line);
     padding: 6px;
 
     &:hover {
