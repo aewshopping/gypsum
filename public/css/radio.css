@@ -1,3 +1,63 @@
-.color-select-radio{
-  font: 0.83125em var(--fontfam-app-input);
+.radio-group {
+  font: 0.89375em var(--fontfam-app-input);
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  --border-radio: 6px;
 }
+
+/* Visually hide the input element */
+.radio-label input[type="radio"] {
+  font: inherit;
+  position: absolute;
+  top:0px;
+  left: 0px;
+  opacity: 0;
+}
+
+/* Label styled as a flexible container */
+.radio-label {
+  position: relative;
+  padding: 4px 6px;
+  margin:-1px;
+  background-color: var(--colour-neutral);
+  text-align:center;
+  cursor: pointer;
+  border: 2px solid var(--colour-neutral-alt);
+  transition: all 0.2s ease-in-out;
+}
+
+.radio-group:has(input[type="radio"]:focus-visible) > .radio-label {
+  border-color: var(--colour-contr);
+} 
+
+/* Style label when child input is checked */
+.radio-label:has(input[type="radio"]:checked) {
+/*  border: 2px solid var(--colour-contr-emph) !important;*/
+  background-color: var(--colour-neutral-alt);
+}
+
+
+.radio-group > :first-child {
+  border-top-left-radius: var(--border-radio);
+  border-bottom-left-radius: var(--border-radio);
+}
+
+.radio-group > :last-child {
+  border-top-right-radius: var(--border-radio);
+  border-bottom-right-radius: var(--border-radio);
+}
+
+.radio-column {
+  flex-direction: column; 
+}
+
+  .radio-group.radio-column > :first-child {
+    border-top-right-radius: var(--border-radio);
+    border-bottom-left-radius: 0;
+  }
+
+  .radio-group.radio-column > :last-child {
+    border-top-right-radius: 0;
+    border-bottom-left-radius: var(--border-radio);
+  }

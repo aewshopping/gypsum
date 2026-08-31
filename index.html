@@ -247,10 +247,10 @@
 
     <div class="settings-row">
       <span class="settings-label">Colour theme</span>
-      <div class="color-select-radio">
-        <label class="formcontrol"><input type="radio" name="radio" id="blackandwhite" checked data-tip="black and white theme" />b&w</label>
-        <label class="formcontrol"><input type="radio" name="radio" id="snow" data-tip="snow theme"/>snow</label>
-        <label class="formcontrol"><input type="radio" name="radio" id="glow" data-tip="glow theme" />glow</label>
+      <div class="radio-group">
+        <label class="radio-label"><input type="radio" name="radio" id="blackandwhite" checked data-tip="black and white theme" />b&w</label>
+        <label class="radio-label"><input type="radio" name="radio" id="snow" data-tip="snow theme"/>snow</label>
+        <label class="radio-label"><input type="radio" name="radio" id="glow" data-tip="glow theme" />glow</label>
       </div>
     </div>
 
@@ -284,11 +284,13 @@
     <h4>Interface</h4>
 
     <div class="settings-row">
-      <span class="settings-label">Text size adjust</span>
+      <span class="settings-label">Interface text size</span>
       <div class="settings-control-group">
-        <label class="formcontrol"><input type="radio" name="font-size-app" value="0.8" data-action="font-size-app-change" data-tip="small text">S</label>
-        <label class="formcontrol"><input type="radio" name="font-size-app" value="1" checked data-action="font-size-app-change" data-tip="medium text">M</label>
-        <label class="formcontrol"><input type="radio" name="font-size-app" value="1.2" data-action="font-size-app-change" data-tip="large text">L</label>
+	      <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="font-size-app" value="0.8" data-action="font-size-app-change" data-tip="small text">S</label>
+          <label class="radio-label"><input type="radio" name="font-size-app" value="1" checked data-action="font-size-app-change" data-tip="medium text">M</label>
+          <label class="radio-label"><input type="radio" name="font-size-app" value="1.2" data-action="font-size-app-change" data-tip="large text">L</label>
+	      </div>
         <button class="settings-reset-btn" data-action="reset-font-size-app" data-tip="reset to default">
           <svg class="reset-icon">
             <use href="#icon-reset"></use>
@@ -328,8 +330,10 @@
     <div class="settings-row">
       <span class="settings-label">Button size</span>
       <div class="settings-control-group">
-        <label><input type="radio" name="button-size" data-action="button-size-change" value="1" checked data-tip="medium buttons"> M</label>
-        <label><input type="radio" name="button-size" data-action="button-size-change" value="1.2" data-tip="large buttons"> L</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="button-size" data-action="button-size-change" value="1" checked data-tip="medium buttons"> M</label>
+          <label class="radio-label"><input type="radio" name="button-size" data-action="button-size-change" value="1.2" data-tip="large buttons"> L</label>
+        </div>
         <button class="settings-reset-btn" data-action="reset-button-size" data-tip="reset to default">
           <svg class="reset-icon">
             <use href="#icon-reset"></use>
@@ -341,11 +345,13 @@
     <h4>Text files</h4>
 
     <div class="settings-row">
-      <span class="settings-label">Text size adjust</span>
+      <span class="settings-label">Text size</span>
       <div class="settings-control-group">
-        <label class="formcontrol"><input type="radio" name="font-size-file" value="0.8" data-action="font-size-file-change" data-tip="small text">S</label>
-        <label class="formcontrol"><input type="radio" name="font-size-file" value="1" checked data-action="font-size-file-change" data-tip="medium text">M</label>
-        <label class="formcontrol"><input type="radio" name="font-size-file" value="1.4" data-action="font-size-file-change" data-tip="large text">L</label>
+	      <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="font-size-file" value="0.8" data-action="font-size-file-change" data-tip="small text">S</label>
+          <label class="radio-label"><input type="radio" name="font-size-file" value="1" checked data-action="font-size-file-change" data-tip="medium text">M</label>
+          <label class="radio-label"><input type="radio" name="font-size-file" value="1.4" data-action="font-size-file-change" data-tip="large text">L</label>
+	      </div>
         <button class="settings-reset-btn" data-action="reset-font-size-file" data-tip="reset to default">
           <svg class="reset-icon">
             <use href="#icon-reset"></use>
