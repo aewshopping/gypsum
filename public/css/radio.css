@@ -2,8 +2,11 @@
   font: 0.89375em var(--fontfam-app-input);
   display: flex;
   flex-direction: row;
-  gap: 0px;
+  gap: 4px;
+  padding:3px;
   --border-radio: 6px;
+  border-radius: calc(var(--border-radio) + 2px);
+  background-color: var(--colour-neutral-alt);
 }
 
 /* Visually hide the input element */
@@ -13,6 +16,7 @@
   top:0px;
   left: 0px;
   opacity: 0;
+  cursor: pointer;
 }
 
 /* Label styled as a flexible container */
@@ -22,18 +26,19 @@
   margin:-1px;
   background-color: var(--colour-neutral);
   text-align:center;
-  cursor: pointer;
-  border: 2px solid var(--colour-neutral-alt);
+  border: 2px solid transparent;
   transition: all 0.2s ease-in-out;
+  cursor: pointer;
 }
 
-.radio-group:has(input[type="radio"]:focus-visible) > .radio-label {
-  border-color: var(--colour-contr);
+.radio-group:has(input[type="radio"]:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--colour-contr) 70%, transparent);
+  outline-offset: 2px;
 } 
 
 /* Style label when child input is checked */
 .radio-label:has(input[type="radio"]:checked) {
-/*  border: 2px solid var(--colour-contr-emph) !important;*/
+  outline: 2px solid var(--colour-contr-emph);
   background-color: var(--colour-neutral-alt);
 }
 
