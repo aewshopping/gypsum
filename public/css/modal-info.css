@@ -5,7 +5,7 @@
 .info-modal {
     margin: auto;
     padding: 24px 28px;
-    border: 2px solid var(--colour-contr);
+    border: 2px solid transparent;
     border-radius: 6px;
     background-color: var(--colour-neutral);
     color: var(--colour-contr);

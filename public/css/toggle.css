@@ -1,0 +1,67 @@
+.toggle {
+
+  --t-height:26px;
+  --t-width: 55px;
+  --t-gap: 4px;
+  --t-radius: calc(var(--t-height) - var(--t-gap) *2);
+  --t-travel: calc(var(--t-width) - var(--t-height));
+
+  /* Remove default browser styling */
+  appearance: none;
+  background-image: none !important;
+  
+  /* Toggle Track Dimensions & Styling */
+  width: var(--t-width) !important;
+  height: var(--t-height) !important;
+  background-color: var(--colour-neutral-alt);
+  border-radius: calc(var(--t-height) / 2);
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* Track background when checked */
+.toggle:checked {
+  background-color: var(--colour-contr-emph);
+}
+
+/* optional text indicator */
+.toggle::before {
+  content:"off";
+  color:var(--colour-contr);
+  font-family:monospace;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.toggle:checked::before {
+  content: "on";
+  left: 10px;
+  color: var(--colour-compl-emph-light);
+}
+
+/* The sliding Knob/Handle */
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: var(--t-gap);
+  left: var(--t-gap);
+  width: var(--t-radius);
+  height: var(--t-radius);
+  background-color: var(--colour-neutral);
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+/* Move the Knob when checked */
+.toggle:checked::after {
+  transform: translateX(var(--t-travel));
+
+}
+
+/* Optional: Focus state for keyboard accessibility */
+.toggle:focus-visible {
+  outline: 2px solid black;
+  outline-offset: 2px;
+}
