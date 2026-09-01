@@ -9,7 +9,14 @@
 	border-radius: 5px;
 	color: var(--colour-contr);
 	margin-right:-2px;
+
 	font: 0.89375em var(--fontfam-app-input);
+
+	/* In its own strip the toggle sits on the file's colour, so its labels follow the same
+	   contrast colour the icons beside them take, rather than the page's. */
+	body:has(#footer-strip-mode:checked) & {
+		color: inherit;
+	}
   
 	/* apply focus style on keyboard focus but not mouseclick focus */
 	&:has(:focus-visible) {
