@@ -9,7 +9,19 @@
 	border-radius: 5px;
 	color: var(--colour-contr);
 	margin-right:-2px;
+
 	font: 0.89375em var(--fontfam-app-input);
+
+	/* In its own strip the toggle sits on the file's colour, so its labels follow the same
+	   contrast colour the icons beside them take, rather than the page's. The switch follows
+	   them: the track takes that colour too, and the knob the colour of the band behind it, so
+	   it reads as a hole punched through the track. */
+	body:not(:has(#floating-editor-buttons:checked)) & {
+		color: inherit;
+
+		.slider { background-color: currentColor; }
+		.slider:before { background-color: var(--colour-bg); }
+	}
   
 	/* apply focus style on keyboard focus but not mouseclick focus */
 	&:has(:focus-visible) {

@@ -58,6 +58,7 @@ async function applyRefresh(snapshot) {
         if (colorHasChanged && appState.openFileSnapshot?.filepath === snapshot.filepath) {
             const newColor = freshFile.color ?? '';
             document.getElementById('file-content-header').dataset.color = newColor;
+            document.getElementById('file-content-footer').dataset.color = newColor;
             document.getElementById('modal-content').dataset.color = newColor;
         }
 

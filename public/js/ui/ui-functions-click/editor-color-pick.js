@@ -104,6 +104,7 @@ export function handleColorCirclePick(_evt, actionEl) {
     const isHex = /^[0-9a-fA-F]{3,8}$/.test(colorName) && [3, 4, 6, 8].includes(colorName.length);
     const colorValue = colorName === 'nocolor' ? '' : (isHex ? `#${colorName}` : colorName);
     document.getElementById('file-content-header').dataset.color = colorValue;
+    document.getElementById('file-content-footer').dataset.color = colorValue;
     document.getElementById('modal-content').dataset.color = colorValue;
     const newOffset = applyColorToEditor(colorName, pendingSavedOffset);
     const editorEl = getEditorElement();

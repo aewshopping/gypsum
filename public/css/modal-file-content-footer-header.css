@@ -1,14 +1,31 @@
-/* footer height currently set to zero but can inflate an add content later! */
+/* The band the editor tools sit in. Its height is whatever --modal-footer-height says. */
 #file-content-footer {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: safe center; /* centred while the toolbar fits. Once the band is shorter than the
+                                 toolbar, safe alignment falls back to the start, so the toolbar's
+                                 top stays level with the band's and the overflow is clipped off
+                                 the bottom rather than off both ends. */
     position:absolute;
     bottom:0;
     left: 0;
     right: 0;
     height:var(--modal-footer-height);
     pointer-events:none; /* to allow click through to horizontal scroll bar if needed */
+
+    /* The height is literal: contents taller than the band are cut off rather than hanging past
+       the modal's bottom edge. clip, not hidden — a hidden box is still a scroll container, and
+       anything hanging out of the shell there makes the shell scrollable, so a Page Up in the
+       text chains into it and drags the header out of view. A clip box never scrolls. */
+    overflow: clip;
+}
+
+/* Floating over the text, the band stays see-through and its buttons keep the page's contrast
+   colour (button-base.css has them inherit) rather than the file's. In its own strip it takes the
+   file's colour from .color-dynamic instead, like the header does. */
+body:has(#floating-editor-buttons:checked) #file-content-footer {
+    background-color: transparent;
+    color: inherit;
 }
 
 
