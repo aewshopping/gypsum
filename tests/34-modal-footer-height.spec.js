@@ -7,10 +7,35 @@ const { setupMockFiles, loadFolder } = require('./helpers');
 
 const FOOTER_HEIGHTS = ['0px', '10px', '40px', '100px'];
 
-async function openModal(page) {
+async function openModal(page, filename) {
   await loadFolder(page);
-  await page.locator('.note-grid').first().click();
+  const card = filename
+    ? page.locator('.note-grid', { hasText: filename })
+    : page.locator('.note-grid').first();
+  await card.click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
+}
+
+/** Turns the strip mode setting on. */
+function enableStripMode(page) {
+  return page.evaluate(() => document.getElementById('footer-strip-mode').click());
+}
+
+/** How the band and the toolbar inside it are painted. */
+function bandStyles(page) {
+  return page.evaluate(() => {
+    const footer = document.getElementById('file-content-footer');
+    const header = document.getElementById('file-content-header');
+    const toolbar = document.querySelector('.content-editable-controls');
+    return {
+      footerBackground: getComputedStyle(footer).backgroundColor,
+      headerBackground: getComputedStyle(header).backgroundColor,
+      toolbarBackground: getComputedStyle(toolbar).backgroundColor,
+      toolbarBlur: getComputedStyle(toolbar).backdropFilter,
+      toolbarAboveBand: Math.round(
+        footer.getBoundingClientRect().top - toolbar.getBoundingClientRect().top),
+    };
+  });
 }
 
 /** Sets the footer height on the modal, as editing the CSS variable would. */
@@ -89,7 +114,7 @@ test.describe('the strip mode setting', () => {
     const shellBottomBefore = await page.locator('#moving-file-content-container')
       .evaluate(el => Math.round(el.getBoundingClientRect().bottom));
 
-    await page.evaluate(() => document.getElementById('footer-strip-mode').click());
+    await enableStripMode(page);
 
     for (const height of ['10px', '100px']) {
       await setFooterHeight(page, height);
@@ -105,4 +130,58 @@ test.describe('the strip mode setting', () => {
 
     expect(await shellOverflow(page)).toEqual({ hangingOut: 0, scrolled: 0 });
   });
+});
+
+test.describe('how the band is painted', () => {
+
+  // big-ideas.md carries #color/coral, so these run against a real file colour, not the fallback.
+
+  test('in strip mode it takes the file colour, like the header', async ({ page }) => {
+    await setupMockFiles(page);
+    await page.goto('/');
+    await openModal(page, 'big-ideas');
+    await enableStripMode(page);
+
+    const band = await bandStyles(page);
+    expect(band.footerBackground).toBe(band.headerBackground);
+    expect(band.footerBackground).not.toBe('rgba(0, 0, 0, 0)');
+    // Nothing scrolls under the toolbar there, so it drops its plate and blur.
+    expect(band.toolbarBackground).toBe('rgba(0, 0, 0, 0)');
+    expect(band.toolbarBlur).toBe('none');
+  });
+
+  test('overlaying the text it stays see-through, and the toolbar keeps its plate', async ({ page }) => {
+    await setupMockFiles(page);
+    await page.goto('/');
+    await openModal(page, 'big-ideas');
+
+    const band = await bandStyles(page);
+    expect(band.footerBackground).toBe('rgba(0, 0, 0, 0)');
+    expect(band.toolbarBackground).not.toBe('rgba(0, 0, 0, 0)');
+    expect(band.toolbarBlur).toContain('blur');
+  });
+});
+
+test.describe('a band shorter than the toolbar', () => {
+
+  for (const strip of [false, true]) {
+    test(`pushes the toolbar down, not up (strip mode: ${strip})`, async ({ page }) => {
+      await setupMockFiles(page);
+      await page.goto('/');
+      await openModal(page);
+      if (strip) await enableStripMode(page);
+      // The editor buttons only take part while the text is showing as plain text.
+      await page.evaluate(() => document.getElementById('render_toggle').click());
+
+      // The toolbar is around 56px tall, so 20px cannot hold it.
+      await setFooterHeight(page, '20px');
+      expect((await bandStyles(page)).toolbarAboveBand).toBe(0);
+
+      // With room to spare it is centred again.
+      await setFooterHeight(page, '100px');
+      const toolbarHeight = await page.locator('.content-editable-controls')
+        .evaluate(el => el.getBoundingClientRect().height);
+      expect((await bandStyles(page)).toolbarAboveBand).toBe(-Math.round((100 - toolbarHeight) / 2));
+    });
+  }
 });

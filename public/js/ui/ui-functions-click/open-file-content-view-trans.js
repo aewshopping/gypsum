@@ -129,6 +129,7 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
     const fileObj = appState.myFiles.find(f => f.internalId === file_to_open);
     initHistorySelect(fileObj?.filepath ?? file_to_open);
     document.getElementById('file-content-header').dataset.color = color;
+    document.getElementById('file-content-footer').dataset.color = color;
     scrollingContent.dataset.color=color;
     resetAutosave();
     await loadContentModal(file_to_open);
