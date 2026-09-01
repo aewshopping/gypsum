@@ -49,7 +49,9 @@
 /*  border-top: solid 2px var(--colour-neutral-alt);
   border-right: solid 2px var(--colour-neutral-alt);*/
   border-radius: calc(var(--modal-has-room) * 8);
-  overflow: hidden;
+  overflow: clip; /* clip, not hidden: a hidden box is a scroll container, so anything a
+                     descendant hangs past this edge could be scrolled into view, taking the
+                     header with it. A clip box cannot be scrolled at all. */
   background-color: var(--colour-neutral-alt); /* starting colour */
   left: 50%;
   transform: translateX(-50%);
@@ -106,10 +108,18 @@ html {
 
 #modal-content {
   overflow-y: scroll;
-  height:calc(100dvh - var(--modal-header-height) - calc(2 * var(--modal-top-bottom-margin)) ); /* if modal footer takes up space later will need to minus var(--modal-footer-height) */
+  height:calc(100dvh - var(--modal-header-height) - calc(2 * var(--modal-top-bottom-margin)) ); /* full height: the footer floats over the text rather than taking space from it */
   padding: 0px 20px 0px 20px;
-  margin-bottom: calc( var(--modal-footer-height) - var(--modal-footer-height)) ; /* leave room for footer */
-  margin-top: var(--modal-header-height); /* leave room for footer */
+  margin-top: var(--modal-header-height); /* leave room for header */
+}
+
+/* Off (the default) the toolbar floats over the text. On, it takes its height out of the text
+   area so the last line stops above it. The margin is what keeps the modal the same overall
+   height — the container is sized by this element — and so keeps the footer, which is pinned to
+   the container's bottom, below the text rather than back on top of it. */
+body:has(#footer-strip-mode:checked) #modal-content {
+  height: calc(100dvh - var(--modal-header-height) - var(--modal-footer-height) - calc(2 * var(--modal-top-bottom-margin)) );
+  margin-bottom: var(--modal-footer-height);
 }
 
 #modal-content-text {
