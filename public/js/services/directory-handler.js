@@ -3,6 +3,7 @@ import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
+import { verifyInternalLinks } from './internal-links/verify-internal-links.js';
 import { seedCoreFileProperties } from './file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
@@ -96,14 +97,17 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
     invalidateNoteNameIndex();
+    const brokenLinks = verifyInternalLinks();
 
     const endTime = performance.now();
     const durationSec = ((endTime - startTime) / 1000).toFixed(1);
 
     const fileCount = appState.myFiles.length;
-    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad).length;
+    // errorOnLoad now also carries broken-link summaries, so match on the yaml prefix rather
+    // than on the property being set at all.
+    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad?.includes('yaml')).length;
     console.log(`Saved metadata for ${fileCount} files.`);
     finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system',
-        { yamlErrors, unreadable: unreadableCount });
+        { yamlErrors, brokenLinks, unreadable: unreadableCount });
 
 }
