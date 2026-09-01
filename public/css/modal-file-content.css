@@ -33,7 +33,7 @@
   width: 100vw;
   color: var(--colour-contr);
   background: transparent;
-  --modal-footer-height: 40px; /* nothing in here yet but later will be set to 50px and have an option to show plaintext or markdown */
+  --modal-footer-height: 50px; /* the band the editor tools sit in — set it to anything */
   --modal-header-height: 40px;
 }
 
