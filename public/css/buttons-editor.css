@@ -43,7 +43,7 @@ body:not(:has(#render_toggle:checked)) .editor-btns {
 
 /* The plate and blur are there to keep the toolbar legible over scrolling text. In its own strip
    there is no text under it, only the band's colour, so it needs neither. */
-body:has(#footer-strip-mode:checked) .content-editable-controls {
+body:not(:has(#floating-editor-buttons:checked)) .content-editable-controls {
     background-color: transparent;
     backdrop-filter: none;
 }

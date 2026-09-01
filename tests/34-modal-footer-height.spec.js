@@ -16,9 +16,9 @@ async function openModal(page, filename) {
   await expect(page.locator('#file-content-modal')).toBeVisible();
 }
 
-/** Turns the strip mode setting on. */
-function enableStripMode(page) {
-  return page.evaluate(() => document.getElementById('footer-strip-mode').click());
+/** Turns the "Floating editor buttons" setting off, so the toolbar takes its own strip. */
+function stopToolbarFloating(page) {
+  return page.evaluate(() => document.getElementById('floating-editor-buttons').click());
 }
 
 /** How the band and the toolbar inside it are painted. */
@@ -90,9 +90,9 @@ test.describe('the editor toolbar band cannot scroll the modal', () => {
   }
 });
 
-test.describe('the strip mode setting', () => {
+test.describe('the floating editor buttons setting', () => {
 
-  test('off, the toolbar floats over the full-height text area', async ({ page }) => {
+  test('on, the toolbar floats over the full-height text area', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
     await openModal(page);
@@ -106,7 +106,7 @@ test.describe('the strip mode setting', () => {
     expect(Math.round(shellBottom - contentBottom)).toBe(2);
   });
 
-  test('on, the toolbar takes its height out of the text area', async ({ page }) => {
+  test('off, the toolbar takes its height out of the text area', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
     await openModal(page);
@@ -114,7 +114,7 @@ test.describe('the strip mode setting', () => {
     const shellBottomBefore = await page.locator('#moving-file-content-container')
       .evaluate(el => Math.round(el.getBoundingClientRect().bottom));
 
-    await enableStripMode(page);
+    await stopToolbarFloating(page);
 
     for (const height of ['10px', '100px']) {
       await setFooterHeight(page, height);
@@ -140,7 +140,7 @@ test.describe('how the band is painted', () => {
     await setupMockFiles(page);
     await page.goto('/');
     await openModal(page, 'big-ideas');
-    await enableStripMode(page);
+    await stopToolbarFloating(page);
 
     const band = await bandStyles(page);
     expect(band.footerBackground).toBe(band.headerBackground);
@@ -169,7 +169,7 @@ test.describe('a band shorter than the toolbar', () => {
       await setupMockFiles(page);
       await page.goto('/');
       await openModal(page);
-      if (strip) await enableStripMode(page);
+      if (strip) await stopToolbarFloating(page);
       // The editor buttons only take part while the text is showing as plain text.
       await page.evaluate(() => document.getElementById('render_toggle').click());
 

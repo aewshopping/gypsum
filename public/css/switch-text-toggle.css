@@ -16,7 +16,7 @@
 	   contrast colour the icons beside them take, rather than the page's. The switch follows
 	   them: the track takes that colour too, and the knob the colour of the band behind it, so
 	   it reads as a hole punched through the track. */
-	body:has(#footer-strip-mode:checked) & {
+	body:not(:has(#floating-editor-buttons:checked)) & {
 		color: inherit;
 
 		.slider { background-color: currentColor; }

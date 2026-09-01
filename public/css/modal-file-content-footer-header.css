@@ -20,10 +20,10 @@
     overflow: clip;
 }
 
-/* The band takes the file's colour from .color-dynamic, like the header does — but only in strip
-   mode. Floating over the text it stays see-through, and its buttons keep the page's contrast
-   colour (button-base.css has them inherit) rather than the file's. */
-body:not(:has(#footer-strip-mode:checked)) #file-content-footer {
+/* Floating over the text, the band stays see-through and its buttons keep the page's contrast
+   colour (button-base.css has them inherit) rather than the file's. In its own strip it takes the
+   file's colour from .color-dynamic instead, like the header does. */
+body:has(#floating-editor-buttons:checked) #file-content-footer {
     background-color: transparent;
     color: inherit;
 }

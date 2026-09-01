@@ -113,11 +113,11 @@ html {
   margin-top: var(--modal-header-height); /* leave room for header */
 }
 
-/* Off (the default) the toolbar floats over the text. On, it takes its height out of the text
-   area so the last line stops above it. The margin is what keeps the modal the same overall
-   height — the container is sized by this element — and so keeps the footer, which is pinned to
-   the container's bottom, below the text rather than back on top of it. */
-body:has(#footer-strip-mode:checked) #modal-content {
+/* On (the default) the toolbar floats over the text. Off, it takes its height out of the text
+   area instead, so the last line stops above it. The margin is what keeps the modal the same
+   overall height — the container is sized by this element — and so keeps the footer, which is
+   pinned to the container's bottom, below the text rather than back on top of it. */
+body:not(:has(#floating-editor-buttons:checked)) #modal-content {
   height: calc(100dvh - var(--modal-header-height) - var(--modal-footer-height) - calc(2 * var(--modal-top-bottom-margin)) );
   margin-bottom: var(--modal-footer-height);
 }
