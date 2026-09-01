@@ -1,7 +1,7 @@
 #modal-unsaved-warning {
     margin: auto;
     padding: 24px 32px;
-    border: 2px solid var(--colour-contr);
+    border: 2px solid transparent;
     border-radius: 6px;
     background-color: var(--colour-neutral-alt);
     color: var(--colour-contr);
