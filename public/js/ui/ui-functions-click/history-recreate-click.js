@@ -4,6 +4,7 @@ import { resolveTargetDir } from '../../editing/rename-file.js';
 import { extractDirFromFilepath } from '../../services/file-save.js';
 import { getFileDataAndMetadata } from '../../services/file-parsing/file-info.js';
 import { invalidateNoteNameIndex } from '../../services/internal-links/note-name-index.js';
+import { checkFileErrors } from '../../services/file-parsing/file-errors.js';
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { refreshHistoryModal } from './history-modal.js';
@@ -67,9 +68,11 @@ export async function handleHistoryRecreate(event, target) {
 
         const newFilepath = folder ? `${folder}/${name}` : name;
         const fileObj = await getFileDataAndMetadata(handle, appState.myFiles.length);
-        appState.myFiles.push({ ...fileObj, filepath: newFilepath, internalId: newFilepath });
+        const newFile = { ...fileObj, filepath: newFilepath, internalId: newFilepath };
+        appState.myFiles.push(newFile);
         appState.myFileHandlesMap.set(newFilepath, handle);
         invalidateNoteNameIndex();
+        checkFileErrors(newFile);
 
         const { property, direction } = appState.sortState;
         sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);

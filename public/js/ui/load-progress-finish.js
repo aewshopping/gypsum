@@ -1,15 +1,19 @@
 /**
  * Builds the phrases appended to the finished-load message when something went wrong.
  *
- * The yaml phrase is clickable: it runs an `errorOnLoad:yaml` filter through the usual
- * property-filter pathway, narrowing the list to those files. The unreadable phrase is not —
- * files that could not be read are absent from myFiles, so there is nothing to filter to.
+ * The yaml and broken-link phrases are clickable: each runs an `errorOnLoad:` filter through
+ * the usual property-filter pathway, narrowing the list to those files. Both counts are taken
+ * with the same test their filter uses, so each number is exactly what its own click shows —
+ * but a file with both faults is counted in both, so the two phrases can overlap. The
+ * unreadable phrase is not clickable — files that could not be read are absent from myFiles,
+ * so there is nothing to filter to.
  *
  * @param {number} yamlErrors - how many loaded files had front-matter problems
+ * @param {number} brokenLinks - how many loaded files have an [[internal link]] naming no file
  * @param {number} unreadable - how many files could not be read at all, and were skipped
  * @returns {string} the HTML to append, or '' when the load was clean
  */
-function renderLoadProblems(yamlErrors, unreadable) {
+function renderLoadProblems(yamlErrors, brokenLinks, unreadable) {
     let html = '';
 
     if (yamlErrors > 0) {
@@ -18,6 +22,14 @@ function renderLoadProblems(yamlErrors, unreadable) {
             + ` data-property="errorOnLoad" data-value="yaml"`
             + ` data-tip="show the ${yamlErrors} file${plural} with unreadable yaml">`
             + `${yamlErrors} yaml error${plural}</span>`;
+    }
+
+    if (brokenLinks > 0) {
+        const plural = brokenLinks === 1 ? '' : 's';
+        html += ` | <span class="load-error-nudge" data-action="property-filter"`
+            + ` data-property="errorOnLoad" data-value="links"`
+            + ` data-tip="show the ${brokenLinks} file${plural} with broken internal links">`
+            + `${brokenLinks} broken link${plural}</span>`;
     }
 
     if (unreadable > 0) {
@@ -36,15 +48,15 @@ function renderLoadProblems(yamlErrors, unreadable) {
  * @param {number} fileCount - number of files loaded
  * @param {string} durationText - how long the load took, in seconds, e.g. "0.4"
  * @param {string} sourceLabel - where the files came from, e.g. "file system" or "opfs"
- * @param {{yamlErrors?: number, unreadable?: number}} [problems] - counts of what went wrong
+ * @param {{yamlErrors?: number, brokenLinks?: number, unreadable?: number}} [problems] - counts of what went wrong
  * @returns {void}
  */
 export function finishLoadProgress(el, fileCount, durationText, sourceLabel,
-                                   { yamlErrors = 0, unreadable = 0 } = {}) {
+                                   { yamlErrors = 0, brokenLinks = 0, unreadable = 0 } = {}) {
     const style = getComputedStyle(el);
     const seconds = prop => parseFloat(style.getPropertyValue(prop));
     const fadeMs = (seconds('--load-fade-delay') + seconds('--load-fade-duration')) * 1000;
-    const problems = renderLoadProblems(yamlErrors, unreadable);
+    const problems = renderLoadProblems(yamlErrors, brokenLinks, unreadable);
 
     // the loop only steps the bar every nth file, so it can stop just short of the 100% marker
     el.style.setProperty('--load-pct', 100);

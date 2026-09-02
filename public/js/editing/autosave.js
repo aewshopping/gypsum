@@ -5,7 +5,7 @@ import { buildSaveFilename, writeAndVerify } from '../services/file-save.js';
 import { getCurrentRawContent } from './manage-unsaved-changes.js';
 import { saveCurrentFile } from './save-current-file.js';
 
-const PAUSE_MS = 3000;          // pause in typing that triggers a save
+const PAUSE_MS = 2000;          // pause in typing that triggers a save
 const MAX_EDITS = 200;          // edits since the last save that force one, however fast the typing
 const MIN_INTERVAL_MS = 60_000; // minimum gap between silent temp-file writes (autosave off)
 

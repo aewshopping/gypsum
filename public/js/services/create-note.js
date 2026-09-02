@@ -1,6 +1,7 @@
 import { appState } from './store.js';
 import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
+import { checkFileErrors } from './file-parsing/file-errors.js';
 import { resolveTargetDir } from '../editing/rename-file.js';
 
 /**
@@ -36,6 +37,7 @@ export async function createEmptyNote(folder, filename) {
     appState.myFiles.push(newFile);
     invalidateNoteNameIndex(); // the new note becomes linkable immediately
     appState.myFileHandlesMap.set(filepath, handle);
+    checkFileErrors(newFile); // empty when created, but an adopted file can carry links
 
     return newFile;
 }

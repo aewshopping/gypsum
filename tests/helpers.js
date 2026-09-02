@@ -709,6 +709,17 @@ async function setupMockFilesWithLinks(page) {
         ].join('\n')),
         makeFile('ambig.txt', 'The .txt one, which an extensionless link should prefer.'),
         makeFile('ambig.md', '# Ambig\n\nThe .md one.'),
+        // Both faults at once, so errorOnLoad carries a yaml and a links segment together.
+        // Appended, never prepended: myFiles[0] is what registers the properties.
+        makeFile('both-faults.md', [
+          '---',
+          'a line with no colon',
+          '---',
+          '',
+          '# Both Faults',
+          '',
+          'A broken link to [[also-missing.md]] here.',
+        ].join('\n')),
         makeDir('subdir', [
           makeFile('nested.md', '# Nested Note\n\nThe nested target. #personal'),
         ]),
