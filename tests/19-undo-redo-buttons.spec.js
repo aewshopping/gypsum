@@ -8,65 +8,29 @@ async function waitForHistoryOptions(page, count) {
   }, count);
 }
 
-async function openModal(page) {
+test('the undo and redo buttons drive the editor history', async ({ page }) => {
+  await setupMockDirectoryWithHistory(page);
+  await page.goto('/');
   await loadFolder(page);
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
   await waitForHistoryOptions(page, 1);
-}
-
-async function switchToTxt(page) {
   await page.evaluate(() => {
     const t = document.getElementById('render_toggle');
     if (!t.checked) t.click();
   });
   await expect(page.locator('#modal-content-text pre')).toBeVisible();
-}
 
-test.describe('undo/redo footer buttons', () => {
+  const text = () => page.locator('#modal-content-text pre').textContent();
 
-  test('undo button reverts typed text in the editor', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
+  await page.locator('#modal-content-text pre').click();
+  await page.keyboard.press('End');
+  await page.keyboard.type('XYZTEST');
+  expect(await text()).toContain('XYZTEST');
 
-    // Focus the editor and type a unique string
-    await page.locator('#modal-content-text pre').click();
-    await page.keyboard.press('End');
-    await page.keyboard.type('XYZTEST');
+  await page.locator('[data-action="editor-undo"]').click();
+  expect(await text()).not.toContain('XYZTEST');
 
-    const textWithEdit = await page.locator('#modal-content-text pre').textContent();
-    expect(textWithEdit).toContain('XYZTEST');
-
-    // Click the undo button and verify the typed text is gone
-    await page.locator('[data-action="editor-undo"]').click();
-
-    const textAfterUndo = await page.locator('#modal-content-text pre').textContent();
-    expect(textAfterUndo).not.toContain('XYZTEST');
-  });
-
-  test('redo button reapplies text after an undo', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    // Type something
-    await page.locator('#modal-content-text pre').click();
-    await page.keyboard.press('End');
-    await page.keyboard.type('XYZTEST');
-
-    // Undo via keyboard so we know undo stack is valid
-    await page.keyboard.press('Control+z');
-    const textAfterUndo = await page.locator('#modal-content-text pre').textContent();
-    expect(textAfterUndo).not.toContain('XYZTEST');
-
-    // Redo via the button
-    await page.locator('[data-action="editor-redo"]').click();
-
-    const textAfterRedo = await page.locator('#modal-content-text pre').textContent();
-    expect(textAfterRedo).toContain('XYZTEST');
-  });
-
+  await page.locator('[data-action="editor-redo"]').click();
+  expect(await text()).toContain('XYZTEST');
 });

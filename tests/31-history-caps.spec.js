@@ -74,10 +74,11 @@ async function openAndClose(page, fileId, expectedTail) {
 
 test.describe('history.gypsum caps', () => {
 
-  // The cap tests open and close a file 16 times, each with a view transition
+  // One pass of 16 open/close cycles, each with a view transition, drives every cap
+  // assertion below — running them as separate tests would triple the wall time.
   test.setTimeout(120_000);
 
-  test('a file keeps only its newest 15 versions, and other files are untouched', async ({ page }) => {
+  test('a file keeps its newest 15 versions, evicted lines are collected, and the file stays compact', async ({ page }) => {
     await setupTwoFiles(page);
     await page.goto('/');
     await loadFolder(page);
@@ -99,37 +100,20 @@ test.describe('history.gypsum caps', () => {
     // beta.md's single version survives alpha.md's churn — the old global cap would not
     // have distinguished them
     expect(await snapshotsFor(page, 'beta.md')).toEqual(['# Beta\nonly ever this']);
-  });
 
-  test('evicted lines are garbage collected from the pool', async ({ page }) => {
-    await setupTwoFiles(page);
-    await page.goto('/');
-    await loadFolder(page);
-
-    for (let v = 1; v <= 16; v++) {
-      await page.evaluate((n) => { window.__fileContent['alpha.md'] = `# Alpha\nversion ${n}`; }, v);
-      await openAndClose(page, 'alpha.md', `version ${v}`);
-    }
-
+    // The evicted snapshot's lines must be garbage collected from the pool, with every
+    // surviving reference remapped rather than left dangling.
     const { lines, refs } = await page.evaluate(() => {
       const parsed = JSON.parse(window.__backupFileContent);
       return { lines: parsed.lines, refs: parsed.snapshots.flatMap(s => s.lineRefs) };
     });
-
-    expect(lines).not.toContain('version 1');           // dropped with the evicted snapshot
-    expect(refs.every(i => i >= 0 && i < lines.length)).toBe(true); // every ref remapped in range
+    expect(lines).not.toContain('version 1');
+    expect(refs.every(i => i >= 0 && i < lines.length)).toBe(true);
     expect(new Set(refs).size).toBe(lines.length);      // no orphaned lines left behind
-  });
 
-  test('the history file is written compact, not pretty-printed', async ({ page }) => {
-    await setupTwoFiles(page);
-    await page.goto('/');
-    await loadFolder(page);
-
-    await openAndClose(page, 'alpha.md', 'version 0');
-
+    // Written compact, not pretty-printed
     const raw = await page.evaluate(() => window.__backupFileContent);
-    expect(raw).not.toContain('\n  ');   // no indentation
+    expect(raw).not.toContain('\n  ');
     expect(raw.split('\n')).toHaveLength(1);
   });
 

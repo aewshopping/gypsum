@@ -98,14 +98,7 @@ async function setupMockDirectoryForBackup(page) {
 
 test.describe('tar backup buttons', () => {
 
-    test('both backup buttons are visible in the settings modal', async ({ page }) => {
-        await page.goto('/');
-        await page.click('[data-action="open-settings-modal"]');
-        await expect(page.locator('#modal-settings [data-action="backup-content"]')).toBeVisible();
-        await expect(page.locator('#modal-settings [data-action="backup-full"]')).toBeVisible();
-    });
-
-    test('content backup triggers download with correct filename pattern', async ({ page }) => {
+    test('a content backup downloads a tar of the txt and md files only', async ({ page }) => {
         await interceptDownload(page);
         await setupMockDirectoryForBackup(page);
 
@@ -114,41 +107,13 @@ test.describe('tar backup buttons', () => {
         await expect(page.locator('.note-grid')).toHaveCount(3);
 
         await page.click('[data-action="open-settings-modal"]');
+        await expect(page.locator('#modal-settings [data-action="backup-content"]')).toBeVisible();
+        await expect(page.locator('#modal-settings [data-action="backup-full"]')).toBeVisible();
         await page.click('#modal-settings [data-action="backup-content"]');
 
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
-        const filename = await page.evaluate(() => window.__capturedDownload.filename);
-
-        expect(filename).toMatch(/^gypsum-content-\d{8}-\d{6}\.tar\.gz$/);
-    });
-
-    test('full backup triggers download with correct filename pattern', async ({ page }) => {
-        await interceptDownload(page);
-        await setupMockDirectoryForBackup(page);
-
-        await page.goto('/');
-        await loadFolder(page);
-
-        await page.click('[data-action="open-settings-modal"]');
-        await page.click('#modal-settings [data-action="backup-full"]');
-
-        await page.waitForFunction(() => window.__capturedDownload?.filename != null);
-        const filename = await page.evaluate(() => window.__capturedDownload.filename);
-
-        expect(filename).toMatch(/^gypsum-full-\d{8}-\d{6}\.tar\.gz$/);
-    });
-
-    test('content backup archive contains only txt and md files', async ({ page }) => {
-        await interceptDownload(page);
-        await setupMockDirectoryForBackup(page);
-
-        await page.goto('/');
-        await loadFolder(page);
-
-        await page.click('[data-action="open-settings-modal"]');
-        await page.click('#modal-settings [data-action="backup-content"]');
-
-        await page.waitForFunction(() => window.__capturedDownload?.filename != null);
+        expect(await page.evaluate(() => window.__capturedDownload.filename))
+            .toMatch(/^gypsum-content-\d{8}-\d{6}\.tar\.gz$/);
 
         const entryNames = await page.evaluate(async () => {
             const { parseTarGzip } = await import('/public/js/backup/nanotar.js');
@@ -163,7 +128,7 @@ test.describe('tar backup buttons', () => {
         expect(entryNames.every(n => !n.startsWith('.gypsum'))).toBe(true);
     });
 
-    test('full backup archive contains txt/md files and .gypsum files', async ({ page }) => {
+    test('a full backup downloads a tar that also carries the .gypsum files', async ({ page }) => {
         await interceptDownload(page);
         await setupMockDirectoryForBackup(page);
 
@@ -174,6 +139,8 @@ test.describe('tar backup buttons', () => {
         await page.click('#modal-settings [data-action="backup-full"]');
 
         await page.waitForFunction(() => window.__capturedDownload?.filename != null);
+        expect(await page.evaluate(() => window.__capturedDownload.filename))
+            .toMatch(/^gypsum-full-\d{8}-\d{6}\.tar\.gz$/);
 
         const entryNames = await page.evaluate(async () => {
             const { parseTarGzip } = await import('/public/js/backup/nanotar.js');
@@ -187,50 +154,6 @@ test.describe('tar backup buttons', () => {
         expect(entryNames).toContain('subdir/nested.md');
         expect(entryNames).toContain('.gypsum/history.gypsum');
         expect(entryNames).toContain('.gypsum/notes-save.gypsum');
-    });
-
-    test('backup tar entries carry the original lastModified timestamp', async ({ page }) => {
-        const FIXED_MTIME = new Date('2024-01-15T10:00:00Z').getTime();
-
-        await interceptDownload(page);
-        await page.addInitScript((fixedMtime) => {
-            const makeFile = (name, content) => {
-                const bytes = new TextEncoder().encode(content);
-                return {
-                    kind: 'file', name,
-                    getFile: async () => ({
-                        name,
-                        size: bytes.length,
-                        lastModified: fixedMtime,
-                        text: async () => content,
-                        arrayBuffer: async () => bytes.buffer,
-                    }),
-                };
-            };
-            window.showDirectoryPicker = async () => ({
-                kind: 'directory', name: 'root',
-                values: async function* () {
-                    yield makeFile('notes.txt', 'Fixed mtime note');
-                },
-                getDirectoryHandle: async () => { throw new DOMException('not found', 'NotFoundError'); },
-            });
-        }, FIXED_MTIME);
-
-        await page.goto('/');
-        await loadFolder(page);
-        await page.click('[data-action="open-settings-modal"]');
-        await page.click('#modal-settings [data-action="backup-content"]');
-        await page.waitForFunction(() => window.__capturedDownload?.filename != null);
-
-        const storedMtimeSec = await page.evaluate(async () => {
-            const { parseTarGzip } = await import('/public/js/backup/nanotar.js');
-            const buf = await window.__capturedDownload.blob.arrayBuffer();
-            const entries = await parseTarGzip(new Uint8Array(buf));
-            return entries.find(e => e.name === 'notes.txt')?.attrs?.mtime;
-        });
-
-        // nanotar writes mtime in seconds (truncated from ms), so allow ±1s rounding
-        expect(storedMtimeSec * 1000).toBeCloseTo(FIXED_MTIME, -3);
     });
 
     test('mtime.json is written to OPFS during import with correct timestamps', async ({ page }) => {

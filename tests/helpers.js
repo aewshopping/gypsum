@@ -1020,4 +1020,15 @@ async function loadFolder(page) {
   await page.click('#btn-recent-close');
 }
 
-module.exports = { loadFolder, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation };
+/**
+ * Switches to the cards view. The app opens in the peek view, which renders each note's title
+ * and content preview but not its filename — tests that identify a note by filename have to
+ * ask for the view that shows one.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function showFilenames(page) {
+  await page.selectOption('#view-select', 'cards');
+}
+
+module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation };

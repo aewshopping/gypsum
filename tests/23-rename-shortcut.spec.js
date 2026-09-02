@@ -8,29 +8,18 @@ async function waitForHistoryOptions(page, count) {
   }, count);
 }
 
-test.describe('ctrl+shift+s rename shortcut', () => {
+test('ctrl+shift+s opens the rename modal, but only with a file open', async ({ page }) => {
+  await setupMockDirectoryWithDeleteSupport(page);
+  await page.goto('/');
+  await loadFolder(page);
 
-  test('opens the rename modal when the file content modal is open', async ({ page }) => {
-    await setupMockDirectoryWithDeleteSupport(page);
-    await page.goto('/');
-    await loadFolder(page);
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await waitForHistoryOptions(page, 1);
+  await page.keyboard.press('Control+Shift+S');
+  await expect(page.locator('#modal-file-options')).not.toBeVisible();
 
-    await page.keyboard.press('Control+Shift+S');
+  await page.locator('.note-grid').first().click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+  await waitForHistoryOptions(page, 1);
 
-    await expect(page.locator('#modal-file-options')).toBeVisible();
-  });
-
-  test('does nothing when the file content modal is closed', async ({ page }) => {
-    await setupMockDirectoryWithDeleteSupport(page);
-    await page.goto('/');
-    await loadFolder(page);
-
-    await page.keyboard.press('Control+Shift+S');
-
-    await expect(page.locator('#modal-file-options')).not.toBeVisible();
-  });
-
+  await page.keyboard.press('Control+Shift+S');
+  await expect(page.locator('#modal-file-options')).toBeVisible();
 });

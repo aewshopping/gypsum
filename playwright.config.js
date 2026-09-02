@@ -6,6 +6,9 @@ const baseURL = process.env.CODESPACE_NAME
 
 module.exports = defineConfig({
   testDir: './tests',
+  // The tests spend most of their time waiting on page loads and view transitions rather
+  // than on CPU, so running more of them than there are cores still pays off.
+  workers: 8,
   use: {
     baseURL,
   },

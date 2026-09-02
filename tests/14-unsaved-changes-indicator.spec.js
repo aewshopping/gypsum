@@ -8,13 +8,6 @@ async function waitForHistoryOptions(page, count) {
   }, count);
 }
 
-async function openModal(page) {
-  await loadFolder(page);
-  await page.locator('.note-grid').first().click();
-  await expect(page.locator('#file-content-modal')).toBeVisible();
-  await waitForHistoryOptions(page, 1);
-}
-
 async function switchToTxt(page) {
   await page.evaluate(() => {
     const t = document.getElementById('render_toggle');
@@ -29,7 +22,7 @@ async function switchToTxt(page) {
 
 test.describe('unsaved changes indicator in history select button', () => {
 
-  test('no indicator shown on initial open for a file with Windows \\r\\n line endings', async ({ page }) => {
+  test('a file with Windows \\r\\n line endings opens clean, and stays clean through an undo', async ({ page }) => {
     await page.addInitScript(() => {
       const content = '# My Notes\r\nCurrent content today #work';
       const makeFile = (name, c) => ({
@@ -48,13 +41,26 @@ test.describe('unsaved changes indicator in history select button', () => {
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForHistoryOptions(page, 1);
 
+    // \r\n must be normalised on open, or the file looks dirty before a key is pressed
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
+
+    await switchToTxt(page);
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('x');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+
+    await page.keyboard.press('Control+z');
     await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
-  test('indicator reappears when returning to current version after viewing history', async ({ page }) => {
+  test('the indicator reappears when returning to current after viewing history', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
-    await openModal(page);
+    await loadFolder(page);
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await waitForHistoryOptions(page, 1);
     await switchToTxt(page);
     await page.evaluate(() => {
       const pre = document.querySelector('#modal-content-text pre');
@@ -63,29 +69,13 @@ test.describe('unsaved changes indicator in history select button', () => {
     });
 
     await waitForHistoryOptions(page, 3);
-    // Switch to historical entry
+    // A historical version is read-only, so it never shows the indicator
     await page.selectOption('#file-content-history-select', { index: 2 });
     await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
 
     // Return to current version — edits are still unsaved
     await page.selectOption('#file-content-history-select', { value: 'current' });
-
     await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
-  });
-
-  test('indicator disappears after Ctrl+Z undo back to original content', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.locator('#modal-content-text pre').click();
-    await page.keyboard.press('End');
-    await page.keyboard.type('x');
-    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
-
-    await page.keyboard.press('Control+z');
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
 });

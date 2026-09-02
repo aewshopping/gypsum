@@ -29,17 +29,24 @@ async function clickSaveBtn(page) {
 
 test.describe('save to original file', () => {
 
-  test('original file is overwritten with editor content after successful save', async ({ page }) => {
+  test('a successful save overwrites the original and clears the unsaved indicator', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
 
+    await page.evaluate(() => {
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = 'edited content';
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+
     await clickSaveBtn(page);
     await page.waitForTimeout(100);
 
-    const originalContent = await page.evaluate(() => window.__originalFiles['notes.md']);
-    expect(originalContent).toBe('# My Notes\nSome content here');
+    expect(await page.evaluate(() => window.__originalFiles['notes.md'])).toBe('edited content');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
   test('if gypsum save fails, original file is not written and console.warn is emitted', async ({ page }) => {
@@ -151,25 +158,5 @@ test.describe('save to original file', () => {
     expect(savedFiles).toContain('notes.md-save.gypsum');
   });
 
-  test('after successful save, unsaved-changes indicator disappears', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    // Edit content — indicator should appear (saved class removed)
-    await page.evaluate(() => {
-      const pre = document.querySelector('#modal-content-text pre');
-      pre.textContent = 'edited content';
-      pre.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
-
-    // Save — both gypsum and original file writes complete, then indicator resets
-    await clickSaveBtn(page);
-    await page.waitForTimeout(100);
-
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
-  });
 
 });

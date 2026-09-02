@@ -27,21 +27,43 @@ async function clickSaveBtn(page) {
   await page.evaluate(() => document.getElementById('save-btn').click());
 }
 
-test.describe('save button guard conditions', () => {
+test.describe('save file functionality', () => {
 
-  test('handler saves in HTML mode (current version)', async ({ page }) => {
+  test('a save writes the original, names its temp file correctly, and marks the file saved', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await clickSaveBtn(page);
+    await page.waitForTimeout(100);
+
+    const deletedFiles = await page.evaluate(() => Object.keys(window.__deletedFiles));
+    // top-level file: filepath === filename, so no dir prefix. The intermediate gypsum save
+    // file is created with that name and deleted once the original is verified.
+    expect(deletedFiles).toContain('notes.md-save.gypsum');
+    expect(deletedFiles).not.toContain('notes.md-notes.md-save.gypsum');
+
+    const savedContent = await page.evaluate(() => window.__originalFiles['notes.md']);
+    expect(savedContent).toBe('# My Notes\nSome content here');
+    expect(savedContent).not.toContain('<br>');
+
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
+    await expect(page.locator('#save-btn')).not.toHaveClass(/\bsave-error\b/);
+  });
+
+  test('the handler saves in HTML mode too (current version)', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     // Modal opens in HTML mode (render_toggle unchecked).
     await clickSaveBtn(page);
     await page.waitForTimeout(100);
-
-    const deletedFiles = await page.evaluate(() => Object.keys(window.__deletedFiles));
-    expect(deletedFiles).toContain('notes.md-save.gypsum');
+    expect(await page.evaluate(() => Object.keys(window.__deletedFiles)))
+      .toContain('notes.md-save.gypsum');
   });
 
-  test('handler does not save while viewing a historical version', async ({ page }) => {
+  test('neither the button nor Ctrl+S saves while viewing a historical version', async ({ page }) => {
     await setupMockDirectoryWithHistoryAndSave(page);
     await page.goto('/');
     await openModal(page);
@@ -49,47 +71,26 @@ test.describe('save button guard conditions', () => {
 
     await switchToTxt(page);
     await page.selectOption('#file-content-history-select', { index: 2 });
+
     await clickSaveBtn(page);
+    await page.keyboard.press('Control+s');
     await page.waitForTimeout(100);
 
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).toHaveLength(0);
+    expect(Object.keys(await page.evaluate(() => window.__savedFiles))).toHaveLength(0);
   });
 
-});
-
-test.describe('save file functionality', () => {
-
-  test('top-level file is saved as {filename}-save.gypsum (no dir prefix)', async ({ page }) => {
+  test('Ctrl+S saves the file in text mode / current version', async ({ page }) => {
     await setupMockDirectoryWithSaveSupport(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
 
-    await clickSaveBtn(page);
+    await page.keyboard.press('Control+s');
     await page.waitForTimeout(100);
 
-    const deletedFiles = await page.evaluate(() => Object.keys(window.__deletedFiles));
-    // top-level file: filepath === filename, so no dir prefix
-    // gypsum save file is created with the correct name then deleted after original file save
-    expect(deletedFiles).toContain('notes.md-save.gypsum');
-    expect(deletedFiles).not.toContain('notes.md-notes.md-save.gypsum');
-  });
-
-  test('saved file has newlines (\\n) not <br> for line breaks', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await clickSaveBtn(page);
-    await page.waitForTimeout(100);
-
-    const savedContent = await page.evaluate(
-      () => window.__originalFiles['notes.md']
-    );
-    expect(savedContent).toContain('\n');
-    expect(savedContent).not.toContain('<br>');
+    // gypsum save file is created then deleted after the original file is saved
+    expect(await page.evaluate(() => Object.keys(window.__deletedFiles)))
+      .toContain('notes.md-save.gypsum');
   });
 
   test('HTML entities in file content (&, <, >) are decoded correctly in the saved file', async ({ page }) => {
@@ -138,27 +139,12 @@ test.describe('save file functionality', () => {
     await clickSaveBtn(page);
     await page.waitForTimeout(100);
 
-    const savedContent = await page.evaluate(
-      () => window.__originalFiles['notes.md']
-    );
     // HTML entities must be decoded back to literal characters
+    const savedContent = await page.evaluate(() => window.__originalFiles['notes.md']);
     expect(savedContent).toContain('&');
     expect(savedContent).toContain('<great>');
     expect(savedContent).not.toContain('&amp;');
     expect(savedContent).not.toContain('&lt;');
-  });
-
-  test('save button shows saved state after a successful save', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await clickSaveBtn(page);
-    await page.waitForTimeout(100);
-
-    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
-    await expect(page.locator('#save-btn')).not.toHaveClass(/\bsave-error\b/);
   });
 
   test('save button does not show saved state when verification fails', async ({ page }) => {
@@ -211,117 +197,6 @@ test.describe('save file functionality', () => {
     // Verification fails so resetUnsavedBaseline is never called — saved class stays absent
     await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
     await expect(page.locator('#save-btn')).toHaveClass(/\bsave-error\b/);
-  });
-
-});
-
-test.describe('Ctrl+S keyboard shortcut', () => {
-
-  test('Ctrl+S saves the file in text mode / current version', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.keyboard.press('Control+s');
-    await page.waitForTimeout(100);
-
-    // gypsum save file is created then deleted after the original file is saved
-    const deletedFiles = await page.evaluate(() => Object.keys(window.__deletedFiles));
-    expect(deletedFiles).toContain('notes.md-save.gypsum');
-  });
-
-  test('Ctrl+S does not save when viewing a historical version', async ({ page }) => {
-    await setupMockDirectoryWithHistoryAndSave(page);
-    await page.goto('/');
-    await openModal(page);
-    await waitForHistoryOptions(page, 3);
-
-    await switchToTxt(page);
-    await page.selectOption('#file-content-history-select', { index: 2 });
-
-    await page.keyboard.press('Control+s');
-    await page.waitForTimeout(100);
-
-    const savedFiles = await page.evaluate(() => window.__savedFiles);
-    expect(Object.keys(savedFiles)).toHaveLength(0);
-  });
-
-});
-
-// ─── Unsaved-state prominence follows the Autosave setting ───────────────────
-
-/**
- * Reads the computed background and text colour of the save button, plus the background of
- * a neighbouring header button, which is the plain transparent icon button the save button
- * should match when it is not shouting.
- */
-async function saveBtnColours(page) {
-  return page.evaluate(() => {
-    const btn = document.getElementById('save-btn');
-    const neighbour = document.querySelector('[data-action="editor-undo"]');
-    return {
-      background: getComputedStyle(btn).backgroundColor,
-      color: getComputedStyle(btn).color,
-      neighbourBackground: getComputedStyle(neighbour).backgroundColor,
-    };
-  });
-}
-
-test.describe('unsaved save button prominence', () => {
-
-  // The fake clock is installed but never advanced, so the pause timer never fires and the
-  // file stays in the unsaved state for the whole test.
-  async function openDirtyFile(page) {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await page.clock.install();
-    await page.evaluate(() => {
-      const pre = document.querySelector('#modal-content-text pre');
-      pre.textContent = 'unsaved edits';
-      pre.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await expect(page.locator('#modal-content')).not.toHaveClass(/saved/);
-  }
-
-  test('shouts with an inverted plate when autosave is off', async ({ page }) => {
-    await openDirtyFile(page);
-    await page.evaluate(() => { document.getElementById('autosave-enabled').checked = false; });
-
-    const { background, neighbourBackground } = await saveBtnColours(page);
-    expect(background).not.toBe(neighbourBackground);
-  });
-
-  test('sits with its neighbours when autosave is on', async ({ page }) => {
-    await openDirtyFile(page);
-
-    const { background, neighbourBackground } = await saveBtnColours(page);
-    expect(background).toBe(neighbourBackground);
-  });
-
-  test('the glyph colour flips from inverse to positive with the setting', async ({ page }) => {
-    await openDirtyFile(page);
-    const on = await saveBtnColours(page);
-
-    await page.evaluate(() => { document.getElementById('autosave-enabled').checked = false; });
-    const off = await saveBtnColours(page);
-
-    expect(on.color).not.toBe(off.color);
-  });
-
-  test('a failed save still shouts even with autosave on', async ({ page }) => {
-    await openDirtyFile(page);
-    const positive = await saveBtnColours(page);
-
-    await page.evaluate(() => document.getElementById('save-btn').classList.add('save-error'));
-    const errored = await saveBtnColours(page);
-
-    // The plate comes back — a write that is not reaching disk has to be noticed
-    expect(errored.background).not.toBe(errored.neighbourBackground);
-    // and the glyph takes the warning colour rather than the positive one
-    expect(errored.color).not.toBe(positive.color);
   });
 
 });

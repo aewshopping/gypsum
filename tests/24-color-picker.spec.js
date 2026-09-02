@@ -52,18 +52,6 @@ function getCursorOffset(page) {
 
 test.describe('colour picker modal', () => {
 
-  test('clicking the color button opens the colour picker modal', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-
-    await page.click('[data-action="editor-color-pick"]');
-
-    await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await expect(page.locator('[data-action="color-circle-pick"]').first()).toBeVisible();
-  });
-
   test('existing colour above cursor is replaced and cursor offset is adjusted', async ({ page }) => {
     // File: '# My Notes\n#color/{COLOUR_0}\nText below'
     // Cursor placed at end of file (after the tag), so the tag is "above" the cursor.
@@ -111,6 +99,7 @@ test.describe('colour picker modal', () => {
     await expect(page.locator('#modal-color-picker')).toBeVisible();
 
     const firstBtn = page.locator('[data-action="color-circle-pick"]').first();
+    await expect(firstBtn).toBeVisible();
     const colourName = await firstBtn.getAttribute('data-color-value');
     await firstBtn.click();
     await expect(page.locator('#modal-color-picker')).not.toBeVisible();

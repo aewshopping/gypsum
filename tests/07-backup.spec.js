@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithWrite, setupMockFiles, loadFolder } = require('./helpers');
+const { setupMockDirectoryWithWrite, loadFolder } = require('./helpers');
 
 // Helper: wait until window.__backupFileContent parses to at least N snapshots
 async function waitForBackupEntries(page, count) {
@@ -14,10 +14,11 @@ async function waitForBackupEntries(page, count) {
 
 test.describe('local file backup', () => {
 
-  test('writes open entry to history.gypsum when file modal is opened', async ({ page }) => {
+  test('an open writes a snapshot, an unchanged close rewrites nothing', async ({ page }) => {
     await setupMockDirectoryWithWrite(page);
     await page.goto('/');
     await loadFolder(page);
+    // history.gypsum must not show up as a note of its own
     await expect(page.locator('.note-grid')).toHaveCount(1);
 
     await page.locator('.note-grid').first().click();
@@ -32,31 +33,14 @@ test.describe('local file backup', () => {
     const content = parsed.snapshots[0].lineRefs.map(i => parsed.lines[i]).join('\n');
     expect(content).toContain('My Notes');
     expect(typeof parsed.snapshots[0].timestamp).toBe('string');
-  });
 
-  test('deduplicates close event when content unchanged, making no write', async ({ page }) => {
-    await setupMockDirectoryWithWrite(page);
-    await page.goto('/');
-    await loadFolder(page);
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-
-    await waitForBackupEntries(page, 1);
-    const snapshotAfterOpen = await page.evaluate(() => window.__backupFileContent);
-    const timestampAfterOpen = JSON.parse(snapshotAfterOpen).snapshots[0].timestamp;
-
+    // Closing with unchanged content must dedupe — no second write at all.
+    const afterOpen = await page.evaluate(() => window.__backupFileContent);
     await page.click('[data-action="close-file-content-modal"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
-
-    // Give the async close-save time to run (and confirm it does nothing on duplicate).
     await page.waitForTimeout(300);
 
-    const backupAfterClose = await page.evaluate(() => window.__backupFileContent);
-    expect(backupAfterClose).toBe(snapshotAfterOpen); // file not rewritten
-
-    const parsed = JSON.parse(backupAfterClose);
-    expect(parsed.snapshots).toHaveLength(1);
-    expect(parsed.snapshots[0].timestamp).toBe(timestampAfterOpen); // timestamp unchanged
+    expect(await page.evaluate(() => window.__backupFileContent)).toBe(afterOpen);
   });
 
   test('appends a new entry when a different file is opened', async ({ page }) => {
@@ -97,7 +81,6 @@ test.describe('local file backup', () => {
     await loadFolder(page);
     await expect(page.locator('.note-grid')).toHaveCount(2);
 
-    // Open first file
     await page.locator('[data-action="open-file-content-modal"][data-file-id="alpha.md"]').click();
     await expect(page.locator('#file-content-modal')).toBeVisible();
     await waitForBackupEntries(page, 1);
@@ -113,14 +96,6 @@ test.describe('local file backup', () => {
     expect(parsed.snapshots).toHaveLength(2);
     expect(parsed.snapshots[0].filename).toBe('alpha.md');
     expect(parsed.snapshots[1].filename).toBe('beta.md');
-  });
-
-  test('history.gypsum does not appear in the file list', async ({ page }) => {
-    await setupMockDirectoryWithWrite(page);
-    await page.goto('/');
-    await loadFolder(page);
-
-    await expect(page.locator('.note-grid')).toHaveCount(1);
   });
 
 });

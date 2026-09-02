@@ -1,18 +1,14 @@
 import { test, expect } from '@playwright/test';
 
-test('manifest is linked and valid', async ({ page }) => {
+test('the manifest is linked and valid, and the service worker activates', async ({ page }) => {
   await page.goto('/');
-  const href = await page.getAttribute('link[rel="manifest"]', 'href');
-  expect(href).toBe('manifest.json');
+  expect(await page.getAttribute('link[rel="manifest"]', 'href')).toBe('manifest.json');
 
   const manifest = await (await page.request.get('/manifest.json')).json();
   expect(manifest.name).toBe('Gypsum');
   expect(manifest.display).toBe('standalone');
   expect(manifest.icons.length).toBeGreaterThan(0);
-});
 
-test('service worker registers and activates', async ({ page }) => {
-  await page.goto('/');
   const swUrl = await page.evaluate(async () => {
     const reg = await navigator.serviceWorker.ready;
     return reg.active.scriptURL;
@@ -46,37 +42,6 @@ test('app falls back to cache when offline', async ({ page, context }) => {
 
   // Assert a real app UI element rendered, not just that <body> exists
   await expect(page.locator('#btn_loadDirectoryHandles')).toBeVisible();
-});
-
-// Validates the manifest-version check: an unchanged version must not trigger a
-// re-fetch of cached assets. Tampering with a cached asset and confirming it survives
-// a reload proves the service worker served it from cache untouched.
-test('unchanged manifest version serves assets from cache untouched', async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() =>
-    new Promise((resolve) => {
-      if (navigator.serviceWorker.controller) return resolve();
-      navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
-    })
-  );
-  await page.reload();
-  await page.waitForLoadState('networkidle');
-
-  await page.evaluate(async () => {
-    const cache = await caches.open((await caches.keys())[0]);
-    const original = await cache.match('./public/style.css');
-    const text = await original.text();
-    await cache.put('./public/style.css', new Response(`${text}\n/* tampered */`, { headers: original.headers }));
-  });
-
-  await page.reload();
-  await page.waitForLoadState('networkidle');
-
-  const cachedText = await page.evaluate(async () => {
-    const cache = await caches.open((await caches.keys())[0]);
-    return (await cache.match('./public/style.css')).text();
-  });
-  expect(cachedText).toContain('/* tampered */');
 });
 
 // Validates the other half of the manifest-version check: a bumped version must

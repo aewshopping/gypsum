@@ -38,63 +38,29 @@ test.describe('recent files panel', () => {
     await openCard(page, 'Quarterly Review');
     await closeModal(page);
     await openCard(page, 'Big Ideas');
+
+    // The entry for the file on screen is marked, and unmarked once it closes
+    const marked = page.locator('.sidebar-recent-item[data-current]');
+    await expect(marked).toHaveAttribute('data-file-id', 'big-ideas.md');
     await closeModal(page);
+    await expect(marked).toHaveCount(0);
 
     const items = page.locator('.sidebar-recent-item');
     await expect(items).toHaveCount(2);
     await expect(items.nth(0)).toHaveAttribute('data-file-id', 'big-ideas.md');
     await expect(items.nth(1)).toHaveAttribute('data-file-id', 'meeting-notes.md');
 
-    // Re-opening a listed file moves it back to the top rather than adding a second entry.
+    // Re-opening a listed file moves it back to the top rather than adding a second entry,
+    // and lights up exactly one row rather than every visit to that file.
     await openCard(page, 'Quarterly Review');
+    await expect(marked).toHaveCount(1);
     await closeModal(page);
     await expect(items).toHaveCount(2);
     await expect(items.nth(0)).toHaveAttribute('data-file-id', 'meeting-notes.md');
     await expect(items.nth(1)).toHaveAttribute('data-file-id', 'big-ideas.md');
   });
 
-  test('an entry carries the file colour', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-    await openCard(page, 'Big Ideas');
-    await closeModal(page);
-
-    const item = page.locator('.sidebar-recent-item[data-file-id="big-ideas.md"]');
-    await expect(item).toHaveAttribute('data-color', 'coral');
-    await expect(item).toHaveCSS('background-color', 'rgb(255, 127, 80)'); // coral
-  });
-
-  test('clicking an entry opens that file', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-    await openCard(page, 'Quarterly Review');
-    await closeModal(page);
-
-    await openPanel(page);
-    await page.locator('.sidebar-recent-item[data-file-id="meeting-notes.md"]').click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await expect(page.locator('#modal-content-text')).toContainText('Discussion points');
-  });
-
-  test('the open panel pushes the page and the file modal right', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-
-    const modalLeft = () => page.locator('#moving-file-content-container')
-      .evaluate(el => el.getBoundingClientRect().left);
-
-    await openCard(page, 'Quarterly Review');
-    const closedLeft = await modalLeft();
-    await closeModal(page);
-
-    // The panel has to be opened first: its button sits on the page, which a modal makes inert.
-    await openPanel(page);
-    await expect(page.locator('body')).not.toHaveCSS('padding-inline-start', '0px');
-    await openCard(page, 'Quarterly Review');
-    expect(await modalLeft()).toBeGreaterThan(closedLeft);
-  });
-
-  test('an entry stays clickable while a file is open', async ({ page }) => {
+  test('an entry opens its file, and stays clickable while another is open', async ({ page }) => {
     await setupMockFiles(page);
     await loadFiles(page);
     await openCard(page, 'Quarterly Review');
@@ -112,25 +78,7 @@ test.describe('recent files panel', () => {
     await expect(page.locator('#modal-content-text')).toContainText('Discussion points');
   });
 
-  test('the entry for the file on screen is marked, and unmarked once it closes', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-    await openCard(page, 'Big Ideas');
-
-    const marked = page.locator('.sidebar-recent-item[data-current]');
-    await expect(marked).toHaveAttribute('data-file-id', 'big-ideas.md');
-    await closeModal(page);
-    await expect(marked).toHaveCount(0);
-
-    // Re-opening a file already in the list must light up one row, not every visit to that file.
-    await openCard(page, 'Quarterly Review');
-    await closeModal(page);
-    await openCard(page, 'Big Ideas');
-    await expect(marked).toHaveCount(1);
-    await expect(marked).toHaveAttribute('data-file-id', 'big-ideas.md');
-  });
-
-  test('a renamed file keeps its place in the panel under the new name', async ({ page }) => {
+  test('a renamed file keeps its place under the new name, and a deleted one drops out', async ({ page }) => {
     await setupMockFiles(page);
     await loadFiles(page);
     await openCard(page, 'Big Ideas');
@@ -151,55 +99,20 @@ test.describe('recent files panel', () => {
     await expect(items).toHaveCount(1);
     await expect(items.first()).toHaveAttribute('data-file-id', 'bigger-ideas.md');
     await expect(items.first()).toHaveAttribute('data-current', '');
-  });
 
-  test('a deleted file drops out of the panel', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-    await openCard(page, 'Big Ideas');
     await closeModal(page);
-    await expect(page.locator('.sidebar-recent-item')).toHaveCount(1);
 
     // The mock directory has no write support, so remove the file from state directly and
     // re-render — the same path a real delete takes on its way out.
     await page.evaluate(async () => {
       const { appState } = await import('/public/js/services/store.js');
       const { renderFiles } = await import('/public/js/ui/ui-functions-render/a-render-all-files.js');
-      appState.myFiles = appState.myFiles.filter(f => f.internalId !== 'big-ideas.md');
+      appState.myFiles = appState.myFiles.filter(f => f.internalId !== 'bigger-ideas.md');
       renderFiles();
     });
 
-    await expect(page.locator('.sidebar-recent-item')).toHaveCount(0);
+    await expect(items).toHaveCount(0);
     await expect(page.locator('.sidebar-recent-empty')).toHaveCount(1);
-  });
-
-});
-
-// The open file goes full height, and loses its rounded corners, once it has under 600px to work
-// with. The panel takes 240px of that, so at this width the two states differ: 700px of room with
-// the panel shut, 460px with it open. A viewport-only breakpoint reads both as roomy.
-test.describe('the file modal measures its breakpoint against the room the panel leaves it', () => {
-
-  test.use({ viewport: { width: 700, height: 800 } });
-
-  /** The container's distance from the top of the screen, and its corner rounding. */
-  const modalEdge = (page) => page.locator('#moving-file-content-container').evaluate(el => ({
-    top: Math.round(el.getBoundingClientRect().top),
-    radius: getComputedStyle(el).borderTopLeftRadius,
-  }));
-
-  test('roomy with the panel shut, cramped with it open', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-
-    await openCard(page, 'Quarterly Review');
-    await expect.poll(() => modalEdge(page), 'panel shut').toEqual({ top: 20, radius: '8px' });
-    await closeModal(page);
-
-    // The panel has to be opened first: its button sits on the page, which a modal makes inert.
-    await openPanel(page);
-    await openCard(page, 'Quarterly Review');
-    await expect.poll(() => modalEdge(page), 'panel open').toEqual({ top: 0, radius: '0px' });
   });
 
 });

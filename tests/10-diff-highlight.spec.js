@@ -9,38 +9,21 @@ async function waitForHistoryOptions(page, count) {
   }, count);
 }
 
-test.describe('diff highlighting', () => {
+test('the diff-old highlight follows the selected version', async ({ page }) => {
+  await setupMockDirectoryWithHistoryLinePool(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await page.locator('.note-grid').first().click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+  // on-open snapshot (v-1) + the pre-existing historical entry (v-2) = 3 total
+  await waitForHistoryOptions(page, 3);
 
-  async function openModal(page) {
-    await loadFolder(page);
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    // Wait for both the on-open snapshot (v-1) and the historical entry (v-2) = 3 total
-    await waitForHistoryOptions(page, 3);
-  }
+  const hasHighlight = () => page.evaluate(() => CSS.highlights.has('diff-old'));
 
-  test('selecting a historical entry applies diff-old highlight', async ({ page }) => {
-    await setupMockDirectoryWithHistoryLinePool(page);
-    await page.goto('/');
-    await openModal(page);
+  // index 2 = v-2, the pre-existing historical entry ("Old content from yesterday")
+  await page.selectOption('#file-content-history-select', { index: 2 });
+  expect(await hasHighlight()).toBe(true);
 
-    // index 2 = v-2, the pre-existing historical entry ("Old content from yesterday")
-    await page.selectOption('#file-content-history-select', { index: 2 });
-
-    const hasHighlight = await page.evaluate(() => CSS.highlights.has('diff-old'));
-    expect(hasHighlight).toBe(true);
-  });
-
-  test('switching back to current version removes diff-old highlight', async ({ page }) => {
-    await setupMockDirectoryWithHistoryLinePool(page);
-    await page.goto('/');
-    await openModal(page);
-
-    await page.selectOption('#file-content-history-select', { index: 2 });
-    await page.selectOption('#file-content-history-select', { value: 'current' });
-
-    const hasHighlight = await page.evaluate(() => CSS.highlights.has('diff-old'));
-    expect(hasHighlight).toBe(false);
-  });
-
+  await page.selectOption('#file-content-history-select', { value: 'current' });
+  expect(await hasHighlight()).toBe(false);
 });
