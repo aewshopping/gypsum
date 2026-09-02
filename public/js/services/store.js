@@ -37,7 +37,7 @@ export const appState = {
     matchingFiles: new Map()
   },
 
-  viewState: VIEWS.CARDS.value, // sets initial view state
+  viewState: VIEWS.PEEK.value, // sets initial view state
   sortState: { property: 'lastModified', direction: 'desc'},
   paginationState: {
     currentPage: 1,
