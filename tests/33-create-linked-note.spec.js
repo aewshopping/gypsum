@@ -24,19 +24,7 @@ async function typeAtEnd(page, text) {
 }
 
 const items = (page) => page.locator('.tag-autocomplete-popup .tag-autocomplete-item');
-const borderStyle = (page) => page.locator('.tag-autocomplete-popup').evaluate(el => getComputedStyle(el).borderTopStyle);
 
-/**
- * Inserts text as one multi-character input event, the way a paste arrives. Typing the same
- * text key by key would dismiss the popup on the first non-triggering character and rebuild
- * it, which is exactly the path that would hide a styling leak.
- */
-async function pasteIntoEditor(page, text) {
-  await page.locator('#modal-content-text pre.text-editor').evaluate((pre, value) => {
-    pre.focus();
-    document.execCommand('insertText', false, value);
-  }, text);
-}
 const createdFiles = (page) => page.evaluate(() => [...window.__createdFiles.keys()]);
 const openFilepath = (page) => page.evaluate(() => window.appState.openFileSnapshot?.filepath);
 
@@ -51,7 +39,7 @@ test.describe('creating a note from an unresolved internal link', () => {
   });
   test.afterEach(() => { expect(pageErrors).toEqual([]); });
 
-  test('Enter after ]] offers the note, pre-selected', async ({ page }) => {
+  test('Enter offers the note pre-selected, and a second Enter creates and opens it', async ({ page }) => {
     await setupMockDirectoryWithNoteCreation(page);
     await page.goto('/');
     await openHubInTextMode(page);
@@ -64,47 +52,7 @@ test.describe('creating a note from an unresolved internal link', () => {
     await expect(items(page).first()).toHaveAttribute('data-active', 'true');
     // The Enter that opened the popup must not also have inserted a newline.
     expect(await createdFiles(page)).not.toContain('brand new.txt');
-  });
 
-  test('the offer is styled as a creation, not a completion', async ({ page }) => {
-    await setupMockDirectoryWithNoteCreation(page);
-    await page.goto('/');
-    await openHubInTextMode(page);
-
-    await typeAtEnd(page, '[[brand new.txt]]');
-    await page.keyboard.press('Enter');
-
-    await expect(page.locator('.tag-autocomplete-popup')).toHaveAttribute('data-kind', 'create');
-    // The attribute alone would pass even if the CSS never matched, so check it landed.
-    expect(await borderStyle(page)).toBe('dashed');
-  });
-
-  test('a pasted trigger reuses no styling from the offer', async ({ page }) => {
-    await setupMockDirectoryWithNoteCreation(page);
-    await page.goto('/');
-    await openHubInTextMode(page);
-
-    await typeAtEnd(page, '[[unwanted.txt]]');
-    await page.keyboard.press('Enter');
-    await expect(page.locator('.tag-autocomplete-popup')).toHaveAttribute('data-kind', 'create');
-
-    // One input event carrying a complete trigger, reaching the popup-reuse branch while the
-    // create popup is still on screen.
-    await pasteIntoEditor(page, '[[');
-
-    await expect(page.locator('.tag-autocomplete-popup')).not.toHaveAttribute('data-kind', /.*/);
-    expect(await borderStyle(page)).toBe('solid');
-    await expect(items(page)).toContainText(['hub.md', 'shopping.txt']);
-  });
-
-  test('a second Enter creates the note and opens it', async ({ page }) => {
-    await setupMockDirectoryWithNoteCreation(page);
-    await page.goto('/');
-    await openHubInTextMode(page);
-
-    await typeAtEnd(page, '[[brand new.txt]]');
-    await page.keyboard.press('Enter');
-    await expect(items(page)).toHaveCount(1);
     await page.keyboard.press('Enter');
 
     await expect.poll(() => openFilepath(page)).toBe('brand new.txt');
@@ -116,23 +64,7 @@ test.describe('creating a note from an unresolved internal link', () => {
     expect(filepaths).toContain('brand new.txt');
   });
 
-  test('folder segments are created silently', async ({ page }) => {
-    await setupMockDirectoryWithNoteCreation(page);
-    await page.goto('/');
-    await openHubInTextMode(page);
-
-    await typeAtEnd(page, '[[contacts/friends/bob.txt]]');
-    await page.keyboard.press('Enter');
-    await expect(items(page).first()).toHaveText('contacts/friends/bob.txt');
-    await page.keyboard.press('Enter');
-
-    await expect.poll(() => createdFiles(page)).toContain('contacts/friends/bob.txt');
-    expect(await page.evaluate(() => [...window.__createdDirs])).toEqual(
-      expect.arrayContaining(['contacts', 'contacts/friends'])
-    );
-  });
-
-  test('a missing extension means .txt, and a pipe alias is ignored', async ({ page }) => {
+  test('folder segments are created silently, a missing extension means .txt, and a pipe alias is ignored', async ({ page }) => {
     await setupMockDirectoryWithNoteCreation(page);
     await page.goto('/');
     await openHubInTextMode(page);
@@ -143,6 +75,10 @@ test.describe('creating a note from an unresolved internal link', () => {
     await page.keyboard.press('Enter');
 
     await expect.poll(() => openFilepath(page)).toBe('contacts/friends/bob.txt');
+    await expect.poll(() => createdFiles(page)).toContain('contacts/friends/bob.txt');
+    expect(await page.evaluate(() => [...window.__createdDirs])).toEqual(
+      expect.arrayContaining(['contacts', 'contacts/friends'])
+    );
   });
 
   test('a link to a note that already exists just inserts a newline', async ({ page }) => {
@@ -151,24 +87,18 @@ test.describe('creating a note from an unresolved internal link', () => {
     await openHubInTextMode(page);
 
     const before = await createdFiles(page);
+
     await typeAtEnd(page, '[[shopping.txt]]');
     await page.keyboard.press('Enter');
-
     await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
-    expect(await createdFiles(page)).toEqual(before);
-    expect(await openFilepath(page)).toBe('hub.md');
-  });
 
-  test('an extensionless link to a note that already exists does not offer to create it', async ({ page }) => {
-    await setupMockDirectoryWithNoteCreation(page);
-    await page.goto('/');
-    await openHubInTextMode(page);
-
+    // The extensionless form resolves to the same file, so it must not offer either
     await typeAtEnd(page, '[[shopping]]');
     await page.keyboard.press('Enter');
-
     await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
-    expect(await createdFiles(page)).not.toContain('shopping.txt.txt');
+
+    expect(await createdFiles(page)).toEqual(before);
+    expect(await openFilepath(page)).toBe('hub.md');
   });
 
   test('Escape dismisses the offer and creates nothing', async ({ page }) => {

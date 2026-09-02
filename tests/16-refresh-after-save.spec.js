@@ -107,86 +107,35 @@ async function clickSaveBtn(page) {
   await page.evaluate(() => document.getElementById('save-btn').click());
 }
 
-// ─── appState.myFiles ─────────────────────────────────────────────────────────
+// ─── What a save refreshes ────────────────────────────────────────────────────
 
-test.describe('appState.myFiles is updated after manual save', () => {
+test.describe('a manual save refreshes appState and the UI', () => {
 
-  test('title is updated after saving with a new title', async ({ page }) => {
+  test('title, tag map, taxonomy and modal colour all follow the saved content', async ({ page }) => {
     await setupWithContent(page, '# Original Title\nContent here');
     await page.goto('/');
+    // The taxonomy has to be on screen before the save, or there is nothing to re-render.
+    await page.click('[data-action="toggle-file-controls"]');
+    await page.click('[data-action="render-tag-taxonomy"]');
     await openModal(page);
     await switchToTxt(page);
-    await editContent(page, '# Updated Title\nContent here');
+    await editContent(page, '# Updated Title\nContent here #brandnewtag #color/coral');
     await clickSaveBtn(page);
 
     await expect.poll(() => page.evaluate(() =>
       window.appState.myFiles.find(f => f.filename === 'notes.md')?.title
     )).toBe('Updated Title');
-  });
-
-});
-
-// ─── appState.myParentMap ─────────────────────────────────────────────────────
-
-test.describe('appState.myParentMap is rebuilt after manual save', () => {
-
-  test('new orphan tag appears in myParentMap[all] after save', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent #brandnewtag');
-    await clickSaveBtn(page);
 
     await expect.poll(() => page.evaluate(() =>
       window.appState.myParentMap.get('all')?.has('brandnewtag') ?? false
     )).toBe(true);
-  });
 
-});
-
-// ─── UI: modal color ──────────────────────────────────────────────────────────
-
-test.describe('modal color updates after manual save', () => {
-
-  test('modal header and content data-color update when color tag is added', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent');
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent #color/coral');
-    await clickSaveBtn(page);
-
+    await expect(page.locator('#tag_output [data-tag="brandnewtag"]').first()).toBeAttached();
     await expect(page.locator('#file-content-header')).toHaveAttribute('data-color', 'coral');
     await expect(page.locator('#modal-content')).toHaveAttribute('data-color', 'coral');
   });
 
-});
-
-// ─── UI: tag taxonomy ─────────────────────────────────────────────────────────
-
-test.describe('tag taxonomy re-renders after manual save', () => {
-
-  test('new tag appears in the taxonomy sidebar after save', async ({ page }) => {
-    await setupWithContent(page, '# My Notes\nContent');
-    await page.goto('/');
-    await page.click('[data-action="toggle-file-controls"]');
-    await page.click('[data-action="render-tag-taxonomy"]');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page, '# My Notes\nContent #addedtag');
-    await clickSaveBtn(page);
-
-    await expect(page.locator('#tag_output [data-tag="addedtag"]').first()).toBeAttached();
-  });
-
-});
-
-// ─── Active search filters ────────────────────────────────────────────────────
-
-test.describe('active search filters are re-run after manual save', () => {
-
-  test('file disappears from filtered results after saving removes the matching tag', async ({ page }) => {
+  test('active search filters are re-run, dropping a file that no longer matches', async ({ page }) => {
     await setupWithContent(page, '# My Notes\nContent #searchtag');
     await page.goto('/');
 

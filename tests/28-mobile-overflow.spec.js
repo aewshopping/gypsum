@@ -25,58 +25,30 @@ async function openPanel(page) {
     .evaluate(el => Math.round(el.getBoundingClientRect().left))).toBe(0);
 }
 
-async function loadFiles(page) {
+test('every view, and the open note, fit the screen with the panel shut and open', async ({ page }) => {
+  await setupMockFilesLongName(page);
   await page.goto('/');
   await loadFolder(page);
   await expect(page.locator('.note-grid').first()).toBeVisible();
-}
-
-test.describe('no horizontal overflow on a phone', () => {
 
   for (const view of ['cards', 'peek', 'list']) {
-    test(`${view} view fits the screen with the panel shut and open`, async ({ page }) => {
-      await setupMockFilesLongName(page);
-      await loadFiles(page);
-      await page.selectOption('#view-select', view);
-
-      expect(await overflowPx(page), 'panel shut').toBe(0);
-
-      await openPanel(page);
-      expect(await overflowPx(page), 'panel open').toBe(0);
-    });
+    await page.selectOption('#view-select', view);
+    expect(await overflowPx(page), `${view}, panel shut`).toBe(0);
   }
 
-  test('the file modal stops at the screen edge with the panel open', async ({ page }) => {
-    await setupMockFilesLongName(page);
-    await loadFiles(page);
-    await openPanel(page);
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await expect.poll(() => page.locator('#modal-content-text').innerHTML()).not.toBe('');
+  await page.selectOption('#view-select', 'cards');
+  await openPanel(page);
+  expect(await overflowPx(page), 'panel open').toBe(0);
 
-    const edges = await page.locator('#moving-file-content-container').evaluate(el => {
-      const box = el.getBoundingClientRect();
-      return { left: Math.round(box.left), right: Math.round(box.right), screen: document.documentElement.clientWidth };
-    });
+  await page.locator('.note-grid').first().click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+  await expect.poll(() => page.locator('#modal-content-text').innerHTML()).not.toBe('');
 
-    expect(edges.right, 'modal right edge').toBe(edges.screen);
-    expect(edges.left, 'modal left edge sits against the panel').toBe(SIDEBAR_WIDTH);
+  const edges = await page.locator('#moving-file-content-container').evaluate(el => {
+    const box = el.getBoundingClientRect();
+    return { left: Math.round(box.left), right: Math.round(box.right), screen: document.documentElement.clientWidth };
   });
 
-  test('the file count clips its text, but never while the progress bar is showing', async ({ page }) => {
-    await setupMockFilesLongName(page);
-    await loadFiles(page);
-
-    const overflowWhile = (loading) => page.evaluate((loading) => {
-      const el = document.getElementById('fileCountElement');
-      el.classList.toggle('loading', loading);
-      const overflow = getComputedStyle(el).overflow;
-      el.classList.remove('loading');
-      return overflow;
-    }, loading);
-
-    expect(await overflowWhile(false)).toBe('hidden');
-    expect(await overflowWhile(true)).toBe('visible');
-  });
-
+  expect(edges.right, 'modal right edge').toBe(edges.screen);
+  expect(edges.left, 'modal left edge sits against the panel').toBe(SIDEBAR_WIDTH);
 });

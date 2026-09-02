@@ -35,125 +35,6 @@ async function setupMockFiles(page) {
 }
 
 /**
- * Injects a mock version of window.showDirectoryPicker into the page
- * before the app's JavaScript runs. Simulates a directory tree with files
- * at multiple levels of nesting to test recursive traversal.
- *
- * Directory structure:
- *   root/
- *     top-level.md        (direct child)
- *     other.txt           (direct child)
- *     subdir/
- *       nested.md         (one level deep)
- *       deep/
- *         very-nested.txt (two levels deep)
- *
- * @param {import('@playwright/test').Page} page
- */
-async function setupMockDirectory(page) {
-  await page.addInitScript(() => {
-    window.showDirectoryPicker = async () => {
-      const makeFile = (name, content) => ({
-        kind: 'file',
-        name,
-        getFile: async () => ({
-          name,
-          size: content.length,
-          lastModified: Date.now(),
-          text: async () => content,
-        }),
-      });
-      const makeDir = (name, entries) => ({
-        kind: 'directory',
-        name,
-        values: async function* () { yield* entries; },
-      });
-
-      return makeDir('root', [
-        makeFile('top-level.md', '# Top Level\n#work/project'),
-        makeFile('other.txt', 'Other file'),
-        makeDir('subdir', [
-          makeFile('nested.md', '# Nested\n#personal'),
-          makeDir('deep', [
-            makeFile('very-nested.txt', 'Deep file'),
-          ]),
-        ]),
-      ]);
-    };
-  });
-}
-
-/**
- * Like setupMockFiles but includes a file with the same child tag under two different
- * parents in the same file, to exercise within-file multi-parent tag handling.
- *
- * Files:
- *   - meeting-notes.md: #work/project AND #personal/project in the same file
- *   - shopping.txt:     #personal (orphan)
- *
- * @param {import('@playwright/test').Page} page
- */
-async function setupMockFilesMultiParent(page) {
-  await page.addInitScript(() => {
-    window.showDirectoryPicker = async () => {
-      const makeFile = (name, content) => ({
-        kind: 'file', name,
-        getFile: async () => ({
-          name,
-          size: content.length,
-          lastModified: Date.now(),
-          text: async () => content,
-        }),
-      });
-      return {
-        kind: 'directory', name: 'root',
-        values: async function* () {
-          yield makeFile('meeting-notes.md', '# Quarterly Review\n\nDiscussion points #work/project and #personal/project');
-          yield makeFile('shopping.txt', 'Shopping list\n\nMilk, eggs, bread #personal');
-        },
-      };
-    };
-  });
-}
-
-/**
- * Mock files designed to produce a case where a tag's global file count differs
- * from its per-parent count. 'project' appears in two files under two different
- * parents ('work' and 'idea'), so its global count is 2 but each parent's count
- * is only 1. The taxonomy should always display the global count.
- *
- * Files:
- *   - file-a.md: #work/project  (project under work)
- *   - file-b.md: #idea/project  (project under idea)
- *   - file-c.md: #personal      (orphan tag)
- *
- * @param {import('@playwright/test').Page} page
- */
-async function setupMockFilesTagCount(page) {
-  await page.addInitScript(() => {
-    window.showDirectoryPicker = async () => {
-      const makeFile = (name, content) => ({
-        kind: 'file', name,
-        getFile: async () => ({
-          name,
-          size: content.length,
-          lastModified: Date.now(),
-          text: async () => content,
-        }),
-      });
-      return {
-        kind: 'directory', name: 'root',
-        values: async function* () {
-          yield makeFile('file-a.md', 'File A #work/project');
-          yield makeFile('file-b.md', 'File B #idea/project');
-          yield makeFile('file-c.md', 'File C #personal');
-        },
-      };
-    };
-  });
-}
-
-/**
  * Like setupMockDirectory but adds write support (getFileHandle + createWritable)
  * so that the backup service can write history.gypsum. The written content is
  * captured in window.__backupFileContent for test assertions.
@@ -591,61 +472,6 @@ async function setupMockDirectoryForColorExisting(page, colourName = 'coral') {
 }
 
 /**
- * Directory with a file containing two #color/ tags, with full save support.
- * File: notes.md with content '# My Notes\n#color/coral\nSome text\n#color/blue'
- *
- * @param {import('@playwright/test').Page} page
- */
-async function setupMockDirectoryForColorMultiple(page) {
-  await page.addInitScript(() => {
-    window.__savedFiles = {};
-    window.__originalFiles = {};
-    window.__backupFileContent = '';
-    const fileContent = '# My Notes\n#color/coral\nSome text\n#color/blue';
-    const makeFile = (name, content) => ({
-      kind: 'file', name,
-      getFile: async () => ({
-        name, size: content.length, lastModified: Date.now(),
-        text: async () => window.__originalFiles[name] ?? content,
-      }),
-      createWritable: async () => ({
-        write: async (c) => { window.__originalFiles[name] = c; },
-        close: async () => {},
-      }),
-    });
-    const backupHandle = {
-      getFile: async () => ({ text: async () => window.__backupFileContent }),
-      createWritable: async () => ({
-        write: async (c) => { window.__backupFileContent = c; },
-        close: async () => {},
-      }),
-    };
-    const gypsumDirHandle = {
-      getFileHandle: async (name, _options) => {
-        if (name === 'history.gypsum') return backupHandle;
-        if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
-        return {
-          getFile: async () => ({ text: async () => window.__savedFiles[name] }),
-          createWritable: async () => ({
-            write: async (c) => { window.__savedFiles[name] = c; },
-            close: async () => {},
-          }),
-        };
-      },
-      removeEntry: async (name) => { delete window.__savedFiles[name]; },
-    };
-    window.showDirectoryPicker = async () => ({
-      kind: 'directory', name: 'root',
-      values: async function* () { yield makeFile('notes.md', fileContent); },
-      getDirectoryHandle: async (name, _options) => {
-        if (name === '.gypsum') return gypsumDirHandle;
-        throw new Error(`Unexpected: ${name}`);
-      },
-    });
-  });
-}
-
-/**
  * Injects a mock directory whose notes contain [[internal links]] of every shape the
  * parser has to handle: resolved, path-qualified, aliased, unresolved, extension-less
  * (which must NOT resolve) and one inside a code fence.
@@ -1020,4 +846,15 @@ async function loadFolder(page) {
   await page.click('#btn-recent-close');
 }
 
-module.exports = { loadFolder, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectory, setupMockFilesMultiParent, setupMockFilesTagCount, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockDirectoryForColorMultiple, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation };
+/**
+ * Switches to the cards view. The app opens in the peek view, which renders each note's title
+ * and content preview but not its filename — tests that identify a note by filename have to
+ * ask for the view that shows one.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function showFilenames(page) {
+  await page.selectOption('#view-select', 'cards');
+}
+
+module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation };

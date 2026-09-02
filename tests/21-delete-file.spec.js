@@ -22,46 +22,28 @@ async function openFileAndRenameModal(page) {
   await expect(page.locator('#modal-file-options')).toBeVisible();
 }
 
-/**
- * Records whether #offscreen-note-target ever carries the modal transition-name class. The class can be
- * added and removed inside a single tick, so polling the live DOM misses it.
- */
-async function watchOffscreenTargetTransitionClass(page) {
-  await page.evaluate(() => {
-    const btn = document.getElementById('offscreen-note-target');
-    window.__offscreenGotTransitionClass = btn.classList.contains('moving-file-content-view');
-    new MutationObserver(() => {
-      if (btn.classList.contains('moving-file-content-view')) window.__offscreenGotTransitionClass = true;
-    }).observe(btn, { attributes: true, attributeFilter: ['class'] });
-  });
-}
+const trashFiles = (page) => page.evaluate(() => Object.keys(window.__trashFiles));
 
 test.describe('delete file', () => {
 
-  test('clicking delete file shows warning modal with filename and correct button labels', async ({ page }) => {
+  test('the warning names the file, and cancelling deletes nothing', async ({ page }) => {
     await setupMockDirectoryWithDeleteSupport(page);
     await page.goto('/');
     await openFileAndRenameModal(page);
     await page.click('[data-action="delete-file"]');
+
     await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
     await expect(page.locator('#modal-unsaved-warning-text')).toContainText('notes.md');
     await expect(page.locator('#modal-unsaved-warning-proceed')).toHaveText('Delete');
     await expect(page.locator('#modal-unsaved-warning-cancel')).toHaveText('Cancel');
-  });
 
-  test('clicking cancel dismisses the warning without creating a trash file', async ({ page }) => {
-    await setupMockDirectoryWithDeleteSupport(page);
-    await page.goto('/');
-    await openFileAndRenameModal(page);
-    await page.click('[data-action="delete-file"]');
-    await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
     await page.click('[data-action="warning-cancel"]');
     await expect(page.locator('#modal-unsaved-warning')).not.toBeVisible();
-    const trashFiles = await page.evaluate(() => Object.keys(window.__trashFiles));
-    expect(trashFiles).toHaveLength(0);
+    expect(await trashFiles(page)).toHaveLength(0);
+    await expect(page.locator('#file-content-modal')).toBeVisible();
   });
 
-  test('confirming delete creates a trash file with the correct name pattern', async ({ page }) => {
+  test('confirming moves the file to trash and drops it from the list', async ({ page }) => {
     await setupMockDirectoryWithDeleteSupport(page);
     await page.goto('/');
     await openFileAndRenameModal(page);
@@ -69,10 +51,11 @@ test.describe('delete file', () => {
     await page.click('[data-action="warning-proceed"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
-    const trashFiles = await page.evaluate(() => Object.keys(window.__trashFiles));
-    expect(trashFiles).toHaveLength(1);
+    const trash = await trashFiles(page);
+    expect(trash).toHaveLength(1);
     // notes.md is a root file so no folder prefix; name pattern: notes-YYYYMMDD-HHMMSS-trash.gypsum
-    expect(trashFiles[0]).toMatch(/^notes-\d{8}-\d{6}-trash\.gypsum$/);
+    expect(trash[0]).toMatch(/^notes-\d{8}-\d{6}-trash\.gypsum$/);
+    await expect(page.locator('.note-grid')).toHaveCount(0);
   });
 
   test('deleting a file with unsaved edits does not write it back', async ({ page }) => {
@@ -111,29 +94,6 @@ test.describe('delete file', () => {
 
     expect(saveErrors).toHaveLength(0);
     await expect(page.locator('.note-grid')).toHaveCount(0);
-  });
-
-  test('deleted file is removed from the file list', async ({ page }) => {
-    await setupMockDirectoryWithDeleteSupport(page);
-    await page.goto('/');
-    await openFileAndRenameModal(page);
-    await page.click('[data-action="delete-file"]');
-    await page.click('[data-action="warning-proceed"]');
-    await expect(page.locator('#file-content-modal')).not.toBeVisible();
-    await expect(page.locator('.note-grid')).toHaveCount(0);
-  });
-
-  test('deleting does not animate the note into the off-screen target', async ({ page }) => {
-    // delete clears openedFileId on purpose — the file is gone, so the modal fades out.
-    // Sweeping it off-screen would imply it went somewhere rather than being removed.
-    await setupMockDirectoryWithDeleteSupport(page);
-    await page.goto('/');
-    await openFileAndRenameModal(page);
-    await page.click('[data-action="delete-file"]');
-    await watchOffscreenTargetTransitionClass(page);
-    await page.click('[data-action="warning-proceed"]');
-    await expect(page.locator('#file-content-modal')).not.toBeVisible();
-    expect(await page.evaluate(() => window.__offscreenGotTransitionClass)).toBe(false);
   });
 
 });

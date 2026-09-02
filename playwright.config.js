@@ -6,6 +6,12 @@ const baseURL = process.env.CODESPACE_NAME
 
 module.exports = defineConfig({
   testDir: './tests',
+  // Spread tests within a file across workers too, not just whole files. Without this a
+  // single long spec (13-autosave) pins one worker and sets the floor for the whole run.
+  fullyParallel: true,
+  // The tests spend most of their time waiting on page loads and view transitions rather
+  // than on CPU, so running more of them than there are cores still pays off.
+  workers: 8,
   use: {
     baseURL,
   },

@@ -8,13 +8,6 @@ async function waitForHistoryOptions(page, count) {
   }, count);
 }
 
-async function openModal(page) {
-  await loadFolder(page);
-  await page.locator('.note-grid').first().click();
-  await expect(page.locator('#file-content-modal')).toBeVisible();
-  await waitForHistoryOptions(page, 1);
-}
-
 async function switchToTxt(page) {
   await page.evaluate(() => {
     const t = document.getElementById('render_toggle');
@@ -30,92 +23,46 @@ async function switchToHtml(page) {
   });
 }
 
-test.describe('editor DOM persistence and no accumulation', () => {
+const editorCount = (page) => page.locator('#modal-content-text .text-editor').count();
+const editorDisplay = (page) => page.evaluate(() => {
+  const el = document.querySelector('#modal-content-text .text-editor');
+  return el && window.getComputedStyle(el).display;
+});
 
-  test('live editor is preserved (hidden) when switching to html view', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
+test('the live editor is kept across every view switch, and never duplicated', async ({ page }) => {
+  await setupMockDirectoryWithHistory(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await page.locator('.note-grid').first().click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+  await waitForHistoryOptions(page, 3);
 
-    expect(await page.locator('#modal-content-text .text-editor').count()).toBe(1);
+  await switchToTxt(page);
+  expect(await editorCount(page)).toBe(1);
 
-    await switchToHtml(page);
+  // Switching to html keeps the editor in the DOM but hides it
+  await switchToHtml(page);
+  expect(await editorCount(page)).toBe(1);
+  expect(await editorDisplay(page)).toBe('none');
+  await expect(page.locator('#modal-content-text')).toContainText('Current content today');
 
-    // .text-editor still in DOM but hidden via display:none
-    expect(await page.locator('#modal-content-text .text-editor').count()).toBe(1);
-    const isHidden = await page.evaluate(() => {
-      const el = document.querySelector('#modal-content-text .text-editor');
-      return el && window.getComputedStyle(el).display === 'none';
-    });
-    expect(isHidden).toBe(true);
+  await switchToTxt(page);
+  expect(await editorCount(page)).toBe(1);
+  expect(await editorDisplay(page)).not.toBe('none');
 
-    // HTML content is visible
-    await expect(page.locator('#modal-content-text')).toContainText('Current content today');
-  });
+  // A historical version swaps in its own pre; returning to current must remove it
+  await page.selectOption('#file-content-history-select', { index: 2 });
+  await page.selectOption('#file-content-history-select', { value: 'current' });
+  expect(await editorCount(page)).toBe(1);
+  expect(await editorDisplay(page)).not.toBe('none');
 
-  test('live editor reappears and only one copy exists after toggling back to txt', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await switchToHtml(page);
-    await switchToTxt(page);
+  // Another round trip on top — nothing may accumulate
+  await switchToHtml(page);
+  await switchToTxt(page);
 
-    expect(await page.locator('#modal-content-text .text-editor').count()).toBe(1);
-    const isVisible = await page.evaluate(() => {
-      const el = document.querySelector('#modal-content-text .text-editor');
-      return el && window.getComputedStyle(el).display !== 'none';
-    });
-    expect(isVisible).toBe(true);
-  });
-
-  test('historical pre is removed and live editor reappears on return to current', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await waitForHistoryOptions(page, 3);
-    await switchToTxt(page);
-
-    await page.selectOption('#file-content-history-select', { index: 2 });
-    await page.selectOption('#file-content-history-select', { value: 'current' });
-
-    expect(await page.locator('#modal-content-text .text-editor').count()).toBe(1);
-    const isVisible = await page.evaluate(() => {
-      const el = document.querySelector('#modal-content-text .text-editor');
-      return el && window.getComputedStyle(el).display !== 'none';
-    });
-    expect(isVisible).toBe(true);
-
-    const historicalPreCount = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('#modal-content-text pre'))
-        .filter(p => !p.classList.contains('text-editor')).length
-    );
-    expect(historicalPreCount).toBe(0);
-  });
-
-  test('multiple view round trips never accumulate .text-editor copies or stale children', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await waitForHistoryOptions(page, 3);
-    await switchToTxt(page);
-
-    // 3 round trips across different view combinations
-    await switchToHtml(page);
-    await switchToTxt(page);
-    await page.selectOption('#file-content-history-select', { index: 2 });
-    await page.selectOption('#file-content-history-select', { value: 'current' });
-    await switchToHtml(page);
-    await switchToTxt(page);
-
-    expect(await page.locator('#modal-content-text .text-editor').count()).toBe(1);
-
-    const nonEditorDirectChildren = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('#modal-content-text > *'))
-        .filter(el => !el.classList.contains('text-editor')).length
-    );
-    expect(nonEditorDirectChildren).toBe(0);
-  });
-
+  expect(await editorCount(page)).toBe(1);
+  expect(await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#modal-content-text > *'))
+      .filter(el => !el.classList.contains('text-editor')).length
+  )).toBe(0);
 });

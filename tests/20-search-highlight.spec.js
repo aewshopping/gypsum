@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, setupMockDirectoryWithHistoryLinePool, loadFolder } = require('./helpers');
+const { setupMockFiles, setupMockDirectoryWithHistoryLinePool, loadFolder, showFilenames } = require('./helpers');
 
 // Verifies that every Range in the 'match' CSS highlight points to a live DOM
 // node. Stale ranges (produced when highlighted nodes are removed from the DOM
@@ -21,61 +21,35 @@ async function waitForHistoryOptions(page, count) {
 
 test.describe('search highlight (match) lifecycle', () => {
 
-    test('search creates a match highlight in the file list', async ({ page }) => {
+    test('the highlight survives opening a note and toggling render mode', async ({ page }) => {
         await setupMockFiles(page);
         await page.goto('/');
         await loadFolder(page);
         await expect(page.locator('.note-grid')).toHaveCount(3);
+        // 'meeting' only appears in the filename, which only the cards view renders
+        await showFilenames(page);
 
         await page.fill('#searchbox', 'meeting');
         await page.press('#searchbox', 'Enter');
         await expect(page.locator('.note-grid')).toHaveCount(1);
 
-        const hasMatch = await page.evaluate(() => CSS.highlights.has('match'));
-        expect(hasMatch).toBe(true);
-    });
-
-    test('match highlight has connected ranges after opening the modal', async ({ page }) => {
-        await setupMockFiles(page);
-        await page.goto('/');
-        await loadFolder(page);
-        await expect(page.locator('.note-grid')).toHaveCount(3);
-
-        await page.fill('#searchbox', 'meeting');
-        await page.press('#searchbox', 'Enter');
-        await expect(page.locator('.note-grid')).toHaveCount(1);
+        expect(await page.evaluate(() => CSS.highlights.has('match'))).toBe(true);
 
         await page.locator('.note-grid').first().click();
         await expect(page.locator('#file-content-modal')).toBeVisible();
-
         expect(await allMatchRangesConnected(page)).toBe(true);
-    });
-
-    test('match highlight has connected ranges after toggling render mode', async ({ page }) => {
-        await setupMockFiles(page);
-        await page.goto('/');
-        await loadFolder(page);
-        await expect(page.locator('.note-grid')).toHaveCount(3);
-
-        await page.fill('#searchbox', 'meeting');
-        await page.press('#searchbox', 'Enter');
-        await expect(page.locator('.note-grid')).toHaveCount(1);
-
-        await page.locator('.note-grid').first().click();
-        await expect(page.locator('#file-content-modal')).toBeVisible();
 
         // Toggle to text mode (checkbox is styled invisible; click via JS like other tests do)
         await page.evaluate(() => document.getElementById('render_toggle').click());
         await expect(page.locator('#modal-content-text pre')).toBeVisible();
         expect(await allMatchRangesConnected(page)).toBe(true);
 
-        // Toggle back to HTML mode
         await page.evaluate(() => document.getElementById('render_toggle').click());
         await expect(page.locator('#modal-content-text pre')).not.toBeVisible();
         expect(await allMatchRangesConnected(page)).toBe(true);
     });
 
-    test('match highlight has connected ranges after history navigation', async ({ page }) => {
+    test('the highlight survives history navigation', async ({ page }) => {
         await setupMockDirectoryWithHistoryLinePool(page);
         await page.goto('/');
         await loadFolder(page);

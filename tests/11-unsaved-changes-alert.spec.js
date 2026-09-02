@@ -47,96 +47,50 @@ const keepBtn = '[data-action="warning-cancel"]';
 
 test.describe('unsaved changes alert', () => {
 
-  test('no warning dialog when closing without edits via close button', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await page.click(closeBtn);
-    await expect(page.locator(modal)).not.toBeVisible();
-    await expect(page.locator(warningDialog)).not.toBeVisible();
-  });
-
-  test('close button shows warning dialog when there are unsaved edits', async ({ page }) => {
+  test('"Keep editing" leaves the modal open with the edits intact', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
+
     await page.click(closeBtn);
     await expect(page.locator(warningDialog)).toBeVisible();
     await expect(page.locator(modal)).toBeVisible();
-  });
 
-  test('"Discard changes" closes the warning dialog and the modal', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await page.click(closeBtn);
-    await expect(page.locator(warningDialog)).toBeVisible();
-    await page.click(discardBtn);
-    await expect(page.locator(warningDialog)).not.toBeVisible();
-    await expect(page.locator(modal)).not.toBeVisible();
-  });
-
-  test('"Keep editing" closes the warning dialog and leaves the modal open', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await page.click(closeBtn);
-    await expect(page.locator(warningDialog)).toBeVisible();
     await page.click(keepBtn);
     await expect(page.locator(warningDialog)).not.toBeVisible();
     await expect(page.locator(modal)).toBeVisible();
+    expect(await page.locator('#modal-content-text pre').textContent()).toBe('edited content');
+
+    // beforeunload must be prevented while the edits are still unsaved
+    expect(await page.evaluate(() => {
+      const evt = new Event('beforeunload', { cancelable: true, bubbles: true });
+      window.dispatchEvent(evt);
+      return evt.defaultPrevented;
+    })).toBe(true);
   });
 
-  test('warning state resets when modal is reopened after discard', async ({ page }) => {
+  test('"Discard changes" closes the modal, and reopening starts clean', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
     await editContent(page);
+
     await page.click(closeBtn);
+    await expect(page.locator(warningDialog)).toBeVisible();
     await page.click(discardBtn);
+    await expect(page.locator(warningDialog)).not.toBeVisible();
     await expect(page.locator(modal)).not.toBeVisible();
 
-    // Reopen — no warning dialog on a clean open
+    // Reopen — no warning dialog on a clean open, and closing needs no confirmation
     await page.locator('.note-grid').first().click();
     await expect(page.locator(modal)).toBeVisible();
     await expect(page.locator(warningDialog)).not.toBeVisible();
     await page.click(closeBtn);
     await expect(page.locator(modal)).not.toBeVisible();
-  });
-
-  test('edits are preserved after dismissing the warning dialog with "Keep editing"', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-    await page.click(closeBtn);
-    await page.click(keepBtn);
-    // Content should still be the edited version
-    const text = await page.locator('#modal-content-text pre').textContent();
-    expect(text).toBe('edited content');
-  });
-
-  test('beforeunload is prevented when tab/browser is closed with unsaved changes', async ({ page }) => {
-    await setupMockDirectoryWithHistory(page);
-    await page.goto('/');
-    await openModal(page);
-    await switchToTxt(page);
-    await editContent(page);
-
-    const wasPrevented = await page.evaluate(() => {
-      const evt = new Event('beforeunload', { cancelable: true, bubbles: true });
-      window.dispatchEvent(evt);
-      return evt.defaultPrevented;
-    });
-    expect(wasPrevented).toBe(true);
+    await expect(page.locator(warningDialog)).not.toBeVisible();
   });
 
 });
