@@ -3,6 +3,7 @@ import { parseYaml } from './yaml-parse.js';
 import { findFrontMatterIndices } from './yaml-find.js';
 import { updateMyFilesProperties } from '../file-props.js';
 import { findProtectedSpans, isProtected } from './protected-spans.js';
+import { yamlSegment } from './file-errors.js';
 
 /**
  * @file Extracts metadata from file content, including title, tags, and YAML front matter.
@@ -14,24 +15,6 @@ import { findProtectedSpans, isProtected } from './protected-spans.js';
 const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'internalId',
                        'contentPeek', 'internalLink', 'errorOnLoad', 'lastModified'];
 
-/**
- * Summarises what the YAML front matter got wrong, for the errorOnLoad property.
- * @param {string[]} skippedLines - reasons collected by parseYaml, one per unreadable line.
- * @param {string[]} shadowedKeys - reserved keys that were dropped from the front matter.
- * @returns {string|null} A short summary, or null when the front matter read cleanly.
- */
-function summariseYamlProblems(skippedLines, shadowedKeys) {
-    const parts = [];
-    if (skippedLines.length > 0) {
-        parts.push(`${skippedLines.length} line${skippedLines.length === 1 ? '' : 's'} skipped`);
-    }
-    if (shadowedKeys.length > 0) {
-        const names = shadowedKeys.map(key => `"${key}"`).join(', ');
-        parts.push(`key${shadowedKeys.length === 1 ? '' : 's'} ${names} ignored`);
-    }
-    // The "yaml" prefix is what the load-message nudge filters on — see load-progress-finish.js.
-    return parts.length === 0 ? null : `yaml: ${parts.join(', ')}`;
-}
 
 /**
  * Processes a file handle to extract its content and metadata.
@@ -83,7 +66,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         lastModified: new Date(file.lastModified),
         ...(yamlData),
         // Null rather than absent when the front matter read cleanly, for the same reason as above.
-        errorOnLoad: summariseYamlProblems(yamlErrors, shadowedKeys),
+        errorOnLoad: yamlSegment(yamlErrors, shadowedKeys),
     };
 
 }

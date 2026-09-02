@@ -3,6 +3,7 @@ import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
+import { checkFileErrors } from '../services/file-parsing/file-errors.js';
 import { renderTagTaxonomy } from '../ui/render-tag-taxonmy.js';
 import { renderFiles } from '../ui/ui-functions-render/a-render-all-files.js';
 import { searchFiles } from '../ui/ui-functions-search/a-search-files.js';
@@ -54,6 +55,10 @@ async function applyRefresh(snapshot) {
             internalId: existingFile.internalId,
             filepath: existingFile.filepath,
         };
+
+        // getFileDataAndMetadata only rewrote the parse-time errors; re-run the rest against
+        // the new content, so fixing one of two broken links leaves the other one reported.
+        checkFileErrors(appState.myFiles[fileIndex]);
 
         if (colorHasChanged && appState.openFileSnapshot?.filepath === snapshot.filepath) {
             const newColor = freshFile.color ?? '';

@@ -6,7 +6,7 @@ import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
-import { verifyInternalLinks } from '../services/internal-links/verify-internal-links.js';
+import { checkAllFileErrors } from '../services/file-parsing/file-errors.js';
 import { seedCoreFileProperties } from '../services/file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
@@ -161,15 +161,16 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
     invalidateNoteNameIndex();
-    const brokenLinks = verifyInternalLinks();
+    checkAllFileErrors();
 
     const endTime = performance.now();
     const loadDurationSec = ((endTime - startTime) / 1000).toFixed(1); // pure file load; available for future console logging
     const displayDuration = outerStartTime ? ((endTime - outerStartTime) / 1000).toFixed(2) : loadDurationSec;
     const fileCount = appState.myFiles.length;
-    // errorOnLoad now also carries broken-link summaries, so match on the yaml prefix rather
-    // than on the property being set at all.
+    // Both counts use the same substring test the property search uses, so each equals
+    // exactly what its own nudge shows when clicked.
     const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad?.includes('yaml')).length;
+    const brokenLinks = appState.myFiles.filter(file => file.errorOnLoad?.includes('links')).length;
     finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs',
         { yamlErrors, brokenLinks, unreadable: unreadableCount });
 }

@@ -3,7 +3,7 @@ import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
-import { verifyInternalLinks } from './internal-links/verify-internal-links.js';
+import { checkAllFileErrors } from './file-parsing/file-errors.js';
 import { seedCoreFileProperties } from './file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
@@ -97,15 +97,16 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     appState.myParentMap = buildParentMap(appState.myFiles);
     invalidateTagCache();
     invalidateNoteNameIndex();
-    const brokenLinks = verifyInternalLinks();
+    checkAllFileErrors();
 
     const endTime = performance.now();
     const durationSec = ((endTime - startTime) / 1000).toFixed(1);
 
     const fileCount = appState.myFiles.length;
-    // errorOnLoad now also carries broken-link summaries, so match on the yaml prefix rather
-    // than on the property being set at all.
+    // Both counts use the same substring test the property search uses, so each equals
+    // exactly what its own nudge shows when clicked.
     const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad?.includes('yaml')).length;
+    const brokenLinks = appState.myFiles.filter(file => file.errorOnLoad?.includes('links')).length;
     console.log(`Saved metadata for ${fileCount} files.`);
     finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system',
         { yamlErrors, brokenLinks, unreadable: unreadableCount });
