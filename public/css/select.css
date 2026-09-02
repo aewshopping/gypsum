@@ -3,7 +3,28 @@ select, ::picker(select) {
 	appearance: base-select;
 }
 
+select {
+  border: none;
+  background-color: var(--colour-neutral-alt);
+  cursor: pointer;
+
+  &:hover{
+    background-color: revert;
+  }
+}
+
+::picker(select) {
+  border: none;
+  border-radius: 8px;
+  padding: 4px;
+  background-color: var(--colour-neutral-alt);
+}
+
+option {
+  border-radius: 6px;
+}
 
 option:checked {
   font-weight: bold;
+  background-color: var(--colour-neutral);
 }

@@ -25,7 +25,7 @@
     <div class="sidebar-recent-header">
       <div class="sidebar-recent-header-row">
         <span>Gypsum</span>
-        <button id="btn-recent-close" class="svg-wrapper-style" data-action="close-recent-panel" data-tip="close panel">
+        <button id="btn-recent-close" class="svg-wrapper-style" data-action="close-recent-panel" data-tip="close side panel | Alt+B">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="5 5 45 45"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M28.365 10.249c1.97.09 9.12-.49 11.84.55 2.71 1.05 3.6 1.15 4.43 5.74.84 4.59 2.07 17.26.56 21.82s-5.21 4.59-9.62 5.55c-4.41.95-12.79.95-16.83.18-4.03-.77-6.01-.34-7.39-4.8-1.39-4.47-1.73-17.23-.93-22.01s2.74-5.49 5.73-6.66 10.18-.31 12.21-.37m0 0c1.97.09 9.12-.49 11.84.55 2.71 1.05 3.6 1.15 4.43 5.74.84 4.59 2.07 17.26.56 21.82s-5.21 4.59-9.62 5.55c-4.41.95-12.79.95-16.83.18-4.03-.77-6.01-.34-7.39-4.8-1.39-4.47-1.73-17.23-.93-22.01s2.74-5.49 5.73-6.66 10.18-.31 12.21-.37"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M21.264 10.836c.05 3.32.35 14.44.32 19.92-.03 5.47-.4 10.77-.48 12.93m.16-32.85c.05 3.32.35 14.44.32 19.92-.03 5.47-.4 10.77-.48 12.93M39.602 26.999c-1.04-.01-4.08-.09-6.22-.05s-5.51.24-6.62.29m12.84-.24c-1.04-.01-4.08-.09-6.22-.05s-5.51.24-6.62.29"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M32.43 19.818c-.95 1.17-5.67 4.64-5.71 7.01-.04 2.38 4.56 6.05 5.47 7.25m.24-14.26c-.95 1.17-5.67 4.64-5.71 7.01-.04 2.38 4.56 6.05 5.47 7.25"/></svg>
         </button>
       </div>
@@ -125,7 +125,7 @@
   </dialog>
 
   <div class="flex-row">
-    <button id="btn-recent-toggle" class="svg-wrapper-style" data-action="toggle-recent-panel" data-tip="recent files">
+    <button id="btn-recent-toggle" class="svg-wrapper-style" data-action="toggle-recent-panel" data-tip="open side panel | Alt + B">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="5 5 45 45"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M28.365 10.249c1.97.09 9.12-.49 11.84.55 2.71 1.05 3.6 1.15 4.43 5.74.84 4.59 2.07 17.26.56 21.82s-5.21 4.59-9.62 5.55c-4.41.95-12.79.95-16.83.18-4.03-.77-6.01-.34-7.39-4.8-1.39-4.47-1.73-17.23-.93-22.01s2.74-5.49 5.73-6.66 10.18-.31 12.21-.37m0 0c1.97.09 9.12-.49 11.84.55 2.71 1.05 3.6 1.15 4.43 5.74.84 4.59 2.07 17.26.56 21.82s-5.21 4.59-9.62 5.55c-4.41.95-12.79.95-16.83.18-4.03-.77-6.01-.34-7.39-4.8-1.39-4.47-1.73-17.23-.93-22.01s2.74-5.49 5.73-6.66 10.18-.31 12.21-.37"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M34.146 10.836c.05 3.32.35 14.44.32 19.92-.03 5.47-.4 10.77-.48 12.93m.16-32.85c.05 3.32.35 14.44.32 19.92-.03 5.47-.4 10.77-.48 12.93M16.382 27.237c1.04-.01 4.08-.09 6.22-.05s5.51.24 6.62.29m-12.84-.24c1.04-.01 4.08-.09 6.22-.05s5.51.24 6.62.29"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M23.556 20.056c.95 1.17 5.67 4.64 5.71 7.01.04 2.38-4.56 6.05-5.47 7.25m-.24-14.26c.95 1.17 5.67 4.64 5.71 7.01.04 2.38-4.56 6.05-5.47 7.25"/></svg>
     </button>
     <span id=fileCountElement>files: 0</span>
@@ -241,9 +241,9 @@
     </svg>
     <button class="modal-close-btn svg-wrapper-style" data-action="close-settings-modal" data-tip="close settings"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
 
-    <h2 class="menu-title">Menu</h2>
+    <h2 class="menu-title">Settings menu</h2>
 
-    <h3>Settings</h3>
+    <h3>General settings</h3>
 
     <div class="settings-row">
       <span class="settings-label">Colour theme</span>
@@ -281,7 +281,7 @@
       <input type="checkbox" class="toggle" id="show-user-file-colours" checked data-tip="toggle file colours">
     </div>
 
-    <h4>Interface</h4>
+    <h4>Interface settings</h4>
 
     <div class="settings-row">
       <span class="settings-label">Interface text size</span>
@@ -342,12 +342,7 @@
       </div>
     </div>
 
-    <h4>Text files</h4>
-
-    <div class="settings-row">
-      <span class="settings-label">Floating editor buttons</span>
-      <input type="checkbox" class="toggle" id="floating-editor-buttons" checked data-tip="toolbar floats over the text instead of taking its own space">
-    </div>
+    <h4>Text file settings</h4>
 
     <div class="settings-row">
       <span class="settings-label">Text size</span>
@@ -358,20 +353,6 @@
           <label class="radio-label"><input type="radio" name="font-size-file" value="1.4" data-action="font-size-file-change" data-tip="large text">&nbsp;L&nbsp;</label>
 	      </div>
         <button class="settings-reset-btn" data-action="reset-font-size-file" data-tip="reset to default">
-          <svg class="reset-icon">
-            <use href="#icon-reset"></use>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <span class="settings-label">Font (html)</span>
-      <div class="settings-control-group">
-        <select data-action="font-style-html-change" data-tip="html font">
-          <option value="Arial, Helvetica, sans-serif">Arial</option>
-        </select>
-        <button class="settings-reset-btn" data-action="reset-font-style-html" data-tip="reset to default">
           <svg class="reset-icon">
             <use href="#icon-reset"></use>
           </svg>
@@ -394,6 +375,20 @@
     </div>
 
     <div class="settings-row">
+      <span class="settings-label">Font (html)</span>
+      <div class="settings-control-group">
+        <select data-action="font-style-html-change" data-tip="html font">
+          <option value="Arial, Helvetica, sans-serif">Arial</option>
+        </select>
+        <button class="settings-reset-btn" data-action="reset-font-style-html" data-tip="reset to default">
+          <svg class="reset-icon">
+            <use href="#icon-reset"></use>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-row">
       <span class="settings-label">Font (headers)</span>
       <div class="settings-control-group">
         <select data-action="font-style-headers-change" data-tip="headers font">
@@ -407,10 +402,16 @@
       </div>
     </div>
 
+    <div class="settings-row">
+      <span class="settings-label">Floating editor buttons</span>
+      <input type="checkbox" class="toggle" id="floating-editor-buttons" checked data-tip="toolbar floats over the text instead of taking its own space">
+    </div>
+
+
     <h4>File history</h4>
     <div class="settings-backup-btns">
 
-      <button class="btn-menu" data-action="open-history-modal" disabled data-tip="see and manage saved file versions">
+      <button class="btn-menu" data-action="open-history-modal" disabled data-tip="see and manage previous file versions">
         <div class="svg-wrapper-style">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"><circle cx="25" cy="25" r="16"/><path d="M25 15v10l7 5"/></g></svg>
         </div>

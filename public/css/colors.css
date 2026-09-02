@@ -40,7 +40,7 @@
 
 :root:has(input[type="radio"]#snow:checked) {
     --colour-neutral: ivory; /* bg */ /*WhiteSmoke #F6FFFC #80AAFF*/
-    --colour-neutral-alt: khaki; /* card bg */ /* white / lightgoldenrodyellow */
+    --colour-neutral-alt: #fae6c5; /* card bg */ /* white / lightgoldenrodyellow */
     --colour-contr: DarkSlateGray; /* text */
     --colour-contr-emph: RoyalBlue;  /* h1 */
     --colour-contr-warning: #cd3158;

@@ -116,16 +116,17 @@
         outline: 2px solid var(--colour-contr);
     }
 
+    &:hover:not(:disabled){
+        background-color: color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt));
+        color: var(--colour-neutral-alt);
+    }
+
     /* This button has a label, so its glyph is not the thing being hovered — the whole row is.
        Holding it at full strength alongside the text is what keeps the two reading as one. */
     & .svg-wrapper-style > svg {
         opacity: 1;
     }
 
-    &:hover:not(:disabled) {
-        background-color: var(--colour-neutral);
-
-    }
 
     &:disabled {
         opacity: 0.4;
