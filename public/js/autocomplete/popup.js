@@ -103,12 +103,3 @@ export function moveActiveItem(popup, direction) {
     items[nextIdx].dataset.active = 'true';
     items[nextIdx].scrollIntoView({ block: 'nearest' });
 }
-
-/**
- * Returns the string of the currently active item, or null if none.
- * @param {HTMLElement} popup
- * @returns {string|null}
- */
-export function getActiveItem(popup) {
-    return popup.querySelector('[data-active="true"]')?.dataset.item ?? null;
-}
