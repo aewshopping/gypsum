@@ -29,7 +29,6 @@ a:not(.internal-link)::after {
 /* Stays in the app. Declares its own underline because an unresolved link is a <span>, not an
    <a>, so it never matches the rule above. */
 .internal-link {
-    color: var(--colour-contr);
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 3px;

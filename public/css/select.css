@@ -22,9 +22,16 @@ select {
 
 option {
   border-radius: 6px;
+  padding-inline: 4px;
+  color: var(--colour-contr);
 }
 
 option:checked {
   font-weight: bold;
   background-color: var(--colour-neutral);
+}
+
+option::checkmark {
+  content: "➜";
+  color: var(--colour-contr);
 }

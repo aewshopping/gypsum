@@ -1,6 +1,7 @@
 #file-content-history-select {
     border: 1.5px solid transparent;
     color: inherit;
+    background-color: transparent;
     font: 0.89375em var(--fontfam-app-input);
     flex-grow: 1;
     min-width: 0px;
