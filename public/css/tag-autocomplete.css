@@ -1,5 +1,5 @@
-#tag-ac-proxy {
-    anchor-name: --tag-ac-editor;
+#ac-proxy {
+    anchor-name: --ac-picker-editor;
     position: fixed;
     width: 0;
     height: 1lh;
@@ -10,7 +10,7 @@
    anchor-name inline on whatever it points at, which would overwrite this one. The
    container is the same box — the input fills it. */
 .searchbox-container {
-    anchor-name: --tag-ac-search;
+    anchor-name: --ac-picker-search;
 }
 
 @position-try --ac-flip-up {

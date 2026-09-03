@@ -1,5 +1,5 @@
 /**
- * @file Owns #tag-ac-proxy, the zero-size div the editor popup is anchored to. Parked at
+ * @file Owns #ac-proxy, the zero-size div the editor popup is anchored to. Parked at
  * the caret each time the popup opens, so CSS anchor positioning lands the popup below the
  * cursor. The proxy element is this module's only state.
  */
@@ -8,14 +8,14 @@ let _proxy = null;
 
 /**
  * Creates the proxy div once and appends it to the editor dialog.
- * The proxy carries anchor-name: --tag-ac-editor in CSS.
+ * The proxy carries anchor-name: --ac-picker-editor in CSS.
  * @returns {void}
  */
 export function initPopupAnchor() {
     const dialog = document.getElementById('file-content-modal');
-    if (!dialog || document.getElementById('tag-ac-proxy')) return;
+    if (!dialog || document.getElementById('ac-proxy')) return;
     _proxy = document.createElement('div');
-    _proxy.id = 'tag-ac-proxy';
+    _proxy.id = 'ac-proxy';
     dialog.appendChild(_proxy);
 }
 
@@ -25,7 +25,7 @@ export function initPopupAnchor() {
  * @returns {void}
  */
 export function movePopupAnchor(caret) {
-    if (!_proxy) _proxy = document.getElementById('tag-ac-proxy');
+    if (!_proxy) _proxy = document.getElementById('ac-proxy');
     if (!_proxy) return;
     const rects = caret.getClientRects();
     if (!rects.length) return;

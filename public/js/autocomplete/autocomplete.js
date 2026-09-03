@@ -58,7 +58,7 @@ export function handleEditorAutocomplete(evt) {
     if (!_popup || _context !== 'editor' || _kind === 'create-link') {
         destroyPopup(_popup);
         const dialog = document.getElementById('file-content-modal');
-        _popup = createPopup(items, dialog, '--tag-ac-editor', onSelect, trigger.query);
+        _popup = createPopup(items, dialog, '--ac-picker-editor', onSelect, trigger.query);
         _context = 'editor';
     } else {
         repopulatePopup(_popup, items, onSelect, trigger.query);
@@ -87,7 +87,7 @@ export function handleSearchboxAutocomplete(evt) {
 
     if (!_popup || _context !== 'searchbox') {
         destroyPopup(_popup);
-        _popup = createPopup(items, document.body, '--tag-ac-search', onSelect, trigger.query);
+        _popup = createPopup(items, document.body, '--ac-picker-search', onSelect, trigger.query);
         _context = 'searchbox';
     } else {
         repopulatePopup(_popup, items, onSelect, trigger.query);
@@ -188,7 +188,7 @@ function _maybeOpenCreatePopup(evt) {
     movePopupAnchor(offer.caret);
 
     const dialog = document.getElementById('file-content-modal');
-    _popup = createPopup([offer.pending.filepath], dialog, '--tag-ac-editor', _createPendingNote, '');
+    _popup = createPopup([offer.pending.filepath], dialog, '--ac-picker-editor', _createPendingNote, '');
     _popup.dataset.kind = 'create'; // styles the popup as an offer to create, not to complete
     moveActiveItem(_popup, 'next');
     _context = 'editor';
