@@ -34,7 +34,7 @@
     margin-bottom: 4px;
 }
 
-.tag-autocomplete-popup {
+.ac-picker-popup {
     position: fixed;
     inset: auto;
     top: anchor(bottom);
@@ -52,20 +52,20 @@
     font-size: 0.9em;
 }
 
-.tag-autocomplete-item {
+.ac-picker-item {
     padding: 5px 12px;
     cursor: pointer;
     color: color-mix(in srgb, var(--colour-contr) 70%, transparent 30%);
     white-space: nowrap;
 }
 
-.tag-autocomplete-match {
+.ac-picker-match {
     font-weight: bold;
     color: var(--colour-contr);
 }
 
-.tag-autocomplete-item:is(:hover, [data-active="true"]),
-.tag-autocomplete-item:is(:hover, [data-active="true"]) .tag-autocomplete-match {
+.ac-picker-item:is(:hover, [data-active="true"]),
+.ac-picker-item:is(:hover, [data-active="true"]) .ac-picker-match {
     background-color: var(--colour-contr);
     color: var(--colour-neutral);
 }
@@ -73,7 +73,7 @@
 /* The create-a-note offer, not a completion. A dashed edge for 'does not exist yet', and the
    '+' from #btn-new-note for 'this will create it'. The glyph inherits the item's colour so
    it inverts with the row — this popup's single item is active from the moment it opens. */
-.tag-autocomplete-popup[data-kind="create"] {
+.ac-picker-popup[data-kind="create"] {
     border-style: dashed;
     /* This popup's one item is active from the moment it opens, and an active row fills the
        popup edge to edge with --colour-contr — the same colour as the border, which would
@@ -81,7 +81,7 @@
     padding: 3px;
 }
 
-.tag-autocomplete-popup[data-kind="create"] .tag-autocomplete-item::before {
+.ac-picker-popup[data-kind="create"] .ac-picker-item::before {
     content: '+';
     margin-right: 8px;
 }

@@ -3,7 +3,7 @@
  * Pure function — no side effects, no DOM mutations.
  * @param {KeyboardEvent} evt
  * @param {HTMLElement} popup
- * @returns {{ action: 'select'|'move'|'dismiss'|'none', direction?: 'next'|'prev', tag?: string }}
+ * @returns {{ action: 'select'|'move'|'dismiss'|'none', direction?: 'next'|'prev', item?: string }}
  */
 export function handlePopupKeydown(evt, popup) {
     const active = popup.querySelector('[data-active="true"]');
@@ -14,12 +14,12 @@ export function handlePopupKeydown(evt, popup) {
     if (evt.key === 'ArrowUp')   return { action: 'move', direction: 'prev' };
 
     if (evt.key === 'Tab') {
-        if (active) return { action: 'select', tag: active.dataset.tag };
+        if (active) return { action: 'select', item: active.dataset.item };
         return { action: 'move', direction: 'next' };
     }
 
     if (evt.key === 'Enter' && active) {
-        return { action: 'select', tag: active.dataset.tag };
+        return { action: 'select', item: active.dataset.item };
     }
 
     return { action: 'none' };

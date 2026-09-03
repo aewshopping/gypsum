@@ -7,7 +7,7 @@
 import { appState } from '../services/store.js';
 import { getTagArray } from './tag-cache.js';
 import { getNoteNameArray } from '../services/internal-links/note-name-index.js';
-import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, filterTags } from './query-detect.js';
+import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, filterItems } from './query-detect.js';
 import { createPopup, repopulatePopup, destroyPopup, moveActiveItem } from './popup.js';
 import { handlePopupKeydown } from './keyboard-nav.js';
 import { replaceEditorTag, replaceEditorLink, replaceSearchboxTag } from './replace.js';
@@ -46,12 +46,12 @@ export function handleEditorAutocomplete(evt) {
 
     const kind = linkTrigger ? 'link' : 'tag';
     const source = kind === 'link' ? getNoteNameArray() : getTagArray();
-    const items = filterTags(source, trigger.query);
+    const items = filterItems(source, trigger.query);
     if (!items.length) { _dismiss(); return; }
 
     movePopupAnchor(caret);
 
-    const onSelect = (tag) => { _applySelection(tag); };
+    const onSelect = (item) => { _applySelection(item); };
 
     // A create-note popup is never recycled into a completion list: it is a different act,
     // and discarding the element is what guarantees none of its styling can carry over.
@@ -80,10 +80,10 @@ export function handleSearchboxAutocomplete(evt) {
     const trigger = detectSearchboxTrigger(input.value, input.selectionStart);
     if (!trigger) { _dismiss(); return; }
 
-    const items = filterTags(getTagArray(), trigger.query);
+    const items = filterItems(getTagArray(), trigger.query);
     if (!items.length) { _dismiss(); return; }
 
-    const onSelect = (tag) => { _applySelection(tag); };
+    const onSelect = (item) => { _applySelection(item); };
 
     if (!_popup || _context !== 'searchbox') {
         destroyPopup(_popup);
@@ -126,7 +126,7 @@ export function handleAutocompleteKeydown(evt) {
     if (cmd.action === 'select') {
         evt.preventDefault();
         if (_kind === 'create-link') _createPendingNote();
-        else _applySelection(cmd.tag);
+        else _applySelection(cmd.item);
         return true;
     }
     return false;
@@ -142,14 +142,14 @@ export function handleAutocompleteClickOutside(evt) {
 }
 
 /**
- * @param {string} tag
+ * @param {string} item - The chosen tag or note name.
  */
-function _applySelection(tag) {
+function _applySelection(item) {
     if (_context === 'editor') {
-        if (_kind === 'link') replaceEditorLink(_query, tag);
-        else replaceEditorTag(_query, tag);
+        if (_kind === 'link') replaceEditorLink(_query, item);
+        else replaceEditorTag(_query, item);
     } else {
-        replaceSearchboxTag(_anchorEl, tag, _triggerStart);
+        replaceSearchboxTag(_anchorEl, item, _triggerStart);
     }
     const anchor = _anchorEl;
     const wasSearchbox = _context === 'searchbox';

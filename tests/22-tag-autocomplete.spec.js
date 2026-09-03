@@ -26,7 +26,7 @@ async function typeInEditor(page, text) {
   await page.keyboard.type(text);
 }
 
-const popup = '.tag-autocomplete-popup';
+const popup = '.ac-picker-popup';
 
 test.describe('tag autocomplete — editor', () => {
 
@@ -78,7 +78,7 @@ test.describe('tag autocomplete — editor', () => {
     // And the same by clicking an item
     await typeInEditor(page, ' #p');
     await expect(page.locator(popup)).toBeVisible();
-    await page.locator('.tag-autocomplete-item').filter({ hasText: 'personal' }).click();
+    await page.locator('.ac-picker-item').filter({ hasText: 'personal' }).click();
     await expect(page.locator(popup)).not.toBeVisible();
     expect(await occurrences()).toBe(before + 2);
   });
@@ -170,8 +170,8 @@ test.describe('tag autocomplete — editor', () => {
     await typeInEditor(page, ' #b');
     await expect(page.locator(popup)).toBeVisible();
     // 'brie' should appear exactly once (not as 'cheese/brie')
-    await expect(page.locator('.tag-autocomplete-item')).toHaveCount(1);
-    await expect(page.locator('.tag-autocomplete-item').first()).toHaveText('brie');
+    await expect(page.locator('.ac-picker-item')).toHaveCount(1);
+    await expect(page.locator('.ac-picker-item').first()).toHaveText('brie');
   });
 
 });
@@ -187,10 +187,10 @@ test.describe('tag autocomplete — searchbox', () => {
     await expect(page.locator(popup)).toBeVisible();
 
     await page.locator('#searchbox').press('ArrowDown');
-    await expect(page.locator('.tag-autocomplete-item[data-active="true"]')).toBeVisible();
+    await expect(page.locator('.ac-picker-item[data-active="true"]')).toBeVisible();
     await page.locator('#searchbox').press('ArrowDown');
     expect(await page.evaluate(() => {
-      const items = [...document.querySelectorAll('.tag-autocomplete-item')];
+      const items = [...document.querySelectorAll('.ac-picker-item')];
       return items.findIndex(el => el.dataset.active === 'true');
     })).toBe(1);
   });
@@ -202,7 +202,7 @@ test.describe('tag autocomplete — searchbox', () => {
 
     await page.fill('#searchbox', 'tags:p');
     await expect(page.locator(popup)).toContainText('personal');
-    await page.locator('.tag-autocomplete-item').filter({ hasText: 'personal' }).click();
+    await page.locator('.ac-picker-item').filter({ hasText: 'personal' }).click();
     await expect(page.locator(popup)).not.toBeVisible();
     // shopping.txt and big-ideas.md both have #personal
     await expect(page.locator('.note-grid')).toHaveCount(2);

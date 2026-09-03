@@ -1,7 +1,7 @@
 /**
  * @file Global hover tooltip. The single reused #tooltip element (declared in
  * index.html) is shown, hidden, and repositioned via CSS anchor positioning,
- * mirroring the technique used by the tag-autocomplete popup
+ * mirroring the technique used by the autocomplete picker
  * (autocomplete/autocomplete.js, autocomplete/popup.js).
  */
 
