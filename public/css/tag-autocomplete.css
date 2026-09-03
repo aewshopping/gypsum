@@ -6,7 +6,10 @@
     pointer-events: none;
 }
 
-#searchbox {
+/* The container, not #searchbox itself: the input carries data-tip, and the tooltip sets
+   anchor-name inline on whatever it points at, which would overwrite this one. The
+   container is the same box — the input fills it. */
+.searchbox-container {
     anchor-name: --tag-ac-search;
 }
 

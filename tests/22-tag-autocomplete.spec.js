@@ -230,4 +230,26 @@ test.describe('tag autocomplete — searchbox', () => {
     await expect(page.locator('.note-grid')).toHaveCount(2);
   });
 
+  // The searchbox carries data-tip, and the tooltip writes anchor-name inline on whatever
+  // it points at. Hovering the box first is the ordinary way to reach it, so the popup has
+  // to stay anchored to the box afterwards. Geometry, not visibility: a popup that has lost
+  // its anchor still passes toBeVisible(), it just renders at the foot of <body>.
+  test('the popup sits under the searchbox even after its tooltip has shown', async ({ page }) => {
+    await setupMockFiles(page);
+    await page.goto('/');
+    await loadFiles(page);
+
+    await page.hover('#searchbox');
+    await expect(page.locator('#tooltip')).toBeVisible();
+
+    await page.fill('#searchbox', 'tags:');
+    await expect(page.locator(popup)).toBeVisible();
+
+    const box = await page.locator('#searchbox').boundingBox();
+    const pop = await page.locator(popup).boundingBox();
+    expect(Math.abs(pop.x - box.x)).toBeLessThan(4);
+    expect(pop.y - (box.y + box.height)).toBeGreaterThanOrEqual(0);
+    expect(pop.y - (box.y + box.height)).toBeLessThan(12);
+  });
+
 });

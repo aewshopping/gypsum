@@ -75,12 +75,26 @@ function _dismiss() {
  */
 function _show(el) {
     if (_anchoredEl && _anchoredEl !== el) _anchoredEl.style.removeProperty('anchor-name');
-    el.style.setProperty('anchor-name', TOOLTIP_ANCHOR_NAME);
+    el.style.setProperty('anchor-name', _anchorNamesFor(el));
     _anchoredEl = el;
     _tooltipEl.textContent = el.dataset.tip;
     _reparentToContext(el);
     _tooltipEl.classList.add('visible');
     _visible = true;
+}
+
+/**
+ * The value to write into the element's inline anchor-name: the tooltip's own name, added
+ * to whatever the stylesheet already gives the element rather than replacing it. An element
+ * can be the anchor for more than one thing, and this inline declaration beats the
+ * stylesheet's — overwriting would silently leave the other anchored element with no anchor.
+ * @param {HTMLElement} el
+ * @returns {string}
+ */
+function _anchorNamesFor(el) {
+    el.style.removeProperty('anchor-name'); // so the computed value is the stylesheet's alone
+    const own = getComputedStyle(el).getPropertyValue('anchor-name').trim();
+    return own === 'none' || own === '' ? TOOLTIP_ANCHOR_NAME : `${own}, ${TOOLTIP_ANCHOR_NAME}`;
 }
 
 /**
