@@ -1,6 +1,7 @@
 import { COLOR_NAMES, HTML_COLOR_NAMES } from '../../constants.js';
 import { getEditorElement } from '../../editing/manage-unsaved-changes.js';
-import { saveCursorOffset, restoreCursorOffset, applyColorToEditor } from '../../editing/color-pick-apply.js';
+import { saveCursorOffset, restoreCursorOffset } from '../../editing/editor-selection.js';
+import { applyColorToEditor } from '../../editing/color-pick-apply.js';
 import { handleSaveFileCopy } from './save-file-copy.js';
 import { decodeModalHtml } from '../../services/file-save.js';
 

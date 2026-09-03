@@ -12,6 +12,7 @@ import { handleEditorColorPick } from './editor-color-pick.js';
 import { handleToggleRenderText } from './toggle-render-text.js';
 import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
+import { toggleWrapSelection } from '../../editing/wrap-selection.js';
 import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
 import { appState } from '../../services/store.js';
@@ -136,5 +137,15 @@ export function handleKeyboardShortcuts(evt) {
     if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {
         evt.preventDefault();
         handleInsertDateShortcut();
+    }
+
+    // Markdown wrap toggles. The data-action gate means these only fire while the live
+    // editor has focus: html view and read-only history snapshots carry no such element.
+    const editorMarkerActions = { 'b': '**', 'i': '_' };
+    const marker = editorMarkerActions[evt.key?.toLowerCase()];
+    if (marker && (evt.ctrlKey || evt.metaKey) && !evt.shiftKey && !evt.altKey
+        && evt.target.dataset.action === 'file-content-edit') {
+        evt.preventDefault();
+        toggleWrapSelection(marker);
     }
 }
