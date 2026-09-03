@@ -59,21 +59,21 @@ export function detectSearchboxTrigger(value, caretPos) {
 }
 
 /**
- * Case-insensitive substring filter over tagArray, capped at maxResults.
+ * Case-insensitive substring filter over a picker's candidate list, capped at maxResults.
  * Results are sorted so prefix matches come before mid-word matches, both groups alphabetical.
- * Also used for the internal-link note list, which is a plain sorted string array too.
- * @param {string[]} tagArray - Must be pre-sorted alphabetically.
+ * Serves the tag list and the internal-link note list alike — both are plain sorted arrays.
+ * @param {string[]} candidates - Must be pre-sorted alphabetically.
  * @param {string} query
  * @param {number} [maxResults=50]
  * @returns {string[]}
  */
-export function filterTags(tagArray, query, maxResults = 50) {
+export function filterItems(candidates, query, maxResults = 50) {
     const q = query.toLowerCase();
     const starts = [], rest = [];
-    for (const tag of tagArray) {
-        const t = tag.toLowerCase();
-        if (t.startsWith(q)) starts.push(tag);
-        else if (t.includes(q)) rest.push(tag);
+    for (const candidate of candidates) {
+        const c = candidate.toLowerCase();
+        if (c.startsWith(q)) starts.push(candidate);
+        else if (c.includes(q)) rest.push(candidate);
         if (starts.length + rest.length >= maxResults) break;
     }
     return [...starts, ...rest];

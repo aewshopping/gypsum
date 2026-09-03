@@ -22,7 +22,7 @@
  */
 export function textBeforeCaret(pre, caret) {
     const { startContainer, startOffset } = caret;
-    const MAX = 200; // ample for any tag name + boundary; caps cost on long lines
+    const MAX = 200; // ample for any tag or note name + boundary; caps cost on long lines
 
     // Take up to MAX chars from the caret's own text node, working backward.
     let suffix = startContainer.nodeType === Node.TEXT_NODE

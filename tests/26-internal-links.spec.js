@@ -178,14 +178,14 @@ test.describe('internal links — note picker', () => {
     await openHubInTextMode(page);
 
     await typeAtEnd(page, '\n[[');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    await expect(page.locator('.tag-autocomplete-popup')).toContainText('shopping.txt');
+    await expect(page.locator('.ac-picker-popup')).toBeVisible();
+    await expect(page.locator('.ac-picker-popup')).toContainText('shopping.txt');
 
     await page.keyboard.type('shop');
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     await expect(page.locator('#modal-content-text pre')).toContainText('[[shopping.txt]]');
-    await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
+    await expect(page.locator('.ac-picker-popup')).toHaveCount(0);
   });
 
   test('a note in a folder is offered by its full path, and the inserted link resolves', async ({ page }) => {
@@ -194,8 +194,8 @@ test.describe('internal links — note picker', () => {
     await openHubInTextMode(page);
 
     await typeAtEnd(page, '\n[[nested');
-    await expect(page.locator('.tag-autocomplete-item')).toHaveCount(1);
-    await expect(page.locator('.tag-autocomplete-item')).toHaveText('subdir/nested.md');
+    await expect(page.locator('.ac-picker-item')).toHaveCount(1);
+    await expect(page.locator('.ac-picker-item')).toHaveText('subdir/nested.md');
 
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
@@ -215,13 +215,13 @@ test.describe('internal links — note picker', () => {
     await openHubInTextMode(page);
 
     await typeAtEnd(page, '\n[[subdir');
-    await expect(page.locator('.tag-autocomplete-item')).toHaveText('subdir/nested.md');
+    await expect(page.locator('.ac-picker-item')).toHaveText('subdir/nested.md');
     await page.keyboard.press('Escape');
 
     // The caret walk must not stop at the space in the query
     await typeAtEnd(page, '\n[[my long');
-    await expect(page.locator('.tag-autocomplete-popup')).toBeVisible();
-    await expect(page.locator('.tag-autocomplete-popup')).toContainText('my long note.md');
+    await expect(page.locator('.ac-picker-popup')).toBeVisible();
+    await expect(page.locator('.ac-picker-popup')).toContainText('my long note.md');
   });
 
 });

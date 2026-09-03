@@ -23,7 +23,7 @@ async function typeAtEnd(page, text) {
   await page.keyboard.type(text);
 }
 
-const items = (page) => page.locator('.tag-autocomplete-popup .tag-autocomplete-item');
+const items = (page) => page.locator('.ac-picker-popup .ac-picker-item');
 
 const createdFiles = (page) => page.evaluate(() => [...window.__createdFiles.keys()]);
 const openFilepath = (page) => page.evaluate(() => window.appState.openFileSnapshot?.filepath);
@@ -58,7 +58,7 @@ test.describe('creating a note from an unresolved internal link', () => {
     await expect.poll(() => openFilepath(page)).toBe('brand new.txt');
     expect(await createdFiles(page)).toContain('brand new.txt');
     await expect(page.locator('#file-content-modal')).toBeVisible();
-    await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
+    await expect(page.locator('.ac-picker-popup')).toHaveCount(0);
     // The new note is in appState, so links to it resolve from here on.
     const filepaths = await page.evaluate(() => window.appState.myFiles.map(f => f.filepath));
     expect(filepaths).toContain('brand new.txt');
@@ -90,12 +90,12 @@ test.describe('creating a note from an unresolved internal link', () => {
 
     await typeAtEnd(page, '[[shopping.txt]]');
     await page.keyboard.press('Enter');
-    await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
+    await expect(page.locator('.ac-picker-popup')).toHaveCount(0);
 
     // The extensionless form resolves to the same file, so it must not offer either
     await typeAtEnd(page, '[[shopping]]');
     await page.keyboard.press('Enter');
-    await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
+    await expect(page.locator('.ac-picker-popup')).toHaveCount(0);
 
     expect(await createdFiles(page)).toEqual(before);
     expect(await openFilepath(page)).toBe('hub.md');
@@ -112,7 +112,7 @@ test.describe('creating a note from an unresolved internal link', () => {
     await expect(items(page)).toHaveCount(1);
     await page.keyboard.press('Escape');
 
-    await expect(page.locator('.tag-autocomplete-popup')).toHaveCount(0);
+    await expect(page.locator('.ac-picker-popup')).toHaveCount(0);
     expect(await createdFiles(page)).toEqual(before);
     expect(await openFilepath(page)).toBe('hub.md');
   });
