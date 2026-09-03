@@ -7,9 +7,12 @@ import { decodeModalHtml } from '../services/file-save.js';
  * the marker, or strips the marker if it is already there — either just inside the
  * selection (`**word**` selected) or just outside it (`word` selected within `**word**`).
  *
- * The selection is replaced in one execCommand call, so each toggle is a single undo
- * step and fires a single input event for the dirty/autosave delegate. Returns silently
- * in html view (no editor element) and on a collapsed caret.
+ * Only the marker characters are ever inserted or deleted; the selected text is left
+ * untouched. Re-inserting it would mean passing its newlines through execCommand, which
+ * wraps them in a <div> and breaks the flat text-node/<br> shape that decodeModalHtml and
+ * the offset walkers depend on. The cost is two undo steps per toggle.
+ *
+ * Returns silently in html view (no editor element) and on a collapsed caret.
  * @param {string} marker
  * @returns {void}
  */
@@ -23,7 +26,7 @@ export function toggleWrapSelection(marker) {
     if (range.collapsed) return;
 
     // Guard: offsetOf falls through its walk and returns the total length for a container
-    // it cannot find, so a selection anchored outside the editor would replace the wrong span.
+    // it cannot find, so a selection anchored outside the editor would edit the wrong span.
     if (!editorEl.contains(range.startContainer) || !editorEl.contains(range.endContainer)) return;
 
     const start = offsetOf(editorEl, range.startContainer, range.startOffset);
@@ -40,47 +43,26 @@ export function toggleWrapSelection(marker) {
         && text.slice(start - m, start) === marker
         && text.slice(end, end + m) === marker;
 
-    // from/to is the span being edited; inner is the unmarked text, which stays selected.
+    // from/to spans the whole construct, markers included; innerLength is the text between them.
     const unwrapping = markedInside || markedOutside;
-    let from, to, inner, replacement;
-    if (markedInside) {
-        [from, to] = [start, end];
-        inner = text.slice(start + m, end - m);
-        replacement = inner;
-    } else if (markedOutside) {
-        [from, to] = [start - m, end + m];
-        inner = text.slice(start, end);
-        replacement = inner;
-    } else {
-        [from, to] = [start, end];
-        inner = text.slice(start, end);
-        replacement = marker + inner + marker;
-    }
+    const [from, to] = markedOutside ? [start - m, end + m] : [start, end];
+    const innerLength = markedInside ? end - start - 2 * m : end - start;
 
-    if (inner.includes('\n')) {
-        // A selection spanning a line break cannot be re-inserted as one string: execCommand
-        // wraps the newline in a <div>, which breaks the flat text-node/<br> shape that
-        // decodeModalHtml and the offset walkers rely on, and would save a literal <div> to
-        // the file. Touching only the marker characters keeps that shape. Later offset first,
-        // so the earlier one stays valid. Costs a second undo step, hence the fast path below.
-        if (unwrapping) {
-            selectTextRange(editorEl, to - m, to);
-            document.execCommand('delete');
-            selectTextRange(editorEl, from, from + m);
-            document.execCommand('delete');
-        } else {
-            restoreCursorOffset(editorEl, to);
-            document.execCommand('insertText', false, marker);
-            restoreCursorOffset(editorEl, from);
-            document.execCommand('insertText', false, marker);
-        }
+    // The later offset is edited first, so the earlier one stays valid.
+    if (unwrapping) {
+        selectTextRange(editorEl, to - m, to);
+        document.execCommand('delete');
+        selectTextRange(editorEl, from, from + m);
+        document.execCommand('delete');
     } else {
-        selectTextRange(editorEl, from, to);
-        document.execCommand('insertText', false, replacement);
+        restoreCursorOffset(editorEl, to);
+        document.execCommand('insertText', false, marker);
+        restoreCursorOffset(editorEl, from);
+        document.execCommand('insertText', false, marker);
     }
 
     // Keep the text itself selected so the marker can be toggled straight back off,
     // or the other marker applied to the same phrase.
     const innerStart = unwrapping ? from : from + m;
-    selectTextRange(editorEl, innerStart, innerStart + inner.length);
+    selectTextRange(editorEl, innerStart, innerStart + innerLength);
 }

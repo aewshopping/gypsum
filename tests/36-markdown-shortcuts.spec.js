@@ -150,7 +150,7 @@ test.describe('markdown bold / italic shortcuts', () => {
     expect(await editorText(page)).toBe('the quick **_brown_** fox');
   });
 
-  test('a selection spanning a line break wraps correctly', async ({ page }) => {
+  test('a selection spanning a line break wraps without breaking the flat DOM', async ({ page }) => {
     await openEditor(page);
     await setEditorHtml(page, 'line one<br>line two<br>line three');
     await selectText(page, 'one\nline two');
@@ -188,9 +188,11 @@ test.describe('markdown bold / italic shortcuts', () => {
     await openEditor(page);
     await setEditorHtml(page, 'the quick brown fox');
 
+    // Each marker is inserted separately, so a toggle takes two undo steps.
     await selectText(page, 'brown');
     await page.keyboard.press('Control+b');
     expect(await editorText(page)).toBe('the quick **brown** fox');
+    await page.keyboard.press('Control+z');
     await page.keyboard.press('Control+z');
     expect(await editorText(page)).toBe('the quick brown fox');
 
@@ -199,6 +201,7 @@ test.describe('markdown bold / italic shortcuts', () => {
     await selectText(page, 'brown');
     await page.keyboard.press('Control+b');
     expect(await editorText(page)).toBe('the quick brown fox');
+    await page.keyboard.press('Control+z');
     await page.keyboard.press('Control+z');
     expect(await editorText(page)).toBe('the quick **brown** fox');
   });
@@ -223,7 +226,8 @@ test.describe('markdown bold / italic shortcuts', () => {
     await selectText(page, 'brown');
     await page.keyboard.press('Control+b');
     // The input event is what drives dirty-marking and autosave, so firing it is the contract.
-    expect(await page.evaluate(() => window.__inputEvents)).toBe(1);
+    // One per marker, since the two markers are inserted separately.
+    expect(await page.evaluate(() => window.__inputEvents)).toBe(2);
   });
 
   test('wrap then unwrap round-trips content with &, < and nbsp intact', async ({ page }) => {
