@@ -33,6 +33,11 @@ export function applyColorToEditor(colorName, savedOffset) {
     endRange.collapse(false);
     window.getSelection().removeAllRanges();
     window.getSelection().addRange(endRange);
-    document.execCommand('insertText', false, `\n\n#color/${colorName}`);
+    // The line breaks go in via insertLineBreak, not as "\n" inside the inserted text:
+    // execCommand wraps an inserted newline in a <div>, which the save path does not
+    // translate, so it would land in the file as literal markup.
+    document.execCommand('insertLineBreak');
+    document.execCommand('insertLineBreak');
+    document.execCommand('insertText', false, `#color/${colorName}`);
     return savedOffset;
 }
