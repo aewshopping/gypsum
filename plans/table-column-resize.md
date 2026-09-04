@@ -252,8 +252,8 @@ one property write plus a grid reflow, and premature optimisation is against hou
 
 ## 5. Step 0 — groundwork (do first, separately)
 
-Three small independent changes. None of them touch the drag feature; they exist so that
-Step 1 starts from a clean base with a regression net. **Order matters.**
+Two small independent changes. Neither touches the drag feature; they exist so that Step 1
+starts from a clean base.
 
 ### 0a. Delete `public/js/ui/ui-functions-render/reorder-fileprops.js`
 
@@ -271,22 +271,6 @@ inconsistency.
 
 Change the header to `prop.label ?? prop.name`. Keep `data-property`, `data-tip` and every
 other attribute keyed on `prop.name` — those are identity, not display.
-
-**Must land before 0c** so the test pins the corrected header text rather than the current
-wrong text.
-
-### 0c. Add a test pinning the default table columns
-
-New spec in `tests/`, following the existing conventions in `tests/helpers.js` (mock files
-injected via `page.addInitScript()`). Assert, in table view with the default mock folder:
-
-- the set and order of visible column headers
-- their rendered labels (post-0b)
-- the value of `--grid-columns` on `document.body`
-
-This is the net for everything in Step 1, which moves the `--grid-columns` code around. A
-wrong grid string produces a merely odd-looking table rather than an error, so it will not
-fail loudly on its own.
 
 Bump `manifest.json` minor version. Commit.
 
@@ -422,16 +406,6 @@ CSS module for it.
 Add `TABLE_VIEW_COLUMNS.widthOverrides.clear()` to **both**
 `services/directory-handler.js:44-46` and `backup/opfs-import.js:114-116`.
 
-### 1k. Test
-
-New spec driving the drag with `page.mouse.down/move/up` on the handle.
-
-The assertion that matters is **not** "the column got wider" — it is **"the column is still
-wider after a sort and after a filter"**. That is what catches the snap-back described in
-§3.2, and it is the assertion that will still be earning its keep once saved layouts land.
-
-Also assert the minimum width floor holds when dragging far left.
-
 Bump `manifest.json` minor version. Commit.
 
 ---
@@ -457,7 +431,6 @@ public/js/constants.js                   MOD  MIN_/DEFAULT_COLUMN_WIDTH
 public/js/services/directory-handler.js  MOD  one .clear() line
 public/js/backup/opfs-import.js          MOD  one .clear() line
 public/css/note-table.css                MOD  gutter, handle, coarse-pointer rule
-tests/NN-column-resize.spec.js           NEW
 manifest.json                            MOD  minor bump per commit
 ```
 
@@ -491,7 +464,8 @@ on `body` after switching away from table view. True today, unchanged by this wo
 
 ## 8. Verification
 
-Run `npm install` (once per environment) then `npm test`.
+Run the existing suite to confirm nothing regressed: `npm install` (once per environment),
+then `npm test`.
 
 `CLAUDE.md` requires screenshots for new features — expectations about browser behaviour are
 not reliable enough on their own. Take them for:

@@ -326,7 +326,7 @@ one-state-store rule.
 
 Move `triggerDownload` and `buildTimestamp` verbatim out of `backup/create-backup.js`, add
 JSDoc, export both. Update `create-backup.js` to import them and delete its local copies.
-Verify the existing tar backup still downloads (`tests/25-tar-backup.spec.js`).
+Confirm the existing tar backup still downloads before moving on.
 
 ### 5b. `public/js/services/table-export.js` (new)
 
@@ -380,31 +380,6 @@ A new component-scoped file, per the one-file-per-component rule — this is a n
 part of `note-table.css`'s table grid. Right-aligned flex row, small type, sitting above the
 table wrapper. Register it wherever the other CSS files are pulled in.
 
-### 5h. Test
-
-New spec. Add a deliberately awkward mock file to `tests/helpers.js` — front matter, a
-straight quote, a backslash, a newline, and a non-ASCII character in the body.
-
-Switch to table view first — the control does not exist in any other view, which is itself
-worth one assertion: the export button is absent in peek view and present in table view.
-
-Capture the download with `page.waitForEvent('download')`, read the stream, `JSON.parse` it,
-and assert:
-
-- top level is an array, one entry per filtered file
-- keys match the visible columns, in order
-- **`tags` is an array of strings, not `{}`** — the §2.2 regression, and the assertion that
-  matters most
-- `lastModified` parses as a valid ISO date
-- with content on: the awkward file's content survives `JSON.parse` intact, and its front
-  matter is absent
-- with content off: no `content` key at all
-- a filter is respected — filter to one tag, export, get fewer rows
-- more rows than one page's worth are exported when the folder exceeds `PAGINATION_SIZE`
-  (§2.6)
-- the "include file content" checkbox survives a sort — tick it, sort a column, confirm it is
-  still ticked (§4.9). This is the regression the re-rendered bar would otherwise cause
-
 Bump `manifest.json` minor version.
 
 ---
@@ -421,8 +396,6 @@ public/js/backup/create-backup.js                      MOD  import the two moved
 public/js/ui/render-file-list-table.js                 MOD  emit the bar (fullRender branch)
 public/js/ui/event-listeners-add.js                    MOD  two registrations
 public/js/services/store.js                            MOD  tableExport state
-tests/helpers.js                                       MOD  one awkward mock file
-tests/NN-table-export.spec.js                          NEW
 manifest.json                                          MOD  minor bump
 ```
 
@@ -431,20 +404,18 @@ rather than sitting statically in the page, so there is no markup to add and no 
 enable on load (§4.8).
 
 **Blast radius is small but not zero.** The one change to existing behaviour is §4.7, moving
-`triggerDownload`/`buildTimestamp` out of `create-backup.js`. That module is what
-`tests/25-tar-backup.spec.js` exercises, so a mistake there breaks tar backup, not the export.
-Do 5a as its own commit and run that spec before going further.
+`triggerDownload`/`buildTimestamp` out of `create-backup.js`. A mistake there breaks the
+existing tar backup, not the export — so do 5a as its own commit and confirm tar backup still
+works before going further.
 
-Everything else is additive: new files, one handler registration, one button. Nothing in the
-table renderers changes. Adding the awkward mock file to `tests/helpers.js` affects every spec
-that counts files — expect to update a few counts, and treat any *other* failure as a real
-finding about how the app handles that content.
+Everything else is additive: new files, two handler registrations, one line in the table
+renderer. Nothing in the existing table rendering changes.
 
 ---
 
 ## 7. Verification
 
-`npm install` once, then `npm test`.
+Run the existing suite to confirm nothing regressed: `npm install` once, then `npm test`.
 
 Screenshots per `CLAUDE.md`: the export bar above the table, the same view after switching to
 peek (bar absent), and the progress indicator during a content-included export of a reasonably
