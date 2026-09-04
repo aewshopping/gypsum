@@ -99,9 +99,13 @@ as the renderer does. Using `pageFileIds` would silently export one page.
 
 ### 2.7 `current_props` is only populated by a table render
 
-`render-file-list-table.js:20` assigns it. If the user is in peek view and triggers an export,
-`current_props` is whatever the last table render left behind — possibly from a different
-folder. The export must not depend on render order (§4.1).
+`render-file-list-table.js:20` assigns it. A control that could be triggered from outside table
+view — the settings modal, say — would read whatever the last table render left behind,
+possibly from a different folder.
+
+This is resolved by the placement decision (§4.8): the export control is emitted by the table
+renderer itself, so it exists only when `current_props` is current. Recorded here because it is
+the reason that placement is not merely a UI preference.
 
 ---
 
@@ -178,11 +182,13 @@ duplication here.
 
 ## 4. Design decisions
 
-### 4.1 Compute columns and rows fresh, do not read render leftovers
+### 4.1 Columns from the render, rows recomputed
 
-- **Columns:** call `tableColumns()` (`ui-functions-table/render-table-columns-helper.js`)
-  directly rather than reading `TABLE_VIEW_COLUMNS.current_props`, which is stale outside table
-  view (§2.7). Build the same `{name, ...FILE_PROPERTIES.get(name)}` shape the renderer builds.
+- **Columns:** read `TABLE_VIEW_COLUMNS.current_props` directly. The §2.7 staleness worry is
+  neutralised by the placement decision in §4.8: the control is emitted by the table renderer,
+  so it cannot be clicked unless a table render has just populated `current_props`. Reading it
+  is therefore both safe *and* the stronger guarantee — the export is definitionally the
+  columns the user is looking at, not a recomputation that could in principle differ.
 - **Rows:** filter `appState.myFiles` with `checkFilesToShow`, matching
   `a-render-all-files.js:38-40`. Never `pageFileIds` (§2.6).
 
@@ -265,19 +271,52 @@ avoids duplicating the object-URL lifecycle, which is the part people get wrong.
 touching backup code for a table feature — a two-line import change, judged worth it against
 copy-pasting an object-URL leak into a second file.
 
-### 4.8 UI placement — decided, but revisit if it feels wrong
+### 4.8 UI placement: a bar above the table, rendered by the table
 
-Put the control in the existing **"Import and export"** section of the settings modal
-(`index.html:425`), beside `export all` and `export files`.
+`renderFileList_table` emits a small right-aligned bar directly above `.table-wrapper`, holding
+the export button and the "include file content" checkbox.
 
-Reasoning: all exports live in one place; the "include file content" checkbox needs somewhere
-to live and the modal has room; no new popover or modal is required.
+**The control lives only in table view because it only makes sense there** — it exports the
+table's visible columns. Putting it anywhere global (the settings modal, the shared controls
+panel) would ask the user to act on the table from somewhere that is not the table.
 
-The counter-argument is real: this export depends on table state, so a user in table view has
-to leave it to trigger something about it. If it feels wrong in use, the alternative is a
-control in the table toolbar with the checkbox in a small popover — more code, better
-proximity. Label the button so the dependency is explicit, e.g. tooltip
-"export visible table columns and filtered rows as JSON".
+Rendering it *with* the table, rather than placing it statically in `index.html` and hiding it
+outside table view, is what makes that cheap:
+
+- **No new pattern.** There is currently no view-conditional UI anywhere in the app —
+  `viewState` is read in exactly two places, the render switch in `a-render-all-files.js:86`
+  and the dropdown's initial value. A `hidden` attribute toggled on view change would be the
+  first of its kind and would need maintaining on every future view addition.
+- **Appearing and disappearing is free.** The table renderer emits it; the grid, list, peek and
+  search renderers do not. Switching view replaces `#output` wholesale.
+- **Precedent exists.** `renderPagination` already works exactly this way.
+- **The empty states handle themselves.** `renderFiles` returns early with an empty-state
+  message when a folder is empty or filters match nothing, so the control is absent precisely
+  when there is nothing to export.
+
+The cost is that the bar is re-created on every render, so any state it holds must live outside
+the DOM. That is `CLAUDE.md`'s rule anyway — see §4.9.
+
+The `fullRender = false` path (`render-file-list-table.js:55`) only replaces `.note-table` rows,
+so the bar survives a sort untouched.
+
+### 4.9 Export state in `appState`
+
+Add to `store.js`:
+
+```js
+tableExport: { includeContent: false, inProgress: false },
+```
+
+- `includeContent` — the checkbox would otherwise reset to unchecked every time the user sorts
+  or filters, because the bar is re-rendered (§4.8). The renderer reads it to set the `checked`
+  attribute; a `change` handler writes it back.
+- `inProgress` — disables the button while an export runs. Not merely a DOM `disabled` flag,
+  because a re-render mid-export (the user clicks a tag filter while a large content export is
+  still reading files) would otherwise bring the button back enabled and allow a second run.
+
+Both are genuinely app state, not view state, so `store.js` is the right home per the
+one-state-store rule.
 
 ---
 
@@ -300,34 +339,54 @@ JSDoc on all three.
 
 ### 5c. `public/js/ui/ui-functions-click/table-export-click.js` (new)
 
-Reads the checkbox, computes columns via `tableColumns()` and rows via `checkFilesToShow`
-(§4.1), calls the service with a progress callback, wraps the string in
-`new Blob([json], { type: 'application/json' })`, and calls `triggerDownload` with
-`gypsum-table-${buildTimestamp()}.json`.
+Two exports:
 
-Disable the button while an export is running so a second click cannot start a parallel run.
+- `handleTableExport()` — sets `tableExport.inProgress`, reads columns from `current_props` and
+  rows via `checkFilesToShow` (§4.1), calls the service with a progress callback, wraps the
+  string in `new Blob([json], { type: 'application/json' })`, calls `triggerDownload` with
+  `gypsum-table-${buildTimestamp()}.json`, then clears `inProgress`. Clear it in a `finally` so
+  a failed export cannot leave the button permanently dead.
+- `handleExportIncludeContentToggle(evt)` — writes the checkbox value to
+  `appState.tableExport.includeContent`. Does **not** re-render: the DOM already shows the new
+  state, and a re-render would rebuild the whole table for nothing.
 
-### 5d. `index.html`
+### 5d. `public/js/ui/ui-functions-table/render-table-export-bar.js` (new)
 
-Add the button and an "include file content" checkbox to the Import and export section,
-matching the existing `btn-menu` markup. `data-action="export-table-json"`. Start `disabled`
-like its neighbours, and enable it where the other export buttons are enabled — the
-`querySelectorAll('[data-action="backup-full"], …')` calls in `directory-handler.js:50` and
-`opfs-import.js:118`. **Both loaders**, as ever.
+Returns the bar's HTML string. Reads `appState.tableExport` for the checkbox's `checked` state
+and the button's `disabled` state (§4.9). No logic beyond that — it is a renderer.
 
-### 5e. `public/js/ui/event-listeners-add.js`
+`data-action="export-table-json"` on the button, `data-action="export-include-content"` on the
+checkbox. Tooltip on the button via `data-tip`, naming what gets exported: visible columns,
+filtered rows, all pages.
 
-Register `'export-table-json': handleTableExport` in `clickActionHandlers`.
+### 5e. `public/js/ui/render-file-list-table.js`
 
-### 5f. `public/css/`
+Call the bar renderer and prepend its HTML inside the `fullRender` branch, above
+`.table-wrapper`. One line in the template literal plus an import. The partial-render branch is
+untouched (§4.8).
 
-A new component-scoped file only if the checkbox needs layout beyond what
-`.settings-backup-btns` already provides. Prefer reusing existing settings styles.
+### 5f. `public/js/ui/event-listeners-add.js`
 
-### 5g. Test
+- `'export-table-json': handleTableExport` in `clickActionHandlers`.
+- `'export-include-content': handleExportIncludeContentToggle` in `changeActionHandlers`.
+
+Note `index.html` is **not** touched — the control is rendered, not static. Neither are the two
+loaders: there is no button to enable, because the bar does not exist until a table has
+rendered, which cannot happen before files are loaded.
+
+### 5g. `public/css/table-export-bar.css` (new)
+
+A new component-scoped file, per the one-file-per-component rule — this is a new component, not
+part of `note-table.css`'s table grid. Right-aligned flex row, small type, sitting above the
+table wrapper. Register it wherever the other CSS files are pulled in.
+
+### 5h. Test
 
 New spec. Add a deliberately awkward mock file to `tests/helpers.js` — front matter, a
 straight quote, a backslash, a newline, and a non-ASCII character in the body.
+
+Switch to table view first — the control does not exist in any other view, which is itself
+worth one assertion: the export button is absent in peek view and present in table view.
 
 Capture the download with `page.waitForEvent('download')`, read the stream, `JSON.parse` it,
 and assert:
@@ -343,6 +402,8 @@ and assert:
 - a filter is respected — filter to one tag, export, get fewer rows
 - more rows than one page's worth are exported when the folder exceeds `PAGINATION_SIZE`
   (§2.6)
+- the "include file content" checkbox survives a sort — tick it, sort a column, confirm it is
+  still ticked (§4.9). This is the regression the re-rendered bar would otherwise cause
 
 Bump `manifest.json` minor version.
 
@@ -351,18 +412,23 @@ Bump `manifest.json` minor version.
 ## 6. Files touched, and blast radius
 
 ```
-public/js/services/table-export.js               NEW  serialisation + content reads
-public/js/ui/ui-functions-click/table-export-click.js  NEW  thin handler
-public/js/ui/trigger-download.js                 NEW  moved from create-backup.js
-public/js/backup/create-backup.js                MOD  import the two moved helpers
-public/js/ui/event-listeners-add.js              MOD  one registration
-public/js/services/directory-handler.js          MOD  enable the new button
-public/js/backup/opfs-import.js                  MOD  enable the new button
-index.html                                       MOD  button + checkbox
-tests/helpers.js                                 MOD  one awkward mock file
-tests/NN-table-export.spec.js                    NEW
-manifest.json                                    MOD  minor bump
+public/js/services/table-export.js                     NEW  serialisation + content reads
+public/js/ui/ui-functions-click/table-export-click.js  NEW  thin handlers (button + checkbox)
+public/js/ui/ui-functions-table/render-table-export-bar.js  NEW  the bar's HTML
+public/js/ui/trigger-download.js                       NEW  moved from create-backup.js
+public/css/table-export-bar.css                        NEW  new component, own file
+public/js/backup/create-backup.js                      MOD  import the two moved helpers
+public/js/ui/render-file-list-table.js                 MOD  emit the bar (fullRender branch)
+public/js/ui/event-listeners-add.js                    MOD  two registrations
+public/js/services/store.js                            MOD  tableExport state
+tests/helpers.js                                       MOD  one awkward mock file
+tests/NN-table-export.spec.js                          NEW
+manifest.json                                          MOD  minor bump
 ```
+
+`index.html` and the two loaders are **not** touched: the control is rendered with the table
+rather than sitting statically in the page, so there is no markup to add and no button to
+enable on load (§4.8).
 
 **Blast radius is small but not zero.** The one change to existing behaviour is §4.7, moving
 `triggerDownload`/`buildTimestamp` out of `create-backup.js`. That module is what
@@ -380,8 +446,13 @@ finding about how the app handles that content.
 
 `npm install` once, then `npm test`.
 
-Screenshots per `CLAUDE.md`: the settings section with the new control, and the progress
-indicator during a content-included export of a reasonably large folder.
+Screenshots per `CLAUDE.md`: the export bar above the table, the same view after switching to
+peek (bar absent), and the progress indicator during a content-included export of a reasonably
+large folder.
+
+Check the bar's alignment against the table's horizontal scrollbar at a narrow viewport —
+`.table-wrapper` is `max-width: 100vw` and scrolls horizontally, so a right-aligned bar above
+it needs to align with the viewport, not the table's full scroll width.
 
 Manual check worth doing once: open the exported file in a text editor and confirm the
 pretty-printing is readable, and run it through `jq .` to confirm it parses outside the
