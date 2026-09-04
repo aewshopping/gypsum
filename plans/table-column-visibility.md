@@ -88,7 +88,7 @@ not. Auditing the members:
 |---|---|---|
 | `handle` | always | **No.** A `FileSystemFileHandle`. Correctly excluded |
 | `show` | always | Nothing in the codebase produces this property. Vestigial |
-| `content` | always | Nothing produces it either — so if present it came from the user's front matter, i.e. it is *always* user data. Arguably mis-filed |
+| `content` | always | Nothing produces it either. See below — it is *always* user data when present |
 | `internalId` | default | Set to `filepath` verbatim (`directory-handler.js:86`). A duplicate under an internal name |
 | `color` | default | Yes — the value the user wrote as `#color/coral` |
 | `filepath` | default | Yes. `column_width: 300` |
@@ -106,9 +106,29 @@ the same string as `filepath`, so offering both would put two checkboxes in the 
 identical columns, one of them named after an app-internal concept. It is the only member of the
 defaults list with a real claim to being internal, and it belongs on the other side.
 
-Leave `show` and `content` alone here. `show` is harmless dead weight, and whether `content`
-should be user-selectable is a question about that list's contents rather than about this
-feature — `plans/table-json-export.md` §4.4 depends on its current exclusion.
+**`content` deserves its own note, because it is not what it looks like.** `hidden_always` was
+born as `['handle', 'show', 'content']`, so `show` and `content` were anticipatory from the
+start rather than observations of properties that existed — `show` has never existed at all. The
+intent was sound: if the raw note body ever landed on the file object, a whole note in a table
+cell would be miserable.
+
+But the effect has inverted. `RESERVED_KEYS` (`file-info.js:15`), the list of names a user's
+front matter cannot shadow, does **not** include `content` — so a YAML `content:` key spreads
+straight onto the file object. The only way `content` ever exists is therefore as user data, and
+an exclusion written to guard an app internal now exclusively blocks the user's own front
+matter.
+
+There is a visible inconsistency to go with it: `search.excludedProperties` (`store.js:34`) is
+`["handle", "show", "contentPeek", "errorOnLoad"]` and does not list `content`. So such a key is
+fully searchable while being permanently undisplayable — a user can filter on it, get results,
+and never see the column they filtered on. (That setting only governs the search-everything
+path; explicit `prop:value` searches still reach excluded properties, which is why the
+load-error nudges still work on `errorOnLoad`.)
+
+**Still, leave `show` and `content` alone in this plan.** `show` is harmless dead weight.
+`content` is a real if small bug, but fixing it is entangled with
+`plans/table-json-export.md` §4.4, whose key-collision reasoning depends on a YAML `content`
+never being a visible column. Change both together, deliberately, or neither.
 
 ### 2.3 The picker's candidate list already exists
 
