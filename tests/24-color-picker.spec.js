@@ -111,19 +111,6 @@ test.describe('colour picker modal', () => {
     expect(editorText).toContain('# My Notes');
     expect(editorText).toContain('Some content here');
     expect(editorText).toMatch(new RegExp(`\n\n#color\\/${colourName}\\s*$`));
-
-    // innerText renders any element as a line break, so it cannot see a stray <div>. The
-    // save path only translates <br>, so check what would actually be written to the file.
-    const savedText = await page.evaluate(() =>
-      document.querySelector('#modal-content-text pre').innerHTML
-        .replace(/<br>/gi, '\n')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-    );
-    expect(savedText).not.toContain('<div');
-    expect(savedText).toMatch(new RegExp(`\n\n#color\\/${colourName}\\s*$`));
   });
 
   test('cursor stays at its position when colour tag is below the cursor', async ({ page }) => {

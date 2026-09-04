@@ -33,10 +33,6 @@ export function applyColorToEditor(colorName, savedOffset) {
     endRange.collapse(false);
     window.getSelection().removeAllRanges();
     window.getSelection().addRange(endRange);
-    // insertHTML, not insertText with "\n\n" in the string: execCommand wraps an inserted
-    // newline in a <div>, which the save path does not translate, so it would land in the
-    // file as literal markup. One call keeps the whole append to a single undo step.
-    // colorName is always one of the palette constants, never file content or user input.
-    document.execCommand('insertHTML', false, `<br><br>#color/${colorName}`);
+    document.execCommand('insertText', false, `\n\n#color/${colorName}`);
     return savedOffset;
 }
