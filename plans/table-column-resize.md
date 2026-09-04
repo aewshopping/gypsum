@@ -130,6 +130,28 @@ listener. Window resize has therefore never re-synced the proxy scrollbar. Resiz
 changes the table's total width, so this must be fixed and called on drop, or the top
 scrollbar thumb goes stale after every drag.
 
+**The obvious fix introduces a listener leak. Read this before fixing it.**
+
+`initialScrollSync()` is called from `render-file-list-table.js:51` on *every full render* —
+so `addScrollEventListeners` runs on every sort, filter, page change and view switch. It adds
+its listeners and never removes them.
+
+Today that is harmless for the `window` listener precisely *because* of the bug:
+`addEventListener('resize', undefined)` registers nothing. Changing it to
+`() => syncWidth(elements)` turns a no-op into a real accumulating leak — one live listener
+per full render, each closing over `elements` whose DOM nodes were destroyed when
+`output.innerHTML` was replaced.
+
+(The `topScrollbar` and `tableWrapper` scroll listeners in the same function are fine: those
+elements are discarded with the innerHTML replacement, taking their listeners with them. Only
+the `window` listener outlives the render.)
+
+So the fix is **not** "correct the arrow function". Register the window listener **once** —
+module-level, guarded by a flag or attached at app start — and have it re-query the elements
+at call time rather than closing over a stale set. Re-querying is cheap: they are four
+`document.querySelector`/`getElementById` calls on stable selectors, and doing it at call
+time is what makes the listener survive re-renders correctly.
+
 ### 3.6 Two loaders reset table state
 
 `services/directory-handler.js:44-46` and `backup/opfs-import.js:114-116` contain the same
@@ -328,11 +350,18 @@ the click map, which is not there, so it is a no-op — no accidental sort.
 
 ### 1h. `public/js/ui/ui-functions-table/table-scrollbar-sync.js`
 
-- Fix line 55: `window.addEventListener('resize', () => syncWidth(elements));`
-- Export a function the resize handler can call on drop to re-sync the proxy scrollbar width.
-  The existing `syncWidth` takes an elements object built in `initialScrollSync`; either
-  export a small wrapper that re-queries the elements, or store them at init. Prefer whichever
-  reads more simply — the elements are all `document.querySelector` calls on stable selectors.
+**Re-read §3.5 first — the one-line fix leaks listeners.**
+
+- Restructure `syncWidth` so it re-queries its four elements at call time instead of taking a
+  pre-built `elements` object. This is what makes a single long-lived listener correct across
+  re-renders.
+- Move the `window` resize registration out of `addScrollEventListeners` (which runs on every
+  full render) so it happens exactly once — module-level guard, or registered at app start
+  alongside the other listeners in `event-listeners-add.js`. Do not leave it where it is with
+  a corrected arrow function; that creates one live listener per render.
+- Export the re-query-and-sync function so `table-col-resize.js` can call it on drop.
+- Leave the `topScrollbar` / `tableWrapper` scroll listeners where they are. Those elements are
+  recreated per render, so re-registering them per render is correct and they leak nothing.
 
 ### 1i. `public/css/note-table.css`
 
@@ -374,7 +403,59 @@ Bump `manifest.json` minor version. Commit.
 
 ---
 
-## 7. Verification
+## 7. Files touched, and what reaches outside table view
+
+```
+public/js/ui/ui-functions-table/
+├── apply-column-widths.js      NEW     width resolution + the --grid-columns write
+├── table-col-resize.js         NEW     pointerdown → capture → drag → drop
+├── render-table-header.js      MOD     loses width code; gains data-prop + handle
+├── table-scrollbar-sync.js     MOD     listener-registration fix (§3.5); export re-sync
+├── table-col-hover.js                  untouched unless the optional :has tidy-up (1i)
+└── render-table-columns-helper.js      untouched — that is the layouts axis, not this one
+
+public/js/ui/
+├── render-file-list-table.js   MOD     calls applyColumnWidths; drops the dead reset
+└── event-listeners-add.js      MOD     pointerdown delegate + one registration
+
+public/js/ui/ui-functions-render/reorder-fileprops.js   DELETE (dead, step 0a)
+public/js/services/store.js              MOD  widthOverrides Map
+public/js/constants.js                   MOD  MIN_/DEFAULT_COLUMN_WIDTH
+public/js/services/directory-handler.js  MOD  one .clear() line
+public/js/backup/opfs-import.js          MOD  one .clear() line
+public/css/note-table.css                MOD  gutter, handle, coarse-pointer rule
+tests/NN-column-resize.spec.js           NEW
+manifest.json                            MOD  minor bump per commit
+```
+
+Both new files belong in `ui-functions-table/`, not `ui-functions-click/`. `CLAUDE.md` asks
+for one file per action in `ui-functions-click/`, but `table-col-hover.js` is the existing
+precedent for a table event handler living beside the table renderers, and
+`table-col-resize.js` pairs with it by name. The CSS goes in `note-table.css` because the
+handle is part of the table component, not a new one.
+
+**Blast radius.** Only two changes reach beyond table view:
+
+1. **The `pointerdown` delegate** (1g) is a new document-level listener firing on every
+   pointer-down in the app. Behaviourally contained — the handler map has one entry, so
+   everything else falls through — but note `pointerdown` fires *before* the existing
+   `mousedown` listener at `event-listeners-add.js:75`. No conflict today: that listener only
+   acts on editor undo/redo and colour-pick.
+2. **The scrollbar listener fix** (§3.5) changes behaviour that has never worked, and done
+   carelessly makes things worse. See that section.
+
+Everything else is additive or contained. `store.js` and `constants.js` gain new keys and
+exports that no existing reader consults — `sort-select-load.js` reads only
+`TABLE_VIEW_COLUMNS.hidden_always`, and the loaders only reset. Nothing lands in `services/`
+beyond two `.clear()` lines, so no business logic moves and the three-layer separation holds.
+
+One pre-existing quirk to be aware of: `--grid-columns` is written to `document.body`, so it
+is a global CSS variable, but `note-table.css:15` is its only consumer. A stale value remains
+on `body` after switching away from table view. True today, unchanged by this work.
+
+---
+
+## 8. Verification
 
 Run `npm install` (once per environment) then `npm test`.
 
@@ -391,7 +472,7 @@ not reliable enough on their own. Take them for:
 
 ---
 
-## 8. Deliberately not doing
+## 9. Deliberately not doing
 
 Do not add these while implementing this plan.
 
@@ -407,7 +488,7 @@ Do not add these while implementing this plan.
 
 ---
 
-## 9. Conventions checklist
+## 10. Conventions checklist
 
 - ES modules, `import`/`export` only.
 - JSDoc with `@param`/`@returns` on every exported function.
