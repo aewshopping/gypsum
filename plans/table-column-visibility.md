@@ -87,8 +87,8 @@ not. Auditing the members:
 | Property | List | User-meaningful? |
 |---|---|---|
 | `handle` | always | **No.** A `FileSystemFileHandle`. Correctly excluded |
-| `show` | always | Nothing in the codebase produces this property. Vestigial |
-| `content` | always | Nothing produces it either. See below — it is *always* user data when present |
+| `show` | always | Nothing in the codebase produces this property. Historic leftover — **remove** |
+| `content` | always | Was a real property in an earlier version; is not now. Historic leftover — **remove** |
 | `internalId` | default | Set to `filepath` verbatim (`directory-handler.js:86`). A duplicate under an internal name |
 | `color` | default | Yes — the value the user wrote as `#color/coral` |
 | `filepath` | default | Yes. `column_width: 300` |
@@ -106,29 +106,35 @@ the same string as `filepath`, so offering both would put two checkboxes in the 
 identical columns, one of them named after an app-internal concept. It is the only member of the
 defaults list with a real claim to being internal, and it belongs on the other side.
 
-**`content` deserves its own note, because it is not what it looks like.** `hidden_always` was
-born as `['handle', 'show', 'content']`, so `show` and `content` were anticipatory from the
-start rather than observations of properties that existed — `show` has never existed at all. The
-intent was sound: if the raw note body ever landed on the file object, a whole note in a table
-cell would be miserable.
+**`show` and `content` are historic leftovers and should be deleted from the list.** An earlier
+version of the app carried the file's raw text on the file object as `content`; it no longer
+does (`file-info.js` returns no such key, and every `content:` elsewhere in the codebase belongs
+to a *snapshot* object — `{filepath, filename, content}` — which is a different shape). `show`
+is the same vintage and no longer exists either. Excluding them made sense while they were real
+properties: a whole note body in a table cell would be miserable.
 
-But the effect has inverted. `RESERVED_KEYS` (`file-info.js:15`), the list of names a user's
-front matter cannot shadow, does **not** include `content` — so a YAML `content:` key spreads
-straight onto the file object. The only way `content` ever exists is therefore as user data, and
-an exclusion written to guard an app internal now exclusively blocks the user's own front
-matter.
+Leaving them costs more than nothing, because `RESERVED_KEYS` (`file-info.js:15`) — the list of
+names a user's front matter cannot shadow — does **not** include `content`. So a YAML `content:`
+key spreads onto the file object today. The exclusion no longer guards an app internal; it only
+blocks the user's own data.
 
-There is a visible inconsistency to go with it: `search.excludedProperties` (`store.js:34`) is
-`["handle", "show", "contentPeek", "errorOnLoad"]` and does not list `content`. So such a key is
-fully searchable while being permanently undisplayable — a user can filter on it, get results,
-and never see the column they filtered on. (That setting only governs the search-everything
-path; explicit `prop:value` searches still reach excluded properties, which is why the
-load-error nudges still work on `errorOnLoad`.)
+The inconsistency this produces is already visible: `search.excludedProperties` (`store.js:34`)
+is `["handle", "show", "contentPeek", "errorOnLoad"]` and does not list `content`, so such a key
+is fully searchable while being permanently undisplayable — a user can filter on it, get
+results, and never see the column they filtered on. (That setting only governs the
+search-everything path; explicit `prop:value` searches still reach excluded properties, which is
+why the load-error nudges still work on `errorOnLoad`.)
 
-**Still, leave `show` and `content` alone in this plan.** `show` is harmless dead weight.
-`content` is a real if small bug, but fixing it is entangled with
-`plans/table-json-export.md` §4.4, whose key-collision reasoning depends on a YAML `content`
-never being a visible column. Change both together, deliberately, or neither.
+Remove `show` from `search.excludedProperties` too, for the same reason.
+
+**After this and the `internalId` move, `hidden_always` reads `['handle', 'internalId']`** — a
+file-system handle and a duplicate of `filepath`. Which is what the list was always meant to be:
+the things with no meaning outside the app's internal workings.
+
+**One knock-on, already handled.** `plans/table-json-export.md` §4.4 originally named the
+exported file body `content`, justified by this very exclusion, with a note that changing
+`hidden_always` would break the reasoning. That plan now uses `fileContent` instead, so the two
+are consistent — but check it still says so before implementing either.
 
 ### 2.3 The picker's candidate list already exists
 
@@ -264,7 +270,9 @@ once at init, not a mechanism.
   session-scoped, keyed by property name, and holds explicit show/hide decisions that override
   the defaults.
 - Rename `hidden_at_start` → `hidden_by_default` (§2.2) and update the `@property` block.
-- Move `internalId` from the defaults list to `hidden_always` (§2.2).
+- Move `internalId` from the defaults list to `hidden_always`, and delete the historic `show`
+  and `content` entries from it, leaving `['handle', 'internalId']` (§2.2).
+- Delete `show` from `appState.search.excludedProperties` (§2.2).
 - Note in the comment that `hidden_always` is a hard exclusion, not a default, and that the
   defaults list holds useful columns kept out of the way rather than internals — the two are
   easy to conflate.
@@ -377,8 +385,7 @@ Two things worth checking by hand:
 |---|---|
 | Reordering columns | A different axis again, and the one that most wants the ordered-array shape a layout stores. Belongs with layouts |
 | Persisting to a `.gypsum` file | Layouts own persistence; this contributes the Map they serialise (§1.1) |
-| Making `hidden_always` overridable | `handle` cannot be rendered meaningfully and breaks the export. A YAML `content:` key being hard-excluded is arguably wrong, but that is a separate question about that list's contents (§2.2) |
-| Removing the vestigial `show` entry | Nothing produces that property, so it is harmless dead weight. Removing it is unrelated tidying |
+| Making `hidden_always` overridable | After the §2.2 cleanup it holds only `handle`, which cannot be rendered meaningfully and breaks the export, and `internalId`, which duplicates `filepath` |
 | A hide affordance on the column header | The header's right edge already carries the sort chevron and the resize gutter (§3.4) |
 | Removing hidden columns from the sort dropdown | Sorting by an undisplayed column is useful, and this is already a recorded decision (§3.6) |
 | Renaming column headings | Layouts will carry a `label` per column; not this feature |

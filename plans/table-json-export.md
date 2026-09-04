@@ -226,11 +226,22 @@ per file and `parents` is taxonomy state, neither of which belongs in a per-row 
 ### 4.4 Content: key name, and how front matter is stripped
 
 - Included only when the user opts in; key omitted entirely otherwise, not set to null.
-- Key name `content`. **This does not collide with a user's YAML `content:` key**, even though
-  `RESERVED_KEYS` in `file-info.js:15` does not protect that name: `content` is in
-  `TABLE_VIEW_COLUMNS.hidden_always`, so a YAML-supplied `content` is never a visible column
-  and therefore never in the export. Worth stating in a comment, because the reasoning is
-  non-obvious and a future change to `hidden_always` would break it.
+- **Key name `fileContent`, not `content`.** `content` is the obvious name and is the wrong
+  choice, because a user's front matter can claim it. `RESERVED_KEYS` (`file-info.js:15`) does
+  not protect that name, so a YAML `content:` key spreads onto the file object — and once
+  `plans/table-column-visibility.md` removes `content` from `hidden_always` as the historic
+  leftover it is, such a key becomes a showable, exportable column. The body and the user's
+  property would then both want the key `content`, and a JS object resolves that by silently
+  overwriting one with the other.
+
+  `fileContent` sidesteps it with no branching: one name, no collision check, no conditional
+  fallback. It is also the more accurate name — this is the file's body text, distinct from any
+  property. A user could of course write `fileContent:` in their front matter, but that is a
+  namespace clash like any other and not worth defending against.
+
+  **Do not "simplify" this back to `content`.** An earlier draft of this plan justified
+  `content` on the grounds that `hidden_always` excluded it, and noted that a change to that
+  list would break the reasoning. That change is now planned.
 - Stripping front matter: call `findFrontMatterIndices`, then drop lines in the inclusive
   `start..end` range and keep everything else — **not** `slice(end + 1)`, which would silently
   delete real content in a file whose front matter does not start on line 0 (§2.4).
