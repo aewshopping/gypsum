@@ -1,0 +1,11 @@
+/* The single kill switch for animation, driven off the settings toggle. The `*` name selector
+   matches every view transition group in the app, root included, so a transition added later is
+   covered without a new rule here. !important is what lets it beat the per-transition durations
+   set elsewhere (modal-file-content.css, modal-backdrop.css, sidebar-recent.css) whatever the
+   import order. */
+html:has(#view-transitions-enabled:not(:checked))::view-transition-group(*),
+html:has(#view-transitions-enabled:not(:checked))::view-transition-old(*),
+html:has(#view-transitions-enabled:not(:checked))::view-transition-new(*) {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
