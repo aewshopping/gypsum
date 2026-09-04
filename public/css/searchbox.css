@@ -10,24 +10,24 @@
     margin-inline: 10px;
 }
 
-#searchbox{
+#searchbox {
     background-color: var(--colour-neutral-alt);
     --radius: 10px;
     --offset: 4px;
-    --offset-negative: calc( var(--offset) * -1 );
+    --offset-negative: calc(var(--offset) * -1);
     text-shadow:
         var(--colour-highlight) var(--offset-negative) var(--offset-negative) var(--radius),
         var(--colour-highlight) var(--offset-negative) var(--offset) var(--radius),
         var(--colour-highlight) var(--offset) var(--offset-negative) var(--radius),
         var(--colour-highlight) var(--offset) var(--offset) var(--radius);
     color: var(--colour-contr);
-	font:0.89375em var(--fontfam-app-input);
+    font: 0.89375em var(--fontfam-app-input);
     border: none;
-    border-radius:4px;
+    border-radius: 4px;
     height: var(--btn-size);
     width: 100%;
     padding-left: 6px;
-    padding-right: calc( var(--btn-size) * 1.2);
+    padding-right: calc(var(--btn-size) * 1.2);
 
     &::placeholder {
         color: color-mix(in srgb, var(--colour-contr) 60%, transparent);
@@ -42,28 +42,23 @@
     position: absolute;
     top: 3px;
     bottom: 3px;
-    right: 6px;
-    
-    /* 3. Layout fixes to center the '#' character perfectly */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding-block: 0px;
-    padding-inline: 5px;
-    /* Adjust if the character hits the left/right edges */
-    
-    /* 4. Dynamic font scaling based on the button's calculated height */
-    font-size:65cqh;
-    line-height: 1;
-    
-    /* 5. Your remaining styling properties */
+    right: 5px;
+    padding: 1px;
     cursor: pointer;
     color: var(--colour-contr);
     border-radius: 4px;
     background-color: var(--colour-neutral);
-    border: 1.5px solid transparent;
+    border: none;
+
+    >svg {
+        opacity: 0.6;
+        width: 100%;
+        height: 100%;
+    }
 
     &:hover {
-        border:1.5px solid var(--colour-compl-contr);
-    }    
+        >svg {
+            opacity: 1;
+        }
+    }
 }
