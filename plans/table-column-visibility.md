@@ -80,6 +80,36 @@ Rename `hidden_at_start` to `hidden_by_default` as part of this work. Its curren
 a lifecycle that is about to become real, and will read as a bug once it can be changed after
 "start".
 
+**The two lists are easily mistaken for each other.** They look alike — two arrays of property
+names — and it is natural to assume both hold app internals with no meaning to a user. They do
+not. Auditing the members:
+
+| Property | List | User-meaningful? |
+|---|---|---|
+| `handle` | always | **No.** A `FileSystemFileHandle`. Correctly excluded |
+| `show` | always | Nothing in the codebase produces this property. Vestigial |
+| `content` | always | Nothing produces it either — so if present it came from the user's front matter, i.e. it is *always* user data. Arguably mis-filed |
+| `internalId` | default | Set to `filepath` verbatim (`directory-handler.js:86`). A duplicate under an internal name |
+| `color` | default | Yes — the value the user wrote as `#color/coral` |
+| `filepath` | default | Yes. `column_width: 300` |
+| `contentPeek` | default | Yes. `label: 'preview'`, `column_width: 400` |
+| `internalLink` | default | Yes. `label: 'links'`. Also what `table-formula-columns.md` navigates |
+| `errorOnLoad` | default | Yes. `label: 'load error'`, and the property the load-error nudges filter on |
+
+Three of the six defaults carry a display `label` in `FILE_PROPERTIES`, and a label exists only
+for something meant to be read by a person. So `hidden_by_default` is overwhelmingly *useful
+columns kept out of the way*, not internals — which is what makes a two-direction picker (§3.1)
+the right shape rather than a hide-only one.
+
+**One change follows from this audit: move `internalId` to `hidden_always`.** It holds exactly
+the same string as `filepath`, so offering both would put two checkboxes in the picker producing
+identical columns, one of them named after an app-internal concept. It is the only member of the
+defaults list with a real claim to being internal, and it belongs on the other side.
+
+Leave `show` and `content` alone here. `show` is harmless dead weight, and whether `content`
+should be user-selectable is a question about that list's contents rather than about this
+feature — `plans/table-json-export.md` §4.4 depends on its current exclusion.
+
 ### 2.3 The picker's candidate list already exists
 
 `appState.myFilesProperties` holds every property key any loaded file carries — core properties
@@ -214,7 +244,10 @@ once at init, not a mechanism.
   session-scoped, keyed by property name, and holds explicit show/hide decisions that override
   the defaults.
 - Rename `hidden_at_start` → `hidden_by_default` (§2.2) and update the `@property` block.
-- Note in the comment that `hidden_always` is a hard exclusion, not a default.
+- Move `internalId` from the defaults list to `hidden_always` (§2.2).
+- Note in the comment that `hidden_always` is a hard exclusion, not a default, and that the
+  defaults list holds useful columns kept out of the way rather than internals — the two are
+  easy to conflate.
 
 ### 4b. `public/js/ui/ui-functions-table/render-table-columns-helper.js`
 
@@ -324,7 +357,8 @@ Two things worth checking by hand:
 |---|---|
 | Reordering columns | A different axis again, and the one that most wants the ordered-array shape a layout stores. Belongs with layouts |
 | Persisting to a `.gypsum` file | Layouts own persistence; this contributes the Map they serialise (§1.1) |
-| Making `hidden_always` overridable | `handle` cannot be rendered meaningfully and breaks the export. A YAML `content:` key being hard-excluded is arguably wrong, but that is a separate question about that list's contents |
+| Making `hidden_always` overridable | `handle` cannot be rendered meaningfully and breaks the export. A YAML `content:` key being hard-excluded is arguably wrong, but that is a separate question about that list's contents (§2.2) |
+| Removing the vestigial `show` entry | Nothing produces that property, so it is harmless dead weight. Removing it is unrelated tidying |
 | A hide affordance on the column header | The header's right edge already carries the sort chevron and the resize gutter (§3.4) |
 | Removing hidden columns from the sort dropdown | Sorting by an undisplayed column is useful, and this is already a recorded decision (§3.6) |
 | Renaming column headings | Layouts will carry a `label` per column; not this feature |
