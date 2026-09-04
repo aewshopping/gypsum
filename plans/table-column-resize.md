@@ -165,8 +165,9 @@ a folder open.
 `event-listeners-add.js:66-83` registers document-level delegates for `click`, `change`,
 `keydown`, `keyup`, `input`, plus a non-delegated `mouseover` for table column hover and an
 inline `mousedown` listener. `clickDelegate` (line 182) resolves
-`evt.target.closest('[data-action]')` against a handler map. There is no `pointerdown`
-delegate yet.
+`evt.target.closest('[data-action]')` against a handler map. The `mousedown` listener is an
+ad-hoc anonymous function with two hardcoded checks, not a delegate map — so there is no
+`mousedown` handler map to register against yet.
 
 ---
 
@@ -202,8 +203,8 @@ right padding, which is visible but minor.
 
 ### 4.3 One handle per header cell, not a shared floating handle
 
-- ~10 extra divs, revealed by plain CSS `:hover`. No JS runs until `pointerdown`. A single
-  floating handle would need a permanent `pointermove` listener plus manual hit-testing.
+- ~10 extra divs, revealed by plain CSS `:hover`. No JS runs until `mousedown`. A single
+  floating handle would need a permanent `mousemove` listener plus manual hit-testing.
 - `.note-table-cell-header` has `overflow: hidden` (`note-table.css:79-83`), so a handle that
   straddles the column boundary would be clipped. Keeping it inside the cell is forced by the
   existing CSS.
@@ -211,14 +212,31 @@ right padding, which is visible but minor.
 - The last column keeps its handle. Widening it grows the total table width; horizontal
   scroll already exists.
 
-### 4.4 Pointer Events with `setPointerCapture`
+### 4.4 Mouse events, deliberately — not Pointer Events
 
-`pointerdown` on the handle captures the pointer id, so `pointermove`/`pointerup` continue to
-fire on the handle even when the cursor leaves it or exits the window. No document-level
-drag listeners, no cleanup bugs, and mouse/pen take one code path.
+Use `mousedown` / `mousemove` / `mouseup`. **This is a decision, not an oversight. Do not
+"upgrade" it to Pointer Events as part of implementing this plan.**
 
-This still fits the delegation convention: `pointerdown` is delegated via `data-action`, and
-the handler owns the capture plus the move/up listeners for the drag's lifetime only.
+Pointer Events were considered and rejected. The argument for them was `setPointerCapture`,
+which retargets subsequent events to the captured element and so avoids the one real failure
+mode of a mouse-event drag: if the user releases the button *outside the browser window*, the
+document never receives `mouseup`, the listeners stay attached, and the column keeps tracking
+the cursor when it re-enters. That is a genuine advantage, but a small one — the bug is
+annoying rather than harmful, and it has a two-line mitigation (see 1f).
+
+The argument against is consistency, and it wins. The whole codebase uses mouse events
+(`event-listeners-add.js:74-82`). Introducing a single `pointerdown` listener for one feature
+creates an island: a reader of that file would find two input-event families with no
+principled boundary between them, and every future handler would face an arbitrary choice.
+The device-portability case that usually justifies Pointer Events does not apply here either,
+because the handle is hidden on coarse pointers (§4.3, 1i) — so touch support, the main prize,
+is explicitly out of scope.
+
+If Pointer Events are ever wanted, that is a **codebase-wide migration done in one dedicated
+change**, not something smuggled in with a table feature.
+
+The delegation convention holds either way: `mousedown` is delegated via `data-action`, and
+the handler owns the move/up listeners for the drag's lifetime only.
 
 ### 4.5 One path to the DOM for widths
 
@@ -323,26 +341,41 @@ JSDoc both, per house style.
 Named to match the existing `table-col-hover.js`, which is the precedent for an event handler
 living in `ui-functions-table/` rather than `ui-functions-click/`.
 
-Exports `handleColumnResizeStart(evt, actionElement)`:
+Exports `handleColumnResizeStart(evt, actionElement)`. Mouse events, per §4.4.
 
-1. Read the column name from `actionElement.dataset.prop`.
-2. Record the drag origin: `evt.clientX` and the column's current resolved width
-   (`columnWidthPx`).
-3. `actionElement.setPointerCapture(evt.pointerId)`.
+1. `if (evt.button !== 0) return;` — primary button only, so a right-click on the handle does
+   not start a drag that no `mouseup` will ever end.
+2. Read the column name from `actionElement.dataset.prop`.
+3. Record the drag origin: `evt.clientX` and the column's current resolved width
+   (`columnWidthPx`). Keep both plus the prop name in module-level drag state.
 4. `evt.preventDefault()` so the drag does not start a text selection.
-5. Attach `pointermove` and `pointerup` listeners to `actionElement`; remove both on `pointerup`.
-6. On move: `Math.max(MIN_COLUMN_WIDTH, startWidth + (evt.clientX - startX))` →
+5. Attach `mousemove` and `mouseup` listeners to **`window`**, not `document` — `window`
+   catches a release over browser chrome that `document` can miss.
+6. On move: first `if (evt.buttons === 0) { endDrag(); return; }` — this is the mitigation for
+   a release that happened outside the window (§4.4); without it the column keeps tracking the
+   cursor when it re-enters. Then
+   `Math.max(MIN_COLUMN_WIDTH, startWidth + (evt.clientX - startX))` →
    `widthOverrides.set(prop, newWidth)` → `applyColumnWidths(TABLE_VIEW_COLUMNS.current_props)`.
-7. On up: release capture, remove listeners, call the scrollbar sync (1h).
+7. `endDrag()`: remove both window listeners, clear the drag state, call the scrollbar sync
+   (1h). Called from `mouseup` and from the `buttons === 0` guard.
+
+Removing the listeners in exactly one place (`endDrag`) is what keeps this safe. Every exit
+path must go through it.
 
 Optional, only if it falls out cleanly: `Escape` during a drag restores the recorded start
-width and ends the drag.
+width and calls `endDrag()`.
 
 ### 1g. `public/js/ui/event-listeners-add.js`
 
-- Add a `pointerDownActionHandlers` map and a `pointerDownDelegate` mirroring `clickDelegate`
+- Add a `mouseDownActionHandlers` map and a `mouseDownDelegate` mirroring `clickDelegate`
   (line 182), registered in `addActionHandlers()`.
 - Register `'column-resize': handleColumnResizeStart`.
+
+**Leave the existing anonymous `mousedown` listener (lines 75-82) alone.** It hardcodes two
+`closest()` checks for the editor undo/redo and colour-pick buttons. Folding those into the
+new handler map would be a tidy-up worth doing one day, but it means touching editor code as a
+side effect of a table feature — out of scope here. The cost is two `mousedown` listeners on
+`document` for now; both are small and neither interferes with the other.
 
 Note the handle carries its own `data-action`, so `closest('[data-action]')` resolves to the
 handle and never to the sort chevron. A stray *click* on the handle finds `column-resize` in
@@ -371,7 +404,7 @@ CSS module for it.
 - `.note-table-cell-header` — add `position: relative` and enough `padding-right` to clear
   the handle (§4.2).
 - `.col-resize-handle` — absolutely positioned, `right: 0; top: 0; bottom: 0`, ~10px wide,
-  `cursor: col-resize`, `touch-action: none`, invisible until the header cell is hovered
+  `cursor: col-resize`, invisible until the header cell is hovered
   (follow the existing `.sort-by-prop-trigger` visibility pattern at lines 88-97).
 - `@media (pointer: coarse)` — hide the handle. A 10px target is unusable on touch, and
   mobile table overflow is already its own considered surface (`tests/28-mobile-overflow.spec.js`).
@@ -408,7 +441,7 @@ Bump `manifest.json` minor version. Commit.
 ```
 public/js/ui/ui-functions-table/
 ├── apply-column-widths.js      NEW     width resolution + the --grid-columns write
-├── table-col-resize.js         NEW     pointerdown → capture → drag → drop
+├── table-col-resize.js         NEW     mousedown → window move/up → drop
 ├── render-table-header.js      MOD     loses width code; gains data-prop + handle
 ├── table-scrollbar-sync.js     MOD     listener-registration fix (§3.5); export re-sync
 ├── table-col-hover.js                  untouched unless the optional :has tidy-up (1i)
@@ -416,7 +449,7 @@ public/js/ui/ui-functions-table/
 
 public/js/ui/
 ├── render-file-list-table.js   MOD     calls applyColumnWidths; drops the dead reset
-└── event-listeners-add.js      MOD     pointerdown delegate + one registration
+└── event-listeners-add.js      MOD     mousedown delegate map + one registration
 
 public/js/ui/ui-functions-render/reorder-fileprops.js   DELETE (dead, step 0a)
 public/js/services/store.js              MOD  widthOverrides Map
@@ -436,11 +469,12 @@ handle is part of the table component, not a new one.
 
 **Blast radius.** Only two changes reach beyond table view:
 
-1. **The `pointerdown` delegate** (1g) is a new document-level listener firing on every
-   pointer-down in the app. Behaviourally contained — the handler map has one entry, so
-   everything else falls through — but note `pointerdown` fires *before* the existing
-   `mousedown` listener at `event-listeners-add.js:75`. No conflict today: that listener only
-   acts on editor undo/redo and colour-pick.
+1. **The `mousedown` delegate** (1g) is a new document-level listener firing on every
+   mouse-down in the app, sitting alongside the existing anonymous `mousedown` listener at
+   `event-listeners-add.js:75` rather than replacing it. Behaviourally contained — the handler
+   map has one entry so everything else falls through, and the existing listener only acts on
+   editor undo/redo and colour-pick. During a drag there are also two transient `window`
+   listeners; `endDrag` is the single place that removes them (1f).
 2. **The scrollbar listener fix** (§3.5) changes behaviour that has never worked, and done
    carelessly makes things worse. See that section.
 
@@ -465,10 +499,10 @@ not reliable enough on their own. Take them for:
 - the handle's hover appearance, and that it does not collide with the sort chevron
 - a column mid-drag
 - **the column-hover highlight during a drag.** `table-col-hover.js` repaints on `mouseover`
-  of header cells. Pointer capture should suppress stray mouseovers while dragging, but that
-  is browser behaviour detail that should be observed rather than assumed. If the highlight
-  does jump to the wrong column mid-drag, suppress the hover handler for the duration of the
-  drag.
+  of header cells. With mouse events there is no pointer capture to absorb them, so a drag
+  travelling across neighbouring headers may repaint the highlight to the wrong column. Check
+  this specifically. If it happens, have the hover handler bail out while a drag is in
+  progress.
 
 ---
 
@@ -484,6 +518,7 @@ Do not add these while implementing this plan.
 | Column reordering, show/hide UI | Saved layouts, later |
 | Double-click to auto-fit | Needs content measuring via a temporary `max-content` track. A second feature |
 | Touch resizing | See the `pointer: coarse` rule above |
+| Using Pointer Events / `setPointerCapture` | Considered and rejected — see §4.4. One `pointerdown` listener in a mouse-event codebase is an island with no principled boundary. If wanted, migrate the whole codebase in one dedicated change |
 | Making layouts affect the sort dropdown | `sort-select-load.js:32` filters only `hidden_always`, so a hidden column can already be sorted by. That is intended — leave it |
 
 ---
