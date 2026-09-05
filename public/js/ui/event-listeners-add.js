@@ -57,6 +57,7 @@ import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-func
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
+import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-click/cell-expand.js';
 import { initTooltip } from './tooltip.js';
 
 /**
@@ -97,6 +98,7 @@ const clickActionHandlers = {
     'warning-proceed': handleWarningProceed,
     'warning-cancel': handleWarningCancel,
     'sort-object': handleSortObject,
+    'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,
     'filter-togglestate': handleFilterToggleState,
@@ -181,6 +183,7 @@ const inputActionHandlers = {
  */
 function clickDelegate(evt) {
     handleAutocompleteClickOutside(evt);
+    handleCellExpandClickOutside(evt);
     // Finds the closest element (starting from the target) with the data-action attribute
     const actionElement = evt.target.closest('[data-action]');
 

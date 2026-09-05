@@ -19,12 +19,14 @@
    anything inside .list-table would stick to the table instead of the page.
 
    It comes to rest below the app's own sticky search row, whose measured height is
-   published as --stick-top-height by sticky-header-offset.js. z-index 0 keeps it above
-   the (unpositioned) rows while still passing under .stick-top, which sits at 1. */
+   published as --stick-top-height by sticky-header-offset.js. */
 .table-chrome {
     position: sticky;
     top: var(--stick-top-height, 0px);
-    z-index: 0;
+    /* Above an expanded cell, which sits at 3. .table-wrapper is a stacking context
+       (container-type implies layout containment), so this stays scoped to the table and
+       still cannot rise above the app's own search row. */
+    z-index: 4;
     background-color: var(--colour-neutral);
 }
 
@@ -40,10 +42,13 @@
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
     padding: 0px;
-    overflow-x: hidden;
+    /* clip sideways as before, but let an expanded cell grow down past the row. clip is
+       the one value that pairs with visible: hidden on either axis would force the other
+       to auto and make the row a scroll container. */
+    overflow: clip visible;
     height: 32px; /* deleting height line means rows expand vertically to fit content */
     cursor: default;
-    transition: height 0.35s ease;
+    position: relative; /* the containing block an expanded cell is placed against */
 
     &:hover {
         background-color: if(
@@ -57,9 +62,6 @@
         }
     }
 
-    &:focus-within {
-        height:auto;
-    }
 }
 
 /* Also used in list view */
@@ -80,6 +82,37 @@
     border-top: var(--table-line);
     border-right: var(--table-line);
     padding: 6px;
+}
+
+/* Clicking a cell selects it; clicking it again expands it. outline rather than border,
+   so marking a cell never nudges the layout. */
+.note-table-cell.is-selected {
+    outline: 2px solid var(--colour-contr);
+    outline-offset: -2px;
+}
+
+/* Out of flow, so the row keeps its height and the other columns keep their widths.
+   left/right pin it to its own column: it only grows downwards. */
+.note-table-cell.is-expanded {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: auto;
+    min-height: 100%;
+    z-index: 3;
+    overflow: visible;
+    background-color: var(--colour-neutral-alt);
+    outline: 2px solid var(--colour-contr);
+    outline-offset: -2px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+/* Anchored to its bottom edge instead, for cells with no room to grow below. */
+.note-table-cell.is-expanded.flip-up {
+    top: auto;
+    bottom: 0;
 }
 
 /* Clips the header, which is wider than the viewport, to the visible width. */
