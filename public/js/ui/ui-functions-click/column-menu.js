@@ -12,12 +12,18 @@
  * directly left the menu one scroll-offset away from its own column. getBoundingClientRect
  * does report the transformed box, so parking a fixed proxy there gets the real position.
  * It also sidesteps tooltip.js, which writes anchor-name inline on [data-tip] elements.
+ *
+ * The cost of the proxy is that it does not follow the cell on its own the way a real anchor
+ * would, so the menu re-parks it while scrolling. The listener is on the document in the
+ * capture phase because scroll events do not bubble: that one listener covers the page, the
+ * table's own horizontal scroller, and any other scroller in between.
  */
 
 import { applySortAndRender } from './sort-object.js';
 
-let _menu = null;   // the elements from index.html, looked up on first use
+let _menu = null;      // the elements from index.html, looked up on first use
 let _proxy = null;
+let _anchorCell = null;   // the header cell the proxy is tracking while the menu is open
 
 /**
  * @returns {HTMLElement|null}
@@ -25,6 +31,15 @@ let _proxy = null;
 function menuElement() {
     if (!_menu) _menu = document.getElementById('column-menu');
     return _menu;
+}
+
+/**
+ * Re-parks the proxy over the cell being tracked. Bound as the scroll listener, so it also
+ * runs on every scroll while the menu is open.
+ * @returns {void}
+ */
+function trackAnchorCell() {
+    if (_anchorCell) moveAnchorTo(_anchorCell);
 }
 
 /**
@@ -53,6 +68,9 @@ export function closeColumnMenu() {
 
     if (menu.matches(':popover-open')) menu.hidePopover();
     menu.removeAttribute('data-property');
+
+    document.removeEventListener('scroll', trackAnchorCell, true);
+    _anchorCell = null;
 }
 
 /**
@@ -77,7 +95,9 @@ export function handleColumnMenuOpen(evt, trigger) {
 
     // Over the cell rather than the trigger, so the menu lines up with the column's edge
     // rather than the glyph's. Parked before showing, so the first paint is in place.
+    _anchorCell = headerCell;
     moveAnchorTo(headerCell);
+    document.addEventListener('scroll', trackAnchorCell, true);
     menu.showPopover();
 }
 
