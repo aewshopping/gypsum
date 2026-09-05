@@ -150,6 +150,13 @@ test('on a narrow screen the menu becomes a sheet across the bottom', async ({ p
 
   await openMenuFor(page, page.locator('.note-table-cell-header').first());
 
+  // the sheet slides up from below, so wait for it to come to rest before measuring
+  const gapBelow = () => page.evaluate(() => {
+    const r = document.getElementById('column-menu').getBoundingClientRect();
+    return Math.round(document.documentElement.clientHeight - r.bottom);
+  });
+  await expect.poll(gapBelow).toBe(0);
+
   const box = await page.evaluate(() => {
     const r = document.getElementById('column-menu').getBoundingClientRect();
     const doc = document.documentElement;

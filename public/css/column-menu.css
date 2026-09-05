@@ -131,4 +131,43 @@
     .column-menu-item {
         padding: 12px 14px;
     }
+
+    /* Slides up from the bottom edge, and back down on the way out. display and overlay have
+       to be transitioned too, with allow-discrete: without them the popover leaves the top
+       layer the instant it closes and the closing slide is never seen. Same construction as
+       the colour picker sheet in modal-color-picker.css. */
+    #column-menu {
+        transition: transform 0.2s ease-out,
+                    display 0.2s ease-out allow-discrete,
+                    overlay 0.2s ease-out allow-discrete;
+        transform: translateY(0);
+    }
+
+    /* the state it opens from... */
+    @starting-style {
+        #column-menu:popover-open {
+            transform: translateY(100%);
+        }
+    }
+
+    /* ...and the one it closes back to */
+    #column-menu:not(:popover-open) {
+        transform: translateY(100%);
+    }
+
+    #column-menu::backdrop {
+        transition: background-color 0.2s ease-out,
+                    display 0.2s allow-discrete,
+                    overlay 0.2s allow-discrete;
+    }
+
+    @starting-style {
+        #column-menu::backdrop {
+            background-color: rgb(0 0 0 / 0);
+        }
+    }
+
+    #column-menu:not(:popover-open)::backdrop {
+        background-color: rgb(0 0 0 / 0);
+    }
 }
