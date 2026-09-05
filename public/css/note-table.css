@@ -105,16 +105,20 @@
     min-height: 100%;
     z-index: 3;
     overflow: visible;
-    background-color: var(--colour-neutral-alt);
+    background-color: var(--colour-neutral);
     outline: 2px solid var(--colour-contr);
     outline-offset: -2px;
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
 
-/* Anchored to its bottom edge instead, for cells with no room to grow below. */
-.note-table-cell.is-expanded.flip-up {
-    top: auto;
-    bottom: 0;
+/* A cell in the last rows would otherwise grow past the table's bottom edge. Because
+   overflow-x: auto makes .list-table a scroll container on both axes, that shows up as a
+   vertical scrollbar rather than as content spilling onto the page. Reserving room below
+   lets those cells open downwards like any other. The reserve appears only while such a
+   cell is open, and only for the rows that need it — expanding higher up the table has
+   whole rows beneath it to cover already. */
+.list-table:has(.note-table:nth-last-child(-n + 6) .note-table-cell.is-expanded) {
+    padding-bottom: 10em;
 }
 
 /* Clips the header, which is wider than the viewport, to the visible width. */

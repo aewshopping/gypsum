@@ -14,7 +14,6 @@
 
 const SELECTED = 'is-selected';
 const EXPANDED = 'is-expanded';
-const FLIPPED = 'flip-up';
 
 /**
  * Returns a cell to its collapsed, unselected state.
@@ -22,7 +21,7 @@ const FLIPPED = 'flip-up';
  * @returns {void}
  */
 function collapse(cell) {
-    cell.classList.remove(SELECTED, EXPANDED, FLIPPED);
+    cell.classList.remove(SELECTED, EXPANDED);
     cell.removeAttribute('contenteditable');
     for (const sibling of cell.parentElement.children) {
         sibling.style.gridColumn = '';
@@ -54,13 +53,6 @@ function expand(cell) {
     });
 
     cell.classList.add(EXPANDED);
-
-    // Growing downward out of the last rows would extend the table's scrollable area
-    // and raise a vertical scrollbar, so anchor to the cell's bottom edge instead.
-    const table = cell.closest('.list-table');
-    if (cell.getBoundingClientRect().bottom > table.getBoundingClientRect().bottom) {
-        cell.classList.add(FLIPPED);
-    }
 
     // plaintext-only keeps pasted markup out of a cell that ultimately stands for text
     // in a file. Focusing puts the caret in without a further click.

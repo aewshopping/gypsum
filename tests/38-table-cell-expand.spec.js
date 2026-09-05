@@ -76,17 +76,31 @@ test('an expanded cell is dismissed by clicking away and by Escape', async ({ pa
   await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(0);
 });
 
-test('a cell with no room below flips upward, and the header stays above it', async ({ page }) => {
+test('a cell in the last row still opens downward, and the header stays above it', async ({ page }) => {
   await openTable(page);
 
-  // the last row would otherwise push the expanded cell past the table's bottom edge,
-  // extending its scrollable area and raising a vertical scrollbar
-  const scrollBefore = await page.evaluate(() => document.querySelector('.list-table').scrollHeight);
+  // Growing past the table's bottom edge would extend its scrollable area and raise a
+  // vertical scrollbar, so room is reserved below instead — only while such a cell is
+  // open, and only for rows near the bottom.
+  const table = page.locator('.list-table');
+  const reserve = () => table.evaluate(el => getComputedStyle(el).paddingBottom);
+  const hasVScrollbar = () => table.evaluate(el => el.scrollHeight > el.clientHeight + 1);
+
+  await expect.poll(reserve).toBe('0px');   // computed styles are empty until the view transition settles
+
   const lastCell = page.locator('.note-table .note-table-cell[data-prop="title"]').last();
   await lastCell.click(); await lastCell.click();
 
-  await expect(lastCell).toHaveClass(/flip-up/);
-  expect(await page.evaluate(() => document.querySelector('.list-table').scrollHeight)).toBe(scrollBefore);
+  // it grows down from its own row, not upward over the rows above
+  const grewDownward = await lastCell.evaluate(el =>
+    Math.round(el.getBoundingClientRect().top - el.parentElement.getBoundingClientRect().top) === 0
+    && el.getBoundingClientRect().height > el.parentElement.getBoundingClientRect().height);
+  expect(grewDownward).toBe(true);
+  expect(await hasVScrollbar()).toBe(false);
+  expect(await reserve()).not.toBe('0px');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(reserve).toBe('0px');   // and the reserve goes away again
 
   // and an expanded cell must pass under the sticky header, not over it
   const midCell = page.locator('.note-table .note-table-cell[data-prop="title"]').nth(8);
