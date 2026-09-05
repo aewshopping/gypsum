@@ -22,6 +22,12 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         ...FILE_PROPERTIES.get(propName)
     }));
 
+    // Every render replaces the rows, and a full one replaces the scroll container
+    // itself, so the horizontal scroll position has to be carried across. Reading it here
+    // covers every caller — filtering, pagination, sorting — rather than each of them
+    // having to remember. There is no scroller yet on the first render of the view.
+    const scrollLeft = document.querySelector('.list-table')?.scrollLeft ?? 0;
+
     if (fullRender) {
         // Where we want to generate full table including headers and scroll bar
 
@@ -54,15 +60,14 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         initialScrollSync();
 
     } else {
-        // for sort or filter operations, where replacing only the rows keeps the
-        // horizontal scroll position (rewriting innerHTML resets scrollLeft to 0)
+        // for sort operations, where only the rows need replacing
 
-        const scroller = document.querySelector(".list-table");
-        const scrollLeft = scroller.scrollLeft;
-
-        scroller.innerHTML = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
-
-        scroller.scrollLeft = scrollLeft;
-
+        document.querySelector(".list-table").innerHTML =
+            renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
     }
+
+    // Restored after initialScrollSync, whose read of scrollWidth settles layout first —
+    // assigning to a scroller the browser has not laid out yet would clamp to 0. The
+    // header follows on its own, being driven by the scroll position rather than by JS.
+    document.querySelector(".list-table").scrollLeft = scrollLeft;
 }
