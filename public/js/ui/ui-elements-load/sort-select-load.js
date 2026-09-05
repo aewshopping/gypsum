@@ -12,9 +12,27 @@ export function initSortSelect() {
     defaultOption.value = defaultSortProp;
     defaultOption.textContent = FILE_PROPERTIES.get(defaultSortProp)?.label ?? defaultSortProp;
     sortSelectElem.appendChild(defaultOption);
-    sortSelectElem.value = defaultSortProp;
 
+    syncSortControls();
+}
+
+/**
+ * Pushes the current sort state into the two sort controls. Called from every path that
+ * changes the sort, so the controls cannot drift out of step with appState.sortState —
+ * which is what happened when only the loaders wrote them.
+ * @returns {void}
+ */
+export function syncSortControls() {
+    const sortSelectElem = document.querySelector('[data-action="sort-select"]');
     const directionCheckbox = document.querySelector('[data-action="sort-direction-toggle"]');
+    if (!sortSelectElem || !directionCheckbox) return;
+
+    // Assigning a value no option carries silently blanks the select, leaving a dead
+    // control; a stale-but-real selection is the better failure.
+    if ([...sortSelectElem.options].some(option => option.value === appState.sortState.property)) {
+        sortSelectElem.value = appState.sortState.property;
+    }
+
     directionCheckbox.checked = appState.sortState.direction === 'asc';
 }
 
@@ -39,8 +57,5 @@ export function populateSortSelect() {
         sortSelectElem.appendChild(option);
     }
 
-    sortSelectElem.value = appState.sortState.property;
-
-    const directionCheckbox = document.querySelector('[data-action="sort-direction-toggle"]');
-    directionCheckbox.checked = appState.sortState.direction === 'asc';
+    syncSortControls();
 }

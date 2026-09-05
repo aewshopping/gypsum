@@ -1,0 +1,71 @@
+/* The column options menu, opened from a table header cell. Positioned with CSS anchor
+   positioning against whichever header cell was clicked — column-menu.js writes the
+   matching anchor-name onto that cell while the menu is open. Mirrors #tooltip. */
+
+#column-menu {
+    position: fixed;
+    position-anchor: --column-menu-anchor;
+    top: anchor(bottom);
+    left: anchor(left);
+    margin-top: 2px;
+    position-try-fallbacks: --column-menu-flip-up, --column-menu-flip-left, --column-menu-flip-up-left;
+
+    /* Above .table-chrome, which sits at 4 inside .table-wrapper's stacking context. */
+    z-index: 100;
+
+    flex-direction: column;
+    min-width: 150px;
+    padding: 4px;
+    background-color: var(--colour-neutral-alt);
+    border: 1px solid var(--colour-contr);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+
+    display: none;
+}
+
+#column-menu.visible {
+    display: flex;
+}
+
+.column-menu-item {
+    background: none;
+    border: none;
+    border-radius: 3px;
+    padding: 7px 10px;
+    text-align: left;
+    font: inherit;
+    color: var(--colour-contr);
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        background-color: var(--colour-neutral);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+}
+
+@position-try --column-menu-flip-up {
+    top: auto;
+    bottom: anchor(top);
+    margin-top: 0;
+    margin-bottom: 2px;
+}
+
+@position-try --column-menu-flip-left {
+    left: auto;
+    right: anchor(right);
+}
+
+@position-try --column-menu-flip-up-left {
+    top: auto;
+    bottom: anchor(top);
+    left: auto;
+    right: anchor(right);
+    margin-top: 0;
+    margin-bottom: 2px;
+}

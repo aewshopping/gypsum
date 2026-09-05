@@ -72,13 +72,6 @@ export const appState = {
 }
 
 /**
- * A map to store the current sort direction for each property.
- * @type {Map<string, string>}
- */
-export const propertySortMap = new Map();
-
-
-/**
  * Defines metadata for known - or potential - file object properties.
  * This is used to assign values to properties later (ie for sorting or rendering).
  * Should probably change this to an object so it is easier to load in new values later

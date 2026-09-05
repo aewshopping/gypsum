@@ -85,7 +85,7 @@ function postLoad() {
     appState.isLoading = false;
     if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     const sortProp = appState.sortState.property;
-    sortAppStateFiles(sortProp, FILE_PROPERTIES.get(sortProp).type, appState.sortState.direction);
+    sortAppStateFiles(sortProp, FILE_PROPERTIES.get(sortProp)?.type ?? 'string', appState.sortState.direction);
     populateSortSelect();
     renderFiles();
     addActionHandlers();

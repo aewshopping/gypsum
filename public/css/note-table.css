@@ -168,14 +168,14 @@
     &:hover {
         background-color: var(--colour-neutral-alt);
 
-        .sort-by-prop-trigger {
+        .column-menu-trigger {
             visibility: visible;
             cursor: pointer;
         }
     }
 }
 
-.sort-by-prop-trigger {
+.column-menu-trigger {
     padding:6px;
     visibility: hidden;
 }

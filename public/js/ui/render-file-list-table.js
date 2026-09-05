@@ -3,6 +3,7 @@ import { renderTableRows } from './ui-functions-table/render-table-rows.js';
 import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
 import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
+import { closeColumnMenu } from './ui-functions-click/column-menu.js';
 
 /**
  * Orchestrates the rendering of the table view.
@@ -30,6 +31,10 @@ export function renderFileList_table(renderEverything, fullRender = true) {
 
     if (fullRender) {
         // Where we want to generate full table including headers and scroll bar
+
+        // The header cell the menu anchors to is about to be replaced, which would leave
+        // an open menu attached to nothing.
+        closeColumnMenu();
 
         // Generate the dynamic header
         const headerHtml = renderTableHeader(TABLE_VIEW_COLUMNS.current_props);

@@ -46,7 +46,9 @@ test('the table keeps its horizontal scroll position when it re-renders', async 
     await action();
     await settled();
 
-    expect(await scrollLeft(), `${label} lost the scroll position`).toBe(before);
+    // Poll rather than read once: typing into the search box fires a render per keystroke,
+    // so a single read can land mid-flight between one render and the next.
+    await expect.poll(scrollLeft, { message: `${label} lost the scroll position` }).toBe(before);
 
     // The header and the top scrollbar have to come along with it. The scrollbar is
     // driven by a scroll event, which lands after the render itself, so poll for it.
@@ -80,8 +82,10 @@ test('the table keeps its horizontal scroll position when it re-renders', async 
     await page.locator('.note-table-cell[data-prop="tags"] [data-action="tag-filter"]').first().evaluate(el => el.click());
   });
 
-  // sorting goes through the partial path, which replaces only the rows
+  // sorting goes through the partial path, which replaces only the rows. Two clicks now:
+  // the header trigger opens the column menu, and the menu item does the sorting.
   await survives('sort', async () => {
-    await page.locator('[data-action="sort-object"]').first().evaluate(el => el.click());
+    await page.locator('.column-menu-trigger').first().evaluate(el => el.click());
+    await page.locator('[data-action="column-sort-asc"]').evaluate(el => el.click());
   });
 });

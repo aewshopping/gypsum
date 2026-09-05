@@ -16,7 +16,7 @@ import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
-import { handleSortObject } from './ui-functions-click/sort-object.js';
+import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnMenuClickOutside } from './ui-functions-click/column-menu.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -97,7 +97,9 @@ const clickActionHandlers = {
     'close-file-content-outside': handeCloseModalOutside,
     'warning-proceed': handleWarningProceed,
     'warning-cancel': handleWarningCancel,
-    'sort-object': handleSortObject,
+    'column-menu-open': handleColumnMenuOpen,
+    'column-sort-asc': handleColumnSortAsc,
+    'column-sort-desc': handleColumnSortDesc,
     'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,
@@ -184,6 +186,7 @@ const inputActionHandlers = {
 function clickDelegate(evt) {
     handleAutocompleteClickOutside(evt);
     handleCellExpandClickOutside(evt);
+    handleColumnMenuClickOutside(evt);
     // Finds the closest element (starting from the target) with the data-action attribute
     const actionElement = evt.target.closest('[data-action]');
 

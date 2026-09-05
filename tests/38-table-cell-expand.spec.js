@@ -40,6 +40,9 @@ const boxOf = locator => locator.evaluate(el => {
 test('a cell expands on the second click, downward and within its own column', async ({ page }) => {
   await openTable(page);
   const cell = page.locator('.note-table .note-table-cell[data-prop="title"]').nth(2);
+
+  // geometry reads back as zero until the view transition settles
+  await expect.poll(async () => (await boxOf(cell)).width).toBeGreaterThan(0);
   const collapsed = await boxOf(cell);
 
   await cell.click();

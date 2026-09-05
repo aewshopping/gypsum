@@ -566,6 +566,18 @@
   <!-- Geometry-only anchor for the file modal's view transition — see offscreen-note-target.css -->
   <div id="offscreen-note-target" aria-hidden="true"></div>
 
+  <!-- Column options, opened from a table header cell. A single reused element positioned by
+       CSS anchor positioning, like #tooltip: the header strip clips its overflow and
+       .table-wrapper is a containing block for fixed children, so a menu inside the header
+       could not escape either. -->
+  <div id="column-menu">
+    <button type="button" class="column-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A-Z</button>
+    <button type="button" class="column-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z-A</button>
+    <button type="button" class="column-menu-item" disabled>resize column</button>
+    <button type="button" class="column-menu-item" disabled>auto-size column</button>
+    <button type="button" class="column-menu-item" disabled>hide column</button>
+  </div>
+
   <div id="tooltip" aria-hidden="true"></div>
 
 </body>
