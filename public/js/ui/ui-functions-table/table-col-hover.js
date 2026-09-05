@@ -4,18 +4,29 @@ let _activeProp = null;
 /**
  * Finds the column-hover CSS rule by its unique selector fragment.
  * The fragment .list-table .note-table-cell[data-prop= appears only in this rule.
- * Works in development (separate CSS files) and the bundled single-file build.
+ *
+ * Recurses through @import rules: in development style.css is nothing but imports, and
+ * an imported sheet's rules are not reachable from document.styleSheets. The bundled
+ * single-file build inlines everything into one sheet, where the rule is top level.
+ *
+ * @param {CSSStyleSheet} [sheet] - Sheet to search; defaults to every document sheet.
  * @returns {{ sheet: CSSStyleSheet, index: number }|null}
  */
-function findColHoverRule() {
-    for (const sheet of document.styleSheets) {
-        try {
-            for (let i = 0; i < sheet.cssRules.length; i++) {
-                if (sheet.cssRules[i].selectorText?.includes('.list-table .note-table-cell[data-prop=')) {
-                    return { sheet, index: i };
-                }
+function findColHoverRule(sheet) {
+    const sheets = sheet ? [sheet] : [...document.styleSheets];
+
+    for (const currentSheet of sheets) {
+        let rules;
+        try { rules = currentSheet.cssRules; } catch (_) { continue; } // cross-origin sheet — skip
+
+        for (let i = 0; i < rules.length; i++) {
+            if (rules[i].styleSheet) {
+                const found = findColHoverRule(rules[i].styleSheet); // an @import
+                if (found) return found;
+            } else if (rules[i].selectorText?.includes('.list-table .note-table-cell[data-prop=')) {
+                return { sheet: currentSheet, index: i };
             }
-        } catch (_) { /* cross-origin sheet — skip */ }
+        }
     }
     return null;
 }

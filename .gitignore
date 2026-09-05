@@ -6,3 +6,6 @@ node_modules/
 # Playwright
 playwright-report/
 test-results/
+
+# Bundled build output (CI artifact)
+dist/
