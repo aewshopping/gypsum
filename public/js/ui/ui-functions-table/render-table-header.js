@@ -1,9 +1,16 @@
 /**
- * Renders the header for the table view.
+ * Renders the header strip for the table view.
  * Dynamically creates column headers based on specified properties
  * and injects CSS for column widths.
+ *
+ * The header is NOT a child of .list-table. It sits above the scroll container so it
+ * can stick to the viewport: a sticky element resolves against its nearest scroll
+ * container, so a header inside .list-table would stick to the table rather than the
+ * page. It re-declares the same --grid-columns tracks instead of using subgrid, and is
+ * kept horizontally in step with the body by note-table.css (see --table-h-scroll).
+ *
  * @param {Array<object>} current_props - The properties to render as column headers.
- * @returns {string} The HTML string for the table header.
+ * @returns {string} The HTML string for the table header strip.
  */
 export function renderTableHeader(current_props) {
 
@@ -22,6 +29,6 @@ export function renderTableHeader(current_props) {
 
     document.body.style.setProperty('--grid-columns', columnWidths); // because css for table is grid-template-columns: var(--grid-columns)
 
-    // Return the complete header HTML
-    return `<div class="note-table-header">${headerCellsHtml}</div>`;
+    // The strip clips the header horizontally; the header itself is full track width.
+    return `<div class="note-table-header-strip"><div class="note-table-header">${headerCellsHtml}</div></div>`;
 }

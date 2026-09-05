@@ -3,7 +3,7 @@ let _activeProp = null;
 
 /**
  * Finds the column-hover CSS rule by its unique selector fragment.
- * The combination .note-table-header ~ .note-table appears only in this rule.
+ * The fragment .list-table .note-table-cell[data-prop= appears only in this rule.
  * Works in development (separate CSS files) and the bundled single-file build.
  * @returns {{ sheet: CSSStyleSheet, index: number }|null}
  */
@@ -11,7 +11,7 @@ function findColHoverRule() {
     for (const sheet of document.styleSheets) {
         try {
             for (let i = 0; i < sheet.cssRules.length; i++) {
-                if (sheet.cssRules[i].selectorText?.includes('.note-table-header ~ .note-table')) {
+                if (sheet.cssRules[i].selectorText?.includes('.list-table .note-table-cell[data-prop=')) {
                     return { sheet, index: i };
                 }
             }
@@ -34,7 +34,7 @@ function updateColHoverRule(prop) {
     sheet.deleteRule(index);
     sheet.insertRule(
         `.note-table-header .note-table-cell-header:has([data-property=${val}]),` +
-        `.note-table-header ~ .note-table .note-table-cell[data-prop=${val}]` +
+        `.list-table .note-table-cell[data-prop=${val}]` +
         `{ background-color: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))); }`,
         index
     );

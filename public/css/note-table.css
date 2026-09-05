@@ -8,6 +8,24 @@
 
 .table-wrapper {
     max-width: 100vw;
+    /* 100cqi then resolves to the scroll container's visible width, which the header
+       animation below needs. The scroller has no border or padding, so the wrapper's
+       content box and the scroller's client box are the same width. */
+    container-type: inline-size;
+}
+
+/* The top scrollbar and the header live here, OUTSIDE .list-table, so they can stick
+   to the viewport: position: sticky resolves against the nearest scroll container, so
+   anything inside .list-table would stick to the table instead of the page.
+
+   It comes to rest below the app's own sticky search row, whose measured height is
+   published as --stick-top-height by sticky-header-offset.js. z-index 0 keeps it above
+   the (unpositioned) rows while still passing under .stick-top, which sits at 1. */
+.table-chrome {
+    position: sticky;
+    top: var(--stick-top-height, 0px);
+    z-index: 0;
+    background-color: var(--colour-neutral);
 }
 
 .list-table {
@@ -64,16 +82,45 @@
     padding: 6px;
 }
 
-/* TODO - make table header sticky at top */
+/* Clips the header, which is wider than the viewport, to the visible width. */
+.note-table-header-strip {
+    overflow: hidden;
+}
+
+/* Not subgrid: the header is no longer a child of .list-table, so it re-declares the
+   same tracks. width: max-content is required — without it the box is only as wide as
+   the strip, and the translateX percentage below resolves against the wrong width. */
 .note-table-header {
     display: grid;
-    grid-template-columns: subgrid;
-    grid-column: 1 / -1;
+    grid-template-columns: var(--grid-columns);
+    width: max-content;
     padding: 0px;
-    overflow: hidden;
     height: 35px;
     cursor: default;
+}
 
+/* Keeps the header in step with the body's horizontal scroll. Driven by the scroll
+   position itself rather than a scroll event, so it cannot lag behind momentum
+   scrolling on touch. The @supports guard matters: without animation-timeline the
+   animation would run on a time basis and, with fill mode both and no duration, jump
+   straight to its end state. table-scrollbar-sync.js falls back to a scroll listener. */
+@supports (animation-timeline: scroll()) {
+    .table-wrapper {
+        timeline-scope: --table-h-scroll;
+    }
+
+    .list-table {
+        scroll-timeline: --table-h-scroll inline;
+    }
+
+    .note-table-header {
+        animation: table-header-track linear both;
+        animation-timeline: --table-h-scroll;
+    }
+
+    @keyframes table-header-track {
+        to { transform: translateX(calc(-100% + 100cqi)); }
+    }
 }
 
 .note-table-cell-header {
@@ -105,7 +152,7 @@
 
 /* column hover — selector managed by table-col-hover.js */
 .note-table-header .note-table-cell-header:has([data-property=""]),
-.note-table-header ~ .note-table .note-table-cell[data-prop=""] {
+.list-table .note-table-cell[data-prop=""] {
     background-color: if(
         style(--colours-suppress: true): var(--colour-neutral-alt);
         else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))

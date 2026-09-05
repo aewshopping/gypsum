@@ -2,6 +2,7 @@ import { renderTableHeader } from './ui-functions-table/render-table-header.js';
 import { renderTableRows } from './ui-functions-table/render-table-rows.js';
 import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
+import './ui-functions-table/sticky-header-offset.js';
 import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
 
 /**
@@ -31,14 +32,17 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         // Generate the dynamic rows
         const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
 
-        // Combine header and rows within the main table container
+        // The scrollbar and header sit in .table-chrome, ABOVE the scroll container,
+        // so they can stick to the viewport. Only the rows live inside .list-table.
         const tableHtml = `
         <div class="table-wrapper">
-            <div id="top-scrollbar-container">
-            <div id="top-scrollbar-content"></div>
+            <div class="table-chrome">
+                <div id="top-scrollbar-container">
+                <div id="top-scrollbar-content"></div>
+                </div>
+                ${headerHtml}
             </div>
             <div class="list-table">
-                ${headerHtml}
                 ${rowsHtml}
             </div>
         </div>
@@ -51,20 +55,15 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         initialScrollSync();
 
     } else {
-        // for sort or filter operations where we want to keep the header row so we don't lose horizontal scroll place
-        
-        const rowElementsToDelete = document.querySelectorAll(".note-table");
+        // for sort or filter operations, where replacing only the rows keeps the
+        // horizontal scroll position (rewriting innerHTML resets scrollLeft to 0)
 
-        for (const element of rowElementsToDelete) {
-            element.remove();
-        }
+        const scroller = document.querySelector(".list-table");
+        const scrollLeft = scroller.scrollLeft;
 
-        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
+        scroller.innerHTML = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
 
-        const headerElement = document.querySelector(".note-table-header");
-        headerElement.insertAdjacentHTML('afterend', rowsHtml);
-
-        
+        scroller.scrollLeft = scrollLeft;
 
     }
 }

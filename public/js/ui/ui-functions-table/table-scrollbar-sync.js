@@ -1,18 +1,26 @@
 /**
+ * @file Keeps the top scrollbar, and where necessary the header, in step with the
+ * table's horizontal scroll position.
+ *
+ * The header is normally driven by CSS (the --table-h-scroll scroll timeline in
+ * note-table.css), which runs off the scroll position itself rather than scroll
+ * events. The JS fallback here is only used where that is unsupported.
+ */
+
+/** True where the header is driven by CSS and needs no scroll listener. */
+const cssDrivesHeader = CSS.supports('animation-timeline', 'scroll()');
+
+let _resizeHandler = null;
+
+/**
  * Synchronizes the width of the top scrollbar with the width of the table.
  *
- * @param {object} elements An object containing the table header and top scrollbar content elements.
+ * @param {object} elements An object containing the scroller and top scrollbar elements.
  */
 function syncWidth(elements) {
-// The content inside the top scrollbar must match the width of the table.
-// Using the header's scrollWidth as the reference for the full width.
-   
-  // Get the scrollable content width from the header div.
-  const contentWidth = elements.tableHeader.scrollWidth; 
-  
-  // Set the width of the empty div inside the top scrollbar container.
-  // This ensures the top scrollbar's thumb (slider) matches the "real" one.
-  elements.topScrollContent.style.width = contentWidth + 'px';
+  // The content inside the top scrollbar must match the scrollable width of the table,
+  // so the top scrollbar's thumb (slider) matches the "real" one.
+  elements.topScrollContent.style.width = elements.scroller.scrollWidth + 'px';
 }
 
 /**
@@ -21,58 +29,55 @@ function syncWidth(elements) {
 export function initialScrollSync() {
 
     const topScrollbar = document.getElementById('top-scrollbar-container');
-    const tableWrapper = document.querySelector('.list-table'); // This is the main content container that needs horizontal scrolling
-    const tableHeader = document.querySelector('.note-table-header'); // USing the header's width to determine the total scroll width
+    const scroller = document.querySelector('.list-table'); // the horizontal scroll container
+    const header = document.querySelector('.note-table-header');
     const topScrollContent = document.getElementById('top-scrollbar-content');
 
-    const elements = { topScrollbar, tableWrapper, tableHeader, topScrollContent };
+    const elements = { topScrollbar, scroller, header, topScrollContent };
 
     // debugging in case any of the elements above can't be found
     for (const key in elements) {
         if (!elements[key]) {
-            console.error(`[ScrollSync Error] Element not found: ${key} (Selector: ${key === 'tableHeader' ? '.note-table-header' : '#' + key})`);
+            console.error(`[ScrollSync Error] Element not found: ${key}`);
             return; // Stop execution if an element is missing
         }
     }
 
     // Initial sync when table first rendered
     syncWidth(elements);
-    addScrollEventListeners(elements)
+    addScrollEventListeners(elements);
 }
 
 /**
- * Adds scroll event listeners to the top scrollbar and table wrapper to keep them in sync.
+ * Adds scroll event listeners to keep the top scrollbar, the table, and (where CSS
+ * cannot drive it) the header in sync.
  *
- * @param {object} elements An object containing the top scrollbar and table wrapper elements.
+ * @param {object} elements An object containing the scroller, scrollbar and header elements.
  */
 function addScrollEventListeners(elements) {
 
-    const topScrollbar = elements.topScrollbar;
-    const tableWrapper = elements.tableWrapper;
-    const tableHeader = elements.tableHeader;
+    const { topScrollbar, scroller, header } = elements;
 
-    // Re-sync on window resize (important if content or viewport changes)
-    window.addEventListener('resize', syncWidth(elements));
-
+    // A full render replaces these elements, so their own listeners go with them. The
+    // window listener outlives them, so the previous one is removed before re-adding.
+    if (_resizeHandler) window.removeEventListener('resize', _resizeHandler);
+    _resizeHandler = () => syncWidth(elements);
+    window.addEventListener('resize', _resizeHandler);
 
     // --- Synchronize Scroll Events ---
 
     // When the top scrollbar is scrolled, scroll the table content.
     topScrollbar.addEventListener('scroll', () => {
-        // Get the new scroll position
-        const newScrollLeft = topScrollbar.scrollLeft;
-
-        // Apply the horizontal scroll to the main content wrapper
-        tableWrapper.scrollLeft = newScrollLeft;
-        
+        scroller.scrollLeft = topScrollbar.scrollLeft;
     });
 
-    // When the table content is scrolled (by user swiping/using default scrollbar), scroll the top bar too.
-    tableWrapper.addEventListener('scroll', () => {
-        // Get the new scroll position from the main scrolling element
-        const newScrollLeft = tableWrapper.scrollLeft;
+    // When the table content is scrolled (by user swiping/using default scrollbar),
+    // scroll the top bar too — and the header, where CSS is not already doing it.
+    scroller.addEventListener('scroll', () => {
+        topScrollbar.scrollLeft = scroller.scrollLeft;
 
-        // Apply the horizontal scroll to the top scrollbar container
-        topScrollbar.scrollLeft = newScrollLeft;
+        if (!cssDrivesHeader) {
+            header.style.transform = `translateX(${-scroller.scrollLeft}px)`;
+        }
     });
 }
