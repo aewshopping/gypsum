@@ -168,3 +168,38 @@ test('on a narrow screen the menu becomes a sheet across the bottom', async ({ p
   // gutter is outside the box fixed insets resolve against but inside clientWidth.
   expect(box.width).toBeGreaterThan(box.viewportWidth - 20);
 });
+
+test('scrolling a column away clamps the menu on screen rather than throwing it off', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 620 });
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await showFilenames(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  // the first column, so scrolling right marches it off to the left
+  await openMenuFor(page, page.locator('.note-table-cell-header').first());
+
+  const geometry = () => page.evaluate(() => {
+    const m = document.getElementById('column-menu').getBoundingClientRect();
+    const prop = document.getElementById('column-menu').dataset.property;
+    const c = [...document.querySelectorAll('.note-table-cell-header')]
+      .find(el => el.querySelector(`[data-property="${prop}"]`)).getBoundingClientRect();
+    return { menuLeft: Math.round(m.left), menuRight: Math.round(m.right),
+             colRight: Math.round(c.right), width: Math.round(m.width) };
+  });
+
+  for (const scrollLeft of [0, 80, 120, 200, 260]) {
+    await page.evaluate(x => { document.querySelector('.list-table').scrollLeft = x; }, scrollLeft);
+    await expect.poll(async () => (await geometry()).menuLeft >= 0, {
+      message: `menu ran off the left edge at scrollLeft ${scrollLeft}`,
+    }).toBe(true);
+
+    const g = await geometry();
+    // right-aligned to its column while there is room for it, clamped to the edge once
+    // there is not — never flipped to the column's left edge, which is further off screen
+    expect(g.menuRight, `at scrollLeft ${scrollLeft}`)
+      .toBe(g.colRight >= g.width ? g.colRight : g.width);
+  }
+});
