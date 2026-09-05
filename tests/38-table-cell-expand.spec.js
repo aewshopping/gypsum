@@ -55,9 +55,9 @@ test('a cell expands on the second click, downward and within its own column', a
   expect(expanded.rowHeight).toBe(collapsed.rowHeight);       // the row did not grow with it
   expect(expanded.neighbourWidth).toBe(collapsed.neighbourWidth); // siblings did not shift
 
+  // clicks inside an expanded cell belong to the caret, so it stays open
   await cell.click();
-  await expect(cell).toHaveClass(/is-selected/);
-  expect(await boxOf(cell)).toEqual(collapsed);
+  await expect(cell).toHaveClass(/is-expanded/);
 });
 
 test('an expanded cell is dismissed by clicking away and by Escape', async ({ page }) => {
@@ -103,4 +103,33 @@ test('a cell with no room below flips upward, and the header stays above it', as
     const el = document.elementFromPoint(Math.round(c.left + 20), Math.round(ch.bottom - 4));
     return chrome.contains(el) ? 'header-on-top' : 'cell-on-top';
   })).toBe('header-on-top');
+});
+
+
+test('an expanded cell can be typed into, without the app stealing the keys', async ({ page }) => {
+  await openTable(page);
+  const cell = page.locator('.note-table .note-table-cell[data-prop="title"]').nth(2);
+
+  await cell.click(); await cell.click();
+  await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
+  expect(await cell.evaluate(el => document.activeElement === el)).toBe(true);
+
+  const before = (await cell.textContent()).length;
+  await page.keyboard.type('ABC');
+  expect((await cell.textContent()).length).toBe(before + 3);
+
+  // arrow keys move the caret rather than moving focus to the next cell
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowDown');
+  expect(await cell.evaluate(el => document.activeElement === el)).toBe(true);
+
+  // and the bare-key shortcuts stay out of the way: these are text, not commands
+  await page.keyboard.type('/#?');
+  expect(await cell.textContent()).toContain('/#?');
+  expect(await page.evaluate(() => document.activeElement === document.getElementById('searchbox'))).toBe(false);
+  expect(await page.evaluate(() => !!document.querySelector('dialog[open]'))).toBe(false);
+
+  // collapsing gives up editability again
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.note-table-cell[contenteditable]')).toHaveCount(0);
 });

@@ -18,6 +18,19 @@ import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
 import { appState } from '../../services/store.js';
 
+const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 'number', 'tel']);
+
+/**
+ * Whether the user is currently typing into something, and so bare-key shortcuts should
+ * be left alone. Covers text inputs, textareas, and editable elements such as an
+ * expanded table cell.
+ * @returns {boolean}
+ */
+function isTypingTarget() {
+    const active = document.activeElement;
+    return !!active && (TEXT_INPUT_TYPES.has(active.type) || active.tagName === 'TEXTAREA' || active.isContentEditable);
+}
+
 /**
  * Handles all global keyboard shortcuts for the application.
  * @param {KeyboardEvent} evt
@@ -85,10 +98,7 @@ export function handleKeyboardShortcuts(evt) {
 
     // the number keys select the nth element with the data-action attribute of open-file-content-modal
     if (evt.key >= '1' && evt.key <= '9' && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
-        const active = document.activeElement;
-        const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 'number', 'tel']);
-        const inInput = active && (TEXT_INPUT_TYPES.has(active.type) || active.tagName === 'TEXTAREA' || active.isContentEditable);
-        if (!inInput && !document.querySelector('dialog[open]') && appState.dirHandle) {
+        if (!isTypingTarget() && !document.querySelector('dialog[open]') && appState.dirHandle) {
             const index = parseInt(evt.key, 10) - 1;
             const fileLinks = document.querySelectorAll('[data-action="open-file-content-modal"]');
             const target = fileLinks[index];
@@ -104,7 +114,7 @@ export function handleKeyboardShortcuts(evt) {
         '#': () => handleShowTagTaxonomy(),
         '?': () => handleOpenSettings(),
     };
-    if (searchboxKeyActions[evt.key] && !document.querySelector('dialog[open]')) {
+    if (searchboxKeyActions[evt.key] && !document.querySelector('dialog[open]') && !isTypingTarget()) {
         const searchbox = document.getElementById('searchbox');
         if (searchbox && document.activeElement !== searchbox) {
             evt.preventDefault();

@@ -7,6 +7,9 @@
  *
  * Only the clicked cell grows, and only downward: it is taken out of flow, so the row
  * keeps its height and every column keeps its width.
+ *
+ * An expanded cell is editable, so its text can be corrected in place. Nothing is saved
+ * yet — edits live in the DOM and are discarded by the next render.
  */
 
 const SELECTED = 'is-selected';
@@ -20,6 +23,7 @@ const FLIPPED = 'flip-up';
  */
 function collapse(cell) {
     cell.classList.remove(SELECTED, EXPANDED, FLIPPED);
+    cell.removeAttribute('contenteditable');
     for (const sibling of cell.parentElement.children) {
         sibling.style.gridColumn = '';
     }
@@ -57,6 +61,11 @@ function expand(cell) {
     if (cell.getBoundingClientRect().bottom > table.getBoundingClientRect().bottom) {
         cell.classList.add(FLIPPED);
     }
+
+    // plaintext-only keeps pasted markup out of a cell that ultimately stands for text
+    // in a file. Focusing puts the caret in without a further click.
+    cell.setAttribute('contenteditable', 'plaintext-only');
+    cell.focus();
 }
 
 /**
@@ -66,8 +75,12 @@ function expand(cell) {
  * @returns {void}
  */
 export function handleCellExpand(evt, cell) {
-    // select -> expand -> back to select. Clicking a different cell starts the cycle
-    // there, so only one cell is ever open.
+    // Clicks inside an already-expanded cell belong to the caret, not to us. Escape or a
+    // click outside closes it.
+    if (cell.classList.contains(EXPANDED)) return;
+
+    // select -> expand. Clicking a different cell starts the cycle there, so only one
+    // cell is ever open.
     const shouldExpand = cell.classList.contains(SELECTED);
 
     clearExpandedCells();

@@ -92,8 +92,10 @@
 }
 
 /* Out of flow, so the row keeps its height and the other columns keep their widths.
-   left/right pin it to its own column: it only grows downwards. */
+   left/right pin it to its own column: it only grows downwards. An expanded cell is
+   editable, hence the text cursor over the row's default one. */
 .note-table-cell.is-expanded {
+    cursor: text;
     position: absolute;
     top: 0;
     left: 0;
