@@ -2,7 +2,6 @@ import { renderTableHeader } from './ui-functions-table/render-table-header.js';
 import { renderTableRows } from './ui-functions-table/render-table-rows.js';
 import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
-import './ui-functions-table/sticky-header-offset.js';
 import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
 
 /**

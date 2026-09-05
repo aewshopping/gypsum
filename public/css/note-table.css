@@ -18,11 +18,11 @@
    to the viewport: position: sticky resolves against the nearest scroll container, so
    anything inside .list-table would stick to the table instead of the page.
 
-   It comes to rest below the app's own sticky search row, whose measured height is
-   published as --stick-top-height by sticky-header-offset.js. */
+   It comes to rest below the app's own sticky search row, whose height both elements
+   take from --stick-top-height in base.css. */
 .table-chrome {
     position: sticky;
-    top: var(--stick-top-height, 0px);
+    top: var(--stick-top-height);
     /* Above an expanded cell, which sits at 3. .table-wrapper is a stacking context
        (container-type implies layout containment), so this stays scoped to the table and
        still cannot rise above the app's own search row. */
