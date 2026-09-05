@@ -138,3 +138,33 @@ test('the menu follows its column when the table is scrolled sideways', async ({
     await page.keyboard.press('Escape');
   }
 });
+
+test('on a narrow screen the menu becomes a sheet across the bottom', async ({ page }) => {
+  await page.setViewportSize({ width: 420, height: 720 });   // under the 600px breakpoint
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await showFilenames(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  await openMenuFor(page, page.locator('.note-table-cell-header').first());
+
+  const box = await page.evaluate(() => {
+    const r = document.getElementById('column-menu').getBoundingClientRect();
+    const doc = document.documentElement;
+    return {
+      left: Math.round(r.left),
+      width: Math.round(r.width),
+      gapBelow: Math.round(doc.clientHeight - r.bottom),
+      viewportWidth: doc.clientWidth,
+    };
+  });
+
+  expect(box.left).toBe(0);
+  expect(box.gapBelow).toBe(0);   // sitting on the bottom edge
+
+  // Not exactly clientWidth: the page sets scrollbar-gutter: stable, and the reserved
+  // gutter is outside the box fixed insets resolve against but inside clientWidth.
+  expect(box.width).toBeGreaterThan(box.viewportWidth - 20);
+});

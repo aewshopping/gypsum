@@ -93,3 +93,35 @@
     right: auto;
     left: anchor(left);
 }
+
+/* On a phone the menu becomes a sheet across the bottom of the screen, rather than hanging
+   off a column that may be narrower than a thumb. 600px is the width the rest of the app
+   already treats as a small screen — see modal-backdrop.css, which gives dialogs the full
+   screen at the same point.
+
+   The anchor is simply unused here: fixed insets replace it, and position-try-fallbacks has
+   to go with it, since those exist to keep an anchored menu on screen and would only fight
+   a sheet that is already pinned to all three edges. */
+@media (max-width: 600px) {
+    #column-menu {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        position-try-fallbacks: none;
+        min-width: 0;
+
+        /* the popover UA style is width: fit-content, which would otherwise win over
+           stretching between left: 0 and right: 0 */
+        width: auto;
+
+        /* rounded where it rises off the bottom, flush at the edges it meets */
+        border-radius: 8px 8px 0 0;
+        border-width: 1px 0 0 0;
+    }
+
+    /* room for a thumb */
+    .column-menu-item {
+        padding: 12px 14px;
+    }
+}
