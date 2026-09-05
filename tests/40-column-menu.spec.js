@@ -32,7 +32,7 @@ const titleHeader = page => page.locator('.note-table-cell-header', { hasText: '
 async function openMenuFor(page, header) {
   await header.hover();
   await header.locator('.column-menu-trigger').click();
-  await expect(menu(page)).toHaveClass(/visible/);
+  await expect(menu(page)).toBeVisible();
 }
 
 test('the menu opens against the header cell it was launched from', async ({ page }) => {
@@ -42,16 +42,18 @@ test('the menu opens against the header cell it was launched from', async ({ pag
 
   expect(await menu(page).getAttribute('data-property')).toBe('title');
 
-  // anchored to the cell: aligned to its left edge, sitting just under its bottom
+  // hangs off the column's right edge, flush with the bottom of the header
   const offset = await page.evaluate(() => {
     const m = document.getElementById('column-menu').getBoundingClientRect();
     const c = [...document.querySelectorAll('.note-table-cell-header')]
       .find(el => el.textContent.includes('title')).getBoundingClientRect();
-    return { dx: Math.round(m.left - c.left), dy: Math.round(m.top - c.bottom) };
+    return { dx: Math.round(m.right - c.right), dy: Math.round(m.top - c.bottom) };
   });
-  expect(Math.abs(offset.dx)).toBeLessThanOrEqual(2);
-  expect(offset.dy).toBeGreaterThanOrEqual(0);
-  expect(offset.dy).toBeLessThanOrEqual(6);
+  expect(Math.abs(offset.dx)).toBeLessThanOrEqual(1);
+  expect(Math.abs(offset.dy)).toBeLessThanOrEqual(1);
+
+  // square where it meets the header, rounded elsewhere
+  expect(await menu(page).evaluate(el => getComputedStyle(el).borderTopRightRadius)).toBe('0px');
 
   // and it paints above the sticky header rather than behind it
   expect(await page.evaluate(() => {
@@ -79,7 +81,7 @@ test('sorting from the menu also updates the sort dropdown and direction', async
   await expect.poll(async () => (await firstTitle()).trim()).toBe('Alpha note');
   // the regression this change exists to fix: the controls used to stay on lastModified
   expect(await controls()).toEqual({ select: 'title', ascChecked: true });
-  await expect(menu(page)).not.toHaveClass(/visible/);   // acting closes it
+  await expect(menu(page)).toBeHidden();   // acting closes it
 
   await openMenuFor(page, header);
   await page.locator('[data-action="column-sort-desc"]').click();
@@ -91,22 +93,48 @@ test('the menu is dismissed by Escape, by clicking away, and by a re-render', as
   await openTable(page);
   const header = titleHeader(page);
 
+  // Escape and click-away are the popover's own light dismiss, not our code
   await openMenuFor(page, header);
   await page.keyboard.press('Escape');
-  await expect(menu(page)).not.toHaveClass(/visible/);
+  await expect(menu(page)).toBeHidden();
 
   await openMenuFor(page, header);
   await page.locator('#output').click({ position: { x: 5, y: 5 } });
-  await expect(menu(page)).not.toHaveClass(/visible/);
+  await expect(menu(page)).toBeHidden();
 
-  // a full render rebuilds the header, so the cell the menu anchors to disappears
+  // a full render rebuilds the header, so the cell the menu points at disappears
   await openMenuFor(page, header);
   await page.fill('#searchbox', 'Alpha');
   await page.press('#searchbox', 'Enter');
-  await expect(menu(page)).not.toHaveClass(/visible/);
+  await expect(menu(page)).toBeHidden();
+});
 
-  // and the anchor-name is released rather than left on a detached cell
-  expect(await page.evaluate(() =>
-    [...document.querySelectorAll('.note-table-cell-header')]
-      .some(c => c.style.getPropertyValue('anchor-name')))).toBe(false);
+test('the menu follows its column when the table is scrolled sideways', async ({ page }) => {
+  // wide enough that the menu never needs an edge-of-viewport fallback, so alignment is
+  // the only thing under test here
+  await page.setViewportSize({ width: 900, height: 700 });
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await showFilenames(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  // The header is moved by a scroll-driven transform, and anchor positioning resolves
+  // against the pre-transform box — hence the proxy the menu actually anchors to.
+  for (const scrollLeft of [0, 100, 99999]) {
+    await page.evaluate(x => { document.querySelector('.list-table').scrollLeft = x; }, scrollLeft);
+    const header = page.locator('.note-table-cell-header').last();
+    await openMenuFor(page, header);
+
+    await expect.poll(() => page.evaluate(() => {
+      const m = document.getElementById('column-menu').getBoundingClientRect();
+      const prop = document.getElementById('column-menu').dataset.property;
+      const c = [...document.querySelectorAll('.note-table-cell-header')]
+        .find(el => el.querySelector(`[data-property="${prop}"]`)).getBoundingClientRect();
+      return Math.round(m.right - c.right);
+    })).toBe(0);
+
+    await page.keyboard.press('Escape');
+  }
 });

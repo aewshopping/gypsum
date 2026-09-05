@@ -1,31 +1,56 @@
-/* The column options menu, opened from a table header cell. Positioned with CSS anchor
-   positioning against whichever header cell was clicked — column-menu.js writes the
-   matching anchor-name onto that cell while the menu is open. Mirrors #tooltip. */
+/* The column options menu, opened from a table header cell.
+
+   A popover, so it sits in the top layer: the header strip clips its overflow and
+   .table-wrapper is a containing block for fixed children, neither of which can reach it
+   there. Light dismiss, Escape and the backdrop all come from the browser.
+
+   Positioned by CSS anchor positioning against #column-menu-anchor, a zero-content proxy
+   that column-menu.js parks over the header cell it was opened from. The header carries a
+   scroll-driven transform and anchor positioning resolves against the pre-transform box, so
+   anchoring to the cell itself put the menu one scroll-offset away from its own column.
+   It hangs from the column's RIGHT edge, which is also the edge the trigger sits at: that
+   edge is necessarily on screen when you click it, so the menu cannot open off-view the
+   way a left-aligned one could once the table was scrolled. */
+
+#column-menu-anchor {
+    position: fixed;
+    anchor-name: --column-menu-anchor;
+    pointer-events: none;
+}
 
 #column-menu {
     position: fixed;
     position-anchor: --column-menu-anchor;
+    inset: auto;                  /* the UA stylesheet centres popovers with inset: 0 */
     top: anchor(bottom);
-    left: anchor(left);
-    margin-top: 2px;
+    right: anchor(right);
+    margin: 0;                    /* flush against the bottom edge of the header */
     position-try-fallbacks: --column-menu-flip-up, --column-menu-flip-left, --column-menu-flip-up-left;
 
-    /* Above .table-chrome, which sits at 4 inside .table-wrapper's stacking context. */
+    /* Above .table-chrome, which sits at 4 inside .table-wrapper's stacking context. The
+       top layer already covers this; kept for the fallback if the popover ever isn't open. */
     z-index: 100;
 
     flex-direction: column;
     min-width: 150px;
     padding: 4px;
     background-color: var(--colour-neutral-alt);
+    color: var(--colour-contr);
     border: 1px solid var(--colour-contr);
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 
-    display: none;
+    /* Square where it meets the header, rounded elsewhere, so it reads as hanging off the
+       column rather than floating near it. */
+    border-radius: 4px 0 4px 4px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
 
-#column-menu.visible {
+#column-menu:popover-open {
     display: flex;
+}
+
+/* Enough to push the table back without the page reading as blocked. */
+#column-menu::backdrop {
+    background-color: rgb(0 0 0 / 0.15);
 }
 
 .column-menu-item {
@@ -49,23 +74,22 @@
     }
 }
 
+/* Fallbacks for the edges of the viewport. border-radius cannot follow them — @position-try
+   takes only inset, margin, sizing and self-alignment — so the square corner stays top-right
+   even when flipped, which is only visible in the rare flipped case. */
 @position-try --column-menu-flip-up {
     top: auto;
     bottom: anchor(top);
-    margin-top: 0;
-    margin-bottom: 2px;
 }
 
 @position-try --column-menu-flip-left {
-    left: auto;
-    right: anchor(right);
+    right: auto;
+    left: anchor(left);
 }
 
 @position-try --column-menu-flip-up-left {
     top: auto;
     bottom: anchor(top);
-    left: auto;
-    right: anchor(right);
-    margin-top: 0;
-    margin-bottom: 2px;
+    right: auto;
+    left: anchor(left);
 }

@@ -1,22 +1,23 @@
 /**
  * @file The column options menu, opened from the trigger in a table header cell.
  *
- * The menu itself is a single reused element declared in index.html. It is positioned by
- * CSS anchor positioning (see column-menu.css), so opening it means writing the matching
- * anchor-name onto the header cell it was opened from, and clearing that again on close.
+ * The menu itself is a single reused element declared in index.html. It is a popover, so
+ * the browser handles the top layer, light dismiss, Escape and the backdrop; this module
+ * only decides which column it belongs to. It is positioned by CSS anchor positioning (see
+ * column-menu.css), so opening it means writing the matching anchor-name onto the header
+ * cell it was opened from — by way of #column-menu-anchor, a proxy parked over that cell.
  *
- * The anchor-name goes on the header cell rather than the trigger span inside it. The span
- * carries data-tip, and tooltip.js writes its own anchor-name inline on [data-tip] elements,
- * first removing the inline value to read the stylesheet's — which would drop ours. Giving
- * the header cell a data-tip of its own would reintroduce that clash.
+ * The proxy exists because the header is moved by a scroll-driven transform, and anchor
+ * positioning resolves against an element's pre-transform box: anchoring to the header cell
+ * directly left the menu one scroll-offset away from its own column. getBoundingClientRect
+ * does report the transformed box, so parking a fixed proxy there gets the real position.
+ * It also sidesteps tooltip.js, which writes anchor-name inline on [data-tip] elements.
  */
 
 import { applySortAndRender } from './sort-object.js';
 
-const ANCHOR_NAME = '--column-menu-anchor';
-
-let _menu = null;        // the element from index.html, looked up on first use
-let _anchoredEl = null;  // the header cell currently carrying the anchor-name
+let _menu = null;   // the elements from index.html, looked up on first use
+let _proxy = null;
 
 /**
  * @returns {HTMLElement|null}
@@ -27,6 +28,22 @@ function menuElement() {
 }
 
 /**
+ * Parks the anchor proxy over an element, matching its position and size.
+ * @param {HTMLElement} el
+ * @returns {void}
+ */
+function moveAnchorTo(el) {
+    if (!_proxy) _proxy = document.getElementById('column-menu-anchor');
+    if (!_proxy) return;
+
+    const rect = el.getBoundingClientRect();
+    _proxy.style.left = `${rect.left}px`;
+    _proxy.style.top = `${rect.top}px`;
+    _proxy.style.width = `${rect.width}px`;
+    _proxy.style.height = `${rect.height}px`;
+}
+
+/**
  * Hides the menu and releases the header cell it was anchored to.
  * @returns {void}
  */
@@ -34,18 +51,16 @@ export function closeColumnMenu() {
     const menu = menuElement();
     if (!menu) return;
 
-    menu.classList.remove('visible');
+    if (menu.matches(':popover-open')) menu.hidePopover();
     menu.removeAttribute('data-property');
-
-    if (_anchoredEl) {
-        _anchoredEl.style.removeProperty('anchor-name');
-        _anchoredEl = null;
-    }
 }
 
 /**
- * Opens the menu against the header cell the trigger sits in, or closes it again if that
- * same column's menu is already open.
+ * Opens the menu against the header cell the trigger sits in.
+ *
+ * Note there is no toggle-closed on the trigger: light dismiss has already closed the
+ * popover by the time this runs, so re-opening is all that is left to do. Clicking away or
+ * pressing Escape closes it, both handled by the browser.
  * @param {MouseEvent} evt
  * @param {HTMLElement} trigger - The element carrying data-action="column-menu-open".
  * @returns {void}
@@ -55,18 +70,15 @@ export function handleColumnMenuOpen(evt, trigger) {
     const headerCell = trigger.closest('.note-table-cell-header');
     if (!menu || !headerCell) return;
 
-    const property = trigger.dataset.property;
-    const alreadyOpen = menu.classList.contains('visible') && menu.dataset.property === property;
-
     closeColumnMenu();
-    if (alreadyOpen) return;
 
     // Which column the menu is acting on. Read back by the item handlers below.
-    menu.dataset.property = property;
+    menu.dataset.property = trigger.dataset.property;
 
-    headerCell.style.setProperty('anchor-name', ANCHOR_NAME);
-    _anchoredEl = headerCell;
-    menu.classList.add('visible');
+    // Over the cell rather than the trigger, so the menu lines up with the column's edge
+    // rather than the glyph's. Parked before showing, so the first paint is in place.
+    moveAnchorTo(headerCell);
+    menu.showPopover();
 }
 
 /**
@@ -95,16 +107,4 @@ export function handleColumnSortAsc() {
  */
 export function handleColumnSortDesc() {
     sortMenuColumn('desc');
-}
-
-/**
- * Closes the menu when a click lands outside it. Called for every click, alongside the
- * delegated action handlers — so clicks on the menu's own items and on a trigger are left
- * for their own handlers to deal with.
- * @param {MouseEvent} evt
- * @returns {void}
- */
-export function handleColumnMenuClickOutside(evt) {
-    if (evt.target.closest('#column-menu, [data-action="column-menu-open"]')) return;
-    closeColumnMenu();
 }

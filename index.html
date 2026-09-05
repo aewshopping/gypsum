@@ -566,11 +566,18 @@
   <!-- Geometry-only anchor for the file modal's view transition — see offscreen-note-target.css -->
   <div id="offscreen-note-target" aria-hidden="true"></div>
 
-  <!-- Column options, opened from a table header cell. A single reused element positioned by
-       CSS anchor positioning, like #tooltip: the header strip clips its overflow and
-       .table-wrapper is a containing block for fixed children, so a menu inside the header
-       could not escape either. -->
-  <div id="column-menu">
+  <!-- Column options, opened from a table header cell. A popover, so it renders in the top
+       layer — free of the header strip's overflow clipping and of .table-wrapper, which is a
+       containing block for fixed children — and so that light dismiss, Escape and ::backdrop
+       come from the browser rather than from us. Positioned by CSS anchor positioning against
+       whichever header cell it was opened from. -->
+  <!-- Parked over the header cell the menu belongs to, and anchored to instead of the cell
+       itself. The header is translated by a scroll-driven animation, and anchor positioning
+       resolves against the cell's pre-transform box, so anchoring to the cell put the menu
+       one scroll-offset away from its column. Same trick as #ac-proxy. -->
+  <div id="column-menu-anchor" aria-hidden="true"></div>
+
+  <div id="column-menu" popover>
     <button type="button" class="column-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A-Z</button>
     <button type="button" class="column-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z-A</button>
     <button type="button" class="column-menu-item" disabled>resize column</button>

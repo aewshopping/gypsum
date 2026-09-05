@@ -176,8 +176,15 @@
 }
 
 .column-menu-trigger {
-    padding:6px;
+    padding: 6px;
     visibility: hidden;
+
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .table-view-array-list{
