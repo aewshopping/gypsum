@@ -2,6 +2,8 @@ import { renderTableHeader } from './ui-functions-table/render-table-header.js';
 import { renderTableRows } from './ui-functions-table/render-table-rows.js';
 import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
+import { applyColumnWidths } from './ui-functions-table/apply-column-widths.js';
+import { reparkColumnResizer } from './ui-functions-table/table-col-resize.js';
 import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { closeColumnMenu } from './ui-functions-click/column-menu.js';
 
@@ -22,6 +24,10 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         name: propName,
         ...FILE_PROPERTIES.get(propName)
     }));
+
+    // Covers both paths below: a full render rebuilds the header from defaults, and a
+    // partial one leaves --grid-columns alone, so any dragged width has to be re-applied here.
+    applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
 
     // Every render replaces the rows, and a full one replaces the scroll container
     // itself, so the horizontal scroll position has to be carried across. Reading it here
@@ -75,4 +81,10 @@ export function renderFileList_table(renderEverything, fullRender = true) {
     // assigning to a scroller the browser has not laid out yet would clamp to 0. The
     // header follows on its own, being driven by the scroll position rather than by JS.
     document.querySelector(".list-table").scrollLeft = scrollLeft;
+
+    // A full render replaced the header cell the resize bar was parked over. Nothing but a
+    // press-and-release dismisses the bar, so it moves to the same column's new cell. Also
+    // called from renderFiles, which catches the renders that never reach this function —
+    // but only once a view transition has finished, so the bar would visibly lag without this.
+    reparkColumnResizer();
 }

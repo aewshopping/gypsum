@@ -2,8 +2,7 @@ import { appState } from '../../services/store.js';
 
 /**
  * Renders the header strip for the table view.
- * Dynamically creates column headers based on specified properties
- * and injects CSS for column widths.
+ * Dynamically creates column headers based on specified properties.
  *
  * The header is NOT a child of .list-table. It sits above the scroll container so it
  * can stick to the viewport: a sticky element resolves against its nearest scroll
@@ -29,16 +28,6 @@ export function renderTableHeader(current_props) {
             return `<div class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="column options"${sorted}>${prop.name}<span class="flexgrow"> </span><div class="column-sort-indicator">˅</div></div>`;
         })
         .join('');
-
-    // Generate the grid-template-columns value for the CSS
-    const columnWidths = current_props
-        .map(prop => {
-            const width = prop.column_width;
-            return width ? `${width}px` : '100px'; // Default to '100px' if width is not defined, noting 'auto' doesn't work!
-        })
-        .join(' ');
-
-    document.body.style.setProperty('--grid-columns', columnWidths); // because css for table is grid-template-columns: var(--grid-columns)
 
     // The strip clips the header horizontally; the header itself is full track width.
     return `<div class="note-table-header-strip"><div class="note-table-header">${headerCellsHtml}</div></div>`;

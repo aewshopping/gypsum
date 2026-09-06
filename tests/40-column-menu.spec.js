@@ -62,9 +62,9 @@ test('the menu opens against the header cell it was launched from', async ({ pag
     return !!el?.closest('#column-menu');
   })).toBe(true);
 
-  // the three unbuilt options are present but inert; sort asc/desc and search are live
-  await expect(menu(page).locator('button[disabled]')).toHaveCount(3);
-  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(3);
+  // the two unbuilt options are present but inert; sort asc/desc, search and resize are live
+  await expect(menu(page).locator('button[disabled]')).toHaveCount(2);
+  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(4);
 });
 
 test('sorting from the menu also updates the sort dropdown and direction', async ({ page }) => {

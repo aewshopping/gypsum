@@ -33,6 +33,10 @@ export let PAGINATION_SIZE = 50;
 export function setPaginationSize(n) { PAGINATION_SIZE = n; }
 export const PROGRESS_STEP_SIZE = 1; // update loading progress every N percentage points
 
+// Table column widths. 'auto' does not work as a grid track here, hence a px default.
+export const DEFAULT_COLUMN_WIDTH = 100;
+export const MIN_COLUMN_WIDTH = 48; // a floor, or a column can be dragged away to nothing
+
 export const COLOR_NAMES = [
   "#ffbdbd", // Pastel Red
   "#f0cbc8", // Pastel Rose

@@ -15,12 +15,18 @@ let _resizeHandler = null;
 /**
  * Synchronizes the width of the top scrollbar with the width of the table.
  *
- * @param {object} elements An object containing the scroller and top scrollbar elements.
+ * Re-queries its elements rather than closing over them, so callers that outlive a render —
+ * the window listener, and the column resize drop — do not hold on to replaced nodes.
+ * @returns {void}
  */
-function syncWidth(elements) {
+export function syncScrollbarWidth() {
+  const scroller = document.querySelector('.list-table');
+  const topScrollContent = document.getElementById('top-scrollbar-content');
+  if (!scroller || !topScrollContent) return; // not in table view
+
   // The content inside the top scrollbar must match the scrollable width of the table,
   // so the top scrollbar's thumb (slider) matches the "real" one.
-  elements.topScrollContent.style.width = elements.scroller.scrollWidth + 'px';
+  topScrollContent.style.width = scroller.scrollWidth + 'px';
 }
 
 /**
@@ -44,7 +50,7 @@ export function initialScrollSync() {
     }
 
     // Initial sync when table first rendered
-    syncWidth(elements);
+    syncScrollbarWidth();
     addScrollEventListeners(elements);
 }
 
@@ -61,7 +67,7 @@ function addScrollEventListeners(elements) {
     // A full render replaces these elements, so their own listeners go with them. The
     // window listener outlives them, so the previous one is removed before re-adding.
     if (_resizeHandler) window.removeEventListener('resize', _resizeHandler);
-    _resizeHandler = () => syncWidth(elements);
+    _resizeHandler = syncScrollbarWidth;
     window.addEventListener('resize', _resizeHandler);
 
     // --- Synchronize Scroll Events ---

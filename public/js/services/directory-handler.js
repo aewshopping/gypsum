@@ -42,6 +42,7 @@ export async function getFilesRecursive(dirHandle, path = '') {
 export async function loadDirectoryFileHandles(onPickerResolved = null) {
 
     TABLE_VIEW_COLUMNS.current_props.length = 0;
+    TABLE_VIEW_COLUMNS.widthOverrides.clear();
     appState.myFilesProperties.clear();
     seedCoreFileProperties();
 

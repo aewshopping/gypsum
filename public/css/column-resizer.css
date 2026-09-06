@@ -1,0 +1,43 @@
+/* The column resize bar, shown by "resize column" in the column options menu.
+
+   Fixed rather than a child of the header cell: .note-table-cell-header has overflow: hidden,
+   which would clip a bar overlaying its right border, and the header carries a scroll-driven
+   transform that only getBoundingClientRect reports. table-col-resize.js parks it — same
+   arrangement as #column-menu-anchor.
+
+   left/top/height are written by JS; everything the bar looks like is here. */
+
+#column-resizer {
+    position: fixed;
+    width: 5px;
+    background-color: var(--colour-highlight);
+    cursor: col-resize;
+
+    /* Or the table's horizontal scroller claims the gesture before pointermove arrives. */
+    touch-action: none;
+
+    /* Above .table-chrome, which sits at 4 inside .table-wrapper's stacking context, and
+       level with #column-menu. Below #tooltip at 1000, which labels this. */
+    z-index: 100;
+
+    display: none;
+}
+
+#column-resizer.visible {
+    display: block;
+}
+
+/* A hit area wider than the bar, so a 5px target is not a 5px target. A pointer event on a
+   pseudo-element reports the element itself, so the handler is none the wiser. */
+#column-resizer::before {
+    content: '';
+    position: absolute;
+    inset: 0 -6px;
+}
+
+/* Room for a thumb. */
+@media (pointer: coarse) {
+    #column-resizer::before {
+        inset: 0 -12px;
+    }
+}
