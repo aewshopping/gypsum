@@ -25,7 +25,11 @@
     top: anchor(bottom);
     right: anchor(right);
     margin: 0;                    /* flush against the bottom edge of the header */
-    position-try-fallbacks: --column-menu-flip-up, --column-menu-clamp-left, --column-menu-flip-up-clamp-left;
+
+    /* No position-try fallbacks, deliberately. The menu belongs to its column and goes
+       wherever the column goes, including off screen once the column is scrolled away —
+       clamping it to the viewport left it stranded on the left edge with its column long
+       gone. A menu that runs past the bottom of the window is scrolled to, not flipped. */
 
     /* Above .table-chrome, which sits at 4 inside .table-wrapper's stacking context. The
        top layer already covers this; kept for the fallback if the popover ever isn't open. */
@@ -74,48 +78,19 @@
     }
 }
 
-/* Fallbacks for the edges of the viewport.
-
-   The horizontal one clamps to the screen rather than flipping to the column's left edge.
-   Flipping is wrong here: the menu runs out of room on the left precisely when the table has
-   been scrolled right, and by then the column's left edge is further off screen than its
-   right — so flipping to it threw the menu off the screen entirely instead of rescuing it.
-   Pinning to left: 0 keeps it visible and as close to its column as there is room for.
-
-   border-radius cannot follow a fallback — @position-try takes only inset, margin, sizing and
-   self-alignment — so the square corner stays top-right even when flipped. */
-@position-try --column-menu-flip-up {
-    top: auto;
-    bottom: anchor(top);
-}
-
-@position-try --column-menu-clamp-left {
-    right: auto;
-    left: 0;
-}
-
-@position-try --column-menu-flip-up-clamp-left {
-    top: auto;
-    bottom: anchor(top);
-    right: auto;
-    left: 0;
-}
 
 /* On a phone the menu becomes a sheet across the bottom of the screen, rather than hanging
    off a column that may be narrower than a thumb. 600px is the width the rest of the app
    already treats as a small screen — see modal-backdrop.css, which gives dialogs the full
    screen at the same point.
 
-   The anchor is simply unused here: fixed insets replace it, and position-try-fallbacks has
-   to go with it, since those exist to keep an anchored menu on screen and would only fight
-   a sheet that is already pinned to all three edges. */
+   The anchor is simply unused here: fixed insets replace it. */
 @media (max-width: 600px) {
     #column-menu {
         top: auto;
         right: 0;
         bottom: 0;
         left: 0;
-        position-try-fallbacks: none;
         min-width: 0;
 
         /* the popover UA style is width: fit-content, which would otherwise win over
