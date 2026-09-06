@@ -3,6 +3,7 @@ import { renderTableRows } from './ui-functions-table/render-table-rows.js';
 import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
 import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
+import { closeColumnMenu } from './ui-functions-click/column-menu.js';
 
 /**
  * Orchestrates the rendering of the table view.
@@ -22,8 +23,18 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         ...FILE_PROPERTIES.get(propName)
     }));
 
+    // Every render replaces the rows, and a full one replaces the scroll container
+    // itself, so the horizontal scroll position has to be carried across. Reading it here
+    // covers every caller — filtering, pagination, sorting — rather than each of them
+    // having to remember. There is no scroller yet on the first render of the view.
+    const scrollLeft = document.querySelector('.list-table')?.scrollLeft ?? 0;
+
     if (fullRender) {
         // Where we want to generate full table including headers and scroll bar
+
+        // The header cell the menu anchors to is about to be replaced, which would leave
+        // an open menu attached to nothing.
+        closeColumnMenu();
 
         // Generate the dynamic header
         const headerHtml = renderTableHeader(TABLE_VIEW_COLUMNS.current_props);
@@ -31,14 +42,17 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         // Generate the dynamic rows
         const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
 
-        // Combine header and rows within the main table container
+        // The scrollbar and header sit in .table-chrome, ABOVE the scroll container,
+        // so they can stick to the viewport. Only the rows live inside .list-table.
         const tableHtml = `
         <div class="table-wrapper">
-            <div id="top-scrollbar-container">
-            <div id="top-scrollbar-content"></div>
+            <div class="table-chrome">
+                <div id="top-scrollbar-container">
+                <div id="top-scrollbar-content"></div>
+                </div>
+                ${headerHtml}
             </div>
             <div class="list-table">
-                ${headerHtml}
                 ${rowsHtml}
             </div>
         </div>
@@ -51,20 +65,14 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         initialScrollSync();
 
     } else {
-        // for sort or filter operations where we want to keep the header row so we don't lose horizontal scroll place
-        
-        const rowElementsToDelete = document.querySelectorAll(".note-table");
+        // for sort operations, where only the rows need replacing
 
-        for (const element of rowElementsToDelete) {
-            element.remove();
-        }
-
-        const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
-
-        const headerElement = document.querySelector(".note-table-header");
-        headerElement.insertAdjacentHTML('afterend', rowsHtml);
-
-        
-
+        document.querySelector(".list-table").innerHTML =
+            renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
     }
+
+    // Restored after initialScrollSync, whose read of scrollWidth settles layout first —
+    // assigning to a scroller the browser has not laid out yet would clamp to 0. The
+    // header follows on its own, being driven by the scroll position rather than by JS.
+    document.querySelector(".list-table").scrollLeft = scrollLeft;
 }

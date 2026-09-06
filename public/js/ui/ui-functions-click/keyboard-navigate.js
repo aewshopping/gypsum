@@ -54,6 +54,7 @@ new ResizeObserver(() => {
 export function handleKeyboardNavigate(evt) {
     const focused = document.activeElement;
     if (!focused?.classList.contains('keyboard-navigable')) return;
+    if (focused.isContentEditable) return; // an expanded cell: the keys belong to the caret
 
     const key = evt.key;
     if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Enter', ' ', 'PageDown', 'PageUp'].includes(key)) return;

@@ -12,6 +12,13 @@
     --btn-size-base: 30px;
     --btn-size-multiple: 1;
     --btn-size: calc(var(--btn-size-base) * var(--btn-size-multiple));
+
+    /* The sticky search row's height, and so the offset the table's own sticky header
+       comes to rest at. Declared rather than measured, so nothing has to observe the
+       row at runtime. Its contents are all sized from --btn-size, so this tracks the
+       button size setting; the padding is in em, so it tracks the app font size. */
+    --stick-top-padding: 0.625em;
+    --stick-top-height: calc(var(--btn-size) + 2 * var(--stick-top-padding));
     --fontfam-app-input: "Consolas", monospace;
     --fontfam-app-label: "Arial", "Helvetica", sans-serif;
     --fontfam-html: "Arial", "Helvetica", sans-serif;

@@ -1,0 +1,148 @@
+/* The column options menu, opened from a table header cell.
+
+   A popover, so it sits in the top layer: the header strip clips its overflow and
+   .table-wrapper is a containing block for fixed children, neither of which can reach it
+   there. Light dismiss, Escape and the backdrop all come from the browser.
+
+   Positioned by CSS anchor positioning against #column-menu-anchor, a zero-content proxy
+   that column-menu.js parks over the header cell it was opened from. The header carries a
+   scroll-driven transform and anchor positioning resolves against the pre-transform box, so
+   anchoring to the cell itself put the menu one scroll-offset away from its own column.
+   It hangs from the column's RIGHT edge, which is also the edge the trigger sits at: that
+   edge is necessarily on screen when you click it, so the menu cannot open off-view the
+   way a left-aligned one could once the table was scrolled. */
+
+#column-menu-anchor {
+    position: fixed;
+    anchor-name: --column-menu-anchor;
+    pointer-events: none;
+}
+
+#column-menu {
+    position: fixed;
+    position-anchor: --column-menu-anchor;
+    inset: auto;                  /* the UA stylesheet centres popovers with inset: 0 */
+    top: anchor(bottom);
+    right: anchor(right);
+    margin: 0;                    /* flush against the bottom edge of the header */
+
+    /* No position-try fallbacks, deliberately. The menu belongs to its column and goes
+       wherever the column goes, including off screen once the column is scrolled away —
+       clamping it to the viewport left it stranded on the left edge with its column long
+       gone. A menu that runs past the bottom of the window is scrolled to, not flipped. */
+
+    /* Above .table-chrome, which sits at 4 inside .table-wrapper's stacking context. The
+       top layer already covers this; kept for the fallback if the popover ever isn't open. */
+    z-index: 100;
+
+    flex-direction: column;
+    min-width: 150px;
+    padding: 4px;
+    background-color: var(--colour-neutral-alt);
+    color: var(--colour-contr);
+    border: 1px solid var(--colour-contr);
+
+    /* Square where it meets the header, rounded elsewhere, so it reads as hanging off the
+       column rather than floating near it. */
+    border-radius: 4px 0 4px 4px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+#column-menu:popover-open {
+    display: flex;
+}
+
+/* Enough to push the table back without the page reading as blocked. */
+#column-menu::backdrop {
+    background-color: rgb(0 0 0 / 0.25);
+}
+
+.column-menu-item {
+    background: none;
+    border: none;
+    border-radius: 3px;
+    padding: 7px 10px;
+    text-align: left;
+    font: inherit;
+    color: var(--colour-contr);
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        background-color: var(--colour-neutral);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+}
+
+
+/* On a phone the menu becomes a sheet across the bottom of the screen, rather than hanging
+   off a column that may be narrower than a thumb. 600px is the width the rest of the app
+   already treats as a small screen — see modal-backdrop.css, which gives dialogs the full
+   screen at the same point.
+
+   The anchor is simply unused here: fixed insets replace it. */
+@media (max-width: 600px) {
+    #column-menu {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        min-width: 0;
+
+        /* the popover UA style is width: fit-content, which would otherwise win over
+           stretching between left: 0 and right: 0 */
+        width: auto;
+
+        /* rounded where it rises off the bottom, flush at the edges it meets */
+        border-radius: 8px 8px 0 0;
+        border-width: 1px 0 0 0;
+    }
+
+    /* room for a thumb */
+    .column-menu-item {
+        padding: 12px 14px;
+    }
+
+    /* Slides up from the bottom edge, and back down on the way out. display and overlay have
+       to be transitioned too, with allow-discrete: without them the popover leaves the top
+       layer the instant it closes and the closing slide is never seen. Same construction as
+       the colour picker sheet in modal-color-picker.css. */
+    #column-menu {
+        transition: transform 0.2s ease-out,
+                    display 0.2s ease-out allow-discrete,
+                    overlay 0.2s ease-out allow-discrete;
+        transform: translateY(0);
+    }
+
+    /* the state it opens from... */
+    @starting-style {
+        #column-menu:popover-open {
+            transform: translateY(100%);
+        }
+    }
+
+    /* ...and the one it closes back to */
+    #column-menu:not(:popover-open) {
+        transform: translateY(100%);
+    }
+
+    #column-menu::backdrop {
+        transition: background-color 0.2s ease-out,
+                    display 0.2s allow-discrete,
+                    overlay 0.2s allow-discrete;
+    }
+
+    @starting-style {
+        #column-menu::backdrop {
+            background-color: rgb(0 0 0 / 0);
+        }
+    }
+
+    #column-menu:not(:popover-open)::backdrop {
+        background-color: rgb(0 0 0 / 0);
+    }
+}
