@@ -2,6 +2,7 @@ import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { appState, FILE_PROPERTIES } from '../../services/store.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { syncSortControls } from '../ui-elements-load/sort-select-load.js';
+import { markSortedColumn } from '../ui-functions-table/render-table-header.js';
 
 /**
  * Sorts files by the given property and direction, re-renders, updates sort state, and
@@ -17,4 +18,5 @@ export function applySortAndRender(sortProp, sortDirection) {
     renderFiles(false);
     Object.assign(appState.sortState, { property: sortProp, direction: sortDirection });
     syncSortControls();
+    markSortedColumn();
 }

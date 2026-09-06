@@ -3,7 +3,10 @@
  *
  * The menu itself is a single reused element declared in index.html. It is a popover, so
  * the browser handles the top layer, light dismiss, Escape and the backdrop; this module
- * only decides which column it belongs to. It is positioned by CSS anchor positioning (see
+ * only decides which column it belongs to.
+ *
+ * Opening it takes two clicks on the header cell, matching how a body cell is selected and
+ * then expanded: the first selects the column, the second opens its options. It is positioned by CSS anchor positioning (see
  * column-menu.css), so opening it means writing the matching anchor-name onto the header
  * cell it was opened from — by way of #column-menu-anchor, a proxy parked over that cell.
  *
@@ -74,31 +77,56 @@ export function closeColumnMenu() {
 }
 
 /**
- * Opens the menu against the header cell the trigger sits in.
- *
- * Note there is no toggle-closed on the trigger: light dismiss has already closed the
- * popover by the time this runs, so re-opening is all that is left to do. Clicking away or
- * pressing Escape closes it, both handled by the browser.
- * @param {MouseEvent} evt
- * @param {HTMLElement} trigger - The element carrying data-action="column-menu-open".
+ * Clears the selected header, wherever it is.
  * @returns {void}
  */
-export function handleColumnMenuOpen(evt, trigger) {
+export function clearHeaderSelection() {
+    document.querySelectorAll('.note-table-cell-header.is-selected')
+        .forEach(cell => cell.classList.remove('is-selected'));
+}
+
+/**
+ * Selects a header cell, or opens its options if it was already selected.
+ *
+ * Note there is no toggle-closed here: light dismiss has already closed the popover by the
+ * time this runs, so re-opening is all that is left to do. Clicking away or pressing Escape
+ * closes it, both handled by the browser.
+ * @param {MouseEvent} evt
+ * @param {HTMLElement} headerCell - The cell carrying data-action="column-menu-open".
+ * @returns {void}
+ */
+export function handleColumnMenuOpen(evt, headerCell) {
     const menu = menuElement();
-    const headerCell = trigger.closest('.note-table-cell-header');
-    if (!menu || !headerCell) return;
+    if (!menu) return;
+
+    const shouldOpen = headerCell.classList.contains('is-selected');
 
     closeColumnMenu();
+    clearHeaderSelection();
+    headerCell.classList.add('is-selected');
+
+    if (!shouldOpen) return;
 
     // Which column the menu is acting on. Read back by the item handlers below.
-    menu.dataset.property = trigger.dataset.property;
+    menu.dataset.property = headerCell.dataset.property;
 
-    // Over the cell rather than the trigger, so the menu lines up with the column's edge
-    // rather than the glyph's. Parked before showing, so the first paint is in place.
+    // Parked before showing, so the first paint is in place.
     _anchorCell = headerCell;
     moveAnchorTo(headerCell);
     document.addEventListener('scroll', trackAnchorCell, true);
     menu.showPopover();
+}
+
+/**
+ * Deselects the header when a click lands away from both the headers and the menu. Called
+ * for every click, alongside the delegated action handlers. The popover dismisses itself;
+ * this is only about the selection outline, which is ours.
+ * @param {MouseEvent} evt
+ * @returns {void}
+ */
+export function handleColumnHeaderClickOutside(evt) {
+    if (evt.target.closest('.note-table-cell-header, #column-menu')) return;
+    clearHeaderSelection();
 }
 
 /**

@@ -44,7 +44,7 @@ function updateColHoverRule(prop) {
     const val = prop ? `"${CSS.escape(prop)}"` : '""';
     sheet.deleteRule(index);
     sheet.insertRule(
-        `.note-table-header .note-table-cell-header:has([data-property=${val}]),` +
+        `.note-table-header .note-table-cell-header[data-property=${val}],` +
         `.list-table .note-table-cell[data-prop=${val}]` +
         `{ background-color: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))); }`,
         index
@@ -53,13 +53,13 @@ function updateColHoverRule(prop) {
 
 /**
  * Mouseover handler — highlights the column matching the hovered header cell.
- * Reads column identity from the existing [data-property] sort button.
+ * Reads column identity from the header cell's own [data-property].
  * Attach to document via event-listeners-add.js.
  * @param {MouseEvent} evt
  */
 export function handleTableColHover(evt) {
     const headerCell = evt.target.closest('.note-table-cell-header');
-    const prop = headerCell?.querySelector('[data-property]')?.dataset.property ?? null;
+    const prop = headerCell?.dataset.property ?? null;
     if (prop === _activeProp) return;
     _activeProp = prop;
     updateColHoverRule(prop);

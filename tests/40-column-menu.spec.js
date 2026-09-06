@@ -28,10 +28,10 @@ async function openTable(page) {
 const menu = page => page.locator('#column-menu');
 const titleHeader = page => page.locator('.note-table-cell-header', { hasText: 'title' });
 
-// The trigger is revealed on hover, which on touch means the first tap.
+// Two clicks on the header cell: the first selects the column, the second opens the menu.
 async function openMenuFor(page, header) {
-  await header.hover();
-  await header.locator('.column-menu-trigger').click();
+  await header.click();
+  await header.click();
   await expect(menu(page)).toBeVisible();
 }
 
@@ -131,7 +131,7 @@ test('the menu follows its column when the table is scrolled sideways', async ({
       const m = document.getElementById('column-menu').getBoundingClientRect();
       const prop = document.getElementById('column-menu').dataset.property;
       const c = [...document.querySelectorAll('.note-table-cell-header')]
-        .find(el => el.querySelector(`[data-property="${prop}"]`)).getBoundingClientRect();
+        .find(el => el.dataset.property === prop).getBoundingClientRect();
       return Math.round(m.right - c.right);
     })).toBe(0);
 
@@ -192,7 +192,7 @@ test('scrolling a column away clamps the menu on screen rather than throwing it 
     const m = document.getElementById('column-menu').getBoundingClientRect();
     const prop = document.getElementById('column-menu').dataset.property;
     const c = [...document.querySelectorAll('.note-table-cell-header')]
-      .find(el => el.querySelector(`[data-property="${prop}"]`)).getBoundingClientRect();
+      .find(el => el.dataset.property === prop).getBoundingClientRect();
     return { menuLeft: Math.round(m.left), menuRight: Math.round(m.right),
              colRight: Math.round(c.right), width: Math.round(m.width) };
   });
@@ -209,4 +209,63 @@ test('scrolling a column away clamps the menu on screen rather than throwing it 
     expect(g.menuRight, `at scrollLeft ${scrollLeft}`)
       .toBe(g.colRight >= g.width ? g.colRight : g.width);
   }
+});
+
+test('a header takes one click to select and a second to open its options', async ({ page }) => {
+  await openTable(page);
+  const header = titleHeader(page);
+
+  await header.click();
+  await expect(header).toHaveClass(/is-selected/);
+  await expect(menu(page)).toBeHidden();      // selecting alone opens nothing
+
+  await header.click();
+  await expect(menu(page)).toBeVisible();
+  await expect(header).toHaveClass(/is-selected/);   // and stays marked while open
+
+  // clicking away drops the selection
+  await page.locator('#output').click({ position: { x: 5, y: 5 } });
+  await expect(page.locator('.note-table-cell-header.is-selected')).toHaveCount(0);
+});
+
+test('only the column driving the sort shows a chevron', async ({ page }) => {
+  await openTable(page);
+
+  const shown = () => page.evaluate(() =>
+    [...document.querySelectorAll('.note-table-cell-header')]
+      .filter(c => getComputedStyle(c.querySelector('.column-sort-indicator')).visibility === 'visible')
+      .map(c => c.dataset.property));
+
+  // the default sort owns the only chevron on screen
+  expect(await shown()).toEqual(['lastModified']);
+
+  // hovering must not reveal any others
+  await titleHeader(page).hover();
+  expect(await shown()).toEqual(['lastModified']);
+
+  // selecting must not either
+  await titleHeader(page).click();
+  expect(await shown()).toEqual(['lastModified']);
+
+  // sorting moves it, and it stays the only one
+  await openMenuFor(page, titleHeader(page));
+  await page.locator('[data-action="column-sort-asc"]').click();
+  await expect.poll(shown).toEqual(['title']);
+});
+
+test('hovering a header still highlights its column', async ({ page }) => {
+  await openTable(page);
+
+  // data-property moved from the chevron onto the header cell, which is what the column
+  // highlight reads — easy to break silently
+  const backgrounds = () => page.evaluate(() => ({
+    tags: getComputedStyle(document.querySelector('.note-table-cell[data-prop="tags"]')).backgroundColor,
+    title: getComputedStyle(document.querySelector('.note-table-cell[data-prop="title"]')).backgroundColor,
+  }));
+
+  const before = await backgrounds();
+  await page.locator('.note-table-cell-header', { hasText: 'tags' }).hover();
+
+  await expect.poll(async () => (await backgrounds()).tags).not.toBe(before.tags);
+  expect((await backgrounds()).title).toBe(before.title);   // only the hovered column
 });

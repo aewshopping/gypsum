@@ -82,10 +82,10 @@ test('the table keeps its horizontal scroll position when it re-renders', async 
     await page.locator('.note-table-cell[data-prop="tags"] [data-action="tag-filter"]').first().evaluate(el => el.click());
   });
 
-  // sorting goes through the partial path, which replaces only the rows. Two clicks now:
-  // the header trigger opens the column menu, and the menu item does the sorting.
+  // sorting goes through the partial path, which replaces only the rows. Three clicks now:
+  // the header cell selects, opens the column menu, then the menu item does the sorting.
   await survives('sort', async () => {
-    await page.locator('.column-menu-trigger').first().evaluate(el => el.click());
+    await page.locator('.note-table-cell-header').first().evaluate(el => { el.click(); el.click(); });
     await page.locator('[data-action="column-sort-asc"]').evaluate(el => el.click());
   });
 });

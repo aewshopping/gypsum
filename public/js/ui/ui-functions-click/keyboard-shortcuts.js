@@ -14,6 +14,7 @@ import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
 import { toggleWrapSelection } from '../../editing/wrap-selection.js';
 import { clearExpandedCells } from './cell-expand.js';
+import { clearHeaderSelection } from './column-menu.js';
 import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
 import { appState } from '../../services/store.js';
@@ -144,6 +145,7 @@ export function handleKeyboardShortcuts(evt) {
             searchbox.blur(); // Removes focus from the element
         }
         clearExpandedCells();
+        clearHeaderSelection();
     }
 
     if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {

@@ -167,24 +167,26 @@
 
     &:hover {
         background-color: var(--colour-neutral-alt);
-
-        .column-menu-trigger {
-            visibility: visible;
-            cursor: pointer;
-        }
     }
 }
 
-.column-menu-trigger {
-    padding: 6px;
-    visibility: hidden;
+/* Clicking a header selects it, clicking again opens its options — the same two steps as a
+   body cell. outline rather than border, so selecting never nudges the layout. */
+.note-table-cell-header.is-selected {
+    outline: 2px solid var(--colour-contr);
+    outline-offset: -2px;
+}
 
-    background: none;
-    border: none;
-    font: inherit;
-    color: inherit;
+/* No longer a control: it marks the column driving the sort. Hidden everywhere else,
+   including on hover, so the only chevron on screen is the one that means something. */
+.column-sort-indicator {
+    padding: 6px;
     line-height: 1;
-    cursor: pointer;
+    visibility: hidden;
+}
+
+.note-table-cell-header[data-sorted] .column-sort-indicator {
+    visibility: visible;
 }
 
 .table-view-array-list{
@@ -194,7 +196,7 @@
 }
 
 /* column hover — selector managed by table-col-hover.js */
-.note-table-header .note-table-cell-header:has([data-property=""]),
+.note-table-header .note-table-cell-header[data-property=""],
 .list-table .note-table-cell[data-prop=""] {
     background-color: if(
         style(--colours-suppress: true): var(--colour-neutral-alt);
