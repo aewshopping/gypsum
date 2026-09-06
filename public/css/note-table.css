@@ -159,8 +159,15 @@
     }
 }
 
+/* A <button>, so it is in the tab order and Enter reaches the same handler as a click. That
+   means undoing what the UA sheet gives a button: its plate, its border, its centred text and
+   its own text colour. font: inherit is already handled for every button in base.css. */
 .note-table-cell-header {
     overflow: hidden;
+    background-color: transparent;
+    color: inherit;
+    text-align: left;
+    border: none;
     border-right: var(--table-line);
     border-bottom: var(--table-line);
     padding: 6px;

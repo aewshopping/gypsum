@@ -28,9 +28,11 @@ for (const [label, url] of [['development', '/'], ['bundled build', '/dist/view-
 
     const bg = locator => locator.evaluate(el => getComputedStyle(el).backgroundColor);
 
-    // the view transition leaves computed styles empty for a moment after the switch
-    await expect.poll(() => bg(titleCell)).not.toBe('');
-    const unhighlighted = await bg(titleCell);
+    // The view transition leaves computed styles empty for a moment after the switch. The
+    // polled value is what gets kept, rather than being read again once the poll passes:
+    // the re-read is its own frame, and under load it lands back on the empty one.
+    let unhighlighted = '';
+    await expect.poll(async () => (unhighlighted = await bg(titleCell))).not.toBe('');
 
     await page.locator('.note-table-cell-header').filter({ hasText: 'title' }).first().hover();
     await expect.poll(() => bg(titleCell)).not.toBe(unhighlighted);

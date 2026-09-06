@@ -15,6 +15,11 @@ import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
  * the menu. The chevron is no longer a control — it marks the column driving the sort, and
  * CSS shows it only on the cell carrying data-sorted.
  *
+ * It is a <button> so that the keyboard reaches it for free: it is in the tab order, and Enter
+ * or Space fires a click, which is the same event the delegated data-action handler already
+ * answers. Nothing keyboard-specific is written anywhere. That also forces the chevron to be a
+ * span — a button may only contain phrasing content, so a div inside one is invalid.
+ *
  * @param {Array<object>} current_props - The properties to render as column headers.
  * @returns {string} The HTML string for the table header strip.
  */
@@ -26,7 +31,7 @@ export function renderTableHeader(current_props) {
             const sorted = prop.name === appState.sortState.property
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
-            return `<div class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.name}<span class="flexgrow"> </span><div class="column-sort-indicator">˅</div></div>`;
+            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.name}<span class="flexgrow"> </span><span class="column-sort-indicator">˅</span></button>`;
         })
         .join('');
 

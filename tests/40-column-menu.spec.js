@@ -353,3 +353,37 @@ test('opening the menu puts focus on its first item, so it can be tabbed through
   await page.keyboard.press('Tab');
   expect(await focused()).toBe('resize column');
 });
+
+test('a header cell is reachable by keyboard, and Enter does what a click does', async ({ page }) => {
+  await openTable(page);
+
+  // a real <button>, which is what puts it in the tab order and makes Enter fire a click
+  expect(await titleHeader(page).evaluate(el => el.tagName)).toBe('BUTTON');
+
+  // tab in from the search box, forward only, stopping at the first header cell
+  await page.locator('#searchbox').focus();
+  const focusedProp = () => page.evaluate(() => document.activeElement?.dataset?.property ?? null);
+  for (let i = 0; i < 10 && !(await focusedProp()); i++) await page.keyboard.press('Tab');
+  expect(await focusedProp()).toBe('filename');
+
+  // Tab walks along the columns
+  await page.keyboard.press('Tab');
+  expect(await focusedProp()).toBe('title');
+
+  // first Enter selects, exactly as a first click does
+  await page.keyboard.press('Enter');
+  await expect(titleHeader(page)).toHaveClass(/is-selected/);
+  await expect(menu(page)).toBeHidden();
+  expect(await titleHeader(page).getAttribute('data-tip')).toBe('column options');
+
+  // second Enter opens the menu, and focus carries into it
+  await page.keyboard.press('Enter');
+  await expect(menu(page)).toBeVisible();
+  expect(await menu(page).getAttribute('data-property')).toBe('title');
+  expect(await page.evaluate(() => document.activeElement?.textContent)).toBe('sort A-Z');
+
+  // Escape closes it and hands focus back to the column it came from
+  await page.keyboard.press('Escape');
+  await expect(menu(page)).toBeHidden();
+  expect(await focusedProp()).toBe('title');
+});
