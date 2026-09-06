@@ -25,15 +25,17 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         ...FILE_PROPERTIES.get(propName)
     }));
 
-    // Covers both paths below: a full render rebuilds the header from defaults, and a
-    // partial one leaves --grid-columns alone, so any dragged width has to be re-applied here.
-    applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
-
     // Every render replaces the rows, and a full one replaces the scroll container
     // itself, so the horizontal scroll position has to be carried across. Reading it here
     // covers every caller — filtering, pagination, sorting — rather than each of them
     // having to remember. There is no scroller yet on the first render of the view.
     const scrollLeft = document.querySelector('.list-table')?.scrollLeft ?? 0;
+
+    // Covers both paths below: a full render rebuilds the header from defaults, and a
+    // partial one leaves --grid-columns alone, so any dragged width has to be re-applied.
+    // After the scrollLeft read, not before: changing the tracks resizes the scroller, and
+    // a narrower one clamps its own scrollLeft — which is the value being carried across.
+    applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
 
     if (fullRender) {
         // Where we want to generate full table including headers and scroll bar

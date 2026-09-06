@@ -24,6 +24,12 @@
 
 import { applySortAndRender } from './sort-object.js';
 
+/** What a header cell's tooltip says before it is selected: one click highlights the column. */
+export const HEADER_TIP_IDLE = 'highlight column';
+
+/** And after, when a second click is what opens the menu. */
+export const HEADER_TIP_SELECTED = 'column options';
+
 let _menu = null;      // the elements from index.html, looked up on first use
 let _proxy = null;
 let _anchorCell = null;   // the header cell the proxy is tracking while the menu is open
@@ -77,12 +83,16 @@ export function closeColumnMenu() {
 }
 
 /**
- * Clears the selected header, wherever it is.
+ * Clears the selected header, wherever it is, and puts its tooltip back to what a click on
+ * an unselected column now does.
  * @returns {void}
  */
 export function clearHeaderSelection() {
     document.querySelectorAll('.note-table-cell-header.is-selected')
-        .forEach(cell => cell.classList.remove('is-selected'));
+        .forEach(cell => {
+            cell.classList.remove('is-selected');
+            cell.dataset.tip = HEADER_TIP_IDLE;
+        });
 }
 
 /**
@@ -104,6 +114,7 @@ export function handleColumnMenuOpen(evt, headerCell) {
     closeColumnMenu();
     clearHeaderSelection();
     headerCell.classList.add('is-selected');
+    headerCell.dataset.tip = HEADER_TIP_SELECTED; // a second click opens the menu, not a highlight
 
     if (!shouldOpen) return;
 
@@ -115,6 +126,10 @@ export function handleColumnMenuOpen(evt, headerCell) {
     moveAnchorTo(headerCell);
     document.addEventListener('scroll', trackAnchorCell, true);
     menu.showPopover();
+
+    // Showing a popover does not move focus on its own. Putting it on the first item is what
+    // makes the menu tabbable, and gives Escape something to return focus from.
+    menu.querySelector('.column-menu-item:not(:disabled)')?.focus();
 }
 
 /**

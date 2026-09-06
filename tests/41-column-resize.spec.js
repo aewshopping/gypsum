@@ -54,14 +54,14 @@ test('the resizer appears on the column edge, with its tooltip, and nothing else
   // the menu closed behind it
   await expect(page.locator('#column-menu')).toBeHidden();
 
-  // centred on the cell's right edge, and exactly as tall as the cell
+  // flush inside its own column's right edge, and exactly as tall as the cell
   const { bar: b, cell: c } = await page.evaluate(() => {
     const bb = document.getElementById('column-resizer').getBoundingClientRect();
     const cc = [...document.querySelectorAll('.note-table-cell-header')]
       .find(el => el.dataset.property === 'title').getBoundingClientRect();
     return { bar: { left: bb.left, top: bb.top, width: bb.width, height: bb.height }, cell: { right: cc.right, top: cc.top, height: cc.height } };
   });
-  expect(Math.abs((b.left + b.width / 2) - c.right)).toBeLessThanOrEqual(1);
+  expect(Math.abs((b.left + b.width) - c.right)).toBeLessThanOrEqual(1);
   expect(Math.abs(b.top - c.top)).toBeLessThanOrEqual(1);
   expect(Math.abs(b.height - c.height)).toBeLessThanOrEqual(1);
   expect(b.width).toBeGreaterThan(2);
@@ -97,7 +97,7 @@ test('the resizer stays glued to its column edge while the table scrolls sideway
     const b = document.getElementById('column-resizer').getBoundingClientRect();
     const c = [...document.querySelectorAll('.note-table-cell-header')]
       .find(el => el.dataset.property === 'title').getBoundingClientRect();
-    return Math.abs((b.left + b.width / 2) - c.right);
+    return Math.abs((b.left + b.width) - c.right);
   });
   expect(after).toBeLessThanOrEqual(1);
 });

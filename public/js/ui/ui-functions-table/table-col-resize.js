@@ -49,7 +49,9 @@ function headerCellFor(property) {
 }
 
 /**
- * Parks the bar over the right edge of the cell it belongs to, straddling the cell's border.
+ * Parks the bar against the right edge of the cell it belongs to. It ends where the cell
+ * ends, covering the cell's own border from the inside, so it never bleeds into the column
+ * next door.
  * @returns {void}
  */
 function parkBar() {
@@ -57,7 +59,7 @@ function parkBar() {
     if (!bar || !_cell) return;
 
     const rect = _cell.getBoundingClientRect();
-    bar.style.left = `${rect.right - bar.offsetWidth / 2}px`;
+    bar.style.left = `${rect.right - bar.offsetWidth}px`;
     bar.style.top = `${rect.top}px`;
     bar.style.height = `${rect.height}px`;
 }

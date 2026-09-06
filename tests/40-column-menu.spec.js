@@ -206,9 +206,13 @@ test('a column scrolled out of view takes its menu with it', async ({ page }) =>
     }, { message: `menu left its column at scrollLeft ${scrollLeft}` }).toBe(0);
   }
 
-  // and it is genuinely off the left edge by now rather than pinned to it — the clamp this
-  // replaced held menuLeft at exactly 0 with the column long gone
-  expect((await edges()).menuLeft).toBeLessThan(0);
+  // And it is genuinely off the left edge by now rather than pinned to it — the clamp this
+  // replaced held menuLeft at exactly 0 with the column long gone.
+  //
+  // Polled rather than read once: the menu and its column move together, so the alignment
+  // check above is satisfied even on a frame where neither has taken the scroll yet. Under
+  // load that frame is what the read used to land on, with the menu still where it opened.
+  await expect.poll(async () => (await edges()).menuLeft).toBeLessThan(0);
 });
 
 test('a header takes one click to select and a second to open its options', async ({ page }) => {
@@ -312,4 +316,40 @@ test('search column primes the search box for that property', async ({ page }) =
   await expect.poll(() => page.evaluate(() =>
     [...document.querySelectorAll('#filter-box *')].some(e => e.textContent.includes('tags:project'))
   )).toBe(true);
+});
+
+test('the header tooltip says what the next click will do', async ({ page }) => {
+  await openTable(page);
+  const header = titleHeader(page);
+  const tip = () => header.getAttribute('data-tip');
+
+  expect(await tip()).toBe('highlight column');
+
+  await header.click();                      // selects the column
+  expect(await tip()).toBe('column options');
+
+  await header.click();                      // opens the menu, still selected
+  await expect(menu(page)).toBeVisible();
+  expect(await tip()).toBe('column options');
+
+  // selecting a different column hands the idle tip back
+  const other = page.locator('.note-table-cell-header', { hasText: 'filename' });
+  await other.click();
+  expect(await tip()).toBe('highlight column');
+  expect(await other.getAttribute('data-tip')).toBe('column options');
+});
+
+test('opening the menu puts focus on its first item, so it can be tabbed through', async ({ page }) => {
+  await openTable(page);
+  await openMenuFor(page, titleHeader(page));
+
+  const focused = () => page.evaluate(() => document.activeElement?.textContent);
+  expect(await focused()).toBe('sort A-Z');
+
+  await page.keyboard.press('Tab');
+  expect(await focused()).toBe('sort Z-A');
+  await page.keyboard.press('Tab');
+  expect(await focused()).toBe('search column');
+  await page.keyboard.press('Tab');
+  expect(await focused()).toBe('resize column');
 });
