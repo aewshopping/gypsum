@@ -86,6 +86,7 @@
 
 .note-table-cell {
     overflow: hidden;
+    text-wrap: nowrap;
     border-top: var(--table-line);
     border-right: var(--table-line);
     padding: 6px;
@@ -183,7 +184,8 @@
     padding: 6px;
     line-height: 1;
     visibility: hidden;
-    rotate: -90deg
+    rotate: -90deg;
+    transition: rotate 0.15s ease;
 }
 
 .note-table-cell-header[data-sorted] .column-sort-indicator {
@@ -193,10 +195,6 @@
 /* The glyph points down as drawn, which reads as descending; ascending flips it. */
 .note-table-cell-header[data-sorted="asc"] .column-sort-indicator {
     rotate: 90deg;
-}
-
-.column-sort-indicator {
-    transition: rotate 0.15s ease;
 }
 
 .table-view-array-list{
