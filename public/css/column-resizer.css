@@ -10,7 +10,7 @@
 #column-resizer {
     position: fixed;
     width: 5px;
-    background-color: var(--colour-highlight);
+    background-color: var(--colour-contr-emph);
     cursor: col-resize;
 
     /* Or the table's horizontal scroller claims the gesture before pointermove arrives. */
