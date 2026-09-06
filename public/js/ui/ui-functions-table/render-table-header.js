@@ -31,7 +31,7 @@ export function renderTableHeader(current_props) {
             const sorted = prop.name === appState.sortState.property
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
-            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.name}<span class="flexgrow"> </span><span class="column-sort-indicator">˅</span></button>`;
+            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.name}<span class="flexgrow"> </span><span class="column-sort-indicator">➜</span></button>`;
         })
         .join('');
 

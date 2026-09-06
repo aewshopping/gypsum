@@ -3,7 +3,7 @@
 
     /* The grid lines, between rows and between columns. Deliberately faint: they should separate
        the cells without ruling the table. */
-    --table-line: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
+    --table-line: 0.5px solid color-mix(in srgb, var(--colour-contr) 10%, transparent);
 }
 
 .table-wrapper {
@@ -86,6 +86,7 @@
 
 .note-table-cell {
     overflow: hidden;
+    text-wrap: nowrap;
     border-top: var(--table-line);
     border-right: var(--table-line);
     padding: 6px;
@@ -103,6 +104,7 @@
    editable, hence the text cursor over the row's default one. */
 .note-table-cell.is-expanded {
     cursor: text;
+    text-wrap: wrap;
     position: absolute;
     top: 0;
     left: 0;
@@ -164,6 +166,7 @@
    its own text colour. font: inherit is already handled for every button in base.css. */
 .note-table-cell-header {
     overflow: hidden;
+    text-wrap: nowrap;
     background-color: transparent;
     color: inherit;
     text-align: left;
@@ -190,6 +193,8 @@
     padding: 6px;
     line-height: 1;
     visibility: hidden;
+    rotate: -90deg;
+    transition: rotate 0.15s ease;
 }
 
 .note-table-cell-header[data-sorted] .column-sort-indicator {
@@ -198,11 +203,7 @@
 
 /* The glyph points down as drawn, which reads as descending; ascending flips it. */
 .note-table-cell-header[data-sorted="asc"] .column-sort-indicator {
-    rotate: 180deg;
-}
-
-.column-sort-indicator {
-    transition: rotate 0.15s ease;
+    rotate: 90deg;
 }
 
 .table-view-array-list{
