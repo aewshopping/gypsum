@@ -10,9 +10,11 @@
  * bar overlaying the cell's own right border would be clipped by it.
  *
  * Its cost is that a fixed element does not follow the cell on its own, so the bar re-parks
- * itself while scrolling. The listener is on the document in the capture phase because scroll
- * events do not bubble — one listener then covers the page, the table's own horizontal
- * scroller and anything in between.
+ * itself whenever the cell might have moved. Scrolling is caught on the document in the capture
+ * phase, because scroll events do not bubble — one listener then covers the page, the table's
+ * own horizontal scroller and anything in between. Everything else is caught by watching the
+ * size of #output: opening the recent files panel, for one, sets body's padding-inline-start,
+ * which moves and narrows the table without firing a scroll or a window resize at all.
  *
  * Pointer events, not mouse events: mousedown is synthesised on touch, but no mousemove is
  * fired during a finger drag, so a mouse-event drag loop gets a press and a release with
@@ -25,6 +27,13 @@ import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/col
 import { showTooltipFor, hideTooltip } from '../tooltip.js';
 import { applyColumnWidths, columnWidthPx } from './apply-column-widths.js';
 import { syncScrollbarWidth } from './table-scrollbar-sync.js';
+
+/**
+ * Re-parks the bar when the page is re-laid-out under it. #output is watched rather than the
+ * table, because it is declared in index.html and so survives the renders that replace the
+ * table wholesale. Only connected while the bar is on screen.
+ */
+const _layoutObserver = new ResizeObserver(() => parkBar());
 
 let _bar = null;      // the element from index.html, looked up on first use
 let _prop = null;     // the column the bar belongs to, null when hidden
@@ -74,7 +83,7 @@ function hideResizer() {
     if (bar) bar.classList.remove('visible');
 
     document.removeEventListener('scroll', parkBar, true);
-    window.removeEventListener('resize', parkBar);
+    _layoutObserver.disconnect();
     _prop = null;
     _cell = null;
 }
@@ -103,7 +112,7 @@ export function handleColumnResizeActivate() {
     parkBar();
 
     document.addEventListener('scroll', parkBar, true);
-    window.addEventListener('resize', parkBar);
+    _layoutObserver.observe(document.getElementById('output'));
 
     showTooltipFor(bar);
 }
