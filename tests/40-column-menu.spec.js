@@ -62,9 +62,9 @@ test('the menu opens against the header cell it was launched from', async ({ pag
     return !!el?.closest('#column-menu');
   })).toBe(true);
 
-  // the three unbuilt options are present but inert
+  // the three unbuilt options are present but inert; sort asc/desc and search are live
   await expect(menu(page).locator('button[disabled]')).toHaveCount(3);
-  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(2);
+  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(3);
 });
 
 test('sorting from the menu also updates the sort dropdown and direction', async ({ page }) => {
@@ -268,4 +268,48 @@ test('hovering a header still highlights its column', async ({ page }) => {
 
   await expect.poll(async () => (await backgrounds()).tags).not.toBe(before.tags);
   expect((await backgrounds()).title).toBe(before.title);   // only the hovered column
+});
+
+test('the chevron points down for descending and up for ascending', async ({ page }) => {
+  await openTable(page);
+
+  const chevron = () => page.evaluate(() => {
+    const c = [...document.querySelectorAll('.note-table-cell-header')].find(el => el.dataset.sorted);
+    return { direction: c.dataset.sorted,
+             rotate: getComputedStyle(c.querySelector('.column-sort-indicator')).rotate };
+  });
+
+  // the default sort is descending, and the glyph is drawn pointing down
+  expect(await chevron()).toEqual({ direction: 'desc', rotate: 'none' });
+
+  await openMenuFor(page, titleHeader(page));
+  await page.locator('[data-action="column-sort-asc"]').click();
+  await expect.poll(chevron).toEqual({ direction: 'asc', rotate: '180deg' });
+
+  await openMenuFor(page, titleHeader(page));
+  await page.locator('[data-action="column-sort-desc"]').click();
+  await expect.poll(chevron).toEqual({ direction: 'desc', rotate: 'none' });
+});
+
+test('search column primes the search box for that property', async ({ page }) => {
+  await openTable(page);
+
+  await openMenuFor(page, page.locator('.note-table-cell-header', { hasText: 'tags' }));
+  await page.locator('[data-action="column-search"]').click();
+
+  expect(await page.evaluate(() => {
+    const sb = document.getElementById('searchbox');
+    return { value: sb.value, focused: document.activeElement === sb, caret: sb.selectionStart };
+  })).toEqual({ value: 'tags:', focused: true, caret: 5 });
+
+  // acting closes the menu and drops the selection, like the sort items
+  await expect(menu(page)).toBeHidden();
+  await expect(page.locator('.note-table-cell-header.is-selected')).toHaveCount(0);
+
+  // and the value typed after it filters on that property, not across all of them
+  await page.keyboard.type('project');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.evaluate(() =>
+    [...document.querySelectorAll('#filter-box *')].some(e => e.textContent.includes('tags:project'))
+  )).toBe(true);
 });

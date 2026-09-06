@@ -16,7 +16,7 @@ import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
-import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
+import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -100,6 +100,7 @@ const clickActionHandlers = {
     'column-menu-open': handleColumnMenuOpen,
     'column-sort-asc': handleColumnSortAsc,
     'column-sort-desc': handleColumnSortDesc,
+    'column-search': handleColumnSearch,
     'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,

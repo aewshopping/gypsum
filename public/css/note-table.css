@@ -189,6 +189,15 @@
     visibility: visible;
 }
 
+/* The glyph points down as drawn, which reads as descending; ascending flips it. */
+.note-table-cell-header[data-sorted="asc"] .column-sort-indicator {
+    rotate: 180deg;
+}
+
+.column-sort-indicator {
+    transition: rotate 0.15s ease;
+}
+
 .table-view-array-list{
     list-style-type: "- ";
     padding-left:12px;

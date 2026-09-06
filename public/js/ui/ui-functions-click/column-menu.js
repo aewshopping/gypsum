@@ -156,3 +156,22 @@ export function handleColumnSortAsc() {
 export function handleColumnSortDesc() {
     sortMenuColumn('desc');
 }
+
+/**
+ * Primes the search box to search within the menu's column, leaving the caret after the
+ * property so the value can be typed straight away. "title:" is the same property:value
+ * syntax the box already parses, so nothing new has to understand it.
+ * @returns {void}
+ */
+export function handleColumnSearch() {
+    const property = menuElement()?.dataset.property;
+    const searchbox = document.getElementById('searchbox');
+    if (!property || !searchbox) return;
+
+    closeColumnMenu();
+    clearHeaderSelection();
+
+    searchbox.value = `${property}:`;
+    searchbox.focus();
+    searchbox.setSelectionRange(searchbox.value.length, searchbox.value.length);
+}
