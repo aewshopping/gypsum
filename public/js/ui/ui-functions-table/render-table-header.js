@@ -26,7 +26,7 @@ export function renderTableHeader(current_props) {
             const sorted = prop.name === appState.sortState.property
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
-            return `<div class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.name}<span class="flexgrow"> </span><div class="column-sort-indicator">˅</div></div>`;
+            return `<div class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.name}<span class="flexgrow"> </span><div class="column-sort-indicator">➜</div></div>`;
         })
         .join('');
 
