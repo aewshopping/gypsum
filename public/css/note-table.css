@@ -162,6 +162,7 @@
 
 .note-table-cell-header {
     overflow: hidden;
+    text-wrap: nowrap;
     border-right: var(--table-line);
     border-bottom: var(--table-line);
     padding: 6px;
