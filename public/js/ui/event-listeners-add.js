@@ -18,6 +18,7 @@ import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, initColumnResizer } from './ui-functions-table/table-col-resize.js';
+import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -58,6 +59,7 @@ import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-func
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
+import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
 import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-click/cell-expand.js';
 import { initTooltip } from './tooltip.js';
 
@@ -75,6 +77,7 @@ export function addActionHandlers() {
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
     document.addEventListener('mouseover', handleTableColHover);
+    document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
             evt.preventDefault();
@@ -104,6 +107,7 @@ const clickActionHandlers = {
     'column-sort-desc': handleColumnSortDesc,
     'column-search': handleColumnSearch,
     'column-resize': handleColumnResizeActivate,
+    'column-auto-size': handleColumnAutoSize,
     'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,

@@ -62,9 +62,9 @@ test('the menu opens against the header cell it was launched from', async ({ pag
     return !!el?.closest('#column-menu');
   })).toBe(true);
 
-  // the two unbuilt options are present but inert; sort asc/desc, search and resize are live
-  await expect(menu(page).locator('button[disabled]')).toHaveCount(2);
-  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(4);
+  // "hide column" is present but inert; everything else in the menu is live
+  await expect(menu(page).locator('button[disabled]')).toHaveCount(1);
+  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(5);
 });
 
 test('sorting from the menu also updates the sort dropdown and direction', async ({ page }) => {
@@ -122,7 +122,26 @@ test('the menu follows its column when the table is scrolled sideways', async ({
   // against the pre-transform box — hence the proxy the menu actually anchors to.
   for (const scrollLeft of [0, 100, 99999]) {
     await page.evaluate(x => { document.querySelector('.list-table').scrollLeft = x; }, scrollLeft);
-    const header = page.locator('.note-table-cell-header').last();
+
+    // The header follows the table through a scroll-driven animation, so let it land before
+    // measuring anything against it.
+    await expect.poll(() => page.evaluate(() => {
+      const h = document.querySelector('.note-table-cell-header[data-property="filename"]');
+      const c = document.querySelector('.list-table .note-table-cell[data-prop="filename"]');
+      return Math.round(h.getBoundingClientRect().left - c.getBoundingClientRect().left);
+    })).toBe(0);
+
+    // Whichever column is on screen at this offset. It used to be the last one at every
+    // offset, which only worked because the header strip was a scroll container and the
+    // click scrolled it — the very drift the strip's overflow: clip now prevents. Reaching
+    // an off-screen column means scrolling the table, which is what these offsets do.
+    const prop = await page.evaluate(() => {
+      const t = document.querySelector('.list-table').getBoundingClientRect();
+      return [...document.querySelectorAll('.note-table-cell-header')]
+        .find(h => { const r = h.getBoundingClientRect(); return r.left >= t.left && r.right <= t.right; })
+        ?.dataset.property;
+    });
+    const header = page.locator(`.note-table-cell-header[data-property="${prop}"]`);
     await openMenuFor(page, header);
 
     await expect.poll(() => page.evaluate(() => {
@@ -130,7 +149,7 @@ test('the menu follows its column when the table is scrolled sideways', async ({
       const prop = document.getElementById('column-menu').dataset.property;
       const c = [...document.querySelectorAll('.note-table-cell-header')]
         .find(el => el.dataset.property === prop).getBoundingClientRect();
-      return Math.round(m.right - c.right);
+      return Math.abs(Math.round(m.right - c.right));   // abs: Math.round(-0.4) is -0, and toBe is Object.is
     })).toBe(0);
 
     await page.keyboard.press('Escape');
@@ -202,7 +221,7 @@ test('a column scrolled out of view takes its menu with it', async ({ page }) =>
     await page.evaluate(x => { document.querySelector('.list-table').scrollLeft = x; }, scrollLeft);
     await expect.poll(async () => {
       const e = await edges();
-      return e.menuRight - e.colRight;
+      return Math.abs(e.menuRight - e.colRight);   // abs, for the same -0 reason as above
     }, { message: `menu left its column at scrollLeft ${scrollLeft}` }).toBe(0);
   }
 
@@ -352,6 +371,67 @@ test('opening the menu puts focus on its first item, so it can be tabbed through
   expect(await focused()).toBe('search column');
   await page.keyboard.press('Tab');
   expect(await focused()).toBe('resize column');
+});
+
+test('tabbing along the headers scrolls the table, keeping them over their columns', async ({ page }) => {
+  // Narrow enough that the last columns start off screen, which is what triggers it.
+  await page.setViewportSize({ width: 800, height: 700 });
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await showFilenames(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  // Every header cell against the column it belongs to, plus the strip's own scroll offset.
+  // The strip used to be overflow: hidden, so focusing an off-screen header had the browser
+  // scroll THAT instead of the table, sliding the whole header row off its columns.
+  const alignment = () => page.evaluate(() => ({
+    drift: [...document.querySelectorAll('.note-table-cell-header')].map(h => {
+      const c = document.querySelector(`.list-table .note-table-cell[data-prop="${h.dataset.property}"]`);
+      return Math.round(h.getBoundingClientRect().left - c.getBoundingClientRect().left);
+    }),
+    stripScrollLeft: document.querySelector('.note-table-header-strip').scrollLeft,
+    focused: document.activeElement?.dataset?.property ?? null,
+    focusedOnScreen: (() => {
+      const c = document.activeElement?.closest?.('.note-table-cell-header')?.getBoundingClientRect();
+      if (!c) return null;
+      const t = document.querySelector('.list-table').getBoundingClientRect();
+      return c.left >= t.left - 1 && c.right <= t.right + 1;
+    })(),
+  }));
+
+  await page.locator('#searchbox').focus();
+  const seen = [];
+  for (let i = 0; i < 14; i++) {
+    await page.keyboard.press('Tab');
+    const state = await alignment();
+    if (!state.focused) continue;
+    seen.push(state.focused);
+
+    // Polled: the header tracks the table through a scroll-driven animation, which settles on
+    // the next frame rather than with the assignment to scrollLeft. Both assertions in one
+    // poll — the header is in line with its columns, and the focused one is on screen,
+    // because the table is what scrolled to reveal it.
+    await expect.poll(async () => {
+      const { drift, focusedOnScreen } = await alignment();
+      return { drift, focusedOnScreen };
+    }, { message: `header out of line, or off screen, when ${state.focused} took focus` })
+      .toEqual({ drift: [0, 0, 0, 0, 0], focusedOnScreen: true });
+
+    expect(state.stripScrollLeft).toBe(0);
+  }
+
+  // and it really did walk past the columns that start off screen
+  expect(seen).toContain('lastModified');
+  expect(seen).toContain('sizeInBytes');
+
+  // Shift-Tab back brings the earlier columns back, still in line
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Shift+Tab');
+    if ((await alignment()).focused)
+      await expect.poll(async () => (await alignment()).drift).toEqual([0, 0, 0, 0, 0]);
+  }
 });
 
 test('a header cell is reachable by keyboard, and Enter does what a click does', async ({ page }) => {
