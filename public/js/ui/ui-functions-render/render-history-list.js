@@ -38,10 +38,10 @@ export function renderHistoryList(files) {
     const rows = files.map(file => {
         const data = `data-filepath="${file.filepath}" data-filename="${file.filename}" data-file-id="${file.filepath}"`;
         const action = file.missing
-            ? `<button class="history-row-btn" data-action="history-recreate" ${data} data-tip="recreate this file from its newest version">` +
-                `<svg class="history-row-icon"><use href="#icon-history-recreate"></use></svg></button>`
-            : `<button class="history-row-btn" data-action="history-open-file" ${data} data-tip="open this file">` +
-                `<svg class="history-row-icon"><use href="#icon-history-open"></use></svg></button>`;
+            ? `<button class="modal-row-btn" data-action="history-recreate" ${data} data-tip="recreate this file from its newest version">` +
+                `<svg class="modal-row-icon"><use href="#icon-history-recreate"></use></svg></button>`
+            : `<button class="modal-row-btn" data-action="history-open-file" ${data} data-tip="open this file">` +
+                `<svg class="modal-row-icon"><use href="#icon-history-open"></use></svg></button>`;
 
         return `<div class="history-row${file.missing ? ' history-row-missing' : ''}">` +
                  `<span class="history-row-main">` +
@@ -54,8 +54,8 @@ export function renderHistoryList(files) {
                  // Sticky, so the actions stay put while the row text scrolls under them
                  `<span class="history-row-actions">` +
                    action +
-                   `<button class="history-row-btn history-row-btn-delete" data-action="history-delete" ${data} data-tip="delete this file's history">` +
-                     `<svg class="history-row-icon"><use href="#icon-history-delete"></use></svg></button>` +
+                   `<button class="modal-row-btn history-row-btn-delete" data-action="history-delete" ${data} data-tip="delete this file's history">` +
+                     `<svg class="modal-row-icon"><use href="#icon-history-delete"></use></svg></button>` +
                  `</span>` +
                `</div>`;
     }).join('');

@@ -1,6 +1,6 @@
 /* The shell shared by the dialogs that present information rather than a document: settings, file
-   options and file history. Each of them used to carry its own copy of all of this. Anything only
-   one of them needs stays in that modal's own file. */
+   options, file history and the table's column picker. Each of them used to carry its own copy of
+   all of this. Anything only one of them needs stays in that modal's own file. */
 
 .info-modal {
     margin: auto;
@@ -19,4 +19,72 @@
 /* The close button holds the top-right corner, so the first heading gives up its top margin. */
 .info-modal h2 {
     margin-top: 0;
+}
+
+
+/* A label-plus-control row. The settings modal is made of nothing else, and the columns picker
+   is the second dialog built from them, so the rule moved here from modal-settings.css where it
+   was scoped to #modal-settings and unreachable. */
+
+.modal-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+}
+
+/* Takes the free space so the control sits hard against the right edge whatever the label's
+   length, and whether the row holds two children or three. */
+.modal-row-label {
+    flex: 1;
+}
+
+/* A small faded icon button living in a row: the history modal's open/recreate/delete, and the
+   columns picker's drag grip. The glyph is the whole button, so it fades at rest and comes up
+   on hover, the same gesture .svg-wrapper-style makes for the app's toolbar icons. */
+
+.modal-row-btn {
+    flex-shrink: 0;
+    width: 1.6em;
+    height: 1.6em;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0.45;
+}
+
+.modal-row-btn:hover {
+    opacity: 0.9;
+}
+
+.modal-row-icon {
+    width: 100%;
+    height: 100%;
+    color: var(--colour-contr);
+}
+
+/* The one thing that says a grip is a drag target rather than a button. */
+.modal-row-grip {
+    cursor: grab;
+}
+
+/* Worn by a dialog whose content is an unbounded list — history entries, or one row per property
+   in the loaded folder. The dialog becomes a column so the list can take the leftover height and
+   scroll inside it, rather than the dialog growing past the UA's max-height and pushing whatever
+   follows the list out of reach.
+
+   [open] is load-bearing: a <dialog> is display:none until opened, and an unconditional display
+   here would override that and leave it permanently on screen. See tests/32-history-modal-hidden. */
+
+.info-modal-scroll[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-scroll-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
 }

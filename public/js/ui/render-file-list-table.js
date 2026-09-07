@@ -4,6 +4,7 @@ import { tableColumns } from './ui-functions-table/render-table-columns-helper.j
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
 import { applyColumnWidths } from './ui-functions-table/apply-column-widths.js';
 import { reparkColumnResizer } from './ui-functions-table/table-col-resize.js';
+import { renderTableControls } from './ui-functions-table/render-table-controls.js';
 import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { closeColumnMenu } from './ui-functions-click/column-menu.js';
 
@@ -52,8 +53,10 @@ export function renderFileList_table(renderEverything, fullRender = true) {
 
         // The scrollbar and header sit in .table-chrome, ABOVE the scroll container,
         // so they can stick to the viewport. Only the rows live inside .list-table.
+        // The control row sits above the chrome and outside it, so it scrolls away rather
+        // than holding viewport height for the length of the list.
         const tableHtml = `
-        <div class="table-wrapper">
+        <div class="table-wrapper">${renderTableControls()}
             <div class="table-chrome">
                 <div id="top-scrollbar-container">
                 <div id="top-scrollbar-content"></div>

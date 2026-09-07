@@ -14,6 +14,19 @@
     container-type: inline-size;
 }
 
+/* Buttons that act on the table as a whole, above everything else in the wrapper. Deliberately
+   outside .table-chrome and so NOT sticky: these are set-up controls reached once, not something
+   wanted underfoot for the length of a long file list. The chrome slides over the row on the way
+   down, which is why the row carries no background of its own — it sits on the page.
+
+   One button today. The column picker's trigger shares the row with whatever is added next. */
+.table-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-block: 4px;
+}
+
 /* The top scrollbar and the header live here, OUTSIDE .list-table, so they can stick
    to the viewport: position: sticky resolves against the nearest scroll container, so
    anything inside .list-table would stick to the table instead of the page.
