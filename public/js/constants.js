@@ -36,6 +36,9 @@ export const PROGRESS_STEP_SIZE = 1; // update loading progress every N percenta
 // Table column widths. 'auto' does not work as a grid track here, hence a px default.
 export const DEFAULT_COLUMN_WIDTH = 100;
 export const MIN_COLUMN_WIDTH = 48; // a floor, or a column can be dragged away to nothing
+// Auto-size only, so a column of long prose cannot push the rest of the table off screen.
+// A deliberate drag can still go wider.
+export const MAX_AUTO_COLUMN_WIDTH = 1000;
 
 export const COLOR_NAMES = [
   "#ffbdbd", // Pastel Red
