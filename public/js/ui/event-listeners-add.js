@@ -20,6 +20,7 @@ import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handle
 import { handleColumnResizeActivate, initColumnResizer } from './ui-functions-table/table-col-resize.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker } from './ui-functions-click/column-picker.js';
+import { initColumnReorder } from './ui-functions-table/column-picker-reorder.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -72,6 +73,7 @@ export function addActionHandlers() {
     initPopupAnchor();
     initTooltip();
     initColumnResizer();
+    initColumnReorder();
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
     document.addEventListener("keydown", keyDownDelegate);

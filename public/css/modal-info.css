@@ -70,6 +70,23 @@
     cursor: grab;
 }
 
+.modal-row-grip:active {
+    cursor: grabbing;
+}
+
+/* A row carrying a grip is one you drag, and a drag that starts a few pixels off the handle
+   should come to nothing rather than paint a selection down half the list. Keyed on the grip
+   rather than on the picker, so it follows the affordance wherever it turns up next. */
+.modal-row:has(.modal-row-grip) {
+    user-select: none;
+}
+
+/* The row is moved through the list as it is dragged, so this is the row under the ghost
+   rather than one left behind — faded to show which of the two you are carrying. */
+.modal-row.is-dragging {
+    opacity: 0.4;
+}
+
 /* Worn by a dialog whose content is an unbounded list — history entries, or one row per property
    in the loaded folder. The dialog becomes a column so the list can take the leftover height and
    scroll inside it, rather than the dialog growing past the UA's max-height and pushing whatever

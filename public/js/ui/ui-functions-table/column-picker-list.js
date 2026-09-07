@@ -12,8 +12,9 @@ import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/st
  * Rows sit in the table's own column order, using the same display_order comparator as
  * tableColumns(), so a row's position in this list matches its column's position in the table.
  *
- * Neither control carries a data-action yet: the toggles and grips are deliberately inert while
- * the layout is being settled. Wiring them is plans/table-column-visibility.md.
+ * The toggles carry no data-action and are deliberately inert. The grips drag (see
+ * column-picker-reorder.js) but the order they produce is not stored either. Wiring both up is
+ * plans/table-column-visibility.md.
  *
  * @returns {string} HTML string for #column-picker-list's innerHTML.
  */
@@ -34,7 +35,7 @@ export function renderColumnPickerList() {
         const checked = visible.has(prop) ? ' checked' : '';
 
         return `<div class="modal-row">` +
-                 `<button type="button" class="modal-row-btn modal-row-grip" data-tip="drag to reorder this column">` +
+                 `<button type="button" class="modal-row-btn modal-row-grip" draggable="true" data-tip="drag to reorder this column">` +
                    `<svg class="modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="modal-row-label">${label}</span>` +
                  `<input type="checkbox" class="toggle"${checked}>` +
