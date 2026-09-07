@@ -5,6 +5,13 @@
  * touch — a finger fires no drag events at all — which is the same wall table-col-resize.js hit.
  * Pointer events cover mouse, trackpad and finger in one path.
  *
+ * All three handlers are registered in event-listeners-add.js with everything else: the grip
+ * starts a drag through its data-action, and the move and end handlers sit on the document for
+ * the life of the page, doing nothing until there is a row in hand. They cannot be reached by
+ * data-action themselves — once a drag is under way the pointer is over whatever the list has
+ * shuffled under it, not over the grip — so they are registered the way the other document-wide
+ * handlers there are, and read _row to decide whether the event is theirs.
+ *
  * The row is carried under the pointer while the rest of the list parts around it. Each move
  * re-inserts it against whichever row the pointer is over, then re-measures it with its offset
  * cleared and translates it back under the pointer. Measuring untransformed every time is what
@@ -19,8 +26,7 @@
 
 import { setTooltipSuppressed } from '../tooltip.js';
 
-let _list = null;   // #column-picker-list, looked up once at init
-let _row = null;    // the row being carried, null the rest of the time
+let _row = null;   // the row being carried, null the rest of the time
 
 /**
  * The row the pointer is over, ignoring the one being carried — that one is translated out of
@@ -32,38 +38,11 @@ let _row = null;    // the row being carried, null the rest of the time
  * @returns {HTMLElement|undefined}
  */
 function rowUnder(clientY) {
-    return [..._list.querySelectorAll('.modal-row')].find(row => {
+    return [..._row.parentElement.children].find(row => {
         if (row === _row) return false;
         const { top, bottom } = row.getBoundingClientRect();
         return clientY >= top && clientY <= bottom;
     });
-}
-
-/**
- * Picks a row up, but only by its grip.
- * @param {PointerEvent} evt
- * @returns {void}
- */
-function handlePointerDown(evt) {
-    if (!evt.isPrimary || evt.button !== 0) return;
-
-    const grip = evt.target.closest('.modal-row-grip');
-    if (!grip) return;
-
-    evt.preventDefault();   // no focus ring, no text selection, no synthesised mouse events
-
-    _row = grip.closest('.modal-row');
-    _row.classList.add('is-dragging');
-
-    // The grip travels with the row, so its own tooltip would otherwise surface over the list
-    // partway through the drag.
-    setTooltipSuppressed(true);
-
-    // Listened for on the document rather than captured on the grip: the row is moved through
-    // the DOM as it travels, and moving an element releases the pointer capture it was holding.
-    document.addEventListener('pointermove', handlePointerMove);
-    document.addEventListener('pointerup', endDrag);
-    document.addEventListener('pointercancel', endDrag);
 }
 
 /**
@@ -90,7 +69,7 @@ function reorderAround(over, isBelowMidpoint) {
     // instead of playing once — the rows jittering between two positions rather than moving.
     if (reference === _row || _row.nextSibling === reference) return;
 
-    const others = [..._list.querySelectorAll('.modal-row')].filter(row => row !== _row);
+    const others = [..._row.parentElement.children].filter(row => row !== _row);
     const before = others.map(row => row.getBoundingClientRect().top);
 
     over.parentNode.insertBefore(_row, reference);
@@ -114,10 +93,33 @@ function reorderAround(over, isBelowMidpoint) {
 }
 
 /**
+ * Picks a row up by its grip.
+ * @param {PointerEvent} evt
+ * @param {HTMLElement} grip - The grip carrying the data-action.
+ * @returns {void}
+ */
+export function handleColumnReorderStart(evt, grip) {
+    if (!evt.isPrimary || evt.button !== 0) return;
+
+    evt.preventDefault();   // no focus ring, no text selection, no synthesised mouse events
+
+    _row = grip.closest('.info-modal-row');
+    _row.classList.add('is-dragging');
+
+    // The grip travels with the row, so its own tooltip would otherwise surface over the list
+    // partway through the drag.
+    setTooltipSuppressed(true);
+}
+
+/**
+ * Carries the held row and shuffles the list under it. Every pointer move on the page reaches
+ * this, so it leaves immediately unless a row is actually in hand.
  * @param {PointerEvent} evt
  * @returns {void}
  */
-function handlePointerMove(evt) {
+export function handleColumnReorderMove(evt) {
+    if (!_row) return;
+
     const over = rowUnder(evt.clientY);
     if (over) {
         const { top, height } = over.getBoundingClientRect();
@@ -132,27 +134,17 @@ function handlePointerMove(evt) {
 }
 
 /**
+ * Lets the held row go. Reached by every pointerup and pointercancel on the page, so like the
+ * move handler it leaves unless there is something to put down.
  * @returns {void}
  */
-function endDrag() {
+export function handleColumnReorderEnd() {
+    if (!_row) return;
+
     // Class first: it is what has been holding the transition off, so clearing the offset after
     // it settles the row into its slot instead of snapping it there.
     _row.classList.remove('is-dragging');
     _row.style.transform = '';
     _row = null;
     setTooltipSuppressed(false);
-
-    document.removeEventListener('pointermove', handlePointerMove);
-    document.removeEventListener('pointerup', endDrag);
-    document.removeEventListener('pointercancel', endDrag);
-}
-
-/**
- * Wires the picker's list for reordering. #column-picker-list is declared in index.html and only
- * ever has its innerHTML replaced, so one listener on it outlives every repopulation.
- * @returns {void}
- */
-export function initColumnReorder() {
-    _list = document.getElementById('column-picker-list');
-    _list.addEventListener('pointerdown', handlePointerDown);
 }

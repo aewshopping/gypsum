@@ -20,7 +20,7 @@ import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handle
 import { handleColumnResizeActivate, initColumnResizer } from './ui-functions-table/table-col-resize.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker } from './ui-functions-click/column-picker.js';
-import { initColumnReorder } from './ui-functions-table/column-picker-reorder.js';
+import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -73,14 +73,22 @@ export function addActionHandlers() {
     initPopupAnchor();
     initTooltip();
     initColumnResizer();
-    initColumnReorder();
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
     document.addEventListener("keydown", keyDownDelegate);
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
+    document.addEventListener("pointerdown", pointerDownDelegate);
     document.addEventListener('mouseover', handleTableColHover);
     document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
+
+    // The rest of a drag cannot be reached by data-action: once it is under way the pointer is
+    // over whatever the list has shuffled beneath it, not over the grip that started it. So these
+    // watch the whole document for the life of the page and leave unless a drag is in progress,
+    // the same arrangement as the two hover handlers above.
+    document.addEventListener('pointermove', handleColumnReorderMove);
+    document.addEventListener('pointerup', handleColumnReorderEnd);
+    document.addEventListener('pointercancel', handleColumnReorderEnd);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
             evt.preventDefault();
@@ -181,6 +189,12 @@ const changeActionHandlers = {
     'checkbox-toggle': handleCheckboxToggle,
 };
 
+const pointerDownActionHandlers = {
+    // A gesture rather than a click: the handler takes the press and the document listeners in
+    // addActionHandlers carry the rest of it.
+    'column-reorder-start': handleColumnReorderStart,
+};
+
 const keyUpActionHandlers = {
     // Only elements that emit a change event should use these data-actions
     'search-files': handleSearchBoxEnterPress,
@@ -224,6 +238,24 @@ function changeDelegate(evt) {
     if (actionElement) {
         const actionName = actionElement.dataset.action;
         const handler = changeActionHandlers[actionName]; // Check the CHANGE map
+
+        if (handler) {
+            handler(evt, actionElement);
+        }
+    }
+}
+
+/**
+ * Handles all pointerdown events on the document and delegates them to the appropriate handler.
+ * It looks for a `data-action` attribute on the element pressed or its ancestors.
+ * @param {PointerEvent} evt The pointerdown event.
+ */
+function pointerDownDelegate(evt) {
+    const actionElement = evt.target.closest('[data-action]');
+
+    if (actionElement) {
+        const actionName = actionElement.dataset.action;
+        const handler = pointerDownActionHandlers[actionName];
 
         if (handler) {
             handler(evt, actionElement);

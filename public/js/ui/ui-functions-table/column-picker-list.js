@@ -34,10 +34,10 @@ export function renderColumnPickerList() {
         const label = FILE_PROPERTIES.get(prop)?.label ?? prop;
         const checked = visible.has(prop) ? ' checked' : '';
 
-        return `<div class="modal-row">` +
-                 `<button type="button" class="modal-row-btn modal-row-grip" data-tip="drag to reorder this column">` +
-                   `<svg class="modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
-                 `<span class="modal-row-label">${label}</span>` +
+        return `<div class="info-modal-row">` +
+                 `<button type="button" class="info-modal-row-btn info-modal-row-grip" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
+                   `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
+                 `<span class="info-modal-row-label">${label}</span>` +
                  `<input type="checkbox" class="toggle"${checked}>` +
                `</div>`;
     }).join('');

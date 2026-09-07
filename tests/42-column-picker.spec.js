@@ -26,7 +26,7 @@ async function openTable(page) {
 }
 
 const dialog = page => page.locator('#modal-columns');
-const rows = page => page.locator('#column-picker-list .modal-row');
+const rows = page => page.locator('#column-picker-list .info-modal-row');
 
 // A <dialog> is display:none until opened, and .info-modal-scroll carries a display of its own.
 // Without the [open] guard on that rule the picker would sit on the page permanently.
@@ -53,7 +53,7 @@ test('the picker lists the loaded folder\'s properties, in the table\'s column o
 
   // Sorted by display_order, labelled the friendly way where FILE_PROPERTIES gives a label,
   // and ending with the front matter key, which has no display_order and falls to the back.
-  await expect(rows(page).locator('.modal-row-label')).toHaveText([
+  await expect(rows(page).locator('.info-modal-row-label')).toHaveText([
     'filename', 'internalId', 'title', 'tags', 'last modified', 'size',
     'links', 'color', 'filepath', 'preview', 'load error', 'status',
   ]);
@@ -75,7 +75,7 @@ test('a row is ticked when its property is currently a column', async ({ page })
     const labels = [];
     for (const row of await rows(page).all()) {
       if (await row.locator('input.toggle').isChecked()) {
-        labels.push(await row.locator('.modal-row-label').innerText());
+        labels.push(await row.locator('.info-modal-row-label').innerText());
       }
     }
     return labels;
@@ -93,7 +93,7 @@ test('every row offers a drag grip', async ({ page }) => {
   await page.click('[data-action="open-column-picker"]');
   await expect(dialog(page)).toBeVisible();
 
-  await expect(rows(page).locator('.modal-row-grip')).toHaveCount(await rows(page).count());
+  await expect(rows(page).locator('.info-modal-row-grip')).toHaveCount(await rows(page).count());
 });
 
 test('Escape closes the picker', async ({ page }) => {
