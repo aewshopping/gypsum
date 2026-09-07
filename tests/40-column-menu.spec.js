@@ -311,16 +311,17 @@ test('the chevron points down for descending and up for ascending', async ({ pag
              rotate: getComputedStyle(c.querySelector('.column-sort-indicator')).rotate };
   });
 
-  // the default sort is descending, and the glyph is drawn pointing down
-  expect(await chevron()).toEqual({ direction: 'desc', rotate: 'none' });
+  // The glyph is a right-pointing arrow turned a quarter each way: down for descending, up
+  // for ascending, matching the sort direction control that sits above the table.
+  expect(await chevron()).toEqual({ direction: 'desc', rotate: '90deg' });
 
   await openMenuFor(page, titleHeader(page));
   await page.locator('[data-action="column-sort-asc"]').click();
-  await expect.poll(chevron).toEqual({ direction: 'asc', rotate: '180deg' });
+  await expect.poll(chevron).toEqual({ direction: 'asc', rotate: '-90deg' });
 
   await openMenuFor(page, titleHeader(page));
   await page.locator('[data-action="column-sort-desc"]').click();
-  await expect.poll(chevron).toEqual({ direction: 'desc', rotate: 'none' });
+  await expect.poll(chevron).toEqual({ direction: 'desc', rotate: '90deg' });
 });
 
 test('search column primes the search box for that property', async ({ page }) => {

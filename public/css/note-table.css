@@ -213,7 +213,7 @@
     padding: 6px;
     line-height: 1;
     visibility: hidden;
-    rotate: -90deg;
+    rotate: 90deg;
     transition: rotate 0.15s ease;
 }
 
@@ -221,9 +221,12 @@
     visibility: visible;
 }
 
-/* The glyph points down as drawn, which reads as descending; ascending flips it. */
+/* The glyph is an arrow pointing right as drawn, so each direction turns it a quarter: down
+   for descending, up for ascending. Same glyph and the same two angles as the sort direction
+   control in file-display-controls.css, which sits a few pixels away and is on screen at the
+   same time — the two must never disagree about which way is which. */
 .note-table-cell-header[data-sorted="asc"] .column-sort-indicator {
-    rotate: 90deg;
+    rotate: -90deg;
 }
 
 .table-view-array-list{
