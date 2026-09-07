@@ -82,10 +82,18 @@ function handlePointerDown(evt) {
  * @returns {void}
  */
 function reorderAround(over, isBelowMidpoint) {
+    const reference = isBelowMidpoint ? over.nextSibling : over;
+
+    // Almost every move lands on some row while leaving the order alone, and inserting a node
+    // where it already is still removes and re-inserts it. Doing that per frame restarted every
+    // slide below from scratch, so a 0.15s animation was torn down and rebuilt a dozen times
+    // instead of playing once — the rows jittering between two positions rather than moving.
+    if (reference === _row || _row.nextSibling === reference) return;
+
     const others = [..._list.querySelectorAll('.modal-row')].filter(row => row !== _row);
     const before = others.map(row => row.getBoundingClientRect().top);
 
-    over.parentNode.insertBefore(_row, isBelowMidpoint ? over.nextSibling : over);
+    over.parentNode.insertBefore(_row, reference);
 
     others.forEach((row, i) => {
         row.style.transition = 'none';
