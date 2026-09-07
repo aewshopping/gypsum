@@ -1,8 +1,8 @@
 .toggle {
 
-  --t-height:26px;
-  --t-width: 55px;
-  --t-gap: 4px;
+  --t-height:20px;
+  --t-width: 50px;
+  --t-gap: 3px;
   --t-radius: calc(var(--t-height) - var(--t-gap) *2);
   --t-travel: calc(var(--t-width) - var(--t-height));
 
