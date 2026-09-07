@@ -68,9 +68,15 @@
 /* The one thing that says a grip is a drag target rather than a button. */
 .modal-row-grip {
     cursor: grab;
+
+    /* The browser decides whether a touch is a scroll from the touch-action where that touch
+       began, before any handler runs. Without this a finger on the grip scrolls the list. */
+    touch-action: none;
 }
 
-.modal-row-grip:active {
+/* :active alone loses the cursor the moment the row moves out from under the pointer. */
+.modal-row-grip:active,
+.modal-row.is-dragging .modal-row-grip {
     cursor: grabbing;
 }
 
@@ -81,10 +87,15 @@
     user-select: none;
 }
 
-/* The row is moved through the list as it is dragged, so this is the row under the ghost
-   rather than one left behind — faded to show which of the two you are carrying. */
+/* The row being carried. Lifted rather than faded: it travels under the pointer while the rest
+   of the list parts around it, so it should read as the thing in hand. Raised out of the flow's
+   paint order too, or the row it is passing draws over it. */
 .modal-row.is-dragging {
-    opacity: 0.4;
+    position: relative;
+    z-index: 1;
+    border-radius: 4px;
+    background-color: var(--colour-neutral-alt);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
 
 /* Worn by a dialog whose content is an unbounded list — history entries, or one row per property

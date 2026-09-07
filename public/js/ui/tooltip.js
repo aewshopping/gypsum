@@ -13,6 +13,7 @@ let _currentEl = null;   // element currently tracked as hovered (pending or sho
 let _anchoredEl = null;  // element that currently holds anchor-name (only one at a time)
 let _showTimer = null;
 let _visible = false;
+let _suppressed = false; // true for the length of a drag, see setTooltipSuppressed
 
 /**
  * Wires up document-level hover delegation for any element carrying `data-tip`.
@@ -54,10 +55,24 @@ export function hideTooltip() {
 }
 
 /**
+ * Holds the tooltip shut while something is being dragged. Hiding it once is not enough: the
+ * dragged element keeps moving under the pointer, and each mouseover on the way starts the
+ * show timer again, so a tooltip surfaces mid-drag over the very thing being moved.
+ *
+ * @param {boolean} isSuppressed - true while a drag is in progress, false when it ends.
+ * @returns {void}
+ */
+export function setTooltipSuppressed(isSuppressed) {
+    _suppressed = isSuppressed;
+    if (isSuppressed) hideTooltip();
+}
+
+/**
  * @param {MouseEvent} evt
  * @returns {void}
  */
 function _handleMouseOver(evt) {
+    if (_suppressed) return;
     const el = evt.target.closest('[data-tip]');
     if (!el || el === _currentEl) return;
     _currentEl = el;

@@ -35,7 +35,7 @@ export function renderColumnPickerList() {
         const checked = visible.has(prop) ? ' checked' : '';
 
         return `<div class="modal-row">` +
-                 `<button type="button" class="modal-row-btn modal-row-grip" draggable="true" data-tip="drag to reorder this column">` +
+                 `<button type="button" class="modal-row-btn modal-row-grip" data-tip="drag to reorder this column">` +
                    `<svg class="modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="modal-row-label">${label}</span>` +
                  `<input type="checkbox" class="toggle"${checked}>` +
