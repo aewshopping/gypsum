@@ -59,6 +59,7 @@ import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-func
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
+import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
 import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-click/cell-expand.js';
 import { initTooltip } from './tooltip.js';
 
@@ -76,6 +77,7 @@ export function addActionHandlers() {
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
     document.addEventListener('mouseover', handleTableColHover);
+    document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
             evt.preventDefault();

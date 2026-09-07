@@ -120,9 +120,16 @@
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
 
-/* Clips the header, which is wider than the viewport, to the visible width. */
+/* Clips the header, which is wider than the viewport, to the visible width.
+
+   clip rather than hidden, and the difference matters: hidden makes the box a scroll
+   container with a hidden scrollbar, so focusing a header cell that was off screen had the
+   browser reveal it by scrolling THIS box. The body never moved, and the header animation
+   below tracks .list-table, so the whole header row was left sitting over the wrong columns.
+   clip has no scroll range for anything to scroll. table-header-focus.js scrolls the table
+   instead, which moves the header and its rows together. */
 .note-table-header-strip {
-    overflow: hidden;
+    overflow: clip;
 }
 
 /* Not subgrid: the header is no longer a child of .list-table, so it re-declares the
