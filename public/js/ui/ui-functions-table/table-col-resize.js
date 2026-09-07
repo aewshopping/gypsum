@@ -40,6 +40,8 @@ let _prop = null;     // the column the bar belongs to, null when hidden
 let _cell = null;     // the header cell it is parked against
 let _startX = 0;      // drag origin
 let _startWidth = 0;
+let _dragging = false; // whether a drag is in flight; the move and end handlers see every
+                       // pointer event on the page and use this to know which are theirs
 
 /**
  * @returns {HTMLElement|null}
@@ -75,7 +77,8 @@ function parkBar() {
 
 /**
  * Takes the bar off screen and forgets its column. The single exit — every path that ends a
- * resize comes through here, which is what keeps the listener bookkeeping honest.
+ * resize comes through here, including a render that leaves no cell to park against, which is
+ * what keeps a drag from outliving the bar it was moving.
  * @returns {void}
  */
 function hideResizer() {
@@ -86,6 +89,7 @@ function hideResizer() {
     _layoutObserver.disconnect();
     _prop = null;
     _cell = null;
+    _dragging = false;
 }
 
 /**
@@ -142,33 +146,35 @@ export function reparkColumnResizer() {
 }
 
 /**
- * Starts a drag. Pointer capture routes the rest of the gesture back to the bar, including
- * when the pointer leaves it or the window.
+ * Starts a drag, reached from the bar's data-action. Pointer capture keeps the gesture alive
+ * when the pointer leaves the bar or the window; captured events still reach the document
+ * handlers below, which is what carries the rest of it.
  * @param {PointerEvent} evt
+ * @param {HTMLElement} bar - The resize bar carrying the data-action.
  * @returns {void}
  */
-function handleResizeStart(evt) {
+export function handleColumnResizeStart(evt, bar) {
     if (!_prop || !evt.isPrimary) return;
 
     evt.preventDefault(); // no text selection, no native drag
-    const bar = barElement();
     bar.setPointerCapture(evt.pointerId);
 
     _startX = evt.clientX;
     _startWidth = columnWidthPx(TABLE_VIEW_COLUMNS.current_props.find(p => p.name === _prop));
+    _dragging = true;
 
     hideTooltip();
-
-    bar.addEventListener('pointermove', handleResizeMove);
-    bar.addEventListener('pointerup', endDrag);
-    bar.addEventListener('pointercancel', endDrag);
 }
 
 /**
+ * Widens or narrows the column under the bar. Every pointer move on the page reaches this, so
+ * it leaves immediately unless a resize is actually in flight.
  * @param {PointerEvent} evt
  * @returns {void}
  */
-function handleResizeMove(evt) {
+export function handleColumnResizeMove(evt) {
+    if (!_dragging) return;
+
     const width = Math.max(MIN_COLUMN_WIDTH, _startWidth + (evt.clientX - _startX));
     TABLE_VIEW_COLUMNS.widthOverrides.set(_prop, width);
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
@@ -176,24 +182,14 @@ function handleResizeMove(evt) {
 }
 
 /**
- * Ends the drag, and with it the bar: a press and a release is what puts it away.
+ * Ends the drag, and with it the bar: a press and a release is what puts it away. Reached by
+ * every pointerup and pointercancel on the page, so like the move handler it leaves unless
+ * there is a drag to end.
  * @returns {void}
  */
-function endDrag() {
-    const bar = barElement();
-    bar.removeEventListener('pointermove', handleResizeMove);
-    bar.removeEventListener('pointerup', endDrag);
-    bar.removeEventListener('pointercancel', endDrag);
+export function handleColumnResizeEnd() {
+    if (!_dragging) return;
 
     hideResizer();
     syncScrollbarWidth(); // the table is a different width now
-}
-
-/**
- * Wires up the bar. It is a fixed singleton from index.html rather than rendered markup, so
- * it gets its listener directly, the way #tooltip and #ac-proxy do.
- * @returns {void}
- */
-export function initColumnResizer() {
-    barElement()?.addEventListener('pointerdown', handleResizeStart);
 }

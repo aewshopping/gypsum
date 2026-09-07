@@ -17,7 +17,7 @@ import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
-import { handleColumnResizeActivate, initColumnResizer } from './ui-functions-table/table-col-resize.js';
+import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker } from './ui-functions-click/column-picker.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
@@ -72,7 +72,6 @@ import { initTooltip } from './tooltip.js';
 export function addActionHandlers() {
     initPopupAnchor();
     initTooltip();
-    initColumnResizer();
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
     document.addEventListener("keydown", keyDownDelegate);
@@ -89,6 +88,9 @@ export function addActionHandlers() {
     document.addEventListener('pointermove', handleColumnReorderMove);
     document.addEventListener('pointerup', handleColumnReorderEnd);
     document.addEventListener('pointercancel', handleColumnReorderEnd);
+    document.addEventListener('pointermove', handleColumnResizeMove);
+    document.addEventListener('pointerup', handleColumnResizeEnd);
+    document.addEventListener('pointercancel', handleColumnResizeEnd);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
             evt.preventDefault();
@@ -193,6 +195,7 @@ const pointerDownActionHandlers = {
     // A gesture rather than a click: the handler takes the press and the document listeners in
     // addActionHandlers carry the rest of it.
     'column-reorder-start': handleColumnReorderStart,
+    'column-resize-start': handleColumnResizeStart,
 };
 
 const keyUpActionHandlers = {

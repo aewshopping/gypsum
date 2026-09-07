@@ -109,10 +109,14 @@
     transition: none;
 }
 
-/* Worn by a dialog whose content is an unbounded list — history entries, or one row per property
-   in the loaded folder. The dialog becomes a column so the list can take the leftover height and
-   scroll inside it, rather than the dialog growing past the UA's max-height and pushing whatever
-   follows the list out of reach.
+/* Worn by a dialog whose unbounded list has something below it that must stay reachable — the
+   history modal's clear-all button. The dialog becomes a column so the list takes the leftover
+   height and scrolls inside it, rather than the dialog growing past the UA's max-height and
+   pushing what follows the list out of view.
+
+   Only for that case. A dialog whose list is its last content wants no inner scroller: letting
+   the dialog itself scroll puts the scrollbar on its outer edge rather than inset by its padding,
+   which is how the settings and columns dialogs read.
 
    [open] is load-bearing: a <dialog> is display:none until opened, and an unconditional display
    here would override that and leave it permanently on screen. See tests/32-history-modal-hidden. */

@@ -562,7 +562,7 @@
        exists in table view — so a dialog reachable from nowhere else needs no view-conditional
        logic of its own. Static markup, and outside #output, so a re-render cannot destroy it
        mid-interaction. -->
-  <dialog id="modal-columns" class="info-modal info-modal-scroll" closedby="any">
+  <dialog id="modal-columns" class="info-modal" closedby="any">
     <!-- Only this dialog uses the grip, so it lives here rather than in the shared sprite -->
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
       <symbol id="icon-drag" viewBox="0 0 50 50">
@@ -576,8 +576,13 @@
     <h2 class="menu-title">Columns</h2>
 
     <!-- Filled on open rather than at startup: the rows are one per property in the loaded
-         folder, which is not known until a folder has been loaded. -->
-    <div id="column-picker-list" class="info-modal-scroll-list"></div>
+         folder, which is not known until a folder has been loaded.
+
+         No inner scroller: with nothing below it, the list can overflow the dialog and let the
+         dialog scroll, which puts the scrollbar on the dialog's edge rather than inset by its
+         padding. The history modal needs the other arrangement because its clear-all button has
+         to stay put below the list. -->
+    <div id="column-picker-list"></div>
   </dialog>
 
   <dialog id="modal-color-picker" data-action="close-color-picker-outside">
@@ -618,7 +623,7 @@
        right edge of that column's header cell by table-col-resize.js — fixed rather than a
        child of the cell, which clips its overflow, and whose scroll-driven transform only
        getBoundingClientRect reports. Same arrangement as #column-menu-anchor. -->
-  <div id="column-resizer" data-tip="drag to resize" aria-hidden="true"></div>
+  <div id="column-resizer" data-action="column-resize-start" data-tip="drag to resize" aria-hidden="true"></div>
 
   <div id="tooltip" aria-hidden="true"></div>
 
