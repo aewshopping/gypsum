@@ -28,6 +28,15 @@ async function openTable(page) {
 const menu = page => page.locator('#column-menu');
 const titleHeader = page => page.locator('.note-table-cell-header', { hasText: 'title' });
 
+// Somewhere empty to click. Not the top-left of #output any more: the table's control row
+// holds that corner, so a click there presses a button. The reserve .list-table keeps below
+// its last row for expanding cells is empty by construction, which is what this aims at.
+async function clickAway(page) {
+  const table = page.locator('.list-table');
+  const { height } = await table.boundingBox();
+  await table.click({ position: { x: 5, y: height - 10 } });
+}
+
 // Two clicks on the header cell: the first selects the column, the second opens the menu.
 async function openMenuFor(page, header) {
   await header.click();
@@ -99,7 +108,7 @@ test('the menu is dismissed by Escape, by clicking away, and by a re-render', as
   await expect(menu(page)).toBeHidden();
 
   await openMenuFor(page, header);
-  await page.locator('#output').click({ position: { x: 5, y: 5 } });
+  await clickAway(page);
   await expect(menu(page)).toBeHidden();
 
   // a full render rebuilds the header, so the cell the menu points at disappears
@@ -247,7 +256,7 @@ test('a header takes one click to select and a second to open its options', asyn
   await expect(header).toHaveClass(/is-selected/);   // and stays marked while open
 
   // clicking away drops the selection
-  await page.locator('#output').click({ position: { x: 5, y: 5 } });
+  await clickAway(page);
   await expect(page.locator('.note-table-cell-header.is-selected')).toHaveCount(0);
 });
 
