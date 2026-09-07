@@ -11,6 +11,8 @@
  * lets the carrying and the reordering coexist: the offset is recomputed from the row's new slot
  * rather than accumulating across the move.
  *
+ * The rows parted around it slide rather than jump, by the usual FLIP trick — see reorderAround.
+ *
  * Nothing is stored. The order lives in the DOM until the dialog is reopened, which rebuilds the
  * rows from renderColumnPickerList().
  */
@@ -65,6 +67,45 @@ function handlePointerDown(evt) {
 }
 
 /**
+ * Re-inserts the carried row next to the one the pointer is over, and slides whatever the
+ * insert displaced into its new slot.
+ *
+ * A row moved by a reorder moves by reflow, and no transition animates a reflow — it is simply
+ * in a new place on the next frame. So each displaced row is measured before the insert, put
+ * back where it was with a transform, and released on the next frame: the stylesheet's
+ * transition then carries it across. The before position is the row's visual one, transform
+ * included, so a row displaced again while still sliding continues from where it looks rather
+ * than snapping.
+ *
+ * @param {HTMLElement} over - The row the pointer is over.
+ * @param {boolean} isBelowMidpoint - Whether the pointer is past that row's halfway line.
+ * @returns {void}
+ */
+function reorderAround(over, isBelowMidpoint) {
+    const others = [..._list.querySelectorAll('.modal-row')].filter(row => row !== _row);
+    const before = others.map(row => row.getBoundingClientRect().top);
+
+    over.parentNode.insertBefore(_row, isBelowMidpoint ? over.nextSibling : over);
+
+    others.forEach((row, i) => {
+        row.style.transition = 'none';
+        row.style.transform = '';                       // to wherever the insert just put it
+        const dy = before[i] - row.getBoundingClientRect().top;
+
+        if (!dy) {
+            row.style.transition = '';                  // this one did not move; give it its
+            return;                                     // transition back and leave it alone
+        }
+
+        row.style.transform = `translateY(${dy}px)`;
+        requestAnimationFrame(() => {
+            row.style.transition = '';
+            row.style.transform = '';
+        });
+    });
+}
+
+/**
  * @param {PointerEvent} evt
  * @returns {void}
  */
@@ -72,8 +113,7 @@ function handlePointerMove(evt) {
     const over = rowUnder(evt.clientY);
     if (over) {
         const { top, height } = over.getBoundingClientRect();
-        const isBelowMidpoint = evt.clientY > top + height / 2;
-        over.parentNode.insertBefore(_row, isBelowMidpoint ? over.nextSibling : over);
+        reorderAround(over, evt.clientY > top + height / 2);
     }
 
     // Cleared before measuring, so what is read is the slot the row now occupies rather than
@@ -87,8 +127,10 @@ function handlePointerMove(evt) {
  * @returns {void}
  */
 function endDrag() {
-    _row.style.transform = '';
+    // Class first: it is what has been holding the transition off, so clearing the offset after
+    // it settles the row into its slot instead of snapping it there.
     _row.classList.remove('is-dragging');
+    _row.style.transform = '';
     _row = null;
     setTooltipSuppressed(false);
 

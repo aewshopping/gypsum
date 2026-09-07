@@ -85,6 +85,12 @@
    rather than on the picker, so it follows the affordance wherever it turns up next. */
 .modal-row:has(.modal-row-grip) {
     user-select: none;
+
+    /* A row displaced by a reorder slides to its new slot rather than jumping to it. It moves
+       by reflow, which no transition can animate, so column-picker-reorder.js puts it back
+       where it was and releases it — this is the transition that then carries it across. The
+       carried row rides the same declaration on the way down when it is let go. */
+    transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 /* The row being carried. Lifted rather than faded: it travels under the pointer while the rest
@@ -96,6 +102,11 @@
     border-radius: 4px;
     background-color: var(--colour-neutral-alt);
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+
+    /* Pinned to the pointer, so it is the one row that must not ease: a transition here is felt
+       straight away as the row lagging behind the finger. It regains one the moment the class
+       comes off, which is what settles it into its slot on release. */
+    transition: none;
 }
 
 /* Worn by a dialog whose content is an unbounded list — history entries, or one row per property
