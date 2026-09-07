@@ -29,6 +29,31 @@ export function initTooltip() {
 }
 
 /**
+ * Shows an element's tooltip straight away, without waiting for a hover. Used where the
+ * tooltip is an instruction rather than a label — the column resizer, which appears because
+ * the user picked it from a menu and so is never hovered first.
+ *
+ * Tracking it as the current element is what lets the normal mouseout path dismiss it after.
+ * @param {HTMLElement} el - An element carrying data-tip.
+ * @returns {void}
+ */
+export function showTooltipFor(el) {
+    if (!_tooltipEl || !el?.dataset.tip) return;
+    clearTimeout(_showTimer);
+    _currentEl = el;
+    _show(el);
+}
+
+/**
+ * Hides the tooltip now. The document mousedown listener above already does this for a
+ * mouse, but a touch drag produces no mousedown until it ends.
+ * @returns {void}
+ */
+export function hideTooltip() {
+    if (_tooltipEl) _dismiss();
+}
+
+/**
  * @param {MouseEvent} evt
  * @returns {void}
  */

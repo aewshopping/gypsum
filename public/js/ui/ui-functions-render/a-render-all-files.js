@@ -12,6 +12,7 @@ import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 import { renderPagination } from "../pagination/render-pagination.js";
 import { fileTransitionName } from "./file-transition-name.js";
 import { renderSidebarRecent } from "../render-sidebar-recent.js";
+import { reparkColumnResizer } from "../ui-functions-table/table-col-resize.js";
 
 /**
  * Orchestrates the rendering of files based on the current view state and active filters.
@@ -138,9 +139,11 @@ export function renderFiles(fullRender = true, keepPage = false) {
             document.querySelectorAll('#output [data-vt-id]').forEach(
                 el => el.style.removeProperty('view-transition-name')
             );
+            reparkColumnResizer();
         });
     } else {
         doRender();
+        reparkColumnResizer();
     }
 
 }

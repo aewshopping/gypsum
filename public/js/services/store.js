@@ -113,9 +113,13 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
  * @property {Array<string>} hidden_always - Properties that are never shown in the table.
  * @property {Array<string>} hidden_at_start - Properties that are hidden by default but can be shown.
  * @property {Array<object>} current_props - The fully-resolved properties of the currently visible columns.
+ * @property {Map<string, number>} widthOverrides - Widths in px set by dragging, keyed by property
+ * name. Session-scoped and cleared when a folder is loaded, so it lives here rather than in
+ * FILE_PROPERTIES, which is the property schema that sorting and search also read.
  */
 export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
   hidden_always: ['handle', 'show', 'content'],
   hidden_at_start: ['internalId', 'color', 'filepath', 'contentPeek', 'internalLink', 'errorOnLoad'], // could in future add check box functionality to show current cols ticked and these cols unticked
   current_props: [],
+  widthOverrides: new Map(),
 };

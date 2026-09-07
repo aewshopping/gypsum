@@ -1,509 +1,358 @@
-# Plan: drag-to-resize table columns
+# Plan: activate "resize column" in the column options menu
 
-Status: **not started**
-Branch: `claude/table-view-customization-dduz7q`
-Manifest version at time of writing: `1.120.0`
-
----
-
-## 1. What this delivers
-
-A drag handle at the right edge of each table-view column header. Dragging it resizes that
-column live. The width persists for the rest of the session — across sorts, filters, page
-changes and view switches — and resets when a new folder is loaded.
-
-**In scope:** changing column widths by dragging.
-
-**Explicitly out of scope:** changing which columns are shown, reordering columns, saving
-widths to disk, double-click auto-fit, touch/coarse-pointer resizing.
+Branch: `claude/column-resize-activation-660sb5`
+Manifest version now: `1.138.0` → bump to `1.139.0`
 
 ---
 
-## 2. Why this shape, and why now
+## Context
 
-This feature is the first step towards **saved table layouts** — a future feature where the
-user customises which columns are shown, their order and their widths, and that arrangement
-is saved to a `.gypsum` file so it survives a reload.
-
-That matters for two reasons:
-
-1. **The width override Map built here is the exact data structure layouts will serialise.**
-   Building it now means the layout feature adds persistence on top rather than reworking
-   anything. It is session-scoped now and file-backed later; the resolution logic that reads
-   it does not change.
-
-2. **Three refactors that layouts need are load-bearing for resize.** Extracting the CSS
-   variable write, making the width fallback chain explicit, and putting `data-prop` on
-   header cells are all required for resize to work at all. Doing them here means they land
-   in service of a shipping feature rather than as speculative scaffolding — which the
-   "no premature abstraction" rule in `CLAUDE.md` would otherwise rightly veto.
-
-Do **not** use this plan as licence to start building layouts. Anything beyond width
-dragging is out of scope.
-
----
-
-## 3. Current state — what the code does today
-
-Read this section before changing anything. The design below depends on these specifics.
-
-### 3.1 One CSS variable drives every column width
-
-`public/css/note-table.css:13-17`
-
-```css
-.list-table {
-	display: grid;
-	grid-template-columns: var(--grid-columns); /* css property is created dynamically by js */
-}
-```
-
-`.note-table-header` (line 70) and every `.note-table` row (line 22) are
-`grid-template-columns: subgrid; grid-column: 1 / -1`.
-
-**Consequence:** every column width in the whole table comes from a single custom property.
-Changing `--grid-columns` reflows the header and all rows together, in sync, with no DOM
-writes and no re-render. This is why the drag loop is cheap — do not replace it with
-per-cell widths or a `<colgroup>`.
-
-### 3.2 The variable is written as a side effect of rendering the header
-
-`public/js/ui/ui-functions-table/render-table-header.js:16-23`
-
-```js
-const columnWidths = current_props
-    .map(prop => {
-        const width = prop.column_width;
-        return width ? `${width}px` : '100px';
-    })
-    .join(' ');
-
-document.body.style.setProperty('--grid-columns', columnWidths);
-```
-
-Two problems:
-
-- **It runs on every full render.** `renderFiles()` rebuilds `current_props` from scratch on
-  sort, filter, page change and view switch, and `renderTableHeader` then overwrites
-  `--grid-columns` from the *default* `column_width` values. Without a durable override
-  store, a dragged width would visibly snap back the moment the user clicked a tag filter.
-  **This is the single most important fact in this plan.** An implementation that only writes
-  the CSS variable during the drag is a demo, not a feature.
-- **`width ? ... : '100px'` treats `0` as absent.** `color` has `column_width: 0`
-  (`store.js:97`), so it would render at 100px if ever unhidden. The fallback chain must be
-  explicit and nullish-based.
-
-### 3.3 The right edge of every header cell is already an interactive target
-
-`public/js/ui/ui-functions-table/render-table-header.js:12`
+`index.html:584` carries a disabled placeholder button:
 
 ```html
-<div class="note-table-cell-header flex-row">
-  {name}<span class="flexgrow"> </span><span data-property="{name}" data-action="sort-object"
-  class="sort-by-prop-trigger" data-tip="sort by {name}">˅</span>
-</div>
+<button type="button" class="column-menu-item" disabled>resize column</button>
 ```
 
-The sort chevron is flex-pushed hard against the right edge, has `padding: 6px`, and is
-`visibility: hidden` until the header cell is hovered (`note-table.css:88-97`).
+Column widths are currently fixed, taken from `column_width` in `FILE_PROPERTIES`
+(`store.js:80-95`) and written into a single `--grid-columns` custom property by
+`renderTableHeader`. There is no way for a user to change one.
 
-**Consequence:** a resize handle at the right edge would appear on the same hover, in the
-same place, competing for the same pointer. Resolved by the gutter decision in §4.2.
+This change makes that button work. Resizing is a **menu-only** feature: the resizer appears
+because the user chose "resize column", and by no other route. There is no hover handle on
+the header, and no always-present drag target.
 
-### 3.4 Column identity is read indirectly in the header
+Behaviour, as specified:
 
-Body cells carry `data-prop` (`render-table-rows.js:60`). Header cells do not —
-`table-col-hover.js:60` digs it out of the nested sort button via
-`querySelector('[data-property]').dataset.property`, and the hover CSS rule at
-`note-table.css:107` uses `:has([data-property=""])` for the same reason.
+1. Click "resize column" in the column options menu.
+2. A small bar appears at the **right edge of that column's header cell** — same height as the
+   header cell, a few pixels wide, flush with and overlaying the cell's right border, painted
+   in the accent colour.
+3. The usual `#tooltip` element appears next to it reading **"drag to resize"**, immediately,
+   without waiting for a hover.
+4. The bar stays visible. Nothing dismisses it — not Escape, not a click elsewhere.
+5. A press on the bar starts the resize; the release ends it. **Only** that press-and-release
+   cycle hides the bar again.
 
-### 3.5 The top scrollbar sync has a pre-existing bug
+`plans/table-column-resize.md` is the earlier thinking on this. Where it conflicts with the
+above, the above wins. What changed and why is in §7.
 
-`public/js/ui/ui-functions-table/table-scrollbar-sync.js:55`
+---
+
+## 1. Two decisions that differ from the old plan
+
+### 1.1 Pointer Events for the drag, not mouse events
+
+The old plan (§4.4) argued for `mousedown`/`mousemove`/`mouseup` on consistency grounds,
+explicitly ruling touch out of scope. Touch is now in scope, and mouse events cannot deliver it.
+
+`mousedown` *is* synthesised on touch, which makes the mouse-only approach look viable, but
+mobile browsers emit the compatibility `mousedown`/`mouseup` pair only at the **end** of a tap
+and fire **no `mousemove`** during a finger drag. A mouse-event drag loop therefore never
+tracks a finger — it would receive a press and a release with nothing in between.
+
+So the drag uses `pointerdown` / `pointermove` / `pointerup` / `pointercancel` with
+`setPointerCapture`, plus `touch-action: none` on the bar so the table's horizontal scroller
+does not steal the gesture. One code path covers mouse, touch and stylus.
+
+This is not a new island: `open-file-content-view-trans.js:92` already listens for
+`pointerdown`. The old plan's objection was written before that existed and before touch was
+required.
+
+### 1.2 One reused fixed-position element, not a handle per header cell
+
+The old plan put a `.col-resize-handle` span inside every header cell, revealed on hover. That
+shape is wrong now, for three reasons:
+
+- Activation is menu-only, so at most **one** resizer is ever on screen. Ten hidden spans
+  would be nine too many.
+- `.note-table-cell-header` has `overflow: hidden` (`note-table.css:163`). A child bar that
+  overlays the cell's right border would be clipped by it — and overlaying that border is what
+  the spec asks for.
+- It leaves `renderTableHeader`'s markup completely untouched.
+
+Instead: a single `#column-resizer` div in `index.html`, `position: fixed`, parked over the
+target header cell's right edge with `getBoundingClientRect()`. This is the **same trick
+`#column-menu-anchor` already uses**, and for the same reason — the header carries a
+scroll-driven `translateX`, and `getBoundingClientRect` is what reports the transformed box.
+
+---
+
+## 2. The width override store (unchanged from the old plan — still required)
+
+`renderTableHeader` rebuilds `--grid-columns` from `FILE_PROPERTIES` defaults on **every full
+render**. Without a durable override store a dragged width snaps back the moment the user
+clicks a tag filter. This part of the old plan (§4.1, §1b, §1c) survives intact.
+
+**`public/js/services/store.js`** — add to `TABLE_VIEW_COLUMNS`:
 
 ```js
-window.addEventListener('resize', syncWidth(elements));
+widthOverrides: new Map(),   // property name → width in px; session-scoped, cleared per folder
 ```
 
-This **calls** `syncWidth` immediately and registers its return value (`undefined`) as the
-listener. Window resize has therefore never re-synced the proxy scrollbar. Resizing a column
-changes the table's total width, so this must be fixed and called on drop, or the top
-scrollbar thumb goes stale after every drag.
+Not written back into `FILE_PROPERTIES` — that Map is the property *schema*, also read by
+sorting and search.
 
-**The obvious fix introduces a listener leak. Read this before fixing it.**
-
-`initialScrollSync()` is called from `render-file-list-table.js:51` on *every full render* —
-so `addScrollEventListeners` runs on every sort, filter, page change and view switch. It adds
-its listeners and never removes them.
-
-Today that is harmless for the `window` listener precisely *because* of the bug:
-`addEventListener('resize', undefined)` registers nothing. Changing it to
-`() => syncWidth(elements)` turns a no-op into a real accumulating leak — one live listener
-per full render, each closing over `elements` whose DOM nodes were destroyed when
-`output.innerHTML` was replaced.
-
-(The `topScrollbar` and `tableWrapper` scroll listeners in the same function are fine: those
-elements are discarded with the innerHTML replacement, taking their listeners with them. Only
-the `window` listener outlives the render.)
-
-So the fix is **not** "correct the arrow function". Register the window listener **once** —
-module-level, guarded by a flag or attached at app start — and have it re-query the elements
-at call time rather than closing over a stale set. Re-querying is cheap: they are four
-`document.querySelector`/`getElementById` calls on stable selectors, and doing it at call
-time is what makes the listener survive re-renders correctly.
-
-### 3.6 Two loaders reset table state
-
-`services/directory-handler.js:44-46` and `backup/opfs-import.js:114-116` contain the same
-three lines (`current_props.length = 0`, `myFilesProperties.clear()`,
-`seedCoreFileProperties()`). Both set `appState.dirHandle`. **Any new per-folder state must
-be cleared in both** or the feature will behave differently after an OPFS import than after
-a folder open.
-
-### 3.7 Event delegation
-
-`event-listeners-add.js:66-83` registers document-level delegates for `click`, `change`,
-`keydown`, `keyup`, `input`, plus a non-delegated `mouseover` for table column hover and an
-inline `mousedown` listener. `clickDelegate` (line 182) resolves
-`evt.target.closest('[data-action]')` against a handler map. The `mousedown` listener is an
-ad-hoc anonymous function with two hardcoded checks, not a delegate map — so there is no
-`mousedown` handler map to register against yet.
-
----
-
-## 4. Design decisions and rationale
-
-### 4.1 Session-scoped width overrides in a Map
-
-Add to `TABLE_VIEW_COLUMNS` in `store.js`:
+**`public/js/constants.js`** — add:
 
 ```js
-widthOverrides: new Map(),   // property name → width in px
+export const DEFAULT_COLUMN_WIDTH = 100;
+export const MIN_COLUMN_WIDTH = 48;
 ```
 
-Resolution order, in one place: **override → `FILE_PROPERTIES.column_width` → default constant.**
+**New: `public/js/ui/ui-functions-table/apply-column-widths.js`** — extracts the width logic
+out of the renderer so the drag loop and the renderer share one path to the DOM:
 
-- Not persisted to disk. Consistent with pagination size and font settings, which are also
-  session-only today. Persistence arrives with saved layouts.
-- Not written back into `FILE_PROPERTIES`. That Map is the property *schema*, read by
-  sorting and search as well as the table. Mutating it would make defaults unrecoverable and
-  leak table view state into unrelated subsystems.
-- Cleared in both loader reset blocks (§3.6), so widths are per-folder-session.
-- State lives in `store.js` as `CLAUDE.md` requires. No module-local drag cache beyond the
-  transient in-flight drag values.
+- `columnWidthPx(prop)` — `widthOverrides.get(prop.name) ?? prop.column_width ??
+  DEFAULT_COLUMN_WIDTH`. **Nullish, not truthy**: `color` has `column_width: 0`
+  (`store.js:90`) and today's `width ? ... : '100px'` silently turns that into 100px.
+- `applyColumnWidths(current_props)` — joins to a `grid-template-columns` string and sets
+  `--grid-columns` on `document.body`.
 
-### 4.2 Reserve a gutter for the handle (decided)
+**`render-table-header.js`** — delete the width block (lines 34-41). The renderer returns HTML
+and nothing else. Markup otherwise untouched.
 
-Add right padding to `.note-table-cell-header` so the sort chevron stops short of the border
-and the handle owns the last ~10px exclusively.
+**`render-file-list-table.js`** — call `applyColumnWidths(TABLE_VIEW_COLUMNS.current_props)`
+right after `current_props` is built (line 24), before the branch, so it covers both the full
+and partial paths.
 
-Chosen over moving the chevron (larger visual change) and over overlapping with a z-index
-(would make the right few pixels of the sort target dead). Cost: every header gains a little
-right padding, which is visible but minor.
-
-### 4.3 One handle per header cell, not a shared floating handle
-
-- ~10 extra divs, revealed by plain CSS `:hover`. No JS runs until `mousedown`. A single
-  floating handle would need a permanent `mousemove` listener plus manual hit-testing.
-- `.note-table-cell-header` has `overflow: hidden` (`note-table.css:79-83`), so a handle that
-  straddles the column boundary would be clipped. Keeping it inside the cell is forced by the
-  existing CSS.
-- Right edge of column N resizes column N — matches spreadsheets and file managers.
-- The last column keeps its handle. Widening it grows the total table width; horizontal
-  scroll already exists.
-
-### 4.4 Mouse events, deliberately — not Pointer Events
-
-Use `mousedown` / `mousemove` / `mouseup`. **This is a decision, not an oversight. Do not
-"upgrade" it to Pointer Events as part of implementing this plan.**
-
-Pointer Events were considered and rejected. The argument for them was `setPointerCapture`,
-which retargets subsequent events to the captured element and so avoids the one real failure
-mode of a mouse-event drag: if the user releases the button *outside the browser window*, the
-document never receives `mouseup`, the listeners stay attached, and the column keeps tracking
-the cursor when it re-enters. That is a genuine advantage, but a small one — the bug is
-annoying rather than harmful, and it has a two-line mitigation (see 1f).
-
-The argument against is consistency, and it wins. The whole codebase uses mouse events
-(`event-listeners-add.js:74-82`). Introducing a single `pointerdown` listener for one feature
-creates an island: a reader of that file would find two input-event families with no
-principled boundary between them, and every future handler would face an arbitrary choice.
-The device-portability case that usually justifies Pointer Events does not apply here either,
-because the handle is hidden on coarse pointers (§4.3, 1i) — so touch support, the main prize,
-is explicitly out of scope.
-
-If Pointer Events are ever wanted, that is a **codebase-wide migration done in one dedicated
-change**, not something smuggled in with a table feature.
-
-The delegation convention holds either way: `mousedown` is delegated via `data-action`, and
-the handler owns the move/up listeners for the drag's lifetime only.
-
-### 4.5 One path to the DOM for widths
-
-The drag writes to `widthOverrides` on each move and calls the same `applyColumnWidths`
-function the renderer uses. There is no separate "commit on drop" step and no second way for
-a width to reach the screen. Drop only fixes up the scrollbar.
-
-Do the CSS variable write directly in the move handler first. Only add
-`requestAnimationFrame` throttling if dragging actually feels janky in the browser — it is
-one property write plus a grid reflow, and premature optimisation is against house style.
+**Loader resets** — add `TABLE_VIEW_COLUMNS.widthOverrides.clear()` to **both**
+`services/directory-handler.js:44-46` and `backup/opfs-import.js:114-116`. The two are
+deliberately kept in step; missing one makes widths behave differently after an OPFS import.
 
 ---
 
-## 5. Step 0 — groundwork (do first, separately)
+## 3. The resizer element
 
-Two small independent changes. Neither touches the drag feature; they exist so that Step 1
-starts from a clean base.
+**`index.html`** — beside `#column-menu-anchor`, with a comment in the house style explaining
+the fixed-position parking trick:
 
-### 0a. Delete `public/js/ui/ui-functions-render/reorder-fileprops.js`
+```html
+<div id="column-resizer" data-tip="drag to resize" aria-hidden="true"></div>
+```
 
-Dead code — nothing imports it (verify with a grep before deleting). It re-orders
-`myFilesProperties` by an `order` field, which is the concern saved layouts will own. Leaving
-it invites someone to wire it back up later and create a second, competing ordering
-mechanism.
+**New: `public/css/column-resizer.css`**, imported from `public/style.css` after
+`column-menu.css`. A new component gets its own file, per `CLAUDE.md`.
 
-### 0b. Render `label` in the table header
-
-`render-table-header.js:12` prints `prop.name`, so headers read `sizeInBytes`,
-`lastModified`, `errorOnLoad`. The sort dropdown already uses `label` for the same properties
-(`sort-select-load.js:38`) and shows `size`, `last modified`, `load error`. Straight
-inconsistency.
-
-Change the header to `prop.label ?? prop.name`. Keep `data-property`, `data-tip` and every
-other attribute keyed on `prop.name` — those are identity, not display.
-
-Bump `manifest.json` minor version. Commit.
-
----
-
-## 6. Step 1 — the resize feature
-
-One coherent change. Absorbs the three refactors that are prerequisites.
-
-### 1a. `public/js/services/store.js`
-
-- Add `widthOverrides: new Map()` to `TABLE_VIEW_COLUMNS`, with a JSDoc line on the
-  `@property` block above it saying it is session-scoped, keyed by property name, holds px
-  numbers, and will be the unit of persistence when saved layouts arrive.
-
-### 1b. `public/js/constants.js`
-
-- `export const DEFAULT_COLUMN_WIDTH = 100;` — replaces the magic `'100px'` literal.
-- `export const MIN_COLUMN_WIDTH = 48;` — a floor, or a column can be dragged to nothing and
-  its handle becomes ungrabbable.
-
-### 1c. New file: `public/js/ui/ui-functions-table/apply-column-widths.js`
-
-Extracts the width logic out of `renderTableHeader`. Exports:
-
-- `columnWidthPx(prop)` — the explicit fallback chain: `widthOverrides.get(prop.name)` →
-  `prop.column_width` → `DEFAULT_COLUMN_WIDTH`. Use nullish checks (`??`), **not** truthiness,
-  so a stored `0` is not silently treated as absent (§3.2).
-- `applyColumnWidths(current_props)` — maps over the props, joins to a
-  `grid-template-columns` string, and sets `--grid-columns` on `document.body`.
-
-JSDoc both, per house style.
-
-### 1d. `public/js/ui/ui-functions-table/render-table-header.js`
-
-- Remove the width mapping and the `setProperty` call (lines 16-23). The header renderer
-  returns HTML and nothing else.
-- Add `data-prop="${prop.name}"` to each `.note-table-cell-header` div.
-- Append the resize handle as the last child of each header cell:
-  `<span class="col-resize-handle" data-action="column-resize" data-prop="${prop.name}"></span>`
-
-### 1e. `public/js/ui/render-file-list-table.js`
-
-- Import and call `applyColumnWidths(TABLE_VIEW_COLUMNS.current_props)` after
-  `current_props` is built, on **both** the `fullRender` and the partial path.
-- While here: the `TABLE_VIEW_COLUMNS.current_props.length = 0` on line 16 is dead — line 20
-  reassigns the array. Remove it. Assign `current_props` exactly once per render and never
-  mutate it in place.
-
-### 1f. New file: `public/js/ui/ui-functions-table/table-col-resize.js`
-
-Named to match the existing `table-col-hover.js`, which is the precedent for an event handler
-living in `ui-functions-table/` rather than `ui-functions-click/`.
-
-Exports `handleColumnResizeStart(evt, actionElement)`. Mouse events, per §4.4.
-
-1. `if (evt.button !== 0) return;` — primary button only, so a right-click on the handle does
-   not start a drag that no `mouseup` will ever end.
-2. Read the column name from `actionElement.dataset.prop`.
-3. Record the drag origin: `evt.clientX` and the column's current resolved width
-   (`columnWidthPx`). Keep both plus the prop name in module-level drag state.
-4. `evt.preventDefault()` so the drag does not start a text selection.
-5. Attach `mousemove` and `mouseup` listeners to **`window`**, not `document` — `window`
-   catches a release over browser chrome that `document` can miss.
-6. On move: first `if (evt.buttons === 0) { endDrag(); return; }` — this is the mitigation for
-   a release that happened outside the window (§4.4); without it the column keeps tracking the
-   cursor when it re-enters. Then
-   `Math.max(MIN_COLUMN_WIDTH, startWidth + (evt.clientX - startX))` →
-   `widthOverrides.set(prop, newWidth)` → `applyColumnWidths(TABLE_VIEW_COLUMNS.current_props)`.
-7. `endDrag()`: remove both window listeners, clear the drag state, call the scrollbar sync
-   (1h). Called from `mouseup` and from the `buttons === 0` guard.
-
-Removing the listeners in exactly one place (`endDrag`) is what keeps this safe. Every exit
-path must go through it.
-
-Optional, only if it falls out cleanly: `Escape` during a drag restores the recorded start
-width and calls `endDrag()`.
-
-### 1g. `public/js/ui/event-listeners-add.js`
-
-- Add a `mouseDownActionHandlers` map and a `mouseDownDelegate` mirroring `clickDelegate`
-  (line 182), registered in `addActionHandlers()`.
-- Register `'column-resize': handleColumnResizeStart`.
-
-**Leave the existing anonymous `mousedown` listener (lines 75-82) alone.** It hardcodes two
-`closest()` checks for the editor undo/redo and colour-pick buttons. Folding those into the
-new handler map would be a tidy-up worth doing one day, but it means touching editor code as a
-side effect of a table feature — out of scope here. The cost is two `mousedown` listeners on
-`document` for now; both are small and neither interferes with the other.
-
-Note the handle carries its own `data-action`, so `closest('[data-action]')` resolves to the
-handle and never to the sort chevron. A stray *click* on the handle finds `column-resize` in
-the click map, which is not there, so it is a no-op — no accidental sort.
-
-### 1h. `public/js/ui/ui-functions-table/table-scrollbar-sync.js`
-
-**Re-read §3.5 first — the one-line fix leaks listeners.**
-
-- Restructure `syncWidth` so it re-queries its four elements at call time instead of taking a
-  pre-built `elements` object. This is what makes a single long-lived listener correct across
-  re-renders.
-- Move the `window` resize registration out of `addScrollEventListeners` (which runs on every
-  full render) so it happens exactly once — module-level guard, or registered at app start
-  alongside the other listeners in `event-listeners-add.js`. Do not leave it where it is with
-  a corrected arrow function; that creates one live listener per render.
-- Export the re-query-and-sync function so `table-col-resize.js` can call it on drop.
-- Leave the `topScrollbar` / `tableWrapper` scroll listeners where they are. Those elements are
-  recreated per render, so re-registering them per render is correct and they leak nothing.
-
-### 1i. `public/css/note-table.css`
-
-The handle is part of the table component, so it belongs in this file — do not create a new
-CSS module for it.
-
-- `.note-table-cell-header` — add `position: relative` and enough `padding-right` to clear
-  the handle (§4.2).
-- `.col-resize-handle` — absolutely positioned, `right: 0; top: 0; bottom: 0`, ~10px wide,
-  `cursor: col-resize`, invisible until the header cell is hovered
-  (follow the existing `.sort-by-prop-trigger` visibility pattern at lines 88-97).
-- `@media (pointer: coarse)` — hide the handle. A 10px target is unusable on touch, and
-  mobile table overflow is already its own considered surface (`tests/28-mobile-overflow.spec.js`).
-- Optional simplification, now that header cells carry `data-prop`: the column-hover rule at
-  line 107 can drop its `:has([data-property=""])` half in favour of
-  `.note-table-cell-header[data-prop=""]`. If you do this, update the matching `insertRule`
-  string in `table-col-hover.js` **and** the selector-matching fragment `findColHoverRule`
-  searches for (`.note-table-header ~ .note-table`) — that function locates the rule by a
-  unique selector substring and will silently stop working if the substring changes.
-  `table-col-hover.js:60` can then read `headerCell.dataset.prop` directly. Skip this if it
-  starts to sprawl; it is a tidy-up, not a requirement.
-
-### 1j. Loader resets
-
-Add `TABLE_VIEW_COLUMNS.widthOverrides.clear()` to **both**
-`services/directory-handler.js:44-46` and `backup/opfs-import.js:114-116`.
-
-Bump `manifest.json` minor version. Commit.
+- `position: fixed;` — parked by JS; `display: none` until `.visible`, mirroring `#tooltip`.
+- `width: 5px;` — the visible bar. JS parks it at `left = rect.right - 2` so it straddles and
+  overlays the cell's 1px right border rather than butting up against its inside edge.
+- `background-color: var(--colour-highlight);` — the live accent token (`colors.css:64`), so it
+  follows the gold/pink AND-OR switch and all three themes.
+- `cursor: col-resize; touch-action: none;`
+- `z-index: 100;` — above `.table-chrome` (4), same level as `#column-menu`, below `#tooltip`
+  (1000).
+- `::before { content: ''; position: absolute; inset: 0 -6px; }` — a transparent hit area wider
+  than the bar. A pointer event on a pseudo-element targets its originating element, so the
+  handler still sees `#column-resizer`. Widen to `inset: 0 -12px` under
+  `@media (pointer: coarse)` for a thumb.
 
 ---
 
-## 7. Files touched, and what reaches outside table view
+## 4. Behaviour: `public/js/ui/ui-functions-table/table-col-resize.js` (new)
+
+Lives beside `table-col-hover.js`, the existing precedent for a table event handler sitting
+with the table renderers rather than in `ui-functions-click/`.
+
+Module state: `_prop`, `_cell` (the header cell being tracked), `_startX`, `_startWidth`.
+
+### `handleColumnResizeActivate()` — the menu item's click handler
+
+1. `const property = menuElement().dataset.property` — read **before** closing, since
+   `closeColumnMenu()` removes the attribute (`column-menu.js:73`). Same shape as
+   `sortMenuColumn` and `handleColumnSearch`.
+2. `closeColumnMenu(); clearHeaderSelection();` — as `handleColumnSearch` does. The bar itself
+   marks the column from here on.
+3. Find the cell: `document.querySelector('.note-table-cell-header[data-property="..."]')`
+   (via `CSS.escape`).
+4. Park the resizer over its right edge, add `.visible`.
+5. `document.addEventListener('scroll', trackResizerCell, true)` and a `window` resize
+   listener, so the bar stays glued to its column edge. Capture phase because scroll does not
+   bubble — the identical construction to `trackAnchorCell` in `column-menu.js:116`.
+6. `showTooltipFor(resizerEl)` — see §5.
+
+### `handleColumnResizeStart(evt)` — `pointerdown` on the bar
+
+1. `if (!evt.isPrimary) return;`
+2. `evt.preventDefault()` (no text selection / no native drag) and
+   `resizerEl.setPointerCapture(evt.pointerId)`.
+3. Record `_startX = evt.clientX` and `_startWidth = columnWidthPx(prop)`.
+4. `hideTooltip()` — explicit, because on touch the document `mousedown` that `tooltip.js`
+   already listens for may not arrive.
+5. Add `pointermove`, `pointerup` and `pointercancel` listeners **on the resizer element**;
+   pointer capture routes them there.
+
+### On `pointermove`
 
 ```
+newWidth = Math.max(MIN_COLUMN_WIDTH, _startWidth + (evt.clientX - _startX))
+widthOverrides.set(_prop, newWidth)
+applyColumnWidths(TABLE_VIEW_COLUMNS.current_props)
+parkOver(_cell)                       // the edge just moved; the bar follows it
+```
+
+No `requestAnimationFrame` throttling unless it actually feels janky in the browser — it is one
+custom-property write plus a grid reflow, and premature optimisation is against house style.
+
+### `endDrag()` — from `pointerup` and `pointercancel`
+
+Remove the three pointer listeners, remove the scroll/resize listeners, drop `.visible`, clear
+the module state, and call `syncScrollbarWidth()` (§6). **Every exit path goes through this one
+function** — that is what keeps the listener bookkeeping safe.
+
+Note this is the *only* thing that hides the bar, exactly as specified: no Escape handler, no
+click-outside handler.
+
+### `reparkColumnResizer()` — exported, called from the renderer
+
+A full render destroys `_cell`. Honouring "the bar stays visible" means re-finding the header
+cell for the same property in the freshly rendered header and re-parking onto it, rather than
+hiding. Called from `render-file-list-table.js` after the header HTML is written, next to the
+existing `closeColumnMenu()` call.
+
+The one unavoidable exception: if that column is no longer in the table (view switched away,
+column hidden), there is nothing to park over, so it hides. Worth calling out — it is the sole
+case where the bar disappears without a press-and-release.
+
+---
+
+## 5. Tooltip: two small exports from `tooltip.js`
+
+`_show` is currently private and only reachable through hover. Add:
+
+- `showTooltipFor(el)` — clears any pending timer, sets `_currentEl = el`, calls `_show(el)`.
+  Setting `_currentEl` matters: it is what lets the existing `mouseout` path dismiss the
+  tooltip normally afterwards.
+- `hideTooltip()` — exports the existing `_dismiss()`.
+
+`_show` writes `anchor-name` inline via `_anchorNamesFor`, which appends rather than replaces
+(`tooltip.js:94-98`). `#column-resizer` has no stylesheet `anchor-name`, so there is nothing to
+clobber.
+
+---
+
+## 6. `table-scrollbar-sync.js`
+
+A resize changes the table's total width, so the proxy top scrollbar's thumb goes stale after a
+drop.
+
+The listener-leak analysis in the old plan's §3.5 is **stale** — it has already been fixed with
+the `_resizeHandler` remove-before-re-add at lines 61-65. What is still missing is only that
+`syncWidth` is private and closes over a pre-built `elements` object.
+
+- Restructure `syncWidth` into an exported `syncScrollbarWidth()` that re-queries
+  `#top-scrollbar-content` and `.list-table` at call time.
+- `initialScrollSync` and `_resizeHandler` both call it.
+- `table-col-resize.js` calls it from `endDrag()`.
+
+---
+
+## 7. `index.html` and registration
+
+**The menu item** (`index.html:584`) — drop `disabled`, add the action and a tip matching its
+three live siblings:
+
+```html
+<button type="button" class="column-menu-item" data-action="column-resize"
+        data-tip="drag the column edge to resize">resize column</button>
+```
+
+**`event-listeners-add.js`**:
+
+- Import `handleColumnResizeActivate` and register `'column-resize': handleColumnResizeActivate`
+  in `clickActionHandlers`, beside the other `column-*` entries at lines 100-104.
+- Import `initColumnResizer` and call it from `addActionHandlers()`, alongside `initPopupAnchor()`
+  and `initTooltip()`. It attaches the `pointerdown` listener directly to the singleton
+  `#column-resizer`.
+
+  A direct listener rather than a new `pointerDownActionHandlers` delegate map: `#column-resizer`
+  is a fixed element declared in `index.html`, not rendered markup, and the two existing
+  singletons initialised this way (`#tooltip`, `#ac-proxy`) set the precedent. A whole
+  document-level delegate for one known element would be the abstraction `CLAUDE.md` warns
+  against. The **activation** click stays on the `data-action` convention, where it belongs.
+
+The existing anonymous `mousedown` listener (lines 76-83) is left alone — folding its editor
+undo/redo and colour-pick checks into anything else means touching editor code as a side effect
+of a table feature.
+
+---
+
+## 8. Files touched
+
+```
+index.html                                    MOD  enable the menu item; add #column-resizer
+public/css/column-resizer.css                 NEW  the bar
+public/style.css                              MOD  one @import
 public/js/ui/ui-functions-table/
-├── apply-column-widths.js      NEW     width resolution + the --grid-columns write
-├── table-col-resize.js         NEW     mousedown → window move/up → drop
-├── render-table-header.js      MOD     loses width code; gains data-prop + handle
-├── table-scrollbar-sync.js     MOD     listener-registration fix (§3.5); export re-sync
-├── table-col-hover.js                  untouched unless the optional :has tidy-up (1i)
-└── render-table-columns-helper.js      untouched — that is the layouts axis, not this one
-
-public/js/ui/
-├── render-file-list-table.js   MOD     calls applyColumnWidths; drops the dead reset
-└── event-listeners-add.js      MOD     mousedown delegate map + one registration
-
-public/js/ui/ui-functions-render/reorder-fileprops.js   DELETE (dead, step 0a)
-public/js/services/store.js              MOD  widthOverrides Map
-public/js/constants.js                   MOD  MIN_/DEFAULT_COLUMN_WIDTH
-public/js/services/directory-handler.js  MOD  one .clear() line
-public/js/backup/opfs-import.js          MOD  one .clear() line
-public/css/note-table.css                MOD  gutter, handle, coarse-pointer rule
-manifest.json                            MOD  minor bump per commit
+├── table-col-resize.js                       NEW  activate → pointer drag → drop
+├── apply-column-widths.js                    NEW  width resolution + the --grid-columns write
+├── render-table-header.js                    MOD  loses the width block; markup untouched
+└── table-scrollbar-sync.js                   MOD  export syncScrollbarWidth()
+public/js/ui/render-file-list-table.js        MOD  applyColumnWidths + reparkColumnResizer
+public/js/ui/event-listeners-add.js           MOD  one action entry + initColumnResizer()
+public/js/ui/tooltip.js                       MOD  showTooltipFor / hideTooltip exports
+public/js/services/store.js                   MOD  widthOverrides Map
+public/js/constants.js                        MOD  DEFAULT_/MIN_COLUMN_WIDTH
+public/js/services/directory-handler.js       MOD  one .clear() line
+public/js/backup/opfs-import.js               MOD  one .clear() line
+manifest.json                                 MOD  1.138.0 → 1.139.0
+tests/40-column-menu.spec.js                  MOD  disabled/enabled counts 3/3 → 2/4
+tests/41-column-resize.spec.js                NEW
 ```
 
-Both new files belong in `ui-functions-table/`, not `ui-functions-click/`. `CLAUDE.md` asks
-for one file per action in `ui-functions-click/`, but `table-col-hover.js` is the existing
-precedent for a table event handler living beside the table renderers, and
-`table-col-resize.js` pairs with it by name. The CSS goes in `note-table.css` because the
-handle is part of the table component, not a new one.
-
-**Blast radius.** Only two changes reach beyond table view:
-
-1. **The `mousedown` delegate** (1g) is a new document-level listener firing on every
-   mouse-down in the app, sitting alongside the existing anonymous `mousedown` listener at
-   `event-listeners-add.js:75` rather than replacing it. Behaviourally contained — the handler
-   map has one entry so everything else falls through, and the existing listener only acts on
-   editor undo/redo and colour-pick. During a drag there are also two transient `window`
-   listeners; `endDrag` is the single place that removes them (1f).
-2. **The scrollbar listener fix** (§3.5) changes behaviour that has never worked, and done
-   carelessly makes things worse. See that section.
-
-Everything else is additive or contained. `store.js` and `constants.js` gain new keys and
-exports that no existing reader consults — `sort-select-load.js` reads only
-`TABLE_VIEW_COLUMNS.hidden_always`, and the loaders only reset. Nothing lands in `services/`
-beyond two `.clear()` lines, so no business logic moves and the three-layer separation holds.
-
-One pre-existing quirk to be aware of: `--grid-columns` is written to `document.body`, so it
-is a global CSS variable, but `note-table.css:15` is its only consumer. A stale value remains
-on `body` after switching away from table view. True today, unchanged by this work.
+Nothing lands in `services/` beyond the `widthOverrides` field and two `.clear()` lines, so the
+three-layer separation holds.
 
 ---
 
-## 8. Verification
+## 9. Verification
 
-Run the existing suite to confirm nothing regressed: `npm install` (once per environment),
-then `npm test`.
+**Tests.** `npm install` (once), then `npm test`.
 
-`CLAUDE.md` requires screenshots for new features — expectations about browser behaviour are
-not reliable enough on their own. Take them for:
+`tests/40-column-menu.spec.js:66-67` asserts `toHaveCount(3)` for both disabled and enabled menu
+buttons — it must become 2 disabled / 4 enabled, or it fails.
 
-- the handle's hover appearance, and that it does not collide with the sort chevron
-- a column mid-drag
-- **the column-hover highlight during a drag.** `table-col-hover.js` repaints on `mouseover`
-  of header cells. With mouse events there is no pointer capture to absorb them, so a drag
-  travelling across neighbouring headers may repaint the highlight to the wrong column. Check
-  this specifically. If it happens, have the hover handler bail out while a drag is in
-  progress.
+New `tests/41-column-resize.spec.js`, following the house pattern in `40-column-menu.spec.js`
+(`openTable`, `openMenuFor`, CommonJS `require`):
+
+- clicking "resize column" closes the menu and makes `#column-resizer` visible, positioned at
+  the header cell's right edge (`Math.abs(bar.left + bar.width/2 - cell.right) <= 1`) and matching
+  its height
+- `#tooltip` is visible with text `drag to resize`, without any hover
+- the bar survives a scroll of `.list-table` still glued to its column edge
+- `page.mouse.down()` → `move()` → `up()` widens the column: assert the header cell's
+  `getBoundingClientRect().width` grew by the drag distance, and that the matching body cells
+  grew with it
+- after `mouse.up()`, `#column-resizer` is hidden
+- the new width **survives a sort** (sorting from the menu triggers a re-render) — this is the
+  test that would catch a missing `widthOverrides` lookup
+- a drag past the minimum clamps at `MIN_COLUMN_WIDTH`
+- touch: `page.touchscreen` / a `pointerdown`-`pointermove`-`pointerup` dispatch with
+  `pointerType: 'touch'` resizes the column, at a 400px viewport where the menu is a bottom
+  sheet
+
+**Screenshots** — `CLAUDE.md` requires these for a new feature; expectations about browser
+behaviour are not reliable enough alone. Drive the app with Playwright and capture:
+
+1. the resizer visible on a column edge with its tooltip showing, right after the menu click
+2. a column mid-drag
+3. after the drop — bar gone, new width in place
+4. the same width still in place after sorting by another column
+5. the bottom-sheet menu at a 400px viewport, and the resizer after a touch drag
+
+Also check by hand during a drag: `table-col-hover.js` repaints the column highlight on
+`mouseover` of header cells. Pointer capture should absorb those during the drag, but confirm
+the highlight does not jump to a neighbouring column as the pointer travels across it. If it
+does, have `handleTableColHover` bail out while a drag is in progress.
 
 ---
 
-## 9. Deliberately not doing
-
-Do not add these while implementing this plan.
+## 10. Explicitly not doing
 
 | Not doing | Why |
 |---|---|
-| Persisting widths to a `.gypsum` file | Belongs with saved layouts; would mean building most of that file plumbing piecemeal |
-| Making `tableColumns()` pure | Purity is about *which* columns exist; resize is about *how wide*. Different axis, no benefit here. It earns its place the day `resolveColumns(availableProps, layout)` is written |
-| Consolidating the two column-metadata sources (`FILE_PROPERTIES` vs `myFilesProperties`) | Real cleanup, but resize does not need it. Belongs with the layout work |
-| Column reordering, show/hide UI | Saved layouts, later |
-| Double-click to auto-fit | Needs content measuring via a temporary `max-content` track. A second feature |
-| Touch resizing | See the `pointer: coarse` rule above |
-| Using Pointer Events / `setPointerCapture` | Considered and rejected — see §4.4. One `pointerdown` listener in a mouse-event codebase is an island with no principled boundary. If wanted, migrate the whole codebase in one dedicated change |
-| Making layouts affect the sort dropdown | `sort-select-load.js:32` filters only `hidden_always`, so a hidden column can already be sorted by. That is intended — leave it |
-
----
-
-## 10. Conventions checklist
-
-- ES modules, `import`/`export` only.
-- JSDoc with `@param`/`@returns` on every exported function.
-- Kebab-case filenames, camelCase identifiers.
-- `data-action` values describe intent (`column-resize`), not implementation.
-- No inline event handlers in HTML.
-- No new runtime dependencies, no network fetches, no build step.
-- All state in `store.js`.
-- Bump `manifest.json`'s **minor** version on each of the two commits.
+| A hover handle on header cells | Activation is the menu item and nothing else |
+| Escape / click-outside dismissal | Specified: only a press-and-release on the bar hides it |
+| Persisting widths to a `.gypsum` file | Session-scoped, cleared per folder. Belongs with saved layouts |
+| "auto-size column" / "hide column" | The other two disabled items stay disabled |
+| Migrating the rest of the app to Pointer Events | The drag needs them; nothing else does. A codebase-wide migration is its own change |
+| Column reordering | Saved layouts, later |

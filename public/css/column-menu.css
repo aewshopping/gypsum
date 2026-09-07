@@ -38,9 +38,9 @@
     flex-direction: column;
     min-width: 150px;
     padding: 4px;
-    background-color: var(--colour-neutral-alt);
+    background-color: var(--colour-neutral);
     color: var(--colour-contr);
-    border: 1px solid var(--colour-contr);
+    border: 1px solid transparent;
 
     /* Square where it meets the header, rounded elsewhere, so it reads as hanging off the
        column rather than floating near it. */
@@ -69,7 +69,7 @@
     white-space: nowrap;
 
     &:hover:not(:disabled) {
-        background-color: var(--colour-neutral);
+        background-color: var(--colour-neutral-alt);
     }
 
     &:disabled {

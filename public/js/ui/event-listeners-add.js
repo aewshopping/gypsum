@@ -17,6 +17,7 @@ import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
+import { handleColumnResizeActivate, initColumnResizer } from './ui-functions-table/table-col-resize.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -67,6 +68,7 @@ import { initTooltip } from './tooltip.js';
 export function addActionHandlers() {
     initPopupAnchor();
     initTooltip();
+    initColumnResizer();
     document.addEventListener("click", clickDelegate);
     document.addEventListener("change", changeDelegate);
     document.addEventListener("keydown", keyDownDelegate);
@@ -101,6 +103,7 @@ const clickActionHandlers = {
     'column-sort-asc': handleColumnSortAsc,
     'column-sort-desc': handleColumnSortDesc,
     'column-search': handleColumnSearch,
+    'column-resize': handleColumnResizeActivate,
     'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,
