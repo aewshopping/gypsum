@@ -54,9 +54,9 @@ beside it. The nested `getDirectoryHandle(…, { create: true })` this needs is 
   "name": "review",
   "updated": "2026-09-08T11:02:00.000Z",
   "columns": [
-    { "name": "internalId", "label": "file",  "type": "string", "width": 90,  "visible": true  },
-    { "name": "title",      "label": "title", "type": "string", "width": 350, "visible": true  },
-    { "name": "filepath",   "label": "path",  "type": "string", "width": 300, "visible": false }
+    { "order": 0, "name": "internalId", "label": "file",  "type": "string", "width": 90,  "visible": true  },
+    { "order": 1, "name": "title",      "label": "title", "type": "string", "width": 350, "visible": true  },
+    { "order": 2, "name": "filepath",   "label": "path",  "type": "string", "width": 300, "visible": false }
   ]
 }
 ```
@@ -79,11 +79,24 @@ from the start means such a layout is readable by an older build rather than cor
 **`layoutVersion`** so a later shape can be migrated rather than guessed at. `backup-history-read.js`
 already carries a legacy-format branch for want of one; cheap now, awkward to retrofit.
 
-**Order is the array position.** No `order: 3` on each entry. An array cannot disagree with itself
-about what comes third, whereas a set of indices has to be kept consistent by hand on every move —
-the same reason `columnLayout` is an ordered Map rather than a Map of index numbers. This reads
-"order" as *the order is recorded explicitly, not recomputed from defaults*, which array position
-satisfies. Say if you would rather have the number as well.
+**`order` is an explicit key**, so the file can be reordered by hand without moving whole blocks
+of JSON around — change two numbers and the table follows.
+
+It is written from position and read as the authority, which is what keeps it from becoming a
+second thing to maintain:
+
+- **On write**, `order` is regenerated from the column's index in the Map. Nothing tracks it
+  during a drag, so it cannot drift out of step with the order actually on screen.
+- **On read**, the columns are sorted by `order` before the Map is built, so a hand-edited file
+  takes effect even when its array is left in the old sequence.
+
+In memory the order stays what it already is — the Map's own key order (`plans/table-column-visibility.md`
+§3.1) — and no `order` field is carried on the entries there. Two places holding the same fact is
+exactly the drift this avoids; the file has the number because a text file has no other way to say
+it, and the Map does not because it does not need one.
+
+A hand-edit that leaves duplicate or missing `order` values is not an error: the sort is stable,
+so ties keep their array order, and a missing one falls back to the array position.
 
 ### 2.3 The pointer
 
@@ -110,7 +123,7 @@ where it is good.
 
 | | Map in memory | Array in the file |
 |---|---|---|
-| Order | Insertion order, already the column order | Array position |
+| Order | Insertion order, already the column order | An explicit `order` key, written from that position and sorted on before the Map is rebuilt |
 | Lookup | `columnLayout.get(name)` — used per column per render by `columnWidthPx`, and by the resize and auto-size writers | Not needed; converted on load |
 | Duplicates | Impossible — the key is the column | Possible, so the loader is the place that de-duplicates |
 | Reading the file by hand | — | One object per line, obvious what it says |
@@ -119,8 +132,8 @@ Converting is a line each way, and the entry carries its own `name` so the array
 self-contained:
 
 ```js
-[...columnLayout.values()]                      // to the file
-new Map(columns.map(c => [c.name, c]))          // back
+[...columnLayout.values()].map((c, order) => ({ order, ...c }))   // to the file
+new Map([...columns].sort(byOrder).map(c => [c.name, c]))         // back
 ```
 
 **What ditching the Map would cost.** Lookup by name becomes `.find()` — irrelevant at a dozen
@@ -180,16 +193,23 @@ Order does not matter against the file load: `resolveColumns()` already appends 
 Map has not seen, so a layout applied before or after `myFilesProperties` is populated ends up the
 same.
 
-### 5.1 One change `resolveColumns()` needs
+### 5.1 A column for a property no file carries is still a column
 
-Today every entry in `columnLayout` was put there from `myFilesProperties`, so every entry is
-known to exist. A layout read from disk breaks that: it can name a property no file in the folder
-carries any more.
+A layout can name a property nothing in the folder currently has — a file moved away, or a folder
+opened with another folder's layout. **That column is still rendered**, empty in every row, and
+still listed in the picker. It keeps its width, its heading and its place, and fills itself in the
+moment a file with that property appears.
 
-`resolveColumns()` must therefore **return only entries whose property is currently present**,
-while leaving them in the Map. Filtering the output rather than deleting means a column whose
-file has been moved away comes back with it, and the layout that gets written keeps it — a
-layout should not quietly forget a column because a file was missing the day it was opened.
+This needs no code: `resolveColumns()` returns everything in `columnLayout` and only *appends*
+what is missing, so an entry it did not seed passes through untouched. `renderTableRows` reads
+`file[prop.name]`, gets `undefined`, and renders an empty cell — the same thing it already does
+for a file that lacks a property its neighbours have. A `date` column shows `N/A` rather than
+blank, again as it already does for a file with no date.
+
+The one thing the **loader** does filter is `hidden_always`. Those are hard exclusions — a
+`FileSystemFileHandle` cannot be rendered — so a layout naming one is dropped on read rather than
+honoured. `shown_always` needs no such guard: `resolveColumns()` already forces the file column
+visible whatever the layout says.
 
 ---
 
@@ -219,7 +239,7 @@ public/js/table-layouts/layout-file.js     NEW  list / read / write / delete, an
 public/js/table-layouts/layout-apply.js    NEW  columnLayout <-> the file's columns array
 public/js/ui/ui-functions-click/layout-select.js  NEW  the picker's select, save-as, rename, delete
 public/js/constants.js                     MOD  LAYOUT_FOLDER
-public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  drop absent properties (§5.1), layout values win over FILE_PROPERTIES
+public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  layout values win over FILE_PROPERTIES
 public/js/ui/ui-functions-click/column-picker.js   MOD  save on close
 public/js/ui/ui-functions-table/table-col-resize.js     MOD  save on drag end
 public/js/ui/ui-functions-table/table-col-auto-size.js  MOD  save after auto-size
@@ -238,10 +258,11 @@ API work, no DOM. `layout-select.js` is the only piece that touches the DOM, and
 
 ## 8. Decisions worth revisiting before building
 
-- **Order as array position, not an `order` field** (§2.2). The alternative is a number per entry;
-  it is more explicit to read and one more thing that can disagree with the array it sits in.
-- **Stale columns are kept in the layout, hidden from the table** (§5.1). The alternative is to
-  drop them on load, which is tidier but loses a column because a file happened to be absent.
+- **`order` is in the file but not in the Map** (§2.2), regenerated on every write and treated as
+  the authority on every read. Carrying it on the in-memory entries as well would be the version
+  of this that drifts.
+- **A layout column with no matching property renders empty rather than being hidden** (§5.1), so
+  a column survives its files being absent and fills in when they return.
 - **No UI for "unsaved changes"**. A named layout is always in step with the table, because every
   change writes. There is nothing to warn about, which is the reason for choosing autosave over a
   save button.
