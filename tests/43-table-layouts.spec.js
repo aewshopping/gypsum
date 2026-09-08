@@ -22,6 +22,22 @@ async function openPicker(page) {
   await expect(page.locator('#modal-columns')).toBeVisible();
 }
 
+/** Hides the tags column, so there is a change to save or discard. */
+async function hideTags(page) {
+  await openPicker(page);
+  await pickerRows(page).filter({ hasText: 'tags' }).locator('input.toggle').uncheck();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(0);
+}
+
+async function saveAsNew(page, name) {
+  await layoutName(page).click();
+  await menu(page).locator('[data-action="layout-save-as"]').click();
+  await page.fill('#layout-name-input', name);
+  await page.click('[data-action="layout-name-confirm"]');
+  await expect(layoutName(page)).toContainText(name);
+}
+
 test('a folder with no saved layout shows the app defaults and writes nothing', async ({ page }) => {
   await openTable(page);
 
@@ -29,33 +45,25 @@ test('a folder with no saved layout shows the app defaults and writes nothing', 
   expect(await page.evaluate(() => window.__layoutsFileContent)).toBe('');
 });
 
-test('dismissing the column picker unchanged does not create a layout', async ({ page }) => {
+test('changing columns writes nothing until the user saves', async ({ page }) => {
   await openTable(page);
-  await openPicker(page);
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#modal-columns')).toBeHidden();
+  await hideTags(page);
 
-  // The write is fire-and-forget, so give it a moment to have happened if it were going to.
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(200);   // long enough for a write to have happened if one were coming
   expect(await page.evaluate(() => window.__layoutsFileContent)).toBe('');
   await expect(layoutName(page)).toContainText('app defaults');
 });
 
-test('hiding a column creates a layout and writes every column to it', async ({ page }) => {
+test('save as new writes every column to the layout', async ({ page }) => {
   await openTable(page);
-  await openPicker(page);
-
-  const tagsToggle = pickerRows(page).filter({ hasText: 'tags' }).locator('input.toggle');
-  await tagsToggle.uncheck();
-  await page.keyboard.press('Escape');
-
-  await expect(layoutName(page)).toContainText('untitled');
+  await hideTags(page);
+  await saveAsNew(page, 'review');
 
   const doc = await layoutsFile(page);
-  expect(doc.active).toBe('untitled');
+  expect(doc.active).toBe('review');
   expect(doc.layoutVersion).toBe(1);
 
-  const columns = doc.layouts.untitled.columns;
+  const columns = doc.layouts.review.columns;
   // Hidden columns are written too, with their place and width, so switching one back on
   // returns it where it was.
   expect(columns.find(c => c.name === 'tags').visible).toBe(false);
@@ -69,6 +77,40 @@ test('hiding a column creates a layout and writes every column to it', async ({ 
   }
   // order is regenerated from position on every write
   expect(columns.map(c => c.order)).toEqual(columns.map((_, i) => i));
+});
+
+test('save layout writes the current columns over the active layout', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+
+  // tags is saved as visible; hide it and save again over the same layout
+  expect((await layoutsFile(page)).layouts.review.columns.find(c => c.name === 'tags').visible).toBe(true);
+
+  await hideTags(page);
+  await layoutName(page).click();
+  await menu(page).locator('[data-action="layout-save"]').click();
+  await expect(menu(page)).toBeHidden();
+
+  const doc = await layoutsFile(page);
+  expect(Object.keys(doc.layouts)).toEqual(['review']);   // saved over, not saved as another
+  expect(doc.layouts.review.columns.find(c => c.name === 'tags').visible).toBe(false);
+});
+
+test('unsaved column changes are discarded when the layout is reloaded', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await hideTags(page);
+
+  // Switching away and back re-reads the layout, which never saw the change.
+  await layoutName(page).click();
+  await menu(page).locator('[data-layout=""]').click();
+  await expect(layoutName(page)).toContainText('app defaults');
+
+  await layoutName(page).click();
+  await menu(page).locator('[data-layout="review"]').click();
+  await expect(layoutName(page)).toContainText('review');
+
+  await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(1);
 });
 
 test('a saved layout is restored when the folder is reopened', async ({ page }) => {
@@ -157,19 +199,16 @@ test('a wonky hand-edited order still loads, in the order it asks for', async ({
 test('the menu switches layouts, and app defaults restores the schema order', async ({ page }) => {
   await openTable(page);
 
-  // Make a layout by hiding a column, so there is something to switch away from and back to.
-  await openPicker(page);
-  await pickerRows(page).filter({ hasText: 'tags' }).locator('input.toggle').uncheck();
-  await page.keyboard.press('Escape');
-  await expect(layoutName(page)).toContainText('untitled');
-  await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(0);
+  // Make a layout to switch away from and back to.
+  await hideTags(page);
+  await saveAsNew(page, 'review');
 
   await layoutName(page).click();
   await expect(menu(page)).toBeVisible();
 
   // Both entries are listed, with the active one marked.
   await expect(menu(page).locator('[data-action="layout-select"]')).toHaveCount(2);
-  await expect(menu(page).locator('[data-layout="untitled"]')).toHaveAttribute('aria-checked', 'true');
+  await expect(menu(page).locator('[data-layout="review"]')).toHaveAttribute('aria-checked', 'true');
 
   await menu(page).locator('[data-layout=""]').click();
 
@@ -178,16 +217,14 @@ test('the menu switches layouts, and app defaults restores the schema order', as
 
   const doc = await layoutsFile(page);
   expect(doc.active).toBe(null);
-  expect(Object.keys(doc.layouts)).toEqual(['untitled']);   // switching away does not delete it
+  expect(Object.keys(doc.layouts)).toEqual(['review']);   // switching away does not delete it
 });
 
 test('rename and delete act on the active layout', async ({ page }) => {
   await openTable(page);
 
-  await openPicker(page);
-  await pickerRows(page).filter({ hasText: 'tags' }).locator('input.toggle').uncheck();
-  await page.keyboard.press('Escape');
-  await expect(layoutName(page)).toContainText('untitled');
+  await hideTags(page);
+  await saveAsNew(page, 'draft');
 
   // rename
   await layoutName(page).click();
@@ -212,12 +249,16 @@ test('rename and delete act on the active layout', async ({ page }) => {
   await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(0);
 });
 
-test('rename and delete are disabled on the app defaults', async ({ page }) => {
+test('save, rename and delete are disabled on the app defaults', async ({ page }) => {
   await openTable(page);
   await layoutName(page).click();
 
+  // Nothing behind the defaults to save over, rename or remove.
+  await expect(menu(page).locator('[data-action="layout-save"]')).toBeDisabled();
   await expect(menu(page).locator('[data-action="layout-rename"]')).toBeDisabled();
   await expect(menu(page).locator('[data-action="layout-delete"]')).toBeDisabled();
+
+  // "save as new" is the way out of that state, so it is always available.
   await expect(menu(page).locator('[data-action="layout-save-as"]')).toBeEnabled();
 });
 

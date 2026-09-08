@@ -299,18 +299,25 @@ single place that has to care, which is where the untrusted data arrives anyway.
 
 ## 5. When it is written
 
-Three places change the layout, and all three already exist. Each gains one `saveActiveLayout()`
-call of its own — **not one hung off a following re-render, because two of the three do not
-re-render** (§2.1).
+**When the user says so, and at no other time.** Two items in the layout menu, and nothing else in
+the app writes a layout:
 
-| Trigger | Where |
-|---|---|
-| The column picker closes | `handleColumnPickerClose` (`ui-functions-click/column-picker.js`) |
-| A resize drag ends | `handleColumnResizeEnd` (`ui-functions-table/table-col-resize.js`) |
-| Auto-size a column | `handleColumnAutoSize` (`ui-functions-table/table-col-auto-size.js`) |
+| Item | What it does | On the app defaults |
+|---|---|---|
+| `save layout` | Writes the columns as they are to the layout in use | Disabled — nothing behind the defaults to save over |
+| `save as new…` | Writes them to a name the user types, and switches to it | Always available: it is the way out of the defaults |
 
-Not on render. A re-render happens on every keystroke in the search box, every filter, every sort
-and every page change, none of which touch the layout.
+Both go through one `saveLayout(name)`. Saving over the active layout and saving under a new name
+are the same write; only where the name comes from differs.
+
+An earlier version of this plan autosaved: the column picker closing, a resize drag ending and an
+auto-size each wrote the layout, and editing the app defaults created one called `untitled`. That
+is gone, and with it a surprising amount of machinery — a before-and-after comparison of the
+serialised Map so a dismissed picker did not count as a change, a `_moved` flag so pressing and
+releasing the resize bar did not either, a unique-name generator, and a re-render in each width
+handler for the one case where a layout had just been created and the control row's label had
+changed under it. None of it needed replacing, because a save now only happens when it was asked
+for. **Roughly seventy lines came out for six going in.**
 
 **Writing is skipped when there is no `dirHandle`** — the same guard `saveBackupEntry` opens with.
 In practice both loaders set one (§2.4), OPFS included, so this is defensive rather than a path
@@ -319,57 +326,28 @@ that is actually taken; layouts work identically on a folder and on an OPFS impo
 **Failures are swallowed.** `layout-file.js` follows `local-backup.js`: every File System API call
 is wrapped, and a failed read returns a neutral value rather than throwing. Nothing about the table
 should break because a layout could not be written. This also matters for the tests —
-`tests/helpers.js` throws on an unexpected `getDirectoryHandle` name, so an unguarded write would
-take out the existing column-picker specs.
+`tests/helpers.js` throws on an unexpected `getFileHandle` name, so an unguarded write would take
+out the existing column-picker specs.
 
-### 5.1 Only when something actually changed
+### 5.1 The columns on screen can now differ from the saved layout
 
-Two of the three triggers fire on no-ops (§2.2). Without a guard, opening the column picker and
-pressing Escape — or pressing and releasing the resize bar to put it away — would write a layout
-file, and on the app default (§5.2) would *create* one. That is precisely the "behind your back"
-behaviour §5.2 promises not to have.
+This is the cost of the change, and it is deliberate rather than overlooked. Rearranging columns
+and then switching layouts, or reloading the folder, discards the rearrangement: the layout is what
+was last saved, not what was last seen. There is no dirty marker and nothing prompts on the way
+out.
 
-So each call site compares the layout before and after and skips an identical write. Serialising is
-what makes the comparison a one-liner: `JSON.stringify([...columnLayout])` turns the Map into a
-string, and two strings compare with `===`.
+That is the ordinary bargain of an explicit save, and the alternative — watching for changes in
+order to warn about them — is the machinery this change exists to remove. A layout is cheap to
+re-save, and the app defaults are always one menu item away.
 
-```js
-// handleColumnPickerClose, which already snapshots the Map as `previous`
-const before = JSON.stringify([...layout]);
-// … rebuild the Map from the dialog rows …
-if (JSON.stringify([...layout]) !== before) saveActiveLayout();
-```
+### 5.2 One writer, queued
 
-The resize handler is simpler: `handleColumnResizeMove` is the only thing that changes a width
-during a drag, so it can set a `_moved` flag that `handleColumnResizeEnd` checks. Auto-size needs no
-guard — it is a menu item, and running it is a change by definition, even when the new width equals
-the old one.
-
-### 5.2 Editing the app default creates a layout; it never overwrites one
-
-- Active layout is a **named layout** → the change is written to it. It tracks what you are doing,
-  the way a note autosaves.
-- Active layout is the **app default** (`"active": null`) → the change is written to a new layout
-  called `untitled` (`untitled-2`, `-3` if taken), and `active` moves to it.
-
-So the defaults are a place you can always get back to, and — given §5.1 — no layout is ever
-created without the user having changed something.
-
-### 5.3 One writer, queued
-
-A save is fire-and-forget: the write is not awaited and the render does not wait on the disk. That
-makes overlapping writes possible — auto-size a column, then drag another, then close the picker,
-and three `createWritable()` calls can be open on the same handle at once, interleaving into
-truncated JSON.
-
-`layout-file.js` therefore keeps a module-level promise and chains onto it, so writes run in the
-order they were asked for and never overlap:
+Saving is not awaited by anything that renders, so `layout-file.js` keeps a module-level promise
+and chains onto it. Writes run in the order they were asked for and never overlap, which two open
+writables on one file otherwise could — interleaving into truncated JSON.
 
 ```js
 let _queue = Promise.resolve();
-export function saveActiveLayout() {
-    _queue = _queue.then(writeLayouts).catch(() => {});
-}
 ```
 
 One file makes this enough. A folder of files would need the same guarantee across a layout write
@@ -441,6 +419,7 @@ Clicking opens a popover:
 │   review         │
 │   wide           │
 ├──────────────────┤
+│   save layout    │
 │   save as new…   │
 │   rename…        │
 │   delete         │
@@ -449,8 +428,11 @@ Clicking opens a popover:
 
 - **`app defaults` is always the first entry**, and is the app's built-in defaults rather than a
   saved layout (§3.4). Choosing it sets `active` to `null`.
-- **`rename…` and `delete` are disabled on `app defaults`** — there is nothing to rename or remove.
-  The same `:disabled` treatment the column menu's items already use.
+- **`save layout`, `rename…` and `delete` are disabled on `app defaults`** — there is nothing
+  behind them to save over, rename or remove. The same `:disabled` treatment the column menu's
+  items already use.
+- **`save layout` writes over the layout in use**, which is all an explicit save needs to be: no
+  prompt, no name, no new entry in the menu.
 - **`save as new…`** is always available, and is how a folder gets its first layout. Which is the
   reason the control shows even when nothing has been saved: hiding it would leave no way in.
 
@@ -646,16 +628,14 @@ file walk is fine; the first render is what reads the Map.
 `backup/opfs-import.js`: the same call after `appState.dirHandle = opfsRoot` (line 118). No
 difference in treatment — the OPFS root is a directory handle like any other.
 
-### 8h. The three save call sites
+### 8h. Nothing
 
-- `column-picker.js` → `handleColumnPickerClose`: capture `JSON.stringify([...layout])` before
-  clearing, compare after rebuilding, `saveActiveLayout()` only if it changed (§5.1). The existing
-  `previous` snapshot is already taken at the top of the function, so this is two lines.
-- `table-col-resize.js` → set a module-level `_moved = true` in `handleColumnResizeMove`, clear it
-  in `handleColumnResizeStart`, and in `handleColumnResizeEnd` call `saveActiveLayout()` only when
-  it is set. Without this a press-and-release to dismiss the bar writes a layout (§2.2).
-- `table-col-auto-size.js` → `handleColumnAutoSize` calls it unconditionally after writing the
-  width. It is a menu item; invoking it is a change by definition.
+The three handlers that change the layout — the column picker closing, a resize drag ending, an
+auto-size — are left exactly as they were. They write `columnLayout` and re-apply the widths, and
+that is the end of it. Saving is a menu item (§5), so none of them needs to know a layout exists.
+
+This step is kept rather than deleted because its absence is the point: §2.1 and §2.2 catalogue
+what these handlers do and when they fire, and the answer to both is now "it does not matter".
 
 **Checkpoint.** Layouts now persist and restore with no interface. Resize a column, reload the
 folder, and the width should come back. A folder that has never saved one must be untouched — that
@@ -777,9 +757,7 @@ public/js/constants.js                     MOD  LAYOUTS_FILENAME
 public/js/services/store.js                MOD  appState.tableLayouts; columnLayout entry gains label + real width
 public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  seed label/width; entry spread wins over the schema
 public/js/ui/ui-functions-table/apply-column-widths.js  MOD  columnWidthPx loses its middle fallback
-public/js/ui/ui-functions-click/column-picker.js   MOD  save on close, only when changed; reset button relabelled
-public/js/ui/ui-functions-table/table-col-resize.js     MOD  save on drag end, only when a drag moved something
-public/js/ui/ui-functions-table/table-col-auto-size.js  MOD  save after auto-size
+public/js/ui/ui-functions-click/column-picker.js   MOD  reset button relabelled; no save
 public/js/services/directory-handler.js    MOD  apply the active layout, after dirHandle is set
 public/js/backup/opfs-import.js            MOD  same
 public/js/ui/ui-functions-table/render-table-controls.js  MOD  the name and caret
@@ -818,9 +796,10 @@ work, no DOM. `layout-menu.js` is the only piece that touches the DOM, and it is
   the numbers.
 - **A layout column with no matching property renders empty rather than being hidden** (§6.1), so a
   column survives its files being absent and fills in when they return.
-- **No UI for "unsaved changes"**. A named layout is always in step with the table, because every
-  change writes. There is nothing to warn about, which is the reason for choosing autosave over a
-  save button.
+- **Explicit save, and so no UI for "unsaved changes"** (§5.1). The columns on screen can differ
+  from the saved layout, and nothing says so. A dirty marker is the obvious addition, and the
+  obvious argument against it is that working out whether the layout is dirty means watching for
+  changes again — which is what dropping autosave removed.
 - **Deleting a layout asks first** (§7.2), on the grounds that `delete-file` sets that bar. The case
   against is that a layout is cheap to rebuild and the confirm is friction on a rare, low-stakes
   action — more so now that it is a key in a file rather than a file on disk.

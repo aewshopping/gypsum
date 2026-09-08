@@ -13,7 +13,7 @@
 import { appState } from '../../services/store.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-table/render-table-controls.js';
-import { saveLayoutAs, renameLayout, deleteLayout, setActiveLayout } from '../../table-layouts/layout-file.js';
+import { saveLayout, renameLayout, deleteLayout, setActiveLayout } from '../../table-layouts/layout-file.js';
 import { showWarningModal } from './warning-modal.js';
 
 /** Which of the two jobs the name dialog is doing: 'save-as' or 'rename'. */
@@ -51,10 +51,12 @@ function paintMenu() {
     document.getElementById('layout-menu-names').innerHTML =
         [row(null, DEFAULT_LAYOUT_LABEL), ...names.map(name => row(name, name))].join('');
 
-    // There is no file behind the app defaults, so there is nothing to rename or remove.
+    // There is nothing behind the app defaults to save over, rename or remove. "save as new" is
+    // the way out of that state, which is why it is the one item that is always available.
     const menu = menuElement();
-    menu.querySelector('[data-action="layout-rename"]').disabled = active === null;
-    menu.querySelector('[data-action="layout-delete"]').disabled = active === null;
+    for (const action of ['layout-save', 'layout-rename', 'layout-delete']) {
+        menu.querySelector(`[data-action="${action}"]`).disabled = active === null;
+    }
 }
 
 /**
@@ -101,6 +103,19 @@ function openNameDialog(mode, value) {
 }
 
 /**
+ * Writes the columns as they are now to the layout in use. Disabled on the app defaults, which
+ * have no layout behind them to save over.
+ * @returns {Promise<void>}
+ */
+export async function handleLayoutSave() {
+    const name = appState.tableLayouts.active;
+    if (!name) return;
+
+    menuElement()?.hidePopover();
+    await saveLayout(name);
+}
+
+/**
  * @returns {void}
  */
 export function handleLayoutSaveAs() {
@@ -142,7 +157,7 @@ export async function handleLayoutNameConfirm() {
     }
 
     nameDialog().close();
-    if (_namingMode === 'save-as') await saveLayoutAs(name);
+    if (_namingMode === 'save-as') await saveLayout(name);
     else await renameLayout(active, name);
     renderFiles();
 }

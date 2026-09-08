@@ -16,7 +16,6 @@ import { SAVE_FOLDER, LAYOUTS_FILENAME } from '../constants.js';
 import { layoutFromColumnLayout, applyLayoutToColumnLayout } from './layout-apply.js';
 
 const LAYOUT_VERSION = 1;
-const UNTITLED = 'untitled';
 
 /**
  * Writes run one at a time, in the order they were asked for.
@@ -108,19 +107,6 @@ function refreshState(doc) {
 }
 
 /**
- * `base`, or `base-2`, `base-3`… — the first that is not taken.
- * @param {string} base
- * @param {string[]} names
- * @returns {string}
- */
-function uniqueName(base, names) {
-    if (!names.includes(base)) return base;
-    let n = 2;
-    while (names.includes(`${base}-${n}`)) n++;
-    return `${base}-${n}`;
-}
-
-/**
  * Loads the active layout into columnLayout, and the layout list into appState.
  *
  * Called by both folder loaders once a directory handle is in place. When there is no file, or
@@ -139,44 +125,17 @@ export async function applyActiveLayout() {
 }
 
 /**
- * Writes the current columns to the active layout, creating one if the app's defaults are in use.
+ * Writes the columns as they are on screen to the named layout, and makes it active.
  *
- * Fire-and-forget: the write is queued and not awaited, because no render should wait on the
- * disk. The name is decided here rather than inside the queued task, so appState is correct
- * before this returns and a caller can re-render on the strength of it.
+ * The one write both menu items go through: "save layout" passes the active layout's name and
+ * "save as new" passes a name the user typed. Saving is always something the user asked for, so
+ * there is nothing here that watches for changes and nothing that creates a layout on its own.
  *
- * Editing the app defaults creates a layout rather than overwriting one, so the defaults stay a
- * place the user can always get back to.
- *
- * @returns {boolean} true when a new layout was created, so the caller can re-render the control
- *                    row that names it.
- */
-export function saveActiveLayout() {
-    if (!appState.dirHandle) return false;
-
-    const { names, active } = appState.tableLayouts;
-    const name = active ?? uniqueName(UNTITLED, names);
-    const created = !names.includes(name);
-    appState.tableLayouts = { names: created ? [...names, name] : names, active: name };
-
-    const columns = layoutFromColumnLayout();
-    enqueue(async () => {
-        const doc = await readLayouts();
-        doc.layouts[name] = { updated: new Date().toISOString(), columns };
-        doc.active = name;
-        await writeLayouts(doc);
-    });
-
-    return created;
-}
-
-/**
- * Saves the current columns as a new layout and switches to it.
  * @async
  * @param {string} name
  * @returns {Promise<void>}
  */
-export function saveLayoutAs(name) {
+export function saveLayout(name) {
     const columns = layoutFromColumnLayout();
     return enqueue(async () => {
         const doc = await readLayouts();
