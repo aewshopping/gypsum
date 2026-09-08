@@ -95,10 +95,67 @@ In memory the order stays what it already is — the Map's own key order (`plans
 exactly the drift this avoids; the file has the number because a text file has no other way to say
 it, and the Map does not because it does not need one.
 
-A hand-edit that leaves duplicate or missing `order` values is not an error: the sort is stable,
-so ties keep their array order, and a missing one falls back to the array position.
+### 2.3 When `order` is untidy
 
-### 2.3 The pointer
+A hand-edited file will have gaps, repeats and typos in it. None of these are errors and none of
+them refuse to load: the reader resolves every case to the nearest thing the edit was reaching
+for, and the next write tidies the numbers up.
+
+**Gaps are not a problem at all — they are the point.** Only the relative values matter, so
+`0, 1, 5, 9` is simply four columns in that sequence. Nothing renumbers on read, which is what
+makes **fractional and negative values work**: to drop a column between the first two, write
+`0.5`; to send one to the front, write `-1`. That is the easiest way to hand-edit an order, and
+it falls out of sorting numerically rather than treating the numbers as indices.
+
+| In the file | Read as |
+|---|---|
+| Gaps (`0, 1, 5, 9`) | That sequence. Only relative order matters |
+| Fractional or negative (`0.5`, `-1`) | Exactly what they say — the intended way to insert or promote by hand |
+| **Repeated** (`title: 10`, `size: 10`) | Both keep that place, in the order they appear in the array. A stable sort does this for free |
+| **Missing** the key | Takes the previous entry's order, so a column pasted into the array stays where it was put. The first entry, if it has none, sorts to the front |
+| **Not a number** (`"x"`, `null`, `true`) | Treated as missing, per the row above. Never fed to the comparator |
+| **Repeated `name`** | The first occurrence in sorted order wins outright; the rest are dropped |
+
+Two of those matter more than they look:
+
+- **A non-numeric `order` must never reach the comparator.** A comparator returning `NaN` does not
+  sort badly, it sorts *arbitrarily* — the whole list can come back scrambled, which is the one
+  outcome worse than ignoring the bad value. So the coercion happens before the sort, not inside
+  it: anything failing `Number.isFinite` is treated as absent.
+- **A repeated `name` is resolved explicitly rather than left to the Map.** Building a Map from
+  duplicate keys is not an error but its behaviour is surprising: the *first* insertion fixes the
+  column's position while the *last* overwrites its values, so a duplicate would silently take one
+  entry's place and another's width. De-duplicating first, keeping the first in sorted order,
+  means one entry wins whole.
+
+Resolution in order:
+
+```
+1. coerce   — order is a number, or it is absent (Number.isFinite)
+2. fill     — an absent order becomes the previous entry's; the first, if absent, sorts to the front
+3. sort     — stable, ascending, so equal values keep their array order
+4. dedupe   — by name, first one in the sorted list wins
+```
+
+Worked through, given this file:
+
+```json
+[ { "order": 10,  "name": "title" },
+  {                "name": "tags"  },
+  { "order": 10,  "name": "size"  },
+  { "order": 2,   "name": "file"  },
+  { "order": "x", "name": "date"  } ]
+```
+
+`tags` takes 10 from `title`; `date` takes 10 from `size`, its `"x"` being no number. Sorting
+stably leaves **file, title, tags, size, date** — `file` first because it asked for 2, and
+everything else in the sequence it was written in. Every column keeps the place the file put it.
+
+**The next write tidies the file up.** `order` is regenerated as `0…n-1` whenever the layout
+changes, so a hand-edit is honoured once and then normalised. Nothing is rewritten on load: a file
+opened and not changed is left exactly as the user wrote it.
+
+### 2.4 The pointer
 
 `active.gypsum` names the layout in use:
 
@@ -261,6 +318,9 @@ API work, no DOM. `layout-select.js` is the only piece that touches the DOM, and
 - **`order` is in the file but not in the Map** (§2.2), regenerated on every write and treated as
   the authority on every read. Carrying it on the in-memory entries as well would be the version
   of this that drifts.
+- **A messy `order` is resolved, never rejected** (§2.3). Gaps, fractions and negatives are how a
+  file is meant to be hand-edited; repeats and typos resolve to the place the edit was reaching
+  for, and the next write tidies the numbers.
 - **A layout column with no matching property renders empty rather than being hidden** (§5.1), so
   a column survives its files being absent and fills in when they return.
 - **No UI for "unsaved changes"**. A named layout is always in step with the table, because every
