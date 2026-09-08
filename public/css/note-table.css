@@ -97,6 +97,22 @@
     }
 }
 
+/* The file cell on a coloured row keeps a background of its own, which the row's hover would
+   otherwise paint behind rather than over — leaving the first column conspicuously unlit.
+   It takes the same step the row takes, 20% towards the contrast colour, but from its own faded
+   base rather than the row's full-strength one. So the whole row lifts by the same amount and
+   the file cell stays the lighter of the two, which is what the link's legibility rests on.
+
+   --colour-dynamic-fade is that base, declared by .color-dynamic-fade itself; --color-mono-contr
+   comes down from the row. An uncoloured row needs none of this: its file cell has no background
+   at all, so the row's own hover simply shows through. */
+.note-table:hover .note-table-cell.color-dynamic-fade {
+    background-color: if(
+        style(--colours-suppress: true): var(--colour-neutral-alt);
+        else: color-mix(in oklch, var(--colour-dynamic-fade) 80%, var(--color-mono-contr, var(--colour-contr)))
+    );
+}
+
 .note-table-cell {
     overflow: hidden;
     text-wrap: nowrap;

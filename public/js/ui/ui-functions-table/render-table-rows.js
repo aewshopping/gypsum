@@ -56,7 +56,11 @@ export function renderTableRows(current_props, renderEverything) {
                 // The file column takes the file's colour faded the way the content modal fades it,
                 // so the link keeps its contrast against whatever colour the user picked. The row
                 // itself carries the colour undiluted, which link text could not be read on.
-                const fade = prop.name === 'internalId' ? ' color-dynamic-fade' : '';
+                //
+                // Only where there is a colour: .color-dynamic-fade falls back to a neutral of its
+                // own, which on an uncoloured row painted this one cell a different shade from its
+                // neighbours for no reason, and hid the row's hover behind an opaque background.
+                const fade = prop.name === 'internalId' && file.color ? ' color-dynamic-fade' : '';
                 return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}">${cellContent}</div>`;
             }).join('');
 
