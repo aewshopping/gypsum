@@ -1,8 +1,8 @@
 .toggle {
 
-  --t-height:26px;
-  --t-width: 55px;
-  --t-gap: 4px;
+  --t-height:20px;
+  --t-width: 50px;
+  --t-gap: 3px;
   --t-radius: calc(var(--t-height) - var(--t-gap) *2);
   --t-travel: calc(var(--t-width) - var(--t-height));
 
@@ -58,6 +58,27 @@
 .toggle:checked::after {
   transform: translateX(var(--t-travel));
 
+}
+
+/* Cannot be changed: the last column standing, or one that is always shown. Said in colour
+   rather than in opacity — a faded switch reads as "off and unimportant", where these are mostly
+   on and simply not the user's to move. The track loses its contrast and the knob stops being
+   white, so it sits back without going quiet. */
+.toggle:disabled {
+  cursor: not-allowed;
+  background-color: color-mix(in srgb, var(--colour-contr) 12%, var(--colour-neutral));
+}
+
+.toggle:checked:disabled {
+  background-color: color-mix(in srgb, var(--colour-contr-emph) 35%, var(--colour-neutral));
+}
+
+.toggle:disabled::after {
+  background-color: color-mix(in srgb, var(--colour-neutral) 75%, var(--colour-contr));
+}
+
+.toggle:disabled::before {
+  color: color-mix(in srgb, var(--colour-contr) 55%, var(--colour-neutral));
 }
 
 /* Optional: Focus state for keyboard accessibility */

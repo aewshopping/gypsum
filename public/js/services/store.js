@@ -31,7 +31,7 @@ export const appState = {
         onlyProperties: " press / for search "
       }
     },
-    excludedProperties: ["handle", "show", "contentPeek", "errorOnLoad"],
+    excludedProperties: ["handle", "contentPeek", "errorOnLoad"],
     filters: new Map(),
     results: new Map(),
     matchingFiles: new Map()
@@ -79,7 +79,7 @@ export const appState = {
  */
 export const FILE_PROPERTIES = new Map([
   ['sizeInBytes', {label: 'size', type: 'number', column_width: 120, display_order: 6 }],
-  ['internalId', { type: 'string', column_width: 40, display_order: 1 }],
+  ['internalId', { label: 'file', type: 'string', column_width: 90, display_order: 0 }],
   ['title', { type: 'string', column_width: 350, display_order: 2 }],
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
   ['lastModified', {label: 'last modified', type: 'date', column_width: 150, display_order: 4 }],
@@ -108,18 +108,43 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
   'tags', 'color', 'internalLink', 'lastModified', 'errorOnLoad', 'filepath', 'internalId'];
 
 /**
- * Defines which columns are hidden in the table view.
+ * The table view's columns.
+ *
+ * The three lists mean different things and are easy to confuse. `hidden_always` is a hard
+ * exclusion, not a default: a FileSystemFileHandle cannot be rendered and contentPeek is a slab
+ * of body text, so neither is offered anywhere. `shown_always` is the mirror of it — the file
+ * column, which is the only way to open a file from the table and so cannot be switched off.
+ * `hidden_by_default` is only a starting position: those are useful columns kept out of the way,
+ * and the column picker can bring any of them back.
+ *
  * @type {object}
- * @property {Array<string>} hidden_always - Properties that are never shown in the table.
- * @property {Array<string>} hidden_at_start - Properties that are hidden by default but can be shown.
- * @property {Array<object>} current_props - The fully-resolved properties of the currently visible columns.
- * @property {Map<string, number>} widthOverrides - Widths in px set by dragging, keyed by property
- * name. Session-scoped and cleared when a folder is loaded, so it lives here rather than in
- * FILE_PROPERTIES, which is the property schema that sorting and search also read.
+ * @property {Array<string>} hidden_always - Never shown, never offered, not overridable.
+ * @property {Array<string>} shown_always - Always shown; offered, but locked on.
+ * @property {Array<string>} hidden_by_default - Hidden until the user says otherwise.
+ * @property {Array<object>} current_props - The resolved visible columns, in order, rebuilt each render.
+ * @property {Map<string, {visible: boolean, width: number|null}>} columnLayout - The table's
+ * layout: which columns exist, in what order, whether each is shown and how wide it is.
+ *
+ * One ordered Map rather than a collection per axis, because this is what a saved layout will
+ * write to a file — one thing to copy out beats three to gather, and three chances to save a
+ * stale half. Saving is [...columnLayout]; loading is new Map(parsed).
+ *
+ * **The Map's own key order is the column order.** Maps iterate in insertion order, so reordering
+ * is rebuilding it with the keys in the new sequence: there is no index on each entry, and so no
+ * set of indices that can drift out of step. A Map cannot disagree with itself about what comes
+ * third, and JSON preserves array order, so the order survives a round trip for free.
+ *
+ * Holds every candidate property, hidden ones included — the same set the picker lists. If it
+ * held only visible columns, showing a hidden one again would have nowhere to put it.
+ *
+ * Session-scoped: cleared when a folder is loaded, and re-seeded from the defaults by the next
+ * resolveColumns(). It lives here rather than in FILE_PROPERTIES, which is the property schema
+ * that sorting and search also read.
  */
-export const TABLE_VIEW_COLUMNS = { // note all properties will be shown in the table *except* these ones
-  hidden_always: ['handle', 'show', 'content'],
-  hidden_at_start: ['internalId', 'color', 'filepath', 'contentPeek', 'internalLink', 'errorOnLoad'], // could in future add check box functionality to show current cols ticked and these cols unticked
+export const TABLE_VIEW_COLUMNS = {
+  hidden_always: ['handle', 'contentPeek'],
+  shown_always: ['internalId'],
+  hidden_by_default: ['color', 'filepath', 'internalLink', 'errorOnLoad'],
   current_props: [],
-  widthOverrides: new Map(),
+  columnLayout: new Map(),
 };

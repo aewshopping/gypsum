@@ -112,7 +112,7 @@ async function readMtimeMap(opfsRoot) {
  */
 async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null, mtimeMap = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
-    TABLE_VIEW_COLUMNS.widthOverrides.clear();
+    TABLE_VIEW_COLUMNS.columnLayout.clear();
     appState.myFilesProperties.clear();
     seedCoreFileProperties();
     appState.dirHandle = opfsRoot;

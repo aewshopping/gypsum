@@ -1,10 +1,11 @@
 import { renderTableHeader } from './ui-functions-table/render-table-header.js';
 import { renderTableRows } from './ui-functions-table/render-table-rows.js';
-import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
+import { resolveColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
 import { applyColumnWidths } from './ui-functions-table/apply-column-widths.js';
 import { reparkColumnResizer } from './ui-functions-table/table-col-resize.js';
-import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
+import { renderTableControls } from './ui-functions-table/render-table-controls.js';
+import { TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { closeColumnMenu } from './ui-functions-click/column-menu.js';
 
 /**
@@ -16,14 +17,9 @@ import { closeColumnMenu } from './ui-functions-click/column-menu.js';
  */
 export function renderFileList_table(renderEverything, fullRender = true) {
 
-    TABLE_VIEW_COLUMNS.current_props.length = 0;
-    const columnsToShow = tableColumns();
-
-    // Create a detailed properties array for the current columns
-    TABLE_VIEW_COLUMNS.current_props = columnsToShow.map(propName => ({
-        name: propName,
-        ...FILE_PROPERTIES.get(propName)
-    }));
+    // resolveColumns returns every candidate column; the table renders the shown ones. The
+    // picker renders the same list unfiltered, which is what keeps the two in agreement.
+    TABLE_VIEW_COLUMNS.current_props = resolveColumns().filter(column => column.visible);
 
     // Every render replaces the rows, and a full one replaces the scroll container
     // itself, so the horizontal scroll position has to be carried across. Reading it here
@@ -52,8 +48,10 @@ export function renderFileList_table(renderEverything, fullRender = true) {
 
         // The scrollbar and header sit in .table-chrome, ABOVE the scroll container,
         // so they can stick to the viewport. Only the rows live inside .list-table.
+        // The control row sits above the chrome and outside it, so it scrolls away rather
+        // than holding viewport height for the length of the list.
         const tableHtml = `
-        <div class="table-wrapper">
+        <div class="table-wrapper">${renderTableControls()}
             <div class="table-chrome">
                 <div id="top-scrollbar-container">
                 <div id="top-scrollbar-content"></div>

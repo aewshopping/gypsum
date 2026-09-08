@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { renderFilenamePlusOpenBtn } from '../ui-functions-render/render-filename.js';
+import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
 
@@ -26,8 +26,10 @@ export function renderTableRows(current_props, renderEverything) {
                 // Format cell content based on data type
                 switch (prop.type) {
                     case 'string':
-                        if (prop.name === 'filename') {
-                            cellContent = renderFilenamePlusOpenBtn(file.filepath || '', file.color, file.internalId); // so that it shows the "copy filename" thing (note updated to be full filepath incl filename now we are looking at folders)
+                        if (prop.name === 'internalId') {
+                            cellContent = renderOpenFileLink(file.internalId, file.color);
+                        } else if (prop.name === 'filename') {
+                            cellContent = renderFilename(file.filepath || ''); // the full path from the root, now that folders are loaded
                         } else {
                             cellContent = value || '';
                         }
@@ -51,7 +53,15 @@ export function renderTableRows(current_props, renderEverything) {
                         cellContent = value || '';
                         break;
                 }
-                return `<div class="note-table-cell keyboard-navigable" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}">${cellContent}</div>`;
+                // The file column takes the file's colour faded the way the content modal fades it,
+                // so the link keeps its contrast against whatever colour the user picked. The row
+                // itself carries the colour undiluted, which link text could not be read on.
+                //
+                // Only where there is a colour: .color-dynamic-fade falls back to a neutral of its
+                // own, which on an uncoloured row painted this one cell a different shade from its
+                // neighbours for no reason, and hid the row's hover behind an opaque background.
+                const fade = prop.name === 'internalId' && file.color ? ' color-dynamic-fade' : '';
+                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}">${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

@@ -28,6 +28,15 @@ async function openTable(page) {
 const menu = page => page.locator('#column-menu');
 const titleHeader = page => page.locator('.note-table-cell-header', { hasText: 'title' });
 
+// Somewhere empty to click. Not the top-left of #output any more: the table's control row
+// holds that corner, so a click there presses a button. The reserve .list-table keeps below
+// its last row for expanding cells is empty by construction, which is what this aims at.
+async function clickAway(page) {
+  const table = page.locator('.list-table');
+  const { height } = await table.boundingBox();
+  await table.click({ position: { x: 5, y: height - 10 } });
+}
+
 // Two clicks on the header cell: the first selects the column, the second opens the menu.
 async function openMenuFor(page, header) {
   await header.click();
@@ -99,7 +108,7 @@ test('the menu is dismissed by Escape, by clicking away, and by a re-render', as
   await expect(menu(page)).toBeHidden();
 
   await openMenuFor(page, header);
-  await page.locator('#output').click({ position: { x: 5, y: 5 } });
+  await clickAway(page);
   await expect(menu(page)).toBeHidden();
 
   // a full render rebuilds the header, so the cell the menu points at disappears
@@ -247,7 +256,7 @@ test('a header takes one click to select and a second to open its options', asyn
   await expect(header).toHaveClass(/is-selected/);   // and stays marked while open
 
   // clicking away drops the selection
-  await page.locator('#output').click({ position: { x: 5, y: 5 } });
+  await clickAway(page);
   await expect(page.locator('.note-table-cell-header.is-selected')).toHaveCount(0);
 });
 
@@ -302,16 +311,17 @@ test('the chevron points down for descending and up for ascending', async ({ pag
              rotate: getComputedStyle(c.querySelector('.column-sort-indicator')).rotate };
   });
 
-  // the default sort is descending, and the glyph is drawn pointing down
-  expect(await chevron()).toEqual({ direction: 'desc', rotate: 'none' });
+  // The glyph is a right-pointing arrow turned a quarter each way: down for descending, up
+  // for ascending, matching the sort direction control that sits above the table.
+  expect(await chevron()).toEqual({ direction: 'desc', rotate: '90deg' });
 
   await openMenuFor(page, titleHeader(page));
   await page.locator('[data-action="column-sort-asc"]').click();
-  await expect.poll(chevron).toEqual({ direction: 'asc', rotate: '180deg' });
+  await expect.poll(chevron).toEqual({ direction: 'asc', rotate: '-90deg' });
 
   await openMenuFor(page, titleHeader(page));
   await page.locator('[data-action="column-sort-desc"]').click();
-  await expect.poll(chevron).toEqual({ direction: 'desc', rotate: 'none' });
+  await expect.poll(chevron).toEqual({ direction: 'desc', rotate: '90deg' });
 });
 
 test('search column primes the search box for that property', async ({ page }) => {
@@ -389,7 +399,9 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
   const alignment = () => page.evaluate(() => ({
     drift: [...document.querySelectorAll('.note-table-cell-header')].map(h => {
       const c = document.querySelector(`.list-table .note-table-cell[data-prop="${h.dataset.property}"]`);
-      return Math.round(h.getBoundingClientRect().left - c.getBoundingClientRect().left);
+      // `|| 0` because Math.round of a hair below zero is -0, which toEqual counts as a
+      // different value from 0 — an alignment of -0 is still an alignment.
+      return Math.round(h.getBoundingClientRect().left - c.getBoundingClientRect().left) || 0;
     }),
     stripScrollLeft: document.querySelector('.note-table-header-strip').scrollLeft,
     focused: document.activeElement?.dataset?.property ?? null,
@@ -400,6 +412,10 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
       return c.left >= t.left - 1 && c.right <= t.right + 1;
     })(),
   }));
+
+  // Sized to the columns actually on screen rather than hard-coded, so adding one to the table
+  // is not a failure here — what matters is that every header sits over its own column.
+  const inLine = Array(await page.locator('.note-table-cell-header').count()).fill(0);
 
   await page.locator('#searchbox').focus();
   const seen = [];
@@ -417,7 +433,7 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
       const { drift, focusedOnScreen } = await alignment();
       return { drift, focusedOnScreen };
     }, { message: `header out of line, or off screen, when ${state.focused} took focus` })
-      .toEqual({ drift: [0, 0, 0, 0, 0], focusedOnScreen: true });
+      .toEqual({ drift: inLine, focusedOnScreen: true });
 
     expect(state.stripScrollLeft).toBe(0);
   }
@@ -430,7 +446,7 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
   for (let i = 0; i < 4; i++) {
     await page.keyboard.press('Shift+Tab');
     if ((await alignment()).focused)
-      await expect.poll(async () => (await alignment()).drift).toEqual([0, 0, 0, 0, 0]);
+      await expect.poll(async () => (await alignment()).drift).toEqual(inLine);
   }
 });
 
@@ -444,9 +460,11 @@ test('a header cell is reachable by keyboard, and Enter does what a click does',
   await page.locator('#searchbox').focus();
   const focusedProp = () => page.evaluate(() => document.activeElement?.dataset?.property ?? null);
   for (let i = 0; i < 10 && !(await focusedProp()); i++) await page.keyboard.press('Tab');
-  expect(await focusedProp()).toBe('filename');
+  expect(await focusedProp()).toBe('internalId');   // the file column leads the table
 
   // Tab walks along the columns
+  await page.keyboard.press('Tab');
+  expect(await focusedProp()).toBe('filename');
   await page.keyboard.press('Tab');
   expect(await focusedProp()).toBe('title');
 

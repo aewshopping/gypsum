@@ -25,11 +25,7 @@
     top: anchor(bottom);
     right: anchor(right);
     margin: 0;                    /* flush against the bottom edge of the header */
-
-    /* No position-try fallbacks, deliberately. The menu belongs to its column and goes
-       wherever the column goes, including off screen once the column is scrolled away —
-       clamping it to the viewport left it stranded on the left edge with its column long
-       gone. A menu that runs past the bottom of the window is scrolled to, not flipped. */
+    position-try-fallbacks: --column-menu-flip-left;
 
     /* Above .table-chrome, which sits at 4 inside .table-wrapper's stacking context. The
        top layer already covers this; kept for the fallback if the popover ever isn't open. */
@@ -78,6 +74,27 @@
     }
 }
 
+
+/* Hang from the column's left edge and open rightwards instead.
+
+   For the narrow columns at the head of the table this is the only position that works: a 150px
+   menu hanging from the right edge of the 90px "file" column starts at about -60px, so most of
+   it is off screen.
+
+   The inline axis only. A menu that runs past the bottom of the window is scrolled to, not
+   flipped up — and a flipped-up menu would cover the header it belongs to.
+
+   This is taken only when it actually fits, and the anchored position is kept when it does not,
+   which is what stops the old failure returning: a column scrolled off to the left has its left
+   edge further off screen than its right, so flipping to it unconditionally threw the menu
+   further away rather than rescuing it.
+
+   border-radius cannot follow a fallback — @position-try takes only inset, margin, sizing and
+   self-alignment — so the square corner stays top-right in the flipped case. */
+@position-try --column-menu-flip-left {
+    right: auto;
+    left: anchor(left);
+}
 
 /* On a phone the menu becomes a sheet across the bottom of the screen, rather than hanging
    off a column that may be narrower than a thumb. 600px is the width the rest of the app

@@ -1,6 +1,6 @@
 /* The shell shared by the dialogs that present information rather than a document: settings, file
-   options and file history. Each of them used to carry its own copy of all of this. Anything only
-   one of them needs stays in that modal's own file. */
+   options, file history and the table's column picker. Each of them used to carry its own copy of
+   all of this. Anything only one of them needs stays in that modal's own file. */
 
 .info-modal {
     margin: auto;
@@ -19,4 +19,143 @@
 /* The close button holds the top-right corner, so the first heading gives up its top margin. */
 .info-modal h2 {
     margin-top: 0;
+}
+
+/* A control that cannot be used says so. Shared rather than settings' own, because the column
+   picker disables the last remaining toggle to stop every column being switched off.
+
+   Toggles are excluded: toggle.css states their disabled look in colour rather than in opacity,
+   and fading them on top of that would only make them hard to read. */
+.info-modal input:disabled:not(.toggle),
+.info-modal select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Actions that apply to a dialog's list as a whole, on one line above it. Equal widths, because
+   nothing about "show all" makes it a bigger decision than "hide all". */
+.info-modal-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.info-modal-btn-row > button {
+    flex: 1;
+    justify-content: center;
+
+    /* Without this a label is free to wrap, which lets flex shrink the box to its longest word
+       and leaves one button two lines tall next to two that are one. */
+    white-space: nowrap;
+}
+
+
+/* A label-plus-control row. The settings modal is made of nothing else, and the columns picker
+   is the second dialog built from them, so the rule moved here from modal-settings.css where it
+   was scoped to #modal-settings and unreachable. */
+
+.info-modal-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+}
+
+/* Takes the free space so the control sits hard against the right edge whatever the label's
+   length, and whether the row holds two children or three. */
+.info-modal-row-label {
+    flex: 1;
+}
+
+/* A small faded icon button living in a row: the history modal's open/recreate/delete, and the
+   columns picker's drag grip. The glyph is the whole button, so it fades at rest and comes up
+   on hover, the same gesture .svg-wrapper-style makes for the app's toolbar icons. */
+
+.info-modal-row-btn {
+    flex-shrink: 0;
+    width: 1.6em;
+    height: 1.6em;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0.45;
+}
+
+.info-modal-row-btn:hover {
+    opacity: 0.9;
+}
+
+.info-modal-row-icon {
+    width: 100%;
+    height: 100%;
+    color: var(--colour-contr);
+}
+
+/* The one thing that says a grip is a drag target rather than a button. */
+.info-modal-row-grip {
+    cursor: grab;
+
+    /* The browser decides whether a touch is a scroll from the touch-action where that touch
+       began, before any handler runs. Without this a finger on the grip scrolls the list. */
+    touch-action: none;
+}
+
+/* :active alone loses the cursor the moment the row moves out from under the pointer. */
+.info-modal-row-grip:active,
+.info-modal-row.is-dragging .info-modal-row-grip {
+    cursor: grabbing;
+}
+
+/* A row carrying a grip is one you drag, and a drag that starts a few pixels off the handle
+   should come to nothing rather than paint a selection down half the list. Keyed on the grip
+   rather than on the picker, so it follows the affordance wherever it turns up next. */
+.info-modal-row:has(.info-modal-row-grip) {
+    user-select: none;
+
+    /* A row displaced by a reorder slides to its new slot rather than jumping to it. It moves
+       by reflow, which no transition can animate, so column-picker-reorder.js puts it back
+       where it was and releases it — this is the transition that then carries it across. The
+       carried row rides the same declaration on the way down when it is let go. */
+    transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* The row being carried. Lifted rather than faded: it travels under the pointer while the rest
+   of the list parts around it, so it should read as the thing in hand. Raised out of the flow's
+   paint order too, or the row it is passing draws over it. */
+.info-modal-row.is-dragging {
+    position: relative;
+    z-index: 1;
+    border-radius: 4px;
+    background-color: var(--colour-neutral-alt);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+
+    /* Pinned to the pointer, so it is the one row that must not ease: a transition here is felt
+       straight away as the row lagging behind the finger. It regains one the moment the class
+       comes off, which is what settles it into its slot on release. */
+    transition: none;
+}
+
+/* Worn by a dialog whose unbounded list has something below it that must stay reachable — the
+   history modal's clear-all button. The dialog becomes a column so the list takes the leftover
+   height and scrolls inside it, rather than the dialog growing past the UA's max-height and
+   pushing what follows the list out of view.
+
+   Only for that case. A dialog whose list is its last content wants no inner scroller: letting
+   the dialog itself scroll puts the scrollbar on its outer edge rather than inset by its padding,
+   which is how the settings and columns dialogs read.
+
+   [open] is load-bearing: a <dialog> is display:none until opened, and an unconditional display
+   here would override that and leave it permanently on screen. See tests/32-history-modal-hidden. */
+
+.info-modal-scroll[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-modal-scroll-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
 }

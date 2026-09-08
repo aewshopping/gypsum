@@ -1,17 +1,3 @@
-#modal-settings .settings-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 8px 0;
-}
-
-#modal-settings input:disabled,
-#modal-settings select:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 .settings-control-group {
     display: flex;
     align-items: center;
