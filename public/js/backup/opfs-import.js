@@ -10,6 +10,7 @@ import { checkAllFileErrors } from '../services/file-parsing/file-errors.js';
 import { seedCoreFileProperties } from '../services/file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
+import { applyActiveLayout } from '../table-layouts/layout-file.js';
 
 // Thrown by both OPFS entry points, so the two cannot drift. The usual cause is the app
 // being opened from file:// rather than served.
@@ -119,6 +120,8 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     document.getElementById('btn-new-note').disabled = false;
     document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"], [data-action="open-history-modal"]')
         .forEach(btn => { btn.disabled = false; });
+
+    await applyActiveLayout();
 
     if (mtimeMap === null) mtimeMap = await readMtimeMap(opfsRoot);
     const startTime = performance.now();

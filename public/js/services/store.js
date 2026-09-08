@@ -1,4 +1,4 @@
-import { VIEWS } from "../constants.js";
+import { VIEWS, DEFAULT_COLUMN_WIDTH } from "../constants.js";
 
 /**
  * @file Centralized state management for the application.
@@ -69,6 +69,12 @@ export const appState = {
 
   recentFiles: new Set(),  // internalIds of files opened this session, most recently opened first.
                            // Each file appears once: re-opening one moves it back to the top.
+
+  // The saved table layouts for the loaded folder, read from .gypsum/table_layouts.gypsum.
+  // `active` is the name of the layout in use, or null for the app's built-in defaults — a state
+  // the user can choose, not the absence of a choice. Lives here rather than being read off the
+  // disk on demand because render-table-controls.js is a renderer and has to stay synchronous.
+  tableLayouts: { names: [], active: null },
 }
 
 /**
@@ -122,12 +128,19 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
  * @property {Array<string>} shown_always - Always shown; offered, but locked on.
  * @property {Array<string>} hidden_by_default - Hidden until the user says otherwise.
  * @property {Array<object>} current_props - The resolved visible columns, in order, rebuilt each render.
- * @property {Map<string, {visible: boolean, width: number|null}>} columnLayout - The table's
- * layout: which columns exist, in what order, whether each is shown and how wide it is.
+ * @property {Map<string, {label: string, width: number, visible: boolean}>} columnLayout - The
+ * table's layout: which columns exist, in what order, what each is headed, whether it is shown
+ * and how wide it is.
  *
- * One ordered Map rather than a collection per axis, because this is what a saved layout will
- * write to a file — one thing to copy out beats three to gather, and three chances to save a
- * stale half. Saving is [...columnLayout]; loading is new Map(parsed).
+ * One ordered Map rather than a collection per axis, because this is what a saved layout writes
+ * to a file — one thing to copy out beats three to gather, and three chances to save a stale
+ * half. Saving is [...columnLayout]; loading is new Map(parsed).
+ *
+ * The entry holds the values a column is actually drawn with, not overrides on top of
+ * FILE_PROPERTIES: resolveColumns() seeds label and width from the schema the first time it sees
+ * a property, and from then on this Map is the answer. That is what lets a saved layout be a
+ * straight copy of it, and what lets a layout keep its own widths and headings when the schema's
+ * defaults change underneath it.
  *
  * **The Map's own key order is the column order.** Maps iterate in insertion order, so reordering
  * is rebuilding it with the keys in the new sequence: there is no index on each entry, and so no
@@ -148,3 +161,25 @@ export const TABLE_VIEW_COLUMNS = {
   current_props: [],
   columnLayout: new Map(),
 };
+
+/**
+ * A column's entry as it looks before anyone has changed it: the schema's own heading and width,
+ * and whether it starts shown. This is the shape columnLayout holds, and so the shape a saved
+ * layout writes to disk.
+ *
+ * Two callers: resolveColumns(), the first time it sees a property, and the layout loader, for a
+ * value a hand-edited file left unusable. They must not disagree about what a default column is,
+ * which is why this is one function rather than the same three lines twice.
+ *
+ * @param {string} name - The property name.
+ * @returns {{label: string, width: number, visible: boolean}}
+ */
+export function defaultColumnEntry(name) {
+  const schema = FILE_PROPERTIES.get(name);
+  return {
+    label: schema?.label ?? name,
+    // ?? rather than ||, so the colour column's deliberate 0 is kept rather than replaced.
+    width: schema?.column_width ?? DEFAULT_COLUMN_WIDTH,
+    visible: !TABLE_VIEW_COLUMNS.hidden_by_default.includes(name),
+  };
+}

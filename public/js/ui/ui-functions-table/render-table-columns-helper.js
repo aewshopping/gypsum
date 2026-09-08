@@ -1,4 +1,4 @@
-import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/store.js';
+import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, defaultColumnEntry } from '../../services/store.js';
 
 /**
  * The table's columns in order, each carrying whether it is shown and its FILE_PROPERTIES
@@ -14,14 +14,20 @@ import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/st
  * finds it complete; a property discovered late joins the end rather than being dropped. Nothing
  * has to remember to seed it.
  *
- * Width is deliberately not returned. It is read live from the layout by columnWidthPx at the
- * moment the tracks are written, because a resize drag updates the layout and re-applies the
- * widths without re-rendering — a width copied onto these objects would be stale mid-drag.
+ * The layout's own values win over the schema's. A column is seeded with FILE_PROPERTIES' label
+ * and width the first time it is seen, and read from the Map from then on — so a saved layout
+ * keeps the heading and width it was saved with even after the schema's defaults change. The
+ * schema is still spread first, for the keys the layout does not carry: type and display_order.
  *
- * @returns {Array<object>} Resolved columns in order: { name, visible, alwaysOn, ...FILE_PROPERTIES }.
+ * The returned width is for completeness, not for use. columnWidthPx reads the Map directly at
+ * the moment the tracks are written, because a resize drag updates the layout and re-applies the
+ * widths without re-rendering — a width read off these objects would be stale mid-drag.
+ *
+ * @returns {Array<object>} Resolved columns in order: { name, label, width, visible, alwaysOn,
+ *                          type, display_order }.
  */
 export function resolveColumns() {
-    const { columnLayout, hidden_always, shown_always, hidden_by_default } = TABLE_VIEW_COLUMNS;
+    const { columnLayout, hidden_always, shown_always } = TABLE_VIEW_COLUMNS;
 
     const excluded = new Set(hidden_always);
     const missing = [...appState.myFilesProperties.keys()]
@@ -32,10 +38,7 @@ export function resolveColumns() {
     missing
         .sort((a, b) => (FILE_PROPERTIES.get(a)?.display_order ?? 99)
                       - (FILE_PROPERTIES.get(b)?.display_order ?? 99))
-        .forEach(prop => columnLayout.set(prop, {
-            visible: !hidden_by_default.includes(prop),
-            width: null,
-        }));
+        .forEach(prop => columnLayout.set(prop, defaultColumnEntry(prop)));
 
     // shown_always is enforced here rather than trusted from the layout, so the one function that
     // decides the column set is also the one place the rule cannot be got round.
@@ -44,6 +47,7 @@ export function resolveColumns() {
         return {
             name,
             ...FILE_PROPERTIES.get(name),
+            ...entry,
             visible: alwaysOn || entry.visible,
             alwaysOn,
         };

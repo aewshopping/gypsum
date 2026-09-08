@@ -27,6 +27,8 @@ import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/col
 import { showTooltipFor, hideTooltip } from '../tooltip.js';
 import { applyColumnWidths, columnWidthPx } from './apply-column-widths.js';
 import { syncScrollbarWidth } from './table-scrollbar-sync.js';
+import { saveActiveLayout } from '../../table-layouts/layout-file.js';
+import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /**
  * Re-parks the bar when the page is re-laid-out under it. #output is watched rather than the
@@ -42,6 +44,8 @@ let _startX = 0;      // drag origin
 let _startWidth = 0;
 let _dragging = false; // whether a drag is in flight; the move and end handlers see every
                        // pointer event on the page and use this to know which are theirs
+let _moved = false;    // whether this drag changed a width. A press and release with no movement
+                       // is how the bar is put away, and that is not a layout change to save.
 
 /**
  * @returns {HTMLElement|null}
@@ -90,6 +94,7 @@ function hideResizer() {
     _prop = null;
     _cell = null;
     _dragging = false;
+    _moved = false;
 }
 
 /**
@@ -162,6 +167,7 @@ export function handleColumnResizeStart(evt, bar) {
     _startX = evt.clientX;
     _startWidth = columnWidthPx(TABLE_VIEW_COLUMNS.current_props.find(p => p.name === _prop));
     _dragging = true;
+    _moved = false;
 
     hideTooltip();
 }
@@ -177,6 +183,7 @@ export function handleColumnResizeMove(evt) {
 
     const width = Math.max(MIN_COLUMN_WIDTH, _startWidth + (evt.clientX - _startX));
     TABLE_VIEW_COLUMNS.columnLayout.get(_prop).width = width;
+    _moved = true;
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
     parkBar(); // the edge just moved, so the bar follows it
 }
@@ -190,6 +197,12 @@ export function handleColumnResizeMove(evt) {
 export function handleColumnResizeEnd() {
     if (!_dragging) return;
 
+    const moved = _moved;
     hideResizer();
     syncScrollbarWidth(); // the table is a different width now
+
+    // Only a drag that actually moved something is a layout change. A press and release on the
+    // bar is how it is dismissed, and saving there would write a layout — and on the app defaults
+    // create one — for a gesture that changed nothing.
+    if (moved && saveActiveLayout()) renderFiles();
 }

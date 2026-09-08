@@ -14,8 +14,10 @@ import { DEFAULT_COLUMN_WIDTH } from '../../constants.js';
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 
 /**
- * The width a column should render at: a dragged width first, then the schema default, then the
- * fallback. Nullish rather than truthy, so a stored 0 is not read as absent.
+ * The width a column should render at. The layout is the whole answer: resolveColumns() seeds
+ * every entry with the schema's width when it first sees the property, so there is no second
+ * fallback to consult here. The remaining ?? covers a column drawn before it has been seeded,
+ * which nothing reaches — but undefined in a grid track is worse than a default.
  *
  * Read from the layout rather than from the passed column, because a resize drag writes the
  * layout and re-applies the widths without re-rendering — the column objects are from the last
@@ -24,9 +26,7 @@ import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
  * @returns {number} Width in px.
  */
 export function columnWidthPx(prop) {
-    return TABLE_VIEW_COLUMNS.columnLayout.get(prop.name)?.width
-        ?? prop.column_width
-        ?? DEFAULT_COLUMN_WIDTH;
+    return TABLE_VIEW_COLUMNS.columnLayout.get(prop.name)?.width ?? DEFAULT_COLUMN_WIDTH;
 }
 
 /**

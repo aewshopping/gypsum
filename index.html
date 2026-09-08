@@ -585,10 +585,24 @@
     <div class="info-modal-btn-row">
       <button class="btn-base-style" data-action="show-all-columns" data-tip="show every column">show all</button>
       <button class="btn-base-style" data-action="hide-all-columns" data-tip="hide every column">hide all</button>
-      <button class="btn-base-style" data-action="reset-columns" data-tip="restore the default columns, order and widths">reset all</button>
+      <button class="btn-base-style" data-action="reset-columns" data-tip="reset this layout to the app's default columns, order and widths">reset this layout</button>
     </div>
 
     <div id="column-picker-list"></div>
+  </dialog>
+
+  <!-- One input, serving both "save as new" and "rename" — layout-menu.js sets the title and
+       the button text for whichever asked. Follows #modal-file-options, which renames a file the
+       same way; prompt() is not used anywhere in the app. -->
+  <dialog id="modal-layout-name" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="layout-name-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+    <h2 class="menu-title" id="layout-name-title">Save layout</h2>
+    <input type="text" id="layout-name-input" class="layout-name-input" autocomplete="off" spellcheck="false">
+    <p id="layout-name-error" class="layout-name-error" hidden></p>
+    <div class="info-modal-btn-row">
+      <button class="btn-base-style" id="layout-name-confirm" data-action="layout-name-confirm">save</button>
+      <button class="btn-base-style" data-action="layout-name-cancel">cancel</button>
+    </div>
   </dialog>
 
   <dialog id="modal-color-picker" data-action="close-color-picker-outside">
@@ -616,13 +630,25 @@
        one scroll-offset away from its column. Same trick as #ac-proxy. -->
   <div id="column-menu-anchor" aria-hidden="true"></div>
 
-  <div id="column-menu" popover>
-    <button type="button" class="column-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A-Z</button>
-    <button type="button" class="column-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z-A</button>
-    <button type="button" class="column-menu-item" data-action="column-search" data-tip="search within this column">search column</button>
-    <button type="button" class="column-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
-    <button type="button" class="column-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
-    <button type="button" class="column-menu-item" disabled>hide column</button>
+  <div id="column-menu" class="app-menu" popover>
+    <button type="button" class="app-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A-Z</button>
+    <button type="button" class="app-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z-A</button>
+    <button type="button" class="app-menu-item" data-action="column-search" data-tip="search within this column">search column</button>
+    <button type="button" class="app-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
+    <button type="button" class="app-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
+    <button type="button" class="app-menu-item" disabled>hide column</button>
+  </div>
+
+  <!-- Saved table layouts, opened from the name in the table's control row. Shares .app-menu
+       with the column menu above; unlike that one it anchors straight to its own button, the
+       control row having no scroll-driven transform to resolve against. The layout names are
+       filled in on open by layout-menu.js, since they change as layouts are added. -->
+  <div id="layout-menu" class="app-menu" popover>
+    <div id="layout-menu-names"></div>
+    <div class="app-menu-separator"></div>
+    <button type="button" class="app-menu-item" data-action="layout-save-as" data-tip="save these columns as a new layout">save as new…</button>
+    <button type="button" class="app-menu-item" data-action="layout-rename" data-tip="rename this layout">rename…</button>
+    <button type="button" class="app-menu-item" data-action="layout-delete" data-tip="delete this layout">delete</button>
   </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the

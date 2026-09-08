@@ -3,6 +3,7 @@
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { renderColumnPickerList } from '../ui-functions-table/column-picker-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { saveActiveLayout } from '../../table-layouts/layout-file.js';
 
 const dialog = document.getElementById('modal-columns');
 
@@ -111,11 +112,17 @@ export function handleResetColumns() {
  * The list is emptied afterwards. The dialog is a shell, and rebuilding it on every open is the
  * same arrangement the table has — nothing in the app holds rendered state between renders, and
  * a row left behind from a previous folder would look exactly like a real one.
+ *
+ * The layout is only saved when it actually changed. Escape and a click outside both close the
+ * dialog and both reach here, so without the comparison, opening the picker and dismissing it
+ * would write a layout — and on the app defaults would create one, which is exactly the thing
+ * saved layouts promise not to do behind the user's back.
  * @returns {void}
  */
 export function handleColumnPickerClose() {
     const layout = TABLE_VIEW_COLUMNS.columnLayout;
     const previous = new Map(layout);
+    const before = JSON.stringify([...layout]);
 
     layout.clear();
     listElement().querySelectorAll('.info-modal-row').forEach(row => {
@@ -126,5 +133,6 @@ export function handleColumnPickerClose() {
     });
 
     listElement().innerHTML = '';
+    if (JSON.stringify([...layout]) !== before) saveActiveLayout();
     renderFiles();
 }

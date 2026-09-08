@@ -60,6 +60,7 @@ import { handleToggleFileControls } from './ui-functions-click/handle-toggle-fil
 import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
+import { handleLayoutMenuOpen, handleLayoutSelect, handleLayoutSaveAs, handleLayoutRename, handleLayoutDelete, handleLayoutNameConfirm, handleLayoutNameCancel } from './ui-functions-click/layout-menu.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
 import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-click/cell-expand.js';
@@ -126,6 +127,13 @@ const clickActionHandlers = {
     'column-search': handleColumnSearch,
     'column-resize': handleColumnResizeActivate,
     'column-auto-size': handleColumnAutoSize,
+    'layout-menu-open': handleLayoutMenuOpen,
+    'layout-select': handleLayoutSelect,
+    'layout-save-as': handleLayoutSaveAs,
+    'layout-rename': handleLayoutRename,
+    'layout-delete': handleLayoutDelete,
+    'layout-name-confirm': handleLayoutNameConfirm,
+    'layout-name-cancel': handleLayoutNameCancel,
     'open-column-picker': handleOpenColumnPicker,
     'close-column-picker': handleCloseColumnPicker,
     'reset-columns': handleResetColumns,

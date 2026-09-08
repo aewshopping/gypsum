@@ -29,6 +29,8 @@ import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/col
 import { applyColumnWidths } from './apply-column-widths.js';
 import { syncScrollbarWidth } from './table-scrollbar-sync.js';
 import { reparkColumnResizer } from './table-col-resize.js';
+import { saveActiveLayout } from '../../table-layouts/layout-file.js';
+import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /**
  * Measures what a column needs, leaving the tracks as it found them.
@@ -78,4 +80,9 @@ export function handleColumnAutoSize() {
 
     syncScrollbarWidth();   // the table is a different width now
     reparkColumnResizer();  // and the bar, if it is up, is on a moved edge
+
+    // No guard: this is a menu item, so running it is a change by definition. A render only when
+    // a layout was created, because that is the one case where the control row now says something
+    // different — the width itself is already on screen without one.
+    if (saveActiveLayout()) renderFiles();
 }
