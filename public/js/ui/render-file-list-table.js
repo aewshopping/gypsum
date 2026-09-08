@@ -1,11 +1,11 @@
 import { renderTableHeader } from './ui-functions-table/render-table-header.js';
 import { renderTableRows } from './ui-functions-table/render-table-rows.js';
-import { tableColumns } from './ui-functions-table/render-table-columns-helper.js';
+import { resolveColumns } from './ui-functions-table/render-table-columns-helper.js';
 import { initialScrollSync } from './ui-functions-table/table-scrollbar-sync.js';
 import { applyColumnWidths } from './ui-functions-table/apply-column-widths.js';
 import { reparkColumnResizer } from './ui-functions-table/table-col-resize.js';
 import { renderTableControls } from './ui-functions-table/render-table-controls.js';
-import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from '../services/store.js';
+import { TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { closeColumnMenu } from './ui-functions-click/column-menu.js';
 
 /**
@@ -17,14 +17,9 @@ import { closeColumnMenu } from './ui-functions-click/column-menu.js';
  */
 export function renderFileList_table(renderEverything, fullRender = true) {
 
-    TABLE_VIEW_COLUMNS.current_props.length = 0;
-    const columnsToShow = tableColumns();
-
-    // Create a detailed properties array for the current columns
-    TABLE_VIEW_COLUMNS.current_props = columnsToShow.map(propName => ({
-        name: propName,
-        ...FILE_PROPERTIES.get(propName)
-    }));
+    // resolveColumns returns every candidate column; the table renders the shown ones. The
+    // picker renders the same list unfiltered, which is what keeps the two in agreement.
+    TABLE_VIEW_COLUMNS.current_props = resolveColumns().filter(column => column.visible);
 
     // Every render replaces the rows, and a full one replaces the scroll container
     // itself, so the horizontal scroll position has to be carried across. Reading it here

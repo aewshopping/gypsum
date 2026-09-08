@@ -19,7 +19,7 @@ import { handleFileContentInput } from './ui-functions-click/file-content-input.
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
-import { handleOpenColumnPicker, handleCloseColumnPicker } from './ui-functions-click/column-picker.js';
+import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
@@ -91,6 +91,11 @@ export function addActionHandlers() {
     document.addEventListener('pointermove', handleColumnResizeMove);
     document.addEventListener('pointerup', handleColumnResizeEnd);
     document.addEventListener('pointercancel', handleColumnResizeEnd);
+
+    // Escape, clicking outside and the close button are all valid ways to finish with the column
+    // picker, and all three have to apply what it was used to change. close is the one event they
+    // all reach, which is why the dialog is read there rather than from a "done" button.
+    document.getElementById('modal-columns').addEventListener('close', handleColumnPickerClose);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
             evt.preventDefault();
@@ -123,6 +128,7 @@ const clickActionHandlers = {
     'column-auto-size': handleColumnAutoSize,
     'open-column-picker': handleOpenColumnPicker,
     'close-column-picker': handleCloseColumnPicker,
+    'reset-columns': handleResetColumns,
     'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,
@@ -189,6 +195,7 @@ const changeActionHandlers = {
     'button-size-change': handleButtonSizeChange,
     'pagination-size-change': handlePaginationSizeChange,
     'checkbox-toggle': handleCheckboxToggle,
+    'column-toggle': handleColumnToggle,
 };
 
 const pointerDownActionHandlers = {

@@ -1,44 +1,35 @@
-import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/store.js';
+import { resolveColumns } from './render-table-columns-helper.js';
 
 /**
- * Renders the column picker's rows: one per property the loaded files carry, ticked when that
- * property is currently a table column.
+ * Renders the column picker's rows: one per candidate column, in the table's own order, ticked
+ * when that column is shown.
  *
- * The candidates come from myFilesProperties rather than FILE_PROPERTIES, because that is the
- * set of properties actually present in this folder — front matter keys included — which is what
- * makes the list change from folder to folder. hidden_always is excluded: those are app
- * internals with nothing to show.
+ * Built from resolveColumns(), the same call the table renders from — the table takes the shown
+ * entries and this takes all of them, so the picker and the table cannot disagree about what
+ * exists or what order it is in. The row order in this list *is* the column order, hidden rows
+ * included, which is why the hidden ones are listed rather than filtered out.
  *
- * Rows sit in the table's own column order, using the same display_order comparator as
- * tableColumns(), so a row's position in this list matches its column's position in the table.
+ * The label matches the column header (render-table-header.js): whichever name FILE_PROPERTIES
+ * gives, falling back to the property's own.
  *
- * The toggles carry no data-action and are deliberately inert. The grips drag (see
- * column-picker-reorder.js) but the order they produce is not stored either. Wiring both up is
- * plans/table-column-visibility.md.
+ * data-property is what lets the close handler read a row back to a column; it is on the row
+ * rather than the toggle because it identifies the row as a whole, grip included.
+ *
+ * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
+ * to the DOM afterwards by column-picker.js.
  *
  * @returns {string} HTML string for #column-picker-list's innerHTML.
  */
 export function renderColumnPickerList() {
-    const hidden = new Set(TABLE_VIEW_COLUMNS.hidden_always);
-    const visible = new Set(TABLE_VIEW_COLUMNS.current_props.map(prop => prop.name));
+    return resolveColumns().map(column => {
+        const label = column.label ?? column.name;
+        const checked = column.visible ? ' checked' : '';
 
-    const properties = [...appState.myFilesProperties.keys()].filter(prop => !hidden.has(prop));
-
-    properties.sort((a, b) => {
-        const orderA = FILE_PROPERTIES.get(a)?.display_order ?? 99;
-        const orderB = FILE_PROPERTIES.get(b)?.display_order ?? 99;
-        return orderA - orderB;
-    });
-
-    return properties.map(prop => {
-        const label = FILE_PROPERTIES.get(prop)?.label ?? prop;
-        const checked = visible.has(prop) ? ' checked' : '';
-
-        return `<div class="info-modal-row">` +
+        return `<div class="info-modal-row" data-property="${column.name}">` +
                  `<button type="button" class="info-modal-row-btn info-modal-row-grip" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
-                 `<input type="checkbox" class="toggle"${checked}>` +
+                 `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="show this column"${checked}>` +
                `</div>`;
     }).join('');
 }

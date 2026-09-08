@@ -54,12 +54,14 @@ test('the picker lists the loaded folder\'s properties, in the table\'s column o
   // Sorted by display_order, labelled the friendly way where FILE_PROPERTIES gives a label,
   // and ending with the front matter key, which has no display_order and falls to the back.
   await expect(rows(page).locator('.info-modal-row-label')).toHaveText([
-    'filename', 'internalId', 'title', 'tags', 'last modified', 'size',
+    'filename', 'title', 'tags', 'last modified', 'size',
     'links', 'color', 'filepath', 'preview', 'load error', 'status',
   ]);
 
-  // handle is in hidden_always: a FileSystemFileHandle is not a column anyone can ask for
+  // hidden_always is a hard exclusion, so neither is offered: handle is a FileSystemFileHandle
+  // and internalId holds the same string as filepath under an internal name.
   await expect(rows(page).filter({ hasText: 'handle' })).toHaveCount(0);
+  await expect(rows(page).filter({ hasText: 'internalId' })).toHaveCount(0);
 });
 
 test('a row is ticked when its property is currently a column', async ({ page }) => {

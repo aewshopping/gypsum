@@ -14,13 +14,17 @@ import { DEFAULT_COLUMN_WIDTH } from '../../constants.js';
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 
 /**
- * The width a column should render at: a dragged override first, then the schema default,
- * then the fallback. Nullish rather than truthy, so a stored 0 is not read as absent.
+ * The width a column should render at: a dragged width first, then the schema default, then the
+ * fallback. Nullish rather than truthy, so a stored 0 is not read as absent.
+ *
+ * Read from the layout rather than from the passed column, because a resize drag writes the
+ * layout and re-applies the widths without re-rendering — the column objects are from the last
+ * render and would carry a stale width for the length of the drag.
  * @param {object} prop - A resolved column from TABLE_VIEW_COLUMNS.current_props.
  * @returns {number} Width in px.
  */
 export function columnWidthPx(prop) {
-    return TABLE_VIEW_COLUMNS.widthOverrides.get(prop.name)
+    return TABLE_VIEW_COLUMNS.columnLayout.get(prop.name)?.width
         ?? prop.column_width
         ?? DEFAULT_COLUMN_WIDTH;
 }

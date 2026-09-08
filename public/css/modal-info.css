@@ -21,6 +21,14 @@
     margin-top: 0;
 }
 
+/* A control that cannot be used says so. Shared rather than settings' own, because the column
+   picker disables the last remaining toggle to stop every column being switched off. */
+.info-modal input:disabled,
+.info-modal select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 /* A label-plus-control row. The settings modal is made of nothing else, and the columns picker
    is the second dialog built from them, so the rule moved here from modal-settings.css where it

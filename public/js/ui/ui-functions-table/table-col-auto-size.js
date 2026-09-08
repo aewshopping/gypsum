@@ -73,7 +73,7 @@ export function handleColumnAutoSize() {
     const width = naturalWidthPx(property);
     if (!width) return;
 
-    TABLE_VIEW_COLUMNS.widthOverrides.set(property, width);
+    TABLE_VIEW_COLUMNS.columnLayout.get(property).width = width;
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
 
     syncScrollbarWidth();   // the table is a different width now

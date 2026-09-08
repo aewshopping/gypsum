@@ -176,7 +176,7 @@ export function handleColumnResizeMove(evt) {
     if (!_dragging) return;
 
     const width = Math.max(MIN_COLUMN_WIDTH, _startWidth + (evt.clientX - _startX));
-    TABLE_VIEW_COLUMNS.widthOverrides.set(_prop, width);
+    TABLE_VIEW_COLUMNS.columnLayout.get(_prop).width = width;
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
     parkBar(); // the edge just moved, so the bar follows it
 }

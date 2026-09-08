@@ -20,6 +20,11 @@ import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
  * answers. Nothing keyboard-specific is written anywhere. That also forces the chevron to be a
  * span — a button may only contain phrasing content, so a div inside one is invalid.
  *
+ * Headed by the property's label where FILE_PROPERTIES gives it one, so contentPeek reads as
+ * "preview" here and in the column picker alike — a row in the picker and its column in the table
+ * should not be named differently. data-property keeps the raw name: the column menu, the sort,
+ * the hover highlight and the resize bar all key on it.
+ *
  * @param {Array<object>} current_props - The properties to render as column headers.
  * @returns {string} The HTML string for the table header strip.
  */
@@ -31,7 +36,7 @@ export function renderTableHeader(current_props) {
             const sorted = prop.name === appState.sortState.property
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
-            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.name}<span class="flexgrow"> </span><span class="column-sort-indicator">➜</span></button>`;
+            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.label ?? prop.name}<span class="flexgrow"> </span><span class="column-sort-indicator">➜</span></button>`;
         })
         .join('');
 
