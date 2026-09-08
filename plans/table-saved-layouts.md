@@ -10,7 +10,7 @@ Related: `plans/table-column-visibility.md` (built), `plans/table-column-resize.
 
 The table's column layout — which columns, in what order, how wide, under what heading — saved
 to the folder and restored when it is reopened. Several layouts per folder, one file each,
-switched from the column picker.
+switched from a control in the table's own row of controls.
 
 **In scope:** writing and reading layout files, choosing which is active, creating, renaming and
 deleting them, and leaving the app's built-in defaults intact when no layout has been saved.
@@ -272,20 +272,86 @@ visible whatever the layout says.
 
 ## 6. The interface
 
-Modest, inside the column picker, which is already the place columns are arranged. A row above the
-existing show all / hide all / reset all bar:
+**A name and a caret in the table's control row**, beside the columns button — the row
+`render-table-controls.js` already renders, which exists only in table view and already holds the
+table's whole-table actions.
 
-- a `<select>` of the saved layouts plus a first entry for the app default — switching applies it
-  and moves the pointer;
-- **save as** — prompts for a name, writes it, points at it;
-- **rename** — writes under the new name, deletes the old file, repoints;
-- **delete** — removes the file; if it was active, the pointer falls back to the app default.
+```
+▦   default ▾
+────────────────────────────
+▀▀▀▀▀ scrollbar ▀▀▀▀▀▀▀▀▀▀▀▀
+ file │ filename │ title │ …
+```
 
-Rename is a write-then-delete rather than a move: the File System API has no rename, which
-`editing/rename-file.js` already deals with the same way.
+At rest it is text, not a control: no box, no border, weight of a label. It says what shape the
+table is in, which is worth a permanent line, and asks for nothing until clicked.
 
-**Layout names become filenames**, so they are sanitised on the way in — a genuine boundary, and
-the one place in this feature where validating input is warranted.
+### 6.1 The menu
+
+Clicking opens a popover:
+
+```
+┌──────────────────┐
+│ ✓ default        │   ← the app's built-in defaults
+│   review         │
+│   wide           │
+├──────────────────┤
+│   save as new…   │
+│   rename…        │
+│   delete         │
+└──────────────────┘
+```
+
+- **`default` is always the first entry**, and is the app's built-in defaults rather than a file
+  (§2.4). Choosing it clears the pointer.
+- **`rename…` and `delete` are disabled on `default`** — there is no file to rename or remove. The
+  same `:disabled` treatment the column menu's items already use.
+- **`save as new…`** is always available, and is how a folder gets its first layout. Which is the
+  reason the control shows even when nothing has been saved: hiding it would leave no way in.
+
+This is the same popover machinery as `#column-menu` — a `popover` attribute for the top layer,
+light dismiss and Escape from the browser, positioned by CSS anchor positioning. **Simpler than
+that one, though**: the column menu needs `#column-menu-anchor`, a proxy parked over the header
+cell, because the header carries a scroll-driven transform that anchor positioning resolves
+against the wrong box. The control row has no transform, so this menu anchors straight to its own
+button.
+
+`.column-menu-item` already styles exactly these rows. Two menus now want it, so it moves to a
+shared file under a name that does not claim to be about columns — the same promotion the dialog
+furniture had when a second dialog needed it.
+
+### 6.2 Naming, renaming, deleting
+
+**Save as and rename both need a name typed in.** One small `.info-modal` dialog with a single
+input serves both, following `#modal-file-options`, which renames a file the same way. Not
+`prompt()`: the app does not use it anywhere.
+
+**The name becomes a filename**, so it is sanitised on the way in — the one place in this feature
+where validating input is warranted, because it is a genuine boundary rather than an internal
+invariant.
+
+**Rename is write-then-delete**: the File System API has no move, which `editing/rename-file.js`
+already handles the same way. The pointer follows.
+
+**Delete goes through the existing warning modal** (`warning-proceed` / `warning-cancel`), the one
+`delete-file` already uses. It removes a file from the user's disk, which is the app's existing
+bar for asking. If the deleted layout was active, the pointer falls back to `default` and the
+columns on screen stay exactly as they are — deleting the record of an arrangement does not
+disturb the arrangement.
+
+### 6.3 What the renderer needs
+
+`render-table-controls.js` is a renderer: it returns HTML and holds no logic, so it cannot read the
+directory to find out what layouts exist. The list therefore lives in state, refreshed when the
+folder loads and after any save, rename or delete:
+
+```js
+appState.tableLayouts = { names: [], active: null }   // active: null = the app's defaults
+```
+
+The renderer reads `active` for the label and `names` for the menu, and everything stays
+synchronous. This is also what `§4`'s "overwrite the active layout" writes through, so there is
+one answer in memory to "which layout is this".
 
 ---
 
@@ -294,7 +360,7 @@ the one place in this feature where validating input is warranted.
 ```
 public/js/table-layouts/layout-file.js     NEW  list / read / write / delete, and the pointer
 public/js/table-layouts/layout-apply.js    NEW  columnLayout <-> the file's columns array
-public/js/ui/ui-functions-click/layout-select.js  NEW  the picker's select, save-as, rename, delete
+public/js/ui/ui-functions-click/layout-menu.js     NEW  open, choose, save-as, rename, delete
 public/js/constants.js                     MOD  LAYOUT_FOLDER
 public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  layout values win over FILE_PROPERTIES
 public/js/ui/ui-functions-click/column-picker.js   MOD  save on close
@@ -302,14 +368,17 @@ public/js/ui/ui-functions-table/table-col-resize.js     MOD  save on drag end
 public/js/ui/ui-functions-table/table-col-auto-size.js  MOD  save after auto-size
 public/js/services/directory-handler.js    MOD  apply the active layout after clearing
 public/js/backup/opfs-import.js            MOD  same
-public/js/ui/ui-functions-table/column-picker-list.js   MOD  render the layout row
-index.html                                 MOD  the layout controls
+public/js/ui/ui-functions-table/render-table-controls.js  MOD  the name and caret
+public/js/services/store.js                MOD  appState.tableLayouts
+public/css/layout-menu.css                 NEW  the popover's own positioning
+public/css/column-menu.css                 MOD  .column-menu-item moves to a shared name
+index.html                                 MOD  the popover and the name dialog
 public/js/ui/event-listeners-add.js        MOD  the new data-actions
 manifest.json                              MOD  minor bump
 ```
 
 `table-layouts/` mirrors `history/`: a small folder of single-purpose modules doing File System
-API work, no DOM. `layout-select.js` is the only piece that touches the DOM, and it is a handler.
+API work, no DOM. `layout-menu.js` is the only piece that touches the DOM, and it is a handler.
 
 ---
 
@@ -326,6 +395,9 @@ API work, no DOM. `layout-select.js` is the only piece that touches the DOM, and
 - **No UI for "unsaved changes"**. A named layout is always in step with the table, because every
   change writes. There is nothing to warn about, which is the reason for choosing autosave over a
   save button.
+- **Deleting a layout asks first** (§6.2), on the grounds that it removes a file from disk and
+  `delete-file` already sets that bar. The case against is that a layout is cheap to rebuild and
+  the confirm is friction on a rare, low-stakes action.
 
 ---
 
