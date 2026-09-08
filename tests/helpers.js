@@ -272,9 +272,14 @@ async function setupMockDirectoryWithSaveSupport(page) {
     };
 
     const gypsumDirHandle = {
-      getFileHandle: async (name, _options) => {
+      getFileHandle: async (name, options) => {
         if (name === 'history.gypsum') return backupHandle;
-        if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
+        // The real API throws NotFoundError for a file that does not exist unless create is
+        // set. Creating regardless made every read look like a write to the assertions below.
+        if (!(name in window.__savedFiles)) {
+          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          window.__savedFiles[name] = '';
+        }
         return {
           getFile: async () => ({ text: async () => window.__savedFiles[name] }),
           createWritable: async () => ({
@@ -335,9 +340,14 @@ async function setupMockDirectoryWithHistoryAndSave(page) {
     };
 
     const gypsumDirHandle = {
-      getFileHandle: async (name, _options) => {
+      getFileHandle: async (name, options) => {
         if (name === 'history.gypsum') return backupHandle;
-        if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
+        // The real API throws NotFoundError for a file that does not exist unless create is
+        // set. Creating regardless made every read look like a write to the assertions below.
+        if (!(name in window.__savedFiles)) {
+          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          window.__savedFiles[name] = '';
+        }
         return {
           getFile: async () => ({ text: async () => window.__savedFiles[name] }),
           createWritable: async () => ({
@@ -447,9 +457,14 @@ async function setupMockDirectoryForColorExisting(page, colourName = 'coral') {
       }),
     };
     const gypsumDirHandle = {
-      getFileHandle: async (name, _options) => {
+      getFileHandle: async (name, options) => {
         if (name === 'history.gypsum') return backupHandle;
-        if (!(name in window.__savedFiles)) window.__savedFiles[name] = '';
+        // The real API throws NotFoundError for a file that does not exist unless create is
+        // set. Creating regardless made every read look like a write to the assertions below.
+        if (!(name in window.__savedFiles)) {
+          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          window.__savedFiles[name] = '';
+        }
         return {
           getFile: async () => ({ text: async () => window.__savedFiles[name] }),
           createWritable: async () => ({
@@ -857,4 +872,57 @@ async function showFilenames(page) {
   await page.selectOption('#view-select', 'cards');
 }
 
-module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation };
+
+/**
+ * Directory mock with layout support: .gypsum/table_layouts.gypsum is readable and writable,
+ * and its content is exposed as window.__layoutsFileContent for tests to seed and assert on.
+ *
+ * Two files with different property sets, so there is more than one column to reorder, hide and
+ * measure. Set window.__layoutsFileContent before loadFolder() to start from a saved layout.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithLayouts(page) {
+  await page.addInitScript(() => {
+    window.__layoutsFileContent = '';
+    window.__backupFileContent = '';
+
+    const makeFile = (name, content) => ({
+      kind: 'file', name,
+      getFile: async () => ({
+        name, size: content.length, lastModified: Date.now(),
+        text: async () => content,
+      }),
+    });
+
+    const stringHandle = (key) => ({
+      getFile: async () => ({ text: async () => window[key] }),
+      createWritable: async () => ({
+        write: async (c) => { window[key] = c; },
+        close: async () => {},
+      }),
+    });
+
+    const gypsumDirHandle = {
+      getFileHandle: async (name, _options) => {
+        if (name === 'table_layouts.gypsum') return stringHandle('__layoutsFileContent');
+        if (name === 'history.gypsum') return stringHandle('__backupFileContent');
+        throw new Error(`Unexpected getFileHandle call for: ${name}`);
+      },
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () {
+        yield makeFile('alpha.md', '# Alpha\nFirst note #work/project');
+        yield makeFile('beta.md', '---\ndate: 2024-03-02\npeople: [Ada]\n---\n# Beta\nSecond note');
+      },
+      getDirectoryHandle: async (name, _options) => {
+        if (name === '.gypsum') return gypsumDirHandle;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  });
+}
+
+module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };

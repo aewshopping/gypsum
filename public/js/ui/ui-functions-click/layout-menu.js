@@ -124,8 +124,14 @@ export async function handleLayoutNameConfirm() {
     const name = document.getElementById('layout-name-input').value.trim();
     const { names, active } = appState.tableLayouts;
 
+    // Renaming a layout to the name it already has is a no-op, not a clash. Saving a new one
+    // over the active layout is still a clash — that is the case this stops being silent.
+    const taken = _namingMode === 'rename'
+        ? (names.includes(name) && name !== active)
+        : names.includes(name);
+
     const problem = !name ? 'give the layout a name'
-        : (names.includes(name) && name !== active) ? 'there is already a layout with that name'
+        : taken ? 'there is already a layout with that name'
         : null;
 
     if (problem) {

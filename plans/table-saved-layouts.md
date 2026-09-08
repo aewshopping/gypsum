@@ -1,6 +1,6 @@
 # Plan: saved table layouts
 
-Status: **not started**
+Status: **built**
 Related: `plans/table-column-visibility.md` (built), `plans/table-column-resize.md` (built),
 `plans/table-json-export.md`, `plans/table-formula-columns.md`
 
@@ -739,6 +739,18 @@ Bump the minor version. It drives the service worker's cache-invalidation check,
 on load is exactly the kind of change a stale cache would hide.
 
 ---
+
+### Found while building
+
+Four things the steps above did not predict, recorded because each was a real failure rather than
+a guess:
+
+| | What happened |
+|---|---|
+| `.column-menu-item` has a **JS** reader | `column-menu.js:132` focuses the menu's first item with `menu.querySelector('.column-menu-item:not(:disabled)')`. Renaming the class in CSS and markup alone silently stopped the column menu taking focus on open — two specs caught it |
+| Promoting id-scoped rules to a class **loses specificity** | menu.css's `.app-menu` bottom-sheet insets lost to column-menu.css's `#column-menu { top: anchor(bottom) }`, so the mobile sheet never appeared. Each menu's anchored positioning is now inside `@media (min-width: 601px)`, the complement of the shared sheet's breakpoint |
+| Three test mocks ignore `create: false` | `getFileHandle` created an entry for any name asked for, so the layout read on load registered as a write and broke two save/delete specs. The mocks now throw for a missing file unless `create` is set, which is what the real API does |
+| Save-as and rename need **different** duplicate checks | "same name as the active layout" is a no-op for rename but a silent overwrite for save-as. One check served both and let the second case through |
 
 ### Consequential changes worth calling out
 
