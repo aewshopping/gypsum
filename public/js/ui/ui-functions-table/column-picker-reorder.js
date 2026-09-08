@@ -5,6 +5,8 @@
  * touch — a finger fires no drag events at all — which is the same wall table-col-resize.js hit.
  * Pointer events cover mouse, trackpad and finger in one path.
  *
+ * A finger must rest on the grip before it lifts anything (TOUCH_HOLD_MS); a mouse does not.
+ *
  * All three handlers are registered in event-listeners-add.js with everything else: the grip
  * starts a drag through its data-action, and the move and end handlers sit on the document for
  * the life of the page, doing nothing until there is a row in hand. They cannot be reached by
@@ -26,7 +28,17 @@
 
 import { setTooltipSuppressed } from '../tooltip.js';
 
-let _row = null;   // the row being carried, null the rest of the time
+/* A finger has to rest on the grip this long before it picks a row up. Without it, a touch that
+   lands on a grip can only ever be a drag — the grip declares touch-action: none, so the browser
+   never takes the gesture for a scroll — and swiping to read down the list reorders the columns
+   by accident. A mouse press has no such ambiguity and stays immediate. */
+const TOUCH_HOLD_MS = 250;
+
+/* How far a finger may stray during that hold and still be holding rather than swiping. */
+const HOLD_TOLERANCE_PX = 8;
+
+let _row = null;       // the row being carried, null the rest of the time
+let _pending = null;   // a touch waiting out TOUCH_HOLD_MS: { grip, x, y, timer }
 
 /**
  * The row the pointer is over, ignoring the one being carried — that one is translated out of
@@ -93,16 +105,21 @@ function reorderAround(over, isBelowMidpoint) {
 }
 
 /**
- * Picks a row up by its grip.
- * @param {PointerEvent} evt
- * @param {HTMLElement} grip - The grip carrying the data-action.
+ * Abandons a touch that was waiting out the hold.
  * @returns {void}
  */
-export function handleColumnReorderStart(evt, grip) {
-    if (!evt.isPrimary || evt.button !== 0) return;
+function cancelPending() {
+    if (!_pending) return;
+    clearTimeout(_pending.timer);
+    _pending = null;
+}
 
-    evt.preventDefault();   // no focus ring, no text selection, no synthesised mouse events
-
+/**
+ * Lifts the row out of the list and into the hand.
+ * @param {HTMLElement} grip
+ * @returns {void}
+ */
+function beginDrag(grip) {
     _row = grip.closest('.info-modal-row');
     _row.classList.add('is-dragging');
 
@@ -112,12 +129,50 @@ export function handleColumnReorderStart(evt, grip) {
 }
 
 /**
+ * Takes the press on a grip. A mouse picks the row up at once; a finger has to hold still for
+ * TOUCH_HOLD_MS first, so that swiping across a grip scrolls past it rather than moving a column.
+ * @param {PointerEvent} evt
+ * @param {HTMLElement} grip - The grip carrying the data-action.
+ * @returns {void}
+ */
+export function handleColumnReorderStart(evt, grip) {
+    if (!evt.isPrimary || evt.button !== 0) return;
+
+    evt.preventDefault();   // no focus ring, no text selection, no synthesised mouse events
+
+    if (evt.pointerType !== 'touch') {
+        beginDrag(grip);
+        return;
+    }
+
+    _pending = {
+        grip,
+        x: evt.clientX,
+        y: evt.clientY,
+        timer: setTimeout(() => {
+            const { grip: held } = _pending;
+            _pending = null;
+            beginDrag(held);
+        }, TOUCH_HOLD_MS),
+    };
+}
+
+/**
  * Carries the held row and shuffles the list under it. Every pointer move on the page reaches
  * this, so it leaves immediately unless a row is actually in hand.
  * @param {PointerEvent} evt
  * @returns {void}
  */
 export function handleColumnReorderMove(evt) {
+    // Still deciding whether this touch is a hold or a swipe. Straying past the tolerance settles
+    // it: the finger is travelling, so it was never reaching for a column.
+    if (_pending) {
+        if (Math.hypot(evt.clientX - _pending.x, evt.clientY - _pending.y) > HOLD_TOLERANCE_PX) {
+            cancelPending();
+        }
+        return;
+    }
+
     if (!_row) return;
 
     const over = rowUnder(evt.clientY);
@@ -139,6 +194,7 @@ export function handleColumnReorderMove(evt) {
  * @returns {void}
  */
 export function handleColumnReorderEnd() {
+    cancelPending();   // lifted before the hold was up: a tap, not a drag
     if (!_row) return;
 
     // Class first: it is what has been holding the transition off, so clearing the offset after
