@@ -18,6 +18,12 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.
  *
+ * The grip is out of the tab order. Reordering is pointer-only, so as a tab stop it took focus,
+ * showed a ring and a "drag to reorder" tooltip, and then ignored every key pressed at it — one
+ * dead stop per column between the keyboard and the toggles. Better to leave it unreachable than
+ * to advertise a control that is not there. Giving it a real key path (pick up, arrows, drop) is
+ * its own piece of work; see plans/table-column-visibility.md §7.
+ *
  * @returns {string} HTML string for #column-picker-list's innerHTML.
  */
 export function renderColumnPickerList() {
@@ -26,7 +32,7 @@ export function renderColumnPickerList() {
         const checked = column.visible ? ' checked' : '';
 
         return `<div class="info-modal-row" data-property="${column.name}">` +
-                 `<button type="button" class="info-modal-row-btn info-modal-row-grip" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
+                 `<button type="button" class="info-modal-row-btn info-modal-row-grip" tabindex="-1" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="show this column"${checked}>` +
