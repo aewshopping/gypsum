@@ -34,7 +34,11 @@ function paintList() {
 function applyVisibilityFloor() {
     const toggles = [...listElement().querySelectorAll('input.toggle')];
     const shown = toggles.filter(toggle => toggle.checked);
-    toggles.forEach(toggle => { toggle.disabled = shown.length === 1 && toggle.checked; });
+    toggles.forEach(toggle => {
+        // A locked column stays locked whatever the count, or this would hand it back.
+        toggle.disabled = toggle.hasAttribute('data-always-on')
+            || (shown.length === 1 && toggle.checked);
+    });
 }
 
 /**
@@ -59,6 +63,26 @@ export function handleCloseColumnPicker() {
  * @returns {void}
  */
 export function handleColumnToggle() {
+    applyVisibilityFloor();
+}
+
+/**
+ * Ticks every column. Locked ones are already ticked, so they need no exception.
+ * @returns {void}
+ */
+export function handleShowAllColumns() {
+    listElement().querySelectorAll('input.toggle').forEach(toggle => { toggle.checked = true; });
+    applyVisibilityFloor();
+}
+
+/**
+ * Unticks every column except the ones that cannot be switched off, which is also what keeps the
+ * floor satisfied: the file column is always there, so there is always a column left.
+ * @returns {void}
+ */
+export function handleHideAllColumns() {
+    listElement().querySelectorAll('input.toggle')
+        .forEach(toggle => { toggle.checked = toggle.hasAttribute('data-always-on'); });
     applyVisibilityFloor();
 }
 

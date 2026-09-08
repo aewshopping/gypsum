@@ -582,9 +582,13 @@
          dialog scroll, which puts the scrollbar on the dialog's edge rather than inset by its
          padding. The history modal needs the other arrangement because its clear-all button has
          to stay put below the list. -->
-    <div id="column-picker-list"></div>
+    <div class="info-modal-btn-row">
+      <button class="btn-base-style" data-action="show-all-columns" data-tip="show every column">show all</button>
+      <button class="btn-base-style" data-action="hide-all-columns" data-tip="hide every column">hide all</button>
+      <button class="btn-base-style" data-action="reset-columns" data-tip="restore the default columns, order and widths">reset all</button>
+    </div>
 
-    <button class="btn-base-style" data-action="reset-columns" data-tip="restore the default columns, order and widths">reset columns</button>
+    <div id="column-picker-list"></div>
   </dialog>
 
   <dialog id="modal-color-picker" data-action="close-color-picker-outside">

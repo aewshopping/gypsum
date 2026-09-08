@@ -79,7 +79,7 @@ export const appState = {
  */
 export const FILE_PROPERTIES = new Map([
   ['sizeInBytes', {label: 'size', type: 'number', column_width: 120, display_order: 6 }],
-  ['internalId', { type: 'string', column_width: 40, display_order: 1 }],
+  ['internalId', { label: 'file', type: 'string', column_width: 90, display_order: 0 }],
   ['title', { type: 'string', column_width: 350, display_order: 2 }],
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
   ['lastModified', {label: 'last modified', type: 'date', column_width: 150, display_order: 4 }],
@@ -110,14 +110,16 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
 /**
  * The table view's columns.
  *
- * The two hidden lists mean different things and are easy to confuse. `hidden_always` is a hard
- * exclusion, not a default: a FileSystemFileHandle cannot be rendered and internalId is the same
- * string as filepath under an internal name, so neither is offered anywhere. `hidden_by_default`
- * is only a starting position — those are useful columns kept out of the way, and the column
- * picker can bring any of them back.
+ * The three lists mean different things and are easy to confuse. `hidden_always` is a hard
+ * exclusion, not a default: a FileSystemFileHandle cannot be rendered and contentPeek is a slab
+ * of body text, so neither is offered anywhere. `shown_always` is the mirror of it — the file
+ * column, which is the only way to open a file from the table and so cannot be switched off.
+ * `hidden_by_default` is only a starting position: those are useful columns kept out of the way,
+ * and the column picker can bring any of them back.
  *
  * @type {object}
  * @property {Array<string>} hidden_always - Never shown, never offered, not overridable.
+ * @property {Array<string>} shown_always - Always shown; offered, but locked on.
  * @property {Array<string>} hidden_by_default - Hidden until the user says otherwise.
  * @property {Array<object>} current_props - The resolved visible columns, in order, rebuilt each render.
  * @property {Map<string, {visible: boolean, width: number|null}>} columnLayout - The table's
@@ -140,8 +142,9 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
  * that sorting and search also read.
  */
 export const TABLE_VIEW_COLUMNS = {
-  hidden_always: ['handle', 'internalId'],
-  hidden_by_default: ['color', 'filepath', 'contentPeek', 'internalLink', 'errorOnLoad'],
+  hidden_always: ['handle', 'contentPeek'],
+  shown_always: ['internalId'],
+  hidden_by_default: ['color', 'filepath', 'internalLink', 'errorOnLoad'],
   current_props: [],
   columnLayout: new Map(),
 };

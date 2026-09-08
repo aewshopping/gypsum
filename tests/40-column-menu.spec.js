@@ -399,7 +399,9 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
   const alignment = () => page.evaluate(() => ({
     drift: [...document.querySelectorAll('.note-table-cell-header')].map(h => {
       const c = document.querySelector(`.list-table .note-table-cell[data-prop="${h.dataset.property}"]`);
-      return Math.round(h.getBoundingClientRect().left - c.getBoundingClientRect().left);
+      // `|| 0` because Math.round of a hair below zero is -0, which toEqual counts as a
+      // different value from 0 — an alignment of -0 is still an alignment.
+      return Math.round(h.getBoundingClientRect().left - c.getBoundingClientRect().left) || 0;
     }),
     stripScrollLeft: document.querySelector('.note-table-header-strip').scrollLeft,
     focused: document.activeElement?.dataset?.property ?? null,
@@ -410,6 +412,10 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
       return c.left >= t.left - 1 && c.right <= t.right + 1;
     })(),
   }));
+
+  // Sized to the columns actually on screen rather than hard-coded, so adding one to the table
+  // is not a failure here — what matters is that every header sits over its own column.
+  const inLine = Array(await page.locator('.note-table-cell-header').count()).fill(0);
 
   await page.locator('#searchbox').focus();
   const seen = [];
@@ -427,7 +433,7 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
       const { drift, focusedOnScreen } = await alignment();
       return { drift, focusedOnScreen };
     }, { message: `header out of line, or off screen, when ${state.focused} took focus` })
-      .toEqual({ drift: [0, 0, 0, 0, 0], focusedOnScreen: true });
+      .toEqual({ drift: inLine, focusedOnScreen: true });
 
     expect(state.stripScrollLeft).toBe(0);
   }
@@ -440,7 +446,7 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
   for (let i = 0; i < 4; i++) {
     await page.keyboard.press('Shift+Tab');
     if ((await alignment()).focused)
-      await expect.poll(async () => (await alignment()).drift).toEqual([0, 0, 0, 0, 0]);
+      await expect.poll(async () => (await alignment()).drift).toEqual(inLine);
   }
 });
 
@@ -454,9 +460,11 @@ test('a header cell is reachable by keyboard, and Enter does what a click does',
   await page.locator('#searchbox').focus();
   const focusedProp = () => page.evaluate(() => document.activeElement?.dataset?.property ?? null);
   for (let i = 0; i < 10 && !(await focusedProp()); i++) await page.keyboard.press('Tab');
-  expect(await focusedProp()).toBe('filename');
+  expect(await focusedProp()).toBe('internalId');   // the file column leads the table
 
   // Tab walks along the columns
+  await page.keyboard.press('Tab');
+  expect(await focusedProp()).toBe('filename');
   await page.keyboard.press('Tab');
   expect(await focusedProp()).toBe('title');
 

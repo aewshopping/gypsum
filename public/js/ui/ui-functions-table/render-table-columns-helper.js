@@ -18,10 +18,10 @@ import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES } from '../../services/st
  * moment the tracks are written, because a resize drag updates the layout and re-applies the
  * widths without re-rendering — a width copied onto these objects would be stale mid-drag.
  *
- * @returns {Array<object>} Resolved columns in order: { name, visible, ...FILE_PROPERTIES }.
+ * @returns {Array<object>} Resolved columns in order: { name, visible, alwaysOn, ...FILE_PROPERTIES }.
  */
 export function resolveColumns() {
-    const { columnLayout, hidden_always, hidden_by_default } = TABLE_VIEW_COLUMNS;
+    const { columnLayout, hidden_always, shown_always, hidden_by_default } = TABLE_VIEW_COLUMNS;
 
     const excluded = new Set(hidden_always);
     const missing = [...appState.myFilesProperties.keys()]
@@ -37,9 +37,15 @@ export function resolveColumns() {
             width: null,
         }));
 
-    return [...columnLayout].map(([name, entry]) => ({
-        name,
-        ...FILE_PROPERTIES.get(name),
-        visible: entry.visible,
-    }));
+    // shown_always is enforced here rather than trusted from the layout, so the one function that
+    // decides the column set is also the one place the rule cannot be got round.
+    return [...columnLayout].map(([name, entry]) => {
+        const alwaysOn = shown_always.includes(name);
+        return {
+            name,
+            ...FILE_PROPERTIES.get(name),
+            visible: alwaysOn || entry.visible,
+            alwaysOn,
+        };
+    });
 }

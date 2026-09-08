@@ -15,6 +15,10 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * data-property is what lets the close handler read a row back to a column; it is on the row
  * rather than the toggle because it identifies the row as a whole, grip included.
  *
+ * A column marked alwaysOn is ticked and locked: the file column is the only way to open a file
+ * from the table, so it is offered here for its place in the order rather than for switching off.
+ * data-always-on says so to the handlers, which would otherwise re-enable it.
+ *
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.
  *
@@ -30,12 +34,13 @@ export function renderColumnPickerList() {
     return resolveColumns().map(column => {
         const label = column.label ?? column.name;
         const checked = column.visible ? ' checked' : '';
+        const locked = column.alwaysOn ? ' disabled data-always-on' : '';
 
         return `<div class="info-modal-row" data-property="${column.name}">` +
                  `<button type="button" class="info-modal-row-btn info-modal-row-grip" tabindex="-1" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
-                 `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="show this column"${checked}>` +
+                 `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${column.alwaysOn ? 'always shown' : 'show this column'}"${checked}${locked}>` +
                `</div>`;
     }).join('');
 }

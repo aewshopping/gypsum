@@ -3,7 +3,6 @@
 	pointer-events: auto; /* because I am rendering inert the element it is inside to allow user to click on the horizontal scrollbar if needed */
 	padding:0px;
 	background-color: rgba(var(--colour-neutral), 50%);
-	backdrop-filter: blur(3px);
 	width:fit-content;
 	padding:4px;
 	border-radius: 5px;

@@ -51,17 +51,33 @@ test('the picker lists the loaded folder\'s properties, in the table\'s column o
   await page.click('[data-action="open-column-picker"]');
   await expect(dialog(page)).toBeVisible();
 
-  // Sorted by display_order, labelled the friendly way where FILE_PROPERTIES gives a label,
-  // and ending with the front matter key, which has no display_order and falls to the back.
+  // Sorted by display_order — the file column leads on display_order 0 — labelled the friendly
+  // way where FILE_PROPERTIES gives a label, and ending with the front matter key, which has no
+  // display_order and falls to the back.
   await expect(rows(page).locator('.info-modal-row-label')).toHaveText([
-    'filename', 'title', 'tags', 'last modified', 'size',
-    'links', 'color', 'filepath', 'preview', 'load error', 'status',
+    'file', 'filename', 'title', 'tags', 'last modified', 'size',
+    'links', 'color', 'filepath', 'load error', 'status',
   ]);
 
   // hidden_always is a hard exclusion, so neither is offered: handle is a FileSystemFileHandle
-  // and internalId holds the same string as filepath under an internal name.
+  // and contentPeek is a slab of the file's body text.
   await expect(rows(page).filter({ hasText: 'handle' })).toHaveCount(0);
-  await expect(rows(page).filter({ hasText: 'internalId' })).toHaveCount(0);
+  await expect(rows(page).filter({ hasText: 'preview' })).toHaveCount(0);
+});
+
+test('the file column is offered but cannot be switched off', async ({ page }) => {
+  await openTable(page);
+  await page.click('[data-action="open-column-picker"]');
+  await expect(dialog(page)).toBeVisible();
+
+  const fileToggle = rows(page).first().locator('input.toggle');
+  expect(await fileToggle.isChecked()).toBe(true);
+  expect(await fileToggle.isDisabled()).toBe(true);
+
+  // hide all leaves it standing, which is also what keeps a column on screen at all
+  await page.click('[data-action="hide-all-columns"]');
+  expect(await fileToggle.isChecked()).toBe(true);
+  await expect(rows(page).locator('input.toggle:checked')).toHaveCount(1);
 });
 
 test('a row is ticked when its property is currently a column', async ({ page }) => {
@@ -83,11 +99,11 @@ test('a row is ticked when its property is currently a column', async ({ page })
     return labels;
   };
 
-  expect(await ticked()).toEqual(['filename', 'title', 'tags', 'last modified', 'size', 'status']);
+  expect(await ticked()).toEqual(['file', 'filename', 'title', 'tags', 'last modified', 'size', 'status']);
 
   // the same set the table is actually showing, allowing for the labels the picker prefers
   expect(await shownColumns()).toEqual(
-    ['filename', 'title', 'tags', 'lastModified', 'sizeInBytes', 'status']);
+    ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes', 'status']);
 });
 
 test('every row offers a drag grip', async ({ page }) => {

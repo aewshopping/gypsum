@@ -22,11 +22,31 @@
 }
 
 /* A control that cannot be used says so. Shared rather than settings' own, because the column
-   picker disables the last remaining toggle to stop every column being switched off. */
-.info-modal input:disabled,
+   picker disables the last remaining toggle to stop every column being switched off.
+
+   Toggles are excluded: toggle.css states their disabled look in colour rather than in opacity,
+   and fading them on top of that would only make them hard to read. */
+.info-modal input:disabled:not(.toggle),
 .info-modal select:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Actions that apply to a dialog's list as a whole, on one line above it. Equal widths, because
+   nothing about "show all" makes it a bigger decision than "hide all". */
+.info-modal-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.info-modal-btn-row > button {
+    flex: 1;
+    justify-content: center;
+
+    /* Without this a label is free to wrap, which lets flex shrink the box to its longest word
+       and leaves one button two lines tall next to two that are one. */
+    white-space: nowrap;
 }
 
 
