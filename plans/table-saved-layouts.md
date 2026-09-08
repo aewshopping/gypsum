@@ -473,7 +473,8 @@ the arrangement.
 
 ### 7.3 "reset columns" and "app defaults" are different things
 
-The column picker already has a reset button (`handleResetColumns`) that clears `columnLayout` and
+The column picker already has a reset button — `data-action="reset-columns"`, labelled **reset
+all**, tipped *restore the default columns, order and widths* — which clears `columnLayout` and
 repaints from the schema defaults. The menu's first entry also gets you to the defaults. They are
 not the same action and must not read as though they are:
 
@@ -483,9 +484,11 @@ not the same action and must not read as though they are:
 | Menu's `app defaults` | Switches away from the layout, leaving it as it was | `null` |
 
 So with `review` active, reset-then-close overwrites `review` with the default arrangement — which
-is coherent, but only if the button does not say "default". The labels are therefore:
+is coherent, but not while the button's own tooltip says it restores *the* defaults. The labels are
+therefore:
 
-- the picker's button reads **"reset this layout"**
+- the picker's button becomes **"reset this layout"**, tipped *reset this layout to the app's
+  default columns, order and widths*
 - the menu's first entry reads **"app defaults"**
 
 No behaviour changes; the two controls just stop claiming to be the same one.
@@ -533,7 +536,226 @@ thing genuinely different between them.
 
 ---
 
-## 8. Files
+## 8. Steps
+
+In build order. The two checkpoints are the point: after 8d the app behaves exactly as it does
+today with nothing saved, and after 8h layouts persist and restore with no interface yet. Each is
+a place to stop and check nothing regressed before the next block adds surface.
+
+### 8a. `public/js/constants.js`
+
+Add beside `BACKUP_FILENAME`:
+
+```js
+export const LAYOUTS_FILENAME = 'table_layouts.gypsum';
+```
+
+No `LAYOUT_FOLDER` — everything lives in `SAVE_FOLDER` alongside `history.gypsum` (§3.1).
+
+### 8b. `public/js/services/store.js`
+
+Add to `appState`:
+
+```js
+tableLayouts: { names: [], active: null },   // active: null = the app's built-in defaults
+```
+
+Update the `columnLayout` JSDoc on `TABLE_VIEW_COLUMNS`: the type becomes
+`Map<string, {label: string, width: number, visible: boolean}>`, and the note saying the entry
+holds a width override becomes a note that it holds the width the column is drawn at. The existing
+paragraph about the Map's key order being the column order stays as it is — that is still the whole
+reason for the shape.
+
+### 8c. `render-table-columns-helper.js`
+
+Two changes to `resolveColumns()`, both in §3.2:
+
+1. Seed `label` and a real `width` alongside `visible` when appending a column the Map has not
+   seen.
+2. Spread the entry *after* `FILE_PROPERTIES` in the returned object, so a layout's values win.
+
+Import `DEFAULT_COLUMN_WIDTH` from `constants.js` for the seed. The JSDoc paragraph beginning
+"Width is deliberately not returned" is now wrong and should be replaced: width *is* returned, but
+`columnWidthPx` still reads the Map rather than the returned object, because a resize drag updates
+the Map without re-rendering and the column objects would be stale mid-drag. The reason survives;
+the statement of it does not.
+
+### 8d. `apply-column-widths.js`
+
+`columnWidthPx` loses its middle fallback:
+
+```js
+return TABLE_VIEW_COLUMNS.columnLayout.get(prop.name)?.width ?? DEFAULT_COLUMN_WIDTH;
+```
+
+The schema default is now consulted once, at seed time in 8c. Keep the `??` on the Map lookup: a
+column being drawn before it has been seeded is not reachable, but the fallback costs nothing and
+the alternative is `undefined` reaching a template literal as a track width.
+
+**Checkpoint.** Nothing is saved or read yet, and the app should behave identically: same columns,
+same order, same widths, same picker. `npm test` should be green with no spec changes. If anything
+moved, it is 8c's spread order.
+
+### 8e. `public/js/table-layouts/layout-apply.js` (new)
+
+Pure conversion, no I/O, no DOM. Two exports:
+
+- `layoutFromColumnLayout()` → the array for the file:
+  `[...columnLayout].map(([name, entry], order) => ({ order, name, ...entry }))`
+- `applyLayoutToColumnLayout(columns)` → fills `columnLayout` from a parsed array, running §3.3's
+  coerce → sort → dedupe, and dropping any name in `hidden_always` (§6.1).
+
+The order resolution is the only thing here with any logic in it, and it is three steps:
+
+```js
+const ordered = columns
+    .map((c, i) => ({ ...c, _order: Number.isFinite(c.order) ? c.order : Infinity, _i: i }))
+    .sort((a, b) => a._order - b._order || a._i - b._i);
+```
+
+The `_i` tiebreak makes the sort stable explicitly rather than relying on the engine's guarantee,
+which is what keeps repeated and absent orders landing where §3.3 says they do. Dedupe with a
+`Set` of seen names while building the Map.
+
+### 8f. `public/js/table-layouts/layout-file.js` (new)
+
+The only module here that touches the File System API. Follows `local-backup.js` throughout: every
+call wrapped, a failed read returns a neutral value, nothing throws at the caller.
+
+- `readLayoutsFile()` → the parsed object, or `{ layoutVersion: 1, active: null, layouts: {} }` on
+  any failure — absent file, absent `.gypsum`, unparseable JSON.
+- `applyActiveLayout()` → reads the file, fills `columnLayout` via 8e when `active` names a layout
+  that exists, and sets `appState.tableLayouts` either way.
+- `saveActiveLayout()` → §5.2's rule: write to the active layout, or create `untitled` and point
+  `active` at it. Fire-and-forget through the queue in §5.3.
+- `saveLayoutAs(name)`, `renameLayout(from, to)`, `deleteLayout(name)`, `setActiveLayout(name)` —
+  each reads, mutates the one object, writes, and refreshes `appState.tableLayouts`.
+
+Every writer goes through one private `writeLayouts(obj)` and one `_queue` promise chain (§5.3), so
+there is a single place that touches the disk and a single place that orders the writes.
+
+`getDirectoryHandle(SAVE_FOLDER, { create: true })` on write, `{ create: false }` on read — a read
+should not create a `.gypsum` folder in a directory that has none.
+
+### 8g. The two loaders
+
+`services/directory-handler.js`: call `await applyActiveLayout()` after `appState.dirHandle =
+dirHandle`, **not** next to the `columnLayout.clear()` at the top of the function (§2.4). Before the
+file walk is fine; the first render is what reads the Map.
+
+`backup/opfs-import.js`: the same call after `appState.dirHandle = opfsRoot` (line 118). No
+difference in treatment — the OPFS root is a directory handle like any other.
+
+### 8h. The three save call sites
+
+- `column-picker.js` → `handleColumnPickerClose`: capture `JSON.stringify([...layout])` before
+  clearing, compare after rebuilding, `saveActiveLayout()` only if it changed (§5.1). The existing
+  `previous` snapshot is already taken at the top of the function, so this is two lines.
+- `table-col-resize.js` → set a module-level `_moved = true` in `handleColumnResizeMove`, clear it
+  in `handleColumnResizeStart`, and in `handleColumnResizeEnd` call `saveActiveLayout()` only when
+  it is set. Without this a press-and-release to dismiss the bar writes a layout (§2.2).
+- `table-col-auto-size.js` → `handleColumnAutoSize` calls it unconditionally after writing the
+  width. It is a menu item; invoking it is a change by definition.
+
+**Checkpoint.** Layouts now persist and restore with no interface. Resize a column, reload the
+folder, and the width should come back. A folder that has never saved one must be untouched — that
+is `applyActiveLayout()` finding no file, leaving `columnLayout` empty, and `resolveColumns()`
+seeding the defaults exactly as before (§6).
+
+### 8i. `render-table-controls.js`
+
+Add the name and caret beside the columns button, reading `appState.tableLayouts.active` for the
+label and falling back to `app defaults` when it is `null`. One `data-action="layout-menu-open"`
+button with `popovertarget`, so the browser opens the popover and the handler only has to fill it.
+
+Still a renderer: it reads state and returns HTML (§7.4).
+
+### 8j. CSS
+
+1. **`public/css/menu.css`** (new) — move from `column-menu.css`: `.column-menu-item` renamed
+   `.app-menu-item`, plus everything currently scoped to the `#column-menu` id that is not
+   positioning: background, border, radius, padding, shadow, `flex-direction`,
+   `:popover-open { display: flex }`, `::backdrop`, and the whole `@media (max-width: 600px)` block
+   including its `@starting-style` rules — all rekeyed to `.app-menu` / `.app-menu-item` (§7.5).
+2. **`public/css/column-menu.css`** — keeps `#column-menu-anchor`, the `position-anchor` /
+   `anchor()` insets, `position-try-fallbacks`, `@position-try --column-menu-flip-left`, `z-index`
+   and the asymmetric `border-radius`. The mobile block's inset overrides move with it in step 1;
+   check nothing left behind references a rule that went.
+3. **`public/css/layout-menu.css`** (new) — this menu's anchoring only. No proxy element: the
+   control row has no scroll-driven transform, so `position-anchor` can name the button itself via
+   an `anchor-name` in this file.
+4. **`public/style.css`** — add `@import url("css/menu.css")` and `@import url("css/layout-menu.css")`.
+   **This is not optional and is easy to miss**: `public/style.css` is the esbuild entry point for
+   `css_bundle.css` (`.github/workflows/bundle.yaml:26`), so a CSS file not imported there does not
+   exist in dev or in the built artefact. Import `menu.css` before both menu files.
+
+### 8k. `index.html`
+
+- Add `class="app-menu"` to `#column-menu`, and change its six `class="column-menu-item"` buttons
+  to `app-menu-item`.
+- Add `<div id="layout-menu" class="app-menu" popover>` near it, with the fixed items
+  (`save as new…`, `rename…`, `delete`); the layout names above them are filled by the handler on
+  open, since they change as layouts are added.
+- Add the name dialog: a small `<dialog class="info-modal">` with one input, following
+  `#modal-file-options`, serving both save-as and rename (§7.2).
+- Relabel the column picker's reset control. It currently reads `reset all` with the tip
+  `restore the default columns, order and widths` — both now say "default" while meaning "the
+  active layout", which is exactly the collision §7.3 is about. Text becomes `reset this layout`
+  and the tip `reset this layout to the app's default columns, order and widths`.
+
+### 8l. `public/js/ui/ui-functions-click/layout-menu.js` (new)
+
+The only DOM-touching module in the feature, and a thin one. Open (fill the names, tick the active
+one), choose (`setActiveLayout` then `renderFiles`), save-as, rename, delete. Delete goes through
+the existing `warning-proceed` / `warning-cancel` modal (§7.2).
+
+Each handler calls into `layout-file.js` and then re-renders; none of them touch `columnLayout`
+directly except by way of `applyActiveLayout()`.
+
+### 8m. `event-listeners-add.js`
+
+Import the handlers and register in `clickActionHandlers`: `layout-menu-open`, `layout-select`,
+`layout-save-as`, `layout-rename`, `layout-delete`, `layout-name-confirm`, `layout-name-cancel`.
+
+Nothing goes in `changeActionHandlers` — every control here is a button.
+
+### 8n. `tests/helpers.js`
+
+`setupMockDirectoryWithWrite` and its siblings throw on any `getFileHandle` name but
+`history.gypsum`, and most mocks have no `getDirectoryHandle` at all. Two consequences:
+
+- **Existing specs stay green without changes.** `layout-file.js` wraps every call, so the throw is
+  swallowed and the app falls back to the defaults — which is what those specs already assert.
+  Nothing in 40/41/42 needs touching.
+- **The new spec needs a mock that serves the file.** Add `setupMockDirectoryWithLayouts`, modelled
+  on `setupMockDirectoryWithWrite`: serve `table_layouts.gypsum` from a
+  `window.__layoutsFileContent` string, capture writes back into it, and export it from the module
+  footer at the bottom of the file. Seeding that variable before `loadFolder` is what lets a test
+  assert that a saved layout is restored.
+
+### 8o. `manifest.json`
+
+Bump the minor version. It drives the service worker's cache-invalidation check, and a layout read
+on load is exactly the kind of change a stale cache would hide.
+
+---
+
+### Consequential changes worth calling out
+
+Five things outside the obvious file list that the plan above has to touch, each of which would
+otherwise be found late:
+
+| | Why it is not optional |
+|---|---|
+| `public/style.css` (8j.4) | The esbuild entry for the CSS bundle. A new stylesheet not imported here is missing from both dev and the built artefact, with no error |
+| The picker's `reset all` button (8k) | Its text and tooltip both say "default" while acting on the active layout. Leaving them is the §7.3 collision, shipped |
+| `column-picker-list.js` JSDoc | Says the label is "whichever name FILE_PROPERTIES gives". After 8c it is whichever name the layout gives. The code needs no change — it builds from `resolveColumns()` — but the comment becomes wrong |
+| `render-table-columns-helper.js` JSDoc (8c) | The "Width is deliberately not returned" paragraph describes behaviour 8c removes |
+| `tests/helpers.js` (8n) | Not to fix a break, but because without it the feature cannot be exercised at all |
+
+---
+
+## 9. Files
 
 ```
 public/js/table-layouts/layout-file.js     NEW  read/write the one file; save, rename, delete, set active; the write queue
@@ -552,6 +774,8 @@ public/js/ui/ui-functions-table/render-table-controls.js  MOD  the name and care
 public/css/menu.css                        NEW  .app-menu / .app-menu-item, shared
 public/css/layout-menu.css                 NEW  this menu's anchor positioning
 public/css/column-menu.css                 MOD  keeps only its own positioning
+public/style.css                           MOD  @import both new stylesheets — the esbuild entry point
+tests/helpers.js                           MOD  a mock that serves table_layouts.gypsum
 index.html                                 MOD  the popover, the name dialog, the shared menu classes
 public/js/ui/event-listeners-add.js        MOD  the new data-actions
 manifest.json                              MOD  minor bump
@@ -562,7 +786,7 @@ work, no DOM. `layout-menu.js` is the only piece that touches the DOM, and it is
 
 ---
 
-## 9. Decisions worth revisiting before building
+## 10. Decisions worth revisiting before building
 
 - **One file rather than a folder of them** (§3.1). The case against is that a single hand-edit
   means scrolling past layouts you did not mean to touch. The case for is four problems that
@@ -595,7 +819,7 @@ work, no DOM. `layout-menu.js` is the only piece that touches the DOM, and it is
 
 ---
 
-## 10. Conventions checklist
+## 11. Conventions checklist
 
 - ES modules; JSDoc with `@param`/`@returns` on every export.
 - Kebab-case filenames, camelCase identifiers; `data-action` describes intent.
