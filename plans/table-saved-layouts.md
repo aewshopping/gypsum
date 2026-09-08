@@ -685,9 +685,9 @@ Still a renderer: it reads state and returns HTML (§7.4).
    control row has no scroll-driven transform, so `position-anchor` can name the button itself via
    an `anchor-name` in this file.
 4. **`public/style.css`** — add `@import url("css/menu.css")` and `@import url("css/layout-menu.css")`.
-   **This is not optional and is easy to miss**: `public/style.css` is the esbuild entry point for
-   `css_bundle.css` (`.github/workflows/bundle.yaml:26`), so a CSS file not imported there does not
-   exist in dev or in the built artefact. Import `menu.css` before both menu files.
+   `index.html` loads one stylesheet and every component file is reached through this list, so a
+   new file not imported here is simply never loaded. Import `menu.css` before both menu files, so
+   the shared rules come first and each menu's positioning can override them.
 
 ### 8k. `index.html`
 
@@ -747,7 +747,7 @@ otherwise be found late:
 
 | | Why it is not optional |
 |---|---|
-| `public/style.css` (8j.4) | The esbuild entry for the CSS bundle. A new stylesheet not imported here is missing from both dev and the built artefact, with no error |
+| `public/style.css` (8j.4) | The only stylesheet `index.html` loads. A new CSS file not imported here is never loaded, with no error |
 | The picker's `reset all` button (8k) | Its text and tooltip both say "default" while acting on the active layout. Leaving them is the §7.3 collision, shipped |
 | `column-picker-list.js` JSDoc | Says the label is "whichever name FILE_PROPERTIES gives". After 8c it is whichever name the layout gives. The code needs no change — it builds from `resolveColumns()` — but the comment becomes wrong |
 | `render-table-columns-helper.js` JSDoc (8c) | The "Width is deliberately not returned" paragraph describes behaviour 8c removes |
@@ -774,7 +774,7 @@ public/js/ui/ui-functions-table/render-table-controls.js  MOD  the name and care
 public/css/menu.css                        NEW  .app-menu / .app-menu-item, shared
 public/css/layout-menu.css                 NEW  this menu's anchor positioning
 public/css/column-menu.css                 MOD  keeps only its own positioning
-public/style.css                           MOD  @import both new stylesheets — the esbuild entry point
+public/style.css                           MOD  @import both new stylesheets
 tests/helpers.js                           MOD  a mock that serves table_layouts.gypsum
 index.html                                 MOD  the popover, the name dialog, the shared menu classes
 public/js/ui/event-listeners-add.js        MOD  the new data-actions
