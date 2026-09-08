@@ -1,21 +1,46 @@
-# Plan: show and hide table columns
+# Plan: show, hide and reorder table columns
 
-Status: **not started**
-Branch: `claude/table-view-customization-dduz7q`
+Status: **picker built, not wired**
+Branch: `claude/column-hide-show-modal-y1bhj4`
 Related: `plans/table-column-resize.md`, `plans/table-json-export.md`, `plans/table-formula-columns.md`
+
+---
+
+## 0. Where this has got to
+
+The picker exists and works as a piece of interface. Nothing it does reaches the table yet: every
+control in it is deliberately inert, and the state it would write does not exist.
+
+**Built:**
+
+| | |
+|---|---|
+| `#modal-columns` | A dialog in `index.html`, `.info-modal` + `closedby="any"`, holding a heading and `#column-picker-list` |
+| `column-picker-list.js` | Renders one row per property in the loaded folder, minus `hidden_always`, ordered by `display_order`, labelled `label ?? name`, ticked when the property is a current column |
+| `column-picker.js` | Open and close only. Populates the list on open, so the rows follow the loaded folder |
+| `render-table-controls.js` | `.table-controls`, a row above `.table-chrome` carrying the icon button that opens the picker. Table view only, and scrolls away with the table |
+| `column-picker-reorder.js` | Drag a row by its grip to move it up or down. Pointer events (native HTML5 DnD is dead on touch), rows shuffle live, FLIP-animated |
+| `modal-info.css` | Now holds the shared dialog furniture — `.info-modal-row`, `-row-label`, `-row-btn`, `-row-icon`, `-row-grip`, `.info-modal-scroll`/`-scroll-list` — promoted out of the settings and history modals, which had been carrying their own copies |
+
+**Not built — this plan:** every piece of state, `tableColumns()`'s resolution, the floor, the
+reset, the loader clearing, and the render that makes any of it show up in the table.
+
+**The drag is the reason this plan grew a third axis.** It was added while getting the picker's
+look right, and it works, but the order it produces lives in the DOM and dies when the dialog is
+reopened. Column order is now part of this feature rather than a later one (§1.1).
 
 ---
 
 ## 1. What this delivers
 
-A picker letting the user choose which of the loaded properties appear as table columns —
-hiding ones shown by default, and showing ones hidden by default. Choices last for the session
-and reset when a new folder is loaded.
+A picker letting the user choose which of the loaded properties appear as table columns, and in
+what order. Choices last for the session and reset when a new folder is loaded.
 
-**In scope:** per-property show/hide, a reset, and a floor that prevents hiding every column.
+**In scope:** per-property show/hide, drag-to-reorder, a reset, and a floor that prevents hiding
+every column.
 
-**Explicitly out of scope:** reordering columns, renaming column headings, persisting choices to
-disk, per-column visibility rules based on content.
+**Out of scope:** renaming column headings, persisting choices to disk, per-column visibility
+rules based on content, keyboard reordering (§7).
 
 ### 1.1 Where this sits among the other plans
 
@@ -24,65 +49,46 @@ Four features share one seam — `TABLE_VIEW_COLUMNS` and the column list the ta
 | Feature | Axis | State it adds |
 |---|---|---|
 | `table-column-resize.md` | how wide | `widthOverrides: Map<prop, px>` |
-| **this plan** | **which columns** | **`visibilityOverrides: Map<prop, boolean>`** |
-| saved layouts (not yet planned in full) | persistence + order | writes both Maps to a `.gypsum` file |
+| **this plan** | **which columns, and in what order** | **`visibilityOverrides: Map<prop, boolean>`, `columnOrder: string[]`** |
+| saved layouts | persistence | writes all three to a `.gypsum` file |
 | `table-formula-columns.md` | computed columns | needs layouts first |
 
-**Build order: resize, then this, then layouts, then formulas.** Resize first only because it
-cleans up the `current_props` assignment and extracts the width logic, which makes this one
-tidier. The two are otherwise independent — both are session-scoped overrides with the same
-lifecycle, and layouts later persists both without either needing rework.
+**Order has moved forward into this plan**, from the "not doing" list it sat on. It was going to
+wait for layouts on the grounds that layouts want the ordered-array shape. But the picker is
+already the place where the user sees every candidate column in one list, the drag already works,
+and the row order in that list *is* the column order — including the hidden ones, which is what
+makes the two belong together. Splitting them would mean the picker's rows meant something in one
+release and something else in the next.
 
-### 1.2 This is what makes `tableColumns()` worth refactoring
-
-`plans/table-column-resize.md` §8 deliberately *defers* making `tableColumns()` a pure function,
-on the grounds that purity concerns *which* columns exist while resize concerns *how wide* they
-are — a different axis, so the refactor would have been speculative there.
-
-This feature is that axis. `tableColumns()` is the function that decides the column set, and
-this plan changes how it decides. So the refactor happens here, in service of a shipping
-feature, exactly as the no-premature-abstraction rule requires.
+Layouts still owns persistence; it serialises what this plan puts in memory.
 
 ---
 
-## 2. Current state
+## 2. Current state of the code the plan changes
 
-### 2.1 The column set is decided in one function
+### 2.1 The column set is still decided in one function
 
-`ui-functions-table/render-table-columns-helper.js:11`:
+`ui-functions-table/render-table-columns-helper.js` is untouched: it reads `appState` and
+`TABLE_VIEW_COLUMNS` from module scope, filters out both hidden lists, and sorts by
+`display_order`. This is still the only place the column set is decided, which is still why the
+feature is contained.
 
-```js
-const hiddenColumns = new Set([...TABLE_VIEW_COLUMNS.hidden_always, ...TABLE_VIEW_COLUMNS.hidden_at_start]);
-const columnsToShow = [...appState.myFilesProperties.keys()].filter(prop => !hiddenColumns.has(prop));
-```
-
-It reads `appState` and `TABLE_VIEW_COLUMNS` directly from module scope, then sorts by
-`display_order` from `FILE_PROPERTIES`. This is the only place the column set is decided, which
-is why the feature is contained.
-
-### 2.2 The two hidden lists mean different things, despite looking alike
-
-`store.js:124-128`:
+### 2.2 `store.js` is untouched — the whole audit below is still outstanding
 
 ```js
 hidden_always:   ['handle', 'show', 'content'],
 hidden_at_start: ['internalId', 'color', 'filepath', 'contentPeek', 'internalLink', 'errorOnLoad'],
 ```
 
-- **`hidden_always` is a hard exclusion, not a default.** `handle` is a `FileSystemFileHandle`
-  — rendering it is meaningless, and it would stringify to `{}` in the export
-  (`plans/table-json-export.md` §2.2). These must not appear in the picker at all.
-- **`hidden_at_start` is a default**, and its name has always promised a mechanism that does not
-  exist. The comment on that line — *"could in future add check box functionality to show
-  current cols ticked and these cols unticked"* — is this plan.
+- **`hidden_always` is a hard exclusion, not a default.** `handle` is a `FileSystemFileHandle` —
+  rendering it is meaningless and it would stringify to `{}` in the export
+  (`plans/table-json-export.md` §2.2). These must not appear in the picker at all, and today they
+  correctly do not.
+- **`hidden_at_start` is a default**, and its name has always promised a mechanism that did not
+  exist. Rename it `hidden_by_default`: its current name describes a lifecycle that is about to
+  become real, and will read as a bug once it can be changed after "start".
 
-Rename `hidden_at_start` to `hidden_by_default` as part of this work. Its current name describes
-a lifecycle that is about to become real, and will read as a bug once it can be changed after
-"start".
-
-**The two lists are easily mistaken for each other.** They look alike — two arrays of property
-names — and it is natural to assume both hold app internals with no meaning to a user. They do
-not. Auditing the members:
+**The two lists are easily mistaken for each other.** Auditing the members:
 
 | Property | List | User-meaningful? |
 |---|---|---|
@@ -93,172 +99,155 @@ not. Auditing the members:
 | `color` | default | Yes — the value the user wrote as `#color/coral` |
 | `filepath` | default | Yes. `column_width: 300` |
 | `contentPeek` | default | Yes. `label: 'preview'`, `column_width: 400` |
-| `internalLink` | default | Yes. `label: 'links'`. Also what `table-formula-columns.md` navigates |
+| `internalLink` | default | Yes. `label: 'links'` |
 | `errorOnLoad` | default | Yes. `label: 'load error'`, and the property the load-error nudges filter on |
 
-Three of the six defaults carry a display `label` in `FILE_PROPERTIES`, and a label exists only
-for something meant to be read by a person. So `hidden_by_default` is overwhelmingly *useful
-columns kept out of the way*, not internals — which is what makes a two-direction picker (§3.1)
-the right shape rather than a hide-only one.
+Three of the six defaults carry a display `label`, and a label exists only for something meant to
+be read by a person. So `hidden_by_default` is overwhelmingly *useful columns kept out of the
+way*, not internals — which is what makes a two-direction picker the right shape.
 
-**One change follows from this audit: move `internalId` to `hidden_always`.** It holds exactly
-the same string as `filepath`, so offering both would put two checkboxes in the picker producing
-identical columns, one of them named after an app-internal concept. It is the only member of the
-defaults list with a real claim to being internal, and it belongs on the other side.
+**Move `internalId` to `hidden_always`.** It holds the same string as `filepath`, so offering both
+puts two rows in the picker producing identical columns, one named after an app-internal concept.
+It is visible in the picker today and reads as a bug.
 
-**`show` and `content` are historic leftovers and should be deleted from the list.** An earlier
-version of the app carried the file's raw text on the file object as `content`; it no longer
-does (`file-info.js` returns no such key, and every `content:` elsewhere in the codebase belongs
-to a *snapshot* object — `{filepath, filename, content}` — which is a different shape). `show`
-is the same vintage and no longer exists either. Excluding them made sense while they were real
-properties: a whole note body in a table cell would be miserable.
+**Delete `show` and `content` from `hidden_always`.** An earlier version carried the file's raw
+text as `content`; it no longer does. Leaving them costs more than nothing, because
+`RESERVED_KEYS` (`file-info.js:15`) does not include `content`, so a YAML `content:` key spreads
+onto the file object today — the exclusion no longer guards an app internal, it only blocks the
+user's own data. The same inconsistency is already visible in `search.excludedProperties`
+(`store.js:34`), which lists `show` but not `content`: such a key is fully searchable while being
+permanently undisplayable. **Remove `show` from `excludedProperties` too.**
 
-Leaving them costs more than nothing, because `RESERVED_KEYS` (`file-info.js:15`) — the list of
-names a user's front matter cannot shadow — does **not** include `content`. So a YAML `content:`
-key spreads onto the file object today. The exclusion no longer guards an app internal; it only
-blocks the user's own data.
+**After this, `hidden_always` reads `['handle', 'internalId']`** — a file-system handle and a
+duplicate of `filepath`. Which is what the list was always meant to be.
 
-The inconsistency this produces is already visible: `search.excludedProperties` (`store.js:34`)
-is `["handle", "show", "contentPeek", "errorOnLoad"]` and does not list `content`, so such a key
-is fully searchable while being permanently undisplayable — a user can filter on it, get
-results, and never see the column they filtered on. (That setting only governs the
-search-everything path; explicit `prop:value` searches still reach excluded properties, which is
-why the load-error nudges still work on `errorOnLoad`.)
+### 2.3 The picker's candidate list
 
-Remove `show` from `search.excludedProperties` too, for the same reason.
-
-**After this and the `internalId` move, `hidden_always` reads `['handle', 'internalId']`** — a
-file-system handle and a duplicate of `filepath`. Which is what the list was always meant to be:
-the things with no meaning outside the app's internal workings.
-
-**One knock-on, already handled.** `plans/table-json-export.md` §4.4 originally named the
-exported file body `content`, justified by this very exclusion, with a note that changing
-`hidden_always` would break the reasoning. That plan now uses `fileContent` instead, so the two
-are consistent — but check it still says so before implementing either.
-
-### 2.3 The picker's candidate list already exists
-
-`appState.myFilesProperties` holds every property key any loaded file carries — core properties
-seeded by `seedCoreFileProperties()` plus every front-matter key found during the load
-(`file-props.js:20-45`). That map, minus `hidden_always`, is exactly what the picker lists.
-
-Its length is **unbounded**: a folder whose notes use varied front matter can produce dozens of
-entries. The picker needs to cope with a long list, and should not assume it fits on screen.
+`appState.myFilesProperties` holds every property key any loaded file carries. That map, minus
+`hidden_always`, is what the picker lists today. Its length is **unbounded** — a folder with
+varied front matter produces dozens of rows — which is why the dialog scrolls.
 
 ### 2.4 Two loaders reset table state
 
-`services/directory-handler.js:44-46` and `backup/opfs-import.js:114-116`, as every other plan
-in this folder notes. Any new per-folder state is cleared in **both**.
-
-### 2.5 Modal precedent
-
-`index.html` has four dialogs following one pattern:
-
-```html
-<dialog id="modal-settings" class="info-modal" closedby="any">
-```
-
-`closedby="any"` gives Escape and click-outside dismissal for free. Handlers call
-`dialog.showModal()` / `dialog.close()` (`ui-functions-click/settings-modal.js`).
-
-There are currently no `close`-event listeners on any dialog — relevant to §3.5.
+`services/directory-handler.js:45` and `backup/opfs-import.js:115`. Both currently clear
+`widthOverrides` and `myFilesProperties`. Every plan in this folder has had to repeat "in both",
+which §4f proposes to fix once.
 
 ---
 
 ## 3. Design decisions
 
-### 3.1 `visibilityOverrides: Map<prop, boolean>`, mirroring the resize plan
-
-Add to `TABLE_VIEW_COLUMNS`:
+### 3.1 `visibilityOverrides: Map<prop, boolean>`
 
 ```js
 visibilityOverrides: new Map(),   // property name → true (show) / false (hide); absent = default
 ```
 
-A single Map rather than two Sets, because the user needs to move a column in **both**
-directions — hide something shown by default, and show something in `hidden_by_default`. Two
-Sets (`userHidden`, `userShown`) would encode the same information with an extra invariant to
-keep (a property must never be in both).
+A single Map rather than two Sets, because the user needs to move a column in **both** directions
+— hide something shown by default, and show something in `hidden_by_default`. Two Sets would
+encode the same information with an extra invariant to keep.
 
-This is deliberately the same shape, lifecycle and clearing behaviour as `widthOverrides` in
-`plans/table-column-resize.md` §4.1. Two Maps keyed by property name, both session-scoped, both
-cleared on load, both later serialised by layouts. Keeping them symmetrical is worth more than
-any micro-optimisation of either.
+Same shape, lifecycle and clearing as `widthOverrides`.
 
-**Resolution order, in one place:**
+**Resolution order:**
 
 1. in `hidden_always` → never shown, not offered in the picker, not overridable
 2. in `visibilityOverrides` → that wins
 3. otherwise → shown unless in `hidden_by_default`
 
-### 3.2 `tableColumns()` becomes pure
+### 3.2 `columnOrder: string[]` — an array, not a Map
 
-Change it to take its inputs as arguments and return the column list, rather than reaching into
-module scope. It then encodes the three-step resolution above and nothing else — no `appState`,
-no DOM, no globals.
+```js
+columnOrder: [],   // property names in user order; empty = fall back to display_order
+```
 
-This is the function that later becomes `resolveColumns(availableProps, layout)` when layouts
-land. Making it pure now means layouts changes its inputs rather than its structure.
+**Order is a sequence, not a per-property value**, which is why this one breaks the Map pattern
+the other two share. A `Map<prop, index>` would have to keep every index consistent with every
+other on each move — an invariant with no natural owner. An array cannot be inconsistent with
+itself, and reordering is a splice.
 
-### 3.3 A floor: the last visible column cannot be hidden
+**It holds every candidate, hidden ones included** — the same set the picker lists. If it held
+only visible columns, showing a hidden one later would have nowhere to put it. This is what makes
+the picker's row order and the column order the same thing, which is the property worth
+preserving: what you see in the list is what you get, including the rows that are switched off.
 
-Hiding every column leaves `current_props` empty, which makes `--grid-columns` an empty string
-and produces a broken grid rather than an error — the same class of silent-visual-failure the
-resize plan warns about.
+It is written whole, from the picker's row order, rather than patched per move (§3.5). Empty means
+"no opinion" and `display_order` decides, so a session that never opens the picker behaves exactly
+as today.
 
-Prevent it at the source: when exactly one column is visible, its checkbox is disabled. No
-validation, no error message, no recovery path needed — the state is simply unreachable.
+**`display_order` in `FILE_PROPERTIES` becomes a default, not the order.** Worth saying out loud
+so nobody later "fixes" its duplicate values (`internalId` and `filename` are both `1`) as a bug.
+Ties are broken by `myFilesProperties` insertion order, which is stable within a session.
 
-### 3.4 Picker UI: a button rendered with the table, a dialog that is not
+### 3.3 `tableColumns()` becomes pure
 
-Split, because the two halves have different constraints:
+Take the available properties and the two pieces of state as arguments; return the ordered column
+list. It then encodes §3.1 and §3.2 and nothing else — no `appState`, no DOM, no globals.
 
-- **The trigger button is rendered by the table**, in the same control bar the export plan adds
-  above `.table-wrapper` (`plans/table-json-export.md` §4.8). Same reasoning: it applies only to
-  the table, and emitting it from `renderFileList_table` means it appears and disappears with
-  the view without introducing the app's first view-conditional UI. **If the export plan has
-  landed, this reuses its bar rather than adding a second one.**
-- **The dialog itself is static markup in `index.html`**, following §2.5's pattern. It sits
-  outside `#output`, so a re-render cannot destroy it mid-interaction — which matters because
-  changing visibility forces a full re-render (§3.5).
+`plans/table-column-resize.md` §8 deliberately deferred this, on the grounds that purity concerns
+*which* columns exist while resize concerns *how wide* they are. This plan is that axis, so the
+refactor happens here, in service of a shipping feature.
 
-A dialog that can only be opened from a button that only exists in table view is not
-view-conditional UI; it is simply unreachable from elsewhere.
+This is the function that becomes `resolveColumns(availableProps, layout)` when layouts land.
 
-**Not on the column header.** After the resize plan lands, a header cell's right edge carries
-the sort chevron *and* the resize handle in a reserved gutter (`plans/table-column-resize.md`
-§3.3, §4.2). A third affordance there would be genuinely unusable. Hiding a column from its own
-header is the more discoverable gesture and it is not available.
+### 3.4 A floor: the last visible column cannot be hidden
 
-### 3.5 Write on toggle, render on close
+Hiding every column leaves `current_props` empty, which makes `--grid-columns` an empty string and
+produces a broken grid rather than an error.
 
-A visibility change alters the column set, so it needs a **full** render — `current_props` and
-the `--grid-columns` track list both change. The partial path (`render-file-list-table.js:55`)
-keeps the existing header and must not be used.
+Prevent it at the source: when exactly one row is ticked, disable that row's toggle. No
+validation, no error message, no recovery path — the state is unreachable. The check counts ticked
+toggles in the dialog, so it needs no state of its own.
 
-But re-rendering on every checkbox tick would run N renders the user cannot fully see behind the
-dialog. So:
+### 3.5 One read, at close — a change from the original plan
 
-- **On toggle:** write to `visibilityOverrides`. State is the truth; nothing else happens.
-- **On dialog close:** one full render.
+The original said: write to state on every toggle, render once on close. **Read the whole dialog
+into state once, on close, instead.**
 
-Listen for the dialog's `close` event rather than wiring a "done" button, because `closedby="any"`
-means Escape and click-outside are equally valid ways to finish, and all three must apply the
-change. This is a new pattern in the codebase (§2.5) but it is one standard listener registered
-once at init, not a mechanism.
+Both produce identical behaviour — nothing reaches the table until the dialog closes either way —
+but reading at close is the simpler arrangement, and reordering is what makes the difference
+plain:
 
-### 3.6 What follows automatically, and what deliberately does not
+- **One place** turns the dialog's DOM into state, rather than visibility going one way (per-toggle
+  writes) and order going another (read the row order at the end). Two timings for two halves of
+  one dialog is the kind of split that later reads as an accident.
+- **The drag stays presentation-only.** `column-picker-reorder.js` already knows nothing about
+  state, and this keeps it that way — it shuffles rows, and something else decides what that
+  meant.
+- **No `change` handler and no `changeActionHandlers` registration.** The only reason to react to
+  a toggle at all is the floor (§3.4), which is a DOM concern.
+
+So the `close` handler does three things: read the ticked toggles into `visibilityOverrides`, read
+the row order into `columnOrder`, call `renderFiles()`.
+
+Listening for the dialog's `close` event rather than wiring a "done" button, because
+`closedby="any"` means Escape and click-outside are equally valid ways to finish, and all three
+must apply the change. One standard listener registered once at init.
+
+**A visibility or order change needs a *full* render** — `current_props` and the `--grid-columns`
+track list both change. The partial path (`render-file-list-table.js`, `fullRender = false`) keeps
+the existing header and must not be used.
+
+### 3.6 Reset clears both axes
+
+One reset button, restoring the defaults for visibility *and* order together. Two buttons would
+invite the question of what "reset order" means for a column the user has also hidden, and there
+is no useful answer. Reset empties both, and the picker is rebuilt from `display_order` with the
+default ticks.
+
+### 3.7 What follows automatically, and what deliberately does not
 
 - **The JSON export follows.** It reads `current_props` (`plans/table-json-export.md` §4.1), so
-  hiding a column removes it from the export. That is the intended behaviour and the reason the
-  export was scoped to visible columns in the first place.
+  hidden columns leave the export and reordering reorders it. Both are intended.
+- **Widths follow, and need no work.** `widthOverrides` is keyed by property name, so hiding a
+  column and showing it again restores its dragged width, and reordering carries each width with
+  its column. `applyColumnWidths` writes the track list from `current_props` in order, so the
+  tracks reorder themselves.
 - **The sort dropdown does not follow, on purpose.** `sort-select-load.js:32` filters only
   `hidden_always`, so every non-excluded property stays sortable whether or not it is displayed.
-  Sorting by something you are not looking at is useful — sort by `lastModified` while showing
-  only titles. `plans/table-column-resize.md` §3 already records this as a decision; do not
-  "fix" the inconsistency.
-- **Column widths are unaffected.** `widthOverrides` is keyed by property name, so hiding a
-  column and showing it again restores its dragged width. No cleanup needed.
+  Sorting by something you are not looking at is useful. Already a recorded decision in
+  `plans/table-column-resize.md` §3 — do not "fix" the inconsistency.
+- **Sort order is independent of column order.** Sorting is by property, not by position.
 
 ---
 
@@ -266,116 +255,114 @@ once at init, not a mechanism.
 
 ### 4a. `public/js/services/store.js`
 
-- Add `visibilityOverrides: new Map()` to `TABLE_VIEW_COLUMNS`, with a JSDoc line saying it is
-  session-scoped, keyed by property name, and holds explicit show/hide decisions that override
-  the defaults.
-- Rename `hidden_at_start` → `hidden_by_default` (§2.2) and update the `@property` block.
-- Move `internalId` from the defaults list to `hidden_always`, and delete the historic `show`
-  and `content` entries from it, leaving `['handle', 'internalId']` (§2.2).
-- Delete `show` from `appState.search.excludedProperties` (§2.2).
+- Add `visibilityOverrides: new Map()` and `columnOrder: []` to `TABLE_VIEW_COLUMNS`, with JSDoc
+  saying both are session-scoped and cleared on load.
+- Rename `hidden_at_start` → `hidden_by_default` and update the `@property` block.
+- Move `internalId` to `hidden_always`; delete `show` and `content` from it, leaving
+  `['handle', 'internalId']` (§2.2).
+- Delete `show` from `appState.search.excludedProperties`.
 - Note in the comment that `hidden_always` is a hard exclusion, not a default, and that the
-  defaults list holds useful columns kept out of the way rather than internals — the two are
-  easy to conflate.
+  defaults list holds useful columns kept out of the way rather than internals.
 
-### 4b. `public/js/ui/ui-functions-table/render-table-columns-helper.js`
+### 4b. `render-table-columns-helper.js`
 
-Make `tableColumns()` pure (§3.2): take the available properties and the visibility state as
-arguments, return the ordered column-name list, encode the §3.1 resolution. Update the one
-caller in `render-file-list-table.js`.
+Make `tableColumns()` pure (§3.3): take the available properties, `visibilityOverrides`,
+`columnOrder` and the two hidden lists; return the ordered column-name list. Update the one caller
+in `render-file-list-table.js`.
 
-### 4c. `public/js/ui/ui-functions-table/column-picker-list.js` (new)
+### 4c. `column-picker-list.js` — extend what is there
 
-Builds the picker's checkbox list: every key in `myFilesProperties` except `hidden_always`, each
-with its resolved current visibility and its display label (`FILE_PROPERTIES.get(name)?.label ??
-name`, matching the header once step 0b of the resize plan has landed). Disables the sole
-remaining checkbox when only one column is visible (§3.3).
+It already builds the list. It needs:
+- its checked state to come from the §3.1 resolution rather than from `current_props` membership
+  (the two agree today, but the resolution is the thing that will be true);
+- its row order to come from `columnOrder` when that is set;
+- the floor's `disabled` on the sole ticked toggle (§3.4).
 
-A renderer — returns HTML, no logic beyond the list.
+### 4d. `column-picker.js` — extend what is there
 
-### 4d. `public/js/ui/ui-functions-click/column-picker.js` (new)
-
-- `handleOpenColumnPicker()` — populates the dialog from 4c, calls `showModal()`.
-- `handleColumnToggle(evt, el)` — writes one entry to `visibilityOverrides`; re-renders the
-  list only if the floor state changed (a column count crossing one).
-- `handleResetColumns()` — clears `visibilityOverrides`, re-renders the list.
-- `handleColumnPickerClose()` — the `close`-event handler; calls `renderFiles()` (§3.5).
+Open and close exist. Add:
+- `handleColumnPickerClose()` — the `close`-event handler: read the ticked toggles into
+  `visibilityOverrides`, read the row order into `columnOrder`, call `renderFiles()` (§3.5).
+- `handleColumnToggle(evt, el)` — floor only: re-evaluate which toggle should be disabled. No
+  state.
+- `handleResetColumns()` — clear both, rebuild the list in place.
 
 ### 4e. `index.html`
 
-Add `<dialog id="modal-columns" class="info-modal" closedby="any">` following §2.5, holding a
-heading, the list container, and a reset button.
+Add the reset button to `#modal-columns`, with `data-action="reset-columns"`.
 
-### 4f. Table control bar
+### 4f. Loader resets — one function instead of two lists
 
-Add the trigger button with `data-action="open-column-picker"`.
+Add `resetTableViewState()` to `store.js`, clearing `widthOverrides`, `visibilityOverrides` and
+`columnOrder`, and call it from `services/directory-handler.js` and `backup/opfs-import.js` in
+place of the `widthOverrides.clear()` line each currently has.
 
-If `plans/table-json-export.md` has landed, this goes in its existing bar —
-`render-table-export-bar.js` becomes the table's control bar and should be renamed accordingly
-(`render-table-control-bar.js`). If this plan lands first, create that bar here, following the
-export plan's §4.8 reasoning, and let the export add its button to it later.
+**A change from the original plan**, which said to add one `.clear()` line to both files. Three
+pieces of per-folder state cleared by hand in two places is a standing invitation to add a fourth
+and forget one — every plan in this folder already carries a "remember: both loaders" warning,
+which is the tell. One named function makes the next addition a one-line change with nowhere to
+forget.
 
-### 4g. `public/js/ui/event-listeners-add.js`
+### 4g. `event-listeners-add.js`
 
-- `'open-column-picker': handleOpenColumnPicker` and `'reset-columns': handleResetColumns` in
-  `clickActionHandlers`.
+- `'reset-columns': handleResetColumns` in `clickActionHandlers`.
 - `'column-toggle': handleColumnToggle` in `changeActionHandlers`.
-- One `close`-event listener on `#modal-columns` in `addActionHandlers()` (§3.5).
+- One `close`-event listener on `#modal-columns` in `addActionHandlers()`.
 
-### 4h. Loader resets
+### 4h. CSS
 
-Add `TABLE_VIEW_COLUMNS.visibilityOverrides.clear()` to **both**
-`services/directory-handler.js:44-46` and `backup/opfs-import.js:114-116` (§2.4).
+- Promote the disabled-control styling out of `#modal-settings` scope in `modal-settings.css` so
+  the floor's disabled toggle reads as disabled in the picker too. It belongs in `modal-info.css`
+  with the rest of the shared dialog furniture.
+- The reset button can wear `.history-clear-btn`'s treatment; if it does, that class wants
+  promoting and renaming alongside it rather than being reached into from another dialog.
 
-### 4i. CSS
-
-A new component-scoped file for the picker list. The dialog chrome itself reuses `.info-modal`.
-
-Bump `manifest.json` minor version.
+Bump `manifest.json`'s minor version.
 
 ---
 
-## 5. Files touched, and blast radius
+## 5. Files touched
 
 ```
-public/js/ui/ui-functions-table/column-picker-list.js   NEW  the checkbox list
-public/js/ui/ui-functions-click/column-picker.js        NEW  open / toggle / reset / close
-public/css/column-picker.css                            NEW  new component, own file
-public/js/services/store.js                             MOD  visibilityOverrides + rename
-public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  pure, three-step resolution
-public/js/ui/render-file-list-table.js                  MOD  updated tableColumns() call, bar button
-public/js/ui/event-listeners-add.js                     MOD  three registrations + close listener
-public/js/services/directory-handler.js                 MOD  one .clear() line
-public/js/backup/opfs-import.js                         MOD  one .clear() line
-index.html                                              MOD  the dialog
-manifest.json                                           MOD  minor bump
+public/js/services/store.js                          MOD  two pieces of state, the rename, the audit, resetTableViewState
+public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  pure, resolution + order
+public/js/ui/ui-functions-table/column-picker-list.js           MOD  resolved ticks, order, the floor
+public/js/ui/ui-functions-click/column-picker.js                MOD  close / toggle / reset
+public/js/ui/render-file-list-table.js               MOD  updated tableColumns() call
+public/js/ui/event-listeners-add.js                  MOD  two registrations + the close listener
+public/js/services/directory-handler.js              MOD  one call replaces one clear
+public/js/backup/opfs-import.js                      MOD  one call replaces one clear
+public/css/modal-info.css                            MOD  promoted disabled styling
+public/css/modal-settings.css                        MOD  loses it
+index.html                                           MOD  the reset button
+manifest.json                                        MOD  minor bump
 ```
 
 **Blast radius is confined to table view, with two things to watch:**
 
-1. **The `hidden_at_start` rename** touches `store.js` and
-   `render-table-columns-helper.js` — grep before and after; those are currently the only two
-   references, but confirm rather than assume.
-2. **The `close`-event listener** is a new listener on a dialog, registered once at init. It
-   fires only for `#modal-columns` and cannot affect the other four dialogs.
+1. **The `hidden_at_start` rename** touches `store.js` and `render-table-columns-helper.js` — grep
+   before and after; those are currently the only two references, but confirm rather than assume.
+2. **The `close`-event listener** is new on a dialog. It fires only for `#modal-columns` and
+   cannot affect the other dialogs.
 
-Everything else is additive. No service gains DOM access. The renderers are untouched apart from
-the column list they are handed, which is the point.
+No service gains DOM access. No renderer gains logic beyond the column list it is handed.
 
 ---
 
-## 6. Verification
+## 6. Loose ends this feature has exposed
 
-Run the existing suite to confirm nothing regressed: `npm install` once, then `npm test`.
+Neither blocks the work; both are worth a decision while the area is open.
 
-Screenshots per `CLAUDE.md`: the picker open over a table, the table after hiding several
-columns, and a property from `hidden_by_default` (say `filepath`) shown.
-
-Two things worth checking by hand:
-
-- **The floor.** Hide columns down to one and confirm the last checkbox is disabled rather than
-  producing an empty grid.
-- **A folder with heavy front matter.** The picker's list is unbounded (§2.3) — confirm it
-  scrolls inside the dialog rather than pushing the reset button off screen.
+- **The picker and the header disagree about names.** The picker shows `label ?? name`
+  (`preview`, `size`, `links`); `render-table-header.js` prints `prop.name` (`contentPeek`,
+  `sizeInBytes`, `internalLink`). So a row and its column read differently.
+  `plans/table-column-resize.md` step 0b already proposes switching the header to the same
+  expression. Either do it there or fold it in here, but the two should not ship apart much
+  longer — reordering makes the mismatch more obvious, because the user is now matching rows to
+  columns by eye.
+- **The grip is a focusable button that does nothing on the keyboard.** Reordering is
+  pointer-only. Either give it a keyboard path (Enter to pick up, arrows to move) or take it out
+  of the tab order, rather than leaving a control that focuses and then ignores you.
 
 ---
 
@@ -383,13 +370,13 @@ Two things worth checking by hand:
 
 | Not doing | Why |
 |---|---|
-| Reordering columns | A different axis again, and the one that most wants the ordered-array shape a layout stores. Belongs with layouts |
-| Persisting to a `.gypsum` file | Layouts own persistence; this contributes the Map they serialise (§1.1) |
+| Persisting to a `.gypsum` file | Layouts own persistence; this contributes the state they serialise (§1.1) |
+| Keyboard reordering | A real gap (§6), but a separate piece of work with its own interaction design |
 | Making `hidden_always` overridable | After the §2.2 cleanup it holds only `handle`, which cannot be rendered meaningfully and breaks the export, and `internalId`, which duplicates `filepath` |
-| A hide affordance on the column header | The header's right edge already carries the sort chevron and the resize gutter (§3.4) |
-| Removing hidden columns from the sort dropdown | Sorting by an undisplayed column is useful, and this is already a recorded decision (§3.6) |
+| A hide affordance on the column header | The header's right edge already carries the sort chevron and the resize gutter |
+| Removing hidden columns from the sort dropdown | Sorting by an undisplayed column is useful, and this is already a recorded decision (§3.7) |
 | Renaming column headings | Layouts will carry a `label` per column; not this feature |
-| Re-rendering on every checkbox tick | One render on close is fewer renders and no less correct (§3.5) |
+| Applying changes live, per toggle | One render on close is fewer renders and no less correct (§3.5) |
 
 ---
 
@@ -398,6 +385,6 @@ Two things worth checking by hand:
 - ES modules; JSDoc with `@param`/`@returns` on every export.
 - Kebab-case filenames, camelCase identifiers; `data-action` describes intent.
 - Renderers return HTML and hold no logic; handlers are thin; services touch no DOM.
-- All state in `store.js` — `visibilityOverrides` included.
+- All state in `store.js` — `visibilityOverrides` and `columnOrder` included.
 - No runtime dependencies, no network fetches, no build step.
 - Bump `manifest.json`'s minor version per commit.
