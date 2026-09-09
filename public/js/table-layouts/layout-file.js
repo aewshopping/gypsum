@@ -107,6 +107,20 @@ function refreshState(doc) {
 }
 
 /**
+ * `layout-1`, or the first number after it that is not taken.
+ *
+ * "Save as new" names a layout itself rather than asking for one up front, so the name only has
+ * to be unique and obviously provisional — the user is handed it for editing straight away.
+ * @param {string[]} names - The layout names already in use.
+ * @returns {string}
+ */
+export function nextLayoutName(names) {
+    let n = 1;
+    while (names.includes(`layout-${n}`)) n++;
+    return `layout-${n}`;
+}
+
+/**
  * Loads the active layout into columnLayout, and the layout list into appState.
  *
  * Called by both folder loaders once a directory handle is in place. When there is no file, or

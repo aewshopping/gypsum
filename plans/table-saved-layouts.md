@@ -395,126 +395,99 @@ visible whatever the layout says.
 
 ## 7. The interface
 
-**A name and a caret in the table's control row**, beside the columns button — the row
+**A labelled name and a save button in the table's control row** — the row
 `render-table-controls.js` already renders, which exists only in table view and already holds the
 table's whole-table actions.
 
 ```
-▦   app defaults ▾
-────────────────────────────
-▀▀▀▀▀ scrollbar ▀▀▀▀▀▀▀▀▀▀▀▀
+▦   layout: [ review ] [ save ]
+────────────────────────────────
+▀▀▀▀▀ scrollbar ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
  file │ filename │ title │ …
 ```
 
-At rest it is text, not a control: no box, no border, weight of a label. It says what shape the
-table is in, which is worth a permanent line, and asks for nothing until clicked.
+Both are `.btn-base-style`, the app's ordinary button. An earlier version made the name bare text
+with a caret, on the grounds that it was reporting a state rather than offering an action; in
+practice it read as a status line and not as something to press. The word "layout:" sits outside
+the button so the button holds the name and nothing else.
 
-### 7.1 The menu
+**Save is never disabled.** On a saved layout it writes over that layout and says nothing. On the
+defaults there is no layout to write over, so it makes one — §7.2's naming, and the modal opens
+with the new name ready to edit. The label stays "save" in both states, because that is what the
+user asked for either way.
 
-Clicking opens a popover:
+### 7.1 The modal
+
+Clicking the name opens a dialog built from the settings modal: a title, a row of whole-list
+actions, then one row per layout, filled on open since layouts come and go.
 
 ```
-┌──────────────────┐
-│ ✓ app defaults   │
-│   review         │
-│   wide           │
-├──────────────────┤
-│   save layout    │
-│   save as new…   │
-│   rename…        │
-│   delete         │
-└──────────────────┘
+┌─────────────────────────────────────┐
+│ Table layouts                     ✕ │
+│ [ save layout ] [ save as new… ]    │
+│                                     │
+│   default                           │
+│   review                    ✎   🗑   │
+│ ✓ wide                      ✎   🗑   │
+└─────────────────────────────────────┘
 ```
 
-- **`app defaults` is always the first entry**, and is the app's built-in defaults rather than a
-  saved layout (§3.4). Choosing it sets `active` to `null`.
-- **`save layout`, `rename…` and `delete` are disabled on `app defaults`** — there is nothing
-  behind them to save over, rename or remove. The same `:disabled` treatment the column menu's
-  items already use.
-- **`save layout` writes over the layout in use**, which is all an explicit save needs to be: no
-  prompt, no name, no new entry in the menu.
-- **`save as new…`** is always available, and is how a folder gets its first layout. Which is the
-  reason the control shows even when nothing has been saved: hiding it would leave no way in.
+- **A popover was tried first and did not work.** The menu wanted to be a list with per-row
+  actions, which is a dialog's shape rather than a menu's, and it had grown a separator and two
+  disabled items by the time that was obvious.
+- **`save layout` and `save as new…` are at the top**, as whole-list actions, the same
+  `.info-modal-btn-row` the column picker's show all / hide all / reset use.
+- **The row actions are per row**, so rename and delete no longer need to exist at the bottom
+  operating on whatever happens to be active. Both are `.info-modal-row-btn` icons, the treatment
+  the history modal's row actions already use.
+- **The defaults row has no icons.** There is nothing behind it to rename or remove, and their
+  absence says so more plainly than a disabled pair on every list would.
+- **Clicking a row's name switches to that layout** and closes the modal.
 
-### 7.2 Naming, renaming, deleting
+Two icons are promoted to the shared sprite for this, each now having a second user: the trash
+from the history modal's row actions (`#icon-history-delete` → `#icon-delete`), and the pencil
+from the content modal's file-options button, which was inline SVG and becomes `#icon-edit`.
 
-**Save as and rename both need a name typed in.** One small `.info-modal` dialog with a single
-input serves both, following `#modal-file-options`. Not `prompt()`: the app does not use it
-anywhere.
+### 7.2 Naming, in the row
 
-The name is a JSON key, not a filename (§3.1), so it needs no sanitising — only a check that it is
-non-empty and not already taken, which the dialog can do against `appState.tableLayouts.names`
-without touching the disk.
+**There is no name dialog.** A modal that exists only to collect one word, on top of the modal
+that listed the word, is a lot of furniture for a rename.
 
-**Rename is a key change**, and `active` moves with it in the same write.
+- **The edit icon turns the row's name into an input**, focused and selected. Committing on blur
+  or Enter renames the layout; Escape abandons it. An empty name, an unchanged one or one already
+  taken is not a rename, and the row simply goes back to its button — the name the user can still
+  see is a clearer answer than a message would be.
+- **`save as new…` names the layout itself** — `layout-1`, or the first number after it that is
+  free — and then hands that name straight over in edit mode. The user types over an offered name
+  rather than inventing one in a dialog before they have seen anything.
+
+The name is a JSON key, not a filename (§3.1), so it needs no sanitising.
 
 **Delete goes through the existing warning modal** (`warning-proceed` / `warning-cancel`), the one
 `delete-file` already uses. If the deleted layout was active, `active` falls back to `null` and the
 columns on screen stay exactly as they are — deleting the record of an arrangement does not disturb
 the arrangement.
 
-### 7.3 "reset columns" and "app defaults" are different things
+### 7.3 "reset columns" and the defaults are different things
 
-The column picker already has a reset button — `data-action="reset-columns"`, labelled **reset
-all**, tipped *restore the default columns, order and widths* — which clears `columnLayout` and
-repaints from the schema defaults. The menu's first entry also gets you to the defaults. They are
-not the same action and must not read as though they are:
-
-| Control | What it does | Where `active` ends up |
-|---|---|---|
-| Picker's reset button | Resets the columns **of the layout you are editing**. On close the defaults are written into that layout | Unchanged |
-| Menu's `app defaults` | Switches away from the layout, leaving it as it was | `null` |
-
-So with `review` active, reset-then-close overwrites `review` with the default arrangement — which
-is coherent, but not while the button's own tooltip says it restores *the* defaults. The labels are
-therefore:
-
-- the picker's button becomes **"reset this layout"**, tipped *reset this layout to the app's
-  default columns, order and widths*
-- the menu's first entry reads **"app defaults"**
-
-No behaviour changes; the two controls just stop claiming to be the same one.
+The column picker's reset button restores the app's default columns, order and widths **on
+screen**; nothing is written until the layout is saved. The modal's `default` row switches which
+layout is in use. They are not the same action, so the picker's button reads `reset columns`
+rather than naming the defaults, which is what made the two read alike.
 
 ### 7.4 What the renderer needs
 
-`render-table-controls.js` is a renderer: it returns HTML and holds no logic, so it cannot read the
-file to find out what layouts exist. The list therefore lives in state, refreshed when the folder
-loads and after any save, rename or delete:
+`render-table-controls.js` and `render-layout-list.js` are renderers: they return HTML and hold no
+logic, so neither can read the file to find out what layouts exist. The list therefore lives in
+state, refreshed when the folder loads and after any save, rename or delete:
 
 ```js
 appState.tableLayouts = { names: [], active: null }   // active: null = the app's defaults
 ```
 
-The renderer reads `active` for the label and `names` for the menu, and everything stays
-synchronous. This is also what §5.2's "write to the active layout" reads, so there is one answer in
+The control row reads `active` for its label and the list reads both, and everything stays
+synchronous. This is also what §5's "write to the active layout" reads, so there is one answer in
 memory to "which layout is this".
-
-### 7.5 The popover, and the CSS that has to move first
-
-This is the same machinery as `#column-menu` — a `popover` attribute for the top layer, light
-dismiss and Escape from the browser, positioned by CSS anchor positioning. **Simpler than that
-one**: the column menu needs `#column-menu-anchor`, a proxy parked over the header cell, because
-the header carries a scroll-driven transform that anchor positioning resolves against the wrong
-box. The control row has no transform, so this menu anchors straight to its own button.
-
-But the shared part is bigger than one class. `column-menu.css` scopes almost everything to the
-`#column-menu` **id**: the padding, background, border, radius and shadow; `:popover-open
-{ display: flex }`; the `::backdrop`; and the whole `@media (max-width: 600px)` block that turns
-the menu into a bottom sheet, `@starting-style` transitions included. Promoting only
-`.column-menu-item` would leave `layout-menu.css` re-implementing about eighty lines of that.
-
-So the split is by **what is shared** rather than by what happens to be a class already:
-
-```
-public/css/menu.css          NEW  .app-menu (container, backdrop, mobile sheet), .app-menu-item
-public/css/column-menu.css   MOD  keeps only #column-menu-anchor and its own anchor positioning
-public/css/layout-menu.css   NEW  this menu's anchor positioning, and nothing else
-```
-
-`.app-menu` and `.app-menu-item` are named for what they are rather than for the first menu that
-wanted them — the same promotion the dialog furniture had when a second dialog needed it. Both
-menus get both classes in `index.html`; the positioning stays per-menu, because that is the one
-thing genuinely different between them.
 
 ---
 
@@ -752,7 +725,9 @@ otherwise be found late:
 ```
 public/js/table-layouts/layout-file.js     NEW  read/write the one file; save, rename, delete, set active; the write queue
 public/js/table-layouts/layout-apply.js    NEW  columnLayout <-> a layout's columns array, incl. order resolution
-public/js/ui/ui-functions-click/layout-menu.js     NEW  open, choose, save-as, rename, delete
+public/js/ui/ui-functions-click/layouts-modal.js   NEW  open, choose, save, save-as, rename in place, delete
+public/js/ui/ui-functions-render/render-layout-list.js  NEW  one row per layout
+public/js/ui/ui-functions-render/render-history-list.js MOD  the trash icon moved to the shared sprite
 public/js/constants.js                     MOD  LAYOUTS_FILENAME
 public/js/services/store.js                MOD  appState.tableLayouts; columnLayout entry gains label + real width
 public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  seed label/width; entry spread wins over the schema
@@ -761,9 +736,7 @@ public/js/ui/ui-functions-click/column-picker.js   MOD  reset button relabelled;
 public/js/services/directory-handler.js    MOD  apply the active layout, after dirHandle is set
 public/js/backup/opfs-import.js            MOD  same
 public/js/ui/ui-functions-table/render-table-controls.js  MOD  the name and caret
-public/css/menu.css                        NEW  .app-menu / .app-menu-item, shared
-public/css/layout-menu.css                 NEW  this menu's anchor positioning
-public/css/column-menu.css                 MOD  keeps only its own positioning
+public/css/table-layouts.css                NEW  the control-row label and the modal's rows
 public/style.css                           MOD  @import both new stylesheets
 tests/helpers.js                           MOD  a mock that serves table_layouts.gypsum
 index.html                                 MOD  the popover, the name dialog, the shared menu classes

@@ -60,7 +60,9 @@ import { handleToggleFileControls } from './ui-functions-click/handle-toggle-fil
 import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
-import { handleLayoutMenuOpen, handleLayoutSelect, handleLayoutSave, handleLayoutSaveAs, handleLayoutRename, handleLayoutDelete, handleLayoutNameConfirm, handleLayoutNameCancel } from './ui-functions-click/layout-menu.js';
+import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, handleLayoutSave,
+         handleLayoutSaveAs, handleLayoutEditName, handleLayoutDelete, handleLayoutNameBlur,
+         handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
 import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-click/cell-expand.js';
@@ -81,6 +83,8 @@ export function addActionHandlers() {
     document.addEventListener("pointerdown", pointerDownDelegate);
     document.addEventListener('mouseover', handleTableColHover);
     document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
+    document.addEventListener('focusout', handleLayoutNameBlur);  // nor does blur
+    document.addEventListener('keydown', handleLayoutNameKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is
     // over whatever the list has shuffled beneath it, not over the grip that started it. So these
@@ -127,14 +131,13 @@ const clickActionHandlers = {
     'column-search': handleColumnSearch,
     'column-resize': handleColumnResizeActivate,
     'column-auto-size': handleColumnAutoSize,
-    'layout-menu-open': handleLayoutMenuOpen,
+    'open-layouts-modal': handleOpenLayoutsModal,
+    'close-layouts-modal': handleCloseLayoutsModal,
     'layout-select': handleLayoutSelect,
     'layout-save': handleLayoutSave,
     'layout-save-as': handleLayoutSaveAs,
-    'layout-rename': handleLayoutRename,
+    'layout-edit-name': handleLayoutEditName,
     'layout-delete': handleLayoutDelete,
-    'layout-name-confirm': handleLayoutNameConfirm,
-    'layout-name-cancel': handleLayoutNameCancel,
     'open-column-picker': handleOpenColumnPicker,
     'close-column-picker': handleCloseColumnPicker,
     'reset-columns': handleResetColumns,

@@ -418,8 +418,15 @@ test('tabbing along the headers scrolls the table, keeping them over their colum
   const inLine = Array(await page.locator('.note-table-cell-header').count()).fill(0);
 
   await page.locator('#searchbox').focus();
+
+  // The table's control row sits between the search box and the headers, and each of its buttons
+  // is a tab stop on the way. Counted rather than folded into the number below, so adding a
+  // control there is not a failure here — the same reason inLine is sized from the DOM. Tabs
+  // spent past the last header are harmless: the loop skips anything that is not a header.
+  const controlStops = await page.locator('.table-controls button').count();
+
   const seen = [];
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 13 + controlStops; i++) {
     await page.keyboard.press('Tab');
     const state = await alignment();
     if (!state.focused) continue;

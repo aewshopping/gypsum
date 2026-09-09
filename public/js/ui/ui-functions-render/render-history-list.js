@@ -55,7 +55,7 @@ export function renderHistoryList(files) {
                  `<span class="history-row-actions">` +
                    action +
                    `<button class="info-modal-row-btn history-row-btn-delete" data-action="history-delete" ${data} data-tip="delete this file's history">` +
-                     `<svg class="info-modal-row-icon"><use href="#icon-history-delete"></use></svg></button>` +
+                     `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>` +
                  `</span>` +
                `</div>`;
     }).join('');

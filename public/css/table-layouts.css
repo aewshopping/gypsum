@@ -1,0 +1,60 @@
+/* Saved table layouts: the control-row pieces above the table, and the rows inside the layouts
+   modal. The modal's frame, title, button row and row layout all come from modal-info.css —
+   what is here is only what those do not already say. */
+
+/* Sits outside the button, so the button holds the layout's name and nothing else. Muted, because
+   it labels the control rather than being one. */
+.layout-control-label {
+    font-family: var(--fontfam-app-input);
+    font-size: 0.89375em;
+    opacity: 0.7;
+}
+
+/* A layout row: the name takes the free space and the two icons sit hard against the right edge,
+   which is what .info-modal-row already arranges. The defaults row has no icons, and needs no
+   rule of its own — an absent child takes no space. */
+
+.layout-row-name {
+    flex: 1;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 4px 0;
+    font: inherit;
+    color: var(--colour-contr);
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+}
+
+/* Marks the layout in use. A fixed-width gutter rather than a tick inside the label, so the names
+   line up whether or not they are the active one. */
+.layout-row-name[aria-checked="true"]::before {
+    content: "✓ ";
+}
+
+.layout-row-name[aria-checked="false"]::before {
+    content: "";
+    display: inline-block;
+    width: 1.1em;
+}
+
+/* Takes the name button's place while a rename is in flight, sized to match so the row does not
+   change height as it swaps. */
+.layout-row-input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-family: var(--fontfam-app-input);
+    padding: 3px 6px;
+    border: 1.5px solid var(--colour-contr);
+    border-radius: 4px;
+    background-color: var(--colour-neutral);
+    color: var(--colour-contr);
+}
