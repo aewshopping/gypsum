@@ -466,7 +466,11 @@ test('a header cell is reachable by keyboard, and Enter does what a click does',
   // tab in from the search box, forward only, stopping at the first header cell
   await page.locator('#searchbox').focus();
   const focusedProp = () => page.evaluate(() => document.activeElement?.dataset?.property ?? null);
-  for (let i = 0; i < 10 && !(await focusedProp()); i++) await page.keyboard.press('Tab');
+  // Bounded rather than open-ended, but the bound allows for the table's control row: each of its
+  // buttons is a tab stop on the way to the headers, counted so that adding one is not a failure
+  // here — the same reason the tabbing test above counts them.
+  const maxTabs = 10 + await page.locator('.table-controls button').count();
+  for (let i = 0; i < maxTabs && !(await focusedProp()); i++) await page.keyboard.press('Tab');
   expect(await focusedProp()).toBe('internalId');   // the file column leads the table
 
   // Tab walks along the columns

@@ -57,3 +57,23 @@ export function renderLayoutList() {
 
     return [row(null, ''), ...names.map(name => row(name, actions(name))), saveAsRow].join('');
 }
+
+/**
+ * Renders the layout picker's rows: one per layout, the app's defaults first.
+ *
+ * Just the names — switching is all this popover does, which is why it exists beside the modal
+ * rather than instead of it. It borrows the column menu's row styling so the two menus in the
+ * table's chrome look like one thing.
+ *
+ * @returns {string} HTML string for the picker's innerHTML.
+ */
+export function renderLayoutPicker() {
+    const { names, active } = appState.tableLayouts;
+
+    const item = name =>
+        `<button type="button" class="column-menu-item" data-action="layout-select" ` +
+          `data-layout="${name ?? ''}" aria-checked="${(name ?? null) === active}">` +
+          `${name ?? DEFAULT_LAYOUT_LABEL}</button>`;
+
+    return [item(null), ...names.map(item)].join('');
+}

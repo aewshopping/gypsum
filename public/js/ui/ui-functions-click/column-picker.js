@@ -4,6 +4,7 @@ import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { renderColumnPickerList } from '../ui-functions-table/column-picker-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
+import { applyActiveLayout } from '../../table-layouts/layout-file.js';
 
 const dialog = document.getElementById('modal-columns');
 
@@ -88,15 +89,24 @@ export function handleHideAllColumns() {
 }
 
 /**
- * Forgets the layout and repaints from the defaults: default order, default visibility and
- * default widths together. One button rather than one per axis, because "reset the order" has no
- * useful answer for a column the user has also hidden.
+ * Throws away the changes made since the layout was last saved: order, visibility and widths
+ * together. One button rather than one per axis, because "reset the order" has no useful answer
+ * for a column the user has also hidden.
+ *
+ * It goes back to the layout in use, not to the app's defaults. Resetting to the defaults was the
+ * only thing it could do before layouts existed; now that the defaults are a layout you can simply
+ * choose, a button that jumps you to them from wherever you were is a worse answer than one that
+ * undoes what you did.
+ *
+ * The Map is cleared first: applyActiveLayout only fills it, and on the app's defaults there is
+ * nothing to fill it with — an empty Map is what asks resolveColumns() for the defaults.
  *
  * The table is not re-rendered here; like every other change in this dialog it lands on close.
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function handleResetColumns() {
+export async function handleResetColumns() {
     TABLE_VIEW_COLUMNS.columnLayout.clear();
+    await applyActiveLayout();
     paintList();
 }
 

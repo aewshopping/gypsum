@@ -12,8 +12,8 @@
 
 import { appState } from '../../services/store.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
-import { renderLayoutList } from '../ui-functions-render/render-layout-list.js';
-import { markLayoutSaved } from '../ui-functions-table/render-table-controls.js';
+import { renderLayoutList, renderLayoutPicker } from '../ui-functions-render/render-layout-list.js';
+import { playLayoutSaved } from '../ui-functions-table/render-table-controls.js';
 import { saveLayout, renameLayout, deleteLayout, setActiveLayout, nextLayoutName }
     from '../../table-layouts/layout-file.js';
 import { showWarningModal } from './warning-modal.js';
@@ -108,9 +108,22 @@ export function handleCloseLayoutsModal() {
  * @returns {Promise<void>}
  */
 export async function handleLayoutSelect(evt, target) {
-    dialog().close();
+    // The picker is a menu and is done once something is picked; the modal is a place you are
+    // working in, so choosing a layout there moves the marker and leaves you where you were.
+    document.getElementById('layout-picker')?.hidePopover();
+
     await setActiveLayout(target.dataset.layout || null);
     renderFiles();
+    if (dialog().open) paintList();
+}
+
+/**
+ * Fills the layout picker before the browser shows it. The button carries popovertarget, so
+ * opening is the browser's job — this only has to make the contents right first.
+ * @returns {void}
+ */
+export function handleLayoutPickerOpen() {
+    document.getElementById('layout-picker').innerHTML = renderLayoutPicker();
 }
 
 /**
@@ -123,7 +136,7 @@ async function createLayout() {
     const name = nextLayoutName(appState.tableLayouts.names);
     await saveLayout(name);
     renderFiles();
-    markLayoutSaved();
+    playLayoutSaved();
 
     paintList();
     if (!dialog().open) dialog().showModal();
@@ -142,7 +155,7 @@ export async function handleLayoutSave() {
     const { active } = appState.tableLayouts;
     if (active) {
         await saveLayout(active);
-        markLayoutSaved();
+        playLayoutSaved();
         return;
     }
     await createLayout();

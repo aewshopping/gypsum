@@ -409,17 +409,27 @@ layout in use, then the three things you can do to it.
 Left to right it says what the table is showing and then offers to change it: the name, edit
 (opens the layouts modal), the column picker, and save.
 
-**The name is a label, not a button.** Hovering the edit button inverts the two together — the
-button slides left onto the name, both go to a solid plate — which is what says the button acts on
-*that* name. It is the gesture `#file-options-btn` already makes over the history select
-(`modal-history-select.css`), built the same way: an `:has()` rule on body, a negative margin, and
-a transition shared between them.
+**The name is a button, and opens a picker.** A popover listing the layouts to switch between —
+`#column-menu`'s machinery and row styling, without its anchor proxy, the control row having no
+scroll-driven transform for anchor positioning to resolve against. Switching is all it does, which
+is why it sits beside the modal rather than instead of it: the modal is where layouts are made,
+renamed and deleted, and reaching a different layout should not mean opening it.
 
-**Save carries the state.** Two glyphs, one shown by CSS off a `saved` class on the row: a disk
-with an arrow while the columns differ from the saved layout, one with a tick once they do not —
-the same construction `#save-btn` uses inside the content modal, whose two glyphs are now shared
-symbols rather than inline SVG. A save also plays one short pulse, because a save that changes
-nothing on screen would otherwise give no sign it happened.
+The button is understated — a fill, no border. It is a place to look before it is a thing to press,
+and a border would crowd the two icon buttons beside it, which have none. An earlier version made
+it a label that inverted along with the edit button on hover, borrowing `#file-options-btn`'s
+gesture over the history select; with the name doing something of its own, two controls competing
+for the same hover was one too many, and the edit button now brightens like any other icon.
+
+**Save carries the state.** Three glyphs, one shown by CSS off classes on the row and the button:
+waiting to be saved, saving, and saved. The middle one is the content modal's own unsaved glyph
+with its arrow spinning, played for the same 900ms `save-current-file.js` spins for — the write is
+usually done inside a frame, so the spin is not progress, it is what makes a save that changes
+nothing on screen visible at all.
+
+The glyphs are shared symbols rather than inline SVG, so the content modal and the control row draw
+the same save button. The spinning arrow is one element inside one symbol, so both buttons' clones
+spin together; only ever one of them is on screen, the content modal's being inside that modal.
 
 ### 7.1 Dirty is one-way
 
@@ -435,6 +445,11 @@ Two of the three change points do not re-render (§2.1), so the class cannot com
 alone. `markLayoutDirty()` and `markLayoutSaved()` set the state *and* move the class on the live
 element, the same arrangement `markSortedColumn()` has for the sort marker; the renderer emits the
 class from state so a re-render keeps it.
+
+**The flag settles when the write does, not when the spin ends.** `playLayoutSaved()` marks the
+layout clean immediately and delays only the glyph. Delaying the flag as well looked tidier and was
+wrong: a change made during the 900ms spin was wiped by the timer landing after it, which a test
+caught rather than a reading of the code.
 
 **A dismissed picker counts as a change.** `handleColumnPickerClose` rebuilds the Map whether or
 not anything moved, and nothing compares before with after, so opening the picker and pressing
@@ -467,6 +482,12 @@ filled on open since layouts come and go.
   rather than `--colour-neutral-alt`, which a hovered row already uses.
 - **The row actions are per row**, so nothing at the bottom operates on whatever happens to be
   active. Both are `.info-modal-row-btn` icons, the treatment the history modal's rows use.
+- **Choosing a layout leaves the modal open.** It is a place you are working in — renaming one
+  thing, deleting another — so a click that closed it would be a trapdoor. The picker closes on a
+  pick because a menu is finished once something is picked.
+- **Hover is a fill, not an underline**, and every row is the same width: both kinds are
+  `display: flex` and stretch on their own, except the save-as row, which is a `<button>` and
+  shrinks to its contents whatever its display, so it is given the width the others reach.
 - **The defaults row has no icons.** There is nothing behind it to rename or remove.
 - **`save as new…` is the last row**, not a button above the list: it names a layout like the rows
   above it do. The whole row is one control, so the save icon on it is a label rather than the only
@@ -503,12 +524,19 @@ captured by the View Transitions API, so it vanishes behind the overlay whenever
 with a dialog open. That check listed the content and settings modals; the layouts and columns
 modals are now on it too, both of them being dialogs that re-render the table while staying open.
 
-### 7.3 "reset columns" and the defaults are different things
+### 7.3 Reset goes back to the layout, not to the defaults
 
-The column picker's reset button restores the app's default columns, order and widths **on
-screen**; nothing is written until the layout is saved. The modal's `default` row switches which
-layout is in use. They are not the same action, so the picker's button reads `reset columns`
-rather than naming the defaults, which is what made the two read alike.
+The column picker's reset button throws away the changes made since the layout was last saved.
+Resetting to the app's defaults was the only thing it could do before layouts existed; now that the
+defaults are a layout you can simply choose, a button that jumps you to them from wherever you were
+is a worse answer than one that undoes what you did.
+
+It clears `columnLayout` and re-applies the active layout. On the defaults there is nothing to
+re-apply, and the empty Map is what asks `resolveColumns()` for the schema's own columns — so the
+old behaviour is still what happens, in the one case where it was the right behaviour.
+
+Nothing is written: like every other change in that dialog it lands on close, and the layout is
+saved when the user says so.
 
 ### 7.4 What the renderer needs
 

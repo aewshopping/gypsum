@@ -122,9 +122,9 @@ test('unsaved column changes are discarded when the layout is reloaded', async (
   await modal(page).locator('.layout-row-name[data-layout=""]').click();
   await expect(layoutName(page)).toContainText('default');
 
-  await openLayouts(page);
   await modal(page).locator('.layout-row-name[data-layout="review"]').click();
   await expect(layoutName(page)).toContainText('review');
+  await page.locator('[data-action="close-layouts-modal"]').click();
 
   await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(1);
 });
@@ -350,17 +350,23 @@ test('the save icon loses its tick when the columns change, and gets it back on 
   // Freshly saved: the columns and the layout agree, so the tick glyph is the one showing.
   expect(await isDirty(page)).toBe(false);
   await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeVisible();
-  await expect(saveBtn(page).locator('use[href="#icon-save"]')).toBeHidden();
+  await expect(saveBtn(page).locator('use[href="#icon-save-pending"]')).toBeHidden();
 
   await hideTags(page);
 
   expect(await isDirty(page)).toBe(true);
-  await expect(saveBtn(page).locator('use[href="#icon-save"]')).toBeVisible();
+  await expect(saveBtn(page).locator('use[href="#icon-save-pending"]')).toBeVisible();
   await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeHidden();
 
   await saveBtn(page).click();
-  await expect.poll(() => isDirty(page)).toBe(false);
+
+  // The arrow glyph plays while the save is being shown, and the tick lands after it.
+  await expect(saveBtn(page).locator('use[href="#icon-save"]')).toBeVisible();
+  await expect(page.locator('#save-disk-arrow')).toHaveClass(/spinning/);
+
+  await expect.poll(() => isDirty(page), { timeout: 4000 }).toBe(false);
   await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeVisible();
+  await expect(saveBtn(page)).not.toHaveClass(/saving/);
 });
 
 test('a resize dirties the layout without waiting for a re-render', async ({ page }) => {
@@ -403,4 +409,77 @@ test('the layout in use is marked in the list, and the save-as row is not one of
   const newRow = modal(page).locator('.layout-row-new');
   await expect(newRow).toHaveAttribute('data-action', 'layout-save-as');
   await expect(newRow.locator('[data-action]')).toHaveCount(0);
+});
+
+test('the name button opens a picker that switches layouts', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+
+  const picker = page.locator('#layout-picker');
+  await expect(picker).toBeHidden();
+
+  await layoutName(page).click();
+  await expect(picker).toBeVisible();
+
+  // Just the names, filled on open, with the one in use marked.
+  await expect(picker.locator('[data-action="layout-select"]')).toHaveCount(2);
+  await expect(picker.locator('[data-layout="review"]')).toHaveAttribute('aria-checked', 'true');
+  await expect(picker.locator('[data-layout=""]')).toHaveAttribute('aria-checked', 'false');
+
+  // Picking closes it — a menu is done once something is picked.
+  await picker.locator('[data-layout=""]').click();
+  await expect(picker).toBeHidden();
+  await expect(layoutName(page)).toContainText('default');
+
+  // and the newly saved layout shows up in it next time it opens
+  await saveAsNew(page, 'wide');
+  await layoutName(page).click();
+  await expect(picker.locator('[data-action="layout-select"]')).toHaveCount(3);
+});
+
+test('choosing a layout in the modal leaves the modal open', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await openLayouts(page);
+
+  await modal(page).locator('.layout-row-name[data-layout=""]').click();
+
+  await expect(modal(page)).toBeVisible();
+  await expect(modal(page).locator('.layout-row.is-active .layout-row-name'))
+    .toHaveAttribute('data-layout', '');
+  await expect(layoutName(page)).toContainText('default');
+});
+
+test('reset columns goes back to the saved layout, not to the app defaults', async ({ page }) => {
+  await openTable(page);
+
+  // A layout saved without the tags column, so "the layout" and "the defaults" differ.
+  await hideTags(page);
+  await saveAsNew(page, 'review');
+
+  // Now hide another column on top of it, then reset.
+  await openPicker(page);
+  await pickerRows(page).filter({ hasText: 'title' }).locator('input.toggle').uncheck();
+  await page.click('[data-action="reset-columns"]');
+
+  // Back to the layout: title returns, tags stays hidden. Resetting to the app defaults would
+  // have brought tags back too.
+  await expect(pickerRows(page).filter({ hasText: 'title' }).locator('input.toggle')).toBeChecked();
+  await expect(pickerRows(page).filter({ hasText: 'tags' }).locator('input.toggle')).not.toBeChecked();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.note-table-cell-header[data-property="title"]')).toHaveCount(1);
+  await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(0);
+});
+
+test('reset columns on the app defaults still restores the schema columns', async ({ page }) => {
+  await openTable(page);
+  await hideTags(page);   // not saved anywhere; the defaults are in use
+
+  await openPicker(page);
+  await page.click('[data-action="reset-columns"]');
+
+  await expect(pickerRows(page).filter({ hasText: 'tags' }).locator('input.toggle')).toBeChecked();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(1);
 });

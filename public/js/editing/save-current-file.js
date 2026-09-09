@@ -4,6 +4,7 @@ import { saveFileCopy } from './save-file-copy.js';
 import { resetUnsavedBaseline, getCurrentRawContent } from './manage-unsaved-changes.js';
 import { updateUnsavedIndicator } from '../ui/ui-functions-render/render-file-content.js';
 import { refreshFileAfterSave } from './refresh-file-state.js';
+import { spinSaveArrow, SAVE_SPIN_MS } from '../ui/save-spin.js';
 
 /**
  * Saves the currently-viewed file: writes a verified copy into .gypsum, overwrites the
@@ -29,12 +30,8 @@ export async function saveCurrentFile() {
             saveBtn?.classList.remove('save-error');
             resetUnsavedBaseline();
             refreshFileAfterSave(snapshot);
-            const arrowEl = document.getElementById('save-disk-arrow');
-            arrowEl?.classList.add('spinning');
-            setTimeout(() => {
-                arrowEl?.classList.remove('spinning');
-                updateUnsavedIndicator();
-            }, 900);
+            spinSaveArrow();
+            setTimeout(updateUnsavedIndicator, SAVE_SPIN_MS);
         } else {
             saveBtn?.classList.add('save-error');
         }

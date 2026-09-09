@@ -24,13 +24,27 @@
     color: var(--colour-contr);
     cursor: pointer;
 
-    &:hover {
-        text-decoration: underline;
-    }
-
     &:focus-visible {
         outline: 2px solid var(--colour-contr);
     }
+}
+
+/* Every row the same shape, whether it is a div holding a name button and two icons or the button
+   that is itself a row. border-box on both is what makes them the same width: a div's padding
+   would otherwise be added to its 100%, while the button's is taken out of it. The negative margin
+   lets a filled row reach the dialog's padding rather than stopping short of it. */
+.layout-row {
+    box-sizing: border-box;
+    margin-block: 2px;
+    margin-inline: -8px;
+    padding-inline: 8px;
+    border-radius: 5px;
+}
+
+/* Hover is a fill, not an underline: these rows are targets rather than links, and the fill is
+   what the whole-row "save as new" needed anyway. */
+.layout-row:hover {
+    background-color: var(--colour-neutral-alt);
 }
 
 /* Marks the layout in use, with the same glyph the select inputs use for their picker icon
@@ -52,34 +66,34 @@
 /* Filled as well as arrowed. The list is how you switch layouts, so which one you are on has to
    survive a glance rather than needing to be read. Negative margins so the fill reaches the
    dialog's padding rather than stopping short of it. */
-.layout-row.is-active {
+.layout-row.is-active,
+.layout-row.is-active:hover {
     background-color: color-mix(in srgb, var(--colour-contr) 12%, transparent);
-    border-radius: 5px;
-    margin-inline: -8px;
-    padding-inline: 8px;
 }
 
 /* The row that makes a new layout. A row rather than a button above the list, because it names a
    layout like the others do — but it is one target end to end, so the icon inside is drawn and
    not pressed. */
 .layout-row-new {
-    width: 100%;
+    /* A button shrinks to its contents even as a flex container, where the divs above stretch on
+       their own. This is the width they end up at: the dialog's content box plus the eight pixels
+       of negative margin at each end. */
+    width: calc(100% + 16px);
+
     background: none;
     border: none;
     font: inherit;
     color: var(--colour-contr);
     cursor: pointer;
-    margin-top: 4px;
+    margin-top: 6px;
     border-top: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
 
-    &:hover {
-        background-color: var(--colour-neutral-alt);
-        border-radius: 5px;
-    }
+    /* The top rule and the rounded fill fight each other at the corners, so the rule is drawn
+       above the row rather than on it. */
+    border-radius: 0 0 5px 5px;
 
     &:focus-visible {
         outline: 2px solid var(--colour-contr);
-        border-radius: 5px;
     }
 
     /* Follows the row's hover rather than having one of its own. */
@@ -119,61 +133,89 @@
     border-radius: 6px;
 }
 
-.layout-name {
+/* The layout's name, and the button that lists the others. Understated: a fill and no border, so
+   it reads as a place to look before it reads as a thing to press — and so it does not compete
+   with the two icon buttons beside it, which have no border either. */
+#layout-name {
     font-family: var(--fontfam-app-input);
     font-size: 0.89375em;
-    padding: 3px 6px;
+    padding: 3px 8px;
+    border: none;
     border-radius: 4px;
+    background-color: var(--colour-neutral-alt);
+    color: var(--colour-contr);
+    cursor: pointer;
 
-    /* Room on the right for the edit button to slide over, revealed only while it is hovered.
-       Transitioned with the colours so the two read as one movement. */
-    padding-right: 6px;
-    transition: padding-right 0.3s, color 0.4s, background-color 0.4s;
+    &:hover {
+        box-shadow: var(--hover-box-shadow);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
 }
 
-/* The same gesture #file-options-btn makes over the history select (modal-history-select.css):
-   the button inverts to a solid plate and slides left onto what it edits, which inverts with it.
-   Here that is the layout's name, so it is unmistakable which name the button is about to open. */
-#layout-edit-btn {
-    transition: margin 0.3s, color 0.4s, background-color 0.4s;
-    border-radius: 4px;
+/* The list of layouts, hung under the name it belongs to. Same chrome as #column-menu, but with
+   no anchor proxy: the control row carries no scroll-driven transform, so anchor positioning
+   resolves against the button itself. */
+#layout-name {
+    anchor-name: --layout-picker-anchor;
 }
 
-body:has(#layout-edit-btn:hover) :is(#layout-name, #layout-edit-btn) {
-    background-color: var(--colour-contr);
-    color: var(--colour-neutral);
+#layout-picker {
+    position: fixed;
+    position-anchor: --layout-picker-anchor;
+    inset: auto;                  /* the UA stylesheet centres popovers with inset: 0 */
+    top: anchor(bottom);
+    left: anchor(left);
+    margin: 0;
+
+    flex-direction: column;
+    min-width: 150px;
+    padding: 4px;
+    background-color: var(--colour-neutral);
+    color: var(--colour-contr);
+    border: 1px solid transparent;
+    border-radius: 0 4px 4px 4px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
 
-body:has(#layout-edit-btn:hover) #layout-name {
-    padding-right: 26px;   /* extends under the button that has slid onto it */
+#layout-picker:popover-open {
+    display: flex;
 }
 
-body:has(#layout-edit-btn:hover) #layout-edit-btn {
-    margin-left: -24px;
+#layout-picker::backdrop {
+    background-color: rgb(0 0 0 / 0.25);
 }
 
-/* The glyph is held at full strength while inverted: faded dark-on-light is legible, faded
-   light-on-dark is not. */
-body:has(#layout-edit-btn:hover) #layout-edit-btn > svg {
-    opacity: 1;
+/* Marks the layout in use, the same gutter the modal's rows use. */
+#layout-picker .column-menu-item::before {
+    content: "\276f";   /* U+276F ❯, the select picker icon */
+    display: inline-block;
+    width: 1.1em;
+    transform: translateY(5%);
+    opacity: 0;
 }
 
-/* Two glyphs, one shown: a disk with an arrow while the columns differ from the saved layout, one
-   with a tick once they do not. Same construction as #save-btn in the content modal. */
+#layout-picker .column-menu-item[aria-checked="true"]::before {
+    opacity: 0.6;
+}
+
+/* Three glyphs, one shown: waiting to be saved, saving, and saved. Same construction as #save-btn
+   in the content modal, which has two of the three. */
+#layout-save-btn svg:nth-child(2),
 .table-controls.saved #layout-save-btn svg:nth-child(1),
-.table-controls:not(.saved) #layout-save-btn svg:nth-child(2) {
+.table-controls:not(.saved) #layout-save-btn svg:nth-child(3) {
     display: none;
 }
 
-/* A save that changes nothing on screen needs to be visible some other way. One pulse, and the
-   tick it settles into is the lasting answer. */
-@keyframes layout-just-saved {
-    0%   { transform: scale(1); }
-    35%  { transform: scale(1.35); }
-    100% { transform: scale(1); }
+/* ...except while a save is playing, when the arrow glyph is the one showing whatever the row
+   says, because the row does not say "saved" until the spin has finished. */
+#layout-save-btn.saving svg:nth-child(1),
+#layout-save-btn.saving svg:nth-child(3) {
+    display: none;
 }
 
-#layout-save-btn.just-saved > svg {
-    opacity: 1;
-    animation: layout-just-saved 0.45s ease-out;
+#layout-save-btn.saving svg:nth-child(2) {
+    display: revert;
 }
