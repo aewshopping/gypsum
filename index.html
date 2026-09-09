@@ -86,8 +86,9 @@
         <div class="color-dynamic" id="file-content-header" data-color="">
 
           <button id="save-btn" class="svg-wrapper-style" data-action="save-file-copy" data-tip="save file | Ctrl+S">
-            <svg viewBox="5 5 50 50"><use href="#icon-save"></use></svg>
-            <svg viewBox="5 5 50 50"><use href="#icon-save-done"></use></svg>
+            <!-- 0 0, not the symbol's own 5 5 50 50: a <use> is placed at the origin of THIS box, so repeating a viewBox that starts at 5 5 would offset the glyph up and left by five units and clip it. The symbol's viewBox does the framing; this one only has to give it a square. -->
+            <svg viewBox="0 0 50 50"><use href="#icon-save"></use></svg>
+            <svg viewBox="0 0 50 50"><use href="#icon-save-done"></use></svg>
 
           </button>
 

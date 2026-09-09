@@ -10,6 +10,10 @@ import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-render/render-layout-list.
  * the button acts on the name, the same gesture the content modal's file-options button makes
  * over the history select.
  *
+ * The save glyphs' outer viewBox starts at 0 0 rather than repeating the symbol's own 5 5 50 50:
+ * a <use> is placed at the origin of the box it sits in, so a viewBox starting at 5 5 offsets the
+ * glyph up and left by five units and clips it. Only the aspect ratio has to match.
+ *
  * Save carries two glyphs and CSS shows one, off the `saved` class on the row — the same
  * arrangement #save-btn has inside the content modal. The class comes from state here so a
  * re-render keeps it, and is moved by hand in between by the two helpers below, because the
@@ -35,8 +39,8 @@ export function renderTableControls() {
                     <svg viewBox="0 0 50 50"><use href="#icon-columns"></use></svg>
                 </button>
                 <button type="button" id="layout-save-btn" class="svg-wrapper-style" data-action="layout-save" data-tip="save these columns to this layout">
-                    <svg viewBox="5 5 50 50"><use href="#icon-save"></use></svg>
-                    <svg viewBox="5 5 50 50"><use href="#icon-save-done"></use></svg>
+                    <svg viewBox="0 0 50 50"><use href="#icon-save"></use></svg>
+                    <svg viewBox="0 0 50 50"><use href="#icon-save-done"></use></svg>
                 </button>
             </div>`;
 }
