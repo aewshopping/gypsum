@@ -18,10 +18,14 @@ export const DEFAULT_LAYOUT_LABEL = 'default';
  * the rows do — it names a layout — and pressing anywhere along it acts, so the save icon on the
  * right is a label for the row rather than the only target.
  *
- * The name appears twice on a saved layout: as the button, and as an input hidden until the edit
- * icon is clicked. Rendering both is what lets the handler start an edit by unhiding one element
- * rather than rebuilding the row, which matters because "save as new" wants the new name in edit
- * mode the moment the list is painted.
+ * The name appears twice on a saved layout: a button to select the layout with, and a span that
+ * is edited in its place. They carry the same class and the same grid cell, so the swap is
+ * invisible — the word being renamed is the word that was on screen, in the same position and the
+ * same type.
+ *
+ * Two elements rather than one editable button, because a <button> activates on space: the
+ * character never reaches the text, and the button fires a click for each one. Rather than fight
+ * that, the button is a button and the editable twin is a plain span.
  *
  * @returns {string} HTML string for the list container's innerHTML.
  */
@@ -32,13 +36,13 @@ export function renderLayoutList() {
         const isActive = (name ?? null) === active;
         return `<div class="info-modal-row layout-row${isActive ? ' is-active' : ''}" data-layout="${name ?? ''}">` +
                  `<button type="button" class="layout-row-name" data-action="layout-select" ` +
-                   `data-layout="${name ?? ''}" aria-checked="${isActive}">${name ?? DEFAULT_LAYOUT_LABEL}</button>` +
+                   `data-layout="${name ?? ''}" aria-current="${isActive}">${name ?? DEFAULT_LAYOUT_LABEL}</button>` +
                  actions +
                `</div>`;
     };
 
     const actions = name =>
-        `<input type="text" class="layout-row-input" data-layout="${name}" value="${name}" hidden>` +
+        `<span class="layout-row-name layout-row-rename" data-layout="${name}" hidden>${name}</span>` +
         `<button type="button" class="info-modal-row-btn" data-action="layout-edit-name" ` +
           `data-layout="${name}" data-tip="rename this layout">` +
           `<svg class="info-modal-row-icon"><use href="#icon-edit"></use></svg></button>` +
@@ -75,7 +79,7 @@ export function renderLayoutPicker() {
 
     const item = name =>
         `<button type="button" class="app-menu-item" data-action="layout-select" ` +
-          `data-layout="${name ?? ''}" aria-checked="${(name ?? null) === active}">` +
+          `data-layout="${name ?? ''}" aria-current="${(name ?? null) === active}">` +
           `${name ?? DEFAULT_LAYOUT_LABEL}</button>`;
 
     return [item(null), ...names.map(item)].join('');

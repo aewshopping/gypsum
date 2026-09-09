@@ -400,14 +400,14 @@ layout in use, then the three things you can do to it.
 
 ```
 ┌────────────────────────────────────┐
-│  layout:  review   ✎    ▦    💾✓   │
+│  layout:  review   ▦    ✎    💾✓   │
 └────────────────────────────────────┘
    ▀▀▀▀▀ scrollbar ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
     file │ filename │ title │ …
 ```
 
-Left to right it says what the table is showing and then offers to change it: the name, edit
-(opens the layouts modal), the column picker, and save.
+Left to right it says what the table is showing and then offers to change it: the name, the column
+picker, edit (opens the layouts modal), and save.
 
 **The name is a button, and opens a picker.** A popover listing the layouts to switch between —
 `#column-menu`'s machinery, chrome and small-screen bottom sheet, all of it now shared as
@@ -516,10 +516,17 @@ button's two glyphs.
 **There is no name dialog.** A modal that exists only to collect one word, on top of the modal that
 listed the word, is a lot of furniture for a rename.
 
-- **The edit icon turns the row's name into an input**, focused and selected. Committing on blur or
-  Enter renames the layout; Escape abandons it. An empty name, an unchanged one or one already
-  taken is not a rename, and the row goes back to its button — the name the user can still see is a
-  clearer answer than a message would be.
+- **The edit icon makes the row's name editable in place**, focused and selected. The word under
+  the caret is the word that was on screen: same position, same type. Swapping it for an input
+  moved the text and changed its face, which read as the row being replaced rather than renamed.
+  Committing on blur or Enter renames the layout; Escape abandons it. An empty name, an unchanged
+  one or one already taken is not a rename, and the row simply goes back — the name the user can
+  still see is a clearer answer than a message would be.
+- **The name appears twice: a button to select with, an identical span to rename in.** A
+  `<button>` activates on space, so a contenteditable one both eats the character and fires a click
+  for every space typed — measured, not assumed. Giving the span a button's role instead would work
+  but means hand-rolling what a button does for free, so the button stays a button and editing gets
+  its own element. The two share `.layout-row-name` and a grid cell, so the swap cannot be seen.
 - **`save as new…` names the layout itself** — `layout-1`, or the first number after it that is
   free — and then hands that name straight over in edit mode.
 
@@ -529,7 +536,7 @@ The name is a JSON key, not a filename (§3.1), so it needs no sanitising.
 `delete-file` already uses. If the deleted layout was active, `active` falls back to `null` and the
 columns on screen stay exactly as they are.
 
-**The column picker names the layout it is editing** — `review layout columns`. Everything in that
+**The column picker names the layout it is editing** — `'review' layout columns`. Everything in that
 dialog lands on the layout in use, and reset goes back to it rather than to the app's defaults
 (§7.3), so which one that is has to be on screen while the changes are being made.
 

@@ -43,9 +43,14 @@ function paintList() {
 }
 
 /**
- * Swaps a row's name button for its input and puts the cursor in it. The input is already in the
- * markup, hidden, so starting an edit is showing one element rather than rebuilding the row —
- * which is what lets a freshly created layout be handed over for renaming the moment it appears.
+ * Makes a row's name editable in place and selects it.
+ *
+ * The button is hidden and its twin shown in the same grid cell. They share a class, so the word
+ * under the caret is the word that was on screen — same position, same type. An input in its place
+ * moved the text and changed its face, which read as the row being replaced rather than renamed.
+ *
+ * plaintext-only for the same reason the expanded table cell uses it: what comes out is a name,
+ * so pasted markup has no business going in.
  * @param {string} name
  * @returns {void}
  */
@@ -53,11 +58,18 @@ function startEditing(name) {
     const row = listElement().querySelector(`.layout-row[data-layout="${CSS.escape(name)}"]`);
     if (!row) return;
 
-    row.querySelector('.layout-row-name').hidden = true;
-    const input = row.querySelector('.layout-row-input');
-    input.hidden = false;
-    input.focus();
-    input.select();
+    row.querySelector('button.layout-row-name').hidden = true;
+    const el = row.querySelector('.layout-row-rename');
+    el.hidden = false;
+    el.setAttribute('contenteditable', 'plaintext-only');
+    el.focus();
+
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
     _editing = name;
 }
 
@@ -67,16 +79,17 @@ function startEditing(name) {
  * An empty name, an unchanged one, or one already taken is not a rename — the row simply returns
  * to its button. Saying so in the modal would need somewhere to say it, and the name the user can
  * still see is a clearer answer than a message would be.
- * @param {HTMLInputElement} input
+ * @param {HTMLElement} el - The name being edited.
  * @returns {Promise<void>}
  */
-async function commitEdit(input) {
+async function commitEdit(el) {
     const from = _editing;
     if (!from) return;
 
     // Cleared first: repainting the list below moves focus, which comes back through here.
     _editing = null;
-    const to = input.value.trim();
+    el.removeAttribute('contenteditable');
+    const to = el.textContent.trim();
 
     if (to && to !== from && !appState.tableLayouts.names.includes(to)) {
         await renameLayout(from, to);
@@ -185,25 +198,26 @@ export function handleLayoutEditName(evt, target) {
  * @returns {void}
  */
 export function handleLayoutNameBlur(evt) {
-    if (_editing && evt.target.matches?.('.layout-row-input')) commitEdit(evt.target);
+    if (_editing && evt.target.matches?.('.layout-row-rename')) commitEdit(evt.target);
 }
 
 /**
- * Enter commits a rename and Escape abandons it. Escape is stopped from travelling on, or the
- * dialog's own light dismiss would close the whole modal on the way out of a single field.
+ * Enter commits a rename and Escape abandons it. Selecting a layout by keyboard needs nothing
+ * here: the name is a real button, which answers Enter and Space itself.
  * @param {KeyboardEvent} evt
  * @returns {void}
  */
 export function handleLayoutNameKeydown(evt) {
-    if (!_editing || !evt.target.matches?.('.layout-row-input')) return;
+    if (!_editing || !evt.target.matches?.('.layout-row-rename')) return;
 
     if (evt.key === 'Enter') {
-        evt.preventDefault();
-        evt.target.blur();   // reaches commitEdit through the blur handler above
+        evt.preventDefault();   // a newline has no place in a name
+        evt.target.blur();      // reaches commitEdit through the blur handler above
     } else if (evt.key === 'Escape') {
         evt.preventDefault();
-        evt.stopPropagation();
+        evt.stopPropagation();  // or the dialog's light dismiss closes the whole modal
         _editing = null;
+        evt.target.removeAttribute('contenteditable');
         paintList();
     }
 }

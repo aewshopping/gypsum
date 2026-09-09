@@ -14,6 +14,9 @@
    which is what .info-modal-row already arranges. The defaults row has no icons, and needs no
    rule of its own — an absent child takes no space. */
 
+/* Worn by both the button that selects a layout and the span that renames it, so the two occupy
+   the same cell at the same size in the same type and the swap between them cannot be seen. The
+   button needs to be told most of this; the span inherits it anyway. */
 .layout-row-name {
     grid-column: 1;
     text-align: left;
@@ -27,6 +30,15 @@
     &:focus-visible {
         outline: 2px solid var(--colour-contr);
     }
+}
+
+/* The ring is an outline rather than a border: it is drawn outside the box and takes no space, so
+   the word does not shift when it appears. */
+.layout-row-rename[contenteditable] {
+    cursor: text;
+    outline: 2px solid var(--colour-contr);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 /* One grid column, so every row is a grid item and stretches to it — the save-as row included,
@@ -69,7 +81,7 @@
     opacity: 0;
 }
 
-.layout-row-name[aria-checked="true"]::before {
+.layout-row-name[aria-current="true"]::before {
     opacity: 0.6;   /* the resting weight every icon glyph sits at — see button-base.css */
 }
 
@@ -109,20 +121,6 @@
     &:hover .info-modal-row-btn {
         opacity: 0.9;
     }
-}
-
-/* Takes the name button's place while a rename is in flight, sized to match so the row does not
-   change height as it swaps. */
-.layout-row-input {
-    grid-column: 1;
-    min-width: 0;
-    font: inherit;
-    font-family: var(--fontfam-app-input);
-    padding: 3px 6px;
-    border: 1.5px solid var(--colour-contr);
-    border-radius: 4px;
-    background-color: var(--colour-neutral);
-    color: var(--colour-contr);
 }
 
 /* --- the control row --------------------------------------------------------------------- */
@@ -194,7 +192,7 @@
     opacity: 0;
 }
 
-#layout-picker .app-menu-item[aria-checked="true"]::before {
+#layout-picker .app-menu-item[aria-current="true"]::before {
     opacity: 0.6;
 }
 

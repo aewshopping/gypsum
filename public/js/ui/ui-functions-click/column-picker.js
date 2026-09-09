@@ -54,7 +54,7 @@ function applyVisibilityFloor() {
  */
 export function handleOpenColumnPicker() {
     document.getElementById('column-picker-title').textContent =
-        `${appState.tableLayouts.active ?? DEFAULT_LAYOUT_LABEL} layout columns`;
+        `'${appState.tableLayouts.active ?? DEFAULT_LAYOUT_LABEL}' layout columns`;
     paintList();
     dialog.showModal();
 }

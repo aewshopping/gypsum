@@ -6,8 +6,8 @@ import { spinSaveArrow, SAVE_SPIN_MS } from '../save-spin.js';
  * Renders the table's control row: the layout in use, and the three things you can do to it.
  *
  * Reading left to right it says what the table is showing and then offers to change it — the name,
- * which opens a list of the layouts to switch between; edit, which opens the layouts modal; the
- * column picker; and save.
+ * which opens a list of the layouts to switch between; the column picker; edit, which opens the
+ * layouts modal; and save.
  *
  * The name is a button in the app's understated fill rather than a bordered one: it is a place to
  * look before it is a thing to press, and it sits between a label and two icon buttons that would
@@ -35,11 +35,11 @@ export function renderTableControls() {
             <div class="table-controls${isDirty ? '' : ' saved'}">
                 <span class="layout-control-label">layout:</span>
                 <button type="button" id="layout-name" class="layout-name" popovertarget="layout-picker" data-action="layout-picker-open">${active ?? DEFAULT_LAYOUT_LABEL}</button>
-                <button type="button" id="layout-edit-btn" class="svg-wrapper-style" data-action="open-layouts-modal" data-tip="add new / edit table layouts">
-                    <svg viewBox="0 0 82.2 79.5"><use href="#icon-edit"></use></svg>
-                </button>
                 <button type="button" class="svg-wrapper-style" data-action="open-column-picker" data-tip="show and hide columns">
                     <svg viewBox="0 0 50 50"><use href="#icon-columns"></use></svg>
+                </button>
+                <button type="button" id="layout-edit-btn" class="svg-wrapper-style" data-action="open-layouts-modal" data-tip="add new / edit table layouts">
+                    <svg viewBox="0 0 82.2 79.5"><use href="#icon-edit"></use></svg>
                 </button>
                 <button type="button" id="layout-save-btn" class="svg-wrapper-style" data-action="layout-save" data-tip="save these columns to this layout">
                     <svg viewBox="0 0 50 50"><use href="#icon-save-pending"></use></svg>

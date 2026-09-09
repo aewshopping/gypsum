@@ -28,10 +28,10 @@ async function openLayouts(page) {
 
 /** Renames the row currently in edit mode by typing over it and committing with Enter. */
 async function typeName(page, name) {
-  const input = page.locator('#layout-list .layout-row-input:not([hidden])');
-  await expect(input).toBeFocused();
-  await input.fill(name);
-  await input.press('Enter');
+  const el = page.locator('#layout-list .layout-row-rename[contenteditable]');
+  await expect(el).toBeFocused();
+  await page.keyboard.type(name);   // the text is selected, so typing replaces it
+  await page.keyboard.press('Enter');
 }
 
 async function openPicker(page) {
@@ -119,10 +119,10 @@ test('unsaved column changes are discarded when the layout is reloaded', async (
 
   // Switching away and back re-reads the layout, which never saw the change.
   await openLayouts(page);
-  await modal(page).locator('.layout-row-name[data-layout=""]').click();
+  await modal(page).locator('button.layout-row-name[data-layout=""]').click();
   await expect(layoutName(page)).toContainText('default');
 
-  await modal(page).locator('.layout-row-name[data-layout="review"]').click();
+  await modal(page).locator('button.layout-row-name[data-layout="review"]').click();
   await expect(layoutName(page)).toContainText('review');
   await page.locator('[data-action="close-layouts-modal"]').click();
 
@@ -224,10 +224,10 @@ test('the menu switches layouts, and app defaults restores the schema order', as
   // Both entries are listed, with the active one marked. The save-as-new row is not one of them.
   await expect(modal(page).locator('[data-action="layout-select"]')).toHaveCount(2);
   await expect(modal(page).locator('.layout-row-new')).toHaveCount(1);
-  await expect(modal(page).locator('.layout-row-name[data-layout="review"]'))
-    .toHaveAttribute('aria-checked', 'true');
+  await expect(modal(page).locator('button.layout-row-name[data-layout="review"]'))
+    .toHaveAttribute('aria-current', 'true');
 
-  await modal(page).locator('.layout-row-name[data-layout=""]').click();
+  await modal(page).locator('button.layout-row-name[data-layout=""]').click();
 
   await expect(layoutName(page)).toContainText('default');
   await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(1);
@@ -248,7 +248,7 @@ test('rename and delete act on the active layout', async ({ page }) => {
   await modal(page).locator('[data-action="layout-edit-name"][data-layout="draft"]').click();
   await typeName(page, 'review');
 
-  await expect(modal(page).locator('.layout-row-name[data-layout="review"]')).toBeVisible();
+  await expect(modal(page).locator('button.layout-row-name[data-layout="review"]')).toBeVisible();
   expect(Object.keys((await layoutsFile(page)).layouts)).toEqual(['review']);
 
   // delete, which asks first and then hands back to the app defaults
@@ -289,9 +289,9 @@ test('save on the defaults makes a layout and hands over its name', async ({ pag
   await saveBtn(page).click();
 
   await expect(modal(page)).toBeVisible();
-  const input = page.locator('#layout-list .layout-row-input:not([hidden])');
-  await expect(input).toBeFocused();
-  await expect(input).toHaveValue('layout-1');
+  const el = page.locator('#layout-list .layout-row-rename[contenteditable]');
+  await expect(el).toBeFocused();
+  await expect(el).toHaveText('layout-1');
 
   // The columns as they stood are what got saved.
   const doc = await layoutsFile(page);
@@ -300,7 +300,7 @@ test('save on the defaults makes a layout and hands over its name', async ({ pag
 
   // Typing over the offered name renames it in place.
   await typeName(page, 'review');
-  await expect(modal(page).locator('.layout-row-name[data-layout="review"]')).toBeVisible();
+  await expect(modal(page).locator('button.layout-row-name[data-layout="review"]')).toBeVisible();
   expect(Object.keys((await layoutsFile(page)).layouts)).toEqual(['review']);
 });
 
@@ -311,7 +311,7 @@ test('the offered name skips ones already taken', async ({ page }) => {
   await openLayouts(page);
   await modal(page).locator('[data-action="layout-save-as"]').click();
 
-  await expect(page.locator('#layout-list .layout-row-input:not([hidden])')).toHaveValue('layout-2');
+  await expect(page.locator('#layout-list .layout-row-rename[contenteditable]')).toHaveText('layout-2');
 });
 
 test('renaming to a name already taken leaves the layout alone', async ({ page }) => {
@@ -324,7 +324,7 @@ test('renaming to a name already taken leaves the layout alone', async ({ page }
   await typeName(page, 'wide');
 
   // The row goes back to what it was; neither layout is replaced.
-  await expect(modal(page).locator('.layout-row-name[data-layout="review"]')).toBeVisible();
+  await expect(modal(page).locator('button.layout-row-name[data-layout="review"]')).toBeVisible();
   expect(Object.keys((await layoutsFile(page)).layouts).sort()).toEqual(['review', 'wide']);
 });
 
@@ -334,12 +334,12 @@ test('Escape abandons a rename without closing the modal', async ({ page }) => {
 
   await openLayouts(page);
   await modal(page).locator('[data-action="layout-edit-name"][data-layout="review"]').click();
-  const input = page.locator('#layout-list .layout-row-input:not([hidden])');
-  await input.fill('something else');
-  await input.press('Escape');
+  const el = page.locator('#layout-list .layout-row-rename[contenteditable]');
+  await page.keyboard.type('something else');
+  await el.press('Escape');
 
   await expect(modal(page)).toBeVisible();
-  await expect(modal(page).locator('.layout-row-name[data-layout="review"]')).toBeVisible();
+  await expect(modal(page).locator('button.layout-row-name[data-layout="review"]')).toBeVisible();
   expect(Object.keys((await layoutsFile(page)).layouts)).toEqual(['review']);
 });
 
@@ -399,11 +399,11 @@ test('the layout in use is marked in the list, and the save-as row is not one of
 
   const activeRow = modal(page).locator('.layout-row.is-active');
   await expect(activeRow).toHaveCount(1);
-  await expect(activeRow.locator('.layout-row-name')).toHaveAttribute('data-layout', 'review');
+  await expect(activeRow.locator('button.layout-row-name')).toHaveAttribute('data-layout', 'review');
 
   // The defaults row is listed but not marked, and carries no arrow.
-  await expect(modal(page).locator('.layout-row-name[data-layout=""]'))
-    .toHaveAttribute('aria-checked', 'false');
+  await expect(modal(page).locator('button.layout-row-name[data-layout=""]'))
+    .toHaveAttribute('aria-current', 'false');
 
   // The save-as row is a single control end to end rather than a name plus a button.
   const newRow = modal(page).locator('.layout-row-new');
@@ -423,8 +423,8 @@ test('the name button opens a picker that switches layouts', async ({ page }) =>
 
   // Just the names, filled on open, with the one in use marked.
   await expect(picker.locator('[data-action="layout-select"]')).toHaveCount(2);
-  await expect(picker.locator('[data-layout="review"]')).toHaveAttribute('aria-checked', 'true');
-  await expect(picker.locator('[data-layout=""]')).toHaveAttribute('aria-checked', 'false');
+  await expect(picker.locator('[data-layout="review"]')).toHaveAttribute('aria-current', 'true');
+  await expect(picker.locator('[data-layout=""]')).toHaveAttribute('aria-current', 'false');
 
   // Picking closes it — a menu is done once something is picked.
   await picker.locator('[data-layout=""]').click();
@@ -442,10 +442,10 @@ test('choosing a layout in the modal leaves the modal open', async ({ page }) =>
   await saveAsNew(page, 'review');
   await openLayouts(page);
 
-  await modal(page).locator('.layout-row-name[data-layout=""]').click();
+  await modal(page).locator('button.layout-row-name[data-layout=""]').click();
 
   await expect(modal(page)).toBeVisible();
-  await expect(modal(page).locator('.layout-row.is-active .layout-row-name'))
+  await expect(modal(page).locator('.layout-row.is-active button.layout-row-name'))
     .toHaveAttribute('data-layout', '');
   await expect(layoutName(page)).toContainText('default');
 });
@@ -488,12 +488,12 @@ test('the columns modal names the layout it is editing', async ({ page }) => {
   await openTable(page);
 
   await openPicker(page);
-  await expect(page.locator('#column-picker-title')).toHaveText('default layout columns');
+  await expect(page.locator('#column-picker-title')).toHaveText("'default' layout columns");
   await page.keyboard.press('Escape');
 
   await saveAsNew(page, 'review');
   await openPicker(page);
-  await expect(page.locator('#column-picker-title')).toHaveText('review layout columns');
+  await expect(page.locator('#column-picker-title')).toHaveText("'review' layout columns");
 });
 
 test('the save glyph keeps its muted tone while the spin plays', async ({ page }) => {
@@ -543,4 +543,59 @@ test('the layout picker becomes a sheet across the bottom on a small screen', as
   await expect.poll(() => box('#column-menu')).toMatchObject({ below: 0, left: 0 });
 
   expect(picker).toEqual(await box('#column-menu'));
+});
+
+test('the name is edited where it sits, without moving or changing face', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await openLayouts(page);
+
+  const look = sel => modal(page).locator(sel).evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return { x: Math.round(r.x), y: Math.round(r.y), font: cs.font, height: Math.round(r.height) };
+  });
+
+  const before = await look('button.layout-row-name[data-layout="review"]');
+  await modal(page).locator('[data-action="layout-edit-name"][data-layout="review"]').click();
+
+  const editing = modal(page).locator('.layout-row-rename[data-layout="review"]');
+  await expect(editing).toHaveAttribute('contenteditable', 'plaintext-only');
+
+  // Same box, same type: the twin stands exactly where the button stood, which is the whole point
+  // of it being a twin rather than an input.
+  expect(await look('.layout-row-rename[data-layout="review"]')).toEqual(before);
+});
+
+test('a layout name can have spaces in it', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await openLayouts(page);
+
+  // A contenteditable <button> swallows the space as its own activation — and fires a click with
+  // it — which is why renaming happens in a plain span rather than in the button itself.
+  await modal(page).locator('[data-action="layout-edit-name"][data-layout="review"]').click();
+  await typeName(page, 'end of week');
+
+  await expect(modal(page).locator('button.layout-row-name[data-layout="end of week"]')).toBeVisible();
+  expect(Object.keys((await layoutsFile(page)).layouts)).toEqual(['end of week']);
+  await expect(layoutName(page)).toContainText('end of week');
+});
+
+test('a name is a real button, so the keyboard reaches it for free', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await openLayouts(page);
+
+  await expect(modal(page).locator('button.layout-row-name[data-layout=""]'))
+    .toHaveJSProperty('tagName', 'BUTTON');
+
+  // Enter on the defaults row switches to it, as clicking it would. Space too, which is the key a
+  // contenteditable button would have eaten.
+  await modal(page).locator('button.layout-row-name[data-layout=""]').focus();
+  await page.keyboard.press('Enter');
+
+  await expect(layoutName(page)).toContainText('default');
+  await expect(modal(page).locator('.layout-row.is-active button.layout-row-name'))
+    .toHaveAttribute('data-layout', '');
 });
