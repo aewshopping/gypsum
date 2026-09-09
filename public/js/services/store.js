@@ -93,7 +93,7 @@ export const FILE_PROPERTIES = new Map([
   ['date', { type: 'date', column_width: 150, display_order: 5 }],
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
-  ['color', { type: 'string', column_width: 0, display_order: 11 }],
+  ['color', { type: 'string', column_width: 150, display_order: 11 }],
   ['people', { type: 'array', search_type: 'string', column_width: 250, display_order: 9 }],
   ['internalLink', {label: 'links', type: 'array', search_type: 'string', column_width: 250, display_order: 10 }],
   ['filepath', { type: 'string', column_width: 300, display_order: 12 }],
@@ -178,7 +178,8 @@ export function defaultColumnEntry(name) {
   const schema = FILE_PROPERTIES.get(name);
   return {
     label: schema?.label ?? name,
-    // ?? rather than ||, so the colour column's deliberate 0 is kept rather than replaced.
+    // ?? rather than ||: a width of 0 in the schema would be a mistake, but silently swapping it
+    // for the default is how the colour column stayed invisible for as long as it did.
     width: schema?.column_width ?? DEFAULT_COLUMN_WIDTH,
     visible: !TABLE_VIEW_COLUMNS.hidden_by_default.includes(name),
   };

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('./helpers');
+const { loadFolder, setupMockDirectoryForColorExisting } = require('./helpers');
 
 // One note carries a front matter key the app knows nothing about. The picker's whole point is
 // that its rows come from the loaded folder, so a property like this has to appear.
@@ -121,4 +121,29 @@ test('Escape closes the picker', async ({ page }) => {
 
   await page.keyboard.press('Escape');
   await expect(dialog(page)).not.toBeVisible();
+});
+
+test('a column switched on gets a width it can be seen at', async ({ page }) => {
+  // The colour column shipped with column_width: 0 in FILE_PROPERTIES, so switching it on added a
+  // header and a cell on a 0px grid track: present in the DOM, invisible on screen, and below the
+  // floor a resize drag could have rescued it from.
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await setupMockDirectoryForColorExisting(page, 'coral');
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  await page.click('[data-action="open-column-picker"]');
+  await rows(page).filter({ hasText: 'color' }).locator('input.toggle').check();
+  await page.keyboard.press('Escape');
+
+  const header = page.locator('.note-table-cell-header[data-property="color"]');
+  await expect(header).toBeVisible();
+  const width = await header.evaluate(el => Math.round(el.getBoundingClientRect().width));
+  expect(width).toBeGreaterThanOrEqual(48);   // MIN_COLUMN_WIDTH, the floor a drag stops at
+
+  // and the value is actually readable in the column
+  await expect(page.locator('.list-table .note-table-cell[data-prop="color"]').first())
+    .toHaveText('coral');
 });
