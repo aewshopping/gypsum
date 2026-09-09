@@ -33,16 +33,63 @@
     }
 }
 
-/* Marks the layout in use. A fixed-width gutter rather than a tick inside the label, so the names
-   line up whether or not they are the active one. */
-.layout-row-name[aria-checked="true"]::before {
-    content: "✓ ";
-}
-
-.layout-row-name[aria-checked="false"]::before {
-    content: "";
+/* Marks the layout in use, with the same glyph the select inputs use for their picker icon
+   (modal-history-select.css) — pointing right at the layout it belongs to rather than down at a
+   list it would open. The gutter is a fixed width whether or not the arrow is in it, so the names
+   line up down the list. */
+.layout-row-name::before {
+    content: "\276f";   /* U+276F ❯, the select picker icon */
     display: inline-block;
     width: 1.1em;
+    transform: translateY(5%);   /* because the character is not centred in its box */
+    opacity: 0;
+}
+
+.layout-row-name[aria-checked="true"]::before {
+    opacity: 0.6;   /* the resting weight every icon glyph sits at — see button-base.css */
+}
+
+/* Filled as well as arrowed. The list is how you switch layouts, so which one you are on has to
+   survive a glance rather than needing to be read. Negative margins so the fill reaches the
+   dialog's padding rather than stopping short of it. */
+.layout-row.is-active {
+    background-color: color-mix(in srgb, var(--colour-contr) 12%, transparent);
+    border-radius: 5px;
+    margin-inline: -8px;
+    padding-inline: 8px;
+}
+
+/* The row that makes a new layout. A row rather than a button above the list, because it names a
+   layout like the others do — but it is one target end to end, so the icon inside is drawn and
+   not pressed. */
+.layout-row-new {
+    width: 100%;
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--colour-contr);
+    cursor: pointer;
+    margin-top: 4px;
+    border-top: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
+
+    &:hover {
+        background-color: var(--colour-neutral-alt);
+        border-radius: 5px;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+        border-radius: 5px;
+    }
+
+    /* Follows the row's hover rather than having one of its own. */
+    & .info-modal-row-btn {
+        opacity: 0.45;
+    }
+
+    &:hover .info-modal-row-btn {
+        opacity: 0.9;
+    }
 }
 
 /* Takes the name button's place while a rename is in flight, sized to match so the row does not
@@ -57,4 +104,76 @@
     border-radius: 4px;
     background-color: var(--colour-neutral);
     color: var(--colour-contr);
+}
+
+/* --- the control row --------------------------------------------------------------------- */
+
+/* Shrinks to its contents rather than ruling the width of the table, and is drawn as one thing:
+   a faint plate holding the layout and what can be done to it. The border is mixed with
+   transparent rather than being a lighter colour of its own, so it stays a whisper of whatever
+   the theme's contrast colour is. */
+.table-controls {
+    width: fit-content;
+    padding-inline: 8px;
+    border: 2px solid color-mix(in srgb, var(--colour-contr) 25%, transparent);
+    border-radius: 6px;
+}
+
+.layout-name {
+    font-family: var(--fontfam-app-input);
+    font-size: 0.89375em;
+    padding: 3px 6px;
+    border-radius: 4px;
+
+    /* Room on the right for the edit button to slide over, revealed only while it is hovered.
+       Transitioned with the colours so the two read as one movement. */
+    padding-right: 6px;
+    transition: padding-right 0.3s, color 0.4s, background-color 0.4s;
+}
+
+/* The same gesture #file-options-btn makes over the history select (modal-history-select.css):
+   the button inverts to a solid plate and slides left onto what it edits, which inverts with it.
+   Here that is the layout's name, so it is unmistakable which name the button is about to open. */
+#layout-edit-btn {
+    transition: margin 0.3s, color 0.4s, background-color 0.4s;
+    border-radius: 4px;
+}
+
+body:has(#layout-edit-btn:hover) :is(#layout-name, #layout-edit-btn) {
+    background-color: var(--colour-contr);
+    color: var(--colour-neutral);
+}
+
+body:has(#layout-edit-btn:hover) #layout-name {
+    padding-right: 26px;   /* extends under the button that has slid onto it */
+}
+
+body:has(#layout-edit-btn:hover) #layout-edit-btn {
+    margin-left: -24px;
+}
+
+/* The glyph is held at full strength while inverted: faded dark-on-light is legible, faded
+   light-on-dark is not. */
+body:has(#layout-edit-btn:hover) #layout-edit-btn > svg {
+    opacity: 1;
+}
+
+/* Two glyphs, one shown: a disk with an arrow while the columns differ from the saved layout, one
+   with a tick once they do not. Same construction as #save-btn in the content modal. */
+.table-controls.saved #layout-save-btn svg:nth-child(1),
+.table-controls:not(.saved) #layout-save-btn svg:nth-child(2) {
+    display: none;
+}
+
+/* A save that changes nothing on screen needs to be visible some other way. One pulse, and the
+   tick it settles into is the lasting answer. */
+@keyframes layout-just-saved {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+}
+
+#layout-save-btn.just-saved > svg {
+    opacity: 1;
+    animation: layout-just-saved 0.45s ease-out;
 }

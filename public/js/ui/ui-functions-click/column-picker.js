@@ -3,6 +3,7 @@
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { renderColumnPickerList } from '../ui-functions-table/column-picker-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
 
 const dialog = document.getElementById('modal-columns');
 
@@ -128,5 +129,6 @@ export function handleColumnPickerClose() {
     });
 
     listElement().innerHTML = '';
+    markLayoutDirty();
     renderFiles();
 }

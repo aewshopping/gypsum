@@ -29,6 +29,7 @@ import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/col
 import { applyColumnWidths } from './apply-column-widths.js';
 import { syncScrollbarWidth } from './table-scrollbar-sync.js';
 import { reparkColumnResizer } from './table-col-resize.js';
+import { markLayoutDirty } from './render-table-controls.js';
 
 /**
  * Measures what a column needs, leaving the tracks as it found them.
@@ -74,6 +75,7 @@ export function handleColumnAutoSize() {
     if (!width) return;
 
     TABLE_VIEW_COLUMNS.columnLayout.get(property).width = width;
+    markLayoutDirty();
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
 
     syncScrollbarWidth();   // the table is a different width now

@@ -103,6 +103,9 @@ function refreshState(doc) {
     appState.tableLayouts = {
         names: Object.keys(doc.layouts),
         active: (doc.active && doc.layouts[doc.active]) ? doc.active : null,
+        // Every path through here has just made the columns and the file agree: a load, a save, a
+        // rename, a delete, or a switch to another layout.
+        isDirty: false,
     };
 }
 

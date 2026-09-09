@@ -13,6 +13,7 @@
 import { appState } from '../../services/store.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { renderLayoutList } from '../ui-functions-render/render-layout-list.js';
+import { markLayoutSaved } from '../ui-functions-table/render-table-controls.js';
 import { saveLayout, renameLayout, deleteLayout, setActiveLayout, nextLayoutName }
     from '../../table-layouts/layout-file.js';
 import { showWarningModal } from './warning-modal.js';
@@ -122,6 +123,7 @@ async function createLayout() {
     const name = nextLayoutName(appState.tableLayouts.names);
     await saveLayout(name);
     renderFiles();
+    markLayoutSaved();
 
     paintList();
     if (!dialog().open) dialog().showModal();
@@ -140,6 +142,7 @@ export async function handleLayoutSave() {
     const { active } = appState.tableLayouts;
     if (active) {
         await saveLayout(active);
+        markLayoutSaved();
         return;
     }
     await createLayout();

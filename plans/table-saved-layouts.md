@@ -395,78 +395,113 @@ visible whatever the layout says.
 
 ## 7. The interface
 
-**A labelled name and a save button in the table's control row** — the row
-`render-table-controls.js` already renders, which exists only in table view and already holds the
-table's whole-table actions.
+**One control row above the table**, shrunk to its contents and drawn as a single plate: the
+layout in use, then the three things you can do to it.
 
 ```
-▦   layout: [ review ] [ save ]
-────────────────────────────────
-▀▀▀▀▀ scrollbar ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
- file │ filename │ title │ …
+┌────────────────────────────────────┐
+│  layout:  review   ✎    ▦    💾✓   │
+└────────────────────────────────────┘
+   ▀▀▀▀▀ scrollbar ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+    file │ filename │ title │ …
 ```
 
-Both are `.btn-base-style`, the app's ordinary button. An earlier version made the name bare text
-with a caret, on the grounds that it was reporting a state rather than offering an action; in
-practice it read as a status line and not as something to press. The word "layout:" sits outside
-the button so the button holds the name and nothing else.
+Left to right it says what the table is showing and then offers to change it: the name, edit
+(opens the layouts modal), the column picker, and save.
 
-**Save is never disabled.** On a saved layout it writes over that layout and says nothing. On the
-defaults there is no layout to write over, so it makes one — §7.2's naming, and the modal opens
-with the new name ready to edit. The label stays "save" in both states, because that is what the
-user asked for either way.
+**The name is a label, not a button.** Hovering the edit button inverts the two together — the
+button slides left onto the name, both go to a solid plate — which is what says the button acts on
+*that* name. It is the gesture `#file-options-btn` already makes over the history select
+(`modal-history-select.css`), built the same way: an `:has()` rule on body, a negative margin, and
+a transition shared between them.
 
-### 7.1 The modal
+**Save carries the state.** Two glyphs, one shown by CSS off a `saved` class on the row: a disk
+with an arrow while the columns differ from the saved layout, one with a tick once they do not —
+the same construction `#save-btn` uses inside the content modal, whose two glyphs are now shared
+symbols rather than inline SVG. A save also plays one short pulse, because a save that changes
+nothing on screen would otherwise give no sign it happened.
 
-Clicking the name opens a dialog built from the settings modal: a title, a row of whole-list
-actions, then one row per layout, filled on open since layouts come and go.
+### 7.1 Dirty is one-way
+
+`appState.tableLayouts.isDirty` is set by anything that changes `columnLayout` — the picker
+closing, a resize drag, an auto-size — and cleared only by a save or a load.
+
+Nothing works out whether a change put the columns back the way they were. That would mean holding
+a copy of the layout to compare against, which is the machinery autosave was dropped to avoid
+(§5), and the cost of being wrong is a save that was not strictly needed. The flag is deliberately
+approximate in the safe direction.
+
+Two of the three change points do not re-render (§2.1), so the class cannot come from the renderer
+alone. `markLayoutDirty()` and `markLayoutSaved()` set the state *and* move the class on the live
+element, the same arrangement `markSortedColumn()` has for the sort marker; the renderer emits the
+class from state so a re-render keeps it.
+
+**A dismissed picker counts as a change.** `handleColumnPickerClose` rebuilds the Map whether or
+not anything moved, and nothing compares before with after, so opening the picker and pressing
+Escape leaves the layout marked dirty. That is the price of the flag being this simple, and it
+costs a save that was not needed rather than a change that was lost.
+
+### 7.2 The modal
+
+The edit button opens a dialog built from the settings modal: a title, then one row per layout,
+filled on open since layouts come and go.
 
 ```
 ┌─────────────────────────────────────┐
 │ Table layouts                     ✕ │
-│ [ save layout ] [ save as new… ]    │
 │                                     │
-│   default                           │
-│   review                    ✎   🗑   │
-│ ✓ wide                      ✎   🗑   │
+│    default                          │
+│    review                   ✎   🗑   │
+│ ❯  wide                     ✎   🗑   │  ← filled, and arrowed
+│ ─────────────────────────────────── │
+│    save as new…                 💾   │
 └─────────────────────────────────────┘
 ```
 
 - **A popover was tried first and did not work.** The menu wanted to be a list with per-row
-  actions, which is a dialog's shape rather than a menu's, and it had grown a separator and two
-  disabled items by the time that was obvious.
-- **`save layout` and `save as new…` are at the top**, as whole-list actions, the same
-  `.info-modal-btn-row` the column picker's show all / hide all / reset use.
-- **The row actions are per row**, so rename and delete no longer need to exist at the bottom
-  operating on whatever happens to be active. Both are `.info-modal-row-btn` icons, the treatment
-  the history modal's row actions already use.
-- **The defaults row has no icons.** There is nothing behind it to rename or remove, and their
-  absence says so more plainly than a disabled pair on every list would.
-- **Clicking a row's name switches to that layout** and closes the modal.
+  actions, which is a dialog's shape rather than a menu's.
+- **The layout in use is marked twice**: an arrow in the gutter and a tinted row. The list is also
+  how you switch, so which one you are on has to survive a glance rather than needing to be read.
+  The arrow is the glyph the select inputs use for their picker icon, pointing right at the layout
+  it belongs to rather than down at a list it would open. The tint is a mix of the contrast colour
+  rather than `--colour-neutral-alt`, which a hovered row already uses.
+- **The row actions are per row**, so nothing at the bottom operates on whatever happens to be
+  active. Both are `.info-modal-row-btn` icons, the treatment the history modal's rows use.
+- **The defaults row has no icons.** There is nothing behind it to rename or remove.
+- **`save as new…` is the last row**, not a button above the list: it names a layout like the rows
+  above it do. The whole row is one control, so the save icon on it is a label rather than the only
+  target.
+- **There is no `save layout` button here.** It would be a second copy of the control row's save,
+  one dialog further from the table it acts on.
 
-Two icons are promoted to the shared sprite for this, each now having a second user: the trash
-from the history modal's row actions (`#icon-history-delete` → `#icon-delete`), and the pencil
-from the content modal's file-options button, which was inline SVG and becomes `#icon-edit`.
+Three icons are promoted to the shared sprite for this, each now having a second user: the trash
+from the history rows, the pencil from the content modal's file-options button, and the save
+button's two glyphs.
 
-### 7.2 Naming, in the row
+### 7.2.1 Naming, in the row
 
-**There is no name dialog.** A modal that exists only to collect one word, on top of the modal
-that listed the word, is a lot of furniture for a rename.
+**There is no name dialog.** A modal that exists only to collect one word, on top of the modal that
+listed the word, is a lot of furniture for a rename.
 
-- **The edit icon turns the row's name into an input**, focused and selected. Committing on blur
-  or Enter renames the layout; Escape abandons it. An empty name, an unchanged one or one already
-  taken is not a rename, and the row simply goes back to its button — the name the user can still
-  see is a clearer answer than a message would be.
+- **The edit icon turns the row's name into an input**, focused and selected. Committing on blur or
+  Enter renames the layout; Escape abandons it. An empty name, an unchanged one or one already
+  taken is not a rename, and the row goes back to its button — the name the user can still see is a
+  clearer answer than a message would be.
 - **`save as new…` names the layout itself** — `layout-1`, or the first number after it that is
-  free — and then hands that name straight over in edit mode. The user types over an offered name
-  rather than inventing one in a dialog before they have seen anything.
+  free — and then hands that name straight over in edit mode.
 
 The name is a JSON key, not a filename (§3.1), so it needs no sanitising.
 
 **Delete goes through the existing warning modal** (`warning-proceed` / `warning-cancel`), the one
 `delete-file` already uses. If the deleted layout was active, `active` falls back to `null` and the
-columns on screen stay exactly as they are — deleting the record of an arrangement does not disturb
-the arrangement.
+columns on screen stay exactly as they are.
+
+### 7.2.2 No view transition while a dialog is open
+
+`renderFiles()` runs its card transition only when no dialog is on screen: `::backdrop` is not
+captured by the View Transitions API, so it vanishes behind the overlay whenever a transition fires
+with a dialog open. That check listed the content and settings modals; the layouts and columns
+modals are now on it too, both of them being dialogs that re-render the table while staying open.
 
 ### 7.3 "reset columns" and the defaults are different things
 

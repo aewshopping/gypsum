@@ -74,7 +74,11 @@ export const appState = {
   // `active` is the name of the layout in use, or null for the app's built-in defaults — a state
   // the user can choose, not the absence of a choice. Lives here rather than being read off the
   // disk on demand because render-table-controls.js is a renderer and has to stay synchronous.
-  tableLayouts: { names: [], active: null },
+  //
+  // `isDirty` is one-way: anything that changes the column layout sets it, and only a save or a
+  // load clears it. It drives which glyph the save button shows, and nothing else depends on it
+  // being exact — a layout saved when it did not need to be costs nothing.
+  tableLayouts: { names: [], active: null, isDirty: false },
 }
 
 /**

@@ -13,14 +13,16 @@ async function openTable(page) {
 /** The layouts file as the app has written it, parsed. */
 const layoutsFile = page => page.evaluate(() => JSON.parse(window.__layoutsFileContent || '{}'));
 
-const layoutName = page => page.locator('.table-controls [data-action="open-layouts-modal"]');
-const saveBtn = page => page.locator('.table-controls [data-action="layout-save"]');
+const layoutName = page => page.locator('#layout-name');
+const editBtn = page => page.locator('#layout-edit-btn');
+const saveBtn = page => page.locator('#layout-save-btn');
+const isDirty = page => page.locator('.table-controls').evaluate(el => !el.classList.contains('saved'));
 const modal = page => page.locator('#modal-layouts');
 const layoutRows = page => page.locator('#layout-list .layout-row');
 const pickerRows = page => page.locator('#column-picker-list .info-modal-row');
 
 async function openLayouts(page) {
-  await layoutName(page).click();
+  await editBtn(page).click();
   await expect(modal(page)).toBeVisible();
 }
 
@@ -219,8 +221,9 @@ test('the menu switches layouts, and app defaults restores the schema order', as
 
   await openLayouts(page);
 
-  // Both entries are listed, with the active one marked.
-  await expect(layoutRows(page)).toHaveCount(2);
+  // Both entries are listed, with the active one marked. The save-as-new row is not one of them.
+  await expect(modal(page).locator('[data-action="layout-select"]')).toHaveCount(2);
+  await expect(modal(page).locator('.layout-row-new')).toHaveCount(1);
   await expect(modal(page).locator('.layout-row-name[data-layout="review"]'))
     .toHaveAttribute('aria-checked', 'true');
 
@@ -282,8 +285,7 @@ test('save on the defaults makes a layout and hands over its name', async ({ pag
   await hideTags(page);
 
   // There is no layout to save over, so save creates one, opens the modal and puts the cursor in
-  // the new name. The button still says "save".
-  await expect(saveBtn(page)).toHaveText('save');
+  // the new name.
   await saveBtn(page).click();
 
   await expect(modal(page)).toBeVisible();
@@ -339,4 +341,66 @@ test('Escape abandons a rename without closing the modal', async ({ page }) => {
   await expect(modal(page)).toBeVisible();
   await expect(modal(page).locator('.layout-row-name[data-layout="review"]')).toBeVisible();
   expect(Object.keys((await layoutsFile(page)).layouts)).toEqual(['review']);
+});
+
+test('the save icon loses its tick when the columns change, and gets it back on save', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+
+  // Freshly saved: the columns and the layout agree, so the tick glyph is the one showing.
+  expect(await isDirty(page)).toBe(false);
+  await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeVisible();
+  await expect(saveBtn(page).locator('use[href="#icon-save"]')).toBeHidden();
+
+  await hideTags(page);
+
+  expect(await isDirty(page)).toBe(true);
+  await expect(saveBtn(page).locator('use[href="#icon-save"]')).toBeVisible();
+  await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeHidden();
+
+  await saveBtn(page).click();
+  await expect.poll(() => isDirty(page)).toBe(false);
+  await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeVisible();
+});
+
+test('a resize dirties the layout without waiting for a re-render', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  expect(await isDirty(page)).toBe(false);
+
+  // Neither the drag nor the auto-size re-renders, so the marker has to move by hand.
+  const header = page.locator('.note-table-cell-header[data-property="title"]');
+  await header.click();
+  await header.click();
+  await page.click('[data-action="column-resize"]');
+  const bar = page.locator('#column-resizer');
+  await expect(bar).toBeVisible();
+
+  const box = await bar.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2);
+  await page.mouse.up();
+
+  expect(await isDirty(page)).toBe(true);
+});
+
+test('the layout in use is marked in the list, and the save-as row is not one of them',
+  async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await openLayouts(page);
+
+  const activeRow = modal(page).locator('.layout-row.is-active');
+  await expect(activeRow).toHaveCount(1);
+  await expect(activeRow.locator('.layout-row-name')).toHaveAttribute('data-layout', 'review');
+
+  // The defaults row is listed but not marked, and carries no arrow.
+  await expect(modal(page).locator('.layout-row-name[data-layout=""]'))
+    .toHaveAttribute('aria-checked', 'false');
+
+  // The save-as row is a single control end to end rather than a name plus a button.
+  const newRow = modal(page).locator('.layout-row-new');
+  await expect(newRow).toHaveAttribute('data-action', 'layout-save-as');
+  await expect(newRow.locator('[data-action]')).toHaveCount(0);
 });
