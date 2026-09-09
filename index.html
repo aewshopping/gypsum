@@ -90,6 +90,7 @@
 
           <button id="save-btn" class="svg-wrapper-style" data-action="save-file-copy" data-tip="save file | Ctrl+S">
             <!-- 0 0, not the symbol's own 5 5 50 50: a <use> is placed at the origin of THIS box, so repeating a viewBox that starts at 5 5 would offset the glyph up and left by five units and clip it. The symbol's viewBox does the framing; this one only has to give it a square. -->
+            <svg viewBox="0 0 50 50"><use href="#icon-save-pending"></use></svg>
             <svg viewBox="0 0 50 50"><use href="#icon-save"></use></svg>
             <svg viewBox="0 0 50 50"><use href="#icon-save-done"></use></svg>
 
@@ -585,7 +586,7 @@
     </svg>
     <button class="modal-close-btn svg-wrapper-style" data-action="close-column-picker" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
 
-    <h2 class="menu-title">Columns</h2>
+    <h2 class="menu-title" id="column-picker-title">Columns</h2>
 
     <!-- Filled on open rather than at startup: the rows are one per property in the loaded
          folder, which is not known until a folder has been loaded.
@@ -607,7 +608,7 @@
        popover machinery as #column-menu and the same row styling, but it needs no anchor proxy:
        the control row carries no scroll-driven transform for anchor positioning to resolve
        against. Filled on open, since layouts come and go. -->
-  <div id="layout-picker" popover></div>
+  <div id="layout-picker" class="app-menu" popover></div>
 
   <!-- Saved table layouts. Opened from the layout name in the table's control row, which only
        exists in table view. Built from the settings modal: a title, a row of whole-list actions,
@@ -645,13 +646,13 @@
        one scroll-offset away from its column. Same trick as #ac-proxy. -->
   <div id="column-menu-anchor" aria-hidden="true"></div>
 
-  <div id="column-menu" popover>
-    <button type="button" class="column-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A-Z</button>
-    <button type="button" class="column-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z-A</button>
-    <button type="button" class="column-menu-item" data-action="column-search" data-tip="search within this column">search column</button>
-    <button type="button" class="column-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
-    <button type="button" class="column-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
-    <button type="button" class="column-menu-item" disabled>hide column</button>
+  <div id="column-menu" class="app-menu" popover>
+    <button type="button" class="app-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A-Z</button>
+    <button type="button" class="app-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z-A</button>
+    <button type="button" class="app-menu-item" data-action="column-search" data-tip="search within this column">search column</button>
+    <button type="button" class="app-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
+    <button type="button" class="app-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
+    <button type="button" class="app-menu-item" disabled>hide column</button>
   </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the

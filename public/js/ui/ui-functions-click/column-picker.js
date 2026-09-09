@@ -1,6 +1,7 @@
 // Open, close and reset for the table's column picker, and the one place its rows become state.
 
-import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-render/render-layout-list.js';
 import { renderColumnPickerList } from '../ui-functions-table/column-picker-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
@@ -45,9 +46,15 @@ function applyVisibilityFloor() {
 
 /**
  * Opens the column picker, built fresh from the current layout.
+ *
+ * The title names the layout being edited. Everything in this dialog lands on the layout in use,
+ * and reset now goes back to it rather than to the app's defaults, so which one that is has to be
+ * on screen while the changes are being made.
  * @returns {void}
  */
 export function handleOpenColumnPicker() {
+    document.getElementById('column-picker-title').textContent =
+        `${appState.tableLayouts.active ?? DEFAULT_LAYOUT_LABEL} layout columns`;
     paintList();
     dialog.showModal();
 }

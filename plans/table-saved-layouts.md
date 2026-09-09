@@ -410,8 +410,11 @@ Left to right it says what the table is showing and then offers to change it: th
 (opens the layouts modal), the column picker, and save.
 
 **The name is a button, and opens a picker.** A popover listing the layouts to switch between —
-`#column-menu`'s machinery and row styling, without its anchor proxy, the control row having no
-scroll-driven transform for anchor positioning to resolve against. Switching is all it does, which
+`#column-menu`'s machinery, chrome and small-screen bottom sheet, all of it now shared as
+`.app-menu` in `menu.css`, and without its anchor proxy, the control row having no scroll-driven
+transform for anchor positioning to resolve against. Each menu's own file keeps only where it hangs
+from, and that anchoring is guarded by `@media (min-width: 601px)`: an id beats a class, so left
+unguarded it would outrank the sheet's insets and the sheet would never appear. Switching is all it does, which
 is why it sits beside the modal rather than instead of it: the modal is where layouts are made,
 renamed and deleted, and reaching a different layout should not mean opening it.
 
@@ -422,14 +425,18 @@ gesture over the history select; with the name doing something of its own, two c
 for the same hover was one too many, and the edit button now brightens like any other icon.
 
 **Save carries the state.** Three glyphs, one shown by CSS off classes on the row and the button:
-waiting to be saved, saving, and saved. The middle one is the content modal's own unsaved glyph
-with its arrow spinning, played for the same 900ms `save-current-file.js` spins for — the write is
-usually done inside a frame, so the spin is not progress, it is what makes a save that changes
-nothing on screen visible at all.
+waiting to be saved, saving, and saved. The middle one is the disk-and-arrow glyph with its arrow
+spinning, played for 900ms — the write is usually done inside a frame, so the spin is not progress,
+it is what makes a save that changes nothing on screen visible at all.
 
-The glyphs are shared symbols rather than inline SVG, so the content modal and the control row draw
-the same save button. The spinning arrow is one element inside one symbol, so both buttons' clones
-spin together; only ever one of them is on screen, the content modal's being inside that modal.
+**The content modal's save button has the same three states**, for the same reasons, and draws them
+from the same symbols. That is why the glyphs are shared symbols rather than the inline SVG they
+started as. The spinning arrow is one element inside one symbol, so both buttons' clones spin
+together; only ever one of them is on screen, the content modal's being inside that modal.
+
+The glyph is held at its resting weight while the spin runs. The pointer is necessarily on a button
+that was just clicked, so the shared icon hover would otherwise play every spin at full strength —
+and the spin is the button reporting, not the button being pointed at.
 
 ### 7.1 Dirty is one-way
 
@@ -485,9 +492,14 @@ filled on open since layouts come and go.
 - **Choosing a layout leaves the modal open.** It is a place you are working in — renaming one
   thing, deleting another — so a click that closed it would be a trapdoor. The picker closes on a
   pick because a menu is finished once something is picked.
-- **Hover is a fill, not an underline**, and every row is the same width: both kinds are
-  `display: flex` and stretch on their own, except the save-as row, which is a `<button>` and
-  shrinks to its contents whatever its display, so it is given the width the others reach.
+- **Hover is a fill, not an underline**, and the list is a grid. `#layout-list` has one column, so
+  every row is a grid item and stretches to it — the save-as row included, which is a `<button>`
+  and shrinks to its contents whatever its display. An earlier version gave that row
+  `calc(100% + 16px)` instead; a width stated in pixels is a thing to get wrong when the padding
+  moves. Each row is itself a three-column grid, and the save-as row fills its middle cell with an
+  empty span, which is what lands its icon in the column the delete icons are in.
+- **The marker is `➜`**, the arrow the option checkmarks and the table's sort indicator already
+  use.
 - **The defaults row has no icons.** There is nothing behind it to rename or remove.
 - **`save as new…` is the last row**, not a button above the list: it names a layout like the rows
   above it do. The whole row is one control, so the save icon on it is a label rather than the only
@@ -516,6 +528,10 @@ The name is a JSON key, not a filename (§3.1), so it needs no sanitising.
 **Delete goes through the existing warning modal** (`warning-proceed` / `warning-cancel`), the one
 `delete-file` already uses. If the deleted layout was active, `active` falls back to `null` and the
 columns on screen stay exactly as they are.
+
+**The column picker names the layout it is editing** — `review layout columns`. Everything in that
+dialog lands on the layout in use, and reset goes back to it rather than to the app's defaults
+(§7.3), so which one that is has to be on screen while the changes are being made.
 
 ### 7.2.2 No view transition while a dialog is open
 

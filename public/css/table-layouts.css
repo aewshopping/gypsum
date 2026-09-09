@@ -15,7 +15,7 @@
    rule of its own — an absent child takes no space. */
 
 .layout-row-name {
-    flex: 1;
+    grid-column: 1;
     text-align: left;
     background: none;
     border: none;
@@ -29,11 +29,23 @@
     }
 }
 
-/* Every row the same shape, whether it is a div holding a name button and two icons or the button
-   that is itself a row. border-box on both is what makes them the same width: a div's padding
-   would otherwise be added to its 100%, while the button's is taken out of it. The negative margin
-   lets a filled row reach the dialog's padding rather than stopping short of it. */
+/* One grid column, so every row is a grid item and stretches to it — the save-as row included,
+   which is a <button> and shrinks to its contents whatever its display. That is what makes the
+   rows one width without any of them being told in pixels what that width is. */
+#layout-list {
+    display: grid;
+}
+
+/* Three columns: the name takes the space, the two actions take what they need. The save-as row
+   fills its middle cell with an empty span, which is what lands its icon in the column the delete
+   icons are in. The negative margin lets a filled row reach the dialog's padding rather than
+   stopping short of it. */
 .layout-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    column-gap: 8px;
+
     box-sizing: border-box;
     margin-block: 2px;
     margin-inline: -8px;
@@ -47,15 +59,13 @@
     background-color: var(--colour-neutral-alt);
 }
 
-/* Marks the layout in use, with the same glyph the select inputs use for their picker icon
-   (modal-history-select.css) — pointing right at the layout it belongs to rather than down at a
-   list it would open. The gutter is a fixed width whether or not the arrow is in it, so the names
-   line up down the list. */
+/* Marks the layout in use, with the arrow the option checkmarks and the table's sort indicator
+   already use. The gutter is a fixed width whether or not the arrow is in it, so the names line up
+   down the list. */
 .layout-row-name::before {
-    content: "\276f";   /* U+276F ❯, the select picker icon */
+    content: "\279C";   /* U+279C ➜ */
     display: inline-block;
-    width: 1.1em;
-    transform: translateY(5%);   /* because the character is not centred in its box */
+    width: 1.3em;
     opacity: 0;
 }
 
@@ -75,11 +85,6 @@
    layout like the others do — but it is one target end to end, so the icon inside is drawn and
    not pressed. */
 .layout-row-new {
-    /* A button shrinks to its contents even as a flex container, where the divs above stretch on
-       their own. This is the width they end up at: the dialog's content box plus the eight pixels
-       of negative margin at each end. */
-    width: calc(100% + 16px);
-
     background: none;
     border: none;
     font: inherit;
@@ -109,7 +114,7 @@
 /* Takes the name button's place while a rename is in flight, sized to match so the row does not
    change height as it swaps. */
 .layout-row-input {
-    flex: 1;
+    grid-column: 1;
     min-width: 0;
     font: inherit;
     font-family: var(--fontfam-app-input);
@@ -155,49 +160,41 @@
     }
 }
 
-/* The list of layouts, hung under the name it belongs to. Same chrome as #column-menu, but with
-   no anchor proxy: the control row carries no scroll-driven transform, so anchor positioning
-   resolves against the button itself. */
+/* The list of layouts, hung under the name it belongs to. Its chrome and its small-screen bottom
+   sheet come from .app-menu in menu.css; what is here is where it hangs from. No anchor proxy is
+   needed — the control row carries no scroll-driven transform for anchor positioning to resolve
+   against, which is the only reason the column menu has one. */
 #layout-name {
     anchor-name: --layout-picker-anchor;
 }
 
 #layout-picker {
     position: fixed;
-    position-anchor: --layout-picker-anchor;
-    inset: auto;                  /* the UA stylesheet centres popovers with inset: 0 */
-    top: anchor(bottom);
-    left: anchor(left);
-    margin: 0;
-
-    flex-direction: column;
-    min-width: 150px;
-    padding: 4px;
-    background-color: var(--colour-neutral);
-    color: var(--colour-contr);
-    border: 1px solid transparent;
-    border-radius: 0 4px 4px 4px;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+    border-radius: 0 4px 4px 4px;   /* square where it meets the button it hangs from */
 }
 
-#layout-picker:popover-open {
-    display: flex;
-}
-
-#layout-picker::backdrop {
-    background-color: rgb(0 0 0 / 0.25);
+/* Above the small-screen breakpoint only. Below it menu.css turns every .app-menu into a sheet
+   across the bottom of the screen, and an id beats a class: left unguarded, this anchoring would
+   win over those insets and the sheet would never appear. */
+@media (min-width: 601px) {
+    #layout-picker {
+        position-anchor: --layout-picker-anchor;
+        inset: auto;              /* the UA stylesheet centres popovers with inset: 0 */
+        top: anchor(bottom);
+        left: anchor(left);
+        margin: 0;
+    }
 }
 
 /* Marks the layout in use, the same gutter the modal's rows use. */
-#layout-picker .column-menu-item::before {
-    content: "\276f";   /* U+276F ❯, the select picker icon */
+#layout-picker .app-menu-item::before {
+    content: "\279C";   /* U+279C ➜ */
     display: inline-block;
-    width: 1.1em;
-    transform: translateY(5%);
+    width: 1.3em;
     opacity: 0;
 }
 
-#layout-picker .column-menu-item[aria-checked="true"]::before {
+#layout-picker .app-menu-item[aria-checked="true"]::before {
     opacity: 0.6;
 }
 
@@ -218,4 +215,11 @@
 
 #layout-save-btn.saving svg:nth-child(2) {
     display: revert;
+}
+
+/* The pointer is necessarily on the button that was just clicked, so the shared icon hover would
+   play the whole spin at full strength. The spin is the button reporting, not the button being
+   pointed at, so it is held at the resting weight for as long as it runs. */
+#layout-save-btn.saving > svg {
+    opacity: 0.6;
 }

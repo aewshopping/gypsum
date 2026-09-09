@@ -30,8 +30,14 @@ export async function saveCurrentFile() {
             saveBtn?.classList.remove('save-error');
             resetUnsavedBaseline();
             refreshFileAfterSave(snapshot);
+            // The arrow glyph plays over the top of whichever state the modal is in, so the
+            // button shows the save happening rather than jumping from unsaved to saved.
+            saveBtn?.classList.add('saving');
             spinSaveArrow();
-            setTimeout(updateUnsavedIndicator, SAVE_SPIN_MS);
+            setTimeout(() => {
+                saveBtn?.classList.remove('saving');
+                updateUnsavedIndicator();
+            }, SAVE_SPIN_MS);
         } else {
             saveBtn?.classList.add('save-error');
         }

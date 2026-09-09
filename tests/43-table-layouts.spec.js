@@ -483,3 +483,64 @@ test('reset columns on the app defaults still restores the schema columns', asyn
   await page.keyboard.press('Escape');
   await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(1);
 });
+
+test('the columns modal names the layout it is editing', async ({ page }) => {
+  await openTable(page);
+
+  await openPicker(page);
+  await expect(page.locator('#column-picker-title')).toHaveText('default layout columns');
+  await page.keyboard.press('Escape');
+
+  await saveAsNew(page, 'review');
+  await openPicker(page);
+  await expect(page.locator('#column-picker-title')).toHaveText('review layout columns');
+});
+
+test('the save glyph keeps its muted tone while the spin plays', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await hideTags(page);
+
+  // Clicking necessarily leaves the pointer on the button, so the shared icon hover would
+  // otherwise play the whole spin at full strength.
+  await saveBtn(page).click();
+  await expect(saveBtn(page)).toHaveClass(/saving/);
+
+  const opacity = await saveBtn(page).evaluate(btn => {
+    const svg = [...btn.querySelectorAll('svg')].find(s => getComputedStyle(s).display !== 'none');
+    return getComputedStyle(svg).opacity;
+  });
+  expect(Number(opacity)).toBeCloseTo(0.6, 2);
+});
+
+test('the layout picker becomes a sheet across the bottom on a small screen', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await page.setViewportSize({ width: 420, height: 720 });
+
+  // Measured rather than asserted against fixed numbers, and compared with the column menu at the
+  // same width: the picker is meant to get exactly that treatment, so the column menu is the
+  // specification. Polled because the sheet slides up rather than appearing in place.
+  const box = sel => page.evaluate(s => {
+    const r = document.querySelector(s).getBoundingClientRect();
+    return {
+      below: Math.round(document.documentElement.clientHeight - r.bottom),
+      left: Math.round(r.left),
+      width: Math.round(r.width),
+    };
+  }, sel);
+
+  await layoutName(page).click();
+  await expect(page.locator('#layout-picker')).toBeVisible();
+  await expect.poll(() => box('#layout-picker')).toMatchObject({ below: 0, left: 0 });
+  const picker = await box('#layout-picker');
+  await page.keyboard.press('Escape');
+
+  const header = page.locator('.note-table-cell-header[data-property="title"]');
+  await header.click();
+  await header.click();
+  await expect(page.locator('#column-menu')).toBeVisible();
+  await expect.poll(() => box('#column-menu')).toMatchObject({ below: 0, left: 0 });
+
+  expect(picker).toEqual(await box('#column-menu'));
+});

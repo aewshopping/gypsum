@@ -46,13 +46,16 @@ export function renderLayoutList() {
           `data-layout="${name}" data-tip="delete this layout">` +
           `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>`;
 
-    // The whole row is the button, so the icon inside it is drawn rather than pressed.
+    // The whole row is the button, so the icon inside it is drawn rather than pressed. The empty
+    // span takes the edit column, which is what puts the save icon in the same column as the
+    // delete icons above it rather than in the one next to them.
     const saveAsRow =
         `<button type="button" class="info-modal-row layout-row layout-row-new" ` +
           `data-action="layout-save-as" data-tip="save these columns as a new layout">` +
           `<span class="layout-row-name">save as new…</span>` +
+          `<span aria-hidden="true"></span>` +
           `<span class="info-modal-row-btn" aria-hidden="true">` +
-            `<svg class="info-modal-row-icon"><use href="#icon-save"></use></svg></span>` +
+            `<svg class="info-modal-row-icon"><use href="#icon-save-pending"></use></svg></span>` +
         `</button>`;
 
     return [row(null, ''), ...names.map(name => row(name, actions(name))), saveAsRow].join('');
@@ -62,8 +65,8 @@ export function renderLayoutList() {
  * Renders the layout picker's rows: one per layout, the app's defaults first.
  *
  * Just the names — switching is all this popover does, which is why it exists beside the modal
- * rather than instead of it. It borrows the column menu's row styling so the two menus in the
- * table's chrome look like one thing.
+ * rather than instead of it. It shares .app-menu with the column options menu, so the two menus
+ * in the table's chrome are one thing wearing two anchors.
  *
  * @returns {string} HTML string for the picker's innerHTML.
  */
@@ -71,7 +74,7 @@ export function renderLayoutPicker() {
     const { names, active } = appState.tableLayouts;
 
     const item = name =>
-        `<button type="button" class="column-menu-item" data-action="layout-select" ` +
+        `<button type="button" class="app-menu-item" data-action="layout-select" ` +
           `data-layout="${name ?? ''}" aria-checked="${(name ?? null) === active}">` +
           `${name ?? DEFAULT_LAYOUT_LABEL}</button>`;
 
