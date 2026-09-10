@@ -665,18 +665,16 @@
 </body>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js');
+    // sessionStorage is what carries developer mode across a refresh, which is the whole
+    // point of it; the browser clears it when the tab closes, so a new session caches as
+    // normal. The ?dev=1 worker serves everything from the network instead of the cache.
+    const devMode = sessionStorage.getItem('gypsum-dev-mode') === 'on';
+    document.getElementById('developer-mode-enabled').checked = devMode;
+
+    navigator.serviceWorker.register(devMode ? './service-worker.js?dev=1' : './service-worker.js');
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'gypsum-update-ready') location.reload();
-      if (event.data?.type === 'gypsum-dev-mode-state') {
-        const checkbox = document.getElementById('developer-mode-enabled');
-        if (checkbox) checkbox.checked = event.data.enabled;
-      }
     });
-    // The checkbox itself always starts unchecked in the markup, but the service worker's
-    // dev-mode flag survives reloads — ask it for the real state so the checkbox doesn't
-    // lie about whether caching is currently bypassed.
-    navigator.serviceWorker.controller?.postMessage({ type: 'gypsum-get-dev-mode' });
   }
 </script>
 <script type="module" src="public/main.js"></script>

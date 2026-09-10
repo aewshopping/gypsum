@@ -2,19 +2,11 @@ const CACHE_NAME = 'gypsum-v1'; // stable bucket name — invalidation is now dr
                                 // manifest.json's version field, not this constant.
 const PRECACHE_URLS = ['./', './public/style.css', './public/main.js', './manifest.json'];
 
-// Set by the page's "Developer mode" checkbox via postMessage. While true, every request
-// bypasses the cache entirely so local edits show up on a plain refresh with no version
-// bump needed. Lives only as long as this worker instance does — there is no persistence.
-let devModeEnabled = false;
-
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'gypsum-set-dev-mode') {
-    devModeEnabled = !!event.data.enabled;
-  }
-  if (event.data?.type === 'gypsum-get-dev-mode') {
-    event.source?.postMessage({ type: 'gypsum-dev-mode-state', enabled: devModeEnabled });
-  }
-});
+// Developer mode registers this worker as service-worker.js?dev=1. Reading the flag off the
+// worker's own URL is what makes it reliable: the browser terminates an idle worker within
+// about 30 seconds and respawns it on the next event, which would wipe any variable set by
+// postMessage, but the script URL is fixed for the life of the registration.
+const DEV_MODE = new URL(self.location.href).searchParams.has('dev');
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -70,10 +62,26 @@ async function checkForUpdate() {
   }
 }
 
+// Developer mode's only fetch path. Two separate caches have to be defeated: `no-store` on the
+// request skips the browser's HTTP cache on the way out, and the `no-store` response header
+// stops the browser keeping the result. Without that header a static dev server (which sends
+// no Cache-Control) lets the browser invent a freshness window from the file's age and serve
+// its own copy on the next reload without ever consulting this worker.
+async function fetchFresh(request) {
+  const response = await fetch(request, { cache: 'no-store' });
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'no-store');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 // Serves immediately from cache when available; only touches the network on a cache miss
 // (e.g. the very first visit, before anything is precached).
 async function handleNavigate(request) {
-  if (devModeEnabled) return fetch(request, { cache: 'no-store' });
+  if (DEV_MODE) return fetchFresh(request);
 
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
@@ -83,7 +91,7 @@ async function handleNavigate(request) {
 
 // Cache-first for everything else.
 async function handleAsset(request) {
-  if (devModeEnabled) return fetch(request, { cache: 'no-store' });
+  if (DEV_MODE) return fetchFresh(request);
 
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
@@ -101,9 +109,9 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigate(request));
-    // Dev mode already serves everything fresh; checking manifest.json would just find its
-    // cached copy stale (dev mode skips cache.put too) and trigger a reload loop.
-    if (!devModeEnabled) event.waitUntil(checkForUpdate());
+    // Dev mode already serves everything fresh, and its cached manifest goes stale, so the
+    // version check would fire a pointless reload on every navigation.
+    if (!DEV_MODE) event.waitUntil(checkForUpdate());
     return;
   }
 
