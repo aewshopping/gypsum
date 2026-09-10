@@ -2,6 +2,8 @@ const CACHE_NAME = 'gypsum-v1'; // stable bucket name — invalidation is now dr
                                 // manifest.json's version field, not this constant.
 const PRECACHE_URLS = ['./', './public/style.css', './public/main.js', './manifest.json'];
 
+// DEV-MODE-BYPASS · removal manifest at the top of
+// public/js/ui/ui-functions-click/toggle-developer-mode.js. Grep DEV_MODE for every site here.
 // Developer mode registers this worker as service-worker.js?dev=1. Reading the flag off the
 // worker's own URL is what makes it reliable: the browser terminates an idle worker within
 // about 30 seconds and respawns it on the next event, which would wipe any variable set by
@@ -62,6 +64,7 @@ async function checkForUpdate() {
   }
 }
 
+// DEV-MODE-BYPASS · delete with the feature; nothing outside developer mode calls this.
 // Developer mode's only fetch path. Two separate caches have to be defeated: `no-store` on the
 // request skips the browser's HTTP cache on the way out, and the `no-store` response header
 // stops the browser keeping the result. Without that header a static dev server (which sends
