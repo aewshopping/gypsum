@@ -58,6 +58,7 @@ import {
 } from './ui-functions-click/font-settings.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
 import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
+import { handleDeveloperModeToggle } from './ui-functions-click/toggle-developer-mode.js';
 import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, handleLayoutSave,
@@ -197,6 +198,7 @@ const changeActionHandlers = {
     'toggle-filter-mode': handleFilterModeToggle,
     'toggle-content-search': handleContentSearchToggle,
     'toggle-fullscreen': handleFullscreenToggle,
+    'toggle-developer-mode': handleDeveloperModeToggle,
     'history-select-change': handleHistorySelectChange,
     'history-sort': handleHistorySort,
     'sort-select': handleSortSelectChange,

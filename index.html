@@ -512,6 +512,11 @@
         </dl>
       </div>
     </div>
+
+    <div class="info-modal-row">
+      <span class="info-modal-row-label">Developer mode</span>
+      <input type="checkbox" class="toggle" id="developer-mode-enabled" data-action="toggle-developer-mode" data-tip="toggle on to stop pwa caching">
+    </div>
   </dialog>
 
   <dialog id="modal-unsaved-warning">
@@ -669,7 +674,15 @@
     navigator.serviceWorker.register('./service-worker.js');
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'gypsum-update-ready') location.reload();
+      if (event.data?.type === 'gypsum-dev-mode-state') {
+        const checkbox = document.getElementById('developer-mode-enabled');
+        if (checkbox) checkbox.checked = event.data.enabled;
+      }
     });
+    // The checkbox itself always starts unchecked in the markup, but the service worker's
+    // dev-mode flag survives reloads — ask it for the real state so the checkbox doesn't
+    // lie about whether caching is currently bypassed.
+    navigator.serviceWorker.controller?.postMessage({ type: 'gypsum-get-dev-mode' });
   }
 </script>
 <script type="module" src="public/main.js"></script>

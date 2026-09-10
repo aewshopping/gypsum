@@ -2,6 +2,20 @@ const CACHE_NAME = 'gypsum-v1'; // stable bucket name — invalidation is now dr
                                 // manifest.json's version field, not this constant.
 const PRECACHE_URLS = ['./', './public/style.css', './public/main.js', './manifest.json'];
 
+// Set by the page's "Developer mode" checkbox via postMessage. While true, every request
+// bypasses the cache entirely so local edits show up on a plain refresh with no version
+// bump needed. Lives only as long as this worker instance does — there is no persistence.
+let devModeEnabled = false;
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'gypsum-set-dev-mode') {
+    devModeEnabled = !!event.data.enabled;
+  }
+  if (event.data?.type === 'gypsum-get-dev-mode') {
+    event.source?.postMessage({ type: 'gypsum-dev-mode-state', enabled: devModeEnabled });
+  }
+});
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -59,6 +73,8 @@ async function checkForUpdate() {
 // Serves immediately from cache when available; only touches the network on a cache miss
 // (e.g. the very first visit, before anything is precached).
 async function handleNavigate(request) {
+  if (devModeEnabled) return fetch(request, { cache: 'no-store' });
+
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   if (cached) return cached;
@@ -67,6 +83,8 @@ async function handleNavigate(request) {
 
 // Cache-first for everything else.
 async function handleAsset(request) {
+  if (devModeEnabled) return fetch(request, { cache: 'no-store' });
+
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   if (cached) return cached;
@@ -83,7 +101,9 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigate(request));
-    event.waitUntil(checkForUpdate());
+    // Dev mode already serves everything fresh; checking manifest.json would just find its
+    // cached copy stale (dev mode skips cache.put too) and trigger a reload loop.
+    if (!devModeEnabled) event.waitUntil(checkForUpdate());
     return;
   }
 
