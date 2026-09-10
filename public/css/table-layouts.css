@@ -1,0 +1,223 @@
+/* Saved table layouts: the control-row pieces above the table, and the rows inside the layouts
+   modal. The modal's frame, title, button row and row layout all come from modal-info.css —
+   what is here is only what those do not already say. */
+
+/* Sits outside the button, so the button holds the layout's name and nothing else. Muted, because
+   it labels the control rather than being one. */
+.layout-control-label {
+    font-family: var(--fontfam-app-input);
+    font-size: 0.89375em;
+    opacity: 0.7;
+}
+
+/* A layout row: the name takes the free space and the two icons sit hard against the right edge,
+   which is what .info-modal-row already arranges. The defaults row has no icons, and needs no
+   rule of its own — an absent child takes no space. */
+
+/* Worn by both the button that selects a layout and the span that renames it, so the two occupy
+   the same cell at the same size in the same type and the swap between them cannot be seen. The
+   button needs to be told most of this; the span inherits it anyway. */
+.layout-row-name {
+    grid-column: 1;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 4px 0;
+    font: inherit;
+    color: var(--colour-contr);
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+}
+
+/* The ring is an outline rather than a border: it is drawn outside the box and takes no space, so
+   the word does not shift when it appears. */
+.layout-row-rename[contenteditable] {
+    cursor: text;
+    outline: 2px solid var(--colour-contr);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* One grid column, so every row is a grid item and stretches to it — the save-as row included,
+   which is a <button> and shrinks to its contents whatever its display. That is what makes the
+   rows one width without any of them being told in pixels what that width is. */
+#layout-list {
+    display: grid;
+}
+
+/* Three columns: the name takes the space, the two actions take what they need. The save-as row
+   fills its middle cell with an empty span, which is what lands its icon in the column the delete
+   icons are in. The negative margin lets a filled row reach the dialog's padding rather than
+   stopping short of it. */
+.layout-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    column-gap: 8px;
+
+    box-sizing: border-box;
+    margin-block: 2px;
+    margin-inline: -8px;
+    padding-inline: 8px;
+    border-radius: 5px;
+}
+
+/* Hover is a fill, not an underline: these rows are targets rather than links, and the fill is
+   what the whole-row "save as new" needed anyway. */
+.layout-row:hover {
+    background-color: var(--colour-neutral-alt);
+}
+
+/* Marks the layout in use, with the arrow the option checkmarks and the table's sort indicator
+   already use. The gutter is a fixed width whether or not the arrow is in it, so the names line up
+   down the list. */
+.layout-row-name::before {
+    content: "\279C";   /* U+279C ➜ */
+    display: inline-block;
+    width: 1.3em;
+    opacity: 0;
+}
+
+.layout-row-name[aria-current="true"]::before {
+    opacity: 0.6;   /* the resting weight every icon glyph sits at — see button-base.css */
+}
+
+/* Filled as well as arrowed. The list is how you switch layouts, so which one you are on has to
+   survive a glance rather than needing to be read. Negative margins so the fill reaches the
+   dialog's padding rather than stopping short of it. */
+.layout-row.is-active,
+.layout-row.is-active:hover {
+    background-color: color-mix(in srgb, var(--colour-contr) 12%, transparent);
+}
+
+/* The row that makes a new layout. A row rather than a button above the list, because it names a
+   layout like the others do — but it is one target end to end, so the icon inside is drawn and
+   not pressed. */
+.layout-row-new {
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--colour-contr);
+    cursor: pointer;
+    margin-top: 6px;
+    border-top: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
+
+    /* The top rule and the rounded fill fight each other at the corners, so the rule is drawn
+       above the row rather than on it. */
+    border-radius: 0 0 5px 5px;
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+
+    /* Follows the row's hover rather than having one of its own. */
+    & .info-modal-row-btn {
+        opacity: 0.45;
+    }
+
+    &:hover .info-modal-row-btn {
+        opacity: 0.9;
+    }
+}
+
+/* --- the control row --------------------------------------------------------------------- */
+
+/* Shrinks to its contents rather than ruling the width of the table, and is drawn as one thing:
+   a faint plate holding the layout and what can be done to it. The border is mixed with
+   transparent rather than being a lighter colour of its own, so it stays a whisper of whatever
+   the theme's contrast colour is. */
+.table-controls {
+    width: fit-content;
+    padding-inline: 8px;
+    border: 2px solid color-mix(in srgb, var(--colour-contr) 25%, transparent);
+    border-radius: 6px;
+}
+
+/* The layout's name, and the button that lists the others. Understated: a fill and no border, so
+   it reads as a place to look before it reads as a thing to press — and so it does not compete
+   with the two icon buttons beside it, which have no border either. */
+#layout-name {
+    font-family: var(--fontfam-app-input);
+    font-size: 0.89375em;
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--colour-neutral-alt);
+    color: var(--colour-contr);
+    cursor: pointer;
+
+    &:hover {
+        box-shadow: var(--hover-box-shadow);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+}
+
+/* The list of layouts, hung under the name it belongs to. Its chrome and its small-screen bottom
+   sheet come from .app-menu in menu.css; what is here is where it hangs from. No anchor proxy is
+   needed — the control row carries no scroll-driven transform for anchor positioning to resolve
+   against, which is the only reason the column menu has one. */
+#layout-name {
+    anchor-name: --layout-picker-anchor;
+}
+
+#layout-picker {
+    position: fixed;
+    border-radius: 0 4px 4px 4px;   /* square where it meets the button it hangs from */
+}
+
+/* Above the small-screen breakpoint only. Below it menu.css turns every .app-menu into a sheet
+   across the bottom of the screen, and an id beats a class: left unguarded, this anchoring would
+   win over those insets and the sheet would never appear. */
+@media (min-width: 601px) {
+    #layout-picker {
+        position-anchor: --layout-picker-anchor;
+        inset: auto;              /* the UA stylesheet centres popovers with inset: 0 */
+        top: anchor(bottom);
+        left: anchor(left);
+        margin: 0;
+    }
+}
+
+/* Marks the layout in use, the same gutter the modal's rows use. */
+#layout-picker .app-menu-item::before {
+    content: "\279C";   /* U+279C ➜ */
+    display: inline-block;
+    width: 1.3em;
+    opacity: 0;
+}
+
+#layout-picker .app-menu-item[aria-current="true"]::before {
+    opacity: 0.6;
+}
+
+/* Three glyphs, one shown: waiting to be saved, saving, and saved. Same construction as #save-btn
+   in the content modal, which has two of the three. */
+#layout-save-btn svg:nth-child(2),
+.table-controls.saved #layout-save-btn svg:nth-child(1),
+.table-controls:not(.saved) #layout-save-btn svg:nth-child(3) {
+    display: none;
+}
+
+/* ...except while a save is playing, when the arrow glyph is the one showing whatever the row
+   says, because the row does not say "saved" until the spin has finished. */
+#layout-save-btn.saving svg:nth-child(1),
+#layout-save-btn.saving svg:nth-child(3) {
+    display: none;
+}
+
+#layout-save-btn.saving svg:nth-child(2) {
+    display: revert;
+}
+
+/* The pointer is necessarily on the button that was just clicked, so the shared icon hover would
+   play the whole spin at full strength. The spin is the button reporting, not the button being
+   pointed at, so it is held at the resting weight for as long as it runs. */
+#layout-save-btn.saving > svg {
+    opacity: 0.6;
+}

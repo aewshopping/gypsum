@@ -129,7 +129,7 @@ export function handleColumnMenuOpen(evt, headerCell) {
 
     // Showing a popover does not move focus on its own. Putting it on the first item is what
     // makes the menu tabbable, and gives Escape something to return focus from.
-    menu.querySelector('.column-menu-item:not(:disabled)')?.focus();
+    menu.querySelector('.app-menu-item:not(:disabled)')?.focus();
 }
 
 /**

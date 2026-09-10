@@ -7,6 +7,7 @@ import { checkAllFileErrors } from './file-parsing/file-errors.js';
 import { seedCoreFileProperties } from './file-props.js';
 import { PROGRESS_STEP_SIZE } from '../constants.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
+import { applyActiveLayout } from '../table-layouts/layout-file.js';
 
 /**
  * Recursively collects all .txt and .md file handles from a directory and its subdirectories.
@@ -52,6 +53,10 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     document.querySelectorAll('[data-action="backup-full"], [data-action="backup-content"], [data-action="open-history-modal"]')
         .forEach(btn => { btn.disabled = false; });
     onPickerResolved?.();
+
+    // After the handle is set, not next to the clear() above — that runs before the picker has
+    // even opened, when there is nothing to read a layout from.
+    await applyActiveLayout();
 
     const startTime = performance.now();
 

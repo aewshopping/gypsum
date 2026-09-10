@@ -20,11 +20,21 @@ body:has(#autosave-enabled:checked) #modal-content:not(.saved) #save-btn:not(.sa
     color: inherit;
 }
 
-#modal-content:not(.saved) #save-btn svg:nth-child(2) {
-    display:none;
+/* Three glyphs, one shown: waiting to be written, writing, and written. The middle one only
+   appears while a save is playing, which is what the arrow inside it spins for. */
+#save-btn svg:nth-child(2),
+#modal-content.saved #save-btn svg:nth-child(1),
+#modal-content:not(.saved) #save-btn svg:nth-child(3) {
+    display: none;
 }
-#modal-content.saved #save-btn svg:nth-child(1) {
-    display:none;
+
+#save-btn.saving svg:nth-child(1),
+#save-btn.saving svg:nth-child(3) {
+    display: none;
+}
+
+#save-btn.saving svg:nth-child(2) {
+    display: revert;
 }
 
 #modal-content.saved #save-btn {

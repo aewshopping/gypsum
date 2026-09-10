@@ -27,6 +27,7 @@ import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/col
 import { showTooltipFor, hideTooltip } from '../tooltip.js';
 import { applyColumnWidths, columnWidthPx } from './apply-column-widths.js';
 import { syncScrollbarWidth } from './table-scrollbar-sync.js';
+import { markLayoutDirty } from './render-table-controls.js';
 
 /**
  * Re-parks the bar when the page is re-laid-out under it. #output is watched rather than the
@@ -177,6 +178,7 @@ export function handleColumnResizeMove(evt) {
 
     const width = Math.max(MIN_COLUMN_WIDTH, _startWidth + (evt.clientX - _startX));
     TABLE_VIEW_COLUMNS.columnLayout.get(_prop).width = width;
+    markLayoutDirty();
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
     parkBar(); // the edge just moved, so the bar follows it
 }
