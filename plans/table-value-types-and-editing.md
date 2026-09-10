@@ -42,10 +42,42 @@ as `[object Object]` in a cell, or as a plausible-looking line of text that is a
 wrong. A type gives the app a way to say "this value is not what this column expects"
 instead of showing you rubbish and hoping you notice.
 
-**One rule holds the whole thing together, and it is worth stating up front: a type never
-causes a file to be written.** It only decides how a value is displayed, how it is sorted,
-and what editor you get. Files change only when you personally edit a cell. That rule is
-what makes it safe to let you set column types yourself and get them wrong occasionally.
+### The founding rule: changing a type never changes your notes
+
+One rule holds the whole thing together and everything else in this plan depends on it.
+**Changing a column's type must never cause a file to be written.**
+
+Here is what that is guarding against. Say you have five hundred notes carrying a `priority`
+property, and you set that column's type to number. A few of those notes actually hold text
+like "quite high". The app could reasonably decide to tidy up: walk all five hundred files,
+convert what it can, and rewrite them so they match the type you just declared. A database
+would do exactly that.
+
+It must not. Setting a type changes three things and no others:
+
+- how the cells look
+- how the column sorts
+- which editor you get when you click a cell
+
+The files themselves sit untouched. The notes holding "quite high" carry on holding "quite
+high", and those cells show as not matching the column rather than being quietly converted.
+
+The same applies everywhere a type can change without you editing anything. Switching to a
+different saved layout changes types, so it must not rewrite files. Loading a folder whose
+saved layout carries types must not rewrite files. Correcting a type you set wrongly
+yesterday must not rewrite files.
+
+One distinction worth being precise about. **The type does affect what gets written when you
+edit a cell.** If the column is a number, the type is what decides the value goes in plainly
+rather than wrapped in quotes. So it is not that types have nothing to do with writing. It is
+that a type change on its own is never the trigger. The only trigger is you editing a
+specific cell, and then only that one property in that one file is written.
+
+Why this deserves to be the founding rule: it is what makes it safe to hand the type control
+to you in the first place. If setting a type could rewrite files, a wrong type would be a real
+accident, and every change would need a warning and a confirmation. Because it cannot, a wrong
+type is just a column that looks odd until you change it back. That is the difference between
+a feature you can experiment with and one you have to be careful around.
 
 ---
 
@@ -113,9 +145,10 @@ layout alongside the width and the visibility. Consequences:
 - **There is a state with nowhere to store the choice.** The active layout can be "none",
   meaning built-in defaults. Treat a type change exactly like a width change: mark the
   layout dirty, and it is kept when the layout is saved.
-- **Switching layouts becomes meaningful, not just cosmetic.** It will change sort order and
-  which cells are editable. That is acceptable only because of the rule in §1: types never
-  write to files.
+- **Switching layouts becomes meaningful, not just cosmetic.** Today a layout switch only
+  moves columns around. Once it carries types, it will also change sort order and which cells
+  are editable. That is acceptable only because of the founding rule in §1: switching a layout
+  changes what you see, and rewrites nothing on disk.
 - **A value that doesn't fit its column needs a look.** Show the raw text, mark the cell as
   not matching, and offer a plain text editor rather than the type's editor. Falling back
   per cell beats blocking the whole column.
@@ -406,8 +439,9 @@ width and visibility, marking the layout dirty when changed. Saved layouts round
 
 **Purpose:** delivers the visible half of the feature. Dates start reading as dates, numbers
 sort as numbers, and a column of yes/no values stops reading as the words "true" and "false".
-All of this is display and sorting only, so no file is ever touched and nothing can be
-damaged by getting a type wrong.
+All of this is display and sorting only. Per the founding rule in §1, setting a type here
+must not rewrite a single note, however badly the values fit the type chosen. Nothing can be
+damaged by getting a type wrong, and changing it back costs nothing.
 
 ### Step 6 — Show a value that doesn't match its column
 
