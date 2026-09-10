@@ -387,7 +387,7 @@ of cell edits would fill the history quickly.
 ## 7. Steps
 
 Each step is meant to be finishable and checkable on its own. Bump the manifest minor version
-on each one that changes code.
+on each one that changes code. **§8 says which file each step belongs in and why.**
 
 ### Step 1 — Stop the parser leaving empty placeholder objects behind
 
@@ -517,33 +517,170 @@ needed when we get here, not before.
 
 ---
 
-## 8. Files this is likely to touch
+## 8. Where the new code goes, and how it is structured
 
-| file | why |
-|---|---|
-| `public/js/services/file-parsing/yaml-parse.js` | steps 1 and 2, the parser fixes |
-| `public/js/services/store.js` | steps 3 and 4, the schema and the origin field |
-| `public/js/services/file-object-sort.js` | step 3, read the type through the new function |
-| `public/js/ui/ui-functions-search/` | step 3, same |
-| `public/js/ui/ui-functions-table/render-table-columns-helper.js` | steps 3 and 5 |
-| `public/js/ui/ui-functions-table/render-table-rows.js` | steps 5 and 6, display by type |
-| `public/js/ui/ui-functions-click/column-menu.js` | step 5, the type option |
-| `public/js/table-layouts/` | step 5, saving the type in a layout |
-| a new types module | steps 5, 7, 10 and 11, one place holding each type's behaviour |
-| a new front matter writing module | steps 8 and 9, span-finding and splicing |
-| `public/js/ui/ui-functions-click/cell-expand.js` | step 9, commit and cancel behaviour |
-| `public/js/editing/refresh-file-state.js` | step 12, the re-sorting decision |
-| `CLAUDE.md` | the "adding a new file property" recipe changes |
-| `manifest.json` | a minor bump per code-changing step |
+The aim here is that someone reading this codebase cold can still open any one file and
+understand it in a minute. Everything below is chosen to keep that true.
 
----
+### 8.1 The main decision: no new folder for "types"
+
+The obvious instinct is to make a `property-types/` folder and put the whole type system in
+it. **We should not.** Here is why.
+
+The existing folders that group a feature together — `table-layouts/`, `pagination/`,
+`internal-links/` — each hold parts that genuinely belong side by side. The type system is
+different, because its parts must live apart. Showing a value produces HTML for the screen.
+Writing a value produces text for a file. **The firmest rule in this codebase is that those
+two things live in different layers**: services never touch the page, renderers never contain
+logic. A folder called `property-types/` would promise that the type system lives in one
+place, when most of it cannot and should not.
+
+So the type system is deliberately spread out, and one small file holds the part that is
+genuinely shared.
+
+### 8.2 Where each piece goes, and why
+
+**The list of type names → `public/js/constants.js`, next to `VIEWS`.**
+
+`VIEWS` is already exactly this shape: a fixed set of allowed names, each with a label for
+display, shared across the app. `store.js` already imports it from there. A `VALUE_TYPES` list
+alongside it is the same idea and needs no explaining to anyone who has read the file.
+
+This list is the **only** place that says which type names are legal. That matters, because
+a typo elsewhere should not be able to invent a phantom type.
+
+**"Where does this value come from" → `public/js/services/store.js`, on `FILE_PROPERTIES`.**
+
+Schema lives with schema. This is a new field on the entries that are already there, in the
+same map, right where someone adding a property will be looking anyway. No behaviour goes in
+store.js, only the facts.
+
+**Answering "what type is this column?" → one new file, `public/js/services/property-type.js`.**
+
+A small module sitting beside `file-props.js` and `file-object-sort.js`, which are its closest
+relatives. It holds two or three short functions and nothing else:
+
+- the effective type of a property: what the user chose, then the built-in schema, then plain
+  text
+- whether a given value actually fits that type
+- whether a property can be edited at all, from the origin field
+
+It touches no page elements and no files on disk. **Everything asks it rather than reading
+the schema directly.** That is the whole point of the file: today three different places read
+the type their own way, and once the user can change types those three would quietly disagree.
+
+One file, not a folder, because this is the only genuinely shared part.
+
+**Showing a value in a cell → `public/js/ui/ui-functions-table/render-cell-value.js`.**
+
+Lift the existing switch out of `render-table-rows.js`. That file then does what its name
+says: builds the row, applies the colour, checks pagination. The new file does one thing:
+turn a value and a type into the contents of a cell.
+
+This follows the pattern already there. The header and the control row are each their own
+file next to the row renderer. It does not go in `ui-functions-render/`, because that folder
+holds things several views share, and this is table-only until something else needs it.
+
+**Writing a value into front matter → two new files in
+`public/js/services/file-parsing/`, named `yaml-*` like their neighbours.**
+
+That folder already holds both directions of the same format: `yaml-replace-frontmatter.js`
+writes, the rest read. Two more fit naturally:
+
+- `yaml-key-span.js` — given a file's text and a property name, find where that key's value
+  starts and ends, including lines that belong to it
+- `yaml-value-write.js` — given a value and a type, produce the text that goes after the
+  colon, including the quoting rule
+
+Both are the size and shape of `yaml-find.js` and `yaml-block-extract.js` sitting next to
+them. Neither touches the page, and neither writes to disk. **They only work out text**, which
+keeps them easy to test and impossible to damage a file with on their own.
+
+**Doing the actual save → `public/js/editing/save-cell-edit.js`.**
+
+The `editing/` folder already holds this exact species of thing: `save-current-file.js`,
+`autosave.js`, `rename-file.js`, `refresh-file-state.js`. Saving a cell is another one, and it
+reuses two of them. This file is the only place that knows the whole sequence: check it can be
+edited, work out the text, find the span, splice, write, refresh.
+
+**Click handling → `public/js/ui/ui-functions-click/`, one file per action, thin.**
+
+Following the existing rule, two new small files:
+
+- `cell-edit-commit.js` — the user has finished editing a cell. Reads the text out of the
+  element, hands it to the save module, and returns.
+- `column-type-set.js` — the user picked a type in the column menu.
+
+Both registered in the action map in `event-listeners-add.js` like every other action.
+
+**`cell-expand.js` keeps its current job and does not grow.** It owns selecting, expanding and
+collapsing a cell. When it collapses a cell whose text has changed, it calls the commit
+handler. It does not decide anything about types, values or files.
+
+### 8.3 Accepting three switches rather than building a registry
+
+A type name will end up appearing in three places: the sort comparator, the cell renderer and
+the value writer. Each will have a small switch on the type.
+
+The tidy-minded alternative is one object per type holding all three behaviours together, so
+that adding a type is a single edit. **We should not do that**, for two reasons. It would put
+HTML-producing code and file-writing code in the same object, which is exactly the layer mix
+the codebase avoids. And the app already has three switches on the same four types today, and
+it has caused no trouble.
+
+So: three switches, kept honest by the single list of legal names in `constants.js`. Adding a
+type means three small edits in three obvious places, and each one is readable on its own.
+
+Worth revisiting only if a fourth or fifth switch appears, or if a real bug is caused by two
+of them disagreeing. Not before.
+
+### 8.4 Rough sizes, as a smell test
+
+Every new file above should come in under about eighty lines, which is where most of this
+codebase sits. **If one grows much past that, it is doing two jobs and should be split.** The
+most likely candidate is `save-cell-edit.js`, since it is the one that co-ordinates the
+others.
+
+### 8.5 The full list
+
+| file | new? | why |
+|---|---|---|
+| `public/js/services/file-parsing/yaml-parse.js` | edit | steps 1 and 2, the parser fixes |
+| `public/js/constants.js` | edit | the list of legal type names |
+| `public/js/services/store.js` | edit | the origin field on the property schema |
+| `public/js/services/property-type.js` | **new** | the one answer to "what type is this" |
+| `public/js/services/file-object-sort.js` | edit | ask the new module instead of the schema |
+| `public/js/ui/ui-functions-search/a-create-filter-object.js` | edit | same |
+| `public/js/ui/ui-functions-search/a-search-every-property.js` | edit | same |
+| `public/js/ui/ui-functions-table/render-table-columns-helper.js` | edit | carry the type onto each column |
+| `public/js/ui/ui-functions-table/render-table-rows.js` | edit | hand cell contents to the new renderer |
+| `public/js/ui/ui-functions-table/render-cell-value.js` | **new** | value plus type becomes cell contents |
+| `public/js/ui/ui-functions-click/column-menu.js` | edit | room for the type option |
+| `public/js/ui/ui-functions-click/column-type-set.js` | **new** | the user picked a type |
+| `public/js/table-layouts/layout-apply.js` | edit | save and load the type with the layout |
+| `public/js/services/file-parsing/yaml-key-span.js` | **new** | find a key's lines in the front matter |
+| `public/js/services/file-parsing/yaml-value-write.js` | **new** | value plus type becomes text to write |
+| `public/js/editing/save-cell-edit.js` | **new** | the whole save sequence, in one place |
+| `public/js/ui/ui-functions-click/cell-edit-commit.js` | **new** | the user finished editing a cell |
+| `public/js/ui/ui-functions-click/cell-expand.js` | edit | call the commit handler when collapsing |
+| `public/js/ui/event-listeners-add.js` | edit | register the two new actions |
+| `public/js/editing/refresh-file-state.js` | edit | step 12, the re-sorting decision |
+| `public/css/` | new file | any styling for a mismatched cell or an editing cell |
+| `CLAUDE.md` | edit | the "adding a new file property" recipe changes |
+| `manifest.json` | edit | a minor bump per code-changing step |
+
+Seven new files, all small, all in folders that already exist. No new folder, and no file
+doing more than one job.
 
 ## 9. Conventions to hold to
 
 - No new dependencies, no build step, no framework. Vanilla modules and plain CSS.
-- One file, one job. The types module holds type behaviour and nothing else. The front matter
-  writer holds writing and nothing else.
-- Services do not touch the page. Renderers hold no logic. Click handlers stay thin.
+- One file, one job, and under about eighty lines. See §8 for where each job goes.
+- Services do not touch the page. Renderers hold no logic. Click handlers stay thin. This is
+  the rule that decides the whole file layout in §8, so it is the one to hold hardest.
+- Each new module gets a `@file` comment saying **why** it exists, not what it does, matching
+  the ones already in `file-parsing/` and `table-layouts/`.
+- New CSS goes in its own component file, never bolted onto an existing one.
 - All state stays in `appState`.
 - JSDoc on everything exported.
 - Bump the manifest minor version on every code change.
