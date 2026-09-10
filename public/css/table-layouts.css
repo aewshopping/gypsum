@@ -8,6 +8,7 @@
     font-family: var(--fontfam-app-input);
     font-size: 0.89375em;
     opacity: 0.7;
+    text-wrap: nowrap;
 }
 
 /* A layout row: the name takes the free space and the two icons sit hard against the right edge,
@@ -132,30 +133,8 @@
 .table-controls {
     width: fit-content;
     padding-inline: 8px;
-    border: 2px solid color-mix(in srgb, var(--colour-contr) 25%, transparent);
     border-radius: 6px;
-}
-
-/* The layout's name, and the button that lists the others. Understated: a fill and no border, so
-   it reads as a place to look before it reads as a thing to press — and so it does not compete
-   with the two icon buttons beside it, which have no border either. */
-#layout-name {
-    font-family: var(--fontfam-app-input);
-    font-size: 0.89375em;
-    padding: 3px 8px;
-    border: none;
-    border-radius: 4px;
-    background-color: var(--colour-neutral-alt);
-    color: var(--colour-contr);
-    cursor: pointer;
-
-    &:hover {
-        box-shadow: var(--hover-box-shadow);
-    }
-
-    &:focus-visible {
-        outline: 2px solid var(--colour-contr);
-    }
+    border:none;
 }
 
 /* The list of layouts, hung under the name it belongs to. Its chrome and its small-screen bottom
