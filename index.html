@@ -570,13 +570,35 @@
        logic of its own. Static markup, and outside #output, so a re-render cannot destroy it
        mid-interaction. -->
   <dialog id="modal-columns" class="info-modal" closedby="any">
-    <!-- Only this dialog uses the grip and the type glyph, so they live here rather than in the
-         shared sprite. The glyph is one generic mark for every type rather than one per type:
-         four legible symbols is real work, and the row's tooltip carries the actual type. -->
+    <!-- Only this dialog uses the grip and the type glyphs, so they live here rather than in the
+         shared sprite. One per type, and named for the stored type name: column-picker-list.js
+         builds the href from the column's type, so a new type means a symbol whose id matches it.
+
+         The list glyph is bulleted rather than three plain rules, which is what the grip on the
+         same row already is. Two icons a row apart should not be the same drawing. -->
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-      <symbol id="icon-type" viewBox="0 0 50 50">
+      <!-- text: a capital T -->
+      <symbol id="icon-type-string" viewBox="0 0 50 50">
         <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
-          <path d="M13 14.5h24M25 14.5v21"/>
+          <path d="M13 15h24M25 15v20"/>
+        </g>
+      </symbol>
+      <!-- number: a hash, slanted the way one is written -->
+      <symbol id="icon-type-number" viewBox="0 0 50 50">
+        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+          <path d="M21 13l-4 24M34 13l-4 24M13 21h25M12 29h25"/>
+        </g>
+      </symbol>
+      <!-- date: a calendar, its two hangers over a ruled header -->
+      <symbol id="icon-type-date" viewBox="0 0 50 50">
+        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+          <path d="M12 16h26v22H12zM19 11v8M31 11v8M12 26h26"/>
+        </g>
+      </symbol>
+      <!-- list: three items, each with its own bullet -->
+      <symbol id="icon-type-array" viewBox="0 0 50 50">
+        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+          <path d="M13 16h2M23 16h14M13 25h2M23 25h14M13 34h2M23 34h14"/>
         </g>
       </symbol>
       <symbol id="icon-drag" viewBox="0 0 50 50">

@@ -68,6 +68,30 @@ test('every picker row carries a type glyph, and it says what the column is', as
   await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, exact match');
 });
 
+// The glyph is drawn per type, so the list can be read down rather than one tooltip at a time.
+// Both the renderer and the popover build the symbol id from the stored type name; this is what
+// stops them drifting into drawing different glyphs for the same type.
+test('the glyph is drawn for the type, and follows a change', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+
+  const glyphHref = property => pickerRow(page, property).locator('.column-picker-type use');
+  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-string');
+  await expect(glyphHref('lastModified')).toHaveAttribute('href', '#icon-type-date');
+  await expect(glyphHref('sizeInBytes')).toHaveAttribute('href', '#icon-type-number');
+  await expect(glyphHref('tags')).toHaveAttribute('href', '#icon-type-array');
+
+  await pickerRow(page, 'due').locator('.column-picker-type').click();
+  await page.selectOption('#column-type-select', 'date');
+  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-date');
+
+  // and it survives the row being redrawn from the layout
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+  await openPicker(page);
+  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-date');
+});
+
 // Every row has one of these buttons, and a shared anchor name resolves to the LAST matching
 // element in the document — so without the one-at-a-time attribute the popover would hang off the
 // bottom row whichever glyph was clicked.

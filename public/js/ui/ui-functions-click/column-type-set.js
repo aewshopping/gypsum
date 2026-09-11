@@ -108,7 +108,7 @@ export function handleColumnTypeSet() {
     const { type } = elements();
     _row.dataset.type = type.value;
     applySearchAvailability();
-    updateTip();
+    updateGlyph();
 }
 
 /**
@@ -118,18 +118,23 @@ export function handleColumnTypeSet() {
 export function handleColumnSearchTypeSet() {
     const { search } = elements();
     _row.dataset.searchType = search.value;
-    updateTip();
+    updateGlyph();
 }
 
 /**
- * Keeps the glyph's tooltip saying what the column is now, since the glyph itself does not change.
+ * Redraws the row's glyph and rewrites its tooltip for what the column is now.
+ *
+ * The symbol's id is built from the stored type name, the same way column-picker-list.js builds
+ * it, so the two cannot render different glyphs for the same type.
  * @returns {void}
  */
-function updateTip() {
+function updateGlyph() {
     const { type, search } = elements();
+    const button = _row.querySelector('.column-picker-type');
     const typeLabel = type.selectedOptions[0].textContent;
-    _row.querySelector('.column-picker-type').dataset.tip =
-        type.value === VALUE_TYPES.ARRAY.value
-            ? `${typeLabel}, ${search.selectedOptions[0].textContent}`
-            : typeLabel;
+
+    button.querySelector('use').setAttribute('href', `#icon-type-${type.value}`);
+    button.dataset.tip = type.value === VALUE_TYPES.ARRAY.value
+        ? `${typeLabel}, ${search.selectedOptions[0].textContent}`
+        : typeLabel;
 }

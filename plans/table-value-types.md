@@ -10,7 +10,7 @@ giving the table a real idea of what a value *is*, and letting you change values
 This half is the first job. Nothing here writes to a file. §6 lists what was cut in the split
 and why.
 
-Status: **built**, at manifest version `1.182.0`. §7 records where the code differs from what this
+Status: **built**, at manifest version `1.183.0`. §7 records where the code differs from what this
 plan said it would be.
 
 ---
@@ -265,10 +265,13 @@ correcting a default that did not suit.
 shape whichever column it was opened from. Nothing else in the app searches by whole values, so the
 choice is meaningless on the other four types.
 
-**The icon is one glyph, not four.** A glyph per type would scan nicely but means four new symbols
-in the sprite, each legible at icon size, and a choice about what a date or a list looks like.
-Start with one generic glyph and put the current type in its tooltip, the way the grip and the bin
-already carry theirs. Per-type glyphs are a later polish if scanning the list turns out to matter.
+**A glyph per type**, so the list can be read down rather than one tooltip at a time: a T, a hash,
+a calendar and a bulleted list. Each symbol is named after the stored type name, and both the row
+renderer and the popover build the id from it, so they cannot drift into drawing different glyphs
+for the same type. The tooltip still carries the words, the way the grip and the bin already do.
+
+**The list glyph is bulleted rather than three plain rules**, which is what the drag grip on the
+same row already is. Two icons a row apart should not be the same drawing.
 
 **Show it on every row, with no exceptions.** Read-only properties, always-on columns and dead
 columns all get one. Setting the type of `lastModified` to text is pointless, but §1.2 means it

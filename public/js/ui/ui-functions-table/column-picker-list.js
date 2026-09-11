@@ -43,7 +43,8 @@ function labelFor(group, value) {
  * is a grid and that box is its last track.
  *
  * The type glyph sits in that box too, and on every row without exception — read-only properties,
- * always-on columns and dead ones included. Setting the type of lastModified is pointless, but a
+ * always-on columns and dead ones included. It is drawn per type, from a symbol named after the
+ * stored type name, so the list can be read down rather than one tooltip at a time. Setting the type of lastModified is pointless, but a
  * type change never writes a file, so nothing can be damaged by it, and a rule with no exceptions
  * is one less thing to read the code for.
  *
@@ -92,7 +93,7 @@ export function renderColumnPickerList() {
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<span class="column-picker-actions">` +
                    `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-menu" data-tip="${typeTip}">` +
-                     `<svg class="info-modal-row-icon"><use href="#icon-type"></use></svg></button>` +
+                     `<svg class="info-modal-row-icon"><use href="#icon-type-${column.type}"></use></svg></button>` +
                    bin +
                    `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +
                  `</span>` +
