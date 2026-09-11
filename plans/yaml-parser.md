@@ -8,6 +8,10 @@ This plan is the write-up of a design discussion. Nothing here has been built ye
 lifted unchanged from §4 of the types plan**, which is where these bugs were first written
 down. Everything after it is new.
 
+**Read §2.3 before §7.** This started as a plan to make the parser faster. Measured in the real
+app, the whole YAML path is under 3% of a folder load, and most of the speed work is declined in
+§7 on readability grounds. What is left is a correctness plan.
+
 ---
 
 ## 0. Bugs found in the front matter parser while discussing this
@@ -75,8 +79,9 @@ hundreds or thousands of files. A millisecond per file is a second of blank scre
 
 One consequence worth stating plainly, because it decided most of what follows: **those two rules
 point the same way far more often than they conflict.** The measurements in §2 show the syntax
-being asked for costs nothing, and that what the parser does spend its time on has nothing to do
-with YAML.
+being asked for costs nothing — and, less comfortably, that the parser is not where a folder load
+spends its time at all, so the second rule turns out to constrain far less than it looked like it
+would.
 
 ---
 
@@ -136,50 +141,50 @@ does not need:
 | full parse, 45KB with front matter | 7.3 µs | 2.5 µs | 3× |
 | full parse, 45KB no front matter | 3.3 µs | 0.26 µs | 13× |
 
-The line indices that `parse-content.js` and the diff highlighter need are still returned: the
-walker counts lines as it goes. **Nothing downstream has to change to get this.**
+**This prototype is not recommended, and §7.3 says why.** The table is kept because it is the
+measurement that has to be weighed against readability, and because it is what §2.3 goes on to
+put in proportion. Read both before judging it.
 
-### 2.3 But the YAML work is not what makes a folder slow
+### 2.3 In the real app, none of it registers
 
-**This is the figure that decides how much any of the above is worth, and it is the one it would
-have been easiest not to measure.** The load path was never O(front matter) and removing these
-splits will not make it so, because `parseFileContent` runs a global `matchAll` for titles, tags
-and links over the whole body, and `getContentPeek` splits the whole file with a regex to read
-about three lines from it. Per file, on realistic prose with a handful of tags in it:
+**Everything above is measured in isolation, and measuring it in isolation is what made it look
+important.** Run the load path as the app actually runs it — in Chromium, against real files,
+serially, the way `directory-handler.js` awaits one file at a time — and the picture inverts.
 
-| | 4KB note | 40KB note |
+| | 500 notes of 4KB | 200 notes of 40KB |
 |---|---|---|
-| YAML path, the three splits | 7.3 µs — 19% | 36.6 µs — 11% |
-| `getContentPeek` regex split | 4.9 µs — 12% | 41.2 µs — 12% |
-| title/tag/link `matchAll` | 27.2 µs — 69% | 253.3 µs — 77% |
-| **total per file** | **39.4 µs** | **331.1 µs** |
+| whole load, `getFileDataAndMetadata` per file | 527 ms | 285 ms |
+| of that, `getFile()` + `text()` | 381 ms — 72% | 197 ms — 69% |
+| of that, the entire YAML path | 4.5 ms — **0.9%** | 8.0 ms — **2.8%** |
+| of that, `getContentPeek`'s split | 1.6 ms — 0.3% | 3.4 ms — 1.2% |
 
-So the honest size of the prize: **removing all three splits saves 10% to 15% of folder load**,
-not a multiple of it. A folder of 500 notes averaging 40KB spends about 165 ms in
-`getFileDataAndMetadata`, of which roughly 18 ms is YAML and roughly 125 ms is the tag scan.
+**The bottleneck is the File System Access API, and it is not close.** `directory-handler.js`
+awaits `getFileDataAndMetadata` one file at a time, and each of those awaits `handle.getFile()`
+and then `file.text()`. Two round trips per file, serialized. That is roughly 70% of the load,
+and this measurement is against OPFS, which is about the fastest backing store the API has — a
+real folder, especially a cloud-synced one, is slower still.
 
-Two things follow, and they pull in opposite directions.
+So the honest size of the prize: **deleting every split discussed in this document saves about
+6 ms of a 527 ms load.** Nobody will ever see it.
 
-**Against doing the speed work for its own sake:** 10% of a load is not something anyone will
-see. If the only argument for §7.1 were speed, it would not be worth the churn.
+Two corrections to the earlier drafts of this section, both worth keeping visible so the mistake
+is not made a third time:
 
-**For doing it anyway:** it is not the only argument. The same change is what makes the reverse
-direction in §5 possible at all, since a parser that splits into an array has thrown away the
-character offsets a splice needs. The speed is a by-product of the shape the writer requires.
-**That is the reason to do it, and the 10% is a bonus.**
+- An earlier version claimed the rewrite makes the load path stop scaling with file size. It does
+  not. The title, tag and link `matchAll` in `parseFileContent` is genuinely O(body) and has to
+  be, since a tag can appear anywhere in a note.
+- An earlier version put the YAML path at 11–19% of load. That was a Node micro-benchmark with
+  no I/O in it. With the I/O that the real loop cannot avoid, it is 1–3%.
 
-And a third thing, out of scope but worth writing down where it will be found. **`getContentPeek`
-is this plan's own mistake in different code**: it splits a 40KB file into an array of lines to
-read about three of them, and a walk that stops at 130 characters would cost nothing. The tag
-`matchAll` is a different matter — it is genuinely O(body) and has to be, since a tag can appear
-anywhere in a note. The only waste there is that it also scans the front matter block, which the
-bounds from §7.1 would let it skip. Neither belongs in this plan. Both belong in a plan.
+**If speed were the only argument in this document, the answer would be to close it and do
+nothing.** §7 is written on that basis.
 
 ### 2.4 What the syntax costs
 
-Nothing, which is the single most useful figure here. **The prototype behind every number above
-already supports flush lists, flow lists and tabs.** Its 2.5 µs parse is with all three in place.
-Adding them does not register against the splits being removed in the same change.
+Nothing, which is now the only speed figure here that matters. **The prototype behind every
+number above already supports flush lists, flow lists and tabs.** They add about twenty lines and
+do not register against a load that is 70% file I/O. Whatever is decided about §7, **§3 and §6
+are not a speed question at all** and should not be argued as one.
 
 ---
 
@@ -307,14 +312,25 @@ comments. Two implementations of that will agree on the day they are written and
 afterwards, and the drift is not a wrong display — it is a write into the wrong bytes of
 somebody's note. There is one definition of where a value ends, and it should exist once.
 
-**It is also nearly free to build**, given the §2 rewrite. A parser that walks the raw string with
-`indexOf` instead of splitting it into an array is already holding the character offsets. Today's
-parser cannot do this at all: it threw the offsets away the moment it called `split`.
+**And it does not need the rewrite in §7.1.** An earlier draft argued that it did — that a split
+throws away the character offsets a splice needs, so the parser had to stop splitting first. That
+is wrong, and it was the last argument propping up the speed work.
 
-**This is the load-bearing argument for §7.1, not the 10%.** §2.3 is honest that the speed saving
-alone would not justify the churn. What justifies it is that a splice needs character offsets, a
-split destroys them, and so the parser has to stop splitting before anything can be written back.
-They are one piece of work, and the speed is what falls out of it.
+The offsets can be carried alongside the existing `split("\n")` with a running counter:
+
+```js
+const lineStart = offset;
+offset += line.length + 1;
+```
+
+Three lines. Prototyped and checked, including a splice of a multi-line list and a CRLF file:
+`tags` in a four-line block comes back with the span `"\n  - web\n  - prod"`, and replacing it
+produces exactly the intended text with every other byte untouched. `split("\n")` is safe for
+this because it is the only split that preserves length exactly — a `\r` stays on the end of the
+line and counts. `split(/\r?\n/)` would not be.
+
+**So §5 can be built on today's parser structure.** That is the right thing to know before
+deciding §7, and it is why §7 now recommends against most of itself.
 
 Two things this deliberately does not try to be:
 
@@ -390,70 +406,139 @@ better outcome on both counts.
 
 ---
 
-## 7. Other ways of making it faster
+## 7. Other ways of making it faster, and whether to bother
 
-### 7.1 The ones worth doing
+**Recommendation: mostly no.** §2.3 measured the whole YAML path at 0.9% to 2.8% of a real folder
+load, against 70% spent waiting on the File System Access API. §5 then removed the one non-speed
+argument that was carrying this section. What is left is genuine but small, and some of it costs
+readability, which this codebase values more than microseconds.
 
-All three are the same idea: stop touching the body of the note. Together they are §2.3's 10% to
-15% of load, and — the actual reason to do them — the shape the reverse direction in §5 needs.
+Judged one at a time rather than as a block.
 
-1. **Find the block with `indexOf`, not `split`.** §2.2's table. The largest of the three, and
-   the only one that enables anything.
-2. **Stop after five lines when looking for the opening separator.** The rule already says the
-   block must start there. Currently a file with no front matter is scanned to its last line
-   before that rule is applied.
-3. **Compute the bounds once per file and pass them down.** `file-info.js` already has the
-   indices before it calls `parseYaml`, which then works them out again from scratch. Same for
-   `parse-content.js`, which finds them, then calls `replaceFrontMatter` which finds them again,
-   and `renderFrontmatterProperties` which finds them twice more. Threading one result through is
-   less code than the duplicate calls it removes.
+### 7.1 Do it — because it is a correctness fix that happens to be faster
 
-**On the render path, `replaceFrontMatter` can then stop splitting too**, since two `slice` calls
-around the block's character offsets do what splitting, splicing and joining an array of lines
-currently does. That is tidiness rather than speed — the render path handles one file on a click
-— but it removes the last place that splits a whole file to touch a dozen lines.
+**Bound the search for the opening separator to the first five lines.** `findFrontMatterIndices`
+uses `findIndex` over every line in the file, then rejects the answer if it turns up after line
+5. That is already being changed for §6.1, where the same loop has to stop a setext heading
+claiming the block. Once it is a bounded loop, a file with no front matter stops being scanned to
+its last line for free.
 
-### 7.2 The one that is marginal, and worth it only for the bug it fixes
+**Verdict: yes, but file it under §6 rather than here.** It is being done anyway and the speed is
+incidental.
+
+### 7.2 Do it — because it removes duplicated work, not because it is fast
+
+**Compute the front matter bounds once and pass them down.** `file-info.js` finds the indices,
+then calls `parseYaml`, which finds them again from scratch. `parse-content.js` finds them, calls
+`replaceFrontMatter` which finds them again, and `renderFrontmatterProperties` which finds them
+twice more. **Five calls per render where one would do.**
+
+**Verdict: yes, on clarity grounds.** Someone reading `parse-content.js` cold currently has to
+work out whether those calls can disagree with each other. They cannot, but having to check is
+itself the cost. The saving is a fraction of the 0.9%.
+
+### 7.3 Don't — the `indexOf` rewrite
+
+**Replacing `split` with a walk over the raw string.** This was the centrepiece of the first two
+drafts. It is 7× to 48× faster at finding the bounds, and that is worth **about 5 ms on a 527 ms
+load.**
+
+Against it:
+
+- It costs readability. `lines.findIndex(line => line.trim() === '---')` says what it does at a
+  glance. A hand-rolled scanner with `indexOf`, offset arithmetic and its own separator
+  comparison does not, and this codebase's stated aim is that any file can be understood cold in
+  a minute.
+- Its one non-speed justification is gone. §5 shows the spans can be had for three lines on top
+  of the existing structure.
+
+**Verdict: no.** If the app ever loads folders where this is felt, the fix is to stop awaiting
+files one at a time, not to stop splitting strings.
+
+### 7.4 Don't — `getContentPeek`
+
+Added here at request, since it was found while measuring the above and it is the same shape of
+mistake.
+
+`getContentPeek` in `file-info.js` runs `fileContent.split(/\r?\n/)` on the whole file, then
+reads lines until it has about 130 characters. **It splits a 40KB note into roughly 550 strings
+to look at three of them.** `getInitialTitle` does the same on the path where a note has no H1.
+
+Measured in Chromium over the same files as §2.3:
+
+| | 500 notes of 4KB | 200 notes of 40KB |
+|---|---|---|
+| the split as it stands | 1.6 ms — 0.3% of load | 3.4 ms — 1.2% of load |
+| a walk that stops at 130 characters | 0.3 ms | 0.1 ms |
+
+**Verdict: no, and this one is the clearest no in the document.** It would save about 3 ms on a
+folder that takes 285 ms, and the replacement is harder to read than the thing it replaces: the
+current function is a plain loop over an array of lines, and a character walk with its own
+newline arithmetic is not. **A 1% saving is not worth making a readable function less readable.**
+
+Worth recording rather than acted on. If `getContentPeek` is ever touched for another reason,
+the bounded walk is what it should become, and the figures are here.
+
+### 7.5 Do it — but only for the bug
 
 **Reject a number by its first character before calling `Number()`.** A value can only be a
-number if it starts with a digit, `-`, `+` or `.`. Measured over a realistic mix of ten front
-matter values: 0.162 µs for the batch as it stands, 0.097 µs with the fast reject. Around 6 ns
-per value, so **roughly 2% of a parse — not a reason to do it on its own.** Do it for §6.5, and
-take the 2%.
+number if it starts with a digit, `-`, `+` or `.`. Around 6 ns per value, roughly 2% of a parse
+that is itself 1% of load — **which is to say, nothing at all.**
 
-### 7.3 The ones not worth doing
+**Verdict: yes, for §6.5.** `note: Infinity` currently becomes the numeric `Infinity`, and the
+first-character check is the tidiest way to stop it. Three lines, and the speed is a rounding
+error on a rounding error. Do not describe it as an optimisation.
+
+### 7.6 Don't — the rest
 
 Written down so they are not rediscovered and tried.
 
-- **Hand-rolled trimming instead of `line.trim()`.** Measured at 12 ns per line against 9 ns.
-  Three nanoseconds a line, for indices to carry through the whole function. No.
-- **Regex instead of the character loop.** The loop is already faster than the regex engine's
-  setup for work this small, and far easier to read.
-- **Caching parse results by file content.** The parser is about to cost a microsecond. A cache
-  key would cost more than the thing it caches, and cache invalidation is a whole new way to show
-  someone stale data.
-- **Parsing lazily, on first access.** Every loaded file's front matter is read immediately for
-  property registration and the table, so nothing would ever stay unparsed.
+- **Hand-rolled trimming instead of `line.trim()`.** Three nanoseconds a line, for offset indices
+  to carry through the whole function.
+- **Regex instead of the character loop.** Already slower at this size, and harder to read.
+- **Caching parse results by file content.** The parse is 9 µs a file. A cache key would cost
+  more than the thing it caches, and cache invalidation is a new way to show someone stale data.
+- **Parsing lazily.** Every file's front matter is read immediately for property registration and
+  the table, so nothing would stay unparsed.
+
+### 7.7 Where the time really is, if it ever matters
+
+Not this plan's to fix, but this is where the measurement points and it should not be lost.
+
+`directory-handler.js` awaits `getFileDataAndMetadata` one file at a time, and each call awaits
+`handle.getFile()` then `file.text()`. **Two serialized round trips per file, about 70% of the
+load.** Reading in batches with `Promise.all` over a window of files is where a folder load would
+actually get faster, by a lot more than everything in this section combined.
+
+It is a bigger and riskier change than anything here — it touches ordering, the progress
+indicator and the unreadable-file handling — and it belongs in its own plan. **But if the reason
+for reading this section was "make loading faster", that is the plan to write instead.**
 
 ---
 
 ## 8. What this adds up to
 
-The parser gets **smaller in behaviour and simpler in shape**, not larger:
+**This stopped being a performance plan somewhere in §2.3.** What survives is a correctness plan
+with a small amount of new syntax, and it is better for the loss.
 
-- one walk over the front matter region, never over the note
-- one definition of where a value ends, serving both reading and writing
-- three shapes it used to reject that it now accepts, two of which cost no code at all
+What gets built:
+
+- three shapes the parser used to reject and now accepts — flush lists, flow lists, tabs — of
+  which two need no code aimed at them at all
 - four silent failures that start reporting themselves
+- one piece of data loss fixed, where a setext heading eats the top of a note
+- character offsets for every key, which is what lets a cell edit rewrite one value and leave
+  every other byte of the file alone
 
-The added code is the flow-list scan (~15 lines), the dash-first reordering (a moved branch), the
-`spans` out-param (a handful of lines), and three small error cases. Against that, the
-`getFrontMatterLines` indirection goes away entirely and the duplicate bounds calls go with it.
+What does not get built, having been measured: the `indexOf` rewrite, the `getContentPeek` walk,
+and every micro-optimisation in the parse loop. §7 has the numbers and the reasoning for each.
 
-**Speed is not the headline, despite §2 being the longest section.** The parser's share of a
-folder load is 10% to 15%, and §2.3 names the two things that are bigger. What this buys is a
-parser that accepts the front matter people actually write, says so when it cannot, and holds the
-character offsets that writing a value back requires. The 10% comes along with it.
+**Net code:** roughly plus forty lines. The flow-list scan is about fifteen, the spans counter
+three, the error cases about ten, and the rest is a moved branch and a few characters. Nothing is
+deleted, which an earlier draft promised and §7.3 has now withdrawn.
+
+**The parse loop keeps its shape.** It still splits the block into lines and walks them, because
+that is the version a person can read.
 
 ---
 
@@ -469,32 +554,25 @@ is wrong.
 
 ### Step 1 — Stop the parser leaving empty placeholder objects behind
 
-Unchanged from step 1 of the types plan; §6.2. Smallest change here, stands entirely alone, and
-turns every failure in §0 from `[object Object]` into a blank cell plus the error already being
-recorded.
+§6.2, and unchanged from step 1 of the types plan. A key whose nesting never arrived stores
+nothing rather than `{}`. Smallest change here, stands entirely alone, and turns every failure in
+§0 from `[object Object]` into a blank cell plus the error already being recorded.
 
-### Step 2 — Replace the bounds finder
+### Step 2 — Tighten where the front matter block may start
 
-A `findFrontMatterBounds` that walks the raw string, stops at five lines if no opening separator
-has appeared, and returns **both** the line indices the current callers need **and** the character
-offsets of the block body. Tighten the opening-separator rule per §6.1 in the same step, since it
-is the same function and the same test.
+§6.1. Allow the opening `---` only at line 0 or preceded solely by blank lines, and make the
+search a bounded loop rather than a `findIndex` over the whole file (§7.1).
+
+**This is the data-loss fix**, not a speed step: a note using setext-underlined headings
+currently has its first two paragraphs read as front matter and deleted from the rendered view.
 
 **Care needed:** `parse-content.js` and `marked-source-tracking-renderer.js` depend on the line
-indices for diff highlighting. Those must keep meaning exactly what they mean now.
+indices for diff highlighting. They must keep meaning exactly what they mean now.
 
-### Step 3 — Parse from the bounds instead of from a split file
+### Step 3 — Compute the bounds once
 
-`parseYaml` takes the block from the bounds and walks it. `getFrontMatterLines` and its module go
-away. Thread the already-computed bounds through from `file-info.js` and `parse-content.js` per
-§7.1 item 3.
-
-**No behaviour change in this step**, and it is the step whose payoff is easiest to overstate:
-it buys about 10% of a folder load (§2.3) and the character offsets step 8 cannot be built
-without. Its test is that everything else still passes.
-
-`replaceFrontMatter` can lose its split in the same step, per §7.1. It is the only caller that
-genuinely removes and reinstates the block, and two `slice` calls do it.
+§7.2. Thread one result through `file-info.js` and `parse-content.js` instead of recomputing it
+up to five times per render. **A clarity step with a speed side effect too small to mention.**
 
 ### Step 4 — Fix the dash line
 
@@ -515,18 +593,24 @@ where a mis-indented file most often ends up.
 
 ### Step 7 — The first-character number reject
 
-§7.2 and §6.5 together.
+§7.5 and §6.5 together. Filed as a bug fix, not an optimisation.
 
 ### Step 8 — The `spans` out-param
 
-§5. Nothing consumes it yet. Build and test it on its own, before anything writes through it —
-a bug here damages files. This is step 8 of the types plan arriving from the other direction, and
-it replaces that step rather than sitting beside it.
+§5, built on the existing split with a running offset. Nothing consumes it yet. Build and test it
+on its own, before anything writes through it — a bug here damages files. This is step 8 of the
+types plan arriving from the other direction, and it replaces that step rather than sitting
+beside it.
 
 ### Step 9 — Tests
 
 Fixtures for each accepted shape, each recorded error, and the setext note in §6.1. Worth a
 fixture per row of §0's table specifically, since that table is the reason this plan exists.
+
+### Not a step — the speed work
+
+§7.3, §7.4 and §7.6, all measured and all declined. §7.7 names the change that would actually
+make loading faster, and it is not in this plan.
 
 ---
 
@@ -534,9 +618,12 @@ fixture per row of §0's table specifically, since that table is the reason this
 
 - **No new dependency, no new syntax the app does not use.** Every shape added here is one that
   real notes in real folders already contain.
-- **The parser stays one file.** It is currently three modules for one job; §9 makes it one. That
-  is the direction of travel, not a new folder.
 - **Every rejection records a reason.** The forgiving behaviour is right, but silence is not —
   four of the faults in this document were invisible, and the invisible ones cost the most.
-- **The parse loop stays readable.** §7.3 exists so that a future reader does not trade clarity
-  for nanoseconds. The speed came from doing less work, not from writing denser code.
+- **Readability beats microseconds, and §7 is the worked example.** Three proposals were dropped
+  after being measured, including the one this plan was originally built around. A change that
+  makes a function harder to read needs a reason other than speed, and on this load path — 70% of
+  which is waiting on the file system — speed is almost never that reason.
+- **Measure in the app, not in isolation.** Every wrong number in the drafts of this plan came
+  from benchmarking a function on its own. The figures that changed the recommendation came from
+  running the real load path in a real browser.
