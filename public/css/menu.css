@@ -49,6 +49,21 @@
     }
 }
 
+/* Marks the item in force, with the arrow the option checkmarks and the table's sort indicator
+   already use. The gutter is a fixed width whether or not the arrow is in it, so the labels line
+   up down the list. Only menus whose items are a choice write aria-current, so only they get the
+   gutter. */
+.app-menu-item[aria-current]::before {
+    content: "\279C";   /* U+279C ➜ */
+    display: inline-block;
+    width: 1.3em;
+    opacity: 0;
+}
+
+.app-menu-item[aria-current="true"]::before {
+    opacity: 0.6;   /* the resting weight every icon glyph sits at — see button-base.css */
+}
+
 /* On a phone a menu becomes a sheet across the bottom of the screen, rather than hanging off a
    control that may be narrower than a thumb. 600px is the width the rest of the app already
    treats as a small screen — see modal-backdrop.css, which gives dialogs the full screen at the

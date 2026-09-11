@@ -1,0 +1,56 @@
+/* The column type dialog: which type a column is read as, and how a list column is searched.
+
+   Its frame, title and close button come from modal-info.css, as every other dialog's do. What is
+   here is the two lists and the headings over them.
+
+   The rows are .app-menu-item, the app's one-line selectable row, which already carries the arrow
+   that marks the current choice (see menu.css). This dialog is two lists of exactly that, so it
+   borrows the row rather than growing a third near-identical one beside .layout-row. */
+
+/* Narrow: the widest thing in it is "exact item match". Capped against the viewport the way
+   #modal-columns is, so it never reaches the edge of a small screen. */
+#modal-column-type {
+    max-width: min(300px, calc(100vw - 32px));
+}
+
+/* .app-menu-item is a flex child in a menu and relies on that to stack; in a plain container it is
+   an inline-block button again and the options run across the dialog in a row. */
+.column-type-group {
+    display: flex;
+    flex-direction: column;
+}
+
+/* The glyph on a type row: the same drawing the table header and the picker row show for that
+   type, so the three places cannot describe a column differently. Sized and weighted as they are.
+   It sits between the arrow gutter and the word, which is what lets this list do without a heading
+   over it. */
+.column-type-option-glyph {
+    flex-shrink: 0;
+    width: 1.6em;
+    height: 1.6em;
+    margin-right: 6px;
+    vertical-align: -0.45em;
+    color: var(--colour-contr);
+    opacity: 0.45;
+}
+
+/* How a list is searched only means anything for a list, so these two sit under the row they
+   belong to rather than beside it. The indent is what says so, and it has to clear the glyph as
+   well as the words: at the glyph's own width the two sets of labels came out level, which reads
+   as a second list rather than a nested one. */
+.column-type-search-group {
+    padding-left: 3.6em;
+}
+
+/* A little air between the rows, so a filled one reads as one row rather than as part of a block
+   with its neighbours. The same 2px the layouts modal gives its rows. */
+#modal-column-type .app-menu-item {
+    margin-block: 2px;
+}
+
+/* Filled as well as arrowed, the way the layouts modal marks the layout in use: this dialog is how
+   you set the type, so which one it is on has to survive a glance rather than needing to be read. */
+#modal-column-type .app-menu-item[aria-current="true"],
+#modal-column-type .app-menu-item[aria-current="true"]:hover {
+    background-color: color-mix(in srgb, var(--colour-contr) 12%, transparent);
+}

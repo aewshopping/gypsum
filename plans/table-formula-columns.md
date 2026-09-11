@@ -2,7 +2,7 @@
 
 Status: **not started — and should not start yet.** See §1.1.
 Branch: `claude/table-view-customization-dduz7q`
-Related: `plans/table-column-resize.md`, `plans/table-json-export.md`
+Related: `plans/completed/table-column-resize.md`, `plans/table-json-export.md`
 
 ---
 
@@ -27,7 +27,7 @@ sorting or filtering by a formula column, mapping over a whole array of links.
 ### 1.1 This depends on saved layouts — build that first
 
 A formula column *is* a column definition, and column definitions belong in the saved-layout
-file (`plans/table-column-resize.md` §2). Building formula storage before layouts exist would
+file (`plans/completed/table-column-resize.md` §2). Building formula storage before layouts exist would
 create a second, parallel mechanism for "a column the user defined", which would then have to
 be merged.
 

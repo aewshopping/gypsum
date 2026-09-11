@@ -90,15 +90,66 @@ in `event-listeners-add.js` maps action names to handler functions.
   sub-directory), import it in `event-listeners-add.js`, and register it in the relevant
   action map.
 
+### Column value types
+
+A table column's type is the user's choice, stored in the saved layout, not a fact about the data.
+Three rules follow from that, and they are the ones to hold:
+
+- **The legal type names live in `VALUE_TYPES` in `constants.js`**, and nowhere else. A layout file
+  is hand-editable, so a name that is not in that list is dropped rather than honoured. One symbol
+  per type is named after it (`#icon-type-<name>`), and the table header, the column picker and the
+  type dialog all build the href from a column's type — so a new type needs a matching symbol.
+- **The type dialog (`#modal-column-type`) is reached from two places**: the glyph on a column
+  picker row, and "change type" in the table's column menu. It is a dialog rather than a menu
+  because a header cell opens one menu only, and because `showModal()` makes everything outside an
+  open dialog inert — a popover reached from the column picker was painted, looked right, and
+  swallowed every click.
+- **Nothing asks the schema directly.** `services/property-type.js` owns the order — the layout's
+  choice, then the schema, then text — and sorting, rendering and the picker all ask it.
+- **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
+  nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
+  so no confirmation is needed anywhere. See `plans/completed/table-value-types.md` §1.2.
+- **A value that does not fit its column shows its text, and the cell is marked.** `typeMismatch()`
+  says why, and there are two answers with two different fixes: `'shape'` is a list in a column of
+  single values (or the reverse), which is the column's type being wrong; `'unreadable'` is text
+  that cannot be read as the type, which is the note being wrong. Ask that function — never work it
+  out from what is on screen, because a matching text cell and a mismatched one look the same.
+- **A mismatched cell cannot be edited.** It opens so the value can be read, but takes no caret:
+  writing back a value the column cannot describe risks writing the wrong shape. It says why in the
+  cell as well as in its tooltip, because a tooltip needs a pointer. The sentence is written once,
+  by the renderer, onto `data-tip`, and `cell-expand.js` shows that same string.
+- **`TABLE_VIEW_COLUMNS.info_columns` holds the columns the app fills in itself** — the file link,
+  the size, the last modified date and the load error. They wear the info glyph, no type can be
+  chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
+  renaming from the table is wanted later, and editing a filepath would move the file.
+  **`info` sits beside a column's type rather than replacing it.** `lastModified` is still a `date`
+  and still sorts and renders as one, which is why `INFO_TYPE` lives in `constants.js` *outside*
+  `VALUE_TYPES` — that list fills the type dialog and is the set of names a layout file may legally
+  carry, and `info` belongs to neither. `propertyType()` also ignores a layout's stored type for
+  these columns, so a hand-edited file cannot stop last modified sorting as a date.
+- **`TABLE_VIEW_COLUMNS.control_columns` holds columns whose cell is a control, not a value.** The
+  file column is `internalId` wearing an open-file link, so its type, its sort order and a search of
+  it are all about an id nobody sees. All three are refused, and `shown_always` is the same fact
+  from the other side: the link is the only way to open a note from the table. Two lists rather than
+  one, because they refuse different things: an info column must stay sortable and searchable, since
+  sorting by size or by last modified is the point of having it. `internalId` is in both.
+
 ### Adding a new file property
 
 1. Add it to `FILE_PROPERTIES` in `store.js` with `type`, `column_width`, `display_order`.
+   The `type` there is a **default, not the answer** — the user can override it per column from
+   the column picker, and it is stored in the saved layout. Never read `.type` off the schema:
+   ask `propertyType()` in `services/property-type.js`, which consults the layout first.
 2. Populate it in `file-info.js` (or a new `file-parsing/` module if the logic is non-trivial).
 3. Handle its type in `file-object-sort.js` if it needs sorting.
 4. If every file carries it — i.e. you added it to the return literal in `file-info.js` rather
    than deriving it from front matter — add it to `CORE_FILE_PROPERTIES` in `store.js` too.
    That list is what registers properties when a folder holds no files.
 5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
+6. Only add `search_type` if the property is a list that must match **whole items** ("search exact
+   match" in the type dialog). Lists match on part of their text by default; `tags` is the one
+   property that opts out, so a tag pill means that one tag. Ask `propertySearchType()` rather than
+   reading the schema.
 
 ### Search / filter architecture
 

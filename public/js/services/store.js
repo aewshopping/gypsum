@@ -85,21 +85,26 @@ export const appState = {
  * Defines metadata for known - or potential - file object properties.
  * This is used to assign values to properties later (ie for sorting or rendering).
  * Should probably change this to an object so it is easier to load in new values later
- * @type {Map<string, {type: string, column_width: number, display_order: number}>}
+ * @type {Map<string, {type: string, search_type?: string, column_width: number, display_order: number}>}
  */
 export const FILE_PROPERTIES = new Map([
   ['sizeInBytes', {label: 'size', type: 'number', column_width: 120, display_order: 6 }],
   ['internalId', { label: 'file', type: 'string', column_width: 90, display_order: 0 }],
   ['title', { type: 'string', column_width: 350, display_order: 2 }],
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
-  ['lastModified', {label: 'last modified', type: 'date', column_width: 150, display_order: 4 }],
-  ['tags', { type: 'array', column_width: 200, display_order: 3 }],
+  // 175 rather than 150: the header now carries a type glyph as well as the sort chevron, and at
+  // 150 the longest default heading in the table no longer fitted beside both.
+  ['lastModified', {label: 'last modified', type: 'date', column_width: 175, display_order: 4 }],
+  // search_type pins tags to whole-item matching. It is the only property that needs to say so:
+  // a list is searched by part of its text unless it asks otherwise, and a tag pill means that
+  // one tag — clicking 'cat' must not also bring back everything tagged 'category'.
+  ['tags', { type: 'array', search_type: 'array', column_width: 200, display_order: 3 }],
   ['date', { type: 'date', column_width: 150, display_order: 5 }],
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
   ['color', { type: 'string', column_width: 150, display_order: 11 }],
-  ['people', { type: 'array', search_type: 'string', column_width: 250, display_order: 9 }],
-  ['internalLink', {label: 'links', type: 'array', search_type: 'string', column_width: 250, display_order: 10 }],
+  ['people', { type: 'array', column_width: 250, display_order: 9 }],
+  ['internalLink', {label: 'links', type: 'array', column_width: 250, display_order: 10 }],
   ['filepath', { type: 'string', column_width: 300, display_order: 12 }],
   ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 13 }],
   ['errorOnLoad', { label: 'load error', type: 'string', column_width: 200, display_order: 14 }],
@@ -163,6 +168,22 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
 export const TABLE_VIEW_COLUMNS = {
   hidden_always: ['handle', 'contentPeek'],
   shown_always: ['internalId'],
+  // Columns whose cell holds a control rather than the property's value: the file column is
+  // internalId wearing an open-file link. Its type, its sort order and a search of it would all be
+  // about an id nobody ever sees, so none of the three is offered — and shown_always above is the
+  // same fact seen from the other side, since the link is the only way to open a note from here.
+  control_columns: ['internalId'],
+
+  // Columns the app fills in itself rather than reading from a note. They wear the info glyph, no
+  // type can be chosen for them, and their cells take no caret.
+  //
+  // A second list rather than a wider control_columns, because the two refuse different things:
+  // a control column refuses type, sort and search, while these must stay sortable and searchable
+  // — sorting by size or by last modified is the point of having them. internalId is in both.
+  //
+  // filename and filepath are deliberately absent: renaming from the table is wanted later, and
+  // editing a filepath would move the file, so both may become editable.
+  info_columns: ['internalId', 'sizeInBytes', 'lastModified', 'errorOnLoad'],
   hidden_by_default: ['color', 'filepath', 'internalLink', 'errorOnLoad'],
   current_props: [],
   columnLayout: new Map(),

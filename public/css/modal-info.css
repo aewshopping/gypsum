@@ -83,8 +83,15 @@
     opacity: 0.45;
 }
 
-.info-modal-row-btn:hover {
+.info-modal-row-btn:hover:not(:disabled) {
     opacity: 0.9;
+}
+
+/* A row button with nothing behind it — the type glyph on a column the app fills in itself. Faded
+   and unhoverable, so it reads as a mark rather than as a control that is ignoring you. */
+.info-modal-row-btn:disabled {
+    opacity: 0.25;
+    cursor: default;
 }
 
 .info-modal-row-icon {

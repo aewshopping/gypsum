@@ -1,4 +1,5 @@
-import { appState, FILE_PROPERTIES } from '../../services/store.js';
+import { appState } from '../../services/store.js';
+import { propertyType } from '../../services/property-type.js';
 import { readBackupHistory } from '../../history/backup-history-read.js';
 import { resolveTargetDir } from '../../editing/rename-file.js';
 import { extractDirFromFilepath } from '../../services/file-save.js';
@@ -75,7 +76,7 @@ export async function handleHistoryRecreate(event, target) {
         checkFileErrors(newFile);
 
         const { property, direction } = appState.sortState;
-        sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
+        sortAppStateFiles(property, propertyType(property), direction);
         renderFiles();
 
         await refreshHistoryModal();

@@ -1,4 +1,5 @@
-import { appState, FILE_PROPERTIES } from '../../services/store.js';
+import { appState } from '../../services/store.js';
+import { propertyType } from '../../services/property-type.js';
 import { createEmptyNote } from '../../services/create-note.js';
 import { handleOpenFileContent } from './open-file-content-view-trans.js';
 import { activateTextMode } from '../../editing/activate-text-mode.js';
@@ -49,7 +50,7 @@ export async function handleCreateNewNote(event, target) {
 
     vt?.finished.then(() => {
         const { property, direction } = appState.sortState;
-        sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
+        sortAppStateFiles(property, propertyType(property), direction);
         renderFiles();
     });
 }

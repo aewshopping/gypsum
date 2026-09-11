@@ -10,10 +10,20 @@
  *
  * An expanded cell is editable, so its text can be corrected in place. Nothing is saved
  * yet — edits live in the DOM and are discarded by the next render.
+ *
+ * **A cell the app fills in is not editable either**, and says nothing about it: the info glyph on
+ * its column header already does. It still opens, so a long path or a long error stays readable.
+ *
+ * **A cell whose value does not fit its column is not editable at all.** It opens like any other,
+ * so the whole value can be read, but it takes no caret: editing a value the column cannot describe
+ * risks writing back the wrong shape, and the fix is either to change the column's type or to open
+ * the note. It says which, in the cell, because the tooltip carrying the same sentence needs a
+ * pointer and half the people using this have a finger.
  */
 
 const SELECTED = 'is-selected';
 const EXPANDED = 'is-expanded';
+const NOTE = 'cell-mismatch-note';
 
 /**
  * Returns a cell to its collapsed, unselected state.
@@ -23,6 +33,7 @@ const EXPANDED = 'is-expanded';
 function collapse(cell) {
     cell.classList.remove(SELECTED, EXPANDED);
     cell.removeAttribute('contenteditable');
+    cell.querySelector(`.${NOTE}`)?.remove();
     for (const sibling of cell.parentElement.children) {
         sibling.style.gridColumn = '';
     }
@@ -53,6 +64,22 @@ function expand(cell) {
     });
 
     cell.classList.add(EXPANDED);
+
+    // A mismatched cell opens but does not take a caret. The sentence is the one already on the
+    // cell's tooltip, so the pointer and the touch paths cannot say different things.
+    if (cell.dataset.mismatch) {
+        cell.insertAdjacentHTML('beforeend', `<span class="${NOTE}">${cell.dataset.tip}</span>`);
+        cell.focus();
+        return;
+    }
+
+    // So does a cell in a column the app fills in — but silently. A mismatch explains itself
+    // because something is wrong and there is something to do about it; this is working exactly as
+    // intended, and a sentence on every size cell would be noise. The header's info glyph says it.
+    if (cell.dataset.info !== undefined) {
+        cell.focus();
+        return;
+    }
 
     // plaintext-only keeps pasted markup out of a cell that ultimately stands for text
     // in a file. Focusing puts the caret in without a further click.

@@ -242,18 +242,48 @@
     outline-offset: -2px;
 }
 
+/* Says what the column holds, the same drawing and the same size the column picker puts on its
+   rows, so a column reads the same in both places. A mark rather than a control: the header cell
+   is already a button and a button may not hold another one, so "change type" in the column menu
+   is how it is set from here. It sits at the weight every icon rests at. */
+.header-type-glyph {
+    flex-shrink: 0;
+    width: 1.6em;
+    height: 1.6em;
+    color: var(--colour-contr);
+    opacity: 0.45;
+}
+
+/* The label takes the free space, which is what keeps the glyph and the chevron against the
+   right edge however long the heading is. Its own overflow, so a long heading is clipped rather
+   than pushing them out of the cell. */
+.header-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* No longer a control: it marks the column driving the sort. Hidden everywhere else,
-   including on hover, so the only chevron on screen is the one that means something. */
+   including on hover, so the only chevron on screen is the one that means something.
+
+   The same colour and weight as the type glyph it sits beside, so the two marks at the end of a
+   header read as one pair rather than as a mark and a piece of text. */
 .column-sort-indicator {
     padding: 6px;
     line-height: 1;
-    visibility: hidden;
+    color: var(--colour-contr);
+    opacity: 0.45;
     rotate: 90deg;
     transition: rotate 0.15s ease;
+
+    /* display rather than visibility, which reserved the chevron's width on every column that was
+       not the sorted one. That cost 28px a column — more than the type glyph beside it — and it
+       was what pushed "file" into reading as "f…" once the glyph arrived. The sorted column keeps
+       its chevron displayed throughout, so flipping asc to desc still animates. */
+    display: none;
 }
 
 .note-table-cell-header[data-sorted] .column-sort-indicator {
-    visibility: visible;
+    display: inline-block;
 }
 
 /* The glyph is an arrow pointing right as drawn, so each direction turns it a quarter: down
@@ -277,4 +307,35 @@
         style(--colours-suppress: true): var(--colour-neutral-alt);
         else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))
     );
+}
+
+/* A cell whose value cannot be drawn as its column's type. It shows its text, so that what the file
+   holds is still readable and you can see which type it wanted.
+
+   Tinted rather than restyled, and with the colour the load-error nudge already uses for "this is a
+   bit off": a wrong type is a column that looks odd until it is changed back, not an error. See
+   plans/completed/table-value-types.md §1.2.
+
+   Deliberately not an underline and not italic. A dotted underline is already an unresolved
+   internal link, a search highlight and the load-error nudge, and italic is the filename column.
+   Four things that mean different things must not look the same. */
+.note-table-cell[data-mismatch] {
+    color: color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%);
+}
+
+/* The same sentence the cell's tooltip carries, shown inside the cell once it is opened, because a
+   tooltip needs a pointer. On its own line under the value, and small, so the value stays the thing
+   being read.
+
+   It keeps the column's width like the rest of an opened cell, and wraps. Widening it was tried and
+   put back: a cell grows rightward, so on the last column — which is exactly where a newly typed
+   property sits — the explanation ran off the edge of the table. The sentences are short enough to
+   wrap tolerably instead. */
+.cell-mismatch-note {
+    display: block;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    font-size: 0.85em;
+    text-wrap: wrap;
 }

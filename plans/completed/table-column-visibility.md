@@ -1,8 +1,9 @@
 # Plan: show, hide and reorder table columns
 
-Status: **picker built, not wired**
+Status: **built.** §0 below is the state it was written in, when the picker existed and reached
+nothing; everything it lists as missing has since landed.
 Branch: `claude/column-hide-show-modal-y1bhj4`
-Related: `plans/table-column-resize.md`, `plans/table-json-export.md`, `plans/table-formula-columns.md`
+Related: `plans/completed/table-column-resize.md`, `plans/table-json-export.md`, `plans/table-formula-columns.md`
 
 ---
 
@@ -22,8 +23,10 @@ control in it is deliberately inert, and the state it would write does not exist
 | `column-picker-reorder.js` | Drag a row by its grip to move it up or down. Pointer events (native HTML5 DnD is dead on touch), rows shuffle live, FLIP-animated |
 | `modal-info.css` | Now holds the shared dialog furniture — `.info-modal-row`, `-row-label`, `-row-btn`, `-row-icon`, `-row-grip`, `.info-modal-scroll`/`-scroll-list` — promoted out of the settings and history modals, which had been carrying their own copies |
 
-**Not built — this plan:** the state, the resolution both the table and the picker read from it,
-the floor, the reset, the loader clearing, and the render that makes any of it show up.
+**Not built when this was written — and all of it built since:** the state
+(`TABLE_VIEW_COLUMNS.columnLayout`), the resolution both the table and the picker read from it
+(`resolveColumns`), the floor (`applyVisibilityFloor`), the reset (`handleResetColumns`), the loader
+clearing, and the render that makes any of it show up.
 
 **The drag is the reason this plan grew a third axis.** It was added while getting the picker's
 look right, and it works, but the order it produces lives in the DOM and dies when the dialog is
@@ -200,7 +203,7 @@ This is what makes the picker and the table agree by construction rather than by
 that happen to match. Today the picker infers its ticks from `current_props` membership — correct
 now, but a second derivation of the same fact.
 
-`plans/table-column-resize.md` §8 deferred making this function pure, on the grounds that purity
+`plans/completed/table-column-resize.md` §8 deferred making this function pure, on the grounds that purity
 concerns *which* columns exist while resize concerns *how wide* they are. This plan is that axis.
 The reconcile step means it reads and repairs the store rather than being strictly pure, which is
 the honest trade for having one function own the answer; when layouts land it takes a layout as an
@@ -268,7 +271,7 @@ order" means for a column the user has also hidden, and there is no useful answe
 - **The sort dropdown does not follow, on purpose.** `sort-select-load.js:32` filters only
   `hidden_always`, so every non-excluded property stays sortable whether or not it is displayed.
   Sorting by something you are not looking at is useful. Already recorded in
-  `plans/table-column-resize.md` §3 — do not "fix" the inconsistency.
+  `plans/completed/table-column-resize.md` §3 — do not "fix" the inconsistency.
 - **Sort order is independent of column order.** Sorting is by property, not by position.
 
 ---
@@ -323,7 +326,7 @@ differently — which reordering makes worse, because the user is now matching t
 `data-property` keeps the raw name: the column menu, the sort, the hover highlight and the resize
 bar all key on it. Only the visible text changes.
 
-`plans/table-column-resize.md` step 0b proposed this same change; mark it as taken here so it is
+`plans/completed/table-column-resize.md` step 0b proposed this same change; mark it as taken here so it is
 not done twice.
 
 ### 4h. `index.html`

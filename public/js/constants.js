@@ -26,6 +26,58 @@ export const VIEWS = {
     SEARCH: { value: "search", label: "search view" }
 };
 
+/**
+ * The types a table column can be given, each with the word the column popover shows for it.
+ * Same shape as VIEWS above, and used the same way.
+ *
+ * This is the only place a type name is legal. It matters because a layout file is meant to be
+ * hand-edited, so a typo in one must not be able to invent a phantom type.
+ */
+export const VALUE_TYPES = {
+    STRING: { value: "string", label: "text"   },
+    NUMBER: { value: "number", label: "number" },
+    DATE:   { value: "date",   label: "date"   },
+    ARRAY:  { value: "array",  label: "list"   }
+};
+
+/**
+ * The type the app gives a column it fills in itself — the file link, the size, the last modified
+ * date and the load error. Nobody chooses it and nobody can edit those cells.
+ *
+ * **Deliberately not inside VALUE_TYPES**, and it must stay outside, because that list does two
+ * jobs this one must not join: it fills the type dialog, and it is the set of names a layout file
+ * may legally carry. "info" is not on offer and not settable by hand.
+ *
+ * It sits beside a column's type rather than replacing it. `lastModified` is still a date, and
+ * still sorts and renders as one — see property-type.js.
+ */
+export const INFO_TYPE = { value: "info", label: "info" };
+
+/**
+ * How a column is searched, which is deliberately not the same question as what type it is: a
+ * column can want to render as a list and still be searched by part of its text, which is what
+ * `people` and `internalLink` have always done.
+ *
+ * Only meaningful for a list column — nothing else in the app searches by whole values — and
+ * 'string' is the default, so a list is searched by part of its text unless something says
+ * otherwise. `tags` is the one property that says otherwise, because a tag pill means that tag.
+ */
+export const SEARCH_TYPES = {
+    STRING: { value: "string", label: "search text"        },
+    ARRAY:  { value: "array",  label: "search exact match" }
+};
+
+/**
+ * The word one of the two lists above shows for a stored name. Here rather than beside either
+ * caller because both the picker row and its popover need it, and the lists it reads are here.
+ * @param {object} group - VALUE_TYPES or SEARCH_TYPES.
+ * @param {string} value - The stored name.
+ * @returns {string} The label, or the stored name if the list has no entry for it.
+ */
+export function labelFor(group, value) {
+    return Object.values(group).find(entry => entry.value === value)?.label ?? value;
+}
+
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 export const LAYOUTS_FILENAME = 'table_layouts.gypsum';

@@ -39,6 +39,9 @@ export function syncSortControls() {
 /**
  * Populates the sort-select dropdown with the properties found in the loaded files,
  * ordered by display_order. Properties not in FILE_PROPERTIES are placed at the end.
+ *
+ * Control columns are left out alongside the hidden ones: the file column's cell is a link rather
+ * than its value, so sorting by it would order the table by an id nobody is shown.
  * Also syncs the sort-direction checkbox to the current sort state.
  * @returns {void}
  */
@@ -47,7 +50,8 @@ export function populateSortSelect() {
     sortSelectElem.innerHTML = '';
 
     const entries = [...appState.myFilesProperties.entries()]
-        .filter(([key]) => !TABLE_VIEW_COLUMNS.hidden_always.includes(key))
+        .filter(([key]) => !TABLE_VIEW_COLUMNS.hidden_always.includes(key)
+                        && !TABLE_VIEW_COLUMNS.control_columns.includes(key))
         .sort(([, a], [, b]) => (a.display_order ?? 99) - (b.display_order ?? 99));
 
     for (const [key, props] of entries) {

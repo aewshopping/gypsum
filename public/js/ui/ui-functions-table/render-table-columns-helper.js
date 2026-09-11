@@ -1,4 +1,5 @@
 import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, defaultColumnEntry } from '../../services/store.js';
+import { propertyType, propertySearchType } from '../../services/property-type.js';
 
 /**
  * The table's columns in order, each carrying whether it is shown and its FILE_PROPERTIES
@@ -30,12 +31,17 @@ import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, defaultColumnEntry } fro
  * keeps the heading and width it was saved with even after the schema's defaults change. The
  * schema is still spread first, for the keys the layout does not carry: type and display_order.
  *
+ * The type and the search type are resolved rather than spread, because there are now two places
+ * either can come from and property-type.js owns the order. Spreading the layout over the schema
+ * would get the same answer most of the time and the wrong one whenever a layout file arrived with
+ * a type nobody legislated for.
+ *
  * The returned width is for completeness, not for use. columnWidthPx reads the Map directly at
  * the moment the tracks are written, because a resize drag updates the layout and re-applies the
  * widths without re-rendering — a width read off these objects would be stale mid-drag.
  *
  * @returns {Array<object>} Resolved columns in order: { name, label, width, visible, alwaysOn,
- *                          dead, type, display_order }.
+ *                          dead, type, search_type, display_order }.
  */
 export function resolveColumns() {
     const { columnLayout, hidden_always, shown_always } = TABLE_VIEW_COLUMNS;
@@ -67,6 +73,8 @@ export function resolveColumns() {
             name,
             ...FILE_PROPERTIES.get(name),
             ...entry,
+            type: propertyType(name),
+            search_type: propertySearchType(name),
             visible: alwaysOn || entry.visible,
             alwaysOn,
             dead: !appState.myFilesProperties.has(name),

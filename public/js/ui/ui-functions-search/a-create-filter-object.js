@@ -1,4 +1,5 @@
-import { appState } from "../../services/store.js";
+import { appState, TABLE_VIEW_COLUMNS } from "../../services/store.js";
+import { propertySearchType } from "../../services/property-type.js";
 
 /**
  * Creates a filter object and adds it to the app state.
@@ -16,6 +17,10 @@ export function createFilterObject(searchObject) {
     // Iterating over map keys and **not** using map.has because we need property search to be case insensitive. Allowing case insentive prop seearches is most of the complexity in this function...
     let actualPropertyName = null;
     for (const key of appState.myFilesProperties.keys()) {
+        // A control column's cell holds a link rather than the property's value, so searching it
+        // would match an id the user has never been shown. Skipped rather than rejected later, so
+        // it behaves exactly like a property the folder does not have.
+        if (TABLE_VIEW_COLUMNS.control_columns.includes(key)) continue;
         if (key.toLowerCase() === property.toLowerCase()) {
             actualPropertyName = key;
             break; // Stop looking once we find it
@@ -26,8 +31,7 @@ export function createFilterObject(searchObject) {
     if (propertyExists) {
 
         property = actualPropertyName;// Overwrite the input property with the actual case sensitive prop name found in the Map
-        const propertyObj = appState.myFilesProperties.get(property);
-        propertyType = propertyObj?.search_type || propertyObj?.type;
+        propertyType = propertySearchType(property);
 
     } else {
 

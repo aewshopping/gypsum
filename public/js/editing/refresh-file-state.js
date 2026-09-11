@@ -1,4 +1,5 @@
-import { appState, FILE_PROPERTIES } from '../services/store.js';
+import { appState } from '../services/store.js';
+import { propertyType } from '../services/property-type.js';
 import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
@@ -75,7 +76,7 @@ async function applyRefresh(snapshot) {
         }
 
         const { property, direction } = appState.sortState;
-        sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
+        sortAppStateFiles(property, propertyType(property), direction);
         renderFiles(true, true);
 
         if (appState.search.filters.size > 0) {
