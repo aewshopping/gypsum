@@ -4,13 +4,15 @@ Branch: `claude/yaml-parser-improvements-yelc0o`
 Manifest version now: `1.176.0` → bump the minor version with each step that changes code.
 Related: `plans/table-value-types-and-editing.md`, which this was split out of and which depends on it.
 
-This plan is the write-up of a design discussion. Nothing here has been built yet. **§0 is
-lifted unchanged from §4 of the types plan**, which is where these bugs were first written
-down. Everything after it is new.
+Status: **built.** Every step in §9 is done, and §11 records where the code differs from what
+this plan said it would be.
+
+**§0 is lifted unchanged from §4 of the types plan**, which is where these bugs were first
+written down. Everything after it is the design discussion that followed.
 
 **Read §2.3 before §7.** This started as a plan to make the parser faster. Measured in the real
-app, the whole YAML path is under 3% of a folder load, and most of the speed work is declined in
-§7 on readability grounds. What is left is a correctness plan.
+app, the whole YAML path is under 3% of a folder load, and most of the speed work was declined in
+§7 on readability grounds. What was built is a correctness change.
 
 ---
 
@@ -450,14 +452,22 @@ arbitrary allowance — in markdown a `---` cannot underline a heading, only a p
 `---` after `# my title` is unambiguously not a setext underline, while a `---` after `My Title`
 is exactly that. The rule follows the markdown, and the five-line bound stays.
 
-**2. The block must contain something that reads as front matter.** At least one line that parses
-as a key, or as a list item. A block of prose between two horizontal rules contains neither.
+**2. When something does sit above it, the block must contain something that reads as front
+matter.** At least one line that parses as a key, or as a list item. A block of prose between two
+horizontal rules contains neither.
+
+**Condition 2 applies only when condition 1 had something to allow.** A separator on the very
+first line has nothing above it to be a break between, so a block opening there is taken at its
+word however badly it is written — which is what keeps a file whose front matter is entirely
+unparseable recognised, and reported, rather than quietly read as prose. See §11 item 6: writing
+this the other way round broke an existing test, and that is how the distinction was found.
 
 Checked against the old behaviour:
 
 | | old | new |
 |---|---|---|
-| `---` at line 0 | found | found |
+| `---` at line 0 | found | found, condition 2 not consulted |
+| `---` at line 0, nothing in it parses | found | found, and still reported |
 | `# my title` then `---` | found | **found** |
 | blank line then `---` | found | found |
 | setext heading trap | found — the bug | **rejected**, by condition 1 |
@@ -657,7 +667,8 @@ that is the version a person can read.
 
 ## 9. Steps
 
-Each finishable and checkable on its own. Bump the manifest minor version on each one.
+**All done**, in one change rather than nine, at manifest version `1.177.0`. Kept as written so
+the order of reasoning survives; §11 says what came out differently.
 
 The existing fixtures in `tests/helpers.js` were checked against the prototype before this was
 written: `broken-yaml.md`, `half-broken.md` and `clean-yaml.md` all produce the same values and
@@ -665,13 +676,13 @@ the same error counts, so `tests/29-yaml-load-errors.spec.js` passes unchanged t
 below. That is a deliberate property to keep, not luck — if a step changes those counts, the step
 is wrong.
 
-### Step 1 — Stop the parser leaving empty placeholder objects behind
+### Step 1 — Stop the parser leaving empty placeholder objects behind ✅
 
 §6.2, and unchanged from step 1 of the types plan. A key whose nesting never arrived stores
 nothing rather than `{}`. Smallest change here, stands entirely alone, and turns every failure in
 §0 from `[object Object]` into a blank cell plus the error already being recorded.
 
-### Step 2 — Tighten where the front matter block may start
+### Step 2 — Tighten where the front matter block may start ✅
 
 §6.1, which is two conditions: only blank lines and ATX headings may sit above the opening `---`,
 and the block must contain at least one line that reads as a key or a list item. Make the search
@@ -686,12 +697,12 @@ currently has its first two paragraphs read as front matter and deleted from the
 **Care needed:** `parse-content.js` and `marked-source-tracking-renderer.js` depend on the line
 indices for diff highlighting. They must keep meaning exactly what they mean now.
 
-### Step 3 — Compute the bounds once
+### Step 3 — Compute the bounds once ✅
 
 §7.2. Thread one result through `file-info.js` and `parse-content.js` instead of recomputing it
 up to five times per render. **A clarity step with a speed side effect too small to mention.**
 
-### Step 4 — Fix the dash line
+### Step 4 — Fix the dash line ✅
 
 Recognise a dash item before looking for a colon, and let it keep the key context it belongs to.
 Delivers flush lists (§3.1) and §6.4 together, because they are the same branch.
@@ -699,20 +710,20 @@ Delivers flush lists (§3.1) and §6.4 together, because they are the same branc
 **Care needed:** this touches the same stack logic that handles nesting. Nested keys, lists inside
 maps, and a key following a list all need checking before and after.
 
-### Step 5 — Tabs
+### Step 5 — Tabs ✅
 
 The one-character change in §3.3, plus the error for a key landing on an array (§6.3), which is
 where a mis-indented file most often ends up.
 
-### Step 6 — Flow lists
+### Step 6 — Flow lists ✅
 
 §3.2, including the error on an unbalanced bracket.
 
-### Step 7 — The first-character number reject
+### Step 7 — The first-character number reject ✅
 
 §7.5 and §6.5 together. Filed as a bug fix, not an optimisation.
 
-### Step 8 — The `spans` out-param
+### Step 8 — The `spans` out-param ✅
 
 §5, built on the existing split with a running offset. Nothing consumes it yet. Build and test it
 on its own, before anything writes through it — a bug here damages files. This is step 8 of the
@@ -723,10 +734,15 @@ beside it.
 whole-value span and they are what lets one item be edited without regenerating the others. Test
 them on a list with a comment between two items, which is the case that proves the point.
 
-### Step 9 — Tests
+### Step 9 — Tests ✅
 
 Fixtures for each accepted shape, each recorded error, and the setext note in §6.1. Worth a
 fixture per row of §0's table specifically, since that table is the reason this plan exists.
+
+Built as `tests/44-yaml-parser.spec.js`, sixteen tests. The first covers all four rows of §0's
+table in one assertion, since all four now produce the same list. `setupMockFilesYamlShapes` in
+`tests/helpers.js` backs the one test that loads a folder rather than calling the parser, so the
+new shapes are checked as properties on a file object and not only as a return value.
 
 ### Not a step — the speed work
 
@@ -748,3 +764,79 @@ make loading faster, and it is not in this plan.
 - **Measure in the app, not in isolation.** Every wrong number in the drafts of this plan came
   from benchmarking a function on its own. The figures that changed the recommendation came from
   running the real load path in a real browser.
+
+---
+
+## 11. What came out differently
+
+Five places where the build departed from what is written above. All small, all found by writing
+the code or the tests rather than by rereading the plan.
+
+**1. There are four forms, not three.** §5.1 lists `scalar | block | flow`. A key whose value is a
+nested map needed its own, or a writer would read `form: 'scalar'` and splice into the middle of
+a block. It is `map`, and §5.4 already said such a span covers the whole nested block — the form
+list simply did not mention it.
+
+**2. `yaml-block-extract.js` is gone.** §8 says "nothing is deleted", written when §7.3 withdrew
+the `indexOf` rewrite. But step 3 hands `parseYaml` the bounds it used to go and find, and the
+module's only remaining job was to split the file a second time and slice out the lines. It had
+no work left. Three modules for one job are now two.
+
+**3. The unclosed-bracket error needed narrowing.** §3.2 says a value opening with `[` that does
+not close should report itself. Implemented literally, `note: [draft] needs work` — ordinary prose
+with a bracketed word in it — was flagged on every load. The error now fires only when there is no
+`]` anywhere in the value, which distinguishes a broken list from a sentence.
+
+**4. Spans are recorded for top-level keys only.** The plan never said otherwise but never said
+so either. Nested keys share names across files and the table shows flat properties, so a nested
+key's span would be a name collision with nothing to use it. The top-level key's span covers the
+whole nested block, per §5.4.
+
+**5. Spans describe the text, the returned object describes what was understood.** These differ
+in one case: step 1 prunes a key left holding an empty map, but its span stays. That is the right
+way round — the key is in the file, so an editor should be able to write into it — but it is a
+distinction the plan did not anticipate and the JSDoc now states.
+
+### Two things worth knowing that the plan got right
+
+**The scalar span starts immediately after the colon; an item span starts after the dash and its
+whitespace.** That asymmetry is deliberate and it is not a wrinkle: a scalar span is the whole
+value slot, so the writer supplies the separating space, while an item span is the value text
+alone. Both are what their own job needs.
+
+**Tabs cost one comparison, as predicted.** The indent loop accepts tab alongside space and
+nothing else in the parser knows tabs exist. A tab-indented list, a tab-indented key, and an
+insert into a tab-indented list all work, the last because the prefix is copied rather than
+chosen.
+
+### Speed, measured after the fact
+
+A/B against the previous implementation on identical input, same process, same run:
+
+| | old find + parse | new parse |
+|---|---|---|
+| 4KB note | 41.3 µs | 27.9 µs |
+| 40KB note | 98.5 µs | 61.6 µs |
+| 40KB note, no front matter | 66.0 µs | 36.7 µs |
+
+Roughly 1.5× to 1.8×, from dropping one of three whole-file splits and bounding the two scans.
+**Per §2.3 this is about 1% of a folder load**, which is why it was never the reason to do any of
+this. The absolute figures are higher than §2.2's because the machine was busy; only the ratio
+between the two columns means anything.
+
+**6. The content test applies only below line 0.** Written as an unconditional rule, it regressed
+`tests/35-broken-links.spec.js`. The fixture `both-faults.md` opens `---` on the first line with a
+single unparseable line inside it, deliberately, to produce a yaml error and a link error at once.
+The new rule read that block as prose, so the yaml error vanished and the nudge it feeds
+disappeared with it.
+
+**The fix is a better rule, not an exception to it.** The content test exists to break a tie about
+what a `---` means, and there is no tie on the first line: nothing precedes it, so it cannot be a
+thematic break or a setext underline. A file that opens with `---` is claiming front matter, and
+the right response to a block that then fails to parse is to report it, which is what the app
+already did well. Every trap in §6.1 sits below line 0 and is still rejected.
+
+**Worth noting how it was found.** Not by rereading the plan — by the existing suite. The rule as
+written in §6.1 looked right in the plan, in the prototype, and in sixteen new tests, all of which
+tested shapes the rule was designed around. The fixture that caught it was written for something
+else entirely.

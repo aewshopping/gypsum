@@ -52,10 +52,12 @@ function renderPropertyValue(property, value) {
  * Renders the YAML front-matter of a file's raw text as a "Properties" panel: a heading
  * followed by a two-column grid of property name / property value pairs.
  * @param {string} text - Raw file content.
+ * @param {{start: number, end: number} | null} [indices] - Pre-computed block position, for
+ *   callers that already have it. Defaults to finding it; pass null to say there is none.
  * @returns {string} The HTML string for the properties panel, or '' if there is no front matter.
  */
-export function renderFrontmatterProperties(text) {
-    const properties = parseYaml(text);
+export function renderFrontmatterProperties(text, indices) {
+    const properties = parseYaml(text, [], null, indices);
     const entries = Object.entries(properties);
 
     if (entries.length === 0) {

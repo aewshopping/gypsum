@@ -2,7 +2,8 @@
 
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.173.0` → bump the minor version with each step that changes code.
-Related: `plans/yaml-parser.md`, split out of §4 of this plan. **Its steps come first.**
+Related: `plans/yaml-parser.md`, split out of §4 of this plan. **It is built** — steps 1, 2 and 8
+below are done, and §4 says what that changes for the rest.
 
 This plan is the write-up of a design discussion. Nothing here has been built yet.
 
@@ -233,18 +234,74 @@ error, rather than needing a new mechanism.
 
 ---
 
-## 4. The parser work this depends on
+## 4. The parser work this depends on — done
 
-**Moved out to `plans/yaml-parser.md`.** The discussion that produced this plan also turned up
-four faults in the front matter parser, found by running it rather than reading it. They are
-written up in §0 of that plan, together with the decision about how much YAML the parser should
-accept, how to make it faster, and whether reading and writing front matter should share one
-piece of code.
+**Built as `plans/yaml-parser.md`**, at manifest version `1.177.0`. The discussion that produced
+this plan turned up four faults in the front matter parser, written up in §0 of that plan. They
+are fixed, along with three shapes the parser used to reject and one piece of data loss.
 
-It is a separate plan because it answers a question this one does not: what the parser is *for*.
-Referred to below as the parser plan, and **its steps come first** — the type layer sits
-downstream of the parser and cannot recover a value the parser threw away. Types make a bad value
-legible. They do not repair it.
+**What this plan can now assume.** Each of these was an open risk when this plan was written.
+
+| | |
+|---|---|
+| a list flush with its key | read, where it used to be thrown away |
+| a tab- or nbsp-indented list | read |
+| `tags: [a, b]` on one line | read as a list |
+| `- apple: red` | read as an item and reported, not silently turned into a key named `- apple` |
+| a key left holding nothing | dropped, so the cell is blank rather than `[object Object]` |
+| `note: Infinity` | stays text |
+| a key's exact character span, and each list item's | available from `parseYaml` — see §4.1 |
+| a note whose whole front matter is unreadable | still recognised and reported, so §5.2's lock still fires |
+
+**Three consequences this plan has to absorb**, each handled where it arises below.
+
+1. **Lists can now arrive in two written forms**, block or flow, and the writer must return the
+   one it found rather than imposing a house style. §5.1.
+2. **The quoting rule grows two cases**, because a value beginning with `[` would read back as a
+   list. §7 step 7.
+3. **Step 8 is done, and its shape is richer than this plan assumed** — per-item spans, not one
+   span per key. §4.1, and it changes step 11 for the better.
+
+### 4.1 The reverse parser, as built
+
+`parseYaml` takes two optional out-params after the text, and a fourth argument for callers that
+already know where the block is:
+
+```js
+parseYaml(text, errors, spans, indices)
+```
+
+Pass a `Map` as `spans` and it comes back holding one entry per **top-level** key:
+
+```js
+{
+  valueStart, valueEnd,      // the whole value, for replacing or clearing it outright
+  form: 'scalar' | 'block' | 'flow' | 'map',
+  items: [ { lineStart, valueStart, valueEnd } ]   // lists only
+}
+```
+
+Omit `spans` and nothing is recorded, which is what every existing caller does.
+
+**Four things about it that matter to the steps below.**
+
+**The item spans are what make editing a list safe.** The whole-value span is right for replacing
+a list outright, but the usual edit is one item, and splicing one item's span leaves every other
+byte alone — including a comment sitting between two items, which a whole-value rewrite would
+have destroyed without noticing it was there.
+
+**Inserting an item copies the indentation rather than choosing it.** Each item carries its
+`lineStart`, so the text from there to its `valueStart` is that item's own prefix — `"  - "`,
+`"- "`, or a tab. Nothing in the writer needs to know those are different, which is how §5.1's
+shape preservation stops being a rule somebody has to remember.
+
+**A scalar's span starts immediately after the colon, an item's after the dash and its
+whitespace.** Not an inconsistency: a scalar span is the whole value slot, so the writer supplies
+the separating space and an empty `title:` still works. An item span is the value text alone.
+
+**Spans describe the file, the returned object describes what was understood.** A key holding
+nothing is pruned from the object but keeps its span, which is correct — the key is in the file,
+so an edit should be able to write into it.
 
 ---
 
@@ -267,7 +324,7 @@ Eight stages, of which only two are new:
 | 1 | capture | read the text out of the cell | exists as an editable cell |
 | 2 | guard | is this property editable, has it actually changed, is the file safe to touch | new-ish |
 | 3 | convert | the type turns the typed text into the text that goes after the colon | **new** |
-| 4 | locate | find where that key lives inside the front matter | **new** |
+| 4 | locate | find where that key lives inside the front matter | **done** — §4.1 |
 | 5 | splice | build the new file text around it | small |
 | 6 | write | the existing verified write in `file-save.js` | exists |
 | 7 | refresh | the existing re-read and re-render | exists |
@@ -281,6 +338,10 @@ And **stage 4 must find the key's whole span, not just its line.** Replacing onl
 after the colon would orphan any lines beneath it and wreck the block. Lists need this
 because their values sit on following lines. Broken input needs it too, which makes it
 compulsory rather than a refinement.
+
+**Stage 4 is now done** (§4.1), and it turned out to answer more than this. It reports each list
+item's span as well as each key's, so editing one item of a list is a splice of that item and
+nothing else — the surrounding items, and any comment between them, are never rewritten.
 
 Editing must never rebuild the whole front matter block from the parsed values. That would
 silently destroy comments, key order, blank lines and anything the parser skipped without
@@ -297,13 +358,17 @@ taking what the user typed and returning the text to write.
 | number | the digits plainly when it reads as a number | otherwise falls back to quoted text |
 | yes/no | `true` or `false` plainly | the parser already handles both, perfect round trip |
 | date | a plain ISO date | safe, because it does not read as a number so it stays text |
-| list | dash items on the following lines | **the one that breaks the single-line assumption** |
+| list | items in the form the file already uses | **the one that breaks the single-line assumption** |
 
-**Lists are the awkward one.** The parser plan adds the bracketed inline form, so a list can
-be written either way — and the writer must keep whichever shape the file already used, rather
-than imposing one. See §4.1 of that plan. That makes stage 4 a range rather
-than a line, and it means the cell editor needs a way to express several values, whether
-that is one per line in the expanded cell or separated by commas on entry.
+**Lists are the awkward one, though less so than when this was written.** The parser reads both
+the block form and the bracketed inline form, and the writer must return whichever the file
+already used rather than imposing one. §4.1 is why that costs nothing: the span reports the form,
+and an added item copies its indentation from the item above it, so no code anywhere decides
+between a flush list and an indented one.
+
+What is still awkward is the cell editor. It needs a way to express several values, whether that
+is one per line in the expanded cell or separated by commas on entry, and that half is untouched
+by the parser work.
 
 **There is a good incremental path here.** The whole pipeline works end to end with no types
 at all, if stage 3 is nothing but the quoting rule. Numbers, yes/no, dates and lists are then
@@ -355,14 +420,15 @@ of cell edits would fill the history quickly.
 Each step is meant to be finishable and checkable on its own. Bump the manifest minor version
 on each one that changes code. **§8 says which file each step belongs in and why.**
 
-### Steps 1 and 2 — The parser work
+### Steps 1 and 2 — The parser work ✅
 
-**Moved to `plans/yaml-parser.md` §9**, which breaks the same work into more steps than the two
-it had here and adds the speed work alongside it. Do those first.
+**Done, as `plans/yaml-parser.md`.** §4 above lists what changed and what this plan may now
+assume.
 
-**What this plan needs from them:** front matter that parses into the right value, a blank cell
-rather than `[object Object]` when it does not, and an error recorded every time something is
-skipped. Step 9 below relies on that last one for the lock in §5.2.
+**What this plan needed from them, and now has:** front matter that parses into the right value,
+a blank cell rather than `[object Object]` when it does not, and an error recorded every time
+something is skipped. Step 9 relies on that last one for the lock in §5.2, and the parser now
+reports five distinct failures where it used to report two and stay silent about the worst.
 
 ### Step 3 — Make "what type is this column?" a single function
 
@@ -411,20 +477,23 @@ written into front matter and read back as itself.
 to say the user owns their own type discipline, because whatever they type, the file stays
 readable.
 
-**Note:** once the parser plan lands flow lists, a value beginning with `[` has to be quoted
-too, or it reads back as a list. Same for a comma or a bracket inside an item being written
-into a flow list. See §4.2 of that plan.
+**Two cases the built parser adds**, both confirmed against it rather than assumed:
 
-### Step 8 — Locate a key's span inside the front matter
+- **A value beginning with `[` needs quoting**, or it reads back as a list. Only when it also
+  ends with `]` — the parser leaves `note: [draft] needs work` alone — but the quoting rule
+  should not try to be that clever, because the text after the next edit might end with `]`.
+- **An item written into a flow list needs quoting if it contains a comma, a bracket or a
+  quote.** Items written into a block list do not: a block item runs to the end of its line.
 
-**Moved to `plans/yaml-parser.md` §9 step 8**, which builds it as an optional out-param on
-`parseYaml` rather than as a separate locator. The reasoning is in §5 of that plan: a second
-implementation of "where does this value end" would agree with the parser on the day it was
-written and drift afterwards, and that drift is a write into the wrong bytes of a note.
+### Step 8 — Locate a key's span inside the front matter ✅
 
-**What this plan needs from it:** given a file's raw text and a property name, where that key's
-value starts and ends, including any lines belonging to it, and whether it was written inline or
-across several lines. The last of those is what lets the writer preserve the shape it found.
+**Done, as the `spans` out-param on `parseYaml`.** §4.1 has the shape. It is built into the
+parser rather than beside it because a second implementation of "where does this value end" would
+agree with the parser on the day it was written and drift afterwards, and that drift is a write
+into the wrong bytes of a note.
+
+It arrived richer than this step asked for: per-item spans as well as per-key. **That is what
+makes step 11 smaller**, not larger — see there.
 
 ### Step 9 — Write one edited cell back, text only
 
@@ -448,12 +517,27 @@ are easier to check separately than together.
 
 ### Step 11 — Lists
 
-**What:** an editor that can express several values, and a writer that produces dash items
-across several lines.
+**What:** an editor that can express several values, and a writer that edits, adds and removes
+items in whichever form the file already uses.
 
 **Purpose:** separated deliberately because it is the only type that breaks the single-line
-assumption. It needs the span work from step 8 to be genuinely solid, and it deserves its own
-attention rather than being squeezed in alongside simpler types.
+assumption.
+
+**Smaller than it was**, because step 8 arrived with per-item spans. Three of the four operations
+need no decisions at all:
+
+| operation | what it is |
+|---|---|
+| change an item | splice that item's span |
+| add an item | copy the prefix from the last item's `lineStart`, per §4.1 |
+| remove an item | splice from the previous item's `valueEnd` to this one's |
+| replace the whole list | the only case that has to generate structure, and so the only one that has to choose a form — use the one `span.form` reports |
+
+**The only place a style gets chosen** is the first item added to a key that currently has none,
+where there is no sibling to copy from. Block form, indented two spaces.
+
+**What is left for this step is the editor, not the writer.** A cell that can express several
+values is now the harder half.
 
 ### Step 12 — Settle the open decisions from §6
 
@@ -551,9 +635,9 @@ does not write to disk. **It only works out text**, which keeps it easy to test 
 to damage a file with on its own.
 
 **Finding where to put that text is not a file here.** An earlier draft of this section had a
-`yaml-key-span.js` beside it. The parser plan argues that out: the span comes back from
-`parseYaml` itself, because a second module deciding where a value ends would drift from the
-one that parses it, and that drift writes into the wrong bytes of a note.
+`yaml-key-span.js` beside it. The parser plan argued that out and then built it the other way:
+the span comes back from `parseYaml` itself, because a second module deciding where a value ends
+would drift from the one that parses it, and that drift writes into the wrong bytes of a note.
 
 **Doing the actual save → `public/js/editing/save-cell-edit.js`.**
 
@@ -604,7 +688,7 @@ others.
 
 | file | new? | why |
 |---|---|---|
-| `public/js/services/file-parsing/yaml-parse.js` | edit | the parser plan's own steps, not this one's |
+| `public/js/services/file-parsing/yaml-parse.js` | **done** | the parser plan's steps, including the `spans` out-param |
 | `public/js/constants.js` | edit | the list of legal type names |
 | `public/js/services/store.js` | edit | the origin field on the property schema |
 | `public/js/services/property-type.js` | **new** | the one answer to "what type is this" |
