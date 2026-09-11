@@ -109,10 +109,15 @@ Three rules follow from that, and they are the ones to hold:
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
   nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
   so no confirmation is needed anywhere. See `plans/table-value-types.md` §1.2.
-- **A value that does not fit its column shows its text, and the cell is marked.** `valueFitsType()`
-  answers whether it fits; the cell then carries `data-mismatch`. Ask that function — never work it
-  out from what is on screen, because a matching text cell and a mismatched one look the same. The
-  editing work will need the same answer to decide what a click on a cell does.
+- **A value that does not fit its column shows its text, and the cell is marked.** `typeMismatch()`
+  says why, and there are two answers with two different fixes: `'shape'` is a list in a column of
+  single values (or the reverse), which is the column's type being wrong; `'unreadable'` is text
+  that cannot be read as the type, which is the note being wrong. Ask that function — never work it
+  out from what is on screen, because a matching text cell and a mismatched one look the same.
+- **A mismatched cell cannot be edited.** It opens so the value can be read, but takes no caret:
+  writing back a value the column cannot describe risks writing the wrong shape. It says why in the
+  cell as well as in its tooltip, because a tooltip needs a pointer. The sentence is written once,
+  by the renderer, onto `data-tip`, and `cell-expand.js` shows that same string.
 - **`TABLE_VIEW_COLUMNS.control_columns` holds columns whose cell is a control, not a value.** The
   file column is `internalId` wearing an open-file link, so its type, its sort order and a search of
   it are all about an id nobody sees. All three are refused, and `shown_always` is the same fact

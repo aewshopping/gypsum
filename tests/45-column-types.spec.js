@@ -303,8 +303,9 @@ test('a value that cannot be drawn as its column type shows its text, marked', a
   await page.keyboard.press('Escape');
   await closePicker(page);
 
-  await expect(cell('tags')).toHaveAttribute('data-mismatch', '');
+  await expect(cell('tags')).toHaveAttribute('data-mismatch', 'shape');
   await expect(cell('tags')).toContainText('planning');   // the tag names, not "[object Map]"
+  await expect(cell('tags')).toHaveAttribute('data-tip', /change this column's type/);
 
   // and a single value in a column set to list
   await openPicker(page);
@@ -313,8 +314,58 @@ test('a value that cannot be drawn as its column type shows its text, marked', a
   await page.keyboard.press('Escape');
   await closePicker(page);
 
-  await expect(cell('title')).toHaveAttribute('data-mismatch', '');
+  await expect(cell('title')).toHaveAttribute('data-mismatch', 'shape');
   await expect(cell('title')).toContainText('Alpha');     // not blank
+});
+
+// The other kind: the right shape, but text that cannot be read as the type. The column is fine and
+// the note is wrong, so it is told apart from a shape mismatch and points at the other fix.
+test('a value that cannot be read as its type says so, and points at the note', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'due').locator('.column-picker-type').click();
+  await typeOption(page, 'date').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  const dueCell = title => rowFor(page, title).locator('.note-table-cell[data-prop="due"]');
+
+  // a real date is not flagged
+  await expect(dueCell('Alpha')).not.toHaveAttribute('data-mismatch', /.*/);
+  await expect(dueCell('Alpha')).toContainText('3/1/2026');
+
+  // prose in a date column is
+  await expect(dueCell('Beta')).toHaveAttribute('data-mismatch', 'unreadable');
+  await expect(dueCell('Beta')).toContainText('quite soon');
+  await expect(dueCell('Beta')).toHaveAttribute('data-tip', /fix this in the note/);
+});
+
+// Editing a value the column cannot describe risks writing back the wrong shape, so a mismatched
+// cell opens but takes no caret. It says why in the cell as well as in its tooltip, because a
+// tooltip needs a pointer and half the people using this have a finger.
+test('a mismatched cell cannot be edited, and says why when opened', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'due').locator('.column-picker-type').click();
+  await typeOption(page, 'date').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  const bad = rowFor(page, 'Beta').locator('.note-table-cell[data-prop="due"]');
+  await bad.click();
+  await bad.click();
+
+  await expect(bad).toHaveClass(/is-expanded/);                    // it opens, so the value is readable
+  await expect(bad).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
+  await expect(bad.locator('.cell-mismatch-note')).toHaveText(/fix this in the note/);
+
+  // a cell whose value does fit is still editable, and carries no note
+  await page.keyboard.press('Escape');
+  const ok = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="title"]');
+  await ok.click();
+  await ok.click();
+  await expect(ok).toHaveAttribute('contenteditable', 'plaintext-only');
+  await expect(ok.locator('.cell-mismatch-note')).toHaveCount(0);
 });
 
 // Searching a list as text ran String() over the tag Map and searched "[object Map]", so it matched

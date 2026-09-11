@@ -10,7 +10,7 @@ giving the table a real idea of what a value *is*, and letting you change values
 This half is the first job. Nothing here writes to a file. §6 lists what was cut in the split
 and why.
 
-Status: **built**, at manifest version `1.189.0`. §7 records where the code differs from what this
+Status: **built**, at manifest version `1.190.0`. §7 records where the code differs from what this
 plan said it would be.
 
 ---
@@ -537,3 +537,26 @@ link, so its cell never shows its value. Sorting it, searching it and typing it 
 nobody is shown, and all three are now refused: in the column menu, in the sort dropdown, in the
 search box, and on its picker row. `TABLE_VIEW_COLUMNS.control_columns` names the fact, and
 `shown_always` turns out to be the same fact from the other side.
+
+**The marker on its own was not enough, and the reasons are worth keeping.** Four faults, all found
+by looking at it rather than by reading it:
+
+- **It still looked editable**, and it was: `cell-expand.js` gives a caret to any cell opened twice,
+  and a marker it never reads changes nothing. A mismatched cell now opens without one.
+- **The styling was a collision.** The dotted underline was character-identical to an unresolved
+  internal link, and a dotted underline is already a search highlight and the load-error nudge too.
+  It is the load-error's warning tint now, with no restyle at all.
+- **Nothing said what was wrong.** The cell now carries the sentence on its tooltip, and shows the
+  same string inside itself when opened — a tooltip needs a pointer, and half the people using this
+  have a finger.
+- **There were two faults being shown as one.** A list in a date column is the column's type being
+  wrong, and changing it back fixes every cell at once. "quite soon" in a date column is the note
+  being wrong, and only opening the note fixes it. They are told apart and say so.
+
+**The lock is the same shape as one the editing plan already has** for a file whose front matter did
+not read cleanly: not editable here, fix it in the note. That is the answer to what a click on a
+mismatched cell does, decided before the editing work starts rather than during it.
+
+**The explanation keeps its column's width.** Widening it was tried and put back: an opened cell
+grows rightward, so on the last column — which is exactly where a newly typed property sits — the
+sentence ran off the edge of the table. The sentences are short enough to wrap instead.

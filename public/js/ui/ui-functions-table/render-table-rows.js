@@ -1,8 +1,34 @@
 import { appState } from '../../services/store.js';
-import { valueFitsType } from '../../services/property-type.js';
+import { VALUE_TYPES, labelFor } from '../../constants.js';
+import { typeMismatch } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
+
+/**
+ * What to tell someone about a cell whose value does not fit its column.
+ *
+ * Says which of the two things is wrong and where to fix it, because they have different answers: a
+ * shape that the column cannot hold is the column's type being wrong, and text that cannot be read
+ * is the note being wrong.
+ *
+ * Written once, onto the cell's tooltip, and shown a second time inside the cell when it is opened
+ * — a tooltip needs a pointer, and half the people using this have a finger.
+ *
+ * @param {'shape'|'unreadable'} mismatch
+ * @param {string} type - The column's type.
+ * @returns {string}
+ */
+function mismatchMessage(mismatch, type) {
+    const typeLabel = labelFor(VALUE_TYPES, type);
+
+    if (mismatch === 'unreadable') {
+        return `not a ${typeLabel} — fix this in the note`;
+    }
+    return type === VALUE_TYPES.ARRAY.value
+        ? 'not a list — change this column\'s type'
+        : `a list, not a ${typeLabel} — change this column's type`;
+}
 
 /**
  * A value that does not fit its column, as text.
@@ -47,8 +73,8 @@ export function renderTableRows(current_props, renderEverything) {
                 // so, rather than being blanked or drawn wrongly. The marker is on the cell rather
                 // than left for anyone to infer from the text, because a matching text cell and a
                 // mismatched one look the same — and the editing work has to tell them apart.
-                const fits = valueFitsType(value, prop.type);
-                if (!fits) {
+                const mismatch = typeMismatch(value, prop.type);
+                if (mismatch) {
                     cellContent = renderMismatch(value);
                 }
 
@@ -98,8 +124,12 @@ export function renderTableRows(current_props, renderEverything) {
                 // own, which on an uncoloured row painted this one cell a different shade from its
                 // neighbours for no reason, and hid the row's hover behind an opaque background.
                 const fade = prop.name === 'internalId' && file.color ? ' color-dynamic-fade' : '';
-                const mismatch = fits ? '' : ' data-mismatch';
-                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${mismatch}>${cellContent}</div>`;
+                // The tip carries the whole explanation, which is also what cell-expand.js shows
+                // inside the cell when it is opened. One sentence, written in one place.
+                const flag = mismatch
+                    ? ` data-mismatch="${mismatch}" data-tip="${mismatchMessage(mismatch, prop.type)}"`
+                    : '';
+                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

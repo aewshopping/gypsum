@@ -50,28 +50,48 @@ export function propertyType(name) {
 }
 
 /**
- * Whether a value can be shown as the type its column is set to.
+ * Why a value cannot be shown as the type its column is set to, or null when it can.
  *
- * The question a renderer asks before drawing a cell, and the one the editing work will ask before
+ * Two different things go wrong, and they have different fixes, so they are told apart rather than
+ * lumped together:
+ *
+ * - **'shape'** — a list in a column of single values, or a single value in a column of lists. The
+ *   note is fine and the column's type is wrong; changing it back fixes every cell at once.
+ * - **'unreadable'** — the right shape, but the text cannot be read as the type. "quite soon" in a
+ *   date column. The column is fine and the note is wrong, so only opening the note fixes it.
+ *
+ * The question a renderer asks before drawing a cell, and the one the editing work asks before
  * deciding what a click on that cell does. Both must ask here rather than reading what ended up on
- * screen: a mismatched cell shows its text, and text is exactly what a matching one shows too.
+ * screen: a mismatched cell shows its text, and text is what a matching one shows too.
  *
- * Only the shape is checked, never whether the text means anything. "next tuesday" in a date column
- * fits — it is a string in a column of strings-read-as-dates, and the renderer falls back to
- * showing it. What does not fit is a shape the type cannot describe at all: a list in a column of
- * single values, or a single value in a column of lists.
- *
- * Nothing is missing: a blank cell is blank whatever the column is set to.
+ * Nothing is missing: a blank cell is blank whatever the column is set to. And text can hold
+ * anything, so a text column is never unreadable.
  *
  * @param {*} value - The value on the file object.
  * @param {string} type - One of VALUE_TYPES' values.
- * @returns {boolean}
+ * @returns {'shape'|'unreadable'|null}
  */
-export function valueFitsType(value, type) {
-    if (value === null || value === undefined || value === '') return true;
+export function typeMismatch(value, type) {
+    if (value === null || value === undefined || value === '') return null;
 
     const isList = value instanceof Map || Array.isArray(value);
-    return type === VALUE_TYPES.ARRAY.value ? isList : !isList;
+    if (isList !== (type === VALUE_TYPES.ARRAY.value)) return 'shape';
+
+    if (type === VALUE_TYPES.DATE.value && isNaN(new Date(value))) return 'unreadable';
+    if (type === VALUE_TYPES.NUMBER.value && !readsAsNumber(value)) return 'unreadable';
+
+    return null;
+}
+
+/**
+ * Whether a value is a number, or text that is one. A boolean is neither: Number(true) is 1, which
+ * would quietly pass `published: true` off as the number one.
+ * @param {*} value
+ * @returns {boolean}
+ */
+function readsAsNumber(value) {
+    if (typeof value === 'number') return !isNaN(value);
+    return typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value));
 }
 
 /**
