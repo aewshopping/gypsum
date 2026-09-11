@@ -161,9 +161,9 @@ for what `boolean` fixes.
 
 ### 3.4 Searching a list as text stays a separate setting
 
-`search_type` already exists in the schema and already means exactly "search this list as text
-rather than as whole items". It is why `people` and `internalLink` match partially today. The only
-thing wrong with it is that it is a hidden schema detail nobody can set.
+`search_type` already exists in the schema and already means exactly "search this list by contains
+text rather than by exact match". It is why `people` and `internalLink` match partially today. The
+only thing wrong with it is that it is a hidden schema detail nobody can set.
 
 **So it becomes the second per-column setting, and it stays independent of the type.** Tying it to
 the type would mean a column could either render as a list or search as text, never both, and
@@ -255,12 +255,21 @@ that leads to the one useful thing to do with that column.
 
 | the popover holds | what it sets |
 |---|---|
-| type | text, number, date, yes/no, list |
-| search as | whole items, or text — disabled unless the type is list, so the popover keeps one shape |
+| **type** | text, number, date, yes/no, list |
+| **search as** | **exact match** or **contains text** |
 
-**Naming to confirm before building:** these are what "actual type" and "display type" were called
-in the discussion. The second one only governs searching, so "search as" is the honest label. Worth
-settling, because it is the word the user reads.
+**The words are settled.** These two were "actual type" and "display type" in the discussion. The
+second one only governs searching, so it is labelled "search as", and its options say what happens
+rather than naming an internal idea: **exact match** finds a note whose list holds that item whole,
+**contains text** finds one where any item contains what you typed.
+
+**Exact match is the default**, because it is what a list column does today. `people` and
+`internalLink` ship set to contains text, which is what their hidden `search_type` already does for
+them.
+
+**The setting is disabled unless the type is list**, rather than hidden, so the popover keeps one
+shape whichever column it was opened from. Nothing else in the app searches by whole values, so the
+choice is meaningless on the other four types.
 
 **The icon is one glyph, not five.** A glyph per type would scan nicely but means five new symbols
 in the sprite, each legible at icon size, and a choice about what a date or a yes/no looks like.
@@ -314,7 +323,7 @@ straight off the schema, which is one line each. And update the "adding a new fi
 in `CLAUDE.md`, because the answer to "what type is this" is no longer "whatever the schema says".
 
 **Checkable by:** set a column to date, sort by it, save the layout, reload the folder, and find the
-type still there. Set a list column to search as text and check a partial search finds it.
+type still there. Set a list column to contains text and check that a partial search finds it.
 Screenshots.
 
 ---
