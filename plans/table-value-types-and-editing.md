@@ -2,6 +2,7 @@
 
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.173.0` → bump the minor version with each step that changes code.
+Related: `plans/yaml-parser.md`, split out of §4 of this plan. **Its steps come first.**
 
 This plan is the write-up of a design discussion. Nothing here has been built yet.
 
@@ -232,55 +233,18 @@ error, rather than needing a new mechanism.
 
 ---
 
-## 4. Bugs found in the front matter parser while discussing this
+## 4. The parser work this depends on
 
-These were found by running the parser directly, not by reading it. They are the reason the
-plan starts with parser work rather than type work.
+**Moved out to `plans/yaml-parser.md`.** The discussion that produced this plan also turned up
+four faults in the front matter parser, found by running it rather than reading it. They are
+written up in §0 of that plan, together with the decision about how much YAML the parser should
+accept, how to make it faster, and whether reading and writing front matter should share one
+piece of code.
 
-A list in front matter renders as `[object Object]` in the table under certain conditions.
-**Quoting the items makes no difference. Only the whitespace before the dash matters.**
-
-| what comes before the dash | result | error recorded? |
-|---|---|---|
-| one or more ordinary spaces | a proper list, shown comma-separated | — |
-| a tab | an empty object, shown as `[object Object]` | yes |
-| a non-breaking space | an empty object, shown as `[object Object]` | yes |
-| nothing, flush against the left margin | an empty object, shown as `[object Object]` | yes |
-| a dash line containing a colon and a space | a nonsense object | **no** |
-
-Four separate faults, all landing on the same symptom:
-
-1. **Indentation is measured in ordinary spaces only.** The loop that counts indentation only
-   steps over the space character, so a tab or a non-breaking space reads as no indentation
-   at all.
-2. **A list flush with its key is rejected outright.** The parser discards the key's context
-   when the indentation is not greater than the key's own, then finds no parent and records
-   "root level list item unsupported". **This shape is perfectly valid front matter and
-   several editors produce it.** This is the real bug of the four.
-3. **The colon check runs before the dash check.** A line reading `- apple: red` is treated
-   as a key and value, so the key becomes the literal text `- apple`. **This one records no
-   error at all**, which makes it the worst of the set.
-4. **The leftover empty object is what makes it ugly.** A key with nothing after the colon
-   creates an empty object as a placeholder for the nesting expected to follow. When the
-   following lines fail, that placeholder stays. It counts as a real value, so it reaches the
-   cell and prints as `[object Object]`.
-
-Two notes on severity. Tabs and non-breaking spaces are genuinely not valid front matter
-indentation, so rejecting them is defensible and the app only needs to say so more clearly.
-A list flush with its key is valid and common, so that is a straightforward bug.
-
-And the comma-separated appearance of a working list is not a deliberate choice either. An
-untyped property falls through to the default branch, which drops the value straight into the
-cell, and a JavaScript list turns into its items joined by commas.
-
-**The cheapest worthwhile fix, which stands entirely on its own:** when a key ends up holding
-an empty placeholder object, store nothing instead. Every case above then produces a blank
-cell alongside the load error that is *already being recorded*, rather than a cell that reads
-`[object Object]`. That is the difference between a note that looks corrupted and a note that
-is visibly flagged, and it needs no type system to get there.
-
-**Types cannot fix any of this.** The type layer sits downstream of the parser and cannot
-recover a list the parser threw away. Types make a bad value legible. They do not repair it.
+It is a separate plan because it answers a question this one does not: what the parser is *for*.
+Referred to below as the parser plan, and **its steps come first** — the type layer sits
+downstream of the parser and cannot recover a value the parser threw away. Types make a bad value
+legible. They do not repair it.
 
 ---
 
@@ -335,8 +299,9 @@ taking what the user typed and returning the text to write.
 | date | a plain ISO date | safe, because it does not read as a number so it stays text |
 | list | dash items on the following lines | **the one that breaks the single-line assumption** |
 
-**Lists are the awkward one.** The parser handles dash lists but not the bracketed inline
-form, so a list has to be written across several lines. That makes stage 4 a range rather
+**Lists are the awkward one.** The parser plan adds the bracketed inline form, so a list can
+be written either way — and the writer must keep whichever shape the file already used, rather
+than imposing one. See §4.1 of that plan. That makes stage 4 a range rather
 than a line, and it means the cell editor needs a way to express several values, whether
 that is one per line in the expanded cell or separated by commas on entry.
 
@@ -352,7 +317,8 @@ the user fixes it in the content modal.
 
 This is cheap because the error is already worked out and already stored per file. It is
 explainable because the load error column is right there in the table. And it stops the
-editing path from making a broken block worse. The colon case in §4 is the reason to be
+editing path from making a broken block worse. The `- apple: red` case in §0 of the parser
+plan is the reason to be
 strict, because it currently parses without complaint into something meaningless, and writing
 into it would mean writing into a key the user never created.
 
@@ -389,29 +355,14 @@ of cell edits would fill the history quickly.
 Each step is meant to be finishable and checkable on its own. Bump the manifest minor version
 on each one that changes code. **§8 says which file each step belongs in and why.**
 
-### Step 1 — Stop the parser leaving empty placeholder objects behind
+### Steps 1 and 2 — The parser work
 
-**What:** when a front matter key ends up holding an empty placeholder object, store nothing
-instead.
+**Moved to `plans/yaml-parser.md` §9**, which breaks the same work into more steps than the two
+it had here and adds the speed work alongside it. Do those first.
 
-**Purpose:** turns every parse failure in §4 from a cell reading `[object Object]` into a
-blank cell plus the load error that is already being recorded. It is the smallest change in
-this plan and the one with the best ratio of benefit to risk. It stands alone and needs
-nothing else in this plan to be worth doing.
-
-### Step 2 — Fix the three real parser faults
-
-**What:** count tabs as indentation, accept a dash list sitting flush with its key, and check
-for the dash before checking for the colon so that `- apple: red` is at least recorded as an
-error rather than silently mangled.
-
-**Purpose:** valid front matter should parse. Right now a list written flush against the left
-margin, which is a shape several editors produce, is thrown away. Everything later in this
-plan assumes the parser gets the value right, so this has to come before the type work rather
-than after it.
-
-**Care needed:** the flush-list fix touches the same indentation logic that handles nesting.
-Test nested keys and lists inside lists before and after.
+**What this plan needs from them:** front matter that parses into the right value, a blank cell
+rather than `[object Object]` when it does not, and an error recorded every time something is
+skipped. Step 9 below relies on that last one for the lock in §5.2.
 
 ### Step 3 — Make "what type is this column?" a single function
 
@@ -460,15 +411,20 @@ written into front matter and read back as itself.
 to say the user owns their own type discipline, because whatever they type, the file stays
 readable.
 
+**Note:** once the parser plan lands flow lists, a value beginning with `[` has to be quoted
+too, or it reads back as a list. Same for a comma or a bracket inside an item being written
+into a flow list. See §4.2 of that plan.
+
 ### Step 8 — Locate a key's span inside the front matter
 
-**What:** given a file's raw text and a property name, find where that key's value starts and
-ends, including any lines that belong to it.
+**Moved to `plans/yaml-parser.md` §9 step 8**, which builds it as an optional out-param on
+`parseYaml` rather than as a separate locator. The reasoning is in §5 of that plan: a second
+implementation of "where does this value end" would agree with the parser on the day it was
+written and drift afterwards, and that drift is a write into the wrong bytes of a note.
 
-**Purpose:** the foundation of writing. Getting the span right is what lets an edit replace
-the smallest possible piece of the file and leave comments, ordering and spacing untouched.
-Worth building and testing on its own before anything writes through it, because a bug here
-damages files.
+**What this plan needs from it:** given a file's raw text and a property name, where that key's
+value starts and ends, including any lines belonging to it, and whether it was written inline or
+across several lines. The last of those is what lets the writer preserve the shape it found.
 
 ### Step 9 — Write one edited cell back, text only
 
@@ -581,20 +537,23 @@ This follows the pattern already there. The header and the control row are each 
 file next to the row renderer. It does not go in `ui-functions-render/`, because that folder
 holds things several views share, and this is table-only until something else needs it.
 
-**Writing a value into front matter → two new files in
-`public/js/services/file-parsing/`, named `yaml-*` like their neighbours.**
+**Writing a value into front matter → one new file in
+`public/js/services/file-parsing/`, named `yaml-*` like its neighbours.**
 
 That folder already holds both directions of the same format: `yaml-replace-frontmatter.js`
-writes, the rest read. Two more fit naturally:
+writes, the rest read. One more fits naturally:
 
-- `yaml-key-span.js` — given a file's text and a property name, find where that key's value
-  starts and ends, including lines that belong to it
 - `yaml-value-write.js` — given a value and a type, produce the text that goes after the
   colon, including the quoting rule
 
-Both are the size and shape of `yaml-find.js` and `yaml-block-extract.js` sitting next to
-them. Neither touches the page, and neither writes to disk. **They only work out text**, which
-keeps them easy to test and impossible to damage a file with on their own.
+It is the size and shape of `yaml-find.js` sitting next to it. It does not touch the page and
+does not write to disk. **It only works out text**, which keeps it easy to test and impossible
+to damage a file with on its own.
+
+**Finding where to put that text is not a file here.** An earlier draft of this section had a
+`yaml-key-span.js` beside it. The parser plan argues that out: the span comes back from
+`parseYaml` itself, because a second module deciding where a value ends would drift from the
+one that parses it, and that drift writes into the wrong bytes of a note.
 
 **Doing the actual save → `public/js/editing/save-cell-edit.js`.**
 
@@ -645,7 +604,7 @@ others.
 
 | file | new? | why |
 |---|---|---|
-| `public/js/services/file-parsing/yaml-parse.js` | edit | steps 1 and 2, the parser fixes |
+| `public/js/services/file-parsing/yaml-parse.js` | edit | the parser plan's own steps, not this one's |
 | `public/js/constants.js` | edit | the list of legal type names |
 | `public/js/services/store.js` | edit | the origin field on the property schema |
 | `public/js/services/property-type.js` | **new** | the one answer to "what type is this" |
@@ -658,7 +617,6 @@ others.
 | `public/js/ui/ui-functions-click/column-menu.js` | edit | room for the type option |
 | `public/js/ui/ui-functions-click/column-type-set.js` | **new** | the user picked a type |
 | `public/js/table-layouts/layout-apply.js` | edit | save and load the type with the layout |
-| `public/js/services/file-parsing/yaml-key-span.js` | **new** | find a key's lines in the front matter |
 | `public/js/services/file-parsing/yaml-value-write.js` | **new** | value plus type becomes text to write |
 | `public/js/editing/save-cell-edit.js` | **new** | the whole save sequence, in one place |
 | `public/js/ui/ui-functions-click/cell-edit-commit.js` | **new** | the user finished editing a cell |
