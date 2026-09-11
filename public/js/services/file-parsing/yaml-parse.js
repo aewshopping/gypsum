@@ -113,7 +113,7 @@ const pruneEmptyMaps = (target) => {
  * A lightweight YAML parser for basic front-matter data extraction.
  *
  * Reads keys, nested maps, block lists (indented or flush with their key) and flow lists
- * (`tags: [a, b]`). Anything else is out of scope by design; see plans/yaml-parser.md.
+ * (`tags: [a, b]`). Anything else is out of scope by design; see plans/completed/yaml-parser.md.
  *
  * The parser is forgiving: a line it cannot make sense of is skipped rather than thrown on.
  * Pass an array as `errors` to find out which lines those were.
@@ -122,7 +122,7 @@ const pruneEmptyMaps = (target) => {
  * @param {string[]} [errors] - Collects a short reason per skipped line. Mutated in place.
  * @param {Map<string, object>} [spans] - When given, collects one entry per top-level key
  *   describing where its value sits in `yamlString`, for editing a value in place. See
- *   §5 of plans/yaml-parser.md for the shape and what each part is for. Spans describe the
+ *   §5 of plans/completed/yaml-parser.md for the shape and what each part is for. Spans describe the
  *   text, not the result: a key pruned from the returned object still has its span.
  * @param {{start: number, end: number} | null} [indices] - Pre-computed block position, for
  *   callers that already have it. Defaults to finding it; pass null to say there is none.

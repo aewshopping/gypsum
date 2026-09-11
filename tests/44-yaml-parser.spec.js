@@ -38,7 +38,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-// The table in §0 of plans/yaml-parser.md: every one of these used to produce an empty object,
+// The table in §0 of plans/completed/yaml-parser.md: every one of these used to produce an empty object,
 // shown in the table as [object Object].
 test('a list is read whatever whitespace precedes the dash', async ({ page }) => {
   const spaces = await parse(page, block('tags:\n  - web\n  - prod'));

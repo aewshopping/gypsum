@@ -1,16 +1,15 @@
 # Plan: what opening a table cell gives you
 
+Status: **not built**, beyond what §1 lists as already there.
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.191.0` → bump the minor version with each step that changes code.
-Depends on: `plans/table-value-types.md`, **built**.
+Depends on: `plans/completed/table-value-types.md`, **built**.
 Paired with: `plans/table-cell-writing.md`, which takes what comes out of here and puts it in the
 note. **This plan comes first**: it decides the shape of what the writing side receives.
 
 A cell is a `contenteditable` div today — one editor for everything, never argued for, just
 inherited. This plan decides what a click on an editable cell actually opens, per type, and whether
 anything is done to what the user typed before it is handed on.
-
-**Nothing here is built**, beyond what §1 lists.
 
 ---
 

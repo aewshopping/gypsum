@@ -108,7 +108,7 @@ Three rules follow from that, and they are the ones to hold:
   choice, then the schema, then text — and sorting, rendering and the picker all ask it.
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
   nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
-  so no confirmation is needed anywhere. See `plans/table-value-types.md` §1.2.
+  so no confirmation is needed anywhere. See `plans/completed/table-value-types.md` §1.2.
 - **A value that does not fit its column shows its text, and the cell is marked.** `typeMismatch()`
   says why, and there are two answers with two different fixes: `'shape'` is a list in a column of
   single values (or the reverse), which is the column's type being wrong; `'unreadable'` is text

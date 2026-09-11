@@ -1,7 +1,7 @@
 # Plan: saved table layouts
 
 Status: **built**
-Related: `plans/table-column-visibility.md` (built), `plans/table-column-resize.md` (built),
+Related: `plans/completed/table-column-visibility.md` (built), `plans/completed/table-column-resize.md` (built),
 `plans/table-json-export.md`, `plans/table-formula-columns.md`
 
 ---
@@ -26,7 +26,7 @@ else. See §9.
 
 ### 1.1 What is already built
 
-`plans/table-column-visibility.md` landed the state this feeds on. `TABLE_VIEW_COLUMNS.columnLayout`
+`plans/completed/table-column-visibility.md` landed the state this feeds on. `TABLE_VIEW_COLUMNS.columnLayout`
 is a `Map<string, {visible, width}>` whose **key order is the column order**, holding every
 candidate column, hidden ones included. `resolveColumns()` is the single function the table and
 the picker both read it through, and it reconciles the Map against the loaded folder.
@@ -209,7 +209,7 @@ the authority, which is what keeps it from becoming a second thing to maintain:
   takes effect even when its array is left in the old sequence.
 
 In memory the order stays what it already is — the Map's own key order
-(`plans/table-column-visibility.md` §3.1) — and no `order` field is carried on the entries there.
+(`plans/completed/table-column-visibility.md` §3.1) — and no `order` field is carried on the entries there.
 Two places holding the same fact is exactly the drift this avoids; the file has the number because
 a text file has no other way to say it, and the Map does not because it does not need one.
 

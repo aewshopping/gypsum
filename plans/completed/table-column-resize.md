@@ -1,5 +1,7 @@
 # Plan: activate "resize column" in the column options menu
 
+Status: **built.** The menu item works, and the resizer lives in `table-col-resize.js` with
+`column-resizer.css` and `tests/41-column-resize.spec.js`.
 Branch: `claude/column-resize-activation-660sb5`
 Manifest version now: `1.138.0` → bump to `1.139.0`
 
@@ -33,7 +35,7 @@ Behaviour, as specified:
 5. A press on the bar starts the resize; the release ends it. **Only** that press-and-release
    cycle hides the bar again.
 
-`plans/table-column-resize.md` is the earlier thinking on this. Where it conflicts with the
+`plans/completed/table-column-resize.md` is the earlier thinking on this. Where it conflicts with the
 above, the above wins. What changed and why is in §7.
 
 ---

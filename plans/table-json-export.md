@@ -2,7 +2,7 @@
 
 Status: **not started**
 Branch: `claude/table-view-customization-dduz7q`
-Related: `plans/table-column-resize.md` (shares the `current_props` seam)
+Related: `plans/completed/table-column-resize.md` (shares the `current_props` seam)
 
 ---
 
@@ -229,7 +229,7 @@ per file and `parents` is taxonomy state, neither of which belongs in a per-row 
 - **Key name `fileContent`, not `content`.** `content` is the obvious name and is the wrong
   choice, because a user's front matter can claim it. `RESERVED_KEYS` (`file-info.js:15`) does
   not protect that name, so a YAML `content:` key spreads onto the file object — and once
-  `plans/table-column-visibility.md` removes `content` from `hidden_always` as the historic
+  `plans/completed/table-column-visibility.md` removes `content` from `hidden_always` as the historic
   leftover it is, such a key becomes a showable, exportable column. The body and the user's
   property would then both want the key `content`, and a JS object resolves that by silently
   overwriting one with the other.
@@ -466,7 +466,7 @@ the export follows the active layout with no changes.
 One coupling worth noting: §3.4's "arbitrary YAML props have no `type`" fallback exists because
 `current_props` is built from `FILE_PROPERTIES`, which has no entry for user-defined front
 matter keys — the single-source-of-column-metadata cleanup deferred in
-`plans/table-column-resize.md` §8. This export is now the second feature to want that fix. It
+`plans/completed/table-column-resize.md` §8. This export is now the second feature to want that fix. It
 is still not urgent, but the justification is accumulating.
 
 ---

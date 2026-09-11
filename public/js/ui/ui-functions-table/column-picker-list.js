@@ -50,7 +50,7 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * showed a ring and a "drag to reorder" tooltip, and then ignored every key pressed at it — one
  * dead stop per column between the keyboard and the toggles. Better to leave it unreachable than
  * to advertise a control that is not there. Giving it a real key path (pick up, arrows, drop) is
- * its own piece of work; see plans/table-column-visibility.md §7.
+ * its own piece of work; see plans/completed/table-column-visibility.md §7.
  *
  * @returns {string} HTML string for #column-picker-list's innerHTML.
  */

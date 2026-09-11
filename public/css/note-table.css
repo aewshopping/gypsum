@@ -314,7 +314,7 @@
 
    Tinted rather than restyled, and with the colour the load-error nudge already uses for "this is a
    bit off": a wrong type is a column that looks odd until it is changed back, not an error. See
-   plans/table-value-types.md §1.2.
+   plans/completed/table-value-types.md §1.2.
 
    Deliberately not an underline and not italic. A dotted underline is already an unresolved
    internal link, a search highlight and the load-error nudge, and italic is the filename column.

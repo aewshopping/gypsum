@@ -1,15 +1,14 @@
 # Plan: writing a cell edit into the note
 
+Status: **not built.** Two of its guards arrived early with the types plan — §6.
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.191.0` → bump the minor version with each step that changes code.
-Depends on: `plans/table-value-types.md` and `plans/yaml-parser.md`, **both built**.
+Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
 Paired with: `plans/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
 
 Someone has finished editing a cell. This plan gets what they typed into the note's front matter
 without damaging anything else in it.
-
-**Nothing here is built.** Two of its guards arrived early with the types plan — §6.
 
 ---
 

@@ -2,7 +2,7 @@
 
 Branch: `claude/yaml-parser-improvements-yelc0o`
 Manifest version now: `1.176.0` → bump the minor version with each step that changes code.
-Related: `plans/table-value-types.md`, `plans/table-cell-editors.md` and
+Related: `plans/completed/table-value-types.md`, `plans/table-cell-editors.md` and
 `plans/table-cell-writing.md`, all of which depend on this and were split from the plan this was
 itself split out of.
 
