@@ -74,14 +74,36 @@ every one of them would cost more than it returns.
 hundreds or thousands of files. A millisecond per file is a second of blank screen.
 
 One consequence worth stating plainly, because it decided most of what follows: **those two rules
-point the same way far more often than they conflict.** The measurements in §2 show the parser's
-cost is almost entirely in work that has nothing to do with YAML.
+point the same way far more often than they conflict.** The measurements in §2 show the syntax
+being asked for costs nothing, and that what the parser does spend its time on has nothing to do
+with YAML.
 
 ---
 
 ## 2. Where the time actually goes
 
-Measured with Node on this repo's own parser, 20,000 iterations per figure, warmed.
+Measured with Node on this repo's own code, 20,000 iterations per figure, warmed.
+
+### 2.1 The two paths, which are not the same path
+
+**The load path** runs `getFileDataAndMetadata` once per file in the folder. It calls
+`findFrontMatterIndices`, then `parseYaml`, then `parseFileContent` for title, tags, links and
+the content preview. It never renders markdown.
+
+**The render path** runs `parseContent` when one file is opened in the content modal, the render
+toggle is used, or a history version is viewed. This is the one that lifts the front matter out,
+runs marked over what is left, and puts a rendered properties panel back in its place.
+
+Everything about speed in this document is about the load path. **The render path handles one
+file on a deliberate user action**, so its cost is invisible whatever it does — about 50 µs on a
+40KB note, once, on a click. It is not worth optimising and this plan does not propose to.
+
+That distinction matters because the front matter removal and reinsertion — `replaceFrontMatter`
+splitting, splicing and joining — happens **only on the render path**. The three whole-file splits
+described below are on the load path, where nothing is removed or put back and nothing is
+rendered. They exist only to read a dozen lines at the top of the file.
+
+### 2.2 The three splits on the load path
 
 A note of about 45KB with eleven lines of front matter:
 
@@ -96,7 +118,7 @@ A note of about 45KB with eleven lines of front matter:
 `getFrontMatterLines`, which calls `findFrontMatterIndices`, which splits the whole file; then
 `getFrontMatterLines` splits the whole file again to slice eleven lines out of it. `file-info.js`
 calls `findFrontMatterIndices` separately before it calls `parseYaml`, so the third split happens
-before either of those. **Three whole-file splits per file, to read a dozen lines at the top.**
+before either of those.
 
 It gets worse on a file with no front matter at all. `findFrontMatterIndices` uses `findIndex`
 to look for the opening `---`, which scans every line of the file — and then rejects the result
@@ -114,21 +136,50 @@ does not need:
 | full parse, 45KB with front matter | 7.3 µs | 2.5 µs | 3× |
 | full parse, 45KB no front matter | 3.3 µs | 0.26 µs | 13× |
 
-And the load path as a folder would feel it, `findFrontMatterIndices` plus `parseYaml` per file:
+The line indices that `parse-content.js` and the diff highlighter need are still returned: the
+walker counts lines as it goes. **Nothing downstream has to change to get this.**
 
-| folder | current | prototype |
+### 2.3 But the YAML work is not what makes a folder slow
+
+**This is the figure that decides how much any of the above is worth, and it is the one it would
+have been easiest not to measure.** The load path was never O(front matter) and removing these
+splits will not make it so, because `parseFileContent` runs a global `matchAll` for titles, tags
+and links over the whole body, and `getContentPeek` splits the whole file with a regex to read
+about three lines from it. Per file, on realistic prose with a handful of tags in it:
+
+| | 4KB note | 40KB note |
 |---|---|---|
-| 500 notes averaging 4KB | 3.4 ms | 1.5 ms |
-| 500 notes averaging 40KB | 20.2 ms | 1.0 ms |
+| YAML path, the three splits | 7.3 µs — 19% | 36.6 µs — 11% |
+| `getContentPeek` regex split | 4.9 µs — 12% | 41.2 µs — 12% |
+| title/tag/link `matchAll` | 27.2 µs — 69% | 253.3 µs — 77% |
+| **total per file** | **39.4 µs** | **331.1 µs** |
 
-**The headline is the second row, and it is not the ratio.** The prototype's cost no longer
-grows with file size, because nothing it does touches the body of the note. 500 large notes cost
-it slightly less than 500 small ones. The current parser is O(whole folder in bytes); the
-replacement is O(front matter).
+So the honest size of the prize: **removing all three splits saves 10% to 15% of folder load**,
+not a multiple of it. A folder of 500 notes averaging 40KB spends about 165 ms in
+`getFileDataAndMetadata`, of which roughly 18 ms is YAML and roughly 125 ms is the tag scan.
 
-The prototype used for every figure above **already supports flush lists, flow lists and tabs**.
-That is the single most useful thing in this document: the syntax being asked for is free, and
-paid for many times over by work that has nothing to do with syntax.
+Two things follow, and they pull in opposite directions.
+
+**Against doing the speed work for its own sake:** 10% of a load is not something anyone will
+see. If the only argument for §7.1 were speed, it would not be worth the churn.
+
+**For doing it anyway:** it is not the only argument. The same change is what makes the reverse
+direction in §5 possible at all, since a parser that splits into an array has thrown away the
+character offsets a splice needs. The speed is a by-product of the shape the writer requires.
+**That is the reason to do it, and the 10% is a bonus.**
+
+And a third thing, out of scope but worth writing down where it will be found. **`getContentPeek`
+is this plan's own mistake in different code**: it splits a 40KB file into an array of lines to
+read about three of them, and a walk that stops at 130 characters would cost nothing. The tag
+`matchAll` is a different matter — it is genuinely O(body) and has to be, since a tag can appear
+anywhere in a note. The only waste there is that it also scans the front matter block, which the
+bounds from §7.1 would let it skip. Neither belongs in this plan. Both belong in a plan.
+
+### 2.4 What the syntax costs
+
+Nothing, which is the single most useful figure here. **The prototype behind every number above
+already supports flush lists, flow lists and tabs.** Its 2.5 µs parse is with all three in place.
+Adding them does not register against the splits being removed in the same change.
 
 ---
 
@@ -258,9 +309,12 @@ somebody's note. There is one definition of where a value ends, and it should ex
 
 **It is also nearly free to build**, given the §2 rewrite. A parser that walks the raw string with
 `indexOf` instead of splitting it into an array is already holding the character offsets. Today's
-parser cannot do this at all: it threw the offsets away the moment it called `split`. So the
-change that makes the parser fast is the same change that makes the reverse direction possible.
-They are one piece of work, which is the strongest reason to do them together.
+parser cannot do this at all: it threw the offsets away the moment it called `split`.
+
+**This is the load-bearing argument for §7.1, not the 10%.** §2.3 is honest that the speed saving
+alone would not justify the churn. What justifies it is that a splice needs character offsets, a
+split destroys them, and so the parser has to stop splitting before anything can be written back.
+They are one piece of work, and the speed is what falls out of it.
 
 Two things this deliberately does not try to be:
 
@@ -340,10 +394,11 @@ better outcome on both counts.
 
 ### 7.1 The ones worth doing
 
-All three are the same idea: stop touching the body of the note.
+All three are the same idea: stop touching the body of the note. Together they are §2.3's 10% to
+15% of load, and — the actual reason to do them — the shape the reverse direction in §5 needs.
 
-1. **Find the block with `indexOf`, not `split`.** §2's table. The largest win by an order of
-   magnitude, and the enabler for §5.
+1. **Find the block with `indexOf`, not `split`.** §2.2's table. The largest of the three, and
+   the only one that enables anything.
 2. **Stop after five lines when looking for the opening separator.** The rule already says the
    block must start there. Currently a file with no front matter is scanned to its last line
    before that rule is applied.
@@ -352,6 +407,11 @@ All three are the same idea: stop touching the body of the note.
    `parse-content.js`, which finds them, then calls `replaceFrontMatter` which finds them again,
    and `renderFrontmatterProperties` which finds them twice more. Threading one result through is
    less code than the duplicate calls it removes.
+
+**On the render path, `replaceFrontMatter` can then stop splitting too**, since two `slice` calls
+around the block's character offsets do what splitting, splicing and joining an array of lines
+currently does. That is tidiness rather than speed — the render path handles one file on a click
+— but it removes the last place that splits a whole file to touch a dozen lines.
 
 ### 7.2 The one that is marginal, and worth it only for the bug it fixes
 
@@ -390,6 +450,11 @@ The added code is the flow-list scan (~15 lines), the dash-first reordering (a m
 `spans` out-param (a handful of lines), and three small error cases. Against that, the
 `getFrontMatterLines` indirection goes away entirely and the duplicate bounds calls go with it.
 
+**Speed is not the headline, despite §2 being the longest section.** The parser's share of a
+folder load is 10% to 15%, and §2.3 names the two things that are bigger. What this buys is a
+parser that accepts the front matter people actually write, says so when it cannot, and holds the
+character offsets that writing a value back requires. The 10% comes along with it.
+
 ---
 
 ## 9. Steps
@@ -424,8 +489,12 @@ indices for diff highlighting. Those must keep meaning exactly what they mean no
 away. Thread the already-computed bounds through from `file-info.js` and `parse-content.js` per
 §7.1 item 3.
 
-**No behaviour change in this step.** It is the speed step, and its test is that everything else
-still passes.
+**No behaviour change in this step**, and it is the step whose payoff is easiest to overstate:
+it buys about 10% of a folder load (§2.3) and the character offsets step 8 cannot be built
+without. Its test is that everything else still passes.
+
+`replaceFrontMatter` can lose its split in the same step, per §7.1. It is the only caller that
+genuinely removes and reinstates the block, and two `slice` calls do it.
 
 ### Step 4 — Fix the dash line
 
