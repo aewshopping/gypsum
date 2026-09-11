@@ -267,8 +267,10 @@ lines, the result must come back over four lines. **Flow in, flow out; block in,
 key that did not exist before gets written as a block list**, which is the stated preference and
 the safe default.
 
-This is not extra machinery. The span the writer is handed (§5) already says whether the value
-ended on its own line or ran on to others. The shape is in the span, not in a separate decision.
+This is not extra machinery, and §5.3 is why: the writer copies the indentation and separators
+out of the items already in the file rather than choosing them. **A flush list stays flush and an
+indented one stays indented because nothing anywhere ever decides which to use.** The shape is in
+the span, not in a rule someone has to remember.
 
 **Multi-line lists are preserved by construction**, which was the stated requirement. The only
 way to lose them is to rebuild the block from parsed values, and §5 of the types plan already
@@ -301,10 +303,8 @@ all — it is a parser whose idea of where a value ends lives somewhere other th
 parseYaml(yamlString, errors, spans)
 ```
 
-where `spans` is an optional Map the caller passes in, filled with `key → { valueStart, valueEnd,
-inline }` as character offsets into the original text. Omit it and nothing is recorded — one
-`if (spans)` per key line, which is not measurable. Pass it and you get every key's exact splice
-range from the same walk that produced the values.
+where `spans` is an optional Map the caller passes in. Omit it and nothing is recorded — one
+`if (spans)` per key line, which is not measurable.
 
 **The argument for tying them is correctness, not convenience.** A separate locator would need
 its own rules for where a block list stops, where a nested key's children end, which lines are
@@ -331,6 +331,73 @@ line and counts. `split(/\r?\n/)` would not be.
 
 **So §5 can be built on today's parser structure.** That is the right thing to know before
 deciding §7, and it is why §7 now recommends against most of itself.
+
+### 5.1 A whole-value span is not enough, and lists are why
+
+The obvious shape is `key → { valueStart, valueEnd }`: where this key's value begins and ends.
+That is right for a scalar and **wrong for a list**, because the thing being edited is usually one
+item, not the whole list. Replacing the whole span to change one item means regenerating the other
+items, and regenerating them means deciding how they are written — indented or flush, quoted or
+not — which is a decision the file has already made and the writer has no business remaking.
+
+So each entry carries the form it was written in and, for a list, one span per item:
+
+```js
+{
+  valueStart, valueEnd,      // the whole value, for replacing or clearing it outright
+  form: 'scalar' | 'block' | 'flow',
+  items: [ { lineStart, valueStart, valueEnd } ]   // lists only
+}
+```
+
+An item's `valueStart` points **past the dash and the space**, so an item's span is the value
+alone. Editing one item is then a splice into that span and nothing else moves.
+
+### 5.2 What this buys, on a real block
+
+Prototyped against this front matter:
+
+```yaml
+tags:
+  - web
+  # a comment inside the list
+  - prod
+```
+
+`tags` comes back as `form: 'block'` with a whole-value span of `"\n  - web\n  # a comment inside
+the list\n  - prod"` and two item spans, `"web"` and `"prod"`. Editing `tags[1]` produces a file
+identical to the original but for the four characters that changed. **The comment between the
+items survives**, which a whole-value rewrite would have destroyed without ever noticing it was
+there.
+
+### 5.3 Inserting an item, without deciding anything
+
+This is the part that answers "there are different ways to write a multi-line list now". **The
+writer never has to know which way this file used.** Each item carries `lineStart`, so the text
+between `lineStart` and `valueStart` is that item's own prefix — `"  - "` in an indented list,
+`"- "` in a flush one — and inserting is:
+
+```js
+text.slice(0, last.valueEnd) + "\n" + text.slice(last.lineStart, last.valueStart) + newItem + text.slice(last.valueEnd)
+```
+
+**The indentation is copied, never chosen.** A flush list stays flush, an indented one stays
+indented, and a list indented by a tab stays indented by a tab, with no code anywhere that knows
+those are different. Flow lists take the same trick with the separator between two existing items
+instead of the line prefix.
+
+This is what makes §4.1's "preserve the shape you found" a property of the data rather than a rule
+somebody has to remember to implement. **That is the real reason to put item spans in.**
+
+### 5.4 What it does not cover
+
+- **A key whose value is a nested map.** The span covers the whole nested block. Editing inside it
+  from a table cell is out of scope — the table shows flat properties — and the lock in §5.2 of
+  the types plan is what stops it being attempted.
+- **An empty list.** There are no items to copy a prefix from, so adding the first item to a
+  `tags:` with nothing under it does need a default. Block form, indented two spaces, matching
+  what the app writes elsewhere. It is the only place a style gets chosen, and it is the only
+  place where there is nothing to copy.
 
 Two things this deliberately does not try to be:
 
@@ -365,10 +432,53 @@ and the two paragraphs between become front matter. The note is flagged `yaml: 2
 and — worse — `replaceFrontMatter` then deletes those paragraphs from the rendered view. Confirmed
 by running it: the rendered source comes back as `My Title\n[PROPS]\n\nmore text`.
 
-The comment in `yaml-find.js` shows the line-0 requirement was removed deliberately, so this
-should be tightened rather than reverted: **allow the opening `---` only at line 0 or preceded
-solely by blank lines.** That keeps whatever the allowance was for and stops a heading claiming
-the block.
+The comment in `yaml-find.js` shows the line-0 requirement was removed deliberately, so this has
+to be tightened without losing what the allowance was for. **A rule of "line 0, or blank lines
+only above it" is too strict**, because this is a shape people write and it should keep working:
+
+```md
+# my title
+---
+day: Monday
+---
+```
+
+**Two conditions instead, both cheap, and neither sufficient on its own.**
+
+**1. What may sit above the opening separator: blank lines and ATX headings only.** This is not an
+arbitrary allowance — in markdown a `---` cannot underline a heading, only a paragraph. So a
+`---` after `# my title` is unambiguously not a setext underline, while a `---` after `My Title`
+is exactly that. The rule follows the markdown, and the five-line bound stays.
+
+**2. The block must contain something that reads as front matter.** At least one line that parses
+as a key, or as a list item. A block of prose between two horizontal rules contains neither.
+
+Checked against the old behaviour:
+
+| | old | new |
+|---|---|---|
+| `---` at line 0 | found | found |
+| `# my title` then `---` | found | **found** |
+| blank line then `---` | found | found |
+| setext heading trap | found — the bug | **rejected**, by condition 1 |
+| `# Title`, rule, prose, rule | found — the same bug | **rejected**, by condition 2 |
+| all three fixtures in `tests/helpers.js` | found | found, same error counts |
+
+Condition 2 is what keeps condition 1 from having to be strict. It is also why `broken-yaml.md`
+still works: it has one line that parses, `title: Broken Note`, so the block is recognised and the
+two lines that do not parse are recorded as errors exactly as they are today. **Recognising a
+block and parsing it cleanly stay separate questions**, which is the property that keeps the
+forgiving behaviour intact.
+
+**One case both rules still miss**, recorded rather than fixed: a note with a heading, a
+horizontal rule, a line containing a colon, and a second horizontal rule — `Note: this is
+important` between two rules is read as front matter. It is no worse than today and it is narrow.
+
+If it ever bites, the cheap extra condition is to **require the line immediately after the opening
+separator to be non-blank**, since a thematic break is usually followed by a blank line and real
+front matter is not. That is one more comparison and it removes this case entirely. It is not
+recommended up front, because it would reject a valid block written with a blank line after the
+opening `---`, and silently losing someone's real front matter is the worse of the two failures.
 
 ### 6.2 The empty placeholder object
 
@@ -526,15 +636,18 @@ What gets built:
 - three shapes the parser used to reject and now accepts — flush lists, flow lists, tabs — of
   which two need no code aimed at them at all
 - four silent failures that start reporting themselves
-- one piece of data loss fixed, where a setext heading eats the top of a note
-- character offsets for every key, which is what lets a cell edit rewrite one value and leave
-  every other byte of the file alone
+- one piece of data loss fixed, where a setext heading eats the top of a note, without losing the
+  `# my title` then `---` shape that should go on working
+- character offsets for every key and every list item, which is what lets a cell edit rewrite one
+  value — or one item of a list — and leave every other byte of the file alone, comments between
+  list items included
 
 What does not get built, having been measured: the `indexOf` rewrite, the `getContentPeek` walk,
 and every micro-optimisation in the parse loop. §7 has the numbers and the reasoning for each.
 
-**Net code:** roughly plus forty lines. The flow-list scan is about fifteen, the spans counter
-three, the error cases about ten, and the rest is a moved branch and a few characters. Nothing is
+**Net code:** roughly plus fifty-five lines. The flow-list scan is about fifteen, the spans and
+their item detail about fifteen, the error cases about ten, the block-detection conditions about
+six, and the rest is a moved branch and a few characters. Nothing is
 deleted, which an earlier draft promised and §7.3 has now withdrawn.
 
 **The parse loop keeps its shape.** It still splits the block into lines and walks them, because
@@ -560,8 +673,12 @@ nothing rather than `{}`. Smallest change here, stands entirely alone, and turns
 
 ### Step 2 — Tighten where the front matter block may start
 
-§6.1. Allow the opening `---` only at line 0 or preceded solely by blank lines, and make the
-search a bounded loop rather than a `findIndex` over the whole file (§7.1).
+§6.1, which is two conditions: only blank lines and ATX headings may sit above the opening `---`,
+and the block must contain at least one line that reads as a key or a list item. Make the search
+a bounded loop rather than a `findIndex` over the whole file (§7.1) in the same step.
+
+**`# my title` followed by `---` must keep working** — it is a shape people write, and it is the
+reason the rule is two conditions rather than a position test.
 
 **This is the data-loss fix**, not a speed step: a note using setext-underlined headings
 currently has its first two paragraphs read as front matter and deleted from the rendered view.
@@ -601,6 +718,10 @@ where a mis-indented file most often ends up.
 on its own, before anything writes through it — a bug here damages files. This is step 8 of the
 types plan arriving from the other direction, and it replaces that step rather than sitting
 beside it.
+
+**Include the per-item spans for lists from the start** (§5.1). They are a few lines more than a
+whole-value span and they are what lets one item be edited without regenerating the others. Test
+them on a list with a comment between two items, which is the case that proves the point.
 
 ### Step 9 — Tests
 
