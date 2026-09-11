@@ -10,7 +10,7 @@ giving the table a real idea of what a value *is*, and letting you change values
 This half is the first job. Nothing here writes to a file. §6 lists what was cut in the split
 and why.
 
-Status: **built**, at manifest version `1.187.0`. §7 records where the code differs from what this
+Status: **built**, at manifest version `1.189.0`. §7 records where the code differs from what this
 plan said it would be.
 
 ---
@@ -510,3 +510,30 @@ words, or the two sets of labels come out level and read as a second list rather
 column and the sort chevron sits inside it, because the glyph is on every header and the chevron on
 one: the mark that lines up down the table is the one that should be flush. They share a colour and
 a weight, so they read as two marks rather than as a mark and a piece of text.
+
+**The mismatch marker came back, and the reason is worth recording.** §6 of this plan cut it,
+arguing that showing the file's own words is not misleading. That was true while the table only
+displayed things. It stops being true once a click on a cell has to decide what to do: a matching
+text cell and a mismatched one read identically, so an editor working from the screen would open a
+text editor over a list and write the wrong shape back. `valueFitsType()` is the answer both the
+renderer and the editing work ask, and `data-mismatch` on the cell is what the editor can key on
+without reading anything.
+
+**Three things were quietly broken until this was tested in the browser**, all of them from
+branches that assumed the value matched the type:
+
+| | |
+|---|---|
+| tags under any single-value type | the cell read `[object Map]` |
+| any single value under the list type | the cell was blank |
+| tags set to "search text" | tag search returned nothing at all, ever |
+
+The first two are one fix: a value that does not fit shows its text, a Map by its tag names. The
+third is the text search learning to read a Map, which turns a setting that silently broke search
+into one that does something useful — "plan" now finds "planning".
+
+**The file column is the one column with no type at all.** It is `internalId` wearing an open-file
+link, so its cell never shows its value. Sorting it, searching it and typing it are all about an id
+nobody is shown, and all three are now refused: in the column menu, in the sort dropdown, in the
+search box, and on its picker row. `TABLE_VIEW_COLUMNS.control_columns` names the fact, and
+`shown_always` turns out to be the same fact from the other side.

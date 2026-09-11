@@ -50,6 +50,31 @@ export function propertyType(name) {
 }
 
 /**
+ * Whether a value can be shown as the type its column is set to.
+ *
+ * The question a renderer asks before drawing a cell, and the one the editing work will ask before
+ * deciding what a click on that cell does. Both must ask here rather than reading what ended up on
+ * screen: a mismatched cell shows its text, and text is exactly what a matching one shows too.
+ *
+ * Only the shape is checked, never whether the text means anything. "next tuesday" in a date column
+ * fits — it is a string in a column of strings-read-as-dates, and the renderer falls back to
+ * showing it. What does not fit is a shape the type cannot describe at all: a list in a column of
+ * single values, or a single value in a column of lists.
+ *
+ * Nothing is missing: a blank cell is blank whatever the column is set to.
+ *
+ * @param {*} value - The value on the file object.
+ * @param {string} type - One of VALUE_TYPES' values.
+ * @returns {boolean}
+ */
+export function valueFitsType(value, type) {
+    if (value === null || value === undefined || value === '') return true;
+
+    const isList = value instanceof Map || Array.isArray(value);
+    return type === VALUE_TYPES.ARRAY.value ? isList : !isList;
+}
+
+/**
  * How a property is searched: what the user chose, then what the schema says, then contains.
  *
  * It does not fall back to the property's type, which is the whole point of it being a separate

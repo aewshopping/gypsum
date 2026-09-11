@@ -1,7 +1,27 @@
 import { appState } from '../../services/store.js';
+import { valueFitsType } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
+
+/**
+ * A value that does not fit its column, as text.
+ *
+ * A type is the user's choice, so any column can end up holding anything. Showing the file's own
+ * words is what lets someone see what is there and work out which type it wanted — which is the
+ * one thing a blank cell, or the string "[object Map]", takes away.
+ *
+ * A Map is the tag map, whose keys are the tags; an array is its items. Both read as their contents
+ * rather than as what JavaScript would print for them.
+ *
+ * @param {*} value
+ * @returns {string}
+ */
+function renderMismatch(value) {
+    if (value instanceof Map) return [...value.keys()].join(', ');
+    if (Array.isArray(value)) return value.join(', ');
+    return String(value);
+}
 
 /**
  * Renders the rows for the table view.
@@ -23,8 +43,17 @@ export function renderTableRows(current_props, renderEverything) {
                 const value = file[prop.name];
                 let cellContent = '';
 
+                // A cell whose value cannot be drawn as its column's type shows its text and says
+                // so, rather than being blanked or drawn wrongly. The marker is on the cell rather
+                // than left for anyone to infer from the text, because a matching text cell and a
+                // mismatched one look the same — and the editing work has to tell them apart.
+                const fits = valueFitsType(value, prop.type);
+                if (!fits) {
+                    cellContent = renderMismatch(value);
+                }
+
                 // Format cell content based on data type
-                switch (prop.type) {
+                else switch (prop.type) {
                     case 'string':
                         if (prop.name === 'internalId') {
                             cellContent = renderOpenFileLink(file.internalId, file.color);
@@ -69,7 +98,8 @@ export function renderTableRows(current_props, renderEverything) {
                 // own, which on an uncoloured row painted this one cell a different shade from its
                 // neighbours for no reason, and hid the row's hover behind an opaque background.
                 const fade = prop.name === 'internalId' && file.color ? ' color-dynamic-fade' : '';
-                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}">${cellContent}</div>`;
+                const mismatch = fits ? '' : ' data-mismatch';
+                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${mismatch}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

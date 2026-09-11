@@ -1,4 +1,4 @@
-import { appState } from '../../services/store.js';
+import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
 import { resolveColumns } from './render-table-columns-helper.js';
 
@@ -32,7 +32,7 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * space to it and every toggle sits against the same edge — see column-picker.css, where the row
  * is a grid and that box is its last track.
  *
- * The type glyph sits in that box too, and on every row without exception — read-only properties,
+ * The type glyph sits in that box too, and on every row bar the control columns' — read-only properties,
  * always-on columns and dead ones included. It is drawn per type, from a symbol named after the
  * stored type name, so the list can be read down rather than one tooltip at a time. Setting the type of lastModified is pointless, but a
  * type change never writes a file, so nothing can be damaged by it, and a rule with no exceptions
@@ -67,10 +67,13 @@ export function renderColumnPickerList() {
                   : column.dead     ? 'this property is not in the loaded folder'
                   : 'show this column';
 
+        // A control column's cell holds a link rather than its value, so it has no type to set.
+        const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(column.name);
         const typeLabel = labelFor(VALUE_TYPES, column.type);
-        const typeTip = column.type === VALUE_TYPES.ARRAY.value
-            ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
-            : typeLabel;
+        const typeTip = isControl ? 'this column opens the file, so it has no type'
+                      : column.type === VALUE_TYPES.ARRAY.value
+                        ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
+                        : typeLabel;
 
         const bin = (column.dead && underSavedLayout)
             ? `<button type="button" class="info-modal-row-btn" data-action="column-delete" data-property="${column.name}" data-tip="remove this column from the layout">` +
@@ -83,7 +86,7 @@ export function renderColumnPickerList() {
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<span class="column-picker-actions">` +
-                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${typeTip}">` +
+                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${typeTip}"${isControl ? ' disabled' : ''}>` +
                      `<svg class="info-modal-row-icon type-glyph"><use href="#icon-type-${column.type}"></use></svg></button>` +
                    bin +
                    `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +

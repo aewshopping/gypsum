@@ -134,10 +134,20 @@ export function handleColumnMenuOpen(evt, headerCell) {
     // The last column on screen cannot be hidden, for the reason the column picker's floor exists:
     // an empty column set makes --grid-columns an empty string and draws a broken table rather
     // than raising anything. The file column cannot be hidden at all.
+    const property = headerCell.dataset.property;
     const hideItem = menu.querySelector('[data-action="column-hide"]');
     if (hideItem) {
-        hideItem.disabled = TABLE_VIEW_COLUMNS.shown_always.includes(headerCell.dataset.property)
+        hideItem.disabled = TABLE_VIEW_COLUMNS.shown_always.includes(property)
                          || TABLE_VIEW_COLUMNS.current_props.length === 1;
+    }
+
+    // A control column's cell holds a link rather than the property's value, so sorting it,
+    // searching it and giving it a type are all about an id nobody sees. Offered but inert, rather
+    // than absent, so the menu is the same menu on every column.
+    const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(property);
+    for (const action of ['column-sort-asc', 'column-sort-desc', 'column-search', 'column-change-type']) {
+        const item = menu.querySelector(`[data-action="${action}"]`);
+        if (item) item.disabled = isControl;
     }
 
     // Showing a popover does not move focus on its own. Putting it on the first item is what

@@ -286,6 +286,76 @@ test('the file column cannot be hidden', async ({ page }) => {
   await expect(page.locator('[data-action="column-hide"]')).toBeDisabled();
 });
 
+// A type is the user's choice, so any column can end up holding anything. Showing the file's own
+// words is what lets someone see what is there and work out which type it wanted, which a blank
+// cell or the string "[object Map]" takes away. The marker is on the cell rather than left to be
+// inferred from the text, because a matching text cell and a mismatched one read the same.
+test('a value that cannot be drawn as its column type shows its text, marked', async ({ page }) => {
+  await openTable(page);
+
+  const cell = property => rowFor(page, 'Alpha').locator(`.note-table-cell[data-prop="${property}"]`);
+  await expect(cell('tags')).not.toHaveAttribute('data-mismatch', /.*/);
+
+  // a list column set to a single-value type
+  await openPicker(page);
+  await pickerRow(page, 'tags').locator('.column-picker-type').click();
+  await typeOption(page, 'date').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  await expect(cell('tags')).toHaveAttribute('data-mismatch', '');
+  await expect(cell('tags')).toContainText('planning');   // the tag names, not "[object Map]"
+
+  // and a single value in a column set to list
+  await openPicker(page);
+  await pickerRow(page, 'title').locator('.column-picker-type').click();
+  await typeOption(page, 'array').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  await expect(cell('title')).toHaveAttribute('data-mismatch', '');
+  await expect(cell('title')).toContainText('Alpha');     // not blank
+});
+
+// Searching a list as text ran String() over the tag Map and searched "[object Map]", so it matched
+// nothing, ever. Setting tags to "search text" was a silent way to break tag search.
+test('a list searched as text reads its items', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'tags').locator('.column-picker-type').click();
+  await searchOption(page, 'string').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  // "cat" and "category" are both in the folder, and contains-text finds both
+  await page.fill('#searchbox', 'tags:cat');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('.note-table')).toHaveCount(2);
+});
+
+// The file column's cell is a link that opens the note, not the value of internalId. Sorting it,
+// searching it and giving it a type would all be about an id nobody is ever shown.
+test('the file column offers no type, no sort and no search', async ({ page }) => {
+  await openTable(page);
+  await openColumnMenu(page, 'internalId');
+  for (const action of ['column-sort-asc', 'column-sort-desc', 'column-search', 'column-change-type', 'column-hide']) {
+    await expect(page.locator(`[data-action="${action}"]`)).toBeDisabled();
+  }
+  await page.keyboard.press('Escape');
+
+  // nor from the sort dropdown
+  await expect(page.locator('[data-action="sort-select"] option[value="internalId"]')).toHaveCount(0);
+
+  // nor by typing it into the search box, where it behaves like a property the folder lacks
+  await page.fill('#searchbox', 'internalId:a.md');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('.filter-pill')).toHaveCount(0);
+
+  // and its picker row has no type to set
+  await openPicker(page);
+  await expect(pickerRow(page, 'internalId').locator('.column-picker-type')).toBeDisabled();
+});
+
 // A tag pill means that one tag. Tags is the only property pinned to whole-item matching, and this
 // is why: "cat" and "category" are both in the folder.
 test('a tag pill still filters to that tag alone', async ({ page }) => {

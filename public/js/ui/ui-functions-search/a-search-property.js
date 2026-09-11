@@ -79,6 +79,18 @@ function searchArrayProperty(filterId, searchValueLower, property, type, operato
 
 
 /**
+ * A value as the text a "contains" search reads: a Map by its keys, a list by its items, anything
+ * else by itself.
+ * @param {*} value
+ * @returns {string}
+ */
+function listText(value) {
+    if (value instanceof Map) return [...value.keys()].join(' ');
+    if (Array.isArray(value)) return value.join(' ');
+    return String(value);
+}
+
+/**
  * Searches a string property of all files for a given search value.
  *
  * @param {string} filterId The ID of the filter.
@@ -96,7 +108,13 @@ function searchStringProperty(filterId, searchValueLower, property, type, operat
         const item = file[property];
         if (item == null) continue;
 
-        const textToSearch = (Array.isArray(item) ? item.join('') : String(item)).toLowerCase();
+        // A Map is the tag map, whose keys are the tags. Without this a list searched as text ran
+        // String() over the Map and searched "[object Map]", so it matched nothing, ever — which is
+        // what setting tags to "search text" used to do.
+        //
+        // Joined with a space rather than nothing, so a search cannot match across the join and
+        // find "hnsmi" in a list holding "john" and "smith".
+        const textToSearch = listText(item).toLowerCase();
 
         if (textToSearch.includes(searchValueLower)) {
             const occurrences = textToSearch.split(searchValueLower).length - 1;

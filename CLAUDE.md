@@ -109,6 +109,14 @@ Three rules follow from that, and they are the ones to hold:
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
   nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
   so no confirmation is needed anywhere. See `plans/table-value-types.md` §1.2.
+- **A value that does not fit its column shows its text, and the cell is marked.** `valueFitsType()`
+  answers whether it fits; the cell then carries `data-mismatch`. Ask that function — never work it
+  out from what is on screen, because a matching text cell and a mismatched one look the same. The
+  editing work will need the same answer to decide what a click on a cell does.
+- **`TABLE_VIEW_COLUMNS.control_columns` holds columns whose cell is a control, not a value.** The
+  file column is `internalId` wearing an open-file link, so its type, its sort order and a search of
+  it are all about an id nobody sees. All three are refused, and `shown_always` is the same fact
+  from the other side: the link is the only way to open a note from the table.
 
 ### Adding a new file property
 

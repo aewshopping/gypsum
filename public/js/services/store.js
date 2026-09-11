@@ -168,6 +168,11 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
 export const TABLE_VIEW_COLUMNS = {
   hidden_always: ['handle', 'contentPeek'],
   shown_always: ['internalId'],
+  // Columns whose cell holds a control rather than the property's value: the file column is
+  // internalId wearing an open-file link. Its type, its sort order and a search of it would all be
+  // about an id nobody ever sees, so none of the three is offered — and shown_always above is the
+  // same fact seen from the other side, since the link is the only way to open a note from here.
+  control_columns: ['internalId'],
   hidden_by_default: ['color', 'filepath', 'internalLink', 'errorOnLoad'],
   current_props: [],
   columnLayout: new Map(),

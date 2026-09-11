@@ -308,3 +308,16 @@
         else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))
     );
 }
+
+/* A cell whose value cannot be drawn as its column's type. It shows its text, so that what the file
+   holds is still readable and you can see which type it wanted — the marker is what says the column
+   and the value disagree, rather than leaving it to be guessed from text that looks like any other.
+
+   Muted and underlined rather than coloured: a wrong type is a column that looks odd until it is
+   changed back, not an error. See plans/table-value-types.md §1.2. Not italic, which is what the
+   filename column already wears — two different things should not look the same. */
+.note-table-cell[data-mismatch] {
+    opacity: 0.65;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
