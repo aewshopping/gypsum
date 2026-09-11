@@ -4,8 +4,9 @@ import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-render/render-layout-list.js';
 import { renderColumnPickerList } from '../ui-functions-table/column-picker-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
-import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
-import { applyActiveLayout } from '../../table-layouts/layout-file.js';
+import { markLayoutDirty, playLayoutSaved } from '../ui-functions-table/render-table-controls.js';
+import { applyActiveLayout, saveLayout } from '../../table-layouts/layout-file.js';
+import { showWarningModal } from './warning-modal.js';
 
 const dialog = document.getElementById('modal-columns');
 
@@ -38,8 +39,11 @@ function applyVisibilityFloor() {
     const toggles = [...listElement().querySelectorAll('input.toggle')];
     const shown = toggles.filter(toggle => toggle.checked);
     toggles.forEach(toggle => {
-        // A locked column stays locked whatever the count, or this would hand it back.
+        // A locked column stays locked whatever the count, or this would hand it back. Dead ones
+        // are locked for a different reason but in the same way, so they are read off the DOM here
+        // rather than resolved again.
         toggle.disabled = toggle.hasAttribute('data-always-on')
+            || toggle.hasAttribute('data-dead')
             || (shown.length === 1 && toggle.checked);
     });
 }
@@ -76,22 +80,27 @@ export function handleColumnToggle() {
 }
 
 /**
- * Ticks every column. Locked ones are already ticked, so they need no exception.
+ * Ticks every column. alwaysOn ones are already ticked, so they need no exception; dead ones are
+ * left as they are, since there is nothing in the folder for them to show.
  * @returns {void}
  */
 export function handleShowAllColumns() {
-    listElement().querySelectorAll('input.toggle').forEach(toggle => { toggle.checked = true; });
+    listElement().querySelectorAll('input.toggle').forEach(toggle => {
+        if (!toggle.hasAttribute('data-dead')) toggle.checked = true;
+    });
     applyVisibilityFloor();
 }
 
 /**
  * Unticks every column except the ones that cannot be switched off, which is also what keeps the
- * floor satisfied: the file column is always there, so there is always a column left.
+ * floor satisfied: the file column is always there, so there is always a column left. A dead
+ * column is left as the layout has it — hiding it would rewrite the layout on the user's behalf.
  * @returns {void}
  */
 export function handleHideAllColumns() {
-    listElement().querySelectorAll('input.toggle')
-        .forEach(toggle => { toggle.checked = toggle.hasAttribute('data-always-on'); });
+    listElement().querySelectorAll('input.toggle').forEach(toggle => {
+        if (!toggle.hasAttribute('data-dead')) toggle.checked = toggle.hasAttribute('data-always-on');
+    });
     applyVisibilityFloor();
 }
 
@@ -118,22 +127,17 @@ export async function handleResetColumns() {
 }
 
 /**
- * Reads the whole dialog into the layout and re-renders the table. Fires for every way of
- * finishing — the close button, Escape and clicking outside all reach it, which is what
- * closedby="any" buys.
+ * Reads the rows as they sit into the layout.
  *
  * The Map is rebuilt in row order because the Map's key order *is* the column order, so the rows
  * as they sit are the new layout. Each entry is spread forward first, which carries a dragged
  * width across a reorder or a hide.
  *
- * The list is emptied afterwards. The dialog is a shell, and rebuilding it on every open is the
- * same arrangement the table has — nothing in the app holds rendered state between renders, and
- * a row left behind from a previous folder would look exactly like a real one.
- *
- * Nothing is written to disk here. A layout is saved when the user says so, from the layout menu.
+ * Two callers: closing the dialog, and removing a dead column — which writes the layout to disk
+ * and so has to write what is on screen rather than what was on screen when the dialog opened.
  * @returns {void}
  */
-export function handleColumnPickerClose() {
+function readPickerIntoLayout() {
     const layout = TABLE_VIEW_COLUMNS.columnLayout;
     const previous = new Map(layout);
 
@@ -144,6 +148,57 @@ export function handleColumnPickerClose() {
             visible: row.querySelector('input.toggle').checked,
         });
     });
+}
+
+/**
+ * Drops a dead column from the active layout for good, once the user has agreed to it.
+ *
+ * Unlike everything else in this dialog, this writes to disk straight away. The point of the bin
+ * is to be rid of the column in the saved layout, so leaving it to a later "save layout" would be
+ * leaving the job half done. The rows are read in first, so what is written is what is on screen:
+ * a save that silently reverted a toggle flipped a moment earlier would be worse than either.
+ *
+ * The dialog stays open — only the row goes. Focus goes to the dialog because the button that had
+ * it has just been rendered away.
+ *
+ * @param {MouseEvent} evt
+ * @param {HTMLElement} target - The bin button, carrying data-property.
+ * @returns {Promise<void>}
+ */
+export async function handleColumnDelete(evt, target) {
+    const { property } = target.dataset;
+    const active = appState.tableLayouts.active;
+
+    const confirmed = await showWarningModal(
+        `Remove the "${property}" column from the '${active}' layout? ` +
+        `The loaded folder no longer has this property.`,
+        'remove column', 'cancel');
+    if (!confirmed) return;
+
+    readPickerIntoLayout();
+    TABLE_VIEW_COLUMNS.columnLayout.delete(property);
+    await saveLayout(active);
+    playLayoutSaved();
+
+    renderFiles();
+    paintList();
+    dialog.focus();
+}
+
+/**
+ * Reads the whole dialog into the layout and re-renders the table. Fires for every way of
+ * finishing — the close button, Escape and clicking outside all reach it, which is what
+ * closedby="any" buys.
+ *
+ * The list is emptied afterwards. The dialog is a shell, and rebuilding it on every open is the
+ * same arrangement the table has — nothing in the app holds rendered state between renders, and
+ * a row left behind from a previous folder would look exactly like a real one.
+ *
+ * Nothing is written to disk here. A layout is saved when the user says so, from the layout menu.
+ * @returns {void}
+ */
+export function handleColumnPickerClose() {
+    readPickerIntoLayout();
 
     listElement().innerHTML = '';
     markLayoutDirty();

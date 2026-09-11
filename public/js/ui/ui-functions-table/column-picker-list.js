@@ -1,3 +1,4 @@
+import { appState } from '../../services/store.js';
 import { resolveColumns } from './render-table-columns-helper.js';
 
 /**
@@ -19,6 +20,17 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * from the table, so it is offered here for its place in the order rather than for switching off.
  * data-always-on says so to the handlers, which would otherwise re-enable it.
  *
+ * A dead column — one the layout remembers but the folder no longer has — is locked as it stands
+ * rather than at a value of its own: there is nothing to show in it, so switching it on would put
+ * an empty column on screen and switching it off would quietly rewrite the layout. data-dead says
+ * so to the handlers, the same way data-always-on does. It is offered a bin instead, which is the
+ * one useful thing to do with it, and only when a layout is in force — under the app defaults
+ * there is no saved layout for it to be removed from.
+ *
+ * The bin and the toggle share one box at the end of the row, so a row without a bin gives up no
+ * space to it and every toggle sits against the same edge — see column-picker.css, where the row
+ * is a grid and that box is its last track.
+ *
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.
  *
@@ -31,16 +43,31 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * @returns {string} HTML string for #column-picker-list's innerHTML.
  */
 export function renderColumnPickerList() {
+    const underSavedLayout = appState.tableLayouts.active !== null;
+
     return resolveColumns().map(column => {
         const label = column.label ?? column.name;
         const checked = column.visible ? ' checked' : '';
-        const locked = column.alwaysOn ? ' disabled data-always-on' : '';
+        const locked = column.alwaysOn ? ' disabled data-always-on'
+                     : column.dead     ? ' disabled data-dead'
+                     : '';
+        const tip = column.alwaysOn ? 'always shown'
+                  : column.dead     ? 'this property is not in the loaded folder'
+                  : 'show this column';
+
+        const bin = (column.dead && underSavedLayout)
+            ? `<button type="button" class="info-modal-row-btn" data-action="column-delete" data-property="${column.name}" data-tip="remove this column from the layout">` +
+                `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>`
+            : '';
 
         return `<div class="info-modal-row" data-property="${column.name}">` +
                  `<button type="button" class="info-modal-row-btn info-modal-row-grip" tabindex="-1" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
-                 `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${column.alwaysOn ? 'always shown' : 'show this column'}"${checked}${locked}>` +
+                 `<span class="column-picker-actions">` +
+                   bin +
+                   `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +
+                 `</span>` +
                `</div>`;
     }).join('');
 }

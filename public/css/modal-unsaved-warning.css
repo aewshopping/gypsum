@@ -1,6 +1,12 @@
 #modal-unsaved-warning {
     margin: auto;
     padding: 24px 32px;
+
+    /* A shrink-to-fit dialog is as wide as its longest line, and the confirmations that name a
+       property and a layout are long enough to run most of the way across a wide screen. The
+       panel's width comes off the viewport the same way it does for every other dialog — see
+       sidebar-push.css, which shifts this one by the same variable. */
+    max-width: min(420px, calc(100vw - var(--sidebar-width) - 32px));
     border: 2px solid transparent;
     border-radius: 6px;
     background-color: var(--colour-neutral-alt);
