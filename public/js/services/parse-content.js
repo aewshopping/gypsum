@@ -34,14 +34,16 @@ export function parseContent(text, liveCheckboxes = false) {
     // Matches marked's own internal \r\n/\r -> \n normalization, so our offsets and its
     // token.raw values agree on the same character positions.
     const normalized = text.replace(/\r\n|\r/g, '\n');
-    const propertiesHtml = renderFrontmatterProperties(normalized);
+    // Found once and handed to each of the three below, which would otherwise each work it
+    // out again from the same text.
     const indices = findFrontMatterIndices(normalized);
+    const propertiesHtml = renderFrontmatterProperties(normalized, indices);
     const lineOffset = indices ? indices.end - indices.start : 0;
     const placeholderLine = indices ? indices.start + 1 : 0;
 
     // internalLinkParser runs first so the '#' it emits (href="#") lands inside an HTML tag,
     // where tagParser's protected-span check already leaves it alone.
-    const transformed = tagParser(internalLinkParser(replaceFrontMatter(normalized, PROPERTIES_PLACEHOLDER)));
+    const transformed = tagParser(internalLinkParser(replaceFrontMatter(normalized, PROPERTIES_PLACEHOLDER, indices)));
     const renderer = new SourceTrackingRenderer(transformed, lineOffset, placeholderLine, liveCheckboxes);
     const rendered = marked(transformed, { renderer });
     // Tagged with its own line so a change anywhere in the front matter block highlights the

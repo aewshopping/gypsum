@@ -31,7 +31,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
     const frontMatterIndices = findFrontMatterIndices(content);
     const tagData = parseFileContent(content, frontMatterIndices);
     const yamlErrors = [];
-    const yamlData = parseYaml(content, yamlErrors);
+    const yamlData = parseYaml(content, yamlErrors, null, frontMatterIndices);
 
     // Stripped before registration so a shadowing key never becomes a searchable property either.
     const shadowedKeys = RESERVED_KEYS.filter(key => key in yamlData);

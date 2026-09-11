@@ -6,11 +6,11 @@ import { findFrontMatterIndices } from "./yaml-find.js";
  *
  * @param {string} fullString - The raw content string.
  * @param {string} replacement - The text to substitute in place of the front-matter block.
+ * @param {{start: number, end: number} | null} [indices] - Pre-computed block position, for
+ *   callers that already have it. Defaults to finding it; pass null to say there is none.
  * @returns {string} The text with the front-matter block replaced, or the original string if no valid block is found.
  */
-export const replaceFrontMatter = (fullString, replacement) => {
-    const indices = findFrontMatterIndices(fullString);
-
+export const replaceFrontMatter = (fullString, replacement, indices = findFrontMatterIndices(fullString)) => {
     if (!indices) {
         return fullString;
     }

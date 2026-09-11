@@ -637,6 +637,36 @@ async function setupMockFilesBrokenYaml(page) {
 }
 
 /**
+ * Injects a mock picker with three notes whose front matter uses the list shapes the parser
+ * learned to read: flush with the key, indented with a tab, and inline in brackets.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesYamlShapes(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('flush.md', '---\nstatus: draft\npeople:\n- alice\n- bob\n---\n\n# Flush\n\nBody text.');
+          yield makeFile('tabbed.md', '---\nstatus: done\npeople:\n\t- carol\n---\n\n# Tabbed\n\nBody text.');
+          yield makeFile('flow.md', '---\nstatus: live\npeople: ["ada lovelace", alan]\n---\n\n# Flow\n\nBody text.');
+        },
+      };
+    };
+  });
+}
+
+/**
  * Injects a mock picker where one of three files cannot be read — simulating a file deleted or
  * its permission revoked between the directory being listed and the file being opened. The other
  * two must still load.
@@ -925,4 +955,4 @@ async function setupMockDirectoryWithLayouts(page) {
   });
 }
 
-module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };
+module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };
