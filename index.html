@@ -506,13 +506,6 @@
         </dl>
       </div>
     </div>
-
-    <!-- DEV-MODE-BYPASS · removal manifest at the top of
-         public/js/ui/ui-functions-click/toggle-developer-mode.js -->
-    <div class="info-modal-row">
-      <span class="info-modal-row-label">Developer mode</span>
-      <input type="checkbox" class="toggle" id="developer-mode-enabled" data-action="toggle-developer-mode" data-tip="toggle on to stop pwa caching">
-    </div>
   </dialog>
 
   <dialog id="modal-unsaved-warning">
@@ -667,16 +660,7 @@
 </body>
 <script>
   if ('serviceWorker' in navigator) {
-    // DEV-MODE-BYPASS · removal manifest at the top of
-    // public/js/ui/ui-functions-click/toggle-developer-mode.js. Without it this block is just
-    // register('./service-worker.js') plus the listener below.
-    // sessionStorage is what carries developer mode across a refresh, which is the whole
-    // point of it; the browser clears it when the tab closes, so a new session caches as
-    // normal. The ?dev=1 worker serves everything from the network instead of the cache.
-    const devMode = sessionStorage.getItem('gypsum-dev-mode') === 'on';
-    document.getElementById('developer-mode-enabled').checked = devMode;
-
-    navigator.serviceWorker.register(devMode ? './service-worker.js?dev=1' : './service-worker.js');
+    navigator.serviceWorker.register('./service-worker.js');
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'gypsum-update-ready') location.reload();
     });
