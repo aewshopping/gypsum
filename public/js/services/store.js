@@ -124,8 +124,10 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
  * exclusion, not a default: a FileSystemFileHandle cannot be rendered and contentPeek is a slab
  * of body text, so neither is offered anywhere. `shown_always` is the mirror of it — the file
  * column, which is the only way to open a file from the table and so cannot be switched off.
- * `hidden_by_default` is only a starting position: those are useful columns kept out of the way,
- * and the column picker can bring any of them back.
+ * `hidden_by_default` is only a starting position, and only the app defaults' one: those are useful
+ * columns kept out of the way, and the column picker can bring any of them back. A saved layout
+ * answers the question for itself — it shows what it says it shows, and a property it has never
+ * heard of starts hidden whatever this list says.
  *
  * @type {object}
  * @property {Array<string>} hidden_always - Never shown, never offered, not overridable.
@@ -174,6 +176,9 @@ export const TABLE_VIEW_COLUMNS = {
  * Two callers: resolveColumns(), the first time it sees a property, and the layout loader, for a
  * value a hand-edited file left unusable. They must not disagree about what a default column is,
  * which is why this is one function rather than the same three lines twice.
+ *
+ * `visible` here is the app defaults' answer. resolveColumns() overrides it to false when a saved
+ * layout is in force, because a layout only shows the columns it names.
  *
  * @param {string} name - The property name.
  * @returns {{label: string, width: number, visible: boolean}}

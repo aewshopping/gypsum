@@ -19,7 +19,7 @@ import { handleFileContentInput } from './ui-functions-click/file-content-input.
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
-import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
+import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
@@ -145,6 +145,7 @@ const clickActionHandlers = {
     'reset-columns': handleResetColumns,
     'show-all-columns': handleShowAllColumns,
     'hide-all-columns': handleHideAllColumns,
+    'column-delete': handleColumnDelete,
     'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,

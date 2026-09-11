@@ -87,6 +87,13 @@
     opacity: 0.9;
 }
 
+/* Holds a missing row button's place, so the controls to its right stay in one column down the
+   list whether or not a given row has one to draw. */
+.info-modal-row-spacer {
+    flex-shrink: 0;
+    width: 1.6em;
+}
+
 .info-modal-row-icon {
     width: 100%;
     height: 100%;

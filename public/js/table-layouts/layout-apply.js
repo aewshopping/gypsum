@@ -60,8 +60,12 @@ function resolveOrder(columns) {
  * - **A repeated name keeps its first appearance in sorted order.** Left to the Map, the first
  *   insertion would fix the column's position while the last overwrote its values, so a
  *   duplicate would silently take one entry's place and another's width.
- * - **An unusable label, width or visible falls back to the schema's.** A width of `"wide"` in a
- *   grid track is a broken table rather than an error, so it never gets that far.
+ * - **An unusable label or width falls back to the schema's.** A width of `"wide"` in a grid
+ *   track is a broken table rather than an error, so it never gets that far.
+ * - **A column is shown only if it says `visible: true`.** A layout is a closed statement of which
+ *   columns its user wants, so anything else — `false`, a string, or no flag at all — leaves the
+ *   column hidden. That is the same answer resolveColumns() gives a property the layout does not
+ *   mention, so a hand-edited file cannot get a column shown by saying less than a saved one does.
  *
  * @param {Array<object>} columns - The `columns` array as parsed from the file.
  * @returns {void}
@@ -78,7 +82,7 @@ export function applyLayoutToColumnLayout(columns) {
         columnLayout.set(name, {
             label: typeof column.label === 'string' ? column.label : fallback.label,
             width: Number.isFinite(column.width) ? column.width : fallback.width,
-            visible: typeof column.visible === 'boolean' ? column.visible : fallback.visible,
+            visible: column.visible === true,
         });
     }
 }

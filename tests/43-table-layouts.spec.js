@@ -60,6 +60,10 @@ test('a folder with no saved layout shows the app defaults and writes nothing', 
 
   await expect(layoutName(page)).toContainText('default');
   expect(await page.evaluate(() => window.__layoutsFileContent)).toBe('');
+
+  // The defaults make no statement about which columns are wanted, so every property the folder
+  // holds is one — front matter keys no layout has ever heard of included.
+  await expect(page.locator('.note-table-cell-header[data-property="people"]')).toHaveCount(1);
 });
 
 test('changing columns writes nothing until the user saves', async ({ page }) => {
@@ -167,9 +171,10 @@ test('a saved layout is restored when the folder is reopened', async ({ page }) 
   const width = await heads.nth(1).evaluate(el => Math.round(el.getBoundingClientRect().width));
   expect(width).toBe(111);
 
-  // A column the layout hides stays hidden; one it never mentions is appended, still visible.
+  // A column the layout hides stays hidden; one it never mentions is hidden too. A layout names
+  // the columns its user chose, so a property it has never seen is not one of them.
   await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(0);
-  await expect(page.locator('.note-table-cell-header[data-property="filename"]')).toHaveCount(1);
+  await expect(page.locator('.note-table-cell-header[data-property="filename"]')).toHaveCount(0);
 });
 
 test('a wonky hand-edited order still loads, in the order it asks for', async ({ page }) => {
@@ -598,4 +603,157 @@ test('a name is a real button, so the keyboard reaches it for free', async ({ pa
   await expect(layoutName(page)).toContainText('default');
   await expect(modal(page).locator('.layout-row.is-active button.layout-row-name'))
     .toHaveAttribute('data-layout', '');
+});
+
+/** Seeds a layout file and opens the folder in table view with it already active. */
+async function openTableWithLayout(page, doc) {
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await setupMockDirectoryWithLayouts(page);
+  await page.addInitScript(seed => { window.__layoutsFileContent = JSON.stringify(seed); }, doc);
+
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+}
+
+/** A layout naming only the file and title columns, so everything else is new to it. */
+const sparseLayout = {
+  layoutVersion: 1,
+  active: 'review',
+  layouts: {
+    review: {
+      updated: '2026-01-01T00:00:00.000Z',
+      columns: [
+        { order: 0, name: 'internalId', label: 'file', width: 90, visible: true },
+        { order: 1, name: 'title', label: 'title', width: 350, visible: true },
+      ],
+    },
+  },
+};
+
+/** A layout carrying two columns for properties no file in the folder has. */
+const deadLayout = {
+  layoutVersion: 1,
+  active: 'review',
+  layouts: {
+    review: {
+      updated: '2026-01-01T00:00:00.000Z',
+      columns: [
+        { order: 0, name: 'internalId', label: 'file', width: 90, visible: true },
+        { order: 1, name: 'ghost', label: 'ghost', width: 150, visible: true },
+        { order: 2, name: 'phantom', label: 'phantom', width: 150, visible: false },
+        { order: 3, name: 'title', label: 'title', width: 350, visible: true },
+      ],
+    },
+  },
+};
+
+const pickerRow = (page, prop) => page.locator(`#column-picker-list .info-modal-row[data-property="${prop}"]`);
+
+test('a property the layout has never seen stays out of it, and is offered unticked', async ({ page }) => {
+  await openTableWithLayout(page, sparseLayout);
+
+  // people comes from beta.md's front matter and the layout predates it, so it is not a column.
+  await expect(page.locator('.note-table-cell-header[data-property="people"]')).toHaveCount(0);
+
+  // It is still a candidate, and the picker is where it is found.
+  await openPicker(page);
+  await expect(pickerRow(page, 'people')).toHaveCount(1);
+  await expect(pickerRow(page, 'people').locator('input.toggle')).not.toBeChecked();
+
+  await pickerRow(page, 'people').locator('input.toggle').check();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.note-table-cell-header[data-property="people"]')).toHaveCount(1);
+
+  // Saving records the answer both ways: the one switched on, and the ones left alone.
+  await saveBtn(page).click();
+  await page.waitForTimeout(150);
+
+  const columns = (await layoutsFile(page)).layouts.review.columns;
+  expect(columns.find(c => c.name === 'people').visible).toBe(true);
+  expect(columns.find(c => c.name === 'filename').visible).toBe(false);
+  expect(columns.find(c => c.name === 'date').visible).toBe(false);
+});
+
+test('a dead column keeps its place, and the picker locks it as the layout has it', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+
+  // Drawn because the layout says so, even with nothing to put in it.
+  await expect(page.locator('.note-table-cell-header[data-property="ghost"]')).toHaveCount(1);
+  await expect(page.locator('.note-table-cell-header[data-property="phantom"]')).toHaveCount(0);
+
+  await openPicker(page);
+  const ghost = pickerRow(page, 'ghost').locator('input.toggle');
+  const phantom = pickerRow(page, 'phantom').locator('input.toggle');
+
+  await expect(ghost).toBeDisabled();
+  await expect(ghost).toBeChecked();
+  await expect(phantom).toBeDisabled();
+  await expect(phantom).not.toBeChecked();
+
+  // A live column is untouched by any of this.
+  await expect(pickerRow(page, 'tags').locator('input.toggle')).toBeEnabled();
+});
+
+test('only a dead column is offered a bin, and the toggles stay in one column', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+  await openPicker(page);
+
+  await expect(pickerRow(page, 'ghost').locator('[data-action="column-delete"]')).toHaveCount(1);
+  await expect(pickerRow(page, 'phantom').locator('[data-action="column-delete"]')).toHaveCount(1);
+  await expect(pickerRow(page, 'title').locator('[data-action="column-delete"]')).toHaveCount(0);
+
+  // The bin takes a slot every row reserves, so it cannot push its own toggle out of line.
+  const lefts = await page.locator('#column-picker-list input.toggle')
+    .evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().left)));
+  expect(new Set(lefts).size).toBe(1);
+});
+
+test('show all and hide all leave a dead column as the layout has it', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+  await openPicker(page);
+
+  await page.click('[data-action="show-all-columns"]');
+  await expect(pickerRow(page, 'phantom').locator('input.toggle')).not.toBeChecked();
+  await expect(pickerRow(page, 'tags').locator('input.toggle')).toBeChecked();
+
+  await page.click('[data-action="hide-all-columns"]');
+  await expect(pickerRow(page, 'ghost').locator('input.toggle')).toBeChecked();
+  await expect(pickerRow(page, 'tags').locator('input.toggle')).not.toBeChecked();
+});
+
+test('the bin removes a dead column from the saved layout, without closing the picker', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+  await openPicker(page);
+
+  // Cancelling changes nothing.
+  await pickerRow(page, 'ghost').locator('[data-action="column-delete"]').click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-cancel"]');
+  await expect(pickerRow(page, 'ghost')).toHaveCount(1);
+
+  await pickerRow(page, 'ghost').locator('[data-action="column-delete"]').click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-proceed"]');
+
+  // The row goes, the dialog stays, and the column goes from the file rather than waiting on a save.
+  await expect(pickerRow(page, 'ghost')).toHaveCount(0);
+  await expect(page.locator('#modal-columns')).toBeVisible();
+  await expect.poll(async () => (await layoutsFile(page)).layouts.review.columns.map(c => c.name))
+    .not.toContain('ghost');
+
+  // The rest are left where they were, the other dead one included: one bin removes one column.
+  const columns = (await layoutsFile(page)).layouts.review.columns;
+  expect(columns.slice(0, 3).map(c => c.name)).toEqual(['internalId', 'phantom', 'title']);
+  expect(columns.map(c => c.order)).toEqual(columns.map((_, i) => i));
+
+  await expect(page.locator('.note-table-cell-header[data-property="ghost"]')).toHaveCount(0);
+});
+
+test('the app defaults offer no bin, having no layout to remove a column from', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+
+  await expect(page.locator('#column-picker-list [data-action="column-delete"]')).toHaveCount(0);
 });

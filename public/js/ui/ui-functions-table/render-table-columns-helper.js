@@ -14,6 +14,17 @@ import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, defaultColumnEntry } fro
  * finds it complete; a property discovered late joins the end rather than being dropped. Nothing
  * has to remember to seed it.
  *
+ * **Whether a late arrival is shown depends on which layout is in force.** Under the app's
+ * defaults it is, unless the schema says otherwise: the defaults mean "every property is a
+ * column". Under a saved layout it is not, because a layout names the columns its user chose and
+ * a property it has never seen is not one of them — a front matter key added to a file after the
+ * layout was saved should not appear in it uninvited. Either way it is kept, and so keeps its
+ * place in the order for whenever it is switched on.
+ *
+ * `dead` marks a column the layout remembers but the folder no longer has. It is still drawn if
+ * the layout says so, and still written back to the file; the column picker is where it can be
+ * removed from the layout for good.
+ *
  * The layout's own values win over the schema's. A column is seeded with FILE_PROPERTIES' label
  * and width the first time it is seen, and read from the Map from then on — so a saved layout
  * keeps the heading and width it was saved with even after the schema's defaults change. The
@@ -24,7 +35,7 @@ import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, defaultColumnEntry } fro
  * widths without re-rendering — a width read off these objects would be stale mid-drag.
  *
  * @returns {Array<object>} Resolved columns in order: { name, label, width, visible, alwaysOn,
- *                          type, display_order }.
+ *                          dead, type, display_order }.
  */
 export function resolveColumns() {
     const { columnLayout, hidden_always, shown_always } = TABLE_VIEW_COLUMNS;
@@ -33,12 +44,20 @@ export function resolveColumns() {
     const missing = [...appState.myFilesProperties.keys()]
         .filter(prop => !excluded.has(prop) && !columnLayout.has(prop));
 
+    // A saved layout is a closed statement of which columns the user wants, so a property it has
+    // never seen joins it hidden. The app's defaults make no such statement — there the schema's
+    // own answer stands, and everything but hidden_by_default is a column.
+    const underSavedLayout = appState.tableLayouts.active !== null;
+
     // Appended in default order, which is what rebuilds the whole default layout on the first
     // render after a load. Later arrivals join the end rather than disturbing a user's ordering.
     missing
         .sort((a, b) => (FILE_PROPERTIES.get(a)?.display_order ?? 99)
                       - (FILE_PROPERTIES.get(b)?.display_order ?? 99))
-        .forEach(prop => columnLayout.set(prop, defaultColumnEntry(prop)));
+        .forEach(prop => {
+            const entry = defaultColumnEntry(prop);
+            columnLayout.set(prop, underSavedLayout ? { ...entry, visible: false } : entry);
+        });
 
     // shown_always is enforced here rather than trusted from the layout, so the one function that
     // decides the column set is also the one place the rule cannot be got round.
@@ -50,6 +69,7 @@ export function resolveColumns() {
             ...entry,
             visible: alwaysOn || entry.visible,
             alwaysOn,
+            dead: !appState.myFilesProperties.has(name),
         };
     });
 }
