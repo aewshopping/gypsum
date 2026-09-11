@@ -114,8 +114,8 @@ not saved, and you can neither see it nor change it.
 
 ### 3.1 You set a column's type, and the layout remembers it
 
-The type becomes something you choose from the column menu, stored in the saved layout alongside
-the width and the visibility.
+The type becomes something you choose from the column picker modal, stored in the saved layout
+alongside the width and the visibility.
 
 - **Order of precedence: your choice wins, then the app's built-in list, then plain text as the
   floor.** No guessing from the values. A column that changed type by itself when a note was added
@@ -159,7 +159,23 @@ If a property has no declared type it is text. From there it is up to you to kee
 straight. Five types, no more, and each one has to earn its place by fixing something — see §1.1
 for what `boolean` fixes.
 
-### 3.4 A value that does not fit its column gets shown, not hidden
+### 3.4 Searching a list as text stays a separate setting
+
+`search_type` already exists in the schema and already means exactly "search this list as text
+rather than as whole items". It is why `people` and `internalLink` match partially today. The only
+thing wrong with it is that it is a hidden schema detail nobody can set.
+
+**So it becomes the second per-column setting, and it stays independent of the type.** Tying it to
+the type would mean a column could either render as a list or search as text, never both, and
+those two properties prove that both are wanted at once.
+
+The type system still does not reach into search. What changes is only where `search_type` comes
+from: the column's layout first, then the schema, as with everything else. The filter object, the
+operator, the filter pill and all three search functions are untouched, and the two properties
+carrying `search_type` today stop being special cases and become the shipped defaults for a
+setting anyone can use.
+
+### 3.5 A value that does not fit its column gets shown, not hidden
 
 Set a column to date and one note holds "quite high". Today that cell would read **Invalid Date**,
 which is the app inventing a fact. Instead: show the raw text, and mark the cell quietly as not
@@ -210,7 +226,7 @@ lookup, five copies become five chances to disagree.
   falls to `default: comparison = 0`, which means a yes/no column does not sort at all.
 
 **Purpose:** the display half of the feature, delivered before any new interface exists. Everybody
-gets the bug fix whether or not they ever open the column menu.
+gets the bug fix whether or not they ever open the column picker.
 
 **Why one step and not two:** the original plan had the mismatch marker as a step of its own. But
 the renderer has to decide what to do with a value that does not fit *anyway* — that is not a
@@ -225,32 +241,67 @@ the nonsense, marked. Screenshots, per CLAUDE.md.
 
 ### Step 3 — You pick a column's type
 
-**What:** a type control in the existing column menu, stored in the column layout next to the
-width and the visibility.
+**What:** a type control reached from the column picker modal, stored in the column layout next to
+the width and the visibility, along with the search setting from §3.4.
 
-- **The control is a `<select>`, not a submenu.** The menu is a flat list of buttons in
-  `index.html`, and a submenu would be a new interface idea. A select listing the five labels is
-  one element, and change-events already have a home: `sort-select-change.js` and
-  `history-select-change.js` are both wired the same way. `column-menu.js` already knows which
-  column it was opened from, so it sets the select's value when the menu opens.
-- **Storing it is nearly free.** `layoutFromColumnLayout` spreads the whole entry, so the type
-  rides along into the file on its own. Only the reading direction needs work:
-  `applyLayoutToColumnLayout` must check the name against `VALUE_TYPES` and drop anything else,
-  the same way it already guards labels and widths.
-- **Changing it marks the layout dirty**, exactly like a resize.
-- **Then re-render.** Types affect display and sort order, so a change has to redraw the table.
+**Where it goes, and why it is not two more columns in the modal.** Each picker row is already a
+grid: a grip, a label, and one box at the end holding the bin and the show/hide toggle. Two extra
+controls sitting on every row would crowd it and would put two dropdowns on screen for every
+property whether or not anyone cares about them.
+
+**So the row gains one small icon button, in the same box as the bin**, and clicking it opens a
+popover holding both settings. That is the pattern the bin already established: an icon on the row
+that leads to the one useful thing to do with that column.
+
+| the popover holds | what it sets |
+|---|---|
+| type | text, number, date, yes/no, list |
+| search as | whole items, or text — disabled unless the type is list, so the popover keeps one shape |
+
+**Naming to confirm before building:** these are what "actual type" and "display type" were called
+in the discussion. The second one only governs searching, so "search as" is the honest label. Worth
+settling, because it is the word the user reads.
+
+**The icon is one glyph, not five.** A glyph per type would scan nicely but means five new symbols
+in the sprite, each legible at icon size, and a choice about what a date or a yes/no looks like.
+Start with one generic glyph and put the current type in its tooltip, the way the grip and the bin
+already carry theirs. Per-type glyphs are a later polish if scanning the list turns out to matter.
+
+**Show it on every row, with no exceptions.** Read-only properties, always-on columns and dead
+columns all get one. Setting the type of `lastModified` to text is pointless, but §1.2 means it
+cannot break anything, and a rule with no exceptions is one less thing to read the code for.
+
+**The change lands the way every other picker change lands.** The popover writes the chosen values
+onto the row as data attributes and updates the icon's tooltip. Nothing else happens until the
+dialog closes, when `readPickerIntoLayout` reads the rows back into the layout with the order and
+the visibility. Two things come free from taking that path: the reset button undoes a type change
+along with everything else, because it repaints the list from the layout, and the dirty flag is
+already set on close.
+
+**Storing it is nearly free.** `layoutFromColumnLayout` spreads the whole entry, so both keys ride
+into the file on their own. Only the reading direction needs work: `applyLayoutToColumnLayout` must
+check both against `VALUE_TYPES` and drop anything else, the same way it already guards labels and
+widths.
+
+**The one mechanic to prove first.** The popover opens from a row inside a `<dialog>`, and both are
+in the top layer. `#column-menu` needs an anchor proxy because the table header is moved by a
+scroll-driven transform; a picker row is not, so anchoring straight to the row's button should
+work. Check that before building the rest, because if it does not, the fallback is positioning the
+popover in script and the shape of this step changes.
 
 **Purpose:** the visible half. Dates read as dates, numbers sort as numbers, a column of yes/no
-values stops reading as the words true and false.
+values stops reading as the words true and false, and a list column can be searched as text.
 
-Per §1.2, setting a type here must not rewrite a single note, however badly the values fit the
-type chosen. Nothing can be damaged by getting a type wrong, and changing it back costs nothing.
+Per §1.2, setting a type here must not rewrite a single note, however badly the values fit the type
+chosen. Nothing can be damaged by getting a type wrong, and changing it back costs nothing.
 
-**Also in this step:** update the "adding a new file property" recipe in `CLAUDE.md`, because the
-answer to "what type is this" is no longer "whatever the schema says".
+**Also in this step:** the two search files read `search_type` from the resolver rather than
+straight off the schema, which is one line each. And update the "adding a new file property" recipe
+in `CLAUDE.md`, because the answer to "what type is this" is no longer "whatever the schema says".
 
-**Checkable by:** set a column to date, sort by it, save the layout, reload the folder, and find
-the type still there. Screenshots.
+**Checkable by:** set a column to date, sort by it, save the layout, reload the folder, and find the
+type still there. Set a list column to search as text and check a partial search finds it.
+Screenshots.
 
 ---
 
@@ -276,11 +327,15 @@ A folder promising the type system lives in one place would be a promise it cann
 | `public/js/ui/ui-functions-table/render-table-columns-helper.js` | edit | carry the resolved type onto each column |
 | `public/js/ui/ui-functions-table/render-table-rows.js` | edit | hand cell contents to the new renderer |
 | `public/js/ui/ui-functions-table/render-cell-value.js` | **new** | a value plus a type becomes the contents of a cell |
-| `index.html` | edit | the type select inside `#column-menu` |
-| `public/js/ui/ui-functions-click/column-menu.js` | edit | set the select's value on open |
-| `public/js/ui/ui-functions-click/column-type-set.js` | **new** | the user picked a type |
+| `index.html` | edit | a `.app-menu` popover holding the two selects, and one icon symbol in the sprite |
+| `public/js/ui/ui-functions-table/column-picker-list.js` | edit | the icon button on each row |
+| `public/js/ui/ui-functions-click/column-type-set.js` | **new** | open the popover, write the choice onto the row |
+| `public/js/ui/ui-functions-click/column-picker.js` | edit | read both keys off the rows when the dialog closes |
 | `public/js/ui/event-listeners-add.js` | edit | register the new action |
-| `public/js/table-layouts/layout-apply.js` | edit | validate the type when reading a layout file |
+| `public/js/table-layouts/layout-apply.js` | edit | validate both keys when reading a layout file |
+| `public/js/ui/ui-functions-search/a-create-filter-object.js` | edit | `search_type` from the resolver, one line |
+| `public/js/ui/ui-functions-search/a-search-every-property.js` | edit | the same line |
+| `public/css/column-picker.css` | edit | room for the icon in the row's action box |
 | `public/css/` | new file | the marker for a cell that does not match its column |
 | `CLAUDE.md` | edit | the "adding a new file property" recipe changes |
 | `manifest.json` | edit | a minor bump per step |
@@ -301,14 +356,17 @@ appears or two of them are caught disagreeing.
 
 The original plan had five steps on this side. This one has three. What went:
 
-**Search is not rewired. Dropped.** The original had search calling the new function too. It
-should not, for two reasons. First, search reads `search_type || type`, and `search_type` exists
-precisely so `people` and `internalLink` can opt *out* of list behaviour — it is a search
-preference, not a display type, and the two should not be forced together. Second, search's only
-type distinction is list-versus-everything, and `searchArrayProperty` already checks the value's
-real shape at the point of use. So feeding it the type you chose for *display* would change search
-behaviour nobody asked for: set a text column to list, and searching it would silently switch from
-"contains" to "matches exactly". Two files stay untouched and one class of surprise disappears.
+**The display type does not drive search.** The original had search calling the new type function.
+It should not. `search_type` exists precisely so `people` and `internalLink` can opt *out* of list
+behaviour, which is to say it is a search preference and not a display type, and search's only
+distinction is list-versus-everything anyway. Feeding it the type you chose for display would mean
+setting a text column to list silently switched its search from "contains" to "matches exactly",
+and would make list display and text search mutually exclusive.
+
+**What replaced it is smaller:** `search_type` becomes the second per-column setting in §3.4, and
+the two search files change one line each — the same expression, sourced from the resolver rather
+than straight off the schema. The filter object, the operator, the pill and all three search
+functions stay exactly as they are.
 
 **"Where does this value come from" moved to the other plan.** It was step 4 of the original, and
 nothing in the display half reads it. It is the field that decides whether a cell can be edited,
