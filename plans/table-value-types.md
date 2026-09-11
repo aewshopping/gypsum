@@ -16,8 +16,7 @@ Nothing in this plan has been built yet.
 
 ## 1. Why types are needed
 
-A note's front matter can hold all sorts of things. A number, a date, a yes/no answer, a list of
-names. Right now the app barely tells them apart. It has a short list of labels — string, number,
+A note's front matter can hold all sorts of things. A number, a date, a list of names. Right now the app barely tells them apart. It has a short list of labels — string, number,
 date, array — attached to the handful of properties the app itself knows about. **Anything you
 invent yourself gets no label at all**, and the app quietly treats it as text.
 
@@ -25,7 +24,7 @@ A type is the app's answer to two questions, decided once per column instead of 
 time:
 
 - **How should this look on screen?** A date should read as a date, not as a long computer
-  timestamp. A yes/no should read as yes or no.
+  timestamp.
 - **How should this column sort?** Numbers should sort as numbers, not as text, where 10 comes
   before 2.
 
@@ -40,13 +39,17 @@ cell falls to the renderer's last branch, which is `value || ''`.
 
 | what the note says | what the cell shows today | what it should show |
 |---|---|---|
-| `published: false` | *nothing at all* | no |
+| `published: false` | *nothing at all* | false |
 | `revisions: 0` | *nothing at all* | 0 |
-| `due: 2026-03-01` | 2026-03-01, unsorted | a readable date, sorting by date |
 
 The parser reads `false` and `0` correctly. The cell then throws them away, because in JavaScript
 both count as "empty" to the `||` operator. **A value silently vanishing from a cell is the worst
-kind of display bug**, because nothing announces it. Step 2 fixes it.
+kind of display bug**, because nothing announces it.
+
+**This is not really this plan's work.** Changing `||` to `??` in that branch fixes it outright,
+needs no type system, and could ship this afternoon. It is here because it is the evidence that the
+app's idea of a value is thinner than it looks, and because it is the only bug the type work was
+ever going to fix on its own.
 
 ### 1.2 The founding rule: changing a type never changes your notes
 
@@ -137,7 +140,7 @@ The original plan wrote the types out in friendly language — text, yes/no, lis
 means touching the schema, both switches, the search fallback, the tests and every saved layout
 already on disk, for a cosmetic gain and a real migration risk.
 
-**So the stored names stay `string`, `number`, `date` and `array`, and `boolean` joins them.** The
+**So the stored names stay exactly as they are: `string`, `number`, `date` and `array`.** The
 friendly words are labels for the menu only. This is exactly the shape `VIEWS` already has in
 `constants.js` — a fixed set of allowed values, each with a label for display — so a `VALUE_TYPES`
 list next to it needs no explaining.
@@ -147,8 +150,10 @@ list next to it needs no explaining.
 | `string` | text |
 | `number` | number |
 | `date` | date |
-| `boolean` | yes/no |
 | `array` | list |
+
+**There is no yes/no type**, and §6 explains why the one that was proposed did not survive being
+asked what it was for.
 
 That list is the **only** place that says which names are legal. It matters because a layout file
 is meant to be hand-edited, so a typo in one must not be able to invent a phantom type.
@@ -156,8 +161,7 @@ is meant to be hand-edited, so a typo in one must not be able to invent a phanto
 ### 3.3 An unknown property is text, and you own the consequences
 
 If a property has no declared type it is text. From there it is up to you to keep your own system
-straight. Five types, no more, and each one has to earn its place by fixing something — see §1.1
-for what `boolean` fixes.
+straight. Four types, no more, and a fifth only when something concrete needs it.
 
 ### 3.4 Searching a list as text stays a separate setting
 
@@ -180,15 +184,19 @@ because a tag pill means that tag and nothing else. See step 3.
 ### 3.5 A value that does not fit its column gets shown, not hidden
 
 Set a column to date and one note holds "quite high". Today that cell would read **Invalid Date**,
-which is the app inventing a fact. Instead: show the raw text, and mark the cell quietly as not
-matching. Falling back per cell beats blocking the whole column, and it beats pretending.
+which is the app inventing a fact. Instead it shows the raw text, which is what the file says.
+
+That is the whole rule. No marker, no class, no function asking whether a value fits its type: the
+cell showing the file's own words is not misleading, and a badge telling you it does not look like
+a date tells you what you can already see. Falling back per cell also beats blocking the whole
+column.
 
 ---
 
 ## 4. Steps
 
-Three steps. Each is finishable and checkable on its own, and each carries its own tests rather
-than leaving them to the end. Bump the manifest minor version on each.
+Two steps. Each is finishable and checkable on its own, and each carries its own tests rather than
+leaving them to the end. Bump the manifest minor version on each.
 
 ### Step 1 — One answer to "what type is this column?"
 
@@ -215,33 +223,7 @@ lookup, five copies become five chances to disagree.
 
 **Checkable by:** the app behaves identically. Sorting, rendering and layouts all work as before.
 
-### Step 2 — Cells show every type honestly
-
-**What:** lift the cell switch out of `render-table-rows.js` into
-`public/js/ui/ui-functions-table/render-cell-value.js`, then make it complete:
-
-- **`boolean`** renders as yes or no. **This is the step that fixes §1.1**, because the same
-  change removes the `value || ''` fallback that was eating `false` and `0`.
-- **A value that does not fit its column** renders as its raw text with a marker class, rather
-  than as "Invalid Date" or blank.
-- **Sorting learns `boolean` too**, in the existing switch in `file-object-sort.js`. It currently
-  falls to `default: comparison = 0`, which means a yes/no column does not sort at all.
-
-**Purpose:** the display half of the feature, delivered before any new interface exists. Everybody
-gets the bug fix whether or not they ever open the column picker.
-
-**Why one step and not two:** the original plan had the mismatch marker as a step of its own. But
-the renderer has to decide what to do with a value that does not fit *anyway* — that is not a
-feature bolted on top, it is the same switch doing its job properly.
-
-**Why the file is worth extracting:** `render-table-rows.js` also builds the row, applies the
-colour and checks pagination. The switch is about to grow. It is also the pattern already in that
-folder, where the header and the control row each have their own file.
-
-**Checkable by:** a note with `published: false` shows "no". A date column holding nonsense shows
-the nonsense, marked. Screenshots, per CLAUDE.md.
-
-### Step 3 — You pick a column's type
+### Step 2 — You pick a column's type
 
 **What:** a type control reached from the column picker modal, stored in the column layout next to
 the width and the visibility, along with the search setting from §3.4.
@@ -257,7 +239,7 @@ that leads to the one useful thing to do with that column.
 
 | the popover holds | what it sets |
 |---|---|
-| **type** | text, number, date, yes/no, list |
+| **type** | text, number, date, list |
 | **search as** | **exact match** or **contains text** |
 
 **The words are settled.** These two were "actual type" and "display type" in the discussion. The
@@ -282,8 +264,8 @@ correcting a default that did not suit.
 shape whichever column it was opened from. Nothing else in the app searches by whole values, so the
 choice is meaningless on the other four types.
 
-**The icon is one glyph, not five.** A glyph per type would scan nicely but means five new symbols
-in the sprite, each legible at icon size, and a choice about what a date or a yes/no looks like.
+**The icon is one glyph, not four.** A glyph per type would scan nicely but means four new symbols
+in the sprite, each legible at icon size, and a choice about what a date or a list looks like.
 Start with one generic glyph and put the current type in its tooltip, the way the grip and the bin
 already carry theirs. Per-type glyphs are a later polish if scanning the list turns out to matter.
 
@@ -323,15 +305,25 @@ So the handler toggles an attribute on the clicked button, and `column-picker.cs
 anchor name off that attribute. Nothing fights, and the tooltip keeps working on the same
 element.
 
-**Purpose:** the visible half. Dates read as dates, numbers sort as numbers, a column of yes/no
-values stops reading as the words true and false, and a list column can be searched as text.
+**Purpose:** the visible half, and the only step that delivers anything a user can see. Dates read
+as dates, numbers sort as numbers, and a list column can be searched by part of its text.
 
 Per §1.2, setting a type here must not rewrite a single note, however badly the values fit the type
 chosen. Nothing can be damaged by getting a type wrong, and changing it back costs nothing.
 
-**Also in this step:** the two search files read `search_type` from the resolver rather than
-straight off the schema, which is one line each. And update the "adding a new file property" recipe
-in `CLAUDE.md`, because the answer to "what type is this" is no longer "whatever the schema says".
+**Three small things ride along with it.**
+
+**A date or a number that will not parse shows its raw text**, not "Invalid Date" and not a blank.
+This has to happen here rather than earlier, because the picker is what makes it reachable: today
+only the app's own properties are date-typed, and they are always real dates. It is one check in
+each of those two branches of the existing cell switch, and the cell then shows what the file
+actually says. No marker, no new class, no new file — see §6.
+
+**The two search files read `search_type` from the resolver** rather than straight off the schema,
+which is one line each.
+
+**The "adding a new file property" recipe in `CLAUDE.md`** changes, because the answer to "what
+type is this" is no longer "whatever the schema says".
 
 **Checkable by:** set a column to date, sort by it, save the layout, reload the folder, and find the
 type still there. Set a list column to exact match and check a partial search stops finding it.
@@ -353,7 +345,6 @@ A folder promising the type system lives in one place would be a promise it cann
 | `public/js/constants.js` | edit | `VALUE_TYPES` — the only list of legal type names |
 | `public/js/services/property-type.js` | **new** | the one answer to "what type is this column?" |
 | `public/js/services/store.js` | edit | `search_type` off `people` and `internalLink`, onto `tags` |
-| `public/js/services/file-object-sort.js` | edit | a `boolean` branch in the comparator |
 | `public/js/ui/ui-functions-click/sort-object.js` | edit | ask the new module |
 | `public/js/ui/ui-functions-click/load-files-click.js` | edit | ask the new module |
 | `public/js/ui/ui-functions-click/create-new-note-click.js` | edit | ask the new module |
@@ -361,8 +352,7 @@ A folder promising the type system lives in one place would be a promise it cann
 | `public/js/ui/ui-functions-click/history-recreate-click.js` | edit | ask the new module |
 | `public/js/editing/refresh-file-state.js` | edit | ask the new module |
 | `public/js/ui/ui-functions-table/render-table-columns-helper.js` | edit | carry the resolved type onto each column |
-| `public/js/ui/ui-functions-table/render-table-rows.js` | edit | hand cell contents to the new renderer |
-| `public/js/ui/ui-functions-table/render-cell-value.js` | **new** | a value plus a type becomes the contents of a cell |
+| `public/js/ui/ui-functions-table/render-table-rows.js` | edit | raw text when a date or a number will not parse |
 | `index.html` | edit | a `.app-menu` popover holding the two selects, and one icon symbol in the sprite |
 | `public/js/ui/ui-functions-table/column-picker-list.js` | edit | the icon button on each row |
 | `public/js/ui/ui-functions-click/column-type-set.js` | **new** | open the popover, write the choice onto the row |
@@ -372,15 +362,14 @@ A folder promising the type system lives in one place would be a promise it cann
 | `public/js/ui/ui-functions-search/a-create-filter-object.js` | edit | `search_type` from the resolver, one line |
 | `public/js/ui/ui-functions-search/a-search-every-property.js` | edit | the same line |
 | `public/css/column-picker.css` | edit | room for the icon in the row's action box |
-| `public/css/` | new file | the marker for a cell that does not match its column |
 | `CLAUDE.md` | edit | the "adding a new file property" recipe changes |
 | `manifest.json` | edit | a minor bump per step |
 
-Three new JavaScript files, all small. No new folder.
+Two new JavaScript files, both small. No new folder.
 
-**On the three switches.** A type name ends up in two switches here — the comparator and the cell
-renderer — and a third in the other plan, the value writer. The tidy-minded alternative is one
-object per type holding all three behaviours together. **We should not do that.** It would put
+**On the three switches.** A type name ends up in two switches here, the comparator and the cell
+renderer, and a third in the other plan, the value writer. The tidy-minded alternative is one object
+per type holding all three behaviours together. **We should not do that.** It would put
 HTML-producing code and file-writing code in the same object, which is the exact layer mix this
 codebase avoids, and the app already has three switches on the same four types today with no
 trouble. Three small switches, kept honest by one list of legal names. Revisit only if a fourth
@@ -408,7 +397,32 @@ functions stay exactly as they are.
 nothing in the display half reads it. It is the field that decides whether a cell can be edited,
 so it belongs with editing. It also turns out to need no new field at all — see that plan.
 
-**The mismatch marker folded into the renderer.** Covered in step 2.
+**The whole "cells show every type honestly" step is gone, and the yes/no type with it.** It was a
+step of its own until it was asked what it was for, and the answers did not hold:
+
+- **A yes/no type earns nothing on display.** The parser already returns real booleans, and the
+  fallback branch prints `false` as the word false once `||` becomes `??`. "Yes" instead of "false"
+  is a preference, not a fix.
+- **A yes/no type earns nothing on sorting either.** Sorting text runs the values through
+  `localeCompare`, and "false" sorts before "true" correctly. The `default: comparison = 0` case
+  that would have left it unsorted is unreachable, because every caller already passes `string` as
+  its fallback.
+- **The mismatch marker was solving a problem the fallback already solves.** Showing the file's own
+  text is not misleading, it is the truth. A class saying "this does not match the type you chose"
+  tells you what the cell already shows you. A CSS file and a value-fits-its-type function for
+  that is not worth it.
+- **`render-cell-value.js` only earned itself if the switch was growing.** Without a fifth type it
+  grows by two lines.
+
+**What survives is two lines and one check.** `||` becomes `??`, which is a bug fix that does not
+need this plan at all, and a date or number that will not parse falls back to its raw text, which
+rides along with step 2 because the picker is what makes it reachable.
+
+**The one place yes/no may come back is the other plan.** Writing `false` into a text column would
+quote it, turning a note's real boolean into the string "false". If that matters once editing
+exists, the type costs one entry in the popover list and one line in the convert function, added
+then, for a reason that will actually exist by then. That is the plan's own rule: do not build for
+types we do not have.
 
 **The type names are not changed.** §3.2.
 

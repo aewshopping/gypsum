@@ -198,9 +198,16 @@ what the user typed and returning the text to write.
 |---|---|---|
 | `string` | the text, quoted when it would not read back as itself | the only one needing the quoting rule |
 | `number` | the digits plainly, when it reads as a number | otherwise falls back to quoted text |
-| `boolean` | `true` or `false` plainly | the parser already reads both — a perfect round trip |
+| `boolean` | `true` or `false` plainly | **not in the type list yet** — see below |
 | `date` | a plain ISO date | safe, because it does not read as a number, so it stays text |
 | `array` | deferred, see step 5 | the only one that breaks the single-line assumption |
+
+**Yes/no is the one type this plan may have to add.** The types plan dropped it, because on display
+and sorting it earns nothing that treating the value as text does not already do. Writing is where
+it might pay: a note saying `published: true`, edited in a text column, comes back as the quoted
+string `"false"`, so the app has silently changed a real boolean into text. Decide that in step 3,
+with the round trip in front of you. If it is worth fixing it costs one entry in the type list and
+one line in the convert function.
 
 **The whole pipeline works end to end with no types at all**, if stage 3 is nothing but the quoting
 rule. The other types are then small independent additions to one function, and nothing else in the
@@ -286,7 +293,8 @@ from the file rather than from memory. Screenshots.
 
 ### Step 3 — The remaining types
 
-**What:** `number`, `boolean` and `date` added to the convert function.
+**What:** `number` and `date` added to the convert function, and the yes/no decision from §4.3
+taken.
 
 **Purpose:** without this, typing `42` into a number column writes `"42"`, which reads back as text,
 which then shows as not matching the column. The types are needed for the round trip to close.
