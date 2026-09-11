@@ -25,6 +25,13 @@ import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
  * should not be named differently. data-property keeps the raw name: the column menu, the sort,
  * the hover highlight and the resize bar all key on it.
  *
+ * The type glyph is the same drawing the column picker puts on its rows, so a column says what it
+ * is in both places. Here it is a mark rather than a control: the cell is already a button, and a
+ * button may not contain another one. "change type" in the column menu is how it is set from here.
+ *
+ * The cell carries the type and search type as data attributes for the same reason a picker row
+ * does — it is what the type menu reads and writes when it is opened over this column.
+ *
  * @param {Array<object>} current_props - The properties to render as column headers.
  * @returns {string} The HTML string for the table header strip.
  */
@@ -36,7 +43,11 @@ export function renderTableHeader(current_props) {
             const sorted = prop.name === appState.sortState.property
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
-            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}"${sorted}>${prop.label ?? prop.name}<span class="flexgrow"> </span><span class="column-sort-indicator">➜</span></button>`;
+            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}>` +
+                     `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
+                     `<svg class="type-glyph header-type-glyph" aria-hidden="true"><use href="#icon-type-${prop.type}"></use></svg>` +
+                     `<span class="column-sort-indicator">➜</span>` +
+                   `</button>`;
         })
         .join('');
 

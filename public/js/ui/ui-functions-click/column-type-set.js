@@ -1,52 +1,56 @@
 import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
+import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 
 /**
- * @file The type popover on a column picker row: opening it, and recording what was picked.
+ * @file The column type dialog: which type a column is read as, and how a list column is searched.
  *
- * Nothing here writes to the layout. The choice goes onto the row it was made from, and
- * column-picker.js reads the rows into the layout when the dialog closes — the same path the
- * order and the visibility take. Reset then undoes a type change along with everything else,
- * because it repaints the list from the layout, and the dirty flag is already set on close.
+ * **One dialog, opened from two places** — a column picker row, and "change type" in the table's
+ * column menu. A dialog rather than a menu of its own, for two reasons that point the same way. A
+ * header cell opens one menu and one only, so a second menu hanging off it is not available; and
+ * showModal() makes everything outside the open dialog inert, so a popover reached from the column
+ * picker was painted in the top layer, looked entirely right, and swallowed every click. A dialog
+ * is neither a menu nor inert, and it needs no anchor, which is what makes one element serve both
+ * callers.
  *
- * **Lists of buttons, not <select>s.** A native select's dropdown is painted outside the popover's
- * box, so picking an option counted as a click outside: the popover light-dismissed and the choice
- * never landed. Nothing in the menu could be chosen at all. Buttons inside the popover are inside
- * it for light dismiss too.
+ * Two things are handed in. **A host**, the element carrying `data-type` and `data-search-type`,
+ * which a choice is written onto and whose glyph is redrawn; a picker row and a header cell both
+ * carry those. **A commit**, what to do once the dialog closes — nothing at all from the picker,
+ * where the column dialog already reads its rows on close, and a write to the layout plus a
+ * re-render from the header, where there is no dialog to wait for.
  *
- * The popover stays open after a choice, because it holds two settings and a list column usually
- * wants both. The row's glyph redraws straight away, which is what says the choice was taken.
+ * The header's re-render waits for the close rather than happening per choice because it replaces
+ * the header cell, and the host would be an element no longer on the page while the dialog was
+ * still open.
  *
- * **The anchor is the span around the glyph, not the glyph.** tooltip.js writes an anchor-name
- * inline on any [data-tip] element while its tooltip is up, built from the value computed when the
- * tooltip appeared. Hovering the glyph before clicking it froze a value that did not yet carry the
- * popover's anchor, and an inline declaration beats the stylesheet — so the popover opened in the
- * corner of the screen and stayed there until the tooltip hid. The span carries no tooltip.
+ * **Lists of buttons, not <select>s.** A native select's dropdown is painted outside its container,
+ * so picking an option counted as a click outside and dismissed what held it.
  */
 
-let _menu = null;
+let _dialog = null;
 let _typeList = null;
 let _searchList = null;
-let _row = null;         // the picker row the open popover belongs to
+let _host = null;      // the element carrying the type, written to as choices are made
+let _commit = null;    // what the opener wants done once the dialog closes
 
 /**
- * Looks the popover's elements up on first use, the way column-menu.js does.
- * @returns {{menu: HTMLElement, typeList: HTMLElement, searchList: HTMLElement}}
+ * Looks the dialog's elements up on first use, the way the other modals do.
+ * @returns {{dialog: HTMLDialogElement, typeList: HTMLElement, searchList: HTMLElement}}
  */
 function elements() {
-    if (!_menu) {
-        _menu = document.getElementById('column-type-menu');
+    if (!_dialog) {
+        _dialog = document.getElementById('modal-column-type');
         _typeList = document.getElementById('column-type-options');
         _searchList = document.getElementById('column-search-options');
         _typeList.innerHTML = options(VALUE_TYPES, 'column-type-set');
         _searchList.innerHTML = options(SEARCH_TYPES, 'column-search-type-set');
-        _menu.addEventListener('toggle', onToggle);
+        _dialog.addEventListener('close', onClose);
     }
-    return { menu: _menu, typeList: _typeList, searchList: _searchList };
+    return { dialog: _dialog, typeList: _typeList, searchList: _searchList };
 }
 
 /**
  * One button per entry, written once. The lists in constants.js are the only place a name is
- * legal, so the menu is built from them rather than from markup that could drift.
+ * legal, so the dialog is built from them rather than from markup that could drift.
  * @param {object} group - VALUE_TYPES or SEARCH_TYPES.
  * @param {string} action - The data-action its buttons carry.
  * @returns {string} HTML for that list's innerHTML.
@@ -59,43 +63,55 @@ function options(group, action) {
 }
 
 /**
- * Releases the anchor when the popover closes for any reason, light dismiss included.
+ * Runs the opener's commit once the dialog closes, however it was closed — the close button,
+ * Escape and clicking outside all reach it, which is what closedby="any" buys.
+ * @returns {void}
+ */
+function onClose() {
+    const commit = _commit;
+    _commit = null;
+    commit?.(_host);
+}
+
+/**
+ * Opens the dialog over a column, wherever it was asked for.
  *
- * The guard is for the case of clicking one row's glyph while another row's popover is open: the
- * dismiss and the reopen both happen before the close event is delivered, so without it a stale
- * close would strip the anchor off the row just opened.
- * @param {ToggleEvent} evt
+ * The title names the column as the layout has it rather than as the schema does, so a renamed
+ * column is named here by the name on its header.
+ *
+ * @param {HTMLElement} host - Carries data-type and data-search-type, and a .type-glyph to redraw.
+ * @param {(host: HTMLElement) => void} [commit] - Run once the dialog closes.
  * @returns {void}
  */
-function onToggle(evt) {
-    if (evt.newState === 'closed' && !_menu.matches(':popover-open')) releaseAnchor();
+export function openColumnTypeDialog(host, commit) {
+    const { dialog } = elements();
+    const property = host.dataset.property;
+
+    _host = host;
+    _commit = commit ?? null;
+
+    document.getElementById('column-type-title').textContent =
+        `'${TABLE_VIEW_COLUMNS.columnLayout.get(property)?.label ?? property}' column`;
+    markCurrent();
+    dialog.showModal();
 }
 
 /**
- * Takes the anchor off whichever row holds it. Only one may: a shared anchor name resolves to the
- * last matching element in the document, so every row claiming it would hang the popover off the
- * bottom row whichever glyph was clicked.
- * @returns {void}
- */
-function releaseAnchor() {
-    document.querySelector('.column-picker-type-anchor[data-anchored]')?.removeAttribute('data-anchored');
-}
-
-/**
- * Opens the popover for the row the glyph was clicked on, showing that column's current values.
+ * Opens the dialog from a column picker row. Nothing is committed: the column dialog reads every
+ * row into the layout when it closes, which is what lets reset undo a type change with the rest.
  * @param {MouseEvent} evt
- * @param {HTMLElement} target - The type glyph button.
+ * @param {HTMLElement} target - The type glyph button on the row.
  * @returns {void}
  */
 export function handleColumnTypeMenuOpen(evt, target) {
-    const { menu } = elements();
+    openColumnTypeDialog(target.closest('.info-modal-row'));
+}
 
-    _row = target.closest('.info-modal-row');
-    markCurrent();
-
-    releaseAnchor();
-    _row.querySelector('.column-picker-type-anchor').setAttribute('data-anchored', '');
-    menu.showPopover();
+/**
+ * @returns {void}
+ */
+export function handleCloseColumnType() {
+    elements().dialog.close();
 }
 
 /**
@@ -105,7 +121,7 @@ export function handleColumnTypeMenuOpen(evt, target) {
  * @returns {void}
  */
 export function handleColumnTypeSet(evt, target) {
-    _row.dataset.type = target.dataset.value;
+    _host.dataset.type = target.dataset.value;
     markCurrent();
     updateGlyph();
 }
@@ -117,22 +133,22 @@ export function handleColumnTypeSet(evt, target) {
  * @returns {void}
  */
 export function handleColumnSearchTypeSet(evt, target) {
-    _row.dataset.searchType = target.dataset.value;
+    _host.dataset.searchType = target.dataset.value;
     markCurrent();
     updateGlyph();
 }
 
 /**
  * Ticks the option each list is on, and greys the search list off a list column — nothing else in
- * the app searches by whole values. Disabled rather than hidden, so the popover keeps one shape
- * whichever row it opened from and does not resize as the type is changed.
+ * the app searches by whole values. Disabled rather than hidden, so the dialog keeps one shape
+ * whichever column it opened over and does not resize as the type is changed.
  * @returns {void}
  */
 function markCurrent() {
     const { typeList, searchList } = elements();
-    const isList = _row.dataset.type === VALUE_TYPES.ARRAY.value;
+    const isList = _host.dataset.type === VALUE_TYPES.ARRAY.value;
 
-    for (const [list, chosen] of [[typeList, _row.dataset.type], [searchList, _row.dataset.searchType]]) {
+    for (const [list, chosen] of [[typeList, _host.dataset.type], [searchList, _host.dataset.searchType]]) {
         for (const button of list.children) {
             button.setAttribute('aria-current', String(button.dataset.value === chosen));
         }
@@ -141,19 +157,22 @@ function markCurrent() {
 }
 
 /**
- * Redraws the row's glyph and rewrites its tooltip for what the column is now.
+ * Redraws the host's glyph for what the column is now, and its tooltip where it has one — a
+ * header cell's tooltip belongs to the column menu, so only the picker's glyph button gets one.
  *
- * The symbol's id is built from the stored type name, the same way column-picker-list.js builds
- * it, so the two cannot render different glyphs for the same type.
+ * The symbol's id is built from the stored type name, the same way the picker and the table header
+ * build it, so none of the three can draw a different glyph for the same type.
  * @returns {void}
  */
 function updateGlyph() {
-    const button = _row.querySelector('.column-picker-type');
-    const typeLabel = labelFor(VALUE_TYPES, _row.dataset.type);
+    const typeLabel = labelFor(VALUE_TYPES, _host.dataset.type);
 
-    button.querySelector('use').setAttribute('href', `#icon-type-${_row.dataset.type}`);
-    button.dataset.tip = _row.dataset.type === VALUE_TYPES.ARRAY.value
-        ? `${typeLabel}, ${labelFor(SEARCH_TYPES, _row.dataset.searchType)}`
-        : typeLabel;
+    _host.querySelector('.type-glyph use').setAttribute('href', `#icon-type-${_host.dataset.type}`);
+
+    const button = _host.querySelector('.column-picker-type');
+    if (button) {
+        button.dataset.tip = _host.dataset.type === VALUE_TYPES.ARRAY.value
+            ? `${typeLabel}, ${labelFor(SEARCH_TYPES, _host.dataset.searchType)}`
+            : typeLabel;
+    }
 }
-

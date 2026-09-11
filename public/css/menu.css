@@ -49,30 +49,6 @@
     }
 }
 
-/* Holds one group of items in a menu that has more than one. .app-menu is a flex column and its
-   items rely on being its children to stack; wrapped in a plain div they are inline-block buttons
-   again and run across the menu in a row. */
-.app-menu-group {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Names a group of items in a menu that holds more than one set of them. Ruled off rather than
-   only spaced, because the gap between two groups and the gap between two items is otherwise the
-   same gap. Muted and small: it labels the group rather than being one of them. */
-.app-menu-heading {
-    margin: 6px 4px 4px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
-    font-size: 0.85em;
-    opacity: 0.7;
-}
-
-/* The first heading sits against the menu's own padding, so it needs no gap above it. */
-.app-menu-heading:first-child {
-    margin-top: 0;
-}
-
 /* Marks the item in force, with the arrow the option checkmarks and the table's sort indicator
    already use. The gutter is a fixed width whether or not the arrow is in it, so the labels line
    up down the list. Only menus whose items are a choice write aria-current, so only they get the

@@ -20,8 +20,8 @@ async function setupFiles(page) {
   });
 }
 
-async function openTable(page) {
-  await page.setViewportSize({ width: 1100, height: 900 });
+async function openTable(page, width = 1200) {
+  await page.setViewportSize({ width, height: 900 });
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
@@ -31,6 +31,11 @@ async function openTable(page) {
 
 const rowFor = (page, title) => page.locator('.note-table').filter({ hasText: title }).first();
 const pickerRow = (page, property) => page.locator(`.info-modal-row[data-property="${property}"]`);
+const header = (page, property) => page.locator(`.note-table-cell-header[data-property="${property}"]`);
+
+const typeDialog = page => page.locator('#modal-column-type');
+const typeOption = (page, value) => typeDialog(page).locator(`[data-action="column-type-set"][data-value="${value}"]`);
+const searchOption = (page, value) => typeDialog(page).locator(`[data-action="column-search-type-set"][data-value="${value}"]`);
 
 async function openPicker(page) {
   await page.click('[data-action="open-column-picker"]');
@@ -42,9 +47,12 @@ async function closePicker(page) {
   await expect(page.locator('#modal-columns')).not.toBeVisible();
 }
 
-const typeMenu = page => page.locator('#column-type-menu');
-const typeOption = (page, value) => typeMenu(page).locator(`[data-action="column-type-set"][data-value="${value}"]`);
-const searchOption = (page, value) => typeMenu(page).locator(`[data-action="column-search-type-set"][data-value="${value}"]`);
+// Two clicks: the first selects the column, the second opens its menu.
+async function openColumnMenu(page, property) {
+  await header(page, property).click();
+  await header(page, property).click();
+  await expect(page.locator('#column-menu')).toBeVisible();
+}
 
 // The renderer's fallback branch was `value || ''`, and in JavaScript both of these count as
 // empty to ||. A note said `published: false` and its cell said nothing at all.
@@ -68,13 +76,34 @@ test('every picker row carries a type glyph, and it says what the column is', as
   await expect(pickerRow(page, 'due').locator('.column-picker-type')).toHaveAttribute('data-tip', 'text');
   await expect(pickerRow(page, 'lastModified').locator('.column-picker-type')).toHaveAttribute('data-tip', 'date');
   // A list says how it is searched too, since that is the only place the setting is visible.
-  await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, contains');
-  await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, exact match');
+  await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, contains text');
+  await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, exact item match');
 });
 
-// The glyph is drawn per type, so the list can be read down rather than one tooltip at a time.
-// Both the renderer and the popover build the symbol id from the stored type name; this is what
-// stops them drifting into drawing different glyphs for the same type.
+// The table header says what a column holds too, so the two places agree without opening anything.
+test('the table header carries the same glyph as the picker', async ({ page }) => {
+  await openTable(page);
+  await expect(header(page, 'lastModified').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-date');
+  await expect(header(page, 'sizeInBytes').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-number');
+  await expect(header(page, 'tags').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-array');
+  await expect(header(page, 'title').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-string');
+});
+
+// The chevron used to be hidden with visibility, which reserved its width on every column that was
+// not the sorted one. With the glyph beside it that was enough to push "file" into reading as an
+// ellipsis, and to clip the longest heading the schema ships.
+//
+// Only the app's own columns are checked. A front matter key the app has never heard of gets the
+// default width, which a long name has always overflowed — that is not this glyph's doing.
+test('the schema\'s own column headings are not clipped by the glyph beside them', async ({ page }) => {
+  await openTable(page);
+  const clipped = await page.evaluate(() => ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes']
+      .map(name => document.querySelector(`.note-table-cell-header[data-property="${name}"] .header-label`))
+      .filter(label => label && label.scrollWidth > label.clientWidth + 1)
+      .map(label => label.textContent));
+  expect(clipped).toEqual([]);
+});
+
 test('the glyph is drawn for the type, and follows a change', async ({ page }) => {
   await openTable(page);
   await openPicker(page);
@@ -97,7 +126,7 @@ test('the glyph is drawn for the type, and follows a change', async ({ page }) =
 });
 
 // The two halves of that are deliberately on different clocks, and both matter: the row answers
-// straight away so the choice is visibly taken, and the layout is not touched until the dialog
+// straight away so the choice is visibly taken, and the layout is not touched until the picker
 // closes so reset can still undo it. Read without retrying, because "eventually" would pass here
 // even if the glyph were only redrawn on close.
 test('the glyph changes as soon as the type is picked, before the layout is touched', async ({ page }) => {
@@ -110,7 +139,6 @@ test('the glyph changes as soon as the type is picked, before the layout is touc
 
   expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-date');
   expect(await glyph.getAttribute('data-tip')).toBe('date');
-  await expect(page.locator('#column-type-menu')).toBeVisible();
 
   const stored = await page.evaluate(async () => {
     const s = await import('/public/js/services/store.js');
@@ -123,82 +151,35 @@ test('the glyph changes as soon as the type is picked, before the layout is touc
   await typeOption(page, 'array').click();
   await searchOption(page, 'array').click();
   expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-array');
-  expect(await glyph.getAttribute('data-tip')).toBe('list, exact match');
+  expect(await glyph.getAttribute('data-tip')).toBe('list, exact item match');
 });
 
-// Every row has one of these buttons, and a shared anchor name resolves to the LAST matching
-// element in the document — so without the one-at-a-time attribute the popover would hang off the
-// bottom row whichever glyph was clicked.
-test('the type popover opens on the glyph that was clicked', async ({ page }) => {
+// A dialog rather than a menu, so that it can be reached from a header cell that opens one menu
+// only, and so that it is not inert when reached from inside the column picker.
+test('the type dialog opens over the picker without closing it, and names its column', async ({ page }) => {
   await openTable(page);
   await openPicker(page);
+  await pickerRow(page, 'people').locator('.column-picker-type').click();
 
-  for (const property of ['title', 'due']) {
-    await pickerRow(page, property).locator('.column-picker-type').click();
-    await expect(page.locator('#column-type-menu')).toBeVisible();
+  await expect(typeDialog(page)).toBeVisible();
+  await expect(page.locator('#column-type-title')).toHaveText("'people' column");
+  await expect(page.locator('#modal-columns')).toBeVisible();
 
-    const btn = await pickerRow(page, property).locator('.column-picker-type-anchor').boundingBox();
-    const menu = await page.locator('#column-type-menu').boundingBox();
-
-    expect(Math.abs((menu.x + menu.width) - (btn.x + btn.width))).toBeLessThan(2);
-    // Below the button, or above it when the row sits too near the bottom of the dialog for the
-    // popover to fit. Either way it is touching its own button and not some other row's.
-    const gap = menu.y > btn.y ? menu.y - (btn.y + btn.height) : btn.y - (menu.y + menu.height);
-    expect(gap).toBeLessThan(12);
-
-    await page.keyboard.press('Escape');
-  }
+  await page.keyboard.press('Escape');
+  await expect(typeDialog(page)).not.toBeVisible();
+  await expect(page.locator('#modal-columns')).toBeVisible();   // only the inner one closed
 });
 
-// tooltip.js writes its own anchor-name inline on any [data-tip] element while its tooltip is up,
-// and it builds that value by clearing the inline one and reading the computed stylesheet value.
-// That merges a stylesheet declaration and destroys an inline one — and the pointer is sitting on
-// this very button, so the tooltip fires the moment the popover opens.
-test('the popover anchors even when the glyph was hovered before it was clicked', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-
-  const glyph = pickerRow(page, 'title').locator('.column-picker-type');
-
-  // Hover first and let the tooltip come up, which is what every real click does. tooltip.js then
-  // writes an anchor-name inline built from the value computed at that moment, and an inline
-  // declaration beats a stylesheet one — so an anchor named on the glyph itself was frozen out and
-  // the popover opened in the corner of the screen until the tooltip hid.
-  await glyph.hover();
-  await page.waitForTimeout(900);
-  await glyph.click();
-  await expect(typeMenu(page)).toBeVisible();
-
-  const anchor = await pickerRow(page, 'title').locator('.column-picker-type-anchor').boundingBox();
-  const menu = await typeMenu(page).boundingBox();
-  expect(Math.abs((menu.x + menu.width) - (anchor.x + anchor.width))).toBeLessThan(2);
-});
-
-// "Search as" has no meaning off a list, since nothing else in the app searches by whole values.
-// Disabled rather than hidden, so the popover keeps one shape as the type is changed.
-test('search as is only available for a list column', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-  await pickerRow(page, 'due').locator('.column-picker-type').click();
-
-  await expect(searchOption(page, 'array')).toBeDisabled();
-  await typeOption(page, 'array').click();
-  await expect(searchOption(page, 'array')).toBeEnabled();
-  await typeOption(page, 'date').click();
-  await expect(searchOption(page, 'array')).toBeDisabled();
-});
-
-// The dialog is opened with showModal(), which makes everything outside it inert. A popover parked
-// at body level was painted in the top layer, looked right, and swallowed every click: nothing in
-// it could be chosen on any row. It lives inside the dialog for that reason.
-test('the options in the popover can actually be clicked', async ({ page }) => {
+// The options were <select>s once, and a native dropdown is painted outside its container: choosing
+// one counted as a click outside and dismissed what held it, so nothing could be picked at all.
+test('the options in the type dialog can actually be clicked', async ({ page }) => {
   await openTable(page);
   await openPicker(page);
   await pickerRow(page, 'due').locator('.column-picker-type').click();
 
   await typeOption(page, 'number').click();
   expect(await pickerRow(page, 'due').getAttribute('data-type')).toBe('number');
-  await expect(typeMenu(page)).toBeVisible();   // it holds two settings, so it stays up
+  await expect(typeDialog(page)).toBeVisible();   // it holds two settings, so it stays up
 });
 
 // Both lists mark what the column is on, the way the layouts modal marks the layout in use.
@@ -217,8 +198,20 @@ test('the current choice is marked in both lists', async ({ page }) => {
   await expect(searchOption(page, 'string')).toHaveAttribute('aria-current', 'false');
 });
 
-// The choice lands on the row and is read into the layout when the dialog closes, which is the
-// path the order and the visibility already take.
+// "Search list as" has no meaning off a list, since nothing else in the app searches by whole
+// values. Disabled rather than hidden, so the dialog keeps one shape as the type is changed.
+test('search list as is only available for a list column', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'due').locator('.column-picker-type').click();
+
+  await expect(searchOption(page, 'array')).toBeDisabled();
+  await typeOption(page, 'array').click();
+  await expect(searchOption(page, 'array')).toBeEnabled();
+  await typeOption(page, 'date').click();
+  await expect(searchOption(page, 'array')).toBeDisabled();
+});
+
 test('a type set in the picker reaches the table', async ({ page }) => {
   await openTable(page);
   await expect(rowFor(page, 'Alpha')).toContainText('2026-03-01');   // text, as loaded
@@ -234,6 +227,49 @@ test('a type set in the picker reaches the table', async ({ page }) => {
   // notes hold. Falling back to the raw text shows what the file says; "Invalid Date" would be the
   // app inventing a fact.
   await expect(rowFor(page, 'Beta')).toContainText('quite soon');
+});
+
+// The same dialog, reached from the other place. The header cell is the host here, so the glyph in
+// the header is what redraws, and the layout is written when the dialog closes.
+test('a type set from the column menu reaches the table', async ({ page }) => {
+  await openTable(page, 1900);   // wide enough that the last column's header is on screen
+  await openColumnMenu(page, 'due');
+  await page.click('[data-action="column-change-type"]');
+
+  await expect(typeDialog(page)).toBeVisible();
+  await expect(page.locator('#column-menu')).not.toBeVisible();   // the header opened one menu only
+  await expect(page.locator('#column-type-title')).toHaveText("'due' column");
+
+  await typeOption(page, 'date').click();
+  expect(await header(page, 'due').locator('.type-glyph use').getAttribute('href')).toBe('#icon-type-date');
+
+  await page.click('[data-action="close-column-type"]');
+  await expect(typeDialog(page)).not.toBeVisible();
+  await expect(rowFor(page, 'Alpha')).toContainText('3/1/2026');
+  await expect(header(page, 'due').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-date');
+});
+
+// The same path the picker's toggle takes, minus the deferral: a single menu item has nothing to
+// hold back.
+test('hide column removes it, and the picker agrees', async ({ page }) => {
+  await openTable(page, 1900);   // wide enough that the last column's header is on screen
+  const before = await page.locator('.note-table-cell-header').count();
+
+  await openColumnMenu(page, 'due');
+  await page.click('[data-action="column-hide"]');
+  await expect(page.locator('.note-table-cell-header')).toHaveCount(before - 1);
+  await expect(header(page, 'due')).toHaveCount(0);
+
+  await openPicker(page);
+  await expect(pickerRow(page, 'due').locator('input.toggle')).not.toBeChecked();
+});
+
+// The floor the column picker enforces, enforced here too: an empty column set makes --grid-columns
+// an empty string and draws a broken table rather than raising anything.
+test('the file column cannot be hidden', async ({ page }) => {
+  await openTable(page);
+  await openColumnMenu(page, 'internalId');
+  await expect(page.locator('[data-action="column-hide"]')).toBeDisabled();
 });
 
 // A tag pill means that one tag. Tags is the only property pinned to whole-item matching, and this

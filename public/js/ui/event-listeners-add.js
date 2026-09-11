@@ -16,12 +16,12 @@ import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
-import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside } from './ui-functions-click/column-menu.js';
+import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
-import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet } from './ui-functions-click/column-type-set.js';
+import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
@@ -147,7 +147,10 @@ const clickActionHandlers = {
     'show-all-columns': handleShowAllColumns,
     'hide-all-columns': handleHideAllColumns,
     'column-delete': handleColumnDelete,
-    'column-type-menu': handleColumnTypeMenuOpen,
+    'column-type-open': handleColumnTypeMenuOpen,
+    'column-hide': handleColumnHide,
+    'column-change-type': handleColumnChangeType,
+    'close-column-type': handleCloseColumnType,
     'column-type-set': handleColumnTypeSet,
     'column-search-type-set': handleColumnSearchTypeSet,
     'expand-cell': handleCellExpand,

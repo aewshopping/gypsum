@@ -23,6 +23,10 @@
  */
 
 import { applySortAndRender } from './sort-object.js';
+import { openColumnTypeDialog } from './column-type-set.js';
+import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
+import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /** What a header cell's tooltip says before it is selected: one click highlights the column. */
 export const HEADER_TIP_IDLE = 'highlight column';
@@ -127,9 +131,76 @@ export function handleColumnMenuOpen(evt, headerCell) {
     document.addEventListener('scroll', trackAnchorCell, true);
     menu.showPopover();
 
+    // The last column on screen cannot be hidden, for the reason the column picker's floor exists:
+    // an empty column set makes --grid-columns an empty string and draws a broken table rather
+    // than raising anything. The file column cannot be hidden at all.
+    const hideItem = menu.querySelector('[data-action="column-hide"]');
+    if (hideItem) {
+        hideItem.disabled = TABLE_VIEW_COLUMNS.shown_always.includes(headerCell.dataset.property)
+                         || TABLE_VIEW_COLUMNS.current_props.length === 1;
+    }
+
     // Showing a popover does not move focus on its own. Putting it on the first item is what
     // makes the menu tabbable, and gives Escape something to return focus from.
     menu.querySelector('.app-menu-item:not(:disabled)')?.focus();
+}
+
+/**
+ * Hides the menu's column.
+ *
+ * The same path the column picker's toggle takes, minus the deferral: the picker holds its changes
+ * until the dialog closes so they can be reset together, and a single menu item has nothing to
+ * hold. Write, mark the layout dirty, re-render. Nothing reaches disk either way — a layout is
+ * saved when the user says so.
+ * @returns {void}
+ */
+export function handleColumnHide() {
+    const property = menuElement()?.dataset.property;
+    if (!property) return;
+
+    const entry = TABLE_VIEW_COLUMNS.columnLayout.get(property);
+    if (!entry) return;
+    entry.visible = false;
+
+    closeColumnMenu();
+    clearHeaderSelection();
+    markLayoutDirty();
+    renderFiles();
+}
+
+/**
+ * Opens the column type dialog for the menu's column.
+ *
+ * The header cell is the host: it carries the type and the search type, and holds the glyph that
+ * redraws as they change. The commit reads them back into the layout, deferred to the dialog
+ * closing because re-rendering replaces that very cell.
+ * @returns {void}
+ */
+export function handleColumnChangeType() {
+    const property = menuElement()?.dataset.property;
+    const headerCell = document.querySelector(`.note-table-cell-header[data-property="${property}"]`);
+    if (!headerCell) return;
+
+    closeColumnMenu();
+    openColumnTypeDialog(headerCell, commitHeaderType);
+}
+
+/**
+ * Writes a header cell's type back into the layout and redraws the table.
+ * @param {HTMLElement} headerCell
+ * @returns {void}
+ */
+function commitHeaderType(headerCell) {
+    const entry = TABLE_VIEW_COLUMNS.columnLayout.get(headerCell.dataset.property);
+    if (entry) {
+        entry.type = headerCell.dataset.type;
+        entry.search_type = headerCell.dataset.searchType;
+    }
+
+    closeColumnMenu();
+    clearHeaderSelection();
+    markLayoutDirty();
+    renderFiles();
 }
 
 /**

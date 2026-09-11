@@ -96,7 +96,14 @@ A table column's type is the user's choice, stored in the saved layout, not a fa
 Three rules follow from that, and they are the ones to hold:
 
 - **The legal type names live in `VALUE_TYPES` in `constants.js`**, and nowhere else. A layout file
-  is hand-editable, so a name that is not in that list is dropped rather than honoured.
+  is hand-editable, so a name that is not in that list is dropped rather than honoured. One symbol
+  per type is named after it (`#icon-type-<name>`), and the table header, the column picker and the
+  type dialog all build the href from a column's type — so a new type needs a matching symbol.
+- **The type dialog (`#modal-column-type`) is reached from two places**: the glyph on a column
+  picker row, and "change type" in the table's column menu. It is a dialog rather than a menu
+  because a header cell opens one menu only, and because `showModal()` makes everything outside an
+  open dialog inert — a popover reached from the column picker was painted, looked right, and
+  swallowed every click.
 - **Nothing asks the schema directly.** `services/property-type.js` owns the order — the layout's
   choice, then the schema, then text — and sorting, rendering and the picker all ask it.
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
@@ -115,8 +122,8 @@ Three rules follow from that, and they are the ones to hold:
    than deriving it from front matter — add it to `CORE_FILE_PROPERTIES` in `store.js` too.
    That list is what registers properties when a folder holds no files.
 5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
-6. Only add `search_type` if the property is a list that must match **whole items** ("exact
-   match"). Lists are searched by "contains" by default; `tags` is the one property that opts out,
+6. Only add `search_type` if the property is a list that must match **whole items** ("exact item
+   match"). Lists are searched by "contains text" by default; `tags` is the one property that opts out,
    so a tag pill means that one tag. Ask `propertySearchType()` rather than reading the schema.
 
 ### Search / filter architecture

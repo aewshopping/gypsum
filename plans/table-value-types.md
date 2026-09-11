@@ -10,7 +10,7 @@ giving the table a real idea of what a value *is*, and letting you change values
 This half is the first job. Nothing here writes to a file. §6 lists what was cut in the split
 and why.
 
-Status: **built**, at manifest version `1.184.0`. §7 records where the code differs from what this
+Status: **built**, at manifest version `1.186.0`. §7 records where the code differs from what this
 plan said it would be.
 
 ---
@@ -476,3 +476,26 @@ tooltip appears*. The anchor was named under `[data-anchored]`, which is not set
 so hovering the glyph first, which is what every real click does, froze a value without it. The
 "second or two" was the tooltip's own lifetime. The anchor now sits on a bare span around the
 glyph, which carries no tooltip for anything to write over.
+
+**The type picker ended up a dialog, not a menu, and that settled three problems at once.** Two
+faults and one design rule pushed the same way:
+
+- **It was inert.** Parked at body level, it was painted in the top layer above the column picker,
+  looked entirely right, and swallowed every click, because `showModal()` makes everything outside
+  the dialog inert.
+- **It lost its anchor.** `tooltip.js` writes an `anchor-name` inline built from what is computed
+  when the tooltip appears, so hovering the glyph before clicking it — which is every real click —
+  froze a value from before the anchor existed, and the menu opened in the corner of the screen
+  until the tooltip hid.
+- **A header cell opens one menu and one only.** That rules out reaching the type picker as a
+  second menu hanging off the header, however it is anchored.
+
+A dialog is neither a menu nor inert, and needs no anchor, which is what lets one element serve
+both callers. What survived the change is everything that was not about position: the host element
+carrying the type, the commit that runs on close, the option lists built from `constants.js`, and
+the current-choice marking.
+
+**Two things in the table came with it.** The header now carries the same glyph the picker does, so
+a column says what it is without anything being opened. And the sort chevron is hidden with
+`display` rather than `visibility`, because reserving its width on every unsorted column cost more
+than the glyph did and had already pushed the narrowest heading into an ellipsis.

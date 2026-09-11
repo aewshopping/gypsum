@@ -71,9 +71,9 @@ test('the menu opens against the header cell it was launched from', async ({ pag
     return !!el?.closest('#column-menu');
   })).toBe(true);
 
-  // "hide column" is present but inert; everything else in the menu is live
-  await expect(menu(page).locator('button[disabled]')).toHaveCount(1);
-  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(5);
+  // every item in the menu is live: sort both ways, search, resize, auto-size, change type, hide
+  await expect(menu(page).locator('button[disabled]')).toHaveCount(0);
+  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(7);
 });
 
 test('sorting from the menu also updates the sort dropdown and direction', async ({ page }) => {
@@ -263,9 +263,12 @@ test('a header takes one click to select and a second to open its options', asyn
 test('only the column driving the sort shows a chevron', async ({ page }) => {
   await openTable(page);
 
+  // checkVisibility rather than a named property, so this asks whether the chevron is on screen
+  // rather than how it is being hidden. It was visibility once and is display now, because
+  // visibility reserved the chevron's width on every column that was not the sorted one.
   const shown = () => page.evaluate(() =>
     [...document.querySelectorAll('.note-table-cell-header')]
-      .filter(c => getComputedStyle(c.querySelector('.column-sort-indicator')).visibility === 'visible')
+      .filter(c => c.querySelector('.column-sort-indicator').checkVisibility())
       .map(c => c.dataset.property));
 
   // the default sort owns the only chevron on screen

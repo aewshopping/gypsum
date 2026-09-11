@@ -55,6 +55,36 @@
   <!-- Shared icon sprite. Lives at document level because several dialogs <use> it, and a
        symbol inside one dialog would be an odd place for the others to reach into. -->
   <svg style="display: none;">
+    <!-- The column value types, one glyph each, named for the stored type name: both the table
+         header and the column picker build the href from a column's type, so a new type means a
+         symbol whose id matches it. Shared rather than dialog-local because the table uses them.
+
+         The list glyph is bulleted rather than three plain rules, which is what the column
+         picker's drag grip already is. Two icons a row apart should not be the same drawing. -->
+    <!-- text: a capital T -->
+    <symbol id="icon-type-string" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+        <path d="M13 15h24M25 15v20"/>
+      </g>
+    </symbol>
+    <!-- number: a hash, slanted the way one is written -->
+    <symbol id="icon-type-number" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+        <path d="M21 13l-4 24M34 13l-4 24M13 21h25M12 29h25"/>
+      </g>
+    </symbol>
+    <!-- date: a calendar, its two hangers over a ruled header -->
+    <symbol id="icon-type-date" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+        <path d="M12 16h26v22H12zM19 11v8M31 11v8M12 26h26"/>
+      </g>
+    </symbol>
+    <!-- list: three items, each with its own bullet -->
+    <symbol id="icon-type-array" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+        <path d="M13 16h2M23 16h14M13 25h2M23 25h14M13 34h2M23 34h14"/>
+      </g>
+    </symbol>
     <symbol id="icon-close" viewBox="0 0 66.3 64.5">
       <g fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linecap="round">
         <g transform="translate(10 10.4)"><path d="M0 0 C3.8 3.3 15.5 12.6 23 19.8 C30.4 27 41.1 39.2 44.7 43"/></g>
@@ -570,37 +600,8 @@
        logic of its own. Static markup, and outside #output, so a re-render cannot destroy it
        mid-interaction. -->
   <dialog id="modal-columns" class="info-modal" closedby="any">
-    <!-- Only this dialog uses the grip and the type glyphs, so they live here rather than in the
-         shared sprite. One per type, and named for the stored type name: column-picker-list.js
-         builds the href from the column's type, so a new type means a symbol whose id matches it.
-
-         The list glyph is bulleted rather than three plain rules, which is what the grip on the
-         same row already is. Two icons a row apart should not be the same drawing. -->
+    <!-- Only this dialog uses the grip, so it lives here rather than in the shared sprite. -->
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-      <!-- text: a capital T -->
-      <symbol id="icon-type-string" viewBox="0 0 50 50">
-        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
-          <path d="M13 15h24M25 15v20"/>
-        </g>
-      </symbol>
-      <!-- number: a hash, slanted the way one is written -->
-      <symbol id="icon-type-number" viewBox="0 0 50 50">
-        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
-          <path d="M21 13l-4 24M34 13l-4 24M13 21h25M12 29h25"/>
-        </g>
-      </symbol>
-      <!-- date: a calendar, its two hangers over a ruled header -->
-      <symbol id="icon-type-date" viewBox="0 0 50 50">
-        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
-          <path d="M12 16h26v22H12zM19 11v8M31 11v8M12 26h26"/>
-        </g>
-      </symbol>
-      <!-- list: three items, each with its own bullet -->
-      <symbol id="icon-type-array" viewBox="0 0 50 50">
-        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
-          <path d="M13 16h2M23 16h14M13 25h2M23 25h14M13 34h2M23 34h14"/>
-        </g>
-      </symbol>
       <symbol id="icon-drag" viewBox="0 0 50 50">
         <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
           <path d="M15.2 17.3c5.2-.6 14.4-.7 19.6-.1m-19.6.1c5.2-.6 14.4-.7 19.6-.1M15 25.1c5.2-.6 14.4-.7 19.8-.1m-19.8.1c5.2-.6 14.4-.7 19.8-.1M15.2 32.9c5.2-.6 14.4-.7 19.6-.1m-19.6.1c5.2-.6 14.4-.7 19.6-.1"/>
@@ -626,26 +627,30 @@
 
     <div id="column-picker-list"></div>
 
-    <!-- How a column's values are read, opened from the type glyph on a row above.
+  </dialog>
 
-         **Inside the dialog, and it has to be.** showModal() makes everything outside the dialog
-         inert, so a popover parked at body level was painted in the top layer, looked right, and
-         swallowed every click — nothing in it could be chosen. In here it is in the dialog's
-         subtree, so it is not inert, and `popover` still puts it above the dialog.
+  <!-- How a column's values are read. Opened from the type glyph on a column picker row, and from
+       "change type" in the table's column menu.
 
-         Anchored to the glyph's wrapper span rather than a proxy: a picker row carries no
-         scroll-driven transform. Both lists are filled from VALUE_TYPES and SEARCH_TYPES when it
-         opens, so constants.js stays the only place a type name is legal.
+       A dialog rather than a popover, which settles two problems at once. A header cell opens one
+       menu and one only, so the type picker cannot be a second menu hanging off it; and showModal()
+       makes everything outside the open dialog inert, so a popover reached from the column picker
+       was painted in the top layer, looked right, and swallowed every click. A dialog is neither a
+       menu nor inert, and needs no anchoring at all.
 
-         Lists of buttons rather than <select>s: a native select's dropdown is painted outside the
-         popover's box, so choosing an option would count as a click outside and light-dismiss the
-         popover before the choice landed. -->
-    <div id="column-type-menu" class="app-menu" popover>
-      <p class="app-menu-heading">type</p>
-      <div class="app-menu-group" id="column-type-options"></div>
-      <p class="app-menu-heading">search as</p>
-      <div class="app-menu-group" id="column-search-options"></div>
-    </div>
+       Both lists are filled from VALUE_TYPES and SEARCH_TYPES when it opens, so constants.js stays
+       the only place a type name is legal. The rows are .app-menu-item, the app's one-line
+       selectable row, which already carries the arrow that marks the current choice. -->
+  <dialog id="modal-column-type" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="close-column-type" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title" id="column-type-title">column</h2>
+
+    <p class="column-type-heading">Type</p>
+    <div class="column-type-group" id="column-type-options"></div>
+
+    <p class="column-type-heading column-type-heading-ruled">Search list as</p>
+    <div class="column-type-group" id="column-search-options"></div>
   </dialog>
 
   <!-- The list of saved layouts, opened from the layout name in the table's control row. The same
@@ -696,7 +701,8 @@
     <button type="button" class="app-menu-item" data-action="column-search" data-tip="search within this column">search column</button>
     <button type="button" class="app-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
     <button type="button" class="app-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
-    <button type="button" class="app-menu-item" disabled>hide column</button>
+    <button type="button" class="app-menu-item" data-action="column-change-type" data-tip="how this column's values are read">change type</button>
+    <button type="button" class="app-menu-item" data-action="column-hide" data-tip="hide this column">hide column</button>
   </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the

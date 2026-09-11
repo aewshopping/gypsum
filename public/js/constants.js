@@ -50,8 +50,8 @@ export const VALUE_TYPES = {
  * otherwise. `tags` is the one property that says otherwise, because a tag pill means that tag.
  */
 export const SEARCH_TYPES = {
-    ARRAY:  { value: "array",  label: "exact match" },
-    STRING: { value: "string", label: "contains"    }
+    STRING: { value: "string", label: "contains text"    },
+    ARRAY:  { value: "array",  label: "exact item match" }
 };
 
 /**

@@ -242,18 +242,43 @@
     outline-offset: -2px;
 }
 
+/* Says what the column holds, the same drawing and the same size the column picker puts on its
+   rows, so a column reads the same in both places. A mark rather than a control: the header cell
+   is already a button and a button may not hold another one, so "change type" in the column menu
+   is how it is set from here. It sits at the weight every icon rests at. */
+.header-type-glyph {
+    flex-shrink: 0;
+    width: 1.6em;
+    height: 1.6em;
+    color: var(--colour-contr);
+    opacity: 0.45;
+}
+
+/* The label takes the free space, which is what keeps the glyph and the chevron against the
+   right edge however long the heading is. Its own overflow, so a long heading is clipped rather
+   than pushing them out of the cell. */
+.header-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* No longer a control: it marks the column driving the sort. Hidden everywhere else,
    including on hover, so the only chevron on screen is the one that means something. */
 .column-sort-indicator {
     padding: 6px;
     line-height: 1;
-    visibility: hidden;
     rotate: 90deg;
     transition: rotate 0.15s ease;
+
+    /* display rather than visibility, which reserved the chevron's width on every column that was
+       not the sorted one. That cost 28px a column — more than the type glyph beside it — and it
+       was what pushed "file" into reading as "f…" once the glyph arrived. The sorted column keeps
+       its chevron displayed throughout, so flipping asc to desc still animates. */
+    display: none;
 }
 
 .note-table-cell-header[data-sorted] .column-sort-indicator {
-    visibility: visible;
+    display: inline-block;
 }
 
 /* The glyph is an arrow pointing right as drawn, so each direction turns it a quarter: down
