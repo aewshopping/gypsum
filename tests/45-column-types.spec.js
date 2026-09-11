@@ -92,6 +92,36 @@ test('the glyph is drawn for the type, and follows a change', async ({ page }) =
   await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-date');
 });
 
+// The two halves of that are deliberately on different clocks, and both matter: the row answers
+// straight away so the choice is visibly taken, and the layout is not touched until the dialog
+// closes so reset can still undo it. Read without retrying, because "eventually" would pass here
+// even if the glyph were only redrawn on close.
+test('the glyph changes as soon as the type is picked, before the layout is touched', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+
+  const glyph = pickerRow(page, 'people').locator('.column-picker-type');
+  await glyph.click();
+  await page.selectOption('#column-type-select', 'date');
+
+  expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-date');
+  expect(await glyph.getAttribute('data-tip')).toBe('date');
+  await expect(page.locator('#column-type-menu')).toBeVisible();
+
+  const stored = await page.evaluate(async () => {
+    const s = await import('/public/js/services/store.js');
+    return s.TABLE_VIEW_COLUMNS.columnLayout.get('people')?.type ?? null;
+  });
+  expect(stored).toBeNull();
+
+  // Changing how a list is searched moves the tooltip and leaves the glyph alone, since the column
+  // is still a list.
+  await page.selectOption('#column-type-select', 'array');
+  await page.selectOption('#column-search-select', 'array');
+  expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-array');
+  expect(await glyph.getAttribute('data-tip')).toBe('list, exact match');
+});
+
 // Every row has one of these buttons, and a shared anchor name resolves to the LAST matching
 // element in the document — so without the one-at-a-time attribute the popover would hang off the
 // bottom row whichever glyph was clicked.
