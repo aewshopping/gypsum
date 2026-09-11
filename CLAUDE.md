@@ -118,10 +118,21 @@ Three rules follow from that, and they are the ones to hold:
   writing back a value the column cannot describe risks writing the wrong shape. It says why in the
   cell as well as in its tooltip, because a tooltip needs a pointer. The sentence is written once,
   by the renderer, onto `data-tip`, and `cell-expand.js` shows that same string.
+- **`TABLE_VIEW_COLUMNS.info_columns` holds the columns the app fills in itself** — the file link,
+  the size, the last modified date and the load error. They wear the info glyph, no type can be
+  chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
+  renaming from the table is wanted later, and editing a filepath would move the file.
+  **`info` sits beside a column's type rather than replacing it.** `lastModified` is still a `date`
+  and still sorts and renders as one, which is why `INFO_TYPE` lives in `constants.js` *outside*
+  `VALUE_TYPES` — that list fills the type dialog and is the set of names a layout file may legally
+  carry, and `info` belongs to neither. `propertyType()` also ignores a layout's stored type for
+  these columns, so a hand-edited file cannot stop last modified sorting as a date.
 - **`TABLE_VIEW_COLUMNS.control_columns` holds columns whose cell is a control, not a value.** The
   file column is `internalId` wearing an open-file link, so its type, its sort order and a search of
   it are all about an id nobody sees. All three are refused, and `shown_always` is the same fact
-  from the other side: the link is the only way to open a note from the table.
+  from the other side: the link is the only way to open a note from the table. Two lists rather than
+  one, because they refuse different things: an info column must stay sortable and searchable, since
+  sorting by size or by last modified is the point of having it. `internalId` is in both.
 
 ### Adding a new file property
 

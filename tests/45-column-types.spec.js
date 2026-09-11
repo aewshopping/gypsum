@@ -74,19 +74,27 @@ test('every picker row carries a type glyph, and it says what the column is', as
   await expect(rows.locator('.column-picker-type')).toHaveCount(await rows.count());
 
   await expect(pickerRow(page, 'due').locator('.column-picker-type')).toHaveAttribute('data-tip', 'text');
-  await expect(pickerRow(page, 'lastModified').locator('.column-picker-type')).toHaveAttribute('data-tip', 'date');
+  // A column the app fills in says so, and still names the type underneath, since that is what it
+  // sorts by.
+  await expect(pickerRow(page, 'lastModified').locator('.column-picker-type'))
+    .toHaveAttribute('data-tip', 'info — date, filled in by the app');
   // A list says how it is searched too, since that is the only place the setting is visible.
   await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, search text');
   await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, search exact match');
 });
 
 // The table header says what a column holds too, so the two places agree without opening anything.
+// Asserted as agreement rather than against a list of expected glyphs, so it keeps its meaning
+// whatever a column's glyph turns out to be — the info columns included.
 test('the table header carries the same glyph as the picker', async ({ page }) => {
   await openTable(page);
-  await expect(header(page, 'lastModified').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-date');
-  await expect(header(page, 'sizeInBytes').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-number');
-  await expect(header(page, 'tags').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-array');
-  await expect(header(page, 'title').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-string');
+  await openPicker(page);
+
+  for (const property of ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes']) {
+    const inPicker = await pickerRow(page, property).locator('.column-picker-type use').getAttribute('href');
+    const inHeader = await header(page, property).locator('.type-glyph use').getAttribute('href');
+    expect(inHeader, `${property} disagrees between header and picker`).toBe(inPicker);
+  }
 });
 
 // The chevron used to be hidden with visibility, which reserved its width on every column that was
@@ -108,13 +116,14 @@ test('the glyph is drawn for the type, and follows a change', async ({ page }) =
   await openTable(page);
   await openPicker(page);
 
+  // Columns whose type is the user's to set. The app's own are covered by the info tests below.
   const glyphHref = property => pickerRow(page, property).locator('.column-picker-type use');
   await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-string');
-  await expect(glyphHref('lastModified')).toHaveAttribute('href', '#icon-type-date');
-  await expect(glyphHref('sizeInBytes')).toHaveAttribute('href', '#icon-type-number');
   await expect(glyphHref('tags')).toHaveAttribute('href', '#icon-type-array');
 
   await pickerRow(page, 'due').locator('.column-picker-type').click();
+  await typeOption(page, 'number').click();
+  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-number');
   await typeOption(page, 'date').click();
   await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-date');
 
@@ -405,6 +414,86 @@ test('the file column offers no type, no sort and no search', async ({ page }) =
   // and its picker row has no type to set
   await openPicker(page);
   await expect(pickerRow(page, 'internalId').locator('.column-picker-type')).toBeDisabled();
+});
+
+// Four columns the app fills in itself rather than reading from a note. They wear their own glyph,
+// no type can be chosen for them, and their cells take no caret. filename and filepath are
+// deliberately not among them: renaming and moving from the table are both wanted later.
+test('the columns the app fills in wear the info glyph', async ({ page }) => {
+  await openTable(page);
+  const glyph = property => header(page, property).locator('.type-glyph use');
+
+  await expect(glyph('internalId')).toHaveAttribute('href', '#icon-type-info');
+  await expect(glyph('sizeInBytes')).toHaveAttribute('href', '#icon-type-info');
+  await expect(glyph('lastModified')).toHaveAttribute('href', '#icon-type-info');
+
+  await expect(glyph('filename')).toHaveAttribute('href', '#icon-type-string');
+  await expect(glyph('tags')).toHaveAttribute('href', '#icon-type-array');
+});
+
+// The whole reason info sits beside a column's type rather than replacing it. Last modified is also
+// the default sort column, so getting this wrong would break the table's opening state.
+test('an info column keeps the type underneath, and still renders and sorts by it', async ({ page }) => {
+  await openTable(page);
+
+  const resolved = await page.evaluate(async () => {
+    const m = await import('/public/js/services/property-type.js');
+    return { modified: m.propertyType('lastModified'), size: m.propertyType('sizeInBytes') };
+  });
+  expect(resolved).toEqual({ modified: 'date', size: 'number' });
+
+  // a date, not a raw Date object printed out
+  await expect(rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="lastModified"]'))
+    .toHaveText(/^\d+\/\d+\/\d+$/);
+
+  // and both are still offered in the sort dropdown
+  await expect(page.locator('[data-action="sort-select"] option[value="sizeInBytes"]')).toHaveCount(1);
+  await expect(page.locator('[data-action="sort-select"] option[value="lastModified"]')).toHaveCount(1);
+});
+
+// The app owns these columns, so a hand-edited layout file cannot quietly change what one sorts by.
+test('a layout file cannot set a type on an info column', async ({ page }) => {
+  await openTable(page);
+  const after = await page.evaluate(async () => {
+    const s = await import('/public/js/services/store.js');
+    const m = await import('/public/js/services/property-type.js');
+    s.TABLE_VIEW_COLUMNS.columnLayout.get('lastModified').type = 'number';
+    return m.propertyType('lastModified');
+  });
+  expect(after).toBe('date');
+});
+
+// It loses its type and nothing else. Sorting by size or by last modified is the point of having
+// them, so those stay live — unlike the file column, which is refused all three.
+test('an info column offers no type, but still sorts and searches', async ({ page }) => {
+  await openTable(page);
+  await openColumnMenu(page, 'sizeInBytes');
+
+  await expect(page.locator('[data-action="column-change-type"]')).toBeDisabled();
+  await expect(page.locator('[data-action="column-sort-asc"]')).toBeEnabled();
+  await expect(page.locator('[data-action="column-search"]')).toBeEnabled();
+  await expect(page.locator('[data-action="column-hide"]')).toBeEnabled();
+  await page.keyboard.press('Escape');
+
+  await openPicker(page);
+  await expect(pickerRow(page, 'sizeInBytes').locator('.column-picker-type')).toBeDisabled();
+  await expect(pickerRow(page, 'sizeInBytes').locator('.column-picker-type'))
+    .toHaveAttribute('data-tip', 'info — number, filled in by the app');
+  // the type underneath is still named, since it is still what the column sorts by
+  await expect(pickerRow(page, 'title').locator('.column-picker-type')).toBeEnabled();
+});
+
+// Quietly, unlike a mismatch: nothing is wrong and there is nothing to do about it, so a sentence
+// on every size cell would be noise. The header's glyph is what says it.
+test('an info cell opens but takes no caret, and says nothing', async ({ page }) => {
+  await openTable(page);
+  const cell = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="sizeInBytes"]');
+
+  await cell.click();
+  await cell.click();
+  await expect(cell).toHaveClass(/is-expanded/);
+  await expect(cell).not.toHaveAttribute('contenteditable', /.*/);
+  await expect(cell.locator('.cell-mismatch-note')).toHaveCount(0);
 });
 
 // A tag pill means that one tag. Tags is the only property pinned to whole-item matching, and this

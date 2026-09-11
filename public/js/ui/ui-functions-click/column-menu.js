@@ -25,6 +25,7 @@
 import { applySortAndRender } from './sort-object.js';
 import { openColumnTypeDialog } from './column-type-set.js';
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { isInfoColumn } from '../../services/property-type.js';
 import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
@@ -144,11 +145,18 @@ export function handleColumnMenuOpen(evt, headerCell) {
     // A control column's cell holds a link rather than the property's value, so sorting it,
     // searching it and giving it a type are all about an id nobody sees. Offered but inert, rather
     // than absent, so the menu is the same menu on every column.
+    //
+    // A column the app fills in itself loses only its type. Sorting by size or by last modified is
+    // the whole point of having them, so those two items stay live.
     const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(property);
-    for (const action of ['column-sort-asc', 'column-sort-desc', 'column-search', 'column-change-type']) {
+    const noType = isControl || isInfoColumn(property);
+
+    for (const action of ['column-sort-asc', 'column-sort-desc', 'column-search']) {
         const item = menu.querySelector(`[data-action="${action}"]`);
         if (item) item.disabled = isControl;
     }
+    const typeItem = menu.querySelector('[data-action="column-change-type"]');
+    if (typeItem) typeItem.disabled = noType;
 
     // Showing a popover does not move focus on its own. Putting it on the first item is what
     // makes the menu tabbable, and gives Escape something to return focus from.

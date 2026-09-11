@@ -54,6 +54,13 @@ add. Anything *not* in it arrived by spreading the parsed front matter over the 
 
 > A property can be edited from the table if it is not in `CORE_FILE_PROPERTIES`.
 
+**Two lists, two different promises.** `TABLE_VIEW_COLUMNS.info_columns` — the file link, the size,
+the last modified date, the load error — is the permanent one: the app fills those in, and nothing
+will ever edit them from a cell. Its guard is **already built** (§6). `CORE_FILE_PROPERTIES` is the
+wider, softer one: it also holds `filename`, `title`, `tags`, `colour` and `filepath`, which are not
+editable *from the table yet* but could be. Renaming and moving a file are both wanted eventually,
+and so is editing a title.
+
 It stays true by itself — anyone adding a property to that return literal is already told to add it
 to the list, and doing so makes it read-only, which is the right answer.
 
@@ -193,6 +200,10 @@ is, because they have different fixes: the column's type is wrong and changing i
 at once, or the note is wrong and only opening the note fixes it. That second case is §2's
 "read-only, go and edit the note" arrived at from the other direction.
 
+**A column the app fills in refuses a caret.** `info_columns` covers the file link, the size, the
+last modified date and the load error. Its cell opens so a long value stays readable and takes no
+caret, silently — unlike a mismatch, nothing is wrong and there is nothing to do about it.
+
 **The file column is refused everything.** `TABLE_VIEW_COLUMNS.control_columns` holds columns whose
 cell is a control rather than a value — the file column is `internalId` wearing an open-file link —
 and its type, sort order and search are all refused. §2's table calls it uneditable, which
@@ -255,6 +266,7 @@ The whole pipeline with `string` and nothing else, and the guards, which are the
 |---|---|
 | the property is not in `CORE_FILE_PROPERTIES` | no |
 | the property is not a control column | **yes** |
+| the property is not an info column | **yes** |
 | the value fits the column's type | **yes** |
 | the column's type is not `array` — lifted by step 5 | no |
 | the file's front matter read cleanly | no |

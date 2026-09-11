@@ -173,6 +173,17 @@ export const TABLE_VIEW_COLUMNS = {
   // about an id nobody ever sees, so none of the three is offered — and shown_always above is the
   // same fact seen from the other side, since the link is the only way to open a note from here.
   control_columns: ['internalId'],
+
+  // Columns the app fills in itself rather than reading from a note. They wear the info glyph, no
+  // type can be chosen for them, and their cells take no caret.
+  //
+  // A second list rather than a wider control_columns, because the two refuse different things:
+  // a control column refuses type, sort and search, while these must stay sortable and searchable
+  // — sorting by size or by last modified is the point of having them. internalId is in both.
+  //
+  // filename and filepath are deliberately absent: renaming from the table is wanted later, and
+  // editing a filepath would move the file, so both may become editable.
+  info_columns: ['internalId', 'sizeInBytes', 'lastModified', 'errorOnLoad'],
   hidden_by_default: ['color', 'filepath', 'internalLink', 'errorOnLoad'],
   current_props: [],
   columnLayout: new Map(),

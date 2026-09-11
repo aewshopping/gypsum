@@ -1,6 +1,6 @@
 import { appState } from '../../services/store.js';
 import { VALUE_TYPES, labelFor } from '../../constants.js';
-import { typeMismatch } from '../../services/property-type.js';
+import { typeMismatch, isInfoColumn } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
@@ -123,13 +123,18 @@ export function renderTableRows(current_props, renderEverything) {
                 // Only where there is a colour: .color-dynamic-fade falls back to a neutral of its
                 // own, which on an uncoloured row painted this one cell a different shade from its
                 // neighbours for no reason, and hid the row's hover behind an opaque background.
+                // The app fills this column in, so its cells take no caret. Marked on the cell rather
+                // than looked up again when one is opened, for the same reason data-mismatch is:
+                // cell-expand.js reads the cell, not the schema.
+                const info = isInfoColumn(prop.name) ? ' data-info' : '';
+
                 const fade = prop.name === 'internalId' && file.color ? ' color-dynamic-fade' : '';
                 // The tip carries the whole explanation, which is also what cell-expand.js shows
                 // inside the cell when it is opened. One sentence, written in one place.
                 const flag = mismatch
                     ? ` data-mismatch="${mismatch}" data-tip="${mismatchMessage(mismatch, prop.type)}"`
                     : '';
-                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${flag}>${cellContent}</div>`;
+                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

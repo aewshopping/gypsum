@@ -1,5 +1,17 @@
 import { appState } from '../../services/store.js';
+import { INFO_TYPE } from '../../constants.js';
+import { isInfoColumn } from '../../services/property-type.js';
 import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
+
+/**
+ * Which glyph a column wears: its own type, unless the app fills the column in, in which case the
+ * info glyph says so. The type underneath is unchanged and still drives sorting and rendering.
+ * @param {object} column - A resolved column.
+ * @returns {string} The stored name the symbol id is built from.
+ */
+function glyphFor(column) {
+    return isInfoColumn(column.name) ? INFO_TYPE.value : column.type;
+}
 
 /**
  * Renders the header strip for the table view.
@@ -48,7 +60,7 @@ export function renderTableHeader(current_props) {
             return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}>` +
                      `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
-                     `<svg class="type-glyph header-type-glyph" aria-hidden="true"><use href="#icon-type-${prop.type}"></use></svg>` +
+                     `<svg class="type-glyph header-type-glyph" aria-hidden="true"><use href="#icon-type-${glyphFor(prop)}"></use></svg>` +
                    `</button>`;
         })
         .join('');

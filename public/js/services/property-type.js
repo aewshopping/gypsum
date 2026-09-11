@@ -40,13 +40,30 @@ function isLegal(legal, value) {
  * @returns {string} One of VALUE_TYPES' values.
  */
 export function propertyType(name) {
-    const chosen = TABLE_VIEW_COLUMNS.columnLayout.get(name)?.type;
+    // The app owns an info column's type, so a layout file cannot change it. Without this, a
+    // hand-edited layout saying `type: "number"` on lastModified would silently stop it sorting as
+    // a date — and a layout file is a genuine boundary everywhere else in this feature.
+    const chosen = isInfoColumn(name) ? undefined : TABLE_VIEW_COLUMNS.columnLayout.get(name)?.type;
     if (isLegal(LEGAL_TYPES, chosen)) return chosen;
 
     const schema = FILE_PROPERTIES.get(name)?.type;
     if (isLegal(LEGAL_TYPES, schema)) return schema;
 
     return VALUE_TYPES.STRING.value;
+}
+
+/**
+ * Whether the app fills this column in itself, rather than reading it from a note.
+ *
+ * It does not replace the column's type — `lastModified` is still a date and still sorts as one.
+ * It decides three things and no others: the glyph the column wears, that the type dialog is not
+ * offered, and that its cells take no caret.
+ *
+ * @param {string} name - The file property key.
+ * @returns {boolean}
+ */
+export function isInfoColumn(name) {
+    return TABLE_VIEW_COLUMNS.info_columns.includes(name);
 }
 
 /**

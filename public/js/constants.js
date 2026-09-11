@@ -41,6 +41,19 @@ export const VALUE_TYPES = {
 };
 
 /**
+ * The type the app gives a column it fills in itself — the file link, the size, the last modified
+ * date and the load error. Nobody chooses it and nobody can edit those cells.
+ *
+ * **Deliberately not inside VALUE_TYPES**, and it must stay outside, because that list does two
+ * jobs this one must not join: it fills the type dialog, and it is the set of names a layout file
+ * may legally carry. "info" is not on offer and not settable by hand.
+ *
+ * It sits beside a column's type rather than replacing it. `lastModified` is still a date, and
+ * still sorts and renders as one — see property-type.js.
+ */
+export const INFO_TYPE = { value: "info", label: "info" };
+
+/**
  * How a column is searched, which is deliberately not the same question as what type it is: a
  * column can want to render as a list and still be searched by part of its text, which is what
  * `people` and `internalLink` have always done.
