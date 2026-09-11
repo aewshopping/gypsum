@@ -41,7 +41,7 @@ function elements() {
         _dialog = document.getElementById('modal-column-type');
         _typeList = document.getElementById('column-type-options');
         _searchList = document.getElementById('column-search-options');
-        _typeList.innerHTML = options(VALUE_TYPES, 'column-type-set');
+        _typeList.innerHTML = options(VALUE_TYPES, 'column-type-set', true);
         _searchList.innerHTML = options(SEARCH_TYPES, 'column-search-type-set');
         _dialog.addEventListener('close', onClose);
     }
@@ -51,14 +51,23 @@ function elements() {
 /**
  * One button per entry, written once. The lists in constants.js are the only place a name is
  * legal, so the dialog is built from them rather than from markup that could drift.
+ *
+ * A type row carries its own glyph, which is what lets the list do without a heading over it: the
+ * drawing beside each word is the same one the table header and the picker row show for it.
  * @param {object} group - VALUE_TYPES or SEARCH_TYPES.
  * @param {string} action - The data-action its buttons carry.
+ * @param {boolean} [withGlyph=false] - Whether each row is drawn with its type's glyph.
  * @returns {string} HTML for that list's innerHTML.
  */
-function options(group, action) {
+function options(group, action, withGlyph = false) {
     return Object.values(group)
-        .map(entry => `<button type="button" class="app-menu-item" data-action="${action}" ` +
-                      `data-value="${entry.value}" aria-current="false">${entry.label}</button>`)
+        .map(entry => {
+            const glyph = withGlyph
+                ? `<svg class="column-type-option-glyph" aria-hidden="true"><use href="#icon-type-${entry.value}"></use></svg>`
+                : '';
+            return `<button type="button" class="app-menu-item" data-action="${action}" ` +
+                   `data-value="${entry.value}" aria-current="false">${glyph}${entry.label}</button>`;
+        })
         .join('');
 }
 
@@ -91,7 +100,7 @@ export function openColumnTypeDialog(host, commit) {
     _commit = commit ?? null;
 
     document.getElementById('column-type-title').textContent =
-        `'${TABLE_VIEW_COLUMNS.columnLayout.get(property)?.label ?? property}' column`;
+        `'${TABLE_VIEW_COLUMNS.columnLayout.get(property)?.label ?? property}' type`;
     markCurrent();
     dialog.showModal();
 }

@@ -640,17 +640,19 @@
 
        Both lists are filled from VALUE_TYPES and SEARCH_TYPES when it opens, so constants.js stays
        the only place a type name is legal. The rows are .app-menu-item, the app's one-line
-       selectable row, which already carries the arrow that marks the current choice. -->
+       selectable row, which already carries the arrow that marks the current choice.
+
+       No headings over the two lists: each type row carries its own glyph, so the first list needs
+       nothing to say what it is, and the second sits indented under the list row it belongs to. -->
   <dialog id="modal-column-type" class="info-modal" closedby="any">
     <button class="modal-close-btn svg-wrapper-style" data-action="close-column-type" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
 
-    <h2 class="menu-title" id="column-type-title">column</h2>
+    <h2 class="menu-title" id="column-type-title">type</h2>
 
-    <p class="column-type-heading">Type</p>
     <div class="column-type-group" id="column-type-options"></div>
 
-    <p class="column-type-heading column-type-heading-ruled">Search list as</p>
-    <div class="column-type-group" id="column-search-options"></div>
+    <!-- Indented under the list option above, which is the only type they mean anything for. -->
+    <div class="column-type-group column-type-search-group" id="column-search-options"></div>
   </dialog>
 
   <!-- The list of saved layouts, opened from the layout name in the table's control row. The same

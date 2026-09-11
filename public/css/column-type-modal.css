@@ -20,21 +20,26 @@
     flex-direction: column;
 }
 
-/* Names a list. Same size as the options and lined up with their labels, so it reads as a title
-   over a list rather than a different kind of thing beside it: the padding is the option's own,
-   plus the width of the gutter its arrow sits in. Bold is the whole difference, and it has no
-   hover and no fill because it is not a target. */
-.column-type-heading {
-    margin: 0;
-    padding: 7px 10px 2px calc(10px + 1.3em);
-    font-weight: bold;
+/* The glyph on a type row: the same drawing the table header and the picker row show for that
+   type, so the three places cannot describe a column differently. Sized and weighted as they are.
+   It sits between the arrow gutter and the word, which is what lets this list do without a heading
+   over it. */
+.column-type-option-glyph {
+    flex-shrink: 0;
+    width: 1.6em;
+    height: 1.6em;
+    margin-right: 6px;
+    vertical-align: -0.45em;
+    color: var(--colour-contr);
+    opacity: 0.45;
 }
 
-/* Ruled off above, which separates the two lists once rather than underlining both headings. */
-.column-type-heading-ruled {
-    margin-top: 10px;
-    padding-top: 12px;
-    border-top: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
+/* How a list is searched only means anything for a list, so these two sit under the row they
+   belong to rather than beside it. The indent is what says so, and it has to clear the glyph as
+   well as the words: at the glyph's own width the two sets of labels came out level, which reads
+   as a second list rather than a nested one. */
+.column-type-search-group {
+    padding-left: 3.6em;
 }
 
 /* Filled as well as arrowed, the way the layouts modal marks the layout in use: this dialog is how

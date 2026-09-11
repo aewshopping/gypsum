@@ -76,8 +76,8 @@ test('every picker row carries a type glyph, and it says what the column is', as
   await expect(pickerRow(page, 'due').locator('.column-picker-type')).toHaveAttribute('data-tip', 'text');
   await expect(pickerRow(page, 'lastModified').locator('.column-picker-type')).toHaveAttribute('data-tip', 'date');
   // A list says how it is searched too, since that is the only place the setting is visible.
-  await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, contains text');
-  await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, exact item match');
+  await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, search text');
+  await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, search exact match');
 });
 
 // The table header says what a column holds too, so the two places agree without opening anything.
@@ -151,7 +151,7 @@ test('the glyph changes as soon as the type is picked, before the layout is touc
   await typeOption(page, 'array').click();
   await searchOption(page, 'array').click();
   expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-array');
-  expect(await glyph.getAttribute('data-tip')).toBe('list, exact item match');
+  expect(await glyph.getAttribute('data-tip')).toBe('list, search exact match');
 });
 
 // A dialog rather than a menu, so that it can be reached from a header cell that opens one menu
@@ -162,7 +162,7 @@ test('the type dialog opens over the picker without closing it, and names its co
   await pickerRow(page, 'people').locator('.column-picker-type').click();
 
   await expect(typeDialog(page)).toBeVisible();
-  await expect(page.locator('#column-type-title')).toHaveText("'people' column");
+  await expect(page.locator('#column-type-title')).toHaveText("'people' type");
   await expect(page.locator('#modal-columns')).toBeVisible();
 
   await page.keyboard.press('Escape');
@@ -180,6 +180,20 @@ test('the options in the type dialog can actually be clicked', async ({ page }) 
   await typeOption(page, 'number').click();
   expect(await pickerRow(page, 'due').getAttribute('data-type')).toBe('number');
   await expect(typeDialog(page)).toBeVisible();   // it holds two settings, so it stays up
+});
+
+// Each type row carries the same glyph the header and the picker show for it, which is what lets
+// the list stand without a heading over it.
+test('each type row in the dialog is drawn with its own glyph', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'due').locator('.column-picker-type').click();
+
+  for (const value of ['string', 'number', 'date', 'array']) {
+    await expect(typeOption(page, value).locator('use')).toHaveAttribute('href', `#icon-type-${value}`);
+  }
+  // The search rows are subordinate to the list row, not types of their own.
+  await expect(searchOption(page, 'string').locator('use')).toHaveCount(0);
 });
 
 // Both lists mark what the column is on, the way the layouts modal marks the layout in use.
@@ -200,7 +214,7 @@ test('the current choice is marked in both lists', async ({ page }) => {
 
 // "Search list as" has no meaning off a list, since nothing else in the app searches by whole
 // values. Disabled rather than hidden, so the dialog keeps one shape as the type is changed.
-test('search list as is only available for a list column', async ({ page }) => {
+test('the search options are only available for a list column', async ({ page }) => {
   await openTable(page);
   await openPicker(page);
   await pickerRow(page, 'due').locator('.column-picker-type').click();
@@ -238,7 +252,7 @@ test('a type set from the column menu reaches the table', async ({ page }) => {
 
   await expect(typeDialog(page)).toBeVisible();
   await expect(page.locator('#column-menu')).not.toBeVisible();   // the header opened one menu only
-  await expect(page.locator('#column-type-title')).toHaveText("'due' column");
+  await expect(page.locator('#column-type-title')).toHaveText("'due' type");
 
   await typeOption(page, 'date').click();
   expect(await header(page, 'due').locator('.type-glyph use').getAttribute('href')).toBe('#icon-type-date');

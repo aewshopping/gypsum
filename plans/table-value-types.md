@@ -10,7 +10,7 @@ giving the table a real idea of what a value *is*, and letting you change values
 This half is the first job. Nothing here writes to a file. §6 lists what was cut in the split
 and why.
 
-Status: **built**, at manifest version `1.186.0`. §7 records where the code differs from what this
+Status: **built**, at manifest version `1.187.0`. §7 records where the code differs from what this
 plan said it would be.
 
 ---
@@ -499,3 +499,14 @@ the current-choice marking.
 a column says what it is without anything being opened. And the sort chevron is hidden with
 `display` rather than `visibility`, because reserving its width on every unsorted column cost more
 than the glyph did and had already pushed the narrowest heading into an ellipsis.
+
+**The dialog ended up with no headings, and the glyphs are why.** Each type row carries the same
+drawing the table header and the picker row show for it, which says what the list is without a word
+over it. The two search options then sit indented under the list row they belong to, which is the
+whole of what says they are subordinate — and the indent has to clear the glyph as well as the
+words, or the two sets of labels come out level and read as a second list rather than a nested one.
+
+**The header's two marks are a pair.** The type glyph is hard against the right edge on every
+column and the sort chevron sits inside it, because the glyph is on every header and the chevron on
+one: the mark that lines up down the table is the one that should be flush. They share a colour and
+a weight, so they read as two marks rather than as a mark and a piece of text.
