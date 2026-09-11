@@ -26,6 +26,34 @@ export const VIEWS = {
     SEARCH: { value: "search", label: "search view" }
 };
 
+/**
+ * The types a table column can be given, each with the word the column popover shows for it.
+ * Same shape as VIEWS above, and used the same way.
+ *
+ * This is the only place a type name is legal. It matters because a layout file is meant to be
+ * hand-edited, so a typo in one must not be able to invent a phantom type.
+ */
+export const VALUE_TYPES = {
+    STRING: { value: "string", label: "text"   },
+    NUMBER: { value: "number", label: "number" },
+    DATE:   { value: "date",   label: "date"   },
+    ARRAY:  { value: "array",  label: "list"   }
+};
+
+/**
+ * How a column is searched, which is deliberately not the same question as what type it is: a
+ * column can want to render as a list and still be searched by part of its text, which is what
+ * `people` and `internalLink` have always done.
+ *
+ * Only meaningful for a list column — nothing else in the app searches by whole values — and
+ * 'string' is the default, so a list is searched by part of its text unless something says
+ * otherwise. `tags` is the one property that says otherwise, because a tag pill means that tag.
+ */
+export const SEARCH_TYPES = {
+    ARRAY:  { value: "array",  label: "exact match"   },
+    STRING: { value: "string", label: "contains text" }
+};
+
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 export const LAYOUTS_FILENAME = 'table_layouts.gypsum';

@@ -1,4 +1,5 @@
-import { appState, FILE_PROPERTIES } from '../../services/store.js';
+import { appState } from '../../services/store.js';
+import { propertyType } from '../../services/property-type.js';
 import { createEmptyNote } from '../../services/create-note.js';
 import { handleCloseModal, openFileContent, findFileCard, offscreenNoteTarget } from './open-file-content-view-trans.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
@@ -24,7 +25,7 @@ export async function createNoteFromLink({ folder, filename }) {
 
     // Sort and render before opening so the new note has a card to animate from.
     const { property, direction } = appState.sortState;
-    sortAppStateFiles(property, FILE_PROPERTIES.get(property)?.type ?? 'string', direction);
+    sortAppStateFiles(property, propertyType(property), direction);
     renderFiles();
 
     // Filters or the current pagination page can still exclude the new note, exactly as they
