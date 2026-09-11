@@ -283,11 +283,25 @@ into the file on their own. Only the reading direction needs work: `applyLayoutT
 check both against `VALUE_TYPES` and drop anything else, the same way it already guards labels and
 widths.
 
-**The one mechanic to prove first.** The popover opens from a row inside a `<dialog>`, and both are
-in the top layer. `#column-menu` needs an anchor proxy because the table header is moved by a
-scroll-driven transform; a picker row is not, so anchoring straight to the row's button should
-work. Check that before building the rest, because if it does not, the fallback is positioning the
-popover in script and the shape of this step changes.
+**The popover anchors to the icon button itself. No proxy.** `#column-menu` needs one because the
+table header is moved by a scroll-driven transform and anchor positioning resolves against an
+element's pre-transform box. A picker row is not transformed, so the button can be its own anchor.
+
+**Two things about that to get right, both cheap if known in advance.**
+
+**Every row has one of these buttons, so they cannot all carry the anchor name.** Anchor
+positioning resolves a shared name to the last matching element in the document, so a name declared
+on all of them would attach the popover to the bottom row every time. Only the button whose popover
+is open may hold it.
+
+**Declare that name in the stylesheet on a state attribute, never inline.** `tooltip.js` puts its
+own `anchor-name` inline on any `[data-tip]` element while its tooltip is showing, and it builds
+that value by first clearing the inline one and reading the stylesheet's. It merges rather than
+overwrites, which is exactly right for a stylesheet declaration and fatal for an inline one: hover
+the button while its popover is open, and an inline name would be wiped and the popover would jump.
+So the handler toggles an attribute on the clicked button, and `column-picker.css` hangs the
+anchor name off that attribute. Nothing fights, and the tooltip keeps working on the same
+element.
 
 **Purpose:** the visible half. Dates read as dates, numbers sort as numbers, a column of yes/no
 values stops reading as the words true and false, and a list column can be searched as text.
