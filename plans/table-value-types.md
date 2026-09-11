@@ -10,7 +10,8 @@ giving the table a real idea of what a value *is*, and letting you change values
 This half is the first job. Nothing here writes to a file. §6 lists what was cut in the split
 and why.
 
-Nothing in this plan has been built yet.
+Status: **built**, at manifest version `1.182.0`. §7 records where the code differs from what this
+plan said it would be.
 
 ---
 
@@ -198,7 +199,7 @@ column.
 Two steps. Each is finishable and checkable on its own, and each carries its own tests rather than
 leaving them to the end. Bump the manifest minor version on each.
 
-### Step 1 — One answer to "what type is this column?"
+### Step 1 — One answer to "what type is this column?" ✅
 
 **What:** a new file, `public/js/services/property-type.js`, exporting one function: given a
 property name, return its type — the layout's choice first, then `FILE_PROPERTIES`, then `string`
@@ -223,7 +224,7 @@ lookup, five copies become five chances to disagree.
 
 **Checkable by:** the app behaves identically. Sorting, rendering and layouts all work as before.
 
-### Step 2 — You pick a column's type
+### Step 2 — You pick a column's type ✅
 
 **What:** a type control reached from the column picker modal, stored in the column layout next to
 the width and the visibility, along with the search setting from §3.4.
@@ -429,3 +430,28 @@ types we do not have.
 **"Update the tests" is not a step.** It was step 13 of the original, deliberately uninvestigated.
 A step that says "make the tests pass at the end" is a step that invites three broken steps
 first. Each step here carries its own.
+
+---
+
+## 7. What was built, where it differs
+
+Both steps are done. Three things are worth knowing that the plan did not say.
+
+**The search setting needed no fallback to the type, and that made it smaller.** `propertySearchType`
+consults the layout, then the schema, then contains text. It never asks what type the column is, so
+the two questions are genuinely independent in the code and not just in the prose.
+
+**Every column now carries an explicit type in a saved layout.** The picker reads each row's data
+attributes back on close, including rows nobody touched, so a layout written after this records the
+type of every column rather than only the changed ones. That matches how the label and the width
+already behave — a saved layout keeps what it was saved with, even after the schema's defaults
+change — but it does make layout files wordier.
+
+**`phone` and `email` changed behaviour, which was not called out anywhere.** Both are list
+properties with no `search_type`, so under the old rule they fell back to their type and matched
+whole items. Under the new default they are searched by part of their text. That is the intended
+default and an improvement for both, but it is a behaviour change nobody asked for by name.
+
+**The two column-menu tests that fail here were failing before any of this.** They cover the header
+menu following its column on horizontal scroll, which this plan does not touch. Worth a look on
+their own account.
