@@ -42,6 +42,12 @@
     padding-left: 3.6em;
 }
 
+/* A little air between the rows, so a filled one reads as one row rather than as part of a block
+   with its neighbours. The same 2px the layouts modal gives its rows. */
+#modal-column-type .app-menu-item {
+    margin-block: 2px;
+}
+
 /* Filled as well as arrowed, the way the layouts modal marks the layout in use: this dialog is how
    you set the type, so which one it is on has to survive a glance rather than needing to be read. */
 #modal-column-type .app-menu-item[aria-current="true"],
