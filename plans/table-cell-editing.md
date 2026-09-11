@@ -1,15 +1,18 @@
 # Plan: editing cells in the table
 
 Branch: `claude/table-view-types-arch-4yhgmf`
-Manifest version now: `1.180.0` → bump the minor version with each step that changes code.
-Depends on: `plans/table-value-types.md`, which must be built first.
+Manifest version now: `1.191.0` → bump the minor version with each step that changes code.
+Depends on: `plans/table-value-types.md`, **which is now built**.
 Related: `plans/yaml-parser.md`, which is built and did most of the hard part.
 
 **Split from `plans/table-value-types-and-editing.md`.** That plan covered two jobs at once. This
 is the second: changing a value by typing into a table cell, and having it land safely in the
-note's front matter. §7 lists what the split cut and why.
+note's front matter. §8 lists what the split cut and why.
 
-Nothing in this plan has been built yet.
+**Nothing in this plan is built.** But the types plan landed since it was written, and some of it
+arrived early — §10 says what, what it changed here, and what it contradicts. **Read §10 and §4.5
+before starting.** §4.5 is the gap this plan has always had: it says a great deal about what each
+type *writes* and almost nothing about what the user *types into*.
 
 ---
 
@@ -118,10 +121,16 @@ Three different things get lumped under that phrase and they deserve different t
 3. **Fine as text, but against an app rule.** A tag with a space in it. A colour that is neither a
    known name nor a hex code. This is policy, not type.
 
-**The policy:** accept nearly everything, quote defensively, and mark a cell whose value does not
-fit its column rather than refusing the keystrokes. Reject at entry only where writing would break
-the structure of the block, which after quoting is a very short list. Anything that still comes
-back wrong reports itself through the existing per-file load error.
+**The policy:** accept nearly everything, quote defensively, and reject at entry only where writing
+would break the structure of the block, which after quoting is a very short list. Anything that
+still comes back wrong reports itself through the existing per-file load error.
+
+**One line of this has already been overtaken.** It used to read "mark a cell whose value does not
+fit its column rather than refusing the keystrokes". The types plan built that mark, and then went
+further: a mismatched cell opens so its value can be read but takes no caret at all. The reasoning
+is in §10, and it is the right answer — editing a value the column cannot describe is the one case
+where accepting the keystrokes risks writing back the wrong shape. **So the policy above governs
+what a user may type into a cell that is editable, not which cells those are.**
 
 Which gives a position that is entirely fair to state out loud: **the app guarantees the file stays
 readable, and you own whether the values mean what you intended.**
@@ -224,6 +233,65 @@ path from making a broken block worse. The `- apple: red` case from the parser p
 to be strict: it parses without complaint into something meaningless, and writing into it would
 mean writing into a key the user never created.
 
+### 4.5 What the user types into — the gap in this plan
+
+§4.3 says what each type **writes**. Nothing anywhere says what the user **types into**, and the two
+are not the same question. A cell is a `contenteditable` div today, which is one editor for
+everything, and this plan has quietly assumed that without ever arguing for it.
+
+**It is not only lists**, which is the easy assumption. Three of the five types have a real question
+and two have none:
+
+| type | what a click should open | is it settled? |
+|---|---|---|
+| text | the cell, as now | yes — nothing else would help |
+| number | the cell, as now | yes — §3's accept-and-quote covers bad input |
+| date | ? | **no** — see below |
+| yes/no | a tick box, surely | **no**, and it is not in the type list yet either |
+| list | several values at once | **no** — the known hard one |
+
+**The date case is the one this plan actually gets wrong today.** §4.3 says the writer produces "a
+plain ISO date", but never says from what. Someone types `1 March 2026` into a date column, and
+there are two answers and no rule:
+
+- **Write `2026-03-01`.** The app has silently rewritten what they typed. That is a small thing here
+  and a bad habit to establish in a plan whose founding rule is that the app does not reinterpret
+  the user's notes.
+- **Write `1 March 2026` as typed.** Honest, and the cell then comes back marked as not readable as
+  a date, which is at least visible — but it means the ordinary act of typing a date produces a
+  broken cell.
+
+A date control removes the question rather than answering it: what comes back is already an ISO
+date, so the writer has nothing to decide and the user has nothing to get wrong.
+
+**Two things follow if the editor varies by type.**
+
+**Something has to choose it, and §7 says that thing is not `cell-expand.js`.** That file's stated
+job is selecting, expanding and collapsing, and it "decides nothing about types, values or files".
+Either it grows a lookup, against its own description, or a small module owns "what does opening
+this cell give you" and `cell-expand.js` asks it. The second fits the layering rule this codebase
+holds hardest, and it is the same shape as `property-type.js` answering "what type is this".
+
+**It is the fourth switch, which the types plan named as the moment to stop and think.** That plan
+argued for three switches on the type — the comparator, the cell renderer, the value writer — and
+refused a registry, on the grounds that HTML-producing and file-writing code should not share an
+object. It then said: revisit "only if a fourth or fifth switch appears". An editor per type is
+that fourth. Worth deciding on purpose rather than drifting into it.
+
+**Three ways to go, none of them decided:**
+
+1. **One editor for everything.** The cell, as now. Types affect only what is written. Simplest, and
+   §3's policy already covers bad input — but it leaves the date question above unanswered, and a
+   yes/no column is toggled by typing the word "true".
+2. **A control only where one is obvious.** A date input for date, a tick box for yes/no, the cell
+   for everything else. Answers the date question outright and adds two small cases, not five.
+3. **An editor per type, lists included.** The full version, and the only one that makes step 5
+   possible at all. Most work, and it is the fourth switch in full.
+
+This is an open decision, and it should be taken before step 2 rather than after: step 2 builds the
+pipeline that every later type plugs into, and whether the editor is chosen per type changes where
+that choice lives.
+
 ---
 
 ## 5. The decisions the original plan left open
@@ -234,7 +302,7 @@ and each one is a line or two to change if it proves wrong.
 
 | question | decision | why |
 |---|---|---|
-| The same file open in the content modal | Nothing to do, but confirm it | The table is already made uneditable while the modal is open, so the conflict cannot arise. Check it still holds once cells are editable. |
+| The same file open in the content modal | **Nothing to do — confirmed** | `#file-content-modal` is opened with `showModal()`, which makes every node outside it inert. The table cannot be touched at all while a note is open, so the conflict cannot arise. |
 | A property the file does not have yet | **Not editable in version one** | It means inserting a line, and a file with no front matter at all is a much bigger intervention. Making it read-only removes both cases from the first version. Step 4 adds it back for files that already have a block, which is small because we already know where the block ends. |
 | Clearing a cell | **Write an empty value; do not delete the key** | A deleted key may unregister the column entirely if no other note carries it. A column vanishing as a side effect of clearing one cell is startling. |
 | Re-sorting after an edit | **Do not re-sort** | The existing refresh re-sorts and re-renders. Edit a cell in the column you are sorted by and the row leaps away from under you. Spreadsheets do not do this. One optional argument to `applyRefresh`. |
@@ -279,11 +347,18 @@ be edited, check it changed, quote it, splice it, write it, refresh.
 
 **Includes the guards**, which are the real content of this step:
 
-- the property is not in `CORE_FILE_PROPERTIES` (§2.1)
-- the column's type is not `array` (deferred to step 5)
-- the file's front matter read cleanly (§4.4)
-- the file already has that key
-- the text actually changed
+| guard | why | built? |
+|---|---|---|
+| the property is not in `CORE_FILE_PROPERTIES` | it comes from the file system or the body, not the front matter (§2.1) | no |
+| the property is not a control column | the file column's cell is a link, not a value (§10) | **yes** |
+| the value fits the column's type | `typeMismatch()` says it does not, and the cell already refuses a caret (§10) | **yes** |
+| the column's type is not `array` | deferred to step 5 | no |
+| the file's front matter read cleanly | §4.4 | no |
+| the file already has that key | lifted by step 4 | no |
+| the text actually changed | nothing to write otherwise | no |
+
+Two of the seven arrived with the types plan, and the second of those is the important one: the
+hardest guard to get right is already in place and already tested.
 
 **Purpose:** the first closed loop. Proving it works with the simplest possible type is what makes
 the remaining types small additions rather than a leap.
@@ -346,15 +421,15 @@ one is a coherent place to stop.
 | file | new? | why |
 |---|---|---|
 | `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES`' comment — its second job |
-| `public/js/services/property-type.js` | edit | one more function: may this property be edited |
+| `public/js/services/property-type.js` | edit | one more function: may this property be edited. It already holds `typeMismatch()`, which the editing path asks before opening a cell |
 | `public/js/services/file-parsing/yaml-value-write.js` | **new** | a value plus a type becomes the text after the colon, including the quoting rule |
 | `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place |
 | `public/js/ui/ui-functions-click/cell-edit-commit.js` | **new** | the user finished editing a cell |
-| `public/js/ui/ui-functions-click/cell-expand.js` | edit | call the commit handler when collapsing a changed cell |
+| `public/js/ui/ui-functions-click/cell-expand.js` | edit | call the commit handler when collapsing a changed cell. It already refuses a caret to a mismatched cell, and §4.5 asks whether it should also choose the editor |
 | `public/js/ui/event-listeners-add.js` | edit | register the new action |
 | `public/js/editing/refresh-file-state.js` | edit | the option not to re-sort (§5) |
-| `public/js/ui/ui-functions-table/render-cell-value.js` | edit | mark a cell that cannot be edited |
-| `public/css/` | new file | any styling for an editing or locked cell |
+| `public/js/ui/ui-functions-table/render-table-rows.js` | edit | mark a cell that cannot be edited. `render-cell-value.js` was never created — the types plan dropped it, and the cell switch is still here |
+| `public/css/note-table.css` | edit | styling for an editing cell, beside the mismatch styling already there |
 | `manifest.json` | edit | a minor bump per step |
 
 Three new files, all small, all in folders that already exist.
@@ -414,3 +489,45 @@ its own.
 - JSDoc on everything exported.
 - Bump the manifest minor version on every code change.
 - **Do not build for types we do not have.**
+
+---
+
+## 10. What the types plan changed here
+
+`plans/table-value-types.md` was built after this one was written, and parts of it landed in this
+plan's territory. Three things arrived early, one line above is contradicted, and one assumption
+turned out to be wrong.
+
+### Arrived early
+
+**A mismatched cell already refuses to be edited.** `typeMismatch()` in `property-type.js` says
+whether a value can be drawn as its column's type, and `cell-expand.js` opens such a cell without a
+caret. That is step 2's hardest guard, built and tested before step 1 starts.
+
+It also decides something this plan had not asked: **what a click on a mismatched cell does.** It
+opens so the value can be read, says why in the cell and in its tooltip, and offers no editor. The
+sentence names which of the two faults it is, because they have different fixes — the column's type
+is wrong and changing it fixes every cell at once, or the note is wrong and only opening the note
+fixes it. That second case is exactly §2's "read-only, go and edit the note", arrived at from the
+other direction.
+
+**The file column is refused everything.** `TABLE_VIEW_COLUMNS.control_columns` holds columns whose
+cell is a control rather than the value — the file column is `internalId` wearing an open-file link.
+Its type, its sort order and a search of it are all refused. §2's table lists "internal id" under
+the file system, which is true but understates it: it is not merely uneditable, it is not the
+value at all.
+
+**`CORE_FILE_PROPERTIES` is still the editable test** and needs no change. §2.1 stands.
+
+### Contradicted
+
+**§3 used to say a mismatched value should be marked "rather than refusing the keystrokes".** It is
+refused now, and that is better: it is the one case where accepting the keystrokes risks writing
+back a shape the column cannot describe. §3 has been corrected in place.
+
+### Wrong assumption
+
+**§4.3's list of what each type writes assumed the user types text into every cell.** That is the
+gap §4.5 now names. It matters most for date, where the writer is told to produce "a plain ISO
+date" without being told what from, and where a control removes the question rather than answering
+it.
