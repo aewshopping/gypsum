@@ -606,9 +606,9 @@ test('a name is a real button, so the keyboard reaches it for free', async ({ pa
 });
 
 /** Seeds a layout file and opens the folder in table view with it already active. */
-async function openTableWithLayout(page, doc) {
+async function openTableWithLayout(page, doc, options) {
   await page.setViewportSize({ width: 1000, height: 900 });
-  await setupMockDirectoryWithLayouts(page);
+  await setupMockDirectoryWithLayouts(page, options);
   await page.addInitScript(seed => { window.__layoutsFileContent = JSON.stringify(seed); }, doc);
 
   await page.goto('/');
@@ -650,6 +650,18 @@ const deadLayout = {
 };
 
 const pickerRow = (page, prop) => page.locator(`#column-picker-list .info-modal-row[data-property="${prop}"]`);
+
+/** How many distinct left and right edges the toggles have: one of each means they are in line. */
+async function toggleEdges(page) {
+  return page.locator('#column-picker-list input.toggle').evaluateAll(els => ({
+    lefts: new Set(els.map(el => Math.round(el.getBoundingClientRect().left))).size,
+    rights: new Set(els.map(el => Math.round(el.getBoundingClientRect().right))).size,
+  }));
+}
+
+/** The long property's own row, keyed off the name the fixture used. */
+const longPropRow = async page =>
+  pickerRow(page, await page.evaluate(() => window.__longPropName));
 
 test('a property the layout has never seen stays out of it, and is offered unticked', async ({ page }) => {
   await openTableWithLayout(page, sparseLayout);
@@ -704,10 +716,8 @@ test('only a dead column is offered a bin, and the toggles stay in one column', 
   await expect(pickerRow(page, 'phantom').locator('[data-action="column-delete"]')).toHaveCount(1);
   await expect(pickerRow(page, 'title').locator('[data-action="column-delete"]')).toHaveCount(0);
 
-  // The bin takes a slot every row reserves, so it cannot push its own toggle out of line.
-  const lefts = await page.locator('#column-picker-list input.toggle')
-    .evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().left)));
-  expect(new Set(lefts).size).toBe(1);
+  // The bin shares the toggle's track, so it cannot push its own toggle out of line.
+  expect(await toggleEdges(page)).toEqual({ lefts: 1, rights: 1 });
 });
 
 test('show all and hide all leave a dead column as the layout has it', async ({ page }) => {
@@ -756,4 +766,56 @@ test('the app defaults offer no bin, having no layout to remove a column from', 
   await openPicker(page);
 
   await expect(page.locator('#column-picker-list [data-action="column-delete"]')).toHaveCount(0);
+});
+
+test('a long property name gives way rather than pushing the toggles out of line', async ({ page }) => {
+  await openTableWithLayout(page, sparseLayout, { longProp: true });
+  await openPicker(page);
+
+  expect(await toggleEdges(page)).toEqual({ lefts: 1, rights: 1 });
+
+  // The name is ellipsed rather than setting the dialog's width.
+  const label = (await longPropRow(page)).locator('.info-modal-row-label');
+  await expect(label).toHaveCount(1);
+  expect(await label.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+
+  const width = await page.locator('#modal-columns').evaluate(el => el.getBoundingClientRect().width);
+  expect(width).toBeLessThanOrEqual(460);
+});
+
+test('a long name and a dead column in the same list still line up', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout, { longProp: true });
+  await openPicker(page);
+
+  // The row carrying a bin sits in the same columns as the rows that do not.
+  await expect(pickerRow(page, 'ghost').locator('[data-action="column-delete"]')).toHaveCount(1);
+  expect(await toggleEdges(page)).toEqual({ lefts: 1, rights: 1 });
+
+  // A fixed-size switch, not one squeezed by what shares its row.
+  const widths = await page.locator('#column-picker-list input.toggle')
+    .evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().width)));
+  expect(new Set(widths).size).toBe(1);
+});
+
+test('the warning wraps to a readable width, panel open or shut', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout, { longProp: true });
+  await openPicker(page);
+
+  await pickerRow(page, 'ghost').locator('[data-action="column-delete"]').click();
+  const warning = page.locator('#modal-unsaved-warning');
+  await expect(warning).toBeVisible();
+  expect(await warning.evaluate(el => el.getBoundingClientRect().width)).toBeLessThanOrEqual(420);
+
+  // The recent files panel takes its width off the room a dialog has, so the cap has to follow it.
+  await page.evaluate(() => document.documentElement.classList.add('sidebar-recent-open'));
+
+  // The panel slides open over 250ms and the width follows it, so wait for it to land.
+  const panelWidth = () => page.evaluate(() =>
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width')));
+  await expect.poll(panelWidth).toBe(240);
+  const panel = await panelWidth();
+
+  const box = await warning.evaluate(el => el.getBoundingClientRect());
+  expect(box.right).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth));
+  expect(box.left).toBeGreaterThanOrEqual(panel);
 });

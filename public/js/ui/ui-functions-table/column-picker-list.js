@@ -27,8 +27,9 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * one useful thing to do with it, and only when a layout is in force — under the app defaults
  * there is no saved layout for it to be removed from.
  *
- * Every row carries something in the bin's slot so the toggles stay in one column down the list,
- * a spacer where there is no bin to draw.
+ * The bin and the toggle share one box at the end of the row, so a row without a bin gives up no
+ * space to it and every toggle sits against the same edge — see column-picker.css, where the row
+ * is a grid and that box is its last track.
  *
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.
@@ -57,14 +58,16 @@ export function renderColumnPickerList() {
         const bin = (column.dead && underSavedLayout)
             ? `<button type="button" class="info-modal-row-btn" data-action="column-delete" data-property="${column.name}" data-tip="remove this column from the layout">` +
                 `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>`
-            : `<span class="info-modal-row-spacer"></span>`;
+            : '';
 
         return `<div class="info-modal-row" data-property="${column.name}">` +
                  `<button type="button" class="info-modal-row-btn info-modal-row-grip" tabindex="-1" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
-                 bin +
-                 `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +
+                 `<span class="column-picker-actions">` +
+                   bin +
+                   `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +
+                 `</span>` +
                `</div>`;
     }).join('');
 }

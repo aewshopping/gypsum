@@ -1,0 +1,47 @@
+/* The table's column picker: the dialog's width, and the row layout that holds its controls in
+   line. The rows are built from .info-modal-row, which the settings modal is also made of, so
+   everything here is scoped to this dialog rather than changing that one underneath it. */
+
+/* Capped rather than left to shrink-to-fit: a long property name would otherwise widen the dialog
+   to the edge of the screen before the label had any reason to give way. The panel's width comes
+   off the viewport the same way it does for every other dialog — see sidebar-push.css. */
+#modal-columns {
+    max-width: min(460px, calc(100vw - var(--sidebar-width) - 32px));
+}
+
+/* One grid per row rather than one grid for the whole list: the reorder drag lifts the row in hand
+   and slides the others past it, and display: contents would leave nothing to lift or slide.
+   column-picker-reorder.js also walks the list's own children to find the row under the pointer.
+
+   The tracks either side of the label hold their contents, which are the same size on every row,
+   so the grips line up down the left and the toggles down the right whatever a property is
+   called. */
+#column-picker-list .info-modal-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+}
+
+/* minmax(0, ...) above and min-width here are the pair that let the track go narrower than the text
+   in it — a grid track's own minimum is its content's, which is what lets a long name set the
+   row's width, push the toggle out of line with the rows above it and then squash it. */
+#column-picker-list .info-modal-row-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The bin shares the toggle's track rather than taking one of its own, so a row without a bin gives
+   up no space to it and every toggle sits flush against the same edge either way. */
+.column-picker-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* The toggle is a fixed-size switch, so it is the one thing in the row that must not give. */
+.column-picker-actions .toggle {
+    flex-shrink: 0;
+}

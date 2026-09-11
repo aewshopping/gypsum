@@ -910,12 +910,17 @@ async function showFilenames(page) {
  * Two files with different property sets, so there is more than one column to reorder, hide and
  * measure. Set window.__layoutsFileContent before loadFolder() to start from a saved layout.
  *
+ * longProp adds a front matter key long enough to break a row that has no answer for one, for the
+ * tests that check the column picker's alignment.
+ *
  * @param {import('@playwright/test').Page} page
+ * @param {{longProp?: boolean}} [options]
  */
-async function setupMockDirectoryWithLayouts(page) {
-  await page.addInitScript(() => {
+async function setupMockDirectoryWithLayouts(page, { longProp = false } = {}) {
+  await page.addInitScript((useLongProp) => {
     window.__layoutsFileContent = '';
     window.__backupFileContent = '';
+    window.__longPropName = 'an_extremely_long_user_defined_property_name_indeed';
 
     const makeFile = (name, content) => ({
       kind: 'file', name,
@@ -945,14 +950,15 @@ async function setupMockDirectoryWithLayouts(page) {
       kind: 'directory', name: 'root',
       values: async function* () {
         yield makeFile('alpha.md', '# Alpha\nFirst note #work/project');
-        yield makeFile('beta.md', '---\ndate: 2024-03-02\npeople: [Ada]\n---\n# Beta\nSecond note');
+        const extra = useLongProp ? `${window.__longPropName}: yes\n` : '';
+        yield makeFile('beta.md', `---\ndate: 2024-03-02\npeople: [Ada]\n${extra}---\n# Beta\nSecond note`);
       },
       getDirectoryHandle: async (name, _options) => {
         if (name === '.gypsum') return gypsumDirHandle;
         throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
       },
     });
-  });
+  }, longProp);
 }
 
 module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };
