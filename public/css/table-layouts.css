@@ -163,18 +163,6 @@
     }
 }
 
-/* Marks the layout in use, the same gutter the modal's rows use. */
-#layout-picker .app-menu-item::before {
-    content: "\279C";   /* U+279C ➜ */
-    display: inline-block;
-    width: 1.3em;
-    opacity: 0;
-}
-
-#layout-picker .app-menu-item[aria-current="true"]::before {
-    opacity: 0.6;
-}
-
 /* Three glyphs, one shown: waiting to be saved, saving, and saved. Same construction as #save-btn
    in the content modal, which has two of the three. */
 #layout-save-btn svg:nth-child(2),

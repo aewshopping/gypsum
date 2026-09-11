@@ -49,30 +49,43 @@
     }
 }
 
-/* A menu that offers a setting rather than an action is made of these two instead of .app-menu-item:
-   nothing in it is clicked to make something happen, so a label names the setting and a select is
-   the control. Here rather than in the type menu's own file for the same reason as everything else
-   above — named for what they are, not for the one menu that wanted them first. */
-.app-menu-label {
-    padding: 6px 10px 2px;
+/* Holds one group of items in a menu that has more than one. .app-menu is a flex column and its
+   items rely on being its children to stack; wrapped in a plain div they are inline-block buttons
+   again and run across the menu in a row. */
+.app-menu-group {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Names a group of items in a menu that holds more than one set of them. Ruled off rather than
+   only spaced, because the gap between two groups and the gap between two items is otherwise the
+   same gap. Muted and small: it labels the group rather than being one of them. */
+.app-menu-heading {
+    margin: 6px 4px 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid color-mix(in srgb, var(--colour-contr) 20%, transparent);
     font-size: 0.85em;
     opacity: 0.7;
 }
 
-.app-menu-select {
-    margin: 0 4px 4px;
-    padding: 6px 8px;
-    font: inherit;
-    color: var(--colour-contr);
-    background-color: var(--colour-neutral-alt);
-    border: 1px solid transparent;
-    border-radius: 3px;
-    cursor: pointer;
+/* The first heading sits against the menu's own padding, so it needs no gap above it. */
+.app-menu-heading:first-child {
+    margin-top: 0;
+}
 
-    &:disabled {
-        opacity: 0.4;
-        cursor: default;
-    }
+/* Marks the item in force, with the arrow the option checkmarks and the table's sort indicator
+   already use. The gutter is a fixed width whether or not the arrow is in it, so the labels line
+   up down the list. Only menus whose items are a choice write aria-current, so only they get the
+   gutter. */
+.app-menu-item[aria-current]::before {
+    content: "\279C";   /* U+279C ➜ */
+    display: inline-block;
+    width: 1.3em;
+    opacity: 0;
+}
+
+.app-menu-item[aria-current="true"]::before {
+    opacity: 0.6;   /* the resting weight every icon glyph sits at — see button-base.css */
 }
 
 /* On a phone a menu becomes a sheet across the bottom of the screen, rather than hanging off a

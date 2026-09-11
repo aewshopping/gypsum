@@ -42,6 +42,10 @@ async function closePicker(page) {
   await expect(page.locator('#modal-columns')).not.toBeVisible();
 }
 
+const typeMenu = page => page.locator('#column-type-menu');
+const typeOption = (page, value) => typeMenu(page).locator(`[data-action="column-type-set"][data-value="${value}"]`);
+const searchOption = (page, value) => typeMenu(page).locator(`[data-action="column-search-type-set"][data-value="${value}"]`);
+
 // The renderer's fallback branch was `value || ''`, and in JavaScript both of these count as
 // empty to ||. A note said `published: false` and its cell said nothing at all.
 test('a front matter key holding false or 0 reaches its cell', async ({ page }) => {
@@ -64,7 +68,7 @@ test('every picker row carries a type glyph, and it says what the column is', as
   await expect(pickerRow(page, 'due').locator('.column-picker-type')).toHaveAttribute('data-tip', 'text');
   await expect(pickerRow(page, 'lastModified').locator('.column-picker-type')).toHaveAttribute('data-tip', 'date');
   // A list says how it is searched too, since that is the only place the setting is visible.
-  await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, contains text');
+  await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, contains');
   await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, exact match');
 });
 
@@ -82,7 +86,7 @@ test('the glyph is drawn for the type, and follows a change', async ({ page }) =
   await expect(glyphHref('tags')).toHaveAttribute('href', '#icon-type-array');
 
   await pickerRow(page, 'due').locator('.column-picker-type').click();
-  await page.selectOption('#column-type-select', 'date');
+  await typeOption(page, 'date').click();
   await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-date');
 
   // and it survives the row being redrawn from the layout
@@ -102,7 +106,7 @@ test('the glyph changes as soon as the type is picked, before the layout is touc
 
   const glyph = pickerRow(page, 'people').locator('.column-picker-type');
   await glyph.click();
-  await page.selectOption('#column-type-select', 'date');
+  await typeOption(page, 'date').click();
 
   expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-date');
   expect(await glyph.getAttribute('data-tip')).toBe('date');
@@ -116,8 +120,8 @@ test('the glyph changes as soon as the type is picked, before the layout is touc
 
   // Changing how a list is searched moves the tooltip and leaves the glyph alone, since the column
   // is still a list.
-  await page.selectOption('#column-type-select', 'array');
-  await page.selectOption('#column-search-select', 'array');
+  await typeOption(page, 'array').click();
+  await searchOption(page, 'array').click();
   expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-array');
   expect(await glyph.getAttribute('data-tip')).toBe('list, exact match');
 });
@@ -133,7 +137,7 @@ test('the type popover opens on the glyph that was clicked', async ({ page }) =>
     await pickerRow(page, property).locator('.column-picker-type').click();
     await expect(page.locator('#column-type-menu')).toBeVisible();
 
-    const btn = await pickerRow(page, property).locator('.column-picker-type').boundingBox();
+    const btn = await pickerRow(page, property).locator('.column-picker-type-anchor').boundingBox();
     const menu = await page.locator('#column-type-menu').boundingBox();
 
     expect(Math.abs((menu.x + menu.width) - (btn.x + btn.width))).toBeLessThan(2);
@@ -150,21 +154,24 @@ test('the type popover opens on the glyph that was clicked', async ({ page }) =>
 // and it builds that value by clearing the inline one and reading the computed stylesheet value.
 // That merges a stylesheet declaration and destroys an inline one — and the pointer is sitting on
 // this very button, so the tooltip fires the moment the popover opens.
-test('the popover keeps its anchor while the button tooltip is showing', async ({ page }) => {
+test('the popover anchors even when the glyph was hovered before it was clicked', async ({ page }) => {
   await openTable(page);
   await openPicker(page);
 
   const glyph = pickerRow(page, 'title').locator('.column-picker-type');
-  await glyph.click();
-  await expect(page.locator('#column-type-menu')).toBeVisible();
 
-  const before = await page.locator('#column-type-menu').boundingBox();
+  // Hover first and let the tooltip come up, which is what every real click does. tooltip.js then
+  // writes an anchor-name inline built from the value computed at that moment, and an inline
+  // declaration beats a stylesheet one — so an anchor named on the glyph itself was frozen out and
+  // the popover opened in the corner of the screen until the tooltip hid.
   await glyph.hover();
-  await page.waitForTimeout(800);   // longer than the tooltip's own delay
-  const after = await page.locator('#column-type-menu').boundingBox();
+  await page.waitForTimeout(900);
+  await glyph.click();
+  await expect(typeMenu(page)).toBeVisible();
 
-  expect(Math.abs(after.x - before.x)).toBeLessThan(1);
-  expect(Math.abs(after.y - before.y)).toBeLessThan(1);
+  const anchor = await pickerRow(page, 'title').locator('.column-picker-type-anchor').boundingBox();
+  const menu = await typeMenu(page).boundingBox();
+  expect(Math.abs((menu.x + menu.width) - (anchor.x + anchor.width))).toBeLessThan(2);
 });
 
 // "Search as" has no meaning off a list, since nothing else in the app searches by whole values.
@@ -174,11 +181,40 @@ test('search as is only available for a list column', async ({ page }) => {
   await openPicker(page);
   await pickerRow(page, 'due').locator('.column-picker-type').click();
 
-  await expect(page.locator('#column-search-select')).toBeDisabled();
-  await page.selectOption('#column-type-select', 'array');
-  await expect(page.locator('#column-search-select')).toBeEnabled();
-  await page.selectOption('#column-type-select', 'date');
-  await expect(page.locator('#column-search-select')).toBeDisabled();
+  await expect(searchOption(page, 'array')).toBeDisabled();
+  await typeOption(page, 'array').click();
+  await expect(searchOption(page, 'array')).toBeEnabled();
+  await typeOption(page, 'date').click();
+  await expect(searchOption(page, 'array')).toBeDisabled();
+});
+
+// The dialog is opened with showModal(), which makes everything outside it inert. A popover parked
+// at body level was painted in the top layer, looked right, and swallowed every click: nothing in
+// it could be chosen on any row. It lives inside the dialog for that reason.
+test('the options in the popover can actually be clicked', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'due').locator('.column-picker-type').click();
+
+  await typeOption(page, 'number').click();
+  expect(await pickerRow(page, 'due').getAttribute('data-type')).toBe('number');
+  await expect(typeMenu(page)).toBeVisible();   // it holds two settings, so it stays up
+});
+
+// Both lists mark what the column is on, the way the layouts modal marks the layout in use.
+test('the current choice is marked in both lists', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'people').locator('.column-picker-type').click();
+
+  await expect(typeOption(page, 'array')).toHaveAttribute('aria-current', 'true');
+  await expect(typeOption(page, 'date')).toHaveAttribute('aria-current', 'false');
+  await expect(searchOption(page, 'string')).toHaveAttribute('aria-current', 'true');
+  await expect(searchOption(page, 'array')).toHaveAttribute('aria-current', 'false');
+
+  await searchOption(page, 'array').click();
+  await expect(searchOption(page, 'array')).toHaveAttribute('aria-current', 'true');
+  await expect(searchOption(page, 'string')).toHaveAttribute('aria-current', 'false');
 });
 
 // The choice lands on the row and is read into the layout when the dialog closes, which is the
@@ -189,7 +225,7 @@ test('a type set in the picker reaches the table', async ({ page }) => {
 
   await openPicker(page);
   await pickerRow(page, 'due').locator('.column-picker-type').click();
-  await page.selectOption('#column-type-select', 'date');
+  await typeOption(page, 'date').click();
   await page.keyboard.press('Escape');
   await closePicker(page);
 

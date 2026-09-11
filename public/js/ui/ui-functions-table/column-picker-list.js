@@ -1,16 +1,6 @@
 import { appState } from '../../services/store.js';
-import { VALUE_TYPES, SEARCH_TYPES } from '../../constants.js';
+import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
 import { resolveColumns } from './render-table-columns-helper.js';
-
-/**
- * The word a type or search type is shown as, from the one list that defines them.
- * @param {object} group - VALUE_TYPES or SEARCH_TYPES.
- * @param {string} value - The stored name.
- * @returns {string} The label, or the stored name if the list has no entry for it.
- */
-function labelFor(group, value) {
-    return Object.values(group).find(entry => entry.value === value)?.label ?? value;
-}
 
 /**
  * Renders the column picker's rows: one per candidate column, in the table's own order, ticked
@@ -52,6 +42,13 @@ function labelFor(group, value) {
  * writes a change to, and where column-picker.js reads the row back from when the dialog closes,
  * so a type follows exactly the path the order and the visibility already take.
  *
+ * The glyph sits inside a bare span, which exists only to be the type popover's anchor. It cannot
+ * be the button itself: tooltip.js writes an anchor-name inline on any [data-tip] element while
+ * its tooltip is up, built from the value computed when the tooltip appeared. Hovering the glyph
+ * before clicking it therefore froze an anchor-name that did not yet include the popover's, the
+ * inline declaration beat the stylesheet, and the popover opened in the corner of the screen until
+ * the tooltip hid. The span carries no tooltip, so nothing writes over it.
+ *
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.
  *
@@ -92,8 +89,10 @@ export function renderColumnPickerList() {
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<span class="column-picker-actions">` +
-                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-menu" data-tip="${typeTip}">` +
-                     `<svg class="info-modal-row-icon"><use href="#icon-type-${column.type}"></use></svg></button>` +
+                   `<span class="column-picker-type-anchor">` +
+                     `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-menu" data-tip="${typeTip}">` +
+                       `<svg class="info-modal-row-icon"><use href="#icon-type-${column.type}"></use></svg></button>` +
+                   `</span>` +
                    bin +
                    `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +
                  `</span>` +

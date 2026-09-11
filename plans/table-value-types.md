@@ -10,7 +10,7 @@ giving the table a real idea of what a value *is*, and letting you change values
 This half is the first job. Nothing here writes to a file. §6 lists what was cut in the split
 and why.
 
-Status: **built**, at manifest version `1.183.0`. §7 records where the code differs from what this
+Status: **built**, at manifest version `1.184.0`. §7 records where the code differs from what this
 plan said it would be.
 
 ---
@@ -241,14 +241,14 @@ that leads to the one useful thing to do with that column.
 | the popover holds | what it sets |
 |---|---|
 | **type** | text, number, date, list |
-| **search as** | **exact match** or **contains text** |
+| **search as** | **exact match** or **contains** |
 
 **The words are settled.** These two were "actual type" and "display type" in the discussion. The
 second one only governs searching, so it is labelled "search as", and its options say what happens
 rather than naming an internal idea: **exact match** finds a note whose list holds that item whole,
-**contains text** finds one where any item contains what you typed.
+**contains** finds one where any item contains what you typed.
 
-**Contains text is the default.** It is the forgiving option, and searching for part of a name or
+**Contains is the default.** It is the forgiving option, and searching for part of a name or
 a phone number is the thing people actually try first. `people` and `internalLink` already work
 this way, so their hidden `search_type` becomes redundant and is deleted.
 
@@ -458,3 +458,21 @@ default and an improvement for both, but it is a behaviour change nobody asked f
 **The two column-menu tests that fail here were failing before any of this.** They cover the header
 menu following its column on horizontal scroll, which this plan does not touch. Worth a look on
 their own account.
+
+**Two interface faults found in use, and what they turned out to be.** Both are recorded because
+each was invisible from the code and obvious in the browser.
+
+**Nothing in the popover could be clicked, on any row.** Not the selects — the popover was parked
+at body level, and `showModal()` makes everything outside the dialog inert. It was painted in the
+top layer, looked completely right, and swallowed every click. It lives inside the dialog now. The
+lists of buttons replaced the selects anyway, for a second reason: a native select's dropdown is
+painted outside the popover's box, so choosing an option would have counted as a click outside and
+light-dismissed the popover before the choice landed.
+
+**The popover opened in the corner of the screen about one click in ten, then came back.** §4 of
+this plan warned that tooltip.js writes an `anchor-name` inline and that a stylesheet declaration
+survives it. What it missed is that tooltip.js builds that value from what is computed *when the
+tooltip appears*. The anchor was named under `[data-anchored]`, which is not set until the click —
+so hovering the glyph first, which is what every real click does, froze a value without it. The
+"second or two" was the tooltip's own lifetime. The anchor now sits on a bare span around the
+glyph, which carries no tooltip for anything to write over.

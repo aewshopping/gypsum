@@ -625,6 +625,27 @@
     </div>
 
     <div id="column-picker-list"></div>
+
+    <!-- How a column's values are read, opened from the type glyph on a row above.
+
+         **Inside the dialog, and it has to be.** showModal() makes everything outside the dialog
+         inert, so a popover parked at body level was painted in the top layer, looked right, and
+         swallowed every click — nothing in it could be chosen. In here it is in the dialog's
+         subtree, so it is not inert, and `popover` still puts it above the dialog.
+
+         Anchored to the glyph's wrapper span rather than a proxy: a picker row carries no
+         scroll-driven transform. Both lists are filled from VALUE_TYPES and SEARCH_TYPES when it
+         opens, so constants.js stays the only place a type name is legal.
+
+         Lists of buttons rather than <select>s: a native select's dropdown is painted outside the
+         popover's box, so choosing an option would count as a click outside and light-dismiss the
+         popover before the choice landed. -->
+    <div id="column-type-menu" class="app-menu" popover>
+      <p class="app-menu-heading">type</p>
+      <div class="app-menu-group" id="column-type-options"></div>
+      <p class="app-menu-heading">search as</p>
+      <div class="app-menu-group" id="column-search-options"></div>
+    </div>
   </dialog>
 
   <!-- The list of saved layouts, opened from the layout name in the table's control row. The same
@@ -676,18 +697,6 @@
     <button type="button" class="app-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
     <button type="button" class="app-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
     <button type="button" class="app-menu-item" disabled>hide column</button>
-  </div>
-
-  <!-- How a column's values are read, opened from the type glyph on a column picker row. Same
-       popover machinery as #column-menu, but anchored straight to the button that opened it: a
-       picker row carries no scroll-driven transform, so it can be its own anchor and needs no
-       proxy. The selects are filled from VALUE_TYPES and SEARCH_TYPES when it opens, so
-       constants.js stays the only place a type name is legal. -->
-  <div id="column-type-menu" class="app-menu" popover>
-    <label class="app-menu-label" for="column-type-select">type</label>
-    <select id="column-type-select" class="app-menu-select" data-action="column-type-set"></select>
-    <label class="app-menu-label" for="column-search-select">search as</label>
-    <select id="column-search-select" class="app-menu-select" data-action="column-search-type-set"></select>
   </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the

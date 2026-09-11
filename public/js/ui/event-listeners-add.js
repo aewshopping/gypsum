@@ -148,6 +148,8 @@ const clickActionHandlers = {
     'hide-all-columns': handleHideAllColumns,
     'column-delete': handleColumnDelete,
     'column-type-menu': handleColumnTypeMenuOpen,
+    'column-type-set': handleColumnTypeSet,
+    'column-search-type-set': handleColumnSearchTypeSet,
     'expand-cell': handleCellExpand,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,
@@ -215,8 +217,6 @@ const changeActionHandlers = {
     'pagination-size-change': handlePaginationSizeChange,
     'checkbox-toggle': handleCheckboxToggle,
     'column-toggle': handleColumnToggle,
-    'column-type-set': handleColumnTypeSet,
-    'column-search-type-set': handleColumnSearchTypeSet,
 };
 
 const pointerDownActionHandlers = {

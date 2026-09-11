@@ -12,15 +12,20 @@
    Every row has one of these buttons, so the anchor name cannot sit on the class: a shared name
    resolves to the LAST matching element in the document, which would hang the popover off the
    bottom row whichever button was clicked. It goes on an attribute instead, which
-   column-type-set.js puts on the one button whose popover is open and takes off again on close.
+   column-type-set.js puts on the one row whose popover is open and takes off again on close.
 
-   That name is declared here rather than written inline by that module, and it has to be.
+   It sits on a bare span around the glyph rather than on the glyph itself, and it has to.
    tooltip.js writes its own anchor-name inline on any [data-tip] element while its tooltip is up,
-   building the value by clearing the inline one and reading the computed stylesheet value. That
-   merges a stylesheet declaration and destroys an inline one — and the pointer is sitting on this
-   very button when the popover opens, so the tooltip fires straight away. */
+   built from the value computed when the tooltip appeared. Hovering the glyph and then clicking it
+   — which is every real click — froze a value from before this rule applied, an inline declaration
+   beats a stylesheet one, and the popover opened in the corner of the screen until the tooltip
+   hid. The span carries no tooltip, so nothing writes over it. */
 
-.column-picker-type[data-anchored] {
+.column-picker-type-anchor {
+    display: inline-flex;   /* wraps the glyph exactly, so the anchor box is the glyph's box */
+}
+
+.column-picker-type-anchor[data-anchored] {
     anchor-name: --column-type-anchor;
 }
 
@@ -40,4 +45,16 @@
            the window a row near the end runs past, not the edge. */
         position-try-fallbacks: flip-block;
     }
+}
+
+/* Filled as well as arrowed, the way the layouts modal marks the layout in use: this menu is how
+   you set the type, so which one it is on has to survive a glance rather than needing to be read.
+   Scoped here rather than shared with the layout picker, which marks its current item with the
+   arrow alone and is not being changed.
+
+   The fill sits inside the menu's own padding rather than reaching its edges, which is what the
+   layouts modal's negative margins are for — a 4px inset reads as a pill and needs no such trick. */
+#column-type-menu .app-menu-item[aria-current="true"],
+#column-type-menu .app-menu-item[aria-current="true"]:hover {
+    background-color: color-mix(in srgb, var(--colour-contr) 12%, transparent);
 }

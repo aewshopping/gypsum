@@ -1,7 +1,7 @@
 {
   "name": "Gypsum",
   "short_name": "Gypsum",
-  "version": "1.183.0",
+  "version": "1.184.0",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f1f1f1",

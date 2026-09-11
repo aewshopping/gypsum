@@ -115,9 +115,9 @@ Three rules follow from that, and they are the ones to hold:
    than deriving it from front matter — add it to `CORE_FILE_PROPERTIES` in `store.js` too.
    That list is what registers properties when a folder holds no files.
 5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
-6. Only add `search_type` if the property is a list that must match **whole items**. Lists are
-   searched by part of their text by default; `tags` is the one property that opts out, so a tag
-   pill means that one tag. Ask `propertySearchType()` rather than reading the schema.
+6. Only add `search_type` if the property is a list that must match **whole items** ("exact
+   match"). Lists are searched by "contains" by default; `tags` is the one property that opts out,
+   so a tag pill means that one tag. Ask `propertySearchType()` rather than reading the schema.
 
 ### Search / filter architecture
 

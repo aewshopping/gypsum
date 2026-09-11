@@ -50,9 +50,20 @@ export const VALUE_TYPES = {
  * otherwise. `tags` is the one property that says otherwise, because a tag pill means that tag.
  */
 export const SEARCH_TYPES = {
-    ARRAY:  { value: "array",  label: "exact match"   },
-    STRING: { value: "string", label: "contains text" }
+    ARRAY:  { value: "array",  label: "exact match" },
+    STRING: { value: "string", label: "contains"    }
 };
+
+/**
+ * The word one of the two lists above shows for a stored name. Here rather than beside either
+ * caller because both the picker row and its popover need it, and the lists it reads are here.
+ * @param {object} group - VALUE_TYPES or SEARCH_TYPES.
+ * @param {string} value - The stored name.
+ * @returns {string} The label, or the stored name if the list has no entry for it.
+ */
+export function labelFor(group, value) {
+    return Object.values(group).find(entry => entry.value === value)?.label ?? value;
+}
 
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';

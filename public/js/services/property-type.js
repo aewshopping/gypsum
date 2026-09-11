@@ -50,7 +50,7 @@ export function propertyType(name) {
 }
 
 /**
- * How a property is searched: what the user chose, then what the schema says, then contains text.
+ * How a property is searched: what the user chose, then what the schema says, then contains.
  *
  * It does not fall back to the property's type, which is the whole point of it being a separate
  * question — a list column is searched by part of its text unless something explicitly asks for
