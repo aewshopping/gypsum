@@ -161,19 +161,21 @@ for what `boolean` fixes.
 
 ### 3.4 Searching a list as text stays a separate setting
 
-`search_type` already exists in the schema and already means exactly "search this list by contains
-text rather than by exact match". It is why `people` and `internalLink` match partially today. The
-only thing wrong with it is that it is a hidden schema detail nobody can set.
+`search_type` already exists in the schema and already decides whether a list is searched by whole
+items or by part of the text. It is why `people` and `internalLink` match partially today. The only
+thing wrong with it is that it is a hidden schema detail nobody can set.
 
 **So it becomes the second per-column setting, and it stays independent of the type.** Tying it to
 the type would mean a column could either render as a list or search as text, never both, and
 those two properties prove that both are wanted at once.
 
 The type system still does not reach into search. What changes is only where `search_type` comes
-from: the column's layout first, then the schema, as with everything else. The filter object, the
-operator, the filter pill and all three search functions are untouched, and the two properties
-carrying `search_type` today stop being special cases and become the shipped defaults for a
-setting anyone can use.
+from: the column's layout first, then the schema, then contains text as the default. The filter
+object, the operator, the filter pill and all three search functions are untouched.
+
+**The default flips, so the schema entries flip with it.** `people` and `internalLink` lose theirs,
+because contains text is now what they get anyway. `tags` gains one, pinning it to exact match,
+because a tag pill means that tag and nothing else. See step 3.
 
 ### 3.5 A value that does not fit its column gets shown, not hidden
 
@@ -263,9 +265,18 @@ second one only governs searching, so it is labelled "search as", and its option
 rather than naming an internal idea: **exact match** finds a note whose list holds that item whole,
 **contains text** finds one where any item contains what you typed.
 
-**Exact match is the default**, because it is what a list column does today. `people` and
-`internalLink` ship set to contains text, which is what their hidden `search_type` already does for
-them.
+**Contains text is the default.** It is the forgiving option, and searching for part of a name or
+a phone number is the thing people actually try first. `people` and `internalLink` already work
+this way, so their hidden `search_type` becomes redundant and is deleted.
+
+**Tags is the one property pinned the other way, and it must be.** A tag pill means that one tag,
+so clicking `cat` must not also bring back everything tagged `category`. Under the new default it
+would, because tags is a list column with nothing set. So `tags` gains an explicit exact-match entry
+in the schema, which is the same mechanism `people` used, pointed the other way.
+
+That is a good trade rather than a workaround. The schema goes from two hidden overrides to one,
+and the one that remains states a real decision the app makes about tags instead of quietly
+correcting a default that did not suit.
 
 **The setting is disabled unless the type is list**, rather than hidden, so the popover keeps one
 shape whichever column it was opened from. Nothing else in the app searches by whole values, so the
@@ -323,7 +334,8 @@ straight off the schema, which is one line each. And update the "adding a new fi
 in `CLAUDE.md`, because the answer to "what type is this" is no longer "whatever the schema says".
 
 **Checkable by:** set a column to date, sort by it, save the layout, reload the folder, and find the
-type still there. Set a list column to contains text and check that a partial search finds it.
+type still there. Set a list column to exact match and check a partial search stops finding it.
+Click a tag pill and check it still filters to that tag alone.
 Screenshots.
 
 ---
@@ -340,6 +352,7 @@ A folder promising the type system lives in one place would be a promise it cann
 |---|---|---|
 | `public/js/constants.js` | edit | `VALUE_TYPES` — the only list of legal type names |
 | `public/js/services/property-type.js` | **new** | the one answer to "what type is this column?" |
+| `public/js/services/store.js` | edit | `search_type` off `people` and `internalLink`, onto `tags` |
 | `public/js/services/file-object-sort.js` | edit | a `boolean` branch in the comparator |
 | `public/js/ui/ui-functions-click/sort-object.js` | edit | ask the new module |
 | `public/js/ui/ui-functions-click/load-files-click.js` | edit | ask the new module |
