@@ -85,7 +85,7 @@ export const appState = {
  * Defines metadata for known - or potential - file object properties.
  * This is used to assign values to properties later (ie for sorting or rendering).
  * Should probably change this to an object so it is easier to load in new values later
- * @type {Map<string, {type: string, column_width: number, display_order: number}>}
+ * @type {Map<string, {type: string, search_type?: string, column_width: number, display_order: number}>}
  */
 export const FILE_PROPERTIES = new Map([
   ['sizeInBytes', {label: 'size', type: 'number', column_width: 120, display_order: 6 }],
@@ -93,13 +93,16 @@ export const FILE_PROPERTIES = new Map([
   ['title', { type: 'string', column_width: 350, display_order: 2 }],
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
   ['lastModified', {label: 'last modified', type: 'date', column_width: 150, display_order: 4 }],
-  ['tags', { type: 'array', column_width: 200, display_order: 3 }],
+  // search_type pins tags to whole-item matching. It is the only property that needs to say so:
+  // a list is searched by part of its text unless it asks otherwise, and a tag pill means that
+  // one tag — clicking 'cat' must not also bring back everything tagged 'category'.
+  ['tags', { type: 'array', search_type: 'array', column_width: 200, display_order: 3 }],
   ['date', { type: 'date', column_width: 150, display_order: 5 }],
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
   ['color', { type: 'string', column_width: 150, display_order: 11 }],
-  ['people', { type: 'array', search_type: 'string', column_width: 250, display_order: 9 }],
-  ['internalLink', {label: 'links', type: 'array', search_type: 'string', column_width: 250, display_order: 10 }],
+  ['people', { type: 'array', column_width: 250, display_order: 9 }],
+  ['internalLink', {label: 'links', type: 'array', column_width: 250, display_order: 10 }],
   ['filepath', { type: 'string', column_width: 300, display_order: 12 }],
   ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 13 }],
   ['errorOnLoad', { label: 'load error', type: 'string', column_width: 200, display_order: 14 }],

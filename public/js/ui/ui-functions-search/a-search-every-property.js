@@ -1,5 +1,6 @@
 import { appState } from "../../services/store.js";
 import { searchProperty } from "./a-search-property.js";
+import { propertySearchType } from "../../services/property-type.js";
 
 
 /**
@@ -21,12 +22,7 @@ export function searchEveryProperty(filterId, searchValue, property, type, opera
     // search through all properties one by one.
     for (const thisproperty of filteredPropsSet) {
 
-        // look up data type of thisproperty. First choice: search_type; second choice: type; default: string type
-        const propertyObj = appState.myFilesProperties.get(thisproperty);
-        let propertyType = "string"; // default
-        propertyType = propertyObj?.search_type || propertyObj?.type;
-
-        searchProperty(filterId, searchValue, thisproperty, propertyType, operator);
+        searchProperty(filterId, searchValue, thisproperty, propertySearchType(thisproperty), operator);
     }
 
 }

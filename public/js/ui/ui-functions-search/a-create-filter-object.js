@@ -1,4 +1,5 @@
 import { appState } from "../../services/store.js";
+import { propertySearchType } from "../../services/property-type.js";
 
 /**
  * Creates a filter object and adds it to the app state.
@@ -26,8 +27,7 @@ export function createFilterObject(searchObject) {
     if (propertyExists) {
 
         property = actualPropertyName;// Overwrite the input property with the actual case sensitive prop name found in the Map
-        const propertyObj = appState.myFilesProperties.get(property);
-        propertyType = propertyObj?.search_type || propertyObj?.type;
+        propertyType = propertySearchType(property);
 
     } else {
 

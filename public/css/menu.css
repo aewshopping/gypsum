@@ -49,6 +49,32 @@
     }
 }
 
+/* A menu that offers a setting rather than an action is made of these two instead of .app-menu-item:
+   nothing in it is clicked to make something happen, so a label names the setting and a select is
+   the control. Here rather than in the type menu's own file for the same reason as everything else
+   above — named for what they are, not for the one menu that wanted them first. */
+.app-menu-label {
+    padding: 6px 10px 2px;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.app-menu-select {
+    margin: 0 4px 4px;
+    padding: 6px 8px;
+    font: inherit;
+    color: var(--colour-contr);
+    background-color: var(--colour-neutral-alt);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+}
+
 /* On a phone a menu becomes a sheet across the bottom of the screen, rather than hanging off a
    control that may be narrower than a thumb. 600px is the width the rest of the app already
    treats as a small screen — see modal-backdrop.css, which gives dialogs the full screen at the

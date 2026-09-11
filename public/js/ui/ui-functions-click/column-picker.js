@@ -133,6 +133,11 @@ export async function handleResetColumns() {
  * as they sit are the new layout. Each entry is spread forward first, which carries a dragged
  * width across a reorder or a hide.
  *
+ * The type and search type come off the row's data attributes rather than the spread, because the
+ * type popover writes its change there. That is what puts a type change on the same path as a
+ * reorder or a hide: nothing lands until the dialog closes, and reset undoes it with everything
+ * else by repainting the list from the layout.
+ *
  * Two callers: closing the dialog, and removing a dead column — which writes the layout to disk
  * and so has to write what is on screen rather than what was on screen when the dialog opened.
  * @returns {void}
@@ -146,6 +151,8 @@ function readPickerIntoLayout() {
         layout.set(row.dataset.property, {
             ...previous.get(row.dataset.property),
             visible: row.querySelector('input.toggle').checked,
+            type: row.dataset.type,
+            search_type: row.dataset.searchType,
         });
     });
 }

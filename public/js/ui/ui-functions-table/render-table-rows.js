@@ -31,12 +31,18 @@ export function renderTableRows(current_props, renderEverything) {
                         } else if (prop.name === 'filename') {
                             cellContent = renderFilename(file.filepath || ''); // the full path from the root, now that folders are loaded
                         } else {
-                            cellContent = value || '';
+                            cellContent = value ?? '';
                         }
                         break;
-                    case 'date':
-                        cellContent = value ? new Date(value).toLocaleDateString() : 'N/A';
+                    case 'date': {
+                        // A column's type is the user's choice, so a date column can hold anything.
+                        // Falling back to the raw text shows what the file says; the alternative is
+                        // the string "Invalid Date", which is the app inventing a fact.
+                        if (!value) { cellContent = 'N/A'; break; }
+                        const asDate = new Date(value);
+                        cellContent = isNaN(asDate) ? value : asDate.toLocaleDateString();
                         break;
+                    }
                     case 'array':
                         if (value instanceof Map) {
                             cellContent = [...value.keys()].map(tag => renderTags(tag)).join(''); // to make the tags clickable filters
@@ -50,7 +56,9 @@ export function renderTableRows(current_props, renderEverything) {
                         cellContent = value?.toString() ?? '';
                         break;
                     default:
-                        cellContent = value || '';
+                        // ?? rather than ||: a front matter key holding `false` or `0` is a value,
+                        // and || threw both away as empty.
+                        cellContent = value ?? '';
                         break;
                 }
                 // The file column takes the file's colour faded the way the content modal fades it,

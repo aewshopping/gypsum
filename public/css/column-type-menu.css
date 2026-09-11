@@ -1,0 +1,43 @@
+/* The column type popover, opened from the type glyph on a column picker row.
+
+   Everything it shares with the other menus — background, border, padding, shadow, backdrop and
+   the small-screen bottom sheet — lives in menu.css under .app-menu, as do the label and select
+   rows it is made of. What is left here is where this one hangs from.
+
+   It anchors to the button that opened it, with no proxy. #column-menu needs one because the
+   table header is moved by a scroll-driven transform and anchor positioning resolves against an
+   element's pre-transform box; a picker row is not transformed, so its button can be its own
+   anchor.
+
+   Every row has one of these buttons, so the anchor name cannot sit on the class: a shared name
+   resolves to the LAST matching element in the document, which would hang the popover off the
+   bottom row whichever button was clicked. It goes on an attribute instead, which
+   column-type-set.js puts on the one button whose popover is open and takes off again on close.
+
+   That name is declared here rather than written inline by that module, and it has to be.
+   tooltip.js writes its own anchor-name inline on any [data-tip] element while its tooltip is up,
+   building the value by clearing the inline one and reading the computed stylesheet value. That
+   merges a stylesheet declaration and destroys an inline one — and the pointer is sitting on this
+   very button when the popover opens, so the tooltip fires straight away. */
+
+.column-picker-type[data-anchored] {
+    anchor-name: --column-type-anchor;
+}
+
+/* Above the small-screen breakpoint only, for the reason given in column-menu.css: below it
+   menu.css turns every .app-menu into a sheet across the bottom of the screen, and an id beats a
+   class, so unguarded anchoring here would win over those insets. */
+@media (min-width: 601px) {
+    #column-type-menu {
+        position: fixed;
+        position-anchor: --column-type-anchor;
+        inset: auto;              /* the UA stylesheet centres popovers with inset: 0 */
+        top: anchor(bottom);
+        right: anchor(right);
+        margin: 4px 0 0 0;
+
+        /* Up rather than sideways: the picker rows run down the dialog, so it is the bottom of
+           the window a row near the end runs past, not the edge. */
+        position-try-fallbacks: flip-block;
+    }
+}

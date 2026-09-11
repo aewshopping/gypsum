@@ -6,6 +6,10 @@
  */
 
 import { TABLE_VIEW_COLUMNS, defaultColumnEntry } from '../services/store.js';
+import { VALUE_TYPES, SEARCH_TYPES } from '../constants.js';
+
+const LEGAL_TYPES = new Set(Object.values(VALUE_TYPES).map(entry => entry.value));
+const LEGAL_SEARCH_TYPES = new Set(Object.values(SEARCH_TYPES).map(entry => entry.value));
 
 /**
  * The current layout as the array a file holds: one object per column, carrying its position.
@@ -62,6 +66,10 @@ function resolveOrder(columns) {
  *   duplicate would silently take one entry's place and another's width.
  * - **An unusable label or width falls back to the schema's.** A width of `"wide"` in a grid
  *   track is a broken table rather than an error, so it never gets that far.
+ * - **A type this app has never heard of is dropped rather than kept.** It is left absent instead
+ *   of corrected to text, so the property falls back to whatever the schema says about it — which
+ *   is a better answer than text for every property the app knows, and the same answer for the
+ *   rest.
  * - **A column is shown only if it says `visible: true`.** A layout is a closed statement of which
  *   columns its user wants, so anything else — `false`, a string, or no flag at all — leaves the
  *   column hidden. That is the same answer resolveColumns() gives a property the layout does not
@@ -83,6 +91,8 @@ export function applyLayoutToColumnLayout(columns) {
             label: typeof column.label === 'string' ? column.label : fallback.label,
             width: Number.isFinite(column.width) ? column.width : fallback.width,
             visible: column.visible === true,
+            ...(LEGAL_TYPES.has(column.type) && { type: column.type }),
+            ...(LEGAL_SEARCH_TYPES.has(column.search_type) && { search_type: column.search_type }),
         });
     }
 }

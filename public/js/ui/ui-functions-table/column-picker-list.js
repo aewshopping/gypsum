@@ -1,5 +1,16 @@
 import { appState } from '../../services/store.js';
+import { VALUE_TYPES, SEARCH_TYPES } from '../../constants.js';
 import { resolveColumns } from './render-table-columns-helper.js';
+
+/**
+ * The word a type or search type is shown as, from the one list that defines them.
+ * @param {object} group - VALUE_TYPES or SEARCH_TYPES.
+ * @param {string} value - The stored name.
+ * @returns {string} The label, or the stored name if the list has no entry for it.
+ */
+function labelFor(group, value) {
+    return Object.values(group).find(entry => entry.value === value)?.label ?? value;
+}
 
 /**
  * Renders the column picker's rows: one per candidate column, in the table's own order, ticked
@@ -31,6 +42,15 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * space to it and every toggle sits against the same edge — see column-picker.css, where the row
  * is a grid and that box is its last track.
  *
+ * The type glyph sits in that box too, and on every row without exception — read-only properties,
+ * always-on columns and dead ones included. Setting the type of lastModified is pointless, but a
+ * type change never writes a file, so nothing can be damaged by it, and a rule with no exceptions
+ * is one less thing to read the code for.
+ *
+ * The row carries the resolved type and search type as data attributes. That is where the popover
+ * writes a change to, and where column-picker.js reads the row back from when the dialog closes,
+ * so a type follows exactly the path the order and the visibility already take.
+ *
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.
  *
@@ -55,16 +75,24 @@ export function renderColumnPickerList() {
                   : column.dead     ? 'this property is not in the loaded folder'
                   : 'show this column';
 
+        const typeLabel = labelFor(VALUE_TYPES, column.type);
+        const typeTip = column.type === VALUE_TYPES.ARRAY.value
+            ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
+            : typeLabel;
+
         const bin = (column.dead && underSavedLayout)
             ? `<button type="button" class="info-modal-row-btn" data-action="column-delete" data-property="${column.name}" data-tip="remove this column from the layout">` +
                 `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>`
             : '';
 
-        return `<div class="info-modal-row" data-property="${column.name}">` +
+        return `<div class="info-modal-row" data-property="${column.name}"` +
+                 ` data-type="${column.type}" data-search-type="${column.search_type}">` +
                  `<button type="button" class="info-modal-row-btn info-modal-row-grip" tabindex="-1" data-action="column-reorder-start" data-tip="drag to reorder this column">` +
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<span class="column-picker-actions">` +
+                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-menu" data-tip="${typeTip}">` +
+                     `<svg class="info-modal-row-icon"><use href="#icon-type"></use></svg></button>` +
                    bin +
                    `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +
                  `</span>` +

@@ -90,15 +90,34 @@ in `event-listeners-add.js` maps action names to handler functions.
   sub-directory), import it in `event-listeners-add.js`, and register it in the relevant
   action map.
 
+### Column value types
+
+A table column's type is the user's choice, stored in the saved layout, not a fact about the data.
+Three rules follow from that, and they are the ones to hold:
+
+- **The legal type names live in `VALUE_TYPES` in `constants.js`**, and nowhere else. A layout file
+  is hand-editable, so a name that is not in that list is dropped rather than honoured.
+- **Nothing asks the schema directly.** `services/property-type.js` owns the order — the layout's
+  choice, then the schema, then text — and sorting, rendering and the picker all ask it.
+- **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
+  nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
+  so no confirmation is needed anywhere. See `plans/table-value-types.md` §1.2.
+
 ### Adding a new file property
 
 1. Add it to `FILE_PROPERTIES` in `store.js` with `type`, `column_width`, `display_order`.
+   The `type` there is a **default, not the answer** — the user can override it per column from
+   the column picker, and it is stored in the saved layout. Never read `.type` off the schema:
+   ask `propertyType()` in `services/property-type.js`, which consults the layout first.
 2. Populate it in `file-info.js` (or a new `file-parsing/` module if the logic is non-trivial).
 3. Handle its type in `file-object-sort.js` if it needs sorting.
 4. If every file carries it — i.e. you added it to the return literal in `file-info.js` rather
    than deriving it from front matter — add it to `CORE_FILE_PROPERTIES` in `store.js` too.
    That list is what registers properties when a folder holds no files.
 5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
+6. Only add `search_type` if the property is a list that must match **whole items**. Lists are
+   searched by part of their text by default; `tags` is the one property that opts out, so a tag
+   pill means that one tag. Ask `propertySearchType()` rather than reading the schema.
 
 ### Search / filter architecture
 

@@ -570,8 +570,15 @@
        logic of its own. Static markup, and outside #output, so a re-render cannot destroy it
        mid-interaction. -->
   <dialog id="modal-columns" class="info-modal" closedby="any">
-    <!-- Only this dialog uses the grip, so it lives here rather than in the shared sprite -->
+    <!-- Only this dialog uses the grip and the type glyph, so they live here rather than in the
+         shared sprite. The glyph is one generic mark for every type rather than one per type:
+         four legible symbols is real work, and the row's tooltip carries the actual type. -->
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+      <symbol id="icon-type" viewBox="0 0 50 50">
+        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+          <path d="M13 14.5h24M25 14.5v21"/>
+        </g>
+      </symbol>
       <symbol id="icon-drag" viewBox="0 0 50 50">
         <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
           <path d="M15.2 17.3c5.2-.6 14.4-.7 19.6-.1m-19.6.1c5.2-.6 14.4-.7 19.6-.1M15 25.1c5.2-.6 14.4-.7 19.8-.1m-19.8.1c5.2-.6 14.4-.7 19.8-.1M15.2 32.9c5.2-.6 14.4-.7 19.6-.1m-19.6.1c5.2-.6 14.4-.7 19.6-.1"/>
@@ -647,6 +654,18 @@
     <button type="button" class="app-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
     <button type="button" class="app-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
     <button type="button" class="app-menu-item" disabled>hide column</button>
+  </div>
+
+  <!-- How a column's values are read, opened from the type glyph on a column picker row. Same
+       popover machinery as #column-menu, but anchored straight to the button that opened it: a
+       picker row carries no scroll-driven transform, so it can be its own anchor and needs no
+       proxy. The selects are filled from VALUE_TYPES and SEARCH_TYPES when it opens, so
+       constants.js stays the only place a type name is legal. -->
+  <div id="column-type-menu" class="app-menu" popover>
+    <label class="app-menu-label" for="column-type-select">type</label>
+    <select id="column-type-select" class="app-menu-select" data-action="column-type-set"></select>
+    <label class="app-menu-label" for="column-search-select">search as</label>
+    <select id="column-search-select" class="app-menu-select" data-action="column-search-type-set"></select>
   </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the
