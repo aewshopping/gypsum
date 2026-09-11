@@ -2,171 +2,127 @@
 
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.191.0` → bump the minor version with each step that changes code.
-Depends on: `plans/table-value-types.md`, **which is now built**.
-Related: `plans/yaml-parser.md`, which is built and did most of the hard part.
+Depends on: `plans/table-value-types.md`, **built**. Related: `plans/yaml-parser.md`, **built**,
+which did most of the hard part.
 
-**Split from `plans/table-value-types-and-editing.md`.** That plan covered two jobs at once. This
-is the second: changing a value by typing into a table cell, and having it land safely in the
-note's front matter. §8 lists what the split cut and why.
+Click a cell, type, click away, and the note on disk says what the cell says.
 
-**Nothing in this plan is built.** But the types plan landed since it was written, and some of it
-arrived early — §10 says what, what it changed here, and what it contradicts. **Read §10 and §4.5
-before starting.** §4.5 is the gap this plan has always had: it says a great deal about what each
-type *writes* and almost nothing about what the user *types into*.
+**Nothing here is built.** Two of its guards arrived early with the types plan — §7.
 
 ---
 
-## 1. What this is, and what makes it dangerous
+## 1. What makes this dangerous
 
-Click a cell, type, click away, and the note on disk now says what the cell says.
+Not the typing. **Front matter is fussy text.** Write the wrong shape and you do not lose one value,
+you lose the block: a stray colon splits it into a new key, a leading dash turns the line into a
+list item, a line break destroys it outright, and the note's other properties go with it.
 
-The danger is not the typing. **It is that front matter is fussy text.** Write the wrong shape and
-you do not just lose that one value — a stray colon splits the block into a new key, a leading dash
-turns the line into a list item, a line break destroys the block outright, and the note's *other*
-properties vanish with it. One careless write can cost a note everything it knew about itself.
+Three ideas hold the plan together:
 
-So the whole plan is built around three ideas:
+1. **Most cells cannot be edited**, and which ones follows from where their value comes from rather
+   than from a rule someone invented (§2).
+2. **Quote defensively rather than validate strictly.** Accept nearly anything typed, and make the
+   *writing* safe instead of policing the typing (§3).
+3. **Change the smallest number of bytes that does the job.** Never rebuild the block (§4).
 
-1. **Most cells cannot be edited at all**, and the reason follows from where their value comes
-   from rather than from a rule someone invented (§2).
-2. **Quote defensively rather than validate strictly.** Accept nearly anything the user types, and
-   make the *writing* safe instead of policing the typing (§3).
-3. **Change the smallest number of bytes that does the job**, never rebuild the block (§4).
+### 1.1 The one thing that makes it tractable
 
-### 1.1 The one thing that makes this tractable
+**An edited cell never has to become an in-memory value again.** `refreshFileAfterSave` already
+writes a file, re-reads it from disk, re-parses it and rebuilds the file object, and the modal save
+already uses it. So editing only has to get as far as the file; everything from there back into the
+table is the existing display path.
 
-**There is no need to turn an edited cell back into an in-memory value.**
-
-The app already has a path that writes a file, re-reads it from disk, re-parses it and rebuilds the
-file object: `refreshFileAfterSave` in `public/js/editing/refresh-file-state.js`, which the modal
-save already uses. So the editing direction only has to get as far as the file. Everything from
-there back into the table is the existing display path, untouched.
-
-That has a pleasant side effect. **What you see after an edit is, by construction, what the file
-actually contains.** The round trip is checked every single time instead of assumed.
+The side effect is the good bit: **what you see after an edit is what the file actually contains**,
+checked every time rather than assumed.
 
 ---
 
-## 2. Most cells are read-only, and the list already exists
+## 2. Which cells can be edited
 
-The interesting question is not "what type is this?" but **"where did this value come from?"**
+The question is not "what type is this?" but **"where did this value come from?"**
 
-| where it comes from | properties | editable? |
+| where it comes from | properties | editable |
 |---|---|---|
-| the file system | size, last modified, filename, filepath, internal id | no, ever |
-| the note's body text | title, tags, colour, preview, links | no, not in this version |
+| the file system | size, last modified, filename, filepath, internal id | never |
+| the note's body text | title, tags, colour, preview, links | not from the table |
 | the front matter | everything else | **yes** |
 
-That one distinction does most of the work you would otherwise try to force onto the types. It is
-what separates tag pills from a real editable list without inventing anything, and it is what
-stops the table offering to edit a file's size.
+**The list already exists.** `CORE_FILE_PROPERTIES` in `store.js` is exactly the first two rows: the
+keys written literally into the object `getFileDataAndMetadata` returns, plus the two the loaders
+add. Anything *not* in it arrived by spreading the parsed front matter over the object. So:
 
-### 2.1 The list is already written down
+> A property can be edited from the table if it is not in `CORE_FILE_PROPERTIES`.
 
-The original plan proposed a new `origin` field on every schema entry. **It is not needed.**
-`CORE_FILE_PROPERTIES` in `store.js` already holds exactly this list, for a different-sounding
-reason: it is "the keys every file object carries whatever its content", which is to say the keys
-written literally into the object `getFileDataAndMetadata` returns, plus the two the loaders add.
+It stays true by itself — anyone adding a property to that return literal is already told to add it
+to the list, and doing so makes it read-only, which is the right answer.
 
-Those are the same fact. Anything in that return literal is worked out by the app from the file
-system or the body text. Anything *not* in it arrived by spreading the parsed front matter over
-the object. So:
+### 2.1 Why tags must stay read-only
 
-> **A property can be edited from the table if it is not in `CORE_FILE_PROPERTIES`.**
+This matters more now that lists are editable (§5), because a tags cell looks exactly like a list
+you could edit. It is a merged view with no record of where each tag came from, and three things go
+wrong if you write to it:
 
-`date`, `phone`, `email` and `people` are in `FILE_PROPERTIES` but not in that list, and they are
-correctly editable — they do come from front matter. And the rule stays true by itself: anyone
-adding a property to the return literal is already told by that list's comment to add it there,
-and doing so makes it read-only, which is the right answer.
-
-All this needs is a second sentence in that comment saying the list now has a second job.
-
-### 2.2 Why tags in particular must stay read-only
-
-The tags cell is a merged view with no record of where each tag came from, and three specific
-things go wrong if you write to it:
-
-- Body tags are parsed first. Front matter tags are added only if the body did not already produce
-  them. After that merge, nothing records which came from where.
-- **Deleting a tag that lives in both places, from only one place, looks like it worked and then
-  undoes itself on the next load.** That single behaviour would make the feature feel broken.
-- The two places do not mean the same thing. `#parent/child` in the body joins the tag taxonomy as
-  a child with a parent. The same text in front matter becomes one flat name. So moving a tag from
-  one place to the other quietly changes the taxonomy.
-- Colour is only ever read from body tags. A colour tag written into front matter would stop
-  colouring the note.
-
-**One undocumented behaviour worth knowing while you are in here:** a front matter `title:`
-silently overrides the note's H1 heading, and a front matter `color:` silently overrides the colour
-tag. This happens because the parsed front matter is spread over the file object after those two
-are set, and neither key is on the protected list. So the codebase already holds two different
-conflict policies — override for title and colour, merge for tags — and neither is written down.
-Worth documenting whatever we do next.
-
-A nice touch for later: render front matter tags and body tags as visually different pills, so it
-is obvious why one can be removed and the other cannot.
+- Body tags are parsed first; front matter tags are added only where the body did not already
+  produce them. After the merge, nothing records which came from where.
+- **Deleting a tag that lives in both places, from one place, looks like it worked and then undoes
+  itself on the next load.** That alone would make the feature feel broken.
+- The two places do not mean the same thing. `#parent/child` in the body joins the taxonomy with a
+  parent; the same text in front matter is one flat name. Moving a tag between them changes the
+  taxonomy. And colour is only ever read from body tags.
 
 ---
 
-## 3. What "invalid" means, and the policy that follows
+## 3. What "invalid" means, and the policy
 
-Three different things get lumped under that phrase and they deserve different treatment:
+Three different things get lumped together:
 
-1. **Cannot be read as the type.** The column is a date and someone types "next tuesday". This is
-   the case everyone imagines and the least dangerous.
-2. **Reads fine, but changes meaning on the way back in.** Someone types `007` into a text column,
-   it is written plainly, and it comes back as the number seven. This is the group that actually
-   damages files, and **almost all of it is solved by quoting defensively when writing, not by
-   validating when typing.**
-3. **Fine as text, but against an app rule.** A tag with a space in it. A colour that is neither a
-   known name nor a hex code. This is policy, not type.
+1. **Cannot be read as the type.** A date column, and someone types "next tuesday". The case
+   everyone imagines, and the least dangerous.
+2. **Reads fine, changes meaning on the way back in.** `007` typed into a text column, written
+   plainly, read back as seven. This is the group that damages files, and **almost all of it is
+   solved by quoting when writing, not by validating when typing.**
+3. **Fine as text, against an app rule.** A tag with a space in it. Policy, not type.
 
-**The policy:** accept nearly everything, quote defensively, and reject at entry only where writing
-would break the structure of the block, which after quoting is a very short list. Anything that
-still comes back wrong reports itself through the existing per-file load error.
+**The policy: accept nearly everything, quote defensively, reject at entry only where writing would
+break the block** — which after quoting is a very short list. Anything still wrong reports itself
+through the existing per-file load error.
 
-**One line of this has already been overtaken.** It used to read "mark a cell whose value does not
-fit its column rather than refusing the keystrokes". The types plan built that mark, and then went
-further: a mismatched cell opens so its value can be read but takes no caret at all. The reasoning
-is in §10, and it is the right answer — editing a value the column cannot describe is the one case
-where accepting the keystrokes risks writing back the wrong shape. **So the policy above governs
-what a user may type into a cell that is editable, not which cells those are.**
+Which makes a position that is fair to state out loud: **the app guarantees the file stays readable,
+and you own whether the values mean what you intended.**
 
-Which gives a position that is entirely fair to state out loud: **the app guarantees the file stays
-readable, and you own whether the values mean what you intended.**
+This governs what may be typed into an editable cell, not which cells those are. A cell whose value
+does not fit its column is already refused outright (§7), which is the one case where accepting the
+keystrokes risks writing back a shape the column cannot describe.
 
 ---
 
-## 4. How saving an edit will work
+## 4. How saving works
 
-Eight stages, of which only two are genuinely new:
+Eight stages, two of them genuinely new:
 
 | # | stage | what it does | new? |
 |---|---|---|---|
-| 1 | capture | read the text out of the cell | exists — the cell is already editable |
-| 2 | guard | may this be edited, has it changed, is the file safe to touch | small |
-| 3 | convert | the type turns the typed text into the text that goes after the colon | **new** |
-| 4 | locate | find where that key lives inside the front matter | **done** — §4.2 |
+| 1 | capture | read what was typed out of the cell | exists |
+| 2 | guard | may this be edited, did it change, is the file safe to touch | part built — §7 |
+| 3 | convert | the type turns what was typed into the text after the colon | **new** |
+| 4 | locate | find where that key lives in the front matter | **done** — §4.2 |
 | 5 | splice | build the new file text around it | small |
 | 6 | write | the existing verified write in `save-file-copy.js` | exists |
 | 7 | refresh | the existing re-read and re-render | exists |
 | 8 | render | untouched | exists |
 
-**Stage 5 must read the file fresh from its handle**, because the file object keeps only a short
-preview, not the raw text. That constraint is forced on us and is the right behaviour anyway.
+**Stage 5 reads the file fresh from its handle**, because the file object keeps only a short
+preview. Forced on us, and right anyway.
 
-**Never rebuild the whole front matter block from the parsed values.** That would silently destroy
-comments, key order, blank lines and anything the parser skipped without understanding. Replace the
-smallest span that does the job and leave every other byte alone.
+**Never rebuild the block from the parsed values.** That silently destroys comments, key order,
+blank lines and anything the parser skipped. Replace the smallest span that does the job.
 
-### 4.1 The write itself is already built
+### 4.1 The write is already built
 
-`saveFileCopy` writes a verified copy into `.gypsum`, then overwrites the original only once that
-copy has been read back and checked, then deletes the copy. It takes a plain
-`{ filepath, filename, content }` object, which a cell edit can build from the file object.
-
-So the new save module is genuinely small: read the file's text, splice, call `saveFileCopy`, call
-`refreshFileAfterSave`. It borrows both halves of the safety.
+`saveFileCopy` writes a verified copy into `.gypsum`, overwrites the original only once that copy
+reads back clean, then deletes the copy. It takes `{ filepath, filename, content }`, which a cell
+edit can build from the file object. So the new save module is: read the text, splice, call
+`saveFileCopy`, call `refreshFileAfterSave`.
 
 ### 4.2 Finding the key is done
 
@@ -174,360 +130,222 @@ So the new save module is genuinely small: read the file's text, splice, call `s
 
 ```js
 {
-  valueStart, valueEnd,      // the whole value, for replacing or clearing it outright
+  valueStart, valueEnd,      // the whole value, for replacing it outright
   form: 'scalar' | 'block' | 'flow' | 'map',
   items: [ { lineStart, valueStart, valueEnd } ]   // lists only
 }
 ```
 
-Four things about it that matter here:
+It is inside the parser rather than beside it because a second implementation of "where does this
+value end" would agree on the day it was written and drift after, and that drift writes into the
+wrong bytes of a note.
 
-**It is built into the parser rather than beside it**, because a second implementation of "where
-does this value end" would agree with the parser on the day it was written and drift afterwards —
-and that drift is a write into the wrong bytes of a note.
+**The per-item spans are what make §5 cheap.** Splicing one item leaves every other byte alone,
+including a comment between two items. Each item's `lineStart` carries its own prefix — `"  - "`,
+`"- "`, a tab — so inserting copies the indentation rather than choosing it.
 
-**The item spans are what make editing a list safe.** The whole-value span is right for replacing a
-list outright, but the usual edit is one item, and splicing one item's span leaves every other byte
-alone, including a comment sitting between two items.
-
-**Inserting an item copies its indentation rather than choosing it.** Each item carries its
-`lineStart`, so the text from there to its `valueStart` is that item's own prefix — `"  - "`,
-`"- "`, or a tab. Nothing in the writer has to know those differ.
-
-**A scalar's span starts immediately after the colon; an item's starts after the dash and its
-whitespace.** Not an inconsistency: a scalar span is the whole value slot, so the writer supplies
-the separating space and an empty `title:` still works.
+A scalar's span starts immediately after the colon, so the writer supplies the separating space and
+an empty `title:` still works. An item's starts after the dash and its whitespace.
 
 ### 4.3 What each type writes
 
-Stage 3 is the entire job of the type system in this direction. One small function per type, taking
-what the user typed and returning the text to write.
+| type | writes |
+|---|---|
+| `string` | the text, quoted when it would not read back as itself |
+| `number` | the digits plainly when it reads as a number, else quoted text |
+| `date` | a plain ISO date — see §4.4, which decides what from |
+| `array` | §5 |
 
-| type | writes | note |
-|---|---|---|
-| `string` | the text, quoted when it would not read back as itself | the only one needing the quoting rule |
-| `number` | the digits plainly, when it reads as a number | otherwise falls back to quoted text |
-| `boolean` | `true` or `false` plainly | **not in the type list yet** — see below |
-| `date` | a plain ISO date | safe, because it does not read as a number, so it stays text |
-| `array` | deferred, see step 5 | the only one that breaks the single-line assumption |
+**Yes/no is a type this plan may have to add.** The types plan dropped it because display and
+sorting gain nothing from it. Writing might: a note saying `published: true`, edited in a text
+column, comes back as the string `"false"`, so the app has quietly turned a boolean into text.
+Decide it in step 3 with the round trip in front of you; it costs one entry in the type list, one
+line in the convert function and one control in §4.4.
 
-**Yes/no is the one type this plan may have to add.** The types plan dropped it, because on display
-and sorting it earns nothing that treating the value as text does not already do. Writing is where
-it might pay: a note saying `published: true`, edited in a text column, comes back as the quoted
-string `"false"`, so the app has silently changed a real boolean into text. Decide that in step 3,
-with the round trip in front of you. If it is worth fixing it costs one entry in the type list and
-one line in the convert function.
+### 4.4 What the user types into
 
-**The whole pipeline works end to end with no types at all**, if stage 3 is nothing but the quoting
-rule. The other types are then small independent additions to one function, and nothing else in the
-chain changes. That is what the step order below is built on.
+The plan says a great deal about what each type *writes* and, until now, nothing about what the user
+*types into*. A cell is a `contenteditable` div, which is one editor for everything.
 
-### 4.4 A broken file cannot be edited
+**Lists being in scope settles most of this.** Several values cannot be expressed in a plain text
+cell that stands for one, so there will be at least one editor that is not the default. The question
+is no longer whether to have per-type editors but how many.
+
+| type | what opening the cell gives you |
+|---|---|
+| text, number | the cell, as now |
+| `array` | the cell, one item per line — §5 |
+| `date` | **open** — the cell, or a date control |
+| yes/no | a tick box, if the type is added at all |
+
+**The date question is the one this plan currently gets wrong.** §4.3 says the writer produces "a
+plain ISO date" and never says from what. Someone types `1 March 2026` and there are two answers:
+
+- **Write `2026-03-01`.** The app has silently rewritten what they typed, in a plan whose founding
+  rule is that it does not reinterpret notes.
+- **Write it as typed.** Honest, but the ordinary act of typing a date produces a cell marked as
+  unreadable.
+
+A date control removes the question rather than answering it: what comes back is already ISO, so the
+writer has nothing to decide and the user nothing to get wrong. **Decide before step 2**, because
+step 2 builds the pipeline the rest plugs into.
+
+**Whatever is decided, `cell-expand.js` does not decide it.** Its job is selecting, expanding and
+collapsing. A small module owns "what does opening this cell give you", and `cell-expand.js` asks
+it — the same shape as `property-type.js` answering "what type is this".
+
+### 4.5 A broken file cannot be edited
 
 **A file whose front matter did not read cleanly has its front matter cells locked** until it is
-fixed in the content modal.
-
-This is cheap, because the error is already worked out and already stored per file. It is
-explainable, because the load error column is right there in the table. And it stops the editing
-path from making a broken block worse. The `- apple: red` case from the parser plan is the reason
-to be strict: it parses without complaint into something meaningless, and writing into it would
-mean writing into a key the user never created.
-
-### 4.5 What the user types into — the gap in this plan
-
-§4.3 says what each type **writes**. Nothing anywhere says what the user **types into**, and the two
-are not the same question. A cell is a `contenteditable` div today, which is one editor for
-everything, and this plan has quietly assumed that without ever arguing for it.
-
-**It is not only lists**, which is the easy assumption. Three of the five types have a real question
-and two have none:
-
-| type | what a click should open | is it settled? |
-|---|---|---|
-| text | the cell, as now | yes — nothing else would help |
-| number | the cell, as now | yes — §3's accept-and-quote covers bad input |
-| date | ? | **no** — see below |
-| yes/no | a tick box, surely | **no**, and it is not in the type list yet either |
-| list | several values at once | **no** — the known hard one |
-
-**The date case is the one this plan actually gets wrong today.** §4.3 says the writer produces "a
-plain ISO date", but never says from what. Someone types `1 March 2026` into a date column, and
-there are two answers and no rule:
-
-- **Write `2026-03-01`.** The app has silently rewritten what they typed. That is a small thing here
-  and a bad habit to establish in a plan whose founding rule is that the app does not reinterpret
-  the user's notes.
-- **Write `1 March 2026` as typed.** Honest, and the cell then comes back marked as not readable as
-  a date, which is at least visible — but it means the ordinary act of typing a date produces a
-  broken cell.
-
-A date control removes the question rather than answering it: what comes back is already an ISO
-date, so the writer has nothing to decide and the user has nothing to get wrong.
-
-**Two things follow if the editor varies by type.**
-
-**Something has to choose it, and §7 says that thing is not `cell-expand.js`.** That file's stated
-job is selecting, expanding and collapsing, and it "decides nothing about types, values or files".
-Either it grows a lookup, against its own description, or a small module owns "what does opening
-this cell give you" and `cell-expand.js` asks it. The second fits the layering rule this codebase
-holds hardest, and it is the same shape as `property-type.js` answering "what type is this".
-
-**It is the fourth switch, which the types plan named as the moment to stop and think.** That plan
-argued for three switches on the type — the comparator, the cell renderer, the value writer — and
-refused a registry, on the grounds that HTML-producing and file-writing code should not share an
-object. It then said: revisit "only if a fourth or fifth switch appears". An editor per type is
-that fourth. Worth deciding on purpose rather than drifting into it.
-
-**Three ways to go, none of them decided:**
-
-1. **One editor for everything.** The cell, as now. Types affect only what is written. Simplest, and
-   §3's policy already covers bad input — but it leaves the date question above unanswered, and a
-   yes/no column is toggled by typing the word "true".
-2. **A control only where one is obvious.** A date input for date, a tick box for yes/no, the cell
-   for everything else. Answers the date question outright and adds two small cases, not five.
-3. **An editor per type, lists included.** The full version, and the only one that makes step 5
-   possible at all. Most work, and it is the fourth switch in full.
-
-This is an open decision, and it should be taken before step 2 rather than after: step 2 builds the
-pipeline that every later type plugs into, and whether the editor is chosen per type changes where
-that choice lives.
+fixed in the note. The error is already worked out and stored per file, and the load error column is
+right there in the table. It stops the editing path making a broken block worse — the `- apple: red`
+case parses into something meaningless, and writing into it would write into a key nobody created.
 
 ---
 
-## 5. The decisions the original plan left open
+## 5. Lists
 
-All five are answered here rather than deferred. They were left open because they could not be
-judged before editing existed — but four of the five are answerable by picking the smaller option,
-and each one is a line or two to change if it proves wrong.
+A list cell, expanded, shows **one item per line**, and is edited as text.
 
-| question | decision | why |
-|---|---|---|
-| The same file open in the content modal | **Nothing to do — confirmed** | `#file-content-modal` is opened with `showModal()`, which makes every node outside it inert. The table cannot be touched at all while a note is open, so the conflict cannot arise. |
-| A property the file does not have yet | **Not editable in version one** | It means inserting a line, and a file with no front matter at all is a much bigger intervention. Making it read-only removes both cases from the first version. Step 4 adds it back for files that already have a block, which is small because we already know where the block ends. |
-| Clearing a cell | **Write an empty value; do not delete the key** | A deleted key may unregister the column entirely if no other note carries it. A column vanishing as a side effect of clearing one cell is startling. |
-| Re-sorting after an edit | **Do not re-sort** | The existing refresh re-sorts and re-renders. Edit a cell in the column you are sorted by and the row leaps away from under you. Spreadsheets do not do this. One optional argument to `applyRefresh`. |
-| A history snapshot per edit | **No, not in version one** | History entries are written when a file is *opened*, not when it is saved, so a cell edit takes no snapshot unless we add one — and a burst of cell edits would fill the history fast. The verified write already refuses to leave a half-written file. If this proves wrong, calling `saveBackupEntry` before the first edit of a file is a one-line addition. |
+That is the whole editor. The expanded cell already grows downward without limit, `plaintext-only`
+already handles Enter, one item per line is what a block list already looks like in the file, and it
+avoids the question a comma-separated box would raise about items containing commas.
 
-**The expanded cell closing after an edit is not solved by any of this**, because the refresh
-re-renders the whole table regardless. Worth knowing before anyone is surprised by it.
+On commit, split on newlines, trim, drop empty lines. Then:
+
+| what changed | what is written |
+|---|---|
+| one item's text, and nothing else | splice that item's span — every other byte, comments included, untouched |
+| anything else: added, removed, reordered | replace the whole value span, in the form `span.form` reports |
+| the first item into a key with none | block form, indented two spaces — the only place a style is chosen |
+
+**The cost of the second row is a comment sitting between two items of that one list.** Rare, and
+the price of an editor that lets you rewrite the whole list at once. Worth knowing rather than
+discovering.
+
+**A flow list (`tags: [a, b]`) stays a flow list**, which is where the quoting rule earns its keep:
+an item written into flow form needs quoting if it holds a comma, a bracket or a quote. An item in a
+block list does not — it runs to the end of its line.
+
+**Tags is not editable** however editable lists become (§2.1), and three of the remaining four list
+properties come from the body text. So the lists this reaches are mostly ones the user invented,
+which is the right place to start.
 
 ---
 
-## 6. Steps
+## 6. Decisions taken
 
-Five steps, the last of which is optional. Each carries its own tests. Bump the manifest minor
-version on each.
+| question | decision |
+|---|---|
+| The same file open in the note modal | **Nothing to do.** `#file-content-modal` uses `showModal()`, which makes every node outside it inert, so the table cannot be touched while a note is open. |
+| A property the file does not have yet | **Not editable in version one.** Step 4 adds it back for files that already have a block. A file with no front matter at all stays out of scope: creating one from a cell edit is a bigger intervention than a cell edit should be. |
+| Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. |
+| Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
+| A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong. |
+
+**The expanded cell closes after an edit** whatever we do here, because the refresh re-renders the
+whole table. Worth knowing before it surprises someone.
+
+---
+
+## 7. What already exists
+
+Two of step 2's guards arrived with the types plan, and the harder one is the one that is built.
+
+**A mismatched cell already refuses to be edited.** `typeMismatch()` in `property-type.js` says
+whether a value can be drawn as its column's type; `cell-expand.js` opens such a cell without a
+caret, and says why in the cell and in its tooltip. The sentence names which of the two faults it
+is, because they have different fixes: the column's type is wrong and changing it fixes every cell
+at once, or the note is wrong and only opening the note fixes it. That second case is §2's
+"read-only, go and edit the note" arrived at from the other direction.
+
+**The file column is refused everything.** `TABLE_VIEW_COLUMNS.control_columns` holds columns whose
+cell is a control rather than a value — the file column is `internalId` wearing an open-file link —
+and its type, sort order and search are all refused. §2's table calls it uneditable, which
+understates it: it is not the value at all.
+
+---
+
+## 8. Steps
+
+Each carries its own tests. Bump the manifest minor version on each.
 
 ### Step 1 — The quoting rule
 
-**What:** one function in `public/js/services/file-parsing/yaml-value-write.js` that decides whether
-a piece of text needs quoting to survive being written into front matter and read back as itself.
+One function in `public/js/services/file-parsing/yaml-value-write.js`: does this text need quoting
+to survive being written into front matter and read back as itself?
 
-**Purpose:** this is the safety belt for every write that follows. It is what makes it fair to say
-the user owns their own type discipline, because whatever they type, the file stays readable.
+The cases, all confirmed against the built parser:
 
-**The cases**, all confirmed against the built parser rather than assumed:
-
-- a colon followed by a space, which would split the line into a new key
+- a colon followed by a space, which splits the line into a new key
 - a leading dash, hash or quote
 - a line break, which destroys the block
-- **a value beginning with `[`**, or it reads back as a list. Strictly only when it also ends with
-  `]` — the parser leaves `note: [draft] needs work` alone — but the rule should not try to be that
-  clever, because the text after the next edit might well end with `]`
+- a value beginning with `[`, or it reads back as a list. Strictly only when it also ends with `]`,
+  but the rule should not try to be that clever — the text after the next edit might end with one
 - text that would read back as a number, a boolean or a date when it is meant to be text
+- inside a flow list only: a comma, a bracket or a quote
 
-**Why it is a step of its own:** it is pure text in, text out. No interface, no disk, no state. It
-can be tested to death before anything can be damaged by it, and it is the single piece most likely
-to be wrong in a way nobody notices for months.
+**Its own step because it is pure text in, text out.** No interface, no disk, no state. It can be
+tested to death before anything can be damaged by it, and it is the piece most likely to be wrong in
+a way nobody notices for months.
 
 ### Step 2 — The first end-to-end edit, text only
 
-**What:** the whole eight-stage pipeline with `string` and nothing else. Read the cell, check it may
-be edited, check it changed, quote it, splice it, write it, refresh.
+The whole pipeline with `string` and nothing else, and the guards, which are the real content:
 
-**Includes the guards**, which are the real content of this step:
-
-| guard | why | built? |
-|---|---|---|
-| the property is not in `CORE_FILE_PROPERTIES` | it comes from the file system or the body, not the front matter (§2.1) | no |
-| the property is not a control column | the file column's cell is a link, not a value (§10) | **yes** |
-| the value fits the column's type | `typeMismatch()` says it does not, and the cell already refuses a caret (§10) | **yes** |
-| the column's type is not `array` | deferred to step 5 | no |
-| the file's front matter read cleanly | §4.4 | no |
-| the file already has that key | lifted by step 4 | no |
-| the text actually changed | nothing to write otherwise | no |
-
-Two of the seven arrived with the types plan, and the second of those is the important one: the
-hardest guard to get right is already in place and already tested.
-
-**Purpose:** the first closed loop. Proving it works with the simplest possible type is what makes
-the remaining types small additions rather than a leap.
+| guard | built? |
+|---|---|
+| the property is not in `CORE_FILE_PROPERTIES` | no |
+| the property is not a control column | **yes** |
+| the value fits the column's type | **yes** |
+| the column's type is not `array` — lifted by step 5 | no |
+| the file's front matter read cleanly | no |
+| the file already has that key — lifted by step 4 | no |
+| the text actually changed | no |
 
 **Checkable by:** edit a front matter cell, watch the file on disk change, watch the table redraw
-from the file rather than from memory. Screenshots.
+from the file rather than from memory.
 
-### Step 3 — The remaining types
+### Step 3 — The remaining single-value types
 
-**What:** `number` and `date` added to the convert function, and the yes/no decision from §4.3
-taken.
+`number` and `date` in the convert function, the §4.4 date decision, and the §4.3 yes/no decision.
 
-**Purpose:** without this, typing `42` into a number column writes `"42"`, which reads back as text,
-which then shows as not matching the column. The types are needed for the round trip to close.
+Without this, typing `42` into a number column writes `"42"`, which reads back as text and then
+shows as not matching the column. The types are what closes the round trip.
 
-**Why one step and not three:** the original plan gave each type its own step. Each is two to four
-lines in one switch, in one file, with one test file covering all of them. Three steps for that is
-ceremony. If any one of them turns out to be hard, split it out then.
+### Step 4 — A key the file does not have yet
 
-### Step 4 — Add a key the file does not have yet
+Lift the sixth guard: editing a cell for a property the note lacks appends the line to the end of
+its front matter block. Small, because we already locate the block.
 
-**What:** lift the fourth guard from step 2. Editing a cell for a property the note does not carry
-appends the line to the end of its front matter block.
+Without it, filling in a missing value means opening the note, which undercuts the point.
 
-**Purpose:** without it, filling in a missing value means opening the note, which undercuts the
-point of editing in the table.
+### Step 5 — Lists
 
-**Why it is separate and small:** we already locate the block, so appending is predictable. A file
-with **no** front matter block at all stays out of scope: creating one from a cell edit is a bigger
-intervention than a cell edit should be, and should need a deliberate action.
-
-### Step 5 — Lists (optional, and probably later)
-
-**What:** an editor that can express several values, and a writer that changes, adds and removes
-items in whichever form the file already uses.
-
-**The writing half is nearly free**, because of the per-item spans in §4.2:
-
-| operation | what it is |
-|---|---|
-| change an item | splice that item's span |
-| add an item | copy the prefix from the last item's `lineStart` |
-| remove an item | splice from the previous item's `valueEnd` to this one's |
-| replace the whole list | the only case that generates structure, and so the only one that picks a form — use the one `span.form` reports |
-
-The only place a style gets chosen at all is the first item added to a key that has none, where
-there is no sibling to copy from. Block form, indented two spaces.
-
-**The editing half is a new interface idea**, and that is why this should probably wait. A cell that
-can express several values — one per line when expanded, or commas on entry — has no precedent
-anywhere in this app. Meanwhile the most common list column, tags, is read-only regardless (§2.2),
-and three of the remaining four list properties come from the body text and so are read-only too.
-**So this step costs the most and delivers the least**, and list cells staying read-only in version
-one is a coherent place to stop.
+§5. The writer is nearly free because of the per-item spans; the editor is one item per line in the
+expanded cell. Lift the fourth guard.
 
 ---
 
-## 7. Where the code goes
+## 9. Where the code goes
 
 | file | new? | why |
 |---|---|---|
-| `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES`' comment — its second job |
-| `public/js/services/property-type.js` | edit | one more function: may this property be edited. It already holds `typeMismatch()`, which the editing path asks before opening a cell |
 | `public/js/services/file-parsing/yaml-value-write.js` | **new** | a value plus a type becomes the text after the colon, including the quoting rule |
 | `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place |
 | `public/js/ui/ui-functions-click/cell-edit-commit.js` | **new** | the user finished editing a cell |
-| `public/js/ui/ui-functions-click/cell-expand.js` | edit | call the commit handler when collapsing a changed cell. It already refuses a caret to a mismatched cell, and §4.5 asks whether it should also choose the editor |
-| `public/js/ui/event-listeners-add.js` | edit | register the new action |
-| `public/js/editing/refresh-file-state.js` | edit | the option not to re-sort (§5) |
-| `public/js/ui/ui-functions-table/render-table-rows.js` | edit | mark a cell that cannot be edited. `render-cell-value.js` was never created — the types plan dropped it, and the cell switch is still here |
+| `public/js/ui/ui-functions-click/cell-editor.js` | **new**, if §4.4 goes beyond the plain cell | what does opening this cell give you |
+| `public/js/services/property-type.js` | edit | may this property be edited |
+| `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES` — its second job |
+| `public/js/ui/ui-functions-click/cell-expand.js` | edit | commit on collapse; ask the editor module what to open |
+| `public/js/ui/event-listeners-add.js` | edit | register the new actions |
+| `public/js/editing/refresh-file-state.js` | edit | the option not to re-sort |
 | `public/css/note-table.css` | edit | styling for an editing cell, beside the mismatch styling already there |
-| `manifest.json` | edit | a minor bump per step |
 
-Three new files, all small, all in folders that already exist.
+**`yaml-value-write.js` belongs in `file-parsing/`** because that folder already holds both
+directions of the format. It only works out text, which keeps it easy to test and impossible to
+damage a file with on its own.
 
-**Why `yaml-value-write.js` belongs in `file-parsing/`:** that folder already holds both directions
-of the same format — `yaml-replace-frontmatter.js` writes, the rest read. It only works out text,
-which keeps it easy to test and impossible to damage a file with on its own.
-
-**Why `save-cell-edit.js` belongs in `editing/`:** that folder already holds this exact species of
-thing — `save-current-file.js`, `autosave.js`, `rename-file.js`, `refresh-file-state.js` — and it
-reuses two of them.
-
-**`cell-expand.js` keeps its current job and does not grow.** It owns selecting, expanding and
-collapsing. When it collapses a cell whose text has changed, it calls the commit handler. It
-decides nothing about types, values or files.
-
-**Every new file should come in under about eighty lines**, which is where most of this codebase
-sits. If one grows much past that it is doing two jobs. The likeliest offender is
-`save-cell-edit.js`, since it co-ordinates the others.
-
----
-
-## 8. What the split cut, and why
-
-The original plan had six steps on this side plus a trailing tests step. This one has five, one of
-them optional.
-
-**The `origin` schema field is gone.** §2.1: the list already exists as `CORE_FILE_PROPERTIES`, and
-a three-way origin field would record a distinction the app never actually asks about — it only ever
-asks "may I edit this?". A new field on fifteen schema entries replaced by one sentence of comment.
-
-**The three type steps became one.** Step 3.
-
-**The open decisions are not a step.** The original had a step for deciding them once editing could
-be felt. But four of the five are answerable by taking the smaller option now, and a step whose
-content is "have the argument later" is a step that lets the argument block the release. They are
-decided in §5, each with the line of code that reverses it.
-
-**Lists are demoted to optional.** Step 5 explains it. This is the single biggest saving available,
-and the one most worth pushing back on if it feels like giving up: the point is that the hard half
-is the multi-value cell editor, not the writing, and the writing is the half this plan is about.
-
-**"Update the tests" is not a step**, for the same reason as in the types plan. Each step carries
-its own.
-
----
-
-## 9. Conventions to hold to
-
-- No new dependencies, no build step, no framework. Vanilla modules and plain CSS.
-- One file, one job, and under about eighty lines.
-- Services do not touch the page. Renderers hold no logic. Click handlers stay thin. This is the
-  rule that decides the whole file layout in §7, so it is the one to hold hardest.
-- Each new module gets a `@file` comment saying **why** it exists, not what it does.
-- New CSS goes in its own component file, never bolted onto an existing one.
-- All state stays in `appState`.
-- JSDoc on everything exported.
-- Bump the manifest minor version on every code change.
-- **Do not build for types we do not have.**
-
----
-
-## 10. What the types plan changed here
-
-`plans/table-value-types.md` was built after this one was written, and parts of it landed in this
-plan's territory. Three things arrived early, one line above is contradicted, and one assumption
-turned out to be wrong.
-
-### Arrived early
-
-**A mismatched cell already refuses to be edited.** `typeMismatch()` in `property-type.js` says
-whether a value can be drawn as its column's type, and `cell-expand.js` opens such a cell without a
-caret. That is step 2's hardest guard, built and tested before step 1 starts.
-
-It also decides something this plan had not asked: **what a click on a mismatched cell does.** It
-opens so the value can be read, says why in the cell and in its tooltip, and offers no editor. The
-sentence names which of the two faults it is, because they have different fixes — the column's type
-is wrong and changing it fixes every cell at once, or the note is wrong and only opening the note
-fixes it. That second case is exactly §2's "read-only, go and edit the note", arrived at from the
-other direction.
-
-**The file column is refused everything.** `TABLE_VIEW_COLUMNS.control_columns` holds columns whose
-cell is a control rather than the value — the file column is `internalId` wearing an open-file link.
-Its type, its sort order and a search of it are all refused. §2's table lists "internal id" under
-the file system, which is true but understates it: it is not merely uneditable, it is not the
-value at all.
-
-**`CORE_FILE_PROPERTIES` is still the editable test** and needs no change. §2.1 stands.
-
-### Contradicted
-
-**§3 used to say a mismatched value should be marked "rather than refusing the keystrokes".** It is
-refused now, and that is better: it is the one case where accepting the keystrokes risks writing
-back a shape the column cannot describe. §3 has been corrected in place.
-
-### Wrong assumption
-
-**§4.3's list of what each type writes assumed the user types text into every cell.** That is the
-gap §4.5 now names. It matters most for date, where the writer is told to produce "a plain ISO
-date" without being told what from, and where a control removes the question rather than answering
-it.
+**`save-cell-edit.js` belongs in `editing/`** beside `save-current-file.js`, `autosave.js` and
+`refresh-file-state.js`, and it reuses two of them. It is the likeliest file to grow past eighty
+lines, since it co-ordinates the others.
