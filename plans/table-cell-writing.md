@@ -1,13 +1,15 @@
-# Plan: editing cells in the table
+# Plan: writing a cell edit into the note
 
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.191.0` → bump the minor version with each step that changes code.
-Depends on: `plans/table-value-types.md`, **built**. Related: `plans/yaml-parser.md`, **built**,
-which did most of the hard part.
+Depends on: `plans/table-value-types.md` and `plans/yaml-parser.md`, **both built**.
+Paired with: `plans/table-cell-editors.md`, **which comes first** — it decides what a click on a
+cell opens and therefore the shape of what arrives here.
 
-Click a cell, type, click away, and the note on disk says what the cell says.
+Someone has finished editing a cell. This plan gets what they typed into the note's front matter
+without damaging anything else in it.
 
-**Nothing here is built.** Two of its guards arrived early with the types plan — §7.
+**Nothing here is built.** Two of its guards arrived early with the types plan — §6.
 
 ---
 
@@ -58,9 +60,8 @@ to the list, and doing so makes it read-only, which is the right answer.
 
 ### 2.1 Why tags must stay read-only
 
-This matters more now that lists are editable (§5), because a tags cell looks exactly like a list
-you could edit. It is a merged view with no record of where each tag came from, and three things go
-wrong if you write to it:
+This matters because a tags cell looks exactly like the editable list of §5. It is a merged view
+with no record of where each tag came from, and three things go wrong if you write to it:
 
 - Body tags are parsed first; front matter tags are added only where the body did not already
   produce them. After the merge, nothing records which came from where.
@@ -91,8 +92,7 @@ Which makes a position that is fair to state out loud: **the app guarantees the 
 and you own whether the values mean what you intended.**
 
 This governs what may be typed into an editable cell, not which cells those are. A cell whose value
-does not fit its column is already refused outright (§7), which is the one case where accepting the
-keystrokes risks writing back a shape the column cannot describe.
+does not fit its column is already refused outright (§6).
 
 ---
 
@@ -102,8 +102,8 @@ Eight stages, two of them genuinely new:
 
 | # | stage | what it does | new? |
 |---|---|---|---|
-| 1 | capture | read what was typed out of the cell | exists |
-| 2 | guard | may this be edited, did it change, is the file safe to touch | part built — §7 |
+| 1 | capture | read what was typed out of the cell | the editors plan |
+| 2 | guard | may this be edited, did it change, is the file safe to touch | part built — §6 |
 | 3 | convert | the type turns what was typed into the text after the colon | **new** |
 | 4 | locate | find where that key lives in the front matter | **done** — §4.2 |
 | 5 | splice | build the new file text around it | small |
@@ -153,65 +153,15 @@ an empty `title:` still works. An item's starts after the dash and its whitespac
 |---|---|
 | `string` | the text, quoted when it would not read back as itself |
 | `number` | the digits plainly when it reads as a number, else quoted text |
-| `date` | a plain ISO date — see §4.4, which decides what from |
+| `date` | a plain ISO date — the editors plan decides what from |
 | `array` | §5 |
-
-**Yes/no is a type this plan may have to add.** The types plan dropped it because display and
-sorting gain nothing from it. Writing might: a note saying `published: true`, edited in a text
-column, comes back as the string `"false"`, so the app has quietly turned a boolean into text.
-Decide it in step 3 with the round trip in front of you; it costs one entry in the type list, one
-line in the convert function and one control in §4.4.
-
-### 4.4 What the user types into
-
-The plan says a great deal about what each type *writes* and, until now, nothing about what the user
-*types into*. A cell is a `contenteditable` div, which is one editor for everything.
-
-**Lists being in scope settles most of this.** Several values cannot be expressed in a plain text
-cell that stands for one, so there will be at least one editor that is not the default. The question
-is no longer whether to have per-type editors but how many.
-
-| type | what opening the cell gives you |
-|---|---|
-| text, number | the cell, as now |
-| `array` | the cell, one item per line — §5 |
-| `date` | **open** — the cell, or a date control |
-| yes/no | a tick box, if the type is added at all |
-
-**The date question is the one this plan currently gets wrong.** §4.3 says the writer produces "a
-plain ISO date" and never says from what. Someone types `1 March 2026` and there are two answers:
-
-- **Write `2026-03-01`.** The app has silently rewritten what they typed, in a plan whose founding
-  rule is that it does not reinterpret notes.
-- **Write it as typed.** Honest, but the ordinary act of typing a date produces a cell marked as
-  unreadable.
-
-A date control removes the question rather than answering it: what comes back is already ISO, so the
-writer has nothing to decide and the user nothing to get wrong. **Decide before step 2**, because
-step 2 builds the pipeline the rest plugs into.
-
-**Whatever is decided, `cell-expand.js` does not decide it.** Its job is selecting, expanding and
-collapsing. A small module owns "what does opening this cell give you", and `cell-expand.js` asks
-it — the same shape as `property-type.js` answering "what type is this".
-
-### 4.5 A broken file cannot be edited
-
-**A file whose front matter did not read cleanly has its front matter cells locked** until it is
-fixed in the note. The error is already worked out and stored per file, and the load error column is
-right there in the table. It stops the editing path making a broken block worse — the `- apple: red`
-case parses into something meaningless, and writing into it would write into a key nobody created.
 
 ---
 
 ## 5. Lists
 
-A list cell, expanded, shows **one item per line**, and is edited as text.
-
-That is the whole editor. The expanded cell already grows downward without limit, `plaintext-only`
-already handles Enter, one item per line is what a block list already looks like in the file, and it
-avoids the question a comma-separated box would raise about items containing commas.
-
-On commit, split on newlines, trim, drop empty lines. Then:
+The editors plan hands over an array of strings, in order. Turning that back into front matter uses
+the per-item spans where they pay:
 
 | what changed | what is written |
 |---|---|
@@ -233,22 +183,7 @@ which is the right place to start.
 
 ---
 
-## 6. Decisions taken
-
-| question | decision |
-|---|---|
-| The same file open in the note modal | **Nothing to do.** `#file-content-modal` uses `showModal()`, which makes every node outside it inert, so the table cannot be touched while a note is open. |
-| A property the file does not have yet | **Not editable in version one.** Step 4 adds it back for files that already have a block. A file with no front matter at all stays out of scope: creating one from a cell edit is a bigger intervention than a cell edit should be. |
-| Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. |
-| Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
-| A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong. |
-
-**The expanded cell closes after an edit** whatever we do here, because the refresh re-renders the
-whole table. Worth knowing before it surprises someone.
-
----
-
-## 7. What already exists
+## 6. What already exists
 
 Two of step 2's guards arrived with the types plan, and the harder one is the one that is built.
 
@@ -266,7 +201,31 @@ understates it: it is not the value at all.
 
 ---
 
-## 8. Steps
+## 7. A broken file cannot be edited
+
+**A file whose front matter did not read cleanly has its front matter cells locked** until it is
+fixed in the note. The error is already worked out and stored per file, and the load error column is
+right there in the table. It stops the editing path making a broken block worse — the `- apple: red`
+case parses into something meaningless, and writing into it would write into a key nobody created.
+
+---
+
+## 8. Decisions taken
+
+| question | decision |
+|---|---|
+| The same file open in the note modal | **Nothing to do.** `#file-content-modal` uses `showModal()`, which makes every node outside it inert, so the table cannot be touched while a note is open. |
+| A property the file does not have yet | **Not editable in version one.** Step 4 adds it back for files that already have a block. A file with no front matter at all stays out of scope: creating one from a cell edit is a bigger intervention than a cell edit should be. |
+| Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. |
+| Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
+| A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong. |
+
+**The expanded cell closes after an edit** whatever we do here, because the refresh re-renders the
+whole table. Worth knowing before it surprises someone.
+
+---
+
+## 9. Steps
 
 Each carries its own tests. Bump the manifest minor version on each.
 
@@ -282,7 +241,7 @@ The cases, all confirmed against the built parser:
 - a line break, which destroys the block
 - a value beginning with `[`, or it reads back as a list. Strictly only when it also ends with `]`,
   but the rule should not try to be that clever — the text after the next edit might end with one
-- text that would read back as a number, a boolean or a date when it is meant to be text
+- text that would read back as a number or a date when it is meant to be text
 - inside a flow list only: a comma, a bracket or a quote
 
 **Its own step because it is pure text in, text out.** No interface, no disk, no state. It can be
@@ -306,9 +265,10 @@ The whole pipeline with `string` and nothing else, and the guards, which are the
 **Checkable by:** edit a front matter cell, watch the file on disk change, watch the table redraw
 from the file rather than from memory.
 
-### Step 3 — The remaining single-value types
+### Step 3 — Number and date
 
-`number` and `date` in the convert function, the §4.4 date decision, and the §4.3 yes/no decision.
+`number` and `date` in the convert function. What `date` receives depends on the editors plan's
+decision, which is why that plan comes first.
 
 Without this, typing `42` into a number column writes `"42"`, which reads back as text and then
 shows as not matching the column. The types are what closes the round trip.
@@ -322,25 +282,22 @@ Without it, filling in a missing value means opening the note, which undercuts t
 
 ### Step 5 — Lists
 
-§5. The writer is nearly free because of the per-item spans; the editor is one item per line in the
-expanded cell. Lift the fourth guard.
+§5, once the editors plan's step 3 is handing over an array of strings. Lift the fourth guard.
 
 ---
 
-## 9. Where the code goes
+## 10. Where the code goes
 
 | file | new? | why |
 |---|---|---|
 | `public/js/services/file-parsing/yaml-value-write.js` | **new** | a value plus a type becomes the text after the colon, including the quoting rule |
 | `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place |
 | `public/js/ui/ui-functions-click/cell-edit-commit.js` | **new** | the user finished editing a cell |
-| `public/js/ui/ui-functions-click/cell-editor.js` | **new**, if §4.4 goes beyond the plain cell | what does opening this cell give you |
 | `public/js/services/property-type.js` | edit | may this property be edited |
 | `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES` — its second job |
-| `public/js/ui/ui-functions-click/cell-expand.js` | edit | commit on collapse; ask the editor module what to open |
-| `public/js/ui/event-listeners-add.js` | edit | register the new actions |
+| `public/js/ui/ui-functions-click/cell-expand.js` | edit | commit on collapse |
+| `public/js/ui/event-listeners-add.js` | edit | register the new action |
 | `public/js/editing/refresh-file-state.js` | edit | the option not to re-sort |
-| `public/css/note-table.css` | edit | styling for an editing cell, beside the mismatch styling already there |
 
 **`yaml-value-write.js` belongs in `file-parsing/`** because that folder already holds both
 directions of the format. It only works out text, which keeps it easy to test and impossible to

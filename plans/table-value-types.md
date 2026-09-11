@@ -2,8 +2,8 @@
 
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.180.0` → bump the minor version with each step that changes code.
-Related: `plans/table-cell-editing.md`, which depends on this one and was split from the same
-discussion. `plans/yaml-parser.md`, which is built.
+Related: `plans/table-cell-editors.md` and `plans/table-cell-writing.md`, which depend on this one
+and were split from the same discussion. `plans/yaml-parser.md`, which is built.
 
 **Split from `plans/table-value-types-and-editing.md`.** That plan covered two jobs at once:
 giving the table a real idea of what a value *is*, and letting you change values from the table.
@@ -153,8 +153,9 @@ list next to it needs no explaining.
 | `date` | date |
 | `array` | list |
 
-**There is no yes/no type**, and §6 explains why the one that was proposed did not survive being
-asked what it was for.
+**There is no yes/no type.** §6 says why the one that was proposed did not survive being asked what
+it was for, and it is not wanted for editing either — a note's `true` is already shown, sorted and
+searched correctly as text.
 
 That list is the **only** place that says which names are legal. It matters because a layout file
 is meant to be hand-edited, so a typo in one must not be able to invent a phantom type.
@@ -411,10 +412,6 @@ step of its own until it was asked what it was for, and the answers did not hold
   `localeCompare`, and "false" sorts before "true" correctly. The `default: comparison = 0` case
   that would have left it unsorted is unreachable, because every caller already passes `string` as
   its fallback.
-- **The mismatch marker was solving a problem the fallback already solves.** Showing the file's own
-  text is not misleading, it is the truth. A class saying "this does not match the type you chose"
-  tells you what the cell already shows you. A CSS file and a value-fits-its-type function for
-  that is not worth it.
 - **`render-cell-value.js` only earned itself if the switch was growing.** Without a fifth type it
   grows by two lines.
 
@@ -422,11 +419,6 @@ step of its own until it was asked what it was for, and the answers did not hold
 need this plan at all, and a date or number that will not parse falls back to its raw text, which
 rides along with step 2 because the picker is what makes it reachable.
 
-**The one place yes/no may come back is the other plan.** Writing `false` into a text column would
-quote it, turning a note's real boolean into the string "false". If that matters once editing
-exists, the type costs one entry in the popover list and one line in the convert function, added
-then, for a reason that will actually exist by then. That is the plan's own rule: do not build for
-types we do not have.
 
 **The type names are not changed.** §3.2.
 
