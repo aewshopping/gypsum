@@ -1,8 +1,8 @@
 # Plan: writing a cell edit into the note
 
 Status: **not built.** Two of its guards arrived early with the types plan — §6.
-Branch: `claude/table-view-types-arch-4yhgmf`
-Manifest version now: `1.191.0` → bump the minor version with each step that changes code.
+Branch: `claude/table-cell-date-editor-h2at27`
+Manifest version now: `1.194.0` → bump the minor version with each step that changes code.
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
 Paired with: `plans/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
@@ -159,8 +159,12 @@ an empty `title:` still works. An item's starts after the dash and its whitespac
 |---|---|
 | `string` | the text, quoted when it would not read back as itself |
 | `number` | the digits plainly when it reads as a number, else quoted text |
-| `date` | a plain ISO date — the editors plan decides what from |
+| `date` | the text, as typed, quoted by the same rule as `string` — see below |
 | `array` | §5 |
+
+**`date` writes no ISO of its own**, and that is the editors plan's decision, now taken: a date cell
+offers a caret *and* a picker, so typed text is written verbatim and the picker is what produces ISO —
+before this plan is ever involved. Nothing here reinterprets a date. See `table-cell-editors.md` §4.
 
 ---
 
@@ -278,8 +282,9 @@ from the file rather than from memory.
 
 ### Step 3 — Number and date
 
-`number` and `date` in the convert function. What `date` receives depends on the editors plan's
-decision, which is why that plan comes first.
+`number` and `date` in the convert function. `date` turned out to be the cheap half: the editors plan
+settled on a caret beside a picker, so a date is written as typed and only `number` has anything to
+decide.
 
 Without this, typing `42` into a number column writes `"42"`, which reads back as text and then
 shows as not matching the column. The types are what closes the round trip.
