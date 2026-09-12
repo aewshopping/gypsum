@@ -1,11 +1,4 @@
-/**
- * Escapes text for use in HTML body content.
- * @param {string} text
- * @returns {string}
- */
-function escapeHtml(text) {
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+import { escapeHtml } from '../ui/ui-functions-render/escape-html.js';
 
 /**
  * Wraps the first occurrence of query (case-insensitive) in item with a highlight span.

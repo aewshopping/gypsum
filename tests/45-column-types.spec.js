@@ -245,11 +245,13 @@ test('a type set in the picker reaches the table', async ({ page }) => {
   await page.keyboard.press('Escape');
   await closePicker(page);
 
-  await expect(rowFor(page, 'Alpha')).toContainText('3/1/2026');     // read as a date
-  // The founding rule in the plan: a type is the user's choice, so the column holds whatever the
-  // notes hold. Falling back to the raw text shows what the file says; "Invalid Date" would be the
-  // app inventing a fact.
+  // The text does not change, and that is the point: a date cell shows the note's own words, so
+  // there is no rendering of it to edit by mistake. What proves the type reached the rows is the
+  // cell that can no longer be read as one.
+  await expect(rowFor(page, 'Alpha')).toContainText('2026-03-01');
   await expect(rowFor(page, 'Beta')).toContainText('quite soon');
+  await expect(rowFor(page, 'Beta').locator('[data-prop="due"]'))
+    .toHaveAttribute('data-mismatch', 'unreadable');
 });
 
 // The same dialog, reached from the other place. The header cell is the host here, so the glyph in
@@ -268,7 +270,8 @@ test('a type set from the column menu reaches the table', async ({ page }) => {
 
   await page.click('[data-action="close-column-type"]');
   await expect(typeDialog(page)).not.toBeVisible();
-  await expect(rowFor(page, 'Alpha')).toContainText('3/1/2026');
+  await expect(rowFor(page, 'Beta').locator('[data-prop="due"]'))
+    .toHaveAttribute('data-mismatch', 'unreadable');
   await expect(header(page, 'due').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-date');
 });
 
@@ -341,7 +344,7 @@ test('a value that cannot be read as its type says so, and points at the note', 
 
   // a real date is not flagged
   await expect(dueCell('Alpha')).not.toHaveAttribute('data-mismatch', /.*/);
-  await expect(dueCell('Alpha')).toContainText('3/1/2026');
+  await expect(dueCell('Alpha')).toContainText('2026-03-01'); // the file's own words: '3/1/2026' reads as 3 January to half the world
 
   // prose in a date column is
   await expect(dueCell('Beta')).toHaveAttribute('data-mismatch', 'unreadable');
@@ -368,9 +371,9 @@ test('a mismatched cell cannot be edited, and says why when opened', async ({ pa
   await expect(bad).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
   await expect(bad.locator('.cell-mismatch-note')).toHaveText(/fix this in the note/);
 
-  // a cell whose value does fit is still editable, and carries no note
+  // a front matter cell whose value does fit is still editable, and carries no note
   await page.keyboard.press('Escape');
-  const ok = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="title"]');
+  const ok = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="published"]');
   await ok.click();
   await ok.click();
   await expect(ok).toHaveAttribute('contenteditable', 'plaintext-only');

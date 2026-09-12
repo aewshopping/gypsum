@@ -134,6 +134,25 @@ Three rules follow from that, and they are the ones to hold:
   one, because they refuse different things: an info column must stay sortable and searchable, since
   sorting by size or by last modified is the point of having it. `internalId` is in both.
 
+### What a table cell may contain
+
+Two rules, and the second follows from the first. See `plans/completed/table-cell-editors.md`.
+
+- **A cell shows the note's own text, not a rendering of it.** A date cell shows what the file says
+  rather than `toLocaleDateString()`, and a list shows one comma-joined line rather than a `<ul>`.
+  Both were changed for the same reason: a cell is what an edit is read back out of, and
+  `01/03/2026` read back by `new Date()` is the third of January. `lastModified` is the exception,
+  because the app owns that value and its cell takes no caret.
+- **Escape everything that came from a file**, with `ui-functions-render/escape-html.js`. That is
+  what makes the first rule safe, and together with the caret rules it gives the invariant worth
+  keeping: *a cell that takes a caret contains nothing but escaped text.* The renderers that mean
+  their markup — `renderFilename`, `renderOpenFileLink`, `renderTags` — all belong to columns that
+  refuse a caret.
+
+**Four reasons a cell refuses a caret**, all answered in one place, `ui-functions-cell/cell-editor.js`:
+its value does not fit its column, the app fills the column in, the property is in
+`CORE_FILE_PROPERTIES`, or it is the file column. Ask that module rather than working it out again.
+
 ### Adding a new file property
 
 1. Add it to `FILE_PROPERTIES` in `store.js` with `type`, `column_width`, `display_order`.
@@ -171,8 +190,10 @@ Three rules follow from that, and they are the ones to hold:
 | `public/js/services/file-handler.js` | File loading orchestration (File System API) |
 | `public/js/services/file-parsing/` | Metadata extraction: title, tags, YAML |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
+| `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

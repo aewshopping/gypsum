@@ -132,42 +132,6 @@
     );
 }
 
-.note-table-cell {
-    overflow: hidden;
-    text-wrap: nowrap;
-    border-top: var(--table-line);
-    border-right: var(--table-line);
-    padding: 6px;
-}
-
-/* Clicking a cell selects it; clicking it again expands it. outline rather than border,
-   so marking a cell never nudges the layout. */
-.note-table-cell.is-selected {
-    outline: 2px solid var(--colour-contr);
-    outline-offset: -2px;
-}
-
-/* Out of flow, so the row keeps its height and the other columns keep their widths.
-   left/right pin it to its own column: it only grows downwards. An expanded cell is
-   editable, hence the text cursor over the row's default one. */
-.note-table-cell.is-expanded {
-    cursor: text;
-    text-wrap: wrap;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: auto;
-    height: auto;
-    min-height: 100%;
-    z-index: 3;
-    overflow: visible;
-    background-color: var(--colour-neutral);
-    outline: 2px solid var(--colour-contr);
-    outline-offset: -2px;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
-}
-
 /* Clips the header, which is wider than the viewport, to the visible width.
 
    clip rather than hidden, and the difference matters: hidden makes the box a scroll
@@ -309,12 +273,6 @@
     rotate: -90deg;
 }
 
-.table-view-array-list{
-    list-style-type: "- ";
-    padding-left:12px;
-    margin:0px;
-}
-
 /* column hover — selector managed by table-col-hover.js */
 .note-table-header .note-table-cell-header[data-property=""],
 .list-table .note-table-cell[data-prop=""] {
@@ -322,35 +280,4 @@
         style(--colours-suppress: true): var(--colour-neutral-alt);
         else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))
     );
-}
-
-/* A cell whose value cannot be drawn as its column's type. It shows its text, so that what the file
-   holds is still readable and you can see which type it wanted.
-
-   Tinted rather than restyled, and with the colour the load-error nudge already uses for "this is a
-   bit off": a wrong type is a column that looks odd until it is changed back, not an error. See
-   plans/completed/table-value-types.md §1.2.
-
-   Deliberately not an underline and not italic. A dotted underline is already an unresolved
-   internal link, a search highlight and the load-error nudge, and italic is the filename column.
-   Four things that mean different things must not look the same. */
-.note-table-cell[data-mismatch] {
-    color: color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%);
-}
-
-/* The same sentence the cell's tooltip carries, shown inside the cell once it is opened, because a
-   tooltip needs a pointer. On its own line under the value, and small, so the value stays the thing
-   being read.
-
-   It keeps the column's width like the rest of an opened cell, and wraps. Widening it was tried and
-   put back: a cell grows rightward, so on the last column — which is exactly where a newly typed
-   property sits — the explanation ran off the edge of the table. The sentences are short enough to
-   wrap tolerably instead. */
-.cell-mismatch-note {
-    display: block;
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-    font-size: 0.85em;
-    text-wrap: wrap;
 }

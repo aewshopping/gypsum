@@ -8,6 +8,19 @@ const OPEN_BRACKET = "[";
 const CLOSE_BRACKET = "]";
 
 /**
+ * Whether a value is wrapped in matching quotes, so its quotes are punctuation rather than part of
+ * the text. Exported because flow-list.js strips them for the table's list editor and must agree
+ * with the parser about what counts as quoted.
+ * @param {string} value - An already-trimmed value.
+ * @returns {boolean}
+ */
+export const isQuoted = (value) => {
+    const first = value.charCodeAt(0);
+    const last = value.charCodeAt(value.length - 1);
+    return value.length >= 2 && ((first === 34 && last === 34) || (first === 39 && last === 39));
+};
+
+/**
  * Coerces a string value into its appropriate JavaScript type (null, boolean, number, or string).
  * Handles quoted strings to preserve them as strings.
  * @param {string} value The string value to coerce.
@@ -21,12 +34,9 @@ const coerceValue = (value) => {
     if (trimmed === "false") return false;
 
     const first = trimmed.charCodeAt(0);
-    const last = trimmed.charCodeAt(trimmed.length - 1);
-    const quoted = trimmed.length >= 2 &&
-        ((first === 34 && last === 34) || (first === 39 && last === 39));
 
     // Quoted values bypass number coercion, so "12" stays the text 12.
-    if (quoted) return trimmed.slice(1, -1).trim();
+    if (isQuoted(trimmed)) return trimmed.slice(1, -1).trim();
 
     // Only a value opening with a digit, sign or decimal point can be a number. Checking the
     // first character before calling Number() also keeps 'Infinity' a string, which Number()
@@ -61,7 +71,7 @@ const contentEnd = (line) => {
  * @param {number} to - Index of the closing bracket.
  * @returns {Array<{start: number, end: number}>} One range per item, whitespace trimmed off each.
  */
-const flowItemRanges = (line, from, to) => {
+export const flowItemRanges = (line, from, to) => {
     const ranges = [];
     let start = from;
     let quote = "";

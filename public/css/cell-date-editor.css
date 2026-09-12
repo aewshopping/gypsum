@@ -1,0 +1,54 @@
+/* A date cell open for editing: the text takes the caret, the calendar glyph opens the browser's
+   own picker, and the user chooses which to use. See plans/table-cell-editors.md §4.3. */
+
+/* The editable region is this span rather than the cell, so the input beside it is never inside a
+   contenteditable. Its own outline would be a second box inside the cell's, which already marks
+   the open cell. Room on the right so a long value does not run under the glyph. */
+.cell-date-text {
+    display: inline-block;
+    padding-right: 1.4em;
+    outline: none;
+}
+
+/* Sits in the cell's top corner. The cell is out of flow when expanded, so it is the containing
+   block for both this and the input. */
+.cell-date-pick {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    display: inline-flex;
+    padding: 2px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.cell-date-pick:hover {
+    background-color: color-mix(in srgb, currentColor 15%, transparent);
+}
+
+/* The same drawing and weight the column header puts on a date column, so the glyph means the same
+   thing in both places. */
+.cell-date-glyph {
+    width: 1.15em;
+    height: 1.15em;
+    color: var(--colour-contr);
+    opacity: 0.55;
+}
+
+/* The value holder, laid exactly over the button. Rendered but invisible, because showPicker()
+   needs a box to anchor the calendar to — display:none and the hidden attribute both stop it
+   opening at all. pointer-events:none so the click lands on the button above it. */
+.cell-date-input {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 1.5em;
+    height: 1.5em;
+    padding: 0;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
+}

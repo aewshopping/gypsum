@@ -4,7 +4,7 @@ Status: **not built.** Two of its guards arrived early with the types plan — �
 Branch: `claude/table-cell-date-editor-h2at27`
 Manifest version now: `1.194.0` → bump the minor version with each step that changes code.
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
-Paired with: `plans/table-cell-editors.md`, **which comes first** — it decides what a click on a
+Paired with: `plans/completed/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
 
 Someone has finished editing a cell. This plan gets what they typed into the note's front matter
@@ -164,7 +164,7 @@ an empty `title:` still works. An item's starts after the dash and its whitespac
 
 **`date` writes no ISO of its own**, and that is the editors plan's decision, now taken: a date cell
 offers a caret *and* a picker, so typed text is written verbatim and the picker is what produces ISO —
-before this plan is ever involved. Nothing here reinterprets a date. See `table-cell-editors.md` §4.
+before this plan is ever involved. Nothing here reinterprets a date. See `completed/table-cell-editors.md` §4.
 
 ---
 
@@ -189,7 +189,7 @@ discovering.
 an item written into flow form needs quoting if it holds a comma, a bracket or a quote. An item in a
 block list does not — it runs to the end of its line. **A block list stays a block list too**: the
 editor's commas are how a list is shown and typed, never a reason to rewrite the file's own form.
-And this rule is not the editor's display rule — see `table-cell-editors.md` §3.2, which explains why
+And this rule is not the editor's display rule — see `completed/table-cell-editors.md` §3.2, which explains why
 the two must stay separate.
 
 **Tags is not editable** however editable lists become (§2.1), and three of the remaining four list
@@ -214,7 +214,7 @@ last modified date and the load error. Its cell opens so a long value stays read
 caret, silently — unlike a mismatch, nothing is wrong and there is nothing to do about it.
 
 **A property that cannot be written refuses a caret**, and that guard now lives in `cell-editor.js` with
-the other two — see `table-cell-editors.md` §5.2. `title`, `filename` and `filepath` look editable today
+the other two — see `completed/table-cell-editors.md` §5.2. `title`, `filename` and `filepath` look editable today
 and never were; the editors plan stops them pretending. Step 2's table below drops that row.
 
 **The file column is refused everything.** `TABLE_VIEW_COLUMNS.control_columns` holds columns whose

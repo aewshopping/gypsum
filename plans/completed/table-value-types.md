@@ -2,7 +2,7 @@
 
 Branch: `claude/table-view-types-arch-4yhgmf`
 Manifest version now: `1.180.0` → bump the minor version with each step that changes code.
-Related: `plans/table-cell-editors.md` and `plans/table-cell-writing.md`, which depend on this one
+Related: `plans/completed/table-cell-editors.md` and `plans/table-cell-writing.md`, which depend on this one
 and were split from the same discussion. `plans/completed/yaml-parser.md`, which is built.
 
 **Split from `plans/table-value-types-and-editing.md`.** That plan covered two jobs at once:
