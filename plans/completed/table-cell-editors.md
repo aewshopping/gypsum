@@ -487,8 +487,14 @@ a different background.
 
 ## 9. Two more from using the list editor
 
-**An opened cell gets `line-height: 1.7`.** At the row's own spacing an item's mark touched the mark
-on the line above. **A highlight paints the glyph box, not the line box** — measured across `normal`,
+**A cell gets `line-height: 1.7`, open or closed** — `--table-line-height` in `note-table.css`, used
+once on `.note-table-cell`, which is the same element in both states. At the row's own spacing an
+item's mark touched the mark on the line above.
+
+It went on the expanded cell alone first, and that was wrong in a way only using it showed: the taller
+line box centred its first line **5px lower** than the cells either side of it, so text jumped as a
+cell opened. The two states have to share the value. Free either way, because `.note-table` fixes the
+row at 32px, so leading moves the text inside the row rather than changing the row. **A highlight paints the glyph box, not the line box** — measured across `normal`,
 1.2, 1.5, 1.8 and 2.1, where the range stayed 18px tall while the cell grew — so leading opens a real
 gap rather than making taller marks that still meet. On every expanded cell, not just a list: one that
 has been opened to read deserves more than a row being scanned, and it costs nothing because the cell

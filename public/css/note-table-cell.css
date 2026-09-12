@@ -7,6 +7,12 @@
 .note-table-cell {
     overflow: hidden;
     text-wrap: nowrap;
+
+    /* Open or closed, because it is one element either way — the expanded rule below adds a class
+       to this same div, so this declaration serves both states and there is no second one to drift
+       from. Free: .note-table fixes the row at 32px, so leading moves the text inside the row
+       rather than changing the row. */
+    line-height: var(--table-line-height);
     border-top: var(--table-line);
     border-right: var(--table-line);
     padding: 6px;
@@ -30,12 +36,10 @@
     cursor: default;
     text-wrap: wrap;
 
-    /* More leading than a table row, because this one is being read rather than scanned — and
-       because a list cell's items are marked with a background, and at the row's own spacing the
-       mark on one line touches the mark above it. A highlight paints the glyph box rather than the
-       line box, so leading opens a real gap between them instead of making taller marks that still
-       meet. Free: the cell is out of flow, so the row does not grow with it. */
-    line-height: 1.7;
+    /* No line-height here. It is --table-line-height on .note-table-cell above, which is this same
+       element: the leading a list cell's marks need in order not to touch the marks on the line
+       above is the same leading the collapsed cell has to have, or the first line moves when you
+       open one. */
 
     /* A value with no spaces in it — a URL, a path, a run-together tag — has nowhere the browser
        will break it, and this cell is overflow: visible, so it painted straight over the column

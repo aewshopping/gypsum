@@ -420,3 +420,22 @@ test('a value with no spaces in it stays inside its cell', async ({ page }) => {
   const box = await cell.evaluate(el => ({ scroll: el.scrollWidth, client: el.clientWidth }));
   expect(box.scroll).toBeLessThanOrEqual(box.client);
 });
+
+// Opening a cell must not move its text. The leading was on the expanded cell alone, so a taller
+// line box centred the first line 5px lower than the cells either side of it.
+test('opening a cell leaves its first line where it was', async ({ page }) => {
+  await openTable(page);
+  const cell = cellFor(page, 'Alpha', 'people');
+
+  // measured inside the cell, because focusing an opened one can scroll the page
+  const inset = () => cell.evaluate(el => {
+    const r = new Range();
+    r.setStart(el.firstChild, 0);
+    r.setEnd(el.firstChild, 3);
+    return +(r.getBoundingClientRect().top - el.getBoundingClientRect().top).toFixed(1);
+  });
+
+  const closed = await inset();
+  await open(cell);
+  expect(await inset()).toBe(closed);
+});

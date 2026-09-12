@@ -4,6 +4,11 @@
     /* The grid lines, between rows and between columns. Deliberately faint: they should separate
        the cells without ruling the table. */
     --table-line: 0.5px solid color-mix(in srgb, var(--colour-contr) 10%, transparent);
+
+    /* The leading in a cell, open or closed. A token because the two states have to agree: the
+       value was on the expanded cell alone, and opening a cell moved its first line 5px down while
+       the cells either side of it stayed put. Named here so the number is stated once. */
+    --table-line-height: 1.7;
 }
 
 .table-wrapper {
