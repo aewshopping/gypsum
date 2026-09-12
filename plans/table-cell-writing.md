@@ -213,6 +213,10 @@ at once, or the note is wrong and only opening the note fixes it. That second ca
 last modified date and the load error. Its cell opens so a long value stays readable and takes no
 caret, silently — unlike a mismatch, nothing is wrong and there is nothing to do about it.
 
+**A property that cannot be written refuses a caret**, and that guard now lives in `cell-editor.js` with
+the other two — see `table-cell-editors.md` §5.2. `title`, `filename` and `filepath` look editable today
+and never were; the editors plan stops them pretending. Step 2's table below drops that row.
+
 **The file column is refused everything.** `TABLE_VIEW_COLUMNS.control_columns` holds columns whose
 cell is a control rather than a value — the file column is `internalId` wearing an open-file link —
 and its type, sort order and search are all refused. §2's table calls it uneditable, which
@@ -273,7 +277,7 @@ The whole pipeline with `string` and nothing else, and the guards, which are the
 
 | guard | built? |
 |---|---|
-| the property is not in `CORE_FILE_PROPERTIES` | no |
+| the property is not in `CORE_FILE_PROPERTIES` | **yes** — the editors plan, §5.2 |
 | the property is not a control column | **yes** |
 | the property is not an info column | **yes** |
 | the value fits the column's type | **yes** |
@@ -313,10 +317,10 @@ Without it, filling in a missing value means opening the note, which undercuts t
 |---|---|---|
 | `public/js/services/file-parsing/yaml-value-write.js` | **new** | a value plus a type becomes the text after the colon, including the quoting rule |
 | `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place |
-| `public/js/ui/ui-functions-click/cell-edit-commit.js` | **new** | the user finished editing a cell |
+| `public/js/ui/ui-functions-cell/cell-edit-commit.js` | **new** | the user finished editing a cell — the folder the editors plan groups this feature into |
 | `public/js/services/property-type.js` | edit | may this property be edited |
 | `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES` — its second job |
-| `public/js/ui/ui-functions-click/cell-expand.js` | edit | commit on collapse |
+| `public/js/ui/ui-functions-cell/cell-expand.js` | edit | commit on collapse |
 | `public/js/ui/event-listeners-add.js` | edit | register the new action |
 | `public/js/editing/refresh-file-state.js` | edit | the option not to re-sort |
 

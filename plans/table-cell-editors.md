@@ -32,6 +32,29 @@ Nothing is saved: edits live in the DOM and are discarded by the next render.
 So "opening a cell does not always mean editing it" is established, and the thing this plan adds is
 what the *other* outcomes are.
 
+### 1.1 The precondition: a cell must hold only escaped text
+
+**Fix this before anything else in the plan.** `render-table-rows.js` puts a value straight into the
+cell's HTML — `cellContent = value ?? ''`, and the same in the list and mismatch branches. Front matter
+holding `note: a <b> c` renders as `a  c`, because the browser reads `<b>` as a tag.
+
+Today that is a display wart. **The moment the cell is the editor it is data loss**: `cell.textContent`
+is what the writing plan captures, so opening that cell and committing rewrites the note. Both of this
+plan's decisions rest on the cell being the value (§3.4, §4.2), so both depend on this.
+
+Escaping every value the cell renderer emits buys a rule worth holding on to:
+
+> **A cell that takes a caret contains nothing but escaped text.**
+
+It holds because the three renderers that deliberately produce HTML — `renderFilename`,
+`renderOpenFileLink` and `renderTags` — belong to `filename`, `internalId` and `tags`, and every one of
+those refuses a caret (§5.2, and `control_columns` from the types plan). Nothing that means its markup
+is ever inside an editable cell.
+
+**One shared `escape-html.js`**, adopted by the two copies that already exist
+(`render-frontmatter-properties.js:9`, `autocomplete/popup.js:6`). Three copies of an escaping function
+is how one of them ends up subtly wrong.
+
 ---
 
 ## 2. The question, and what actually needs an editor of its own
@@ -124,6 +147,10 @@ Drop the `<ul class="table-view-array-list">` and its now-dead four-line CSS rul
 - **the cost**: an item containing a comma shows its quotes in the table. Rare, and the alternative is a
   table displaying something it cannot read back
 
+**A single-item list now looks like a text value.** `people: [John Smith]` reads `John Smith`, and typing
+a comma makes it two items. That is the flip side of the design rather than a bug, but it is the kind of
+thing someone should meet in the plan rather than in the app.
+
 ### 3.5 What it still does not do
 
 No reordering by dragging, no × per item, no add button. All three are a pill editor, a different and
@@ -201,7 +228,8 @@ the cell.
 ```html
 <div class="note-table-cell is-expanded" data-prop="due">
   <span class="cell-date-text" contenteditable="plaintext-only">2026-03-01</span>
-  <button class="cell-date-pick" data-action="cell-date-pick" tabindex="-1" aria-label="pick a date">
+  <button class="cell-date-pick" data-action="cell-date-pick" tabindex="-1"
+          aria-label="pick a date" data-tip="pick a date">
     <svg class="type-glyph" aria-hidden="true"><use href="#icon-type-date"></use></svg>
   </button>
   <input type="date" class="cell-date-input" data-action="cell-date-set" tabindex="-1" value="2026-03-01">
@@ -233,6 +261,12 @@ Not silent — the text updates before anything is saved, with the caret right t
 `toISOString()`, which shifts a day either side of midnight. An unreadable date never reaches any of
 this: it is a mismatch and refuses a caret already.
 
+**Collapsing must put focus back on the cell**, and this is impossible to guess from the symptom.
+`handleKeyboardNavigate` requires `document.activeElement` to carry `.keyboard-navigable`, which is the
+cell. Focus never leaves the cell today, so nothing shows it; the date editor puts focus on the span and
+collapsing removes that span, dropping focus to `<body>` and killing the arrow keys until something is
+clicked. One line in `closeEditor`.
+
 ---
 
 ## 5. Where the choice lives
@@ -247,20 +281,43 @@ not fit or the property is not editable. That is the same shape as `property-typ
 
 | file | new? | why |
 |---|---|---|
-| `public/js/ui/ui-functions-click/cell-editor.js` | **new** | what does opening this cell give you: `openEditor` / `closeEditor`, switching on the column's type |
+| `public/js/ui/ui-functions-cell/cell-editor.js` | **new** | what does opening this cell give you: `openEditor` / `closeEditor`, switching on the column's type, plus §5.2's two rules |
+| `public/js/ui/ui-functions-cell/cell-date-editor.js` | **new** | builds the date editor, handles the pick click and the input's change |
+| `public/js/ui/ui-functions-cell/cell-expand.js` | **moved** | from `ui-functions-click/` — see below |
 | `public/js/services/file-parsing/flow-list.js` | **new** | both directions of "a list as one line of text": `splitFlowItems(text)` and `joinFlowItems(items)` |
-| `public/js/services/file-parsing/yaml-parse.js` | edit | one word: `export` on `flowItemRanges` |
-| `public/js/ui/ui-functions-click/cell-date-editor.js` | **new** | builds the date editor, handles the pick click and the input's change |
-| `public/js/ui/ui-functions-click/cell-expand.js` | edit | ask that module rather than always setting `contenteditable` |
-| `public/js/ui/ui-functions-table/render-table-rows.js` | edit | §4.2's three changes, and §3's comma-joined list |
-| `public/js/ui/event-listeners-add.js` | edit | `cell-date-pick` in the click map, `cell-date-set` in the change map, the button in the existing `mousedown` preventDefault |
-| `public/css/cell-date-editor.css` | **new** | a new component gets its own file; register it in `public/style.css` |
-| `public/css/note-table.css` | edit | delete `.table-view-array-list`; any styling the expanded cell itself needs, beside the mismatch styling already there |
+| `public/js/services/file-parsing/yaml-parse.js` | edit | `export` on `flowItemRanges`, and the quoted-item check pulled out of `coerceValue` |
+| `public/js/ui/ui-functions-render/escape-html.js` | **new** | §1.1, adopted by the two copies that already exist |
+| `public/js/ui/ui-functions-table/render-cell-value.js` | **new** | the per-type switch, lifted out of `render-table-rows.js` — see below |
+| `public/js/ui/ui-functions-table/render-table-rows.js` | edit | keeps the row loop and loses the switch |
+| `public/js/ui/event-listeners-add.js` | edit | `cell-date-pick` in the click map, `cell-date-set` in the change map, the button in the existing `mousedown` preventDefault, the editor's Enter in `keyDownDelegate` |
+| `public/css/note-table-cell.css` | **new** | the cell's own rules, out of `note-table.css` — see below |
+| `public/css/cell-date-editor.css` | **new** | register both in `public/style.css` |
+
+### 5.1 Three moves, each earning its churn
+
+| evidence | move |
+|---|---|
+| `ui-functions-click/` holds **53 files**, the largest directory in the app, and this feature adds four that only make sense together | **`ui-functions-cell/`**, grouping a feature the way `pagination/` and `history/` already do. `cell-edit-commit.js` joins it from the writing plan. One import line changes |
+| `render-table-rows.js` is 151 lines mixing "build a row" with "format a value by type", and both of this plan's decisions land in that switch | **`render-cell-value.js`**: the row loop drops to about 70 lines, and the date and list rendering decisions end up side by side, which is where they argue for each other |
+| `note-table.css` is **356 lines** against a 190-line next-largest, in a codebase that split CSS into 27 component files | **`note-table-cell.css`**: `.note-table-cell` with its selected, expanded, mismatch and note rules, with `cell-date-editor.css` beside it |
+
+**`flow-list.js` is already in the right place** and should stay: `file-parsing/` holds
+`protected-spans.js`, the folder's other shared scanner, and `yaml-value-write.js`, which the writing
+plan puts there for the same reason. The two quoting rules live one each: the **display** rule in
+`flow-list.js`, the **file** rule in `yaml-value-write.js`.
+
+**`cell-editor.js` stays a switchboard.** It answers what opening a cell gives you and delegates. The
+date editor's DOM and handlers live in their own file, which is what keeps it readable if a third editor
+ever arrives.
 
 **Export the scanner rather than moving it.** One definition either way, and exporting is one word
 against a working parser. `flow-list.js` imports it and adds the two string helpers; the parser keeps
 using it for its spans. A second comma scanner written for the UI is exactly the drift the parser's own
 comment warns about — "one scanner serves both the values and their spans, so the two cannot disagree".
+
+**`splitFlowItems` must not call `coerceValue` whole.** That function also coerces types, so `[1, 2]`
+would come back as numbers and `true` as a boolean where the editor wants text. It needs only the
+quoted-item check, extracted so both callers share one definition of "is this item quoted".
 
 **`closeEditor` is the half that is easy to forget.** `collapse()` today removes `contenteditable` and the
 mismatch note. A date cell also has to be unwrapped — set the cell's text back to the read-out value,
@@ -269,9 +326,46 @@ than re-deriving the type, matching the note the renderer already leaves for `ce
 the cell, not the schema. Only the date branch flattens; a tags cell holds real HTML. A list cell needs
 nothing — §3 leaves it holding plain text.
 
+### 5.2 Two rules `cell-editor.js` owns
+
+**Which properties refuse a caret.** Three reasons, and they belong together rather than spread across
+two plans: the value does not fit its column, the column is one the app fills in, **and the property
+cannot be written** — anything in `CORE_FILE_PROPERTIES`, which is `title`, `filename`, `filepath` and
+the file-system columns. Those three look editable today and can never be saved; the writing plan's
+guard table drops that row and points here.
+
+The cost, stated: editing a title from the table is wanted eventually (`table-cell-writing.md` §2), and
+this pre-empts it. One line to remove when that arrives.
+
+**What Enter does.** `plaintext-only` lets Enter insert a line break, and a line break cannot be written
+to front matter at all — the parser is line-based, and the writing plan names it as the thing that
+destroys a block outright. So:
+
+| type | Enter |
+|---|---|
+| list | inserts the break, which §3.3 reads as a new item |
+| text, number, date | prevented — later, it commits |
+
+Route it through `keyDownDelegate` beside `handleAutocompleteKeydown`, the established pattern for a key
+that is not a `data-action`. Pasting several lines into a one-line cell is the same hazard by another
+route, and the writing plan already owns that one: §3's "reject at entry only where writing would break
+the block".
+
 ---
 
 ## 6. Steps
+
+### Step 0 — The precondition and the file moves
+
+§1.1's escaping, `escape-html.js` and its two existing callers, and the three moves in §5. Nothing
+changes on screen and no behaviour changes at all, which is what makes it the safe thing to do first.
+
+**Checkable by:** a note whose front matter holds `note: a <b> c` shows that text in its cell, and
+`cell.textContent` reads it back identically — the assertion that would have caught the data loss. The
+same for `&` and for a quote character. A tags cell still renders pills, proving the escaping did not
+reach the renderers that mean their HTML. The moves are covered by the existing suite passing untouched:
+`tests/38-table-cell-expand.spec.js` and `tests/45-column-types.spec.js` assert behaviour and class
+names, never paths.
 
 ### Step 1 — A date cell shows the file's text
 
