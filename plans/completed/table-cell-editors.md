@@ -525,3 +525,38 @@ why; and copying out of a cell would carry the odd characters. **The comma is th
 between items and never inside one. Widening the cell is not open to us: it is pinned to its column so
 the row keeps its layout, and a wider one runs off the table on the last column. A column that wraps
 more than its owner likes has the column menu's auto-size.
+
+
+---
+
+## 10. What the comma-joined line did to auto-size
+
+**Auto-size on a list column now fits the widest item, not the whole line.** The column menu's
+auto-size sets a column to what its content needs, measured by handing the track `max-content` and
+reading back. That was right when a list cell was a `<ul>`, because max-content was then the widest
+single item. One comma-joined line changed what it measures into every item in the busiest row added
+together — a quantity with no natural bound. On a three-row fixture:
+
+| measured | width |
+|---|---|
+| the whole joined line | 415px |
+| the widest single item | 252px |
+| the cap it otherwise runs into | 1000px |
+
+An item is the unit a list is read in, so fitting the widest one is the promise a clipped one-line cell
+can keep: whatever a row's first item is, you can read all of it, and the rest is what opening the cell
+is for.
+
+**It reuses the ranges the marks are drawn from.** `list-highlight.js` exports `itemRangesIn()`, so
+auto-size has no second idea of where an item begins. No track change is needed to measure them: a cell
+is nowrap and `overflow: hidden`, so a narrow column clips the painting and not the layout, and an item
+reports its true width whatever the column is set to — confirmed by a 250px column reporting a 402px
+line.
+
+Everything else about auto-size is unchanged: the column still has to fit its own heading, and only the
+rows on the current page are measured. A tags column renders pills rather than a comma line, so it
+keeps the old measurement, as does a mismatched cell.
+
+**Auto-size had no behavioural test before this** — only a mention that the menu item exists. It now
+has three: a list column fits its widest item and not its line, the heading is never cut off, and a
+text column still fits its widest value.

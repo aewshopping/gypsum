@@ -504,3 +504,86 @@ test('a header cell is reachable by keyboard, and Enter does what a click does',
   await expect(menu(page)).toBeHidden();
   expect(await focusedProp()).toBe('title');
 });
+
+// ---------------------------------------------------------------- auto-size
+
+// A fixture with a list column whose whole line is much wider than any one item in it, which is
+// what the two measurements have to be told apart by.
+async function setupListFiles(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const mk = (n, c) => ({ kind: 'file', name: n,
+        getFile: async () => ({ name: n, size: c.length, lastModified: Date.now(), text: async () => c }) });
+      return { kind: 'directory', name: 'root', values: async function* () {
+        yield mk('a.md', '---\npeople:\n  - John Smith\n  - Ada Lovelace\n  - Sam Patel\n  - Kim Lee\n  - Alex Fry\n---\n# Alpha\n');
+        yield mk('b.md', '---\npeople:\n  - Bartholomew Cubbins-Wentworth\n  - Jo\n---\n# Beta\n');
+      } };
+    };
+  });
+}
+
+async function openListTable(page) {
+  await page.setViewportSize({ width: 1400, height: 700 });
+  await setupListFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+}
+
+const columnWidth = (page, property) => page.locator(`.note-table-cell-header[data-property="${property}"]`)
+  .evaluate(el => Math.round(el.getBoundingClientRect().width));
+
+async function autoSize(page, property) {
+  const header = page.locator(`.note-table-cell-header[data-property="${property}"]`);
+  await openMenuFor(page, header);
+  await page.locator('[data-action="column-auto-size"]').click();
+  await expect(menu(page)).toBeHidden();
+}
+
+// A list cell is one comma-joined line, so its max-content is every item in the busiest row added
+// together — a number with no natural bound. An item is the unit a list is read in.
+test('auto-size fits a list column to its widest item, not its whole line', async ({ page }) => {
+  await openListTable(page);
+
+  const measured = await page.evaluate(() => {
+    const cells = [...document.querySelectorAll('.list-table .note-table-cell[data-list][data-prop="people"]')];
+    const line = Math.max(...cells.map(c => {
+      const r = new Range(); r.selectNodeContents(c); return r.getBoundingClientRect().width;
+    }));
+    const h = CSS.highlights.get('list-item');
+    const item = Math.max(...[...h]
+      .filter(r => cells.includes(r.startContainer.parentElement))
+      .map(r => r.getBoundingClientRect().width));
+    return { line: Math.round(line), item: Math.round(item) };
+  });
+  // the fixture is only meaningful if the two differ by a lot
+  expect(measured.line).toBeGreaterThan(measured.item * 1.5);
+
+  await autoSize(page, 'people');
+  const width = await columnWidth(page, 'people');
+
+  expect(width).toBeGreaterThanOrEqual(measured.item);   // the widest item is not clipped
+  expect(width).toBeLessThan(measured.line);             // and the whole line was not fitted
+});
+
+// The column still has to hold its own heading, whichever measurement wins.
+test('auto-size never cuts off the column heading', async ({ page }) => {
+  await openListTable(page);
+  await autoSize(page, 'people');
+
+  const clipped = await page.locator('.note-table-cell-header[data-property="people"] .header-label')
+    .evaluate(el => el.scrollWidth > el.clientWidth + 1);
+  expect(clipped).toBe(false);
+});
+
+// The measurement it always did, unchanged: a column of plain values fits its widest value.
+test('auto-size still fits a text column to its widest value', async ({ page }) => {
+  await openTable(page);
+  await autoSize(page, 'title');
+
+  const clipped = await page.evaluate(() =>
+    [...document.querySelectorAll('.note-table-cell[data-prop="title"]')]
+      .some(c => c.scrollWidth > c.clientWidth + 1));
+  expect(clipped).toBe(false);
+});

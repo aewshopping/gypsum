@@ -24,10 +24,15 @@ const NAME = 'list-item';
 
 /**
  * One Range per item in a cell.
+ *
+ * Exported because marking the items is not the only thing that needs to know where they are:
+ * auto-sizing a list column measures the widest one — see table-col-auto-size.js. Both ask here, so
+ * neither has its own idea of where an item begins.
+ *
  * @param {HTMLElement} cell - A cell carrying data-list.
  * @returns {Range[]} Empty for a cell holding no text, which is an empty list.
  */
-function rangesFor(cell) {
+export function itemRangesIn(cell) {
     const node = cell.firstChild;
     if (!node) return [];
 
@@ -53,7 +58,7 @@ function rangesFor(cell) {
 export function updateListHighlights() {
     const ranges = [];
     for (const cell of document.querySelectorAll('.note-table-cell[data-list]')) {
-        ranges.push(...rangesFor(cell));
+        ranges.push(...itemRangesIn(cell));
     }
 
     if (ranges.length === 0) {
@@ -99,5 +104,5 @@ export function handleListCellInput(evt) {
     for (const range of [...highlight]) {
         if (range.startContainer.parentElement === cell) highlight.delete(range);
     }
-    for (const range of rangesFor(cell)) highlight.add(range);
+    for (const range of itemRangesIn(cell)) highlight.add(range);
 }

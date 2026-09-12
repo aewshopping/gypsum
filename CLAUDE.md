@@ -171,7 +171,10 @@ editable later, add the exception in `isPropertyEditable` — do not take it out
 a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
 
 **A list cell's items are marked with a CSS custom highlight**, not with spans — see
-`ui-functions-highlight/list-highlight.js`. Ranges survive a `contenteditable` and lay nothing out,
+`ui-functions-highlight/list-highlight.js`, which exports `itemRangesIn()` as the one answer to where
+an item begins: the marks use it, and so does auto-sizing a list column, which fits the widest **item**
+rather than the whole comma-joined line. Fitting the line measures every item in the busiest row added
+together, which has no natural bound and just runs into the width cap. Ranges survive a `contenteditable` and lay nothing out,
 where spans would be mangled by the first keystroke. Every input rebuilds that cell's ranges: an
 ordinary letter looks like it cannot change anything, but the letter after a newly typed comma starts
 an item no range covers.
