@@ -113,7 +113,7 @@ Eight stages, two of them genuinely new:
 | 2 | guard | may this be edited, did it change, is the file safe to touch | part built — §6 |
 | 3 | convert | the type turns what was typed into the text after the colon | **new** |
 | 4 | locate | find where that key lives in the front matter | **done** — §4.2 |
-| 5 | splice | build the new file text around it | small |
+| 5 | splice | build the new file text around it, or the block itself when the file has none | small |
 | 6 | write | the existing verified write in `save-file-copy.js` | exists |
 | 7 | refresh | the existing re-read and re-render | exists |
 | 8 | render | untouched | exists |
@@ -239,10 +239,12 @@ for every value**. Measured against the built functions:
 | the file holds | the cell shows | capture returns |
 |---|---|---|
 | `[1, 2, 10]` | `1, 2, 10` | `["1", "2", "10"]` |
-| `[true, false]` | `true, false` | `["true", "false"]` |
 | `["  spaced  "]` | `"  spaced  "` | `["spaced"]` |
 
-None of these is a fault to fix. The parser coerces `1` to a number and the editor deals in text, and
+Two rows rather than three: there is no boolean here to write one for. `VALUE_TYPES` is text, number,
+date and list and nothing else, so a column can never be asked to hold `true` as anything but text.
+
+Neither row is a fault to fix. The parser coerces `1` to a number while the editor deals in text, and
 trimming an item is what makes typing tolerable. They matter for one reason: **a cell nobody touched
 can capture as something that does not equal what the file holds**, so a change test that compares the
 captured array with the file's value would report a change on every list of numbers and rewrite it.
@@ -297,7 +299,7 @@ case parses into something meaningless, and writing into it would write into a k
 | question | decision |
 |---|---|
 | The same file open in the note modal | **Nothing to do.** `#file-content-modal` uses `showModal()`, which makes every node outside it inert, so the table cannot be touched while a note is open. |
-| A property the file does not have yet | **Not editable in version one.** Step 4 adds it back for files that already have a block. A file with no front matter at all stays out of scope: creating one from a cell edit is a bigger intervention than a cell edit should be. |
+| A property the file does not have yet | **Editable, and a file with no front matter block at all is included.** Step 4 lifts the guard for both: the key is appended to the block, or the block is written when there is none. Not an edge case — a column exists because *some* file carries that key, so the empty cells in every other row are exactly the ones someone wants to fill in, and a note that has never had front matter is the commonest note there is. |
 | Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. |
 | Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
 | A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong. |
@@ -344,7 +346,7 @@ The whole pipeline with `string` and nothing else, and the guards, which are the
 | the value fits the column's type | **yes** |
 | the column's type is not `array` — lifted by step 5 | no |
 | the file's front matter read cleanly | no |
-| the file already has that key — lifted by step 4 | no |
+| the file already has a front matter block, and that key in it — lifted by step 4 | no |
 | the text differs from what the cell opened with — §4.5 | no |
 
 **Checkable by:** edit a front matter cell, watch the file on disk change, watch the table redraw
@@ -359,12 +361,27 @@ decide.
 Without this, typing `42` into a number column writes `"42"`, which reads back as text and then
 shows as not matching the column. The types are what closes the round trip.
 
-### Step 4 — A key the file does not have yet
+### Step 4 — A key, or a block, the file does not have yet
 
-Lift the sixth guard: editing a cell for a property the note lacks appends the line to the end of
-its front matter block. Small, because we already locate the block.
+Lift the sixth guard. Two cases, and the second is the one worth writing down:
 
-Without it, filling in a missing value means opening the note, which undercuts the point.
+- **a block without that key** — append the line to the end of it. Small, because we already locate
+  the block, and the end of it is where a key nobody has ordered belongs.
+- **no block at all** — write one at byte 0: `---`, the line, `---`, then the file's existing text,
+  untouched from its first character on. An empty file becomes just the block.
+
+**Byte 0, rather than anywhere cleverer.** `findFrontMatterIndices` will accept a block that opens
+lower down — blank lines and ATX headings may sit above it, within the first five lines — but it
+only does so after ruling out a setext underline above the separator and prose between two
+horizontal rules. A separator on the *first* line has nothing above it to be a break between, so it
+is taken at its word however the rest of the file is written. That makes byte 0 the one placement
+that cannot be re-read as something else, whatever the note starts with: a `# Title`, a paragraph
+underlined with dashes, or a thematic break. A leading heading still becomes the title afterwards,
+because the title is matched anywhere in the file rather than at its top.
+
+Without this, filling in a missing value means opening the note, which undercuts the point — and for
+a note with no front matter it means writing a YAML block by hand, which is the thing the table is
+supposed to save you from.
 
 ### Step 5 — Lists
 
@@ -377,7 +394,7 @@ Without it, filling in a missing value means opening the note, which undercuts t
 | file | new? | why |
 |---|---|---|
 | `public/js/services/file-parsing/yaml-value-write.js` | **new** | a value plus a type becomes the text after the colon, including the quoting rule |
-| `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place |
+| `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place — including the two step 4 cases, since choosing between splicing into a block and writing one is part of building the new file text |
 | `public/js/ui/ui-functions-cell/cell-edit-commit.js` | **new** | the user finished editing a cell — the folder the editors plan groups this feature into |
 | ~~`public/js/services/property-type.js`~~ | **done** | `isPropertyEditable()` answers "may this property be edited", and the header's lock asks it too |
 | `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES` — its second job |
