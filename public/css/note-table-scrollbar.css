@@ -1,12 +1,47 @@
-/* TODO - make scrollbar container sticky at top */
+/* A horizontal scrollbar above the table, so a long file list does not have to be scrolled
+   to the bottom to find one. It is drawn here rather than being a real scrollbar on a second
+   scroll container: keeping two scroll containers in step needs a scroll listener writing
+   the other one's scrollLeft on every frame, and on touch that fought the finger. The thumb
+   rides the table's scroll timeline instead — see note-table.css. */
 #top-scrollbar-container {
-  /* Set a fixed height for the scrollbar element */
   height: 15px;
-  overflow-x: scroll; /* Crucial: This generates the top scrollbar */
-  overflow-y: hidden; /* Hide vertical scrolling on the top bar */  
+  position: relative; /* the containing block the thumb is laid out against */
+  overflow: clip;     /* a thumb held open by its min-width stays inside the track */
 }
 
-/* This element's width will determine the scroll width of the top container. Needed for js to work */
-#top-scrollbar-content {
-  height: 1px;
+/* Nothing to scroll, so nothing to show. syncScrollbarThumb sets the attribute. */
+#top-scrollbar-container:not([data-scrollable]) {
+  visibility: hidden;
+}
+
+/* The share of the table that is on screen, which is what the thumb's length has always
+   meant. --table-scroll-ratio is kept current by table-scrollbar-sync.js; 100cqi is the
+   track's width, the track and the container query both being the full width of the wrapper.
+
+   The colours are the ones scrollbar.css gives the real scrollbar below the table, so the
+   two bars either side of the table read as the same control. */
+#top-scrollbar-thumb {
+  width: calc(100cqi * var(--table-scroll-ratio, 1));
+  min-width: 28px; /* still grabbable on a table hundreds of columns wide */
+  height: 10px;
+  margin-top: 1px;
+  background-color: rgba(0, 0, 0, 0.2);
+  background-clip: padding-box;
+  border: solid transparent;
+  border-width: 1px 1px 1px 6px;
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.07);
+  cursor: default;
+
+  /* Or the table's horizontal scroller claims the gesture before pointermove arrives. */
+  touch-action: none;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+    box-shadow: inset 1px 1px 1px rgba(0, 0, 0, 0.25);
+  }
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.5);
+    box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.35);
+  }
 }

@@ -42,6 +42,7 @@ test('the table keeps its horizontal scroll position when it re-renders', async 
     await page.evaluate(() => { const t = document.querySelector('.list-table'); t.scrollLeft = Math.round((t.scrollWidth - t.clientWidth) / 2); });
     await expect.poll(scrollLeft).toBeGreaterThan(0);
     const before = await scrollLeft();
+    await page.evaluate(v => { window.__expectedScroll = v; }, before);
 
     await action();
     await settled();
@@ -50,11 +51,21 @@ test('the table keeps its horizontal scroll position when it re-renders', async 
     // so a single read can land mid-flight between one render and the next.
     await expect.poll(scrollLeft, { message: `${label} lost the scroll position` }).toBe(before);
 
-    // The header and the top scrollbar have to come along with it. The scrollbar is
-    // driven by a scroll event, which lands after the render itself, so poll for it.
+    // The header and the top scrollbar have to come along with it. The thumb has no scroll
+    // position of its own — it is placed by an animation on the table's scroll timeline — so
+    // read where it sits in its track and convert that back to the table's offset. Polled
+    // because a scroll-driven animation settles on a frame boundary.
     await expect
-      .poll(() => page.evaluate(() => document.getElementById('top-scrollbar-container').scrollLeft))
-      .toBe(before);
+      .poll(() => page.evaluate(() => {
+        const track = document.getElementById('top-scrollbar-container').getBoundingClientRect();
+        const thumb = document.getElementById('top-scrollbar-thumb').getBoundingClientRect();
+        const scroller = document.querySelector('.list-table');
+        const travel = track.width - thumb.width;
+        const shown = (thumb.left - track.left) / travel
+                      * (scroller.scrollWidth - scroller.clientWidth);
+        return Math.abs(shown - window.__expectedScroll);
+      }), { message: `${label} lost the top scrollbar` })
+      .toBeLessThanOrEqual(1); // the thumb sits on a subpixel transform
     expect(await page.evaluate(() => {
       const h = [...document.querySelectorAll('.note-table-header .note-table-cell-header')].slice(0, 3)
         .map(c => Math.round(c.getBoundingClientRect().left));

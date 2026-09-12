@@ -50,11 +50,14 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         // so they can stick to the viewport. Only the rows live inside .list-table.
         // The control row sits above the chrome and outside it, so it scrolls away rather
         // than holding viewport height for the length of the list.
+        //
+        // The top scrollbar is a track and a thumb we draw, not a second scroll container
+        // with a real scrollbar in it. See table-scrollbar-sync.js for why.
         const tableHtml = `
         <div class="table-wrapper">${renderTableControls()}
             <div class="table-chrome">
                 <div id="top-scrollbar-container">
-                <div id="top-scrollbar-content"></div>
+                    <div id="top-scrollbar-thumb" data-action="table-scroll-drag"></div>
                 </div>
                 ${headerHtml}
             </div>
@@ -79,7 +82,8 @@ export function renderFileList_table(renderEverything, fullRender = true) {
 
     // Restored after initialScrollSync, whose read of scrollWidth settles layout first —
     // assigning to a scroller the browser has not laid out yet would clamp to 0. The
-    // header follows on its own, being driven by the scroll position rather than by JS.
+    // header and the scrollbar thumb follow on their own, both being driven by the scroll
+    // position rather than by JS.
     document.querySelector(".list-table").scrollLeft = scrollLeft;
 
     // A full render replaced the header cell the resize bar was parked over. Nothing but a

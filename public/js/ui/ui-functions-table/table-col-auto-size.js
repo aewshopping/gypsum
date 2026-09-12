@@ -27,7 +27,7 @@ import { MIN_COLUMN_WIDTH, MAX_AUTO_COLUMN_WIDTH } from '../../constants.js';
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/column-menu.js';
 import { applyColumnWidths } from './apply-column-widths.js';
-import { syncScrollbarWidth } from './table-scrollbar-sync.js';
+import { syncScrollbarThumb } from './table-scrollbar-sync.js';
 import { reparkColumnResizer } from './table-col-resize.js';
 import { markLayoutDirty } from './render-table-controls.js';
 
@@ -78,6 +78,6 @@ export function handleColumnAutoSize() {
     markLayoutDirty();
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
 
-    syncScrollbarWidth();   // the table is a different width now
+    syncScrollbarThumb();   // the table is a different width now
     reparkColumnResizer();  // and the bar, if it is up, is on a moved edge
 }

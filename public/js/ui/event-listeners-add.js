@@ -18,6 +18,7 @@ import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
+import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
@@ -98,6 +99,9 @@ export function addActionHandlers() {
     document.addEventListener('pointermove', handleColumnResizeMove);
     document.addEventListener('pointerup', handleColumnResizeEnd);
     document.addEventListener('pointercancel', handleColumnResizeEnd);
+    document.addEventListener('pointermove', handleScrollbarDragMove);
+    document.addEventListener('pointerup', handleScrollbarDragEnd);
+    document.addEventListener('pointercancel', handleScrollbarDragEnd);
 
     // Escape, clicking outside and the close button are all valid ways to finish with the column
     // picker, and all three have to apply what it was used to change. close is the one event they
@@ -227,6 +231,7 @@ const pointerDownActionHandlers = {
     // addActionHandlers carry the rest of it.
     'column-reorder-start': handleColumnReorderStart,
     'column-resize-start': handleColumnResizeStart,
+    'table-scroll-drag': handleScrollbarDragStart,
 };
 
 const keyUpActionHandlers = {
