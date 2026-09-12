@@ -170,8 +170,10 @@ before this plan is ever involved. Nothing here reinterprets a date. See `table-
 
 ## 5. Lists
 
-The editors plan hands over an array of strings, in order. Turning that back into front matter uses
-the per-item spans where they pay:
+The editors plan hands over an array of strings, in order — read out of the cell by `splitFlowItems()`
+in `file-parsing/flow-list.js`, which is the parser's own comma scanner. **No item can contain a line
+break**, because that editor splits on one, so the case that destroys a block outright cannot arrive
+here. Turning the array back into front matter uses the per-item spans where they pay:
 
 | what changed | what is written |
 |---|---|
@@ -185,7 +187,10 @@ discovering.
 
 **A flow list (`tags: [a, b]`) stays a flow list**, which is where the quoting rule earns its keep:
 an item written into flow form needs quoting if it holds a comma, a bracket or a quote. An item in a
-block list does not — it runs to the end of its line.
+block list does not — it runs to the end of its line. **A block list stays a block list too**: the
+editor's commas are how a list is shown and typed, never a reason to rewrite the file's own form.
+And this rule is not the editor's display rule — see `table-cell-editors.md` §3.2, which explains why
+the two must stay separate.
 
 **Tags is not editable** however editable lists become (§2.1), and three of the remaining four list
 properties come from the body text. So the lists this reaches are mostly ones the user invented,
