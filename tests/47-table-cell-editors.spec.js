@@ -386,3 +386,37 @@ test('a list item is marked by its tint alone', async ({ page }) => {
   expect(rule).toContain('background-color');
   expect(rule).not.toContain('text-decoration');
 });
+
+// ---------------------------------------------------------------- an opened cell's own spacing
+
+// A list cell marks each item with a background, and at the row's own spacing the mark on one line
+// touched the mark above it. A highlight paints the glyph box rather than the line box, so what
+// separates two marks is the line advance exceeding that box — which is what this measures.
+test('an opened cell advances its lines further than a mark is tall', async ({ page }) => {
+  await openTable(page);
+  const cell = cellFor(page, 'Alpha', 'people');
+  await open(cell);
+
+  const { advance, markHeight } = await cell.evaluate(el => {
+    const range = new Range();
+    range.setStart(el.firstChild, 0);
+    range.setEnd(el.firstChild, 4);
+    return { advance: parseFloat(getComputedStyle(el).lineHeight),
+             markHeight: range.getBoundingClientRect().height };
+  });
+
+  expect(advance).toBeGreaterThan(markHeight + 3);
+});
+
+// A value with no spaces has nowhere the browser will break it, and an expanded cell is
+// overflow: visible — so it used to paint straight over the column beside it.
+test('a value with no spaces in it stays inside its cell', async ({ page }) => {
+  await openTable(page);
+  const cell = cellFor(page, 'Alpha', 'markup');
+
+  await open(cell);
+  await cell.evaluate(el => { el.textContent = 'https://example.com/a/very/long/path/that/never/breaks'; });
+
+  const box = await cell.evaluate(el => ({ scroll: el.scrollWidth, client: el.clientWidth }));
+  expect(box.scroll).toBeLessThanOrEqual(box.client);
+});

@@ -29,6 +29,18 @@
 .note-table-cell.is-expanded {
     cursor: default;
     text-wrap: wrap;
+
+    /* More leading than a table row, because this one is being read rather than scanned — and
+       because a list cell's items are marked with a background, and at the row's own spacing the
+       mark on one line touches the mark above it. A highlight paints the glyph box rather than the
+       line box, so leading opens a real gap between them instead of making taller marks that still
+       meet. Free: the cell is out of flow, so the row does not grow with it. */
+    line-height: 1.7;
+
+    /* A value with no spaces in it — a URL, a path, a run-together tag — has nowhere the browser
+       will break it, and this cell is overflow: visible, so it painted straight over the column
+       beside it. Breaking mid-word is ugly; leaving the box is worse. */
+    overflow-wrap: anywhere;
     position: absolute;
     top: 0;
     left: 0;

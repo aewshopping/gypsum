@@ -481,3 +481,28 @@ whatever reads against that colour. An expanded cell swaps to the neutral backgr
 forced colour — near-black on a dark ground in the dark palette. `.is-expanded` now takes
 `--colour-contr`, and the read-only fade sits on top of that rather than on top of a colour chosen for
 a different background.
+
+
+---
+
+## 9. Two more from using the list editor
+
+**An opened cell gets `line-height: 1.7`.** At the row's own spacing an item's mark touched the mark
+on the line above. **A highlight paints the glyph box, not the line box** — measured across `normal`,
+1.2, 1.5, 1.8 and 2.1, where the range stayed 18px tall while the cell grew — so leading opens a real
+gap rather than making taller marks that still meet. On every expanded cell, not just a list: one that
+has been opened to read deserves more than a row being scanned, and it costs nothing because the cell
+is out of flow.
+
+**`overflow-wrap: anywhere` on the same rule.** A value with no spaces in it — a URL, a path, a
+run-together tag — had nowhere the browser would break it, and an expanded cell is `overflow: visible`,
+so it painted 113px past a 252px cell and straight over the column beside it.
+
+**An item that contains a space still breaks across lines**, and that stays. Non-breaking spaces would
+stop it at three costs: `textContent` would no longer be exactly the value, so whatever reads a cell
+back would have to translate them; an item typed fresh would still break, since nothing touches the DOM
+while someone is typing, so some items would break and some would not with nothing on screen to explain
+why; and copying out of a cell would carry the odd characters. **The comma is the cue** — it appears
+between items and never inside one. Widening the cell is not open to us: it is pinned to its column so
+the row keeps its layout, and a wider one runs off the table on the last column. A column that wraps
+more than its owner likes has the column menu's auto-size.
