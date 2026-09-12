@@ -214,6 +214,21 @@
     @keyframes table-header-track {
         to { transform: translateX(calc(-100% + 100cqi)); }
     }
+
+    /* The top scrollbar's thumb, on the same timeline and for the same reason as the header
+       above: driven by the scroll position, so it costs no main-thread work per frame.
+
+       Its travel is the track's width less its own, and the end state says exactly that —
+       100cqi is the track, 100% the thumb. So a thumb held open by its min-width still
+       finishes flush with the track's right edge. */
+    #top-scrollbar-thumb {
+        animation: table-thumb-track linear both;
+        animation-timeline: --table-h-scroll;
+    }
+
+    @keyframes table-thumb-track {
+        to { transform: translateX(calc(100cqi - 100%)); }
+    }
 }
 
 /* A <button>, so it is in the tab order and Enter reaches the same handler as a click. That

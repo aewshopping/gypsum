@@ -26,7 +26,7 @@ import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/column-menu.js';
 import { showTooltipFor, hideTooltip } from '../tooltip.js';
 import { applyColumnWidths, columnWidthPx } from './apply-column-widths.js';
-import { syncScrollbarWidth } from './table-scrollbar-sync.js';
+import { syncScrollbarThumb } from './table-scrollbar-sync.js';
 import { markLayoutDirty } from './render-table-controls.js';
 
 /**
@@ -193,5 +193,5 @@ export function handleColumnResizeEnd() {
     if (!_dragging) return;
 
     hideResizer();
-    syncScrollbarWidth(); // the table is a different width now
+    syncScrollbarThumb(); // the table is a different width now
 }
