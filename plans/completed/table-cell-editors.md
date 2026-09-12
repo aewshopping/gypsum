@@ -416,3 +416,37 @@ Playwright cannot drive the native calendar, so the seam to test is the input: s
 `change`, and assert the cell's text was rewritten. Alongside it, that clicking the button neither
 collapses the cell nor moves the caret out of it, and that `quite soon` gets no caret and no button. The
 picker opening at all is the one thing to confirm by hand, with a screenshot.
+
+
+---
+
+## 7. What using it turned up
+
+Three things, found by using the built thing rather than by reading it. All built, at `1.196.0`.
+
+**A read-only cell said nothing until you were inside it, and then said it badly.** The expanded cell
+set `cursor: text` unconditionally, so a filename or a size cell showed a caret cursor and then took
+no caret. Fixed by giving the text cursor only where a caret exists, and by drawing a read-only cell's
+outline dashed — the marks are in `note-table-cell.css` and the `is-readonly` class is set in
+`openEditor`.
+
+**Expanding such a cell stays.** It is how a long filepath or a long load error is read, which is what
+`info_columns` wanted from the start. The cell stops looking like an editor; it does not stop opening.
+
+**`isPropertyEditable()` in `property-type.js`** now owns the per-column half of §5.2, because the
+header's lock and the cell's caret have to be one decision. Every column it says no to wears
+`#icon-lock`, so the rule is trustworthy in the other direction too: no lock, you can type in it. The
+lock cost `lastModified` 20px of heading, which the schema's width follows — the third time that
+column has widened for a glyph, and the comment there says so.
+
+**List items are marked with a CSS custom highlight**, `ui-functions-highlight/list-highlight.js`,
+which is what lets a comma read as structure without changing a character of the text. It was the only
+option that survives editing: ranges paint inside a `contenteditable` and touch no DOM, where a span
+per item would be mangled by the first keystroke. It also lays nothing out — 960 ranges over 240 cells
+cost zero layouts and zero style recalculations, measured, which settles the question left commented
+in `highlight.css`.
+
+**One trap, caught by a test rather than by review.** Skipping the rebuild for keystrokes that cannot
+change the structure is wrong: type a comma and the new item is empty, so no range covers it, and
+every ordinary letter typed to fill it lands outside every range. Any character can start an item, so
+every input rebuilds — which the measurement says is affordable.

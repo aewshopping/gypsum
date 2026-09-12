@@ -63,6 +63,24 @@ function renderMismatch(value) {
 }
 
 /**
+ * Whether a cell will hold a comma-joined list, which list-highlight.js marks the items of.
+ *
+ * Asked of the same three things renderCellValue switches on, so the mark and the text cannot
+ * disagree: a mismatched cell shows raw text and a tags cell shows pills, and neither is a list of
+ * items separated by commas however much its column's type says "array".
+ *
+ * @param {object} prop - The column, carrying `name` and `type`.
+ * @param {object} file - The file object the row is for.
+ * @param {'shape'|'unreadable'|null} mismatch
+ * @returns {boolean}
+ */
+export function rendersAsList(prop, file, mismatch) {
+    return !mismatch
+        && prop.type === VALUE_TYPES.ARRAY.value
+        && Array.isArray(file[prop.name]);
+}
+
+/**
  * The HTML for one cell's content.
  *
  * @param {object} prop - The column, carrying `name` and the `type` propertyType() gave it.

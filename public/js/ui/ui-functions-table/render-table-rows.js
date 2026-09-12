@@ -1,7 +1,7 @@
 import { appState } from '../../services/store.js';
 import { typeMismatch, isInfoColumn } from '../../services/property-type.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
-import { renderCellValue, mismatchMessage } from './render-cell-value.js';
+import { renderCellValue, mismatchMessage, rendersAsList } from './render-cell-value.js';
 
 /**
  * Renders the rows for the table view.
@@ -44,12 +44,17 @@ export function renderTableRows(current_props, renderEverything) {
                 // cell-editor.js reads the cell, not the schema.
                 const info = isInfoColumn(prop.name) ? ' data-info' : '';
 
+                // Marks the cells whose items list-highlight.js bands after the render. On the cell
+                // for the same reason data-info is: the renderer knows, and asking again later is
+                // how the mark and the text end up disagreeing.
+                const list = rendersAsList(prop, file, mismatch) ? ' data-list' : '';
+
                 // The tip carries the whole explanation, which is also what cell-editor.js shows
                 // inside the cell when it is opened. One sentence, written in one place.
                 const flag = mismatch
                     ? ` data-mismatch="${mismatch}" data-tip="${mismatchMessage(mismatch, prop.type)}"`
                     : '';
-                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${flag}>${cellContent}</div>`;
+                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

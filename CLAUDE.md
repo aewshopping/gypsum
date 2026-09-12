@@ -149,9 +149,23 @@ Two rules, and the second follows from the first. See `plans/completed/table-cel
   their markup — `renderFilename`, `renderOpenFileLink`, `renderTags` — all belong to columns that
   refuse a caret.
 
-**Four reasons a cell refuses a caret**, all answered in one place, `ui-functions-cell/cell-editor.js`:
-its value does not fit its column, the app fills the column in, the property is in
-`CORE_FILE_PROPERTIES`, or it is the file column. Ask that module rather than working it out again.
+**A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
+typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
+or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
+per-cell question of whether the value fits its column. Both the header's lock and the caret ask the
+first one, which is what stops the table promising something the cell then refuses.
+
+**Say it before the click, not after.** A locked column wears `#icon-lock` in its header, and an
+opened cell that offers no caret draws its outline dashed and shows no text cursor. To make a property
+editable later, add the exception in `isPropertyEditable` — do not take it out of
+`CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
+a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
+
+**A list cell's items are marked with a CSS custom highlight**, not with spans — see
+`ui-functions-highlight/list-highlight.js`. Ranges survive a `contenteditable` and lay nothing out,
+where spans would be mangled by the first keystroke. Every input rebuilds that cell's ranges: an
+ordinary letter looks like it cannot change anything, but the letter after a newly typed comma starts
+an item no range covers.
 
 ### Adding a new file property
 

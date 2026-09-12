@@ -1,6 +1,5 @@
 import { VALUE_TYPES } from '../../constants.js';
-import { CORE_FILE_PROPERTIES } from '../../services/store.js';
-import { propertyType } from '../../services/property-type.js';
+import { propertyType, isPropertyEditable } from '../../services/property-type.js';
 import { openDateEditor, closeDateEditor } from './cell-date-editor.js';
 
 /**
@@ -14,6 +13,7 @@ import { openDateEditor, closeDateEditor } from './cell-date-editor.js';
  */
 
 const NOTE = 'cell-mismatch-note';
+const READONLY = 'is-readonly';
 
 /**
  * Whether a cell's value can be written back to its note at all.
@@ -23,23 +23,18 @@ const NOTE = 'cell-mismatch-note';
  *
  * - **its value does not fit its column** — editing it risks writing back the wrong shape, so it
  *   opens to be read and says why, in the cell as well as in the tooltip
- * - **the app fills the column in** — the size, the last modified date, the load error. Silently,
- *   unlike a mismatch: nothing is wrong and there is nothing to do about it
- * - **the property is not written from a note's front matter** — anything in CORE_FILE_PROPERTIES,
- *   which is title, filename, filepath and the file-system columns. They looked editable and never
- *   were; see plans/table-cell-writing.md §2
- * - **the file column**, whose cell is a link rather than a value, which is covered by the third
- *
- * The first two are read off the cell rather than looked up again, because the renderer already
- * worked them out and a cell that disagreed with its own marker would be very hard to see.
+ * - **its value does not fit its column** — a fact about this one cell, which the renderer already
+ *   worked out and left on it. Read off the cell rather than computed again, because a cell that
+ *   disagreed with its own marker would be very hard to see
+ * - **the column cannot be typed into at all** — the app fills it in, or the property does not come
+ *   from front matter. That is isPropertyEditable's question, and asking it here rather than
+ *   answering it again is what keeps the caret and the header's lock the same decision
  *
  * @param {HTMLElement} cell
  * @returns {boolean}
  */
 function isEditable(cell) {
-    return !cell.dataset.mismatch
-        && cell.dataset.info === undefined
-        && !CORE_FILE_PROPERTIES.includes(cell.dataset.prop);
+    return !cell.dataset.mismatch && isPropertyEditable(cell.dataset.prop);
 }
 
 /**
@@ -57,6 +52,10 @@ export function openEditor(cell) {
     }
 
     if (!isEditable(cell)) {
+        // The dashed outline says "open, but not an editor" — see note-table-cell.css. A class
+        // rather than a selector over contenteditable, because a date cell puts that on a child and
+        // the stylesheet should not have to know it.
+        cell.classList.add(READONLY);
         cell.focus();
         return;
     }
@@ -79,6 +78,7 @@ export function openEditor(cell) {
  */
 export function closeEditor(cell) {
     closeDateEditor(cell);
+    cell.classList.remove(READONLY);
     cell.removeAttribute('contenteditable');
     cell.querySelector(`.${NOTE}`)?.remove();
 }

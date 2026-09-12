@@ -1,6 +1,6 @@
 import { appState } from '../../services/store.js';
 import { INFO_TYPE } from '../../constants.js';
-import { isInfoColumn } from '../../services/property-type.js';
+import { isInfoColumn, isPropertyEditable } from '../../services/property-type.js';
 import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
 
 /**
@@ -11,6 +11,26 @@ import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
  */
 function glyphFor(column) {
     return isInfoColumn(column.name) ? INFO_TYPE.value : column.type;
+}
+
+/**
+ * The lock for a column whose cells take no caret, or nothing for one that can be typed into.
+ *
+ * The same question cell-editor.js asks before giving a caret, so the mark and the behaviour cannot
+ * drift apart. It sits **before** the type glyph rather than after it: the type glyph is hard against
+ * the right edge on every column, which is what makes it line up down the table, and a mark beyond it
+ * would break that on the columns that have one.
+ *
+ * Its own data-tip, which wins over the header button's because tooltip.js resolves with
+ * closest('[data-tip]').
+ *
+ * @param {object} column - The column, carrying `name`.
+ * @returns {string} The HTML for the glyph, or an empty string.
+ */
+function lockFor(column) {
+    if (isPropertyEditable(column.name)) return '';
+    return `<svg class="header-lock-glyph" aria-hidden="true" data-tip="not editable from the table">` +
+           `<use href="#icon-lock"></use></svg>`;
 }
 
 /**
@@ -60,6 +80,7 @@ export function renderTableHeader(current_props) {
             return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}>` +
                      `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
+                     lockFor(prop) +
                      `<svg class="type-glyph header-type-glyph" aria-hidden="true"><use href="#icon-type-${glyphFor(prop)}"></use></svg>` +
                    `</button>`;
         })

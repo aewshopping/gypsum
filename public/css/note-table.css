@@ -233,6 +233,17 @@
     opacity: 0.45;
 }
 
+/* A column whose cells take no caret. Smaller and fainter than the type glyph beside it: the type
+   is what the column IS and the lock is a note about it, so it should read second. */
+.header-lock-glyph {
+    flex-shrink: 0;
+    width: 1.15em;
+    height: 1.15em;
+    margin-right: 2px;
+    color: var(--colour-contr);
+    opacity: 0.35;
+}
+
 /* The label takes the free space, which is what keeps the glyph and the chevron against the
    right edge however long the heading is. Its own overflow, so a long heading is clipped rather
    than pushing them out of the cell. */

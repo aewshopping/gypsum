@@ -20,10 +20,14 @@
 }
 
 /* Out of flow, so the row keeps its height and the other columns keep their widths.
-   left/right pin it to its own column: it only grows downwards. An expanded cell is
-   editable, hence the text cursor over the row's default one. */
+   left/right pin it to its own column: it only grows downwards.
+
+   The cursor is deliberately NOT text here. Not every expanded cell takes a caret — the app's own
+   columns, the properties that are not front matter, and any value that does not fit its column all
+   open to be read and nothing more — and a text cursor over one of those promised an editor that
+   never arrived. The rule below gives it back wherever a caret actually exists. */
 .note-table-cell.is-expanded {
-    cursor: text;
+    cursor: default;
     text-wrap: wrap;
     position: absolute;
     top: 0;
@@ -38,6 +42,21 @@
     outline: 2px solid var(--colour-contr);
     outline-offset: -2px;
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+/* Wherever there is something to type into, and only there. The date editor puts the caret on a
+   span inside the cell rather than on the cell, so both are named. */
+.note-table-cell.is-expanded[contenteditable],
+.cell-date-text {
+    cursor: text;
+}
+
+/* An opened cell that offers no caret. The same outline the cell already draws, dashed — a box you
+   can read out of rather than write into. No new colour and no sentence: a mismatched cell explains
+   itself in words because something is wrong and there is something to do about it, while a size or
+   a filename cell is working exactly as intended and the header's lock already says so. */
+.note-table-cell.is-expanded.is-readonly {
+    outline-style: dashed;
 }
 
 /* A cell whose value cannot be drawn as its column's type. It shows its text, so that what the file

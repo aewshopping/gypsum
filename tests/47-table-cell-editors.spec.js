@@ -198,3 +198,130 @@ test('Enter adds an item to a list and does nothing to a one-line value', async 
   await page.keyboard.press('Enter');
   expect(await text.evaluate(el => el.textContent)).toBe(before);
 });
+
+// ---------------------------------------------------------------- the lock
+
+// Asserted as a rule rather than against a list of columns, so it keeps its meaning when one of
+// these becomes editable: the header's lock and the cell's caret are one decision in one place
+// (isPropertyEditable), and this is what catches them drifting apart.
+test('a column wears a lock exactly when its cells take no caret', async ({ page }) => {
+  await openTable(page);
+
+  // internalId is left out because its cell is an open-file link rather than a value at all, so
+  // clicking it opens the note instead of selecting the cell. It is locked, as a control column.
+  const columns = (await page.evaluate(() =>
+    [...document.querySelectorAll('.note-table-cell-header')].map(h => h.dataset.property)))
+    .filter(name => name !== 'internalId');
+  expect(columns.length).toBeGreaterThan(4);   // the fixture is not all locked or all open
+
+  for (const property of columns) {
+    const locked = await page.locator(`.note-table-cell-header[data-property="${property}"] .header-lock-glyph`).count() === 1;
+    const cell = rowFor(page, 'Alpha').locator(`.note-table-cell[data-prop="${property}"]`);
+    await open(cell);
+
+    const caret = await cell.evaluate(el =>
+      el.hasAttribute('contenteditable') || !!el.querySelector('[contenteditable]'));
+    expect(caret, `${property}: lock says ${locked}, caret says ${caret}`).toBe(!locked);
+
+    await page.keyboard.press('Escape');
+  }
+});
+
+test('the lock explains itself, and the type glyph keeps its place', async ({ page }) => {
+  await openTable(page);
+  const header = page.locator('.note-table-cell-header[data-property="title"]');
+
+  await expect(header.locator('.header-lock-glyph')).toHaveAttribute('data-tip', /not editable/);
+
+  // the type glyph is still the last thing in the header, which is what lines it up down the table
+  expect(await header.evaluate(el => el.lastElementChild.classList.contains('header-type-glyph'))).toBe(true);
+  await expect(header.locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-string');
+});
+
+// ---------------------------------------------------------------- read-only cells look it
+
+test('an opened cell that takes no caret says so without words', async ({ page }) => {
+  await openTable(page);
+
+  const locked = cellFor(page, 'Alpha', 'title');
+  await open(locked);
+  await expect(locked).toHaveClass(/is-readonly/);
+  expect(await locked.evaluate(el => getComputedStyle(el).cursor)).not.toBe('text');
+  expect(await locked.evaluate(el => getComputedStyle(el).outlineStyle)).toBe('dashed');
+
+  await page.keyboard.press('Escape');
+
+  const open_ = cellFor(page, 'Alpha', 'markup');
+  await open(open_);
+  await expect(open_).not.toHaveClass(/is-readonly/);
+  expect(await open_.evaluate(el => getComputedStyle(el).cursor)).toBe('text');
+  expect(await open_.evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
+});
+
+test('collapsing takes the read-only marking off again', async ({ page }) => {
+  await openTable(page);
+  const cell = cellFor(page, 'Alpha', 'title');
+  await open(cell);
+  await page.keyboard.press('Escape');
+  await expect(cell).not.toHaveClass(/is-readonly/);
+});
+
+// ---------------------------------------------------------------- list item marking
+
+/** The text each registered list-item range covers, for one cell. */
+const markedItems = (page, prop) => page.evaluate(prop => {
+  const cell = [...document.querySelectorAll('.note-table')]
+    .find(r => r.textContent.includes('Alpha'))
+    .querySelector(`[data-prop="${prop}"]`);
+  const h = CSS.highlights.get('list-item');
+  return h ? [...h].filter(r => r.startContainer.parentElement === cell).map(r => r.toString()) : [];
+}, prop);
+
+test('every item in a list cell is marked, and nothing else is', async ({ page }) => {
+  await openTable(page);
+
+  expect(await markedItems(page, 'people')).toEqual(['John Smith', '"Doe, Jane"']);
+
+  // a tags cell renders pills rather than a comma line, whatever its column's type says
+  await expect(cellFor(page, 'Alpha', 'tags')).not.toHaveAttribute('data-list', /.*/);
+  expect(await markedItems(page, 'tags')).toEqual([]);
+
+  // and a plain text cell is not a list
+  expect(await markedItems(page, 'markup')).toEqual([]);
+});
+
+test('a mismatched list column is not marked, since it shows raw text', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'markup', 'array');   // a single value in a column of lists
+  await expect(cellFor(page, 'Alpha', 'markup')).toHaveAttribute('data-mismatch', 'shape');
+  expect(await markedItems(page, 'markup')).toEqual([]);
+});
+
+test('typing inside an item grows its mark, without the handler doing anything', async ({ page }) => {
+  await openTable(page);
+  const cell = cellFor(page, 'Alpha', 'people');
+  await open(cell);
+
+  // the caret goes to the start of the first item, then types into it
+  await page.keyboard.press('Home');
+  await page.keyboard.type('Dr ');
+
+  expect(await markedItems(page, 'people')).toEqual(['Dr John Smith', '"Doe, Jane"']);
+});
+
+test('typing a comma splits an item in two', async ({ page }) => {
+  await openTable(page);
+  const cell = cellFor(page, 'Alpha', 'people');
+  await open(cell);
+
+  await page.keyboard.press('End');
+  await page.keyboard.type(', Rae Chen');
+
+  expect(await markedItems(page, 'people')).toEqual(['John Smith', '"Doe, Jane"', 'Rae Chen']);
+});
+
+test('a search match still paints over a marked item', async ({ page }) => {
+  await openTable(page);
+  const priority = await page.evaluate(() => CSS.highlights.get('list-item').priority);
+  expect(priority).toBeLessThan(0);
+});

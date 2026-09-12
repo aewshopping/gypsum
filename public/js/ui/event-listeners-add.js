@@ -71,6 +71,7 @@ import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.
 import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-cell/cell-expand.js';
 import { handleCellEditorKeydown } from './ui-functions-cell/cell-editor.js';
 import { handleCellDatePick, handleCellDateSet } from './ui-functions-cell/cell-date-editor.js';
+import { handleListCellInput } from './ui-functions-highlight/list-highlight.js';
 import { initTooltip } from './tooltip.js';
 
 /**
@@ -339,6 +340,8 @@ function keyUpDelegate(evt) {
  * @param {Event} evt The input event.
  */
 function inputDelegate(evt) {
+    handleListCellInput(evt);
+
     const actionElement = evt.target.closest('[data-action]');
 
     if (actionElement) {

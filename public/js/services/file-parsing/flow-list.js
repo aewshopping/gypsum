@@ -1,5 +1,7 @@
 import { flowItemRanges, isQuoted } from './yaml-parse.js';
 
+export { flowItemRanges };
+
 /**
  * @file A list as one line of text, in both directions.
  *

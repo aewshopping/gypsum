@@ -1,5 +1,5 @@
 import { VALUE_TYPES, SEARCH_TYPES } from '../constants.js';
-import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS } from './store.js';
+import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS, CORE_FILE_PROPERTIES } from './store.js';
 
 /**
  * @file The one answer to "what type is this column, and how is it searched?".
@@ -64,6 +64,33 @@ export function propertyType(name) {
  */
 export function isInfoColumn(name) {
     return TABLE_VIEW_COLUMNS.info_columns.includes(name);
+}
+
+/**
+ * Whether this column's cells can be typed into at all.
+ *
+ * Two reasons they cannot, and both are facts about the column rather than about one value:
+ *
+ * - **the app fills the column in** — the size, the last modified date, the load error
+ * - **the property does not come from a note's front matter** — everything in CORE_FILE_PROPERTIES,
+ *   which is `title`, `filename`, `filepath`, `tags`, `color`, `internalLink` and the file-system
+ *   columns. The writing path splices a value into a front matter block, and none of these live in
+ *   one: a title is body text, and a filename or a filepath is the file itself.
+ *
+ * **Here rather than beside either caller**, because two of them ask: `cell-editor.js` decides
+ * whether an opened cell gets a caret, and the table header decides whether to draw the lock. A
+ * header that promised something the cell then refused would be a small lie told at scale.
+ *
+ * To make one of these editable later, add the exception here — do not take it out of
+ * CORE_FILE_PROPERTIES, which has a second job registering properties when a folder holds no files.
+ * The writer is the real work, and it differs per property: `title` is body text, while `filename`
+ * and `filepath` already have `editing/rename-file.js`.
+ *
+ * @param {string} name - The file property key.
+ * @returns {boolean}
+ */
+export function isPropertyEditable(name) {
+    return !isInfoColumn(name) && !CORE_FILE_PROPERTIES.includes(name);
 }
 
 /**
