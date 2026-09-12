@@ -491,10 +491,23 @@ a different background.
 once on `.note-table-cell`, which is the same element in both states. At the row's own spacing an
 item's mark touched the mark on the line above.
 
-It went on the expanded cell alone first, and that was wrong in a way only using it showed: the taller
-line box centred its first line **5px lower** than the cells either side of it, so text jumped as a
-cell opened. The two states have to share the value. Free either way, because `.note-table` fixes the
-row at 32px, so leading moves the text inside the row rather than changing the row. **A highlight paints the glyph box, not the line box** — measured across `normal`,
+It took three goes, each wrong in a way only using it showed.
+
+**On the expanded cell alone**: the taller line box centred its first line 5px lower than the cells
+either side of it, so text jumped as a cell opened.
+
+**Shared between the two states**: the jump went, but the row was a fixed 32px, so a 27.2px line box
+plus 12px of padding had nowhere to go. The text sat low in its row with the descenders clipped.
+
+**Shared, and the row told what a line costs.** `--table-line-height` and `--table-cell-padding` are
+named once in `note-table.css`, and the row's height is `calc(var(--table-line-height) * 1em + 2 *
+var(--table-cell-padding))`. Rows go from 32px to 39.2px, which is the price of the leading.
+
+**The calc sits on `.note-table`, not in a token beside the other two**, and that is not tidiness lost
+but a bug avoided: a custom property resolves its lengths where it is *declared*, and base.css scales
+the app's text on the body rather than on `:root` — so an `em` declared up there would have frozen the
+row at the default size while the text inside it grew. Checked at a 1.5× font setting: the row follows,
+52.8px. **A highlight paints the glyph box, not the line box** — measured across `normal`,
 1.2, 1.5, 1.8 and 2.1, where the range stayed 18px tall while the cell grew — so leading opens a real
 gap rather than making taller marks that still meet. On every expanded cell, not just a list: one that
 has been opened to read deserves more than a row being scanned, and it costs nothing because the cell

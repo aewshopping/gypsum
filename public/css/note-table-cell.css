@@ -8,14 +8,13 @@
     overflow: hidden;
     text-wrap: nowrap;
 
-    /* Open or closed, because it is one element either way — the expanded rule below adds a class
-       to this same div, so this declaration serves both states and there is no second one to drift
-       from. Free: .note-table fixes the row at 32px, so leading moves the text inside the row
-       rather than changing the row. */
+    /* Open or closed, because it is one element either way — the expanded rule below adds a class to
+       this same div, so this declaration serves both states and there is no second one to drift
+       from. The row's height is computed from this same token, so a line always has room. */
     line-height: var(--table-line-height);
     border-top: var(--table-line);
     border-right: var(--table-line);
-    padding: 6px;
+    padding: var(--table-cell-padding);
 }
 
 /* Clicking a cell selects it; clicking it again expands it. outline rather than border,

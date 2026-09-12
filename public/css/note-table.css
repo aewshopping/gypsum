@@ -5,10 +5,16 @@
        the cells without ruling the table. */
     --table-line: 0.5px solid color-mix(in srgb, var(--colour-contr) 10%, transparent);
 
-    /* The leading in a cell, open or closed. A token because the two states have to agree: the
-       value was on the expanded cell alone, and opening a cell moved its first line 5px down while
-       the cells either side of it stayed put. Named here so the number is stated once. */
+    /* The leading in a cell, and the two things that follow from it: what a cell pads itself by, and
+       how tall a row therefore has to be.
+
+       All three are one number stated once because they cannot be allowed to disagree. The leading
+       went on the expanded cell alone first, and opening a cell moved its first line 5px down while
+       the cells either side of it stayed put. Sharing it between the two states fixed that and broke
+       something else: the row is a fixed height, so a taller line box had nowhere to go and the text
+       sat low in the row with its descenders clipped. A row has to be told what a line now costs. */
     --table-line-height: 1.7;
+    --table-cell-padding: 6px;
 }
 
 .table-wrapper {
@@ -71,7 +77,16 @@
        the one value that pairs with visible: hidden on either axis would force the other
        to auto and make the row a scroll container. */
     overflow: clip visible;
-    height: 32px; /* deleting height line means rows expand vertically to fit content */
+    /* Every row the same height, so the table reads as a grid rather than as a list of paragraphs —
+       deleting this line lets rows grow to fit their content instead. Computed rather than a number,
+       because what a row has to hold is one line of text at the leading a cell uses, plus what the
+       cell pads itself by.
+
+       The calc is here rather than in a token beside the others because of the `em`: a custom
+       property resolves its lengths where it is declared, and base.css scales the app's text on the
+       body rather than on :root — so an em declared up there would freeze the row at the default
+       size while the text inside it grew. */
+    height: calc(var(--table-line-height) * 1em + 2 * var(--table-cell-padding));
     cursor: default;
     position: relative; /* the containing block an expanded cell is placed against */
 
