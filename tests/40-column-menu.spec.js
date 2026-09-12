@@ -44,6 +44,21 @@ async function openMenuFor(page, header) {
   await expect(menu(page)).toBeVisible();
 }
 
+// How far the menu sits from the column edge it hangs off, which is 0 while the two are still
+// together. Either edge counts: the menu normally hangs from its column's right edge, but a
+// column too narrow to hold it flips to the left edge and opens rightwards — see @position-try
+// --column-menu-flip-left in column-menu.css. The first column is 90px against a 151px menu, so
+// it is permanently flipped, at every scroll offset.
+const menuGap = page => page.evaluate(() => {
+  const m = document.getElementById('column-menu').getBoundingClientRect();
+  const prop = document.getElementById('column-menu').dataset.property;
+  const c = [...document.querySelectorAll('.note-table-cell-header')]
+    .find(el => el.dataset.property === prop).getBoundingClientRect();
+  // abs: Math.round(-0.4) is -0, and toBe is Object.is
+  return Math.min(Math.abs(Math.round(m.right - c.right)),
+                  Math.abs(Math.round(m.left - c.left)));
+});
+
 test('the menu opens against the header cell it was launched from', async ({ page }) => {
   await openTable(page);
   const header = titleHeader(page);
@@ -153,13 +168,9 @@ test('the menu follows its column when the table is scrolled sideways', async ({
     const header = page.locator(`.note-table-cell-header[data-property="${prop}"]`);
     await openMenuFor(page, header);
 
-    await expect.poll(() => page.evaluate(() => {
-      const m = document.getElementById('column-menu').getBoundingClientRect();
-      const prop = document.getElementById('column-menu').dataset.property;
-      const c = [...document.querySelectorAll('.note-table-cell-header')]
-        .find(el => el.dataset.property === prop).getBoundingClientRect();
-      return Math.abs(Math.round(m.right - c.right));   // abs: Math.round(-0.4) is -0, and toBe is Object.is
-    })).toBe(0);
+    await expect
+      .poll(() => menuGap(page), { message: `menu left its column at scrollLeft ${scrollLeft}` })
+      .toBe(0);
 
     await page.keyboard.press('Escape');
   }
@@ -214,13 +225,8 @@ test('a column scrolled out of view takes its menu with it', async ({ page }) =>
   // the first column, so scrolling right marches it off to the left
   await openMenuFor(page, page.locator('.note-table-cell-header').first());
 
-  const edges = () => page.evaluate(() => {
-    const m = document.getElementById('column-menu').getBoundingClientRect();
-    const prop = document.getElementById('column-menu').dataset.property;
-    const c = [...document.querySelectorAll('.note-table-cell-header')]
-      .find(el => el.dataset.property === prop).getBoundingClientRect();
-    return { menuLeft: Math.round(m.left), menuRight: Math.round(m.right), colRight: Math.round(c.right) };
-  });
+  const menuLeft = () => page.evaluate(() =>
+    Math.round(document.getElementById('column-menu').getBoundingClientRect().left));
 
   // Vertical scroll too: the header is sticky, and this combination was what first showed
   // the menu stranding itself on the left edge with its column long gone.
@@ -228,10 +234,9 @@ test('a column scrolled out of view takes its menu with it', async ({ page }) =>
 
   for (const scrollLeft of [0, 200, 400]) {
     await page.evaluate(x => { document.querySelector('.list-table').scrollLeft = x; }, scrollLeft);
-    await expect.poll(async () => {
-      const e = await edges();
-      return Math.abs(e.menuRight - e.colRight);   // abs, for the same -0 reason as above
-    }, { message: `menu left its column at scrollLeft ${scrollLeft}` }).toBe(0);
+    await expect
+      .poll(() => menuGap(page), { message: `menu left its column at scrollLeft ${scrollLeft}` })
+      .toBe(0);
   }
 
   // And it is genuinely off the left edge by now rather than pinned to it — the clamp this
@@ -240,7 +245,7 @@ test('a column scrolled out of view takes its menu with it', async ({ page }) =>
   // Polled rather than read once: the menu and its column move together, so the alignment
   // check above is satisfied even on a frame where neither has taken the scroll yet. Under
   // load that frame is what the read used to land on, with the menu still where it opened.
-  await expect.poll(async () => (await edges()).menuLeft).toBeLessThan(0);
+  await expect.poll(menuLeft).toBeLessThan(0);
 });
 
 test('a header takes one click to select and a second to open its options', async ({ page }) => {
