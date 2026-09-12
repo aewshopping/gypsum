@@ -217,9 +217,9 @@ test('a column wears a lock exactly when its cells take no caret', async ({ page
   expect(columns.length).toBeGreaterThan(4);   // the fixture is not all locked or all open
 
   for (const property of columns) {
-    const href = await page.locator(`.note-table-cell-header[data-property="${property}"] .type-glyph use`)
-      .getAttribute('href');
-    const locked = href.endsWith('-locked');
+    const locked = await page
+      .locator(`.note-table-cell-header[data-property="${property}"] .type-glyph use[href="#icon-lock-badge"]`)
+      .count() === 1;
     const cell = rowFor(page, 'Alpha').locator(`.note-table-cell[data-prop="${property}"]`);
     await open(cell);
 
@@ -237,8 +237,12 @@ test('the lock explains itself, and costs the heading nothing', async ({ page })
   const open_ = page.locator('.note-table-cell-header[data-property="people"]');
 
   await expect(locked.locator('.type-glyph')).toHaveAttribute('data-tip', /not editable/);
-  await expect(locked.locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-string-locked');
   await expect(open_.locator('.type-glyph')).not.toHaveAttribute('data-tip', /.*/);
+
+  // the padlock is laid over the plain type drawing, which keeps its own identity and its own size
+  await expect(locked.locator('.type-glyph use').first()).toHaveAttribute('href', '#icon-type-string');
+  await expect(locked.locator('.type-glyph use[href="#icon-lock-badge"]')).toHaveCount(1);
+  await expect(open_.locator('.type-glyph use[href="#icon-lock-badge"]')).toHaveCount(0);
 
   // one element either way, so the glyphs line up down the table and a locked column spends no more
   // of its header than an open one

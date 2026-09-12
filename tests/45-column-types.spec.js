@@ -92,10 +92,10 @@ test('the table header carries the same glyph as the picker', async ({ page }) =
 
   for (const property of ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes']) {
     const inPicker = await pickerRow(page, property).locator('.column-picker-type use').getAttribute('href');
-    const inHeader = await header(page, property).locator('.type-glyph use').getAttribute('href');
-    // The header wears the locked pair of the glyph where a column takes no caret, which is the same
-    // drawing with a padlock in it — so the two agree about the drawing, not about the id.
-    expect(inHeader.replace('-locked', ''), `${property} disagrees between header and picker`).toBe(inPicker);
+    // .first(), because a locked column's glyph holds the type drawing and a padlock laid over it.
+    // The type drawing is the one that has to agree with the picker.
+    const inHeader = await header(page, property).locator('.type-glyph use').first().getAttribute('href');
+    expect(inHeader, `${property} disagrees between header and picker`).toBe(inPicker);
   }
 });
 
@@ -426,16 +426,15 @@ test('the file column offers no type, no sort and no search', async ({ page }) =
 // deliberately not among them: renaming and moving from the table are both wanted later.
 test('the columns the app fills in wear the info glyph', async ({ page }) => {
   await openTable(page);
-  const glyph = property => header(page, property).locator('.type-glyph use');
+  // .first(): these columns are all locked, so each glyph holds the drawing and a padlock over it
+  const glyph = property => header(page, property).locator('.type-glyph use').first();
 
-  // -locked because the app fills these in, so nothing can be typed into them either — one glyph
-  // carrying both facts, since the header has no room for two.
-  await expect(glyph('internalId')).toHaveAttribute('href', '#icon-type-info-locked');
-  await expect(glyph('sizeInBytes')).toHaveAttribute('href', '#icon-type-info-locked');
-  await expect(glyph('lastModified')).toHaveAttribute('href', '#icon-type-info-locked');
+  await expect(glyph('internalId')).toHaveAttribute('href', '#icon-type-info');
+  await expect(glyph('sizeInBytes')).toHaveAttribute('href', '#icon-type-info');
+  await expect(glyph('lastModified')).toHaveAttribute('href', '#icon-type-info');
 
-  await expect(glyph('filename')).toHaveAttribute('href', '#icon-type-string-locked');
-  await expect(glyph('tags')).toHaveAttribute('href', '#icon-type-array-locked');
+  await expect(glyph('filename')).toHaveAttribute('href', '#icon-type-string');
+  await expect(glyph('tags')).toHaveAttribute('href', '#icon-type-array');
 });
 
 // The whole reason info sits beside a column's type rather than replacing it. Last modified is also

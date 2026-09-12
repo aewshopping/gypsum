@@ -459,11 +459,14 @@ every input rebuilds — which the measurement says is affordable.
 Four more, at `1.197.0`, all found by looking at it rather than reading it.
 
 **Two glyphs did not fit.** A padlock beside the type glyph made a header carry a heading and three
-marks, and `lastModified` had to widen 20px to hold them. Now there is one glyph: `#icon-type-<name>-locked`
-for each of the five reachable types, each a `<use>` of the plain symbol moved up and left with a padlock
-in the corner it frees. **Unscaled on purpose** — the type mark measures the same as on a column you can
-type in — and by reference rather than redrawn, so a type's shape keeps one definition. `lastModified`
-went back to 175.
+marks, and `lastModified` had to widen 20px to hold them. Now there is one glyph, composed in
+`render-table-header.js` from two `<use>` elements: the plain type symbol moved up and left by a
+per-type shift, and `#icon-lock-badge` laid over the corner that frees. **Unscaled on purpose** — the
+type mark measures the same as on a column you can type in. `lastModified` went back to 175.
+
+It was five combined symbols first, one per reachable type, which cost 1.5KB of `index.html` to say the
+same thing — the padlock written out five times. Composing gives the identical picture, checked by
+diffing the rendered header against the symbol version: **zero differing pixels out of 432,000.**
 
 **Five, not the three first supposed.** Today's locked columns show text, list and info, and date or
 number arrive the moment someone changes a locked column's type in the picker.

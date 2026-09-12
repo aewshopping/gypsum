@@ -94,41 +94,11 @@
       </g>
     </symbol>
 
-    <!-- The locked pair of each type glyph, for a column whose cells take no caret.
-
-         The type drawing is the plain symbol, unscaled, moved up and left so the padlock has a corner
-         to sit in. Unscaled because the mark has to measure the same as it does on a column you CAN
-         type in, and by reference rather than redrawn so a type's shape keeps one definition. Each
-         shift is its own number because each drawing fills its box differently — the calendar and the
-         list reach the bottom right, the T and the i do not.
-
-         One element, so a locked column's header spends exactly what an unlocked one does. -->
-    <symbol id="icon-type-string-locked" viewBox="0 0 50 50">
-      <use href="#icon-type-string" transform="translate(-6 -4)"/>
-      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
-        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
-      </g>
-    </symbol>
-    <symbol id="icon-type-number-locked" viewBox="0 0 50 50">
-      <use href="#icon-type-number" transform="translate(-7 -5)"/>
-      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
-        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
-      </g>
-    </symbol>
-    <symbol id="icon-type-date-locked" viewBox="0 0 50 50">
-      <use href="#icon-type-date" transform="translate(-6 -7)"/>
-      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
-        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
-      </g>
-    </symbol>
-    <symbol id="icon-type-array-locked" viewBox="0 0 50 50">
-      <use href="#icon-type-array" transform="translate(-6 -7)"/>
-      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
-        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
-      </g>
-    </symbol>
-    <symbol id="icon-type-info-locked" viewBox="0 0 50 50">
-      <use href="#icon-type-info" transform="translate(-6 -4)"/>
+    <!-- The padlock a locked column's glyph wears, drawn where it sits: the bottom-right corner,
+         which the type drawing is moved out of to make room. Its own symbol rather than one combined
+         symbol per type — the header lays it over the plain type glyph with a second <use>, so this
+         path exists once instead of five times and a type's drawing keeps its single definition. -->
+    <symbol id="icon-lock-badge" viewBox="0 0 50 50">
       <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
         <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
       </g>
