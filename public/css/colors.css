@@ -76,6 +76,10 @@
        bands want to be quieter. */
     --list-mark:         var(--colour-contr);
     --list-mark-mix-pct: 14%;
+
+    /* How far an opened cell that takes no caret fades, text and outline together — see
+       note-table-cell.css. Against transparent, so it settles over whatever the cell is sitting on. */
+    --cell-readonly-fade: 50%;
 }
 
 :root:has(#and_filter:checked) {

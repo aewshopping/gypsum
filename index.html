@@ -79,13 +79,6 @@
         <path d="M12 16h26v22H12zM19 11v8M31 11v8M12 26h26"/>
       </g>
     </symbol>
-    <!-- lock: a column whose cells take no caret. Not a type — it sits beside whichever type the
-         column has, and says only that this is not the place to change the value. -->
-    <symbol id="icon-lock" viewBox="0 0 50 50">
-      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
-        <path d="M14 25h22v15H14zM19 25v-6a6 6 0 0 1 12 0v6"/>
-      </g>
-    </symbol>
     <!-- info: a lowercase i, for the columns the app fills in itself. A drawn circle rather than a
          zero-length round-capped path, so the dot does not depend on that rendering trick. -->
     <symbol id="icon-type-info" viewBox="0 0 50 50">
@@ -98,6 +91,46 @@
     <symbol id="icon-type-array" viewBox="0 0 50 50">
       <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
         <path d="M13 16h2M23 16h14M13 25h2M23 25h14M13 34h2M23 34h14"/>
+      </g>
+    </symbol>
+
+    <!-- The locked pair of each type glyph, for a column whose cells take no caret.
+
+         The type drawing is the plain symbol, unscaled, moved up and left so the padlock has a corner
+         to sit in. Unscaled because the mark has to measure the same as it does on a column you CAN
+         type in, and by reference rather than redrawn so a type's shape keeps one definition. Each
+         shift is its own number because each drawing fills its box differently — the calendar and the
+         list reach the bottom right, the T and the i do not.
+
+         One element, so a locked column's header spends exactly what an unlocked one does. -->
+    <symbol id="icon-type-string-locked" viewBox="0 0 50 50">
+      <use href="#icon-type-string" transform="translate(-6 -4)"/>
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
+        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
+      </g>
+    </symbol>
+    <symbol id="icon-type-number-locked" viewBox="0 0 50 50">
+      <use href="#icon-type-number" transform="translate(-7 -5)"/>
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
+        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
+      </g>
+    </symbol>
+    <symbol id="icon-type-date-locked" viewBox="0 0 50 50">
+      <use href="#icon-type-date" transform="translate(-6 -7)"/>
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
+        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
+      </g>
+    </symbol>
+    <symbol id="icon-type-array-locked" viewBox="0 0 50 50">
+      <use href="#icon-type-array" transform="translate(-6 -7)"/>
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
+        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
+      </g>
+    </symbol>
+    <symbol id="icon-type-info-locked" viewBox="0 0 50 50">
+      <use href="#icon-type-info" transform="translate(-6 -4)"/>
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
+        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
       </g>
     </symbol>
     <symbol id="icon-close" viewBox="0 0 66.3 64.5">

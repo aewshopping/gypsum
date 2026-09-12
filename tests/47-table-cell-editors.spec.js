@@ -15,7 +15,9 @@ async function setupFiles(page) {
       return { kind: 'directory', name: 'root', values: async function* () {
         yield mk('a.md', '---\ndue: 2026-03-01\nmarkup: a <b> c & "quoted"\npeople:\n  - John Smith\n  - "Doe, Jane"\n---\n# Alpha\n');
         yield mk('b.md', '---\ndue: quite soon\nmarkup: plain\npeople:\n  - Sam\n---\n# Beta\n');
-        yield mk('c.md', '# Gamma\n');
+        // a colour tag, because a coloured row forces its text to whatever reads against that
+        // colour — and an expanded cell swaps to the neutral background underneath it
+        yield mk('c.md', '# Gamma\n\n#color/coral\n');
       } };
     };
   });
@@ -215,7 +217,9 @@ test('a column wears a lock exactly when its cells take no caret', async ({ page
   expect(columns.length).toBeGreaterThan(4);   // the fixture is not all locked or all open
 
   for (const property of columns) {
-    const locked = await page.locator(`.note-table-cell-header[data-property="${property}"] .header-lock-glyph`).count() === 1;
+    const href = await page.locator(`.note-table-cell-header[data-property="${property}"] .type-glyph use`)
+      .getAttribute('href');
+    const locked = href.endsWith('-locked');
     const cell = rowFor(page, 'Alpha').locator(`.note-table-cell[data-prop="${property}"]`);
     await open(cell);
 
@@ -227,18 +231,48 @@ test('a column wears a lock exactly when its cells take no caret', async ({ page
   }
 });
 
-test('the lock explains itself, and the type glyph keeps its place', async ({ page }) => {
+test('the lock explains itself, and costs the heading nothing', async ({ page }) => {
   await openTable(page);
-  const header = page.locator('.note-table-cell-header[data-property="title"]');
+  const locked = page.locator('.note-table-cell-header[data-property="title"]');
+  const open_ = page.locator('.note-table-cell-header[data-property="people"]');
 
-  await expect(header.locator('.header-lock-glyph')).toHaveAttribute('data-tip', /not editable/);
+  await expect(locked.locator('.type-glyph')).toHaveAttribute('data-tip', /not editable/);
+  await expect(locked.locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-string-locked');
+  await expect(open_.locator('.type-glyph')).not.toHaveAttribute('data-tip', /.*/);
 
-  // the type glyph is still the last thing in the header, which is what lines it up down the table
-  expect(await header.evaluate(el => el.lastElementChild.classList.contains('header-type-glyph'))).toBe(true);
-  await expect(header.locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-string');
+  // one element either way, so the glyphs line up down the table and a locked column spends no more
+  // of its header than an open one
+  await expect(locked.locator('svg')).toHaveCount(1);
+  const width = el => el.evaluate(e => Math.round(e.getBoundingClientRect().width));
+  expect(await width(locked.locator('.type-glyph'))).toBe(await width(open_.locator('.type-glyph')));
+
+  // and it is still the last thing in the header, which is what lines it up
+  expect(await locked.evaluate(el => el.lastElementChild.classList.contains('header-type-glyph'))).toBe(true);
 });
 
 // ---------------------------------------------------------------- read-only cells look it
+
+// The bug behind the read-only styling. A row carrying a file's colour has its text forced to what
+// reads against that colour; an expanded cell takes the neutral background and kept that forced
+// colour, which in the dark palette is near-black text on a dark ground.
+test('an expanded cell takes the neutral foreground, even on a coloured row', async ({ page }) => {
+  await openTable(page);
+
+  const contr = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--colour-contr').trim());
+  const asRgb = await page.evaluate(c => {
+    const d = document.createElement('div');
+    d.style.color = c; document.body.append(d);
+    const out = getComputedStyle(d).color; d.remove(); return out;
+  }, contr);
+
+  const coloured = cellFor(page, 'Gamma', 'title');
+  expect(await coloured.evaluate(el => getComputedStyle(el).color)).not.toBe(asRgb);  // the row forces it
+
+  const cell = cellFor(page, 'Alpha', 'markup');
+  await open(cell);
+  expect(await cell.evaluate(el => getComputedStyle(el).color)).toBe(asRgb);
+});
 
 test('an opened cell that takes no caret says so without words', async ({ page }) => {
   await openTable(page);
@@ -248,6 +282,14 @@ test('an opened cell that takes no caret says so without words', async ({ page }
   await expect(locked).toHaveClass(/is-readonly/);
   expect(await locked.evaluate(el => getComputedStyle(el).cursor)).not.toBe('text');
   expect(await locked.evaluate(el => getComputedStyle(el).outlineStyle)).toBe('dashed');
+
+  // the text and the outline fade together, to the same colour, so they read as one thing
+  const faded = await locked.evaluate(el => {
+    const cs = getComputedStyle(el);
+    return { color: cs.color, outline: cs.outlineColor };
+  });
+  expect(faded.color).toBe(faded.outline);
+  expect(faded.color).toMatch(/rgba|color\(/);   // faded against transparent, so it carries alpha
 
   await page.keyboard.press('Escape');
 
@@ -324,4 +366,19 @@ test('a search match still paints over a marked item', async ({ page }) => {
   await openTable(page);
   const priority = await page.evaluate(() => CSS.highlights.get('list-item').priority);
   expect(priority).toBeLessThan(0);
+});
+
+test('a list item is marked by its tint alone', async ({ page }) => {
+  await openTable(page);
+  // the bands above and below each item were taken out for being louder than a table wants
+  const rule = await page.evaluate(() => {
+    // style.css is a list of @imports, so the rules are a level down inside each CSSImportRule
+    const flatten = sheet => [...sheet.cssRules].flatMap(r => r.styleSheet ? flatten(r.styleSheet) : [r]);
+    return [...document.styleSheets]
+      .flatMap(sheet => { try { return flatten(sheet); } catch { return []; } })
+      .find(r => r.selectorText === '::highlight(list-item)')?.style.cssText ?? '';
+  });
+
+  expect(rule).toContain('background-color');
+  expect(rule).not.toContain('text-decoration');
 });

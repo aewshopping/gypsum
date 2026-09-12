@@ -93,7 +93,9 @@ test('the table header carries the same glyph as the picker', async ({ page }) =
   for (const property of ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes']) {
     const inPicker = await pickerRow(page, property).locator('.column-picker-type use').getAttribute('href');
     const inHeader = await header(page, property).locator('.type-glyph use').getAttribute('href');
-    expect(inHeader, `${property} disagrees between header and picker`).toBe(inPicker);
+    // The header wears the locked pair of the glyph where a column takes no caret, which is the same
+    // drawing with a padlock in it — so the two agree about the drawing, not about the id.
+    expect(inHeader.replace('-locked', ''), `${property} disagrees between header and picker`).toBe(inPicker);
   }
 });
 
@@ -426,12 +428,14 @@ test('the columns the app fills in wear the info glyph', async ({ page }) => {
   await openTable(page);
   const glyph = property => header(page, property).locator('.type-glyph use');
 
-  await expect(glyph('internalId')).toHaveAttribute('href', '#icon-type-info');
-  await expect(glyph('sizeInBytes')).toHaveAttribute('href', '#icon-type-info');
-  await expect(glyph('lastModified')).toHaveAttribute('href', '#icon-type-info');
+  // -locked because the app fills these in, so nothing can be typed into them either — one glyph
+  // carrying both facts, since the header has no room for two.
+  await expect(glyph('internalId')).toHaveAttribute('href', '#icon-type-info-locked');
+  await expect(glyph('sizeInBytes')).toHaveAttribute('href', '#icon-type-info-locked');
+  await expect(glyph('lastModified')).toHaveAttribute('href', '#icon-type-info-locked');
 
-  await expect(glyph('filename')).toHaveAttribute('href', '#icon-type-string');
-  await expect(glyph('tags')).toHaveAttribute('href', '#icon-type-array');
+  await expect(glyph('filename')).toHaveAttribute('href', '#icon-type-string-locked');
+  await expect(glyph('tags')).toHaveAttribute('href', '#icon-type-array-locked');
 });
 
 // The whole reason info sits beside a column's type rather than replacing it. Last modified is also

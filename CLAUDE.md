@@ -98,7 +98,10 @@ Three rules follow from that, and they are the ones to hold:
 - **The legal type names live in `VALUE_TYPES` in `constants.js`**, and nowhere else. A layout file
   is hand-editable, so a name that is not in that list is dropped rather than honoured. One symbol
   per type is named after it (`#icon-type-<name>`), and the table header, the column picker and the
-  type dialog all build the href from a column's type — so a new type needs a matching symbol.
+  type dialog all build the href from a column's type — so a new type needs a matching symbol, **and
+  a `#icon-type-<name>-locked` beside it**. A locked symbol is a `<use>` of the plain one, moved up
+  and left so a padlock fits in the corner: never scaled, so the type mark measures the same on a
+  locked column as on an open one, and never redrawn, so a shape keeps one definition.
 - **The type dialog (`#modal-column-type`) is reached from two places**: the glyph on a column
   picker row, and "change type" in the table's column menu. It is a dialog rather than a menu
   because a header cell opens one menu only, and because `showModal()` makes everything outside an
@@ -155,8 +158,11 @@ or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.
 per-cell question of whether the value fits its column. Both the header's lock and the caret ask the
 first one, which is what stops the table promising something the cell then refuses.
 
-**Say it before the click, not after.** A locked column wears `#icon-lock` in its header, and an
-opened cell that offers no caret draws its outline dashed and shows no text cursor. To make a property
+**Say it before the click, not after.** A locked column's header glyph is the locked pair of its type
+symbol — one element, so the header spends no more on a locked column than an open one. An opened cell
+that offers no caret fades its text and its outline together, draws the outline dashed, and shows no
+text cursor. An expanded cell also takes `--colour-contr`: it has swapped to the neutral background, so
+it cannot keep the colour a coloured row forced on it. To make a property
 editable later, add the exception in `isPropertyEditable` — do not take it out of
 `CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
 a title is body text, while a filename and a filepath already have `editing/rename-file.js`.

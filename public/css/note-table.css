@@ -209,6 +209,11 @@
     border-bottom: var(--table-line);
     padding: 6px;
 
+    /* Tighter than the .flex-row utility's 4px, which is right everywhere else but not here: this
+       row is a heading and three marks competing for a column's width, so every gap is taken from
+       the heading. Overridden here rather than in the utility, which half the app uses. */
+    gap: 2px;
+
     &:hover {
         background-color: var(--colour-neutral-alt);
     }
@@ -233,17 +238,6 @@
     opacity: 0.45;
 }
 
-/* A column whose cells take no caret. Smaller and fainter than the type glyph beside it: the type
-   is what the column IS and the lock is a note about it, so it should read second. */
-.header-lock-glyph {
-    flex-shrink: 0;
-    width: 1.15em;
-    height: 1.15em;
-    margin-right: 2px;
-    color: var(--colour-contr);
-    opacity: 0.35;
-}
-
 /* The label takes the free space, which is what keeps the glyph and the chevron against the
    right edge however long the heading is. Its own overflow, so a long heading is clipped rather
    than pushing them out of the cell. */
@@ -258,7 +252,9 @@
    The same colour and weight as the type glyph it sits beside, so the two marks at the end of a
    header read as one pair rather than as a mark and a piece of text. */
 .column-sort-indicator {
-    padding: 6px;
+    /* Vertical padding only. The horizontal 6px put 12px between the chevron and the glyph beside
+       it, which on a header that is mostly heading is 12px the heading does not get. */
+    padding: 6px 0;
     line-height: 1;
     color: var(--colour-contr);
     opacity: 0.45;

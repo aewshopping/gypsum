@@ -4,33 +4,37 @@ import { isInfoColumn, isPropertyEditable } from '../../services/property-type.j
 import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
 
 /**
- * Which glyph a column wears: its own type, unless the app fills the column in, in which case the
- * info glyph says so. The type underneath is unchanged and still drives sorting and rendering.
- * @param {object} column - A resolved column.
- * @returns {string} The stored name the symbol id is built from.
+ * The symbol a column's glyph points at.
+ *
+ * Two questions in one id. **Which drawing**: the column's own type, unless the app fills the column
+ * in, in which case the info glyph says so — the type underneath is unchanged and still drives sorting
+ * and rendering. **Locked or not**: whether its cells take a caret.
+ *
+ * **One glyph either way**, which is the point. A padlock beside the type glyph was two elements
+ * competing for a header that is mostly heading — `lastModified` had to widen by 20px to fit both.
+ * The locked symbols hold the same type drawing at the same size with the padlock in a corner of it,
+ * so a locked column spends exactly what an unlocked one does.
+ *
+ * The question is the one cell-editor.js asks before giving a caret, so the mark and the behaviour
+ * cannot drift apart.
+ *
+ * @param {object} column - The column, carrying `name` and `type`.
+ * @returns {string} The symbol id, without its hash.
  */
-function glyphFor(column) {
-    return isInfoColumn(column.name) ? INFO_TYPE.value : column.type;
+function symbolFor(column) {
+    const glyph = isInfoColumn(column.name) ? INFO_TYPE.value : column.type;
+    return isPropertyEditable(column.name) ? glyph : `${glyph}-locked`;
 }
 
 /**
- * The lock for a column whose cells take no caret, or nothing for one that can be typed into.
- *
- * The same question cell-editor.js asks before giving a caret, so the mark and the behaviour cannot
- * drift apart. It sits **before** the type glyph rather than after it: the type glyph is hard against
- * the right edge on every column, which is what makes it line up down the table, and a mark beyond it
- * would break that on the columns that have one.
- *
- * Its own data-tip, which wins over the header button's because tooltip.js resolves with
- * closest('[data-tip]').
- *
- * @param {object} column - The column, carrying `name`.
- * @returns {string} The HTML for the glyph, or an empty string.
+ * The tooltip a locked column's glyph carries, explaining what the padlock on it means.
+ * tooltip.js resolves with closest('[data-tip]'), so this wins over the header button's own tip
+ * while the pointer is on the glyph.
+ * @param {object} column
+ * @returns {string} A data-tip attribute, or an empty string.
  */
-function lockFor(column) {
-    if (isPropertyEditable(column.name)) return '';
-    return `<svg class="header-lock-glyph" aria-hidden="true" data-tip="not editable from the table">` +
-           `<use href="#icon-lock"></use></svg>`;
+function lockTip(column) {
+    return isPropertyEditable(column.name) ? '' : ' data-tip="not editable from the table"';
 }
 
 /**
@@ -80,8 +84,8 @@ export function renderTableHeader(current_props) {
             return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}>` +
                      `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
-                     lockFor(prop) +
-                     `<svg class="type-glyph header-type-glyph" aria-hidden="true"><use href="#icon-type-${glyphFor(prop)}"></use></svg>` +
+                     `<svg class="type-glyph header-type-glyph" aria-hidden="true"${lockTip(prop)}>` +
+                       `<use href="#icon-type-${symbolFor(prop)}"></use></svg>` +
                    `</button>`;
         })
         .join('');

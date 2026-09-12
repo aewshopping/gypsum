@@ -20,16 +20,13 @@ body:has(#toggle-search-highlights:checked) ::highlight(match) {
 
 /* The items inside a list cell, so a comma reads as structure rather than punctuation.
 
-   A band above and below each item with a wash of the same colour between them, which is as close to
-   a chip as this gets: a highlight accepts colour, background and text-decoration, and no padding or
-   radius, so the bands are what give an item edges.
-
-   One token drives the band and the wash, so they can never disagree, and mixing against transparent
-   rather than a background lets it sit over whatever colour the row is wearing.
+   A wash behind each item and nothing else. Bands above and below were tried and taken out: they do
+   say "chip" more loudly, but a table is mostly text and the mark only has to be enough to see the
+   items apart. Mixing against transparent rather than a background lets it sit over whatever colour
+   the row is wearing.
 
    Applied by list-highlight.js, at a priority below the default so a search match paints over an
    item rather than under it. */
 ::highlight(list-item) {
-    text-decoration: underline overline var(--list-mark);
     background-color: color-mix(in srgb, var(--list-mark) var(--list-mark-mix-pct), transparent);
 }

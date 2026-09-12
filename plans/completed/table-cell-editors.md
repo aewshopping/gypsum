@@ -450,3 +450,31 @@ in `highlight.css`.
 change the structure is wrong: type a comma and the new item is empty, so no range covers it, and
 every ordinary letter typed to fill it lands outside every range. Any character can start an item, so
 every input rebuilds — which the measurement says is affordable.
+
+
+---
+
+## 8. And what using *that* turned up
+
+Four more, at `1.197.0`, all found by looking at it rather than reading it.
+
+**Two glyphs did not fit.** A padlock beside the type glyph made a header carry a heading and three
+marks, and `lastModified` had to widen 20px to hold them. Now there is one glyph: `#icon-type-<name>-locked`
+for each of the five reachable types, each a `<use>` of the plain symbol moved up and left with a padlock
+in the corner it frees. **Unscaled on purpose** — the type mark measures the same as on a column you can
+type in — and by reference rather than redrawn, so a type's shape keeps one definition. `lastModified`
+went back to 175.
+
+**Five, not the three first supposed.** Today's locked columns show text, list and info, and date or
+number arrive the moment someone changes a locked column's type in the picker.
+
+**The chevron's 12px of horizontal padding** was 12px the heading did not get, on a row that is mostly
+heading. With the single glyph a locked column's label gets 26px back, and the sorted one 40px.
+
+**The list marking lost its bands**, keeping the tint. They said "chip" more loudly than a table wants.
+
+**And a real bug behind the read-only styling.** A row carrying a file's colour forces its text to
+whatever reads against that colour. An expanded cell swaps to the neutral background and kept that
+forced colour — near-black on a dark ground in the dark palette. `.is-expanded` now takes
+`--colour-contr`, and the read-only fade sits on top of that rather than on top of a colour chosen for
+a different background.

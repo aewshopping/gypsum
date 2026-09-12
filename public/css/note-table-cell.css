@@ -39,6 +39,11 @@
     z-index: 3;
     overflow: visible;
     background-color: var(--colour-neutral);
+
+    /* And therefore the neutral foreground. A row carrying a file's colour forces its text to
+       whatever reads against that colour, which an expanded cell would otherwise keep while sitting
+       on the neutral it just swapped to — black text on a dark ground in the dark palette. */
+    color: var(--colour-contr);
     outline: 2px solid var(--colour-contr);
     outline-offset: -2px;
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
@@ -51,12 +56,21 @@
     cursor: text;
 }
 
-/* An opened cell that offers no caret. The same outline the cell already draws, dashed — a box you
-   can read out of rather than write into. No new colour and no sentence: a mismatched cell explains
-   itself in words because something is wrong and there is something to do about it, while a size or
-   a filename cell is working exactly as intended and the header's lock already says so. */
+/* An opened cell that offers no caret: its text and its outline fade together, and the outline is
+   dashed.
+
+   Faded to the same colour so the two read as one thing rather than two marks. Against transparent,
+   so it settles over the cell's own background whatever the row is wearing. The dashes stay as well
+   as the fade: saying it twice is cheap, and the second way survives being read by someone who does
+   not see the first.
+
+   No sentence, because there is nothing to do about it — a mismatched cell explains itself in words
+   since something is wrong there, while a size or a filename cell is working exactly as intended and
+   the padlock on its column has already said so. */
 .note-table-cell.is-expanded.is-readonly {
     outline-style: dashed;
+    color: color-mix(in srgb, var(--colour-contr) var(--cell-readonly-fade), transparent);
+    outline-color: color-mix(in srgb, var(--colour-contr) var(--cell-readonly-fade), transparent);
 }
 
 /* A cell whose value cannot be drawn as its column's type. It shows its text, so that what the file
