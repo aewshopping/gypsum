@@ -7,8 +7,9 @@ Manifest version now: `1.202.0` → bump the minor version with each step that c
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
 Paired with: `plans/completed/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
-Paired with: `plans/table-undo-stack.md`, **which comes last** — but three of its requirements land in
-step 2 of this plan and are awkward to retrofit, so §4.6 states them here.
+Paired with: `plans/table-undo-stack.md`, **which comes last** — but four of its requirements land in
+step 2 of this plan and are awkward to retrofit, so §4.6 states them here. The fourth is the `expect`
+argument, which this plan never passes and cannot be added later without a read-then-read race.
 
 Someone has finished editing a cell. This plan gets what they typed into the note's front matter
 without damaging anything else in it.
@@ -208,8 +209,8 @@ makes about what the cell offers.
 
 ### 4.6 The shape the write has to have
 
-Three things about the *shape* of this code, rather than what it does. None of them is undo code, and
-two are forced by the pasted range anyway — but all three are awkward to retrofit, and skipping them
+Four things about the *shape* of this code, rather than what it does. None of them is undo code, and
+two are forced by the pasted range anyway — but all four are awkward to retrofit, and skipping them
 means a second module that knows how to splice front matter, which is the drift §4.2 puts the spans
 inside the parser to avoid. See `plans/table-undo-stack.md` §6.
 
@@ -237,9 +238,23 @@ standard bug in batch splicing, and free to avoid once it is written down.
 | layer | knows about | called by |
 |---|---|---|
 | `toYamlText(text, type, form)` in `yaml-value-write.js` | types, the quoting rule of step 1 | a cell edit, a paste |
-| `applyRawEdits(rawEdits)` in `save-cell-edit.js` | spans, splicing, the write | both of those, and undo |
+| `applyRawEdits(rawEdits)` in `save-cell-edit.js` | spans, splicing, the write, the guard below | both of those, and undo, and redo |
 
 `applyCellEdits` is then thin: convert through `toYamlText`, hand the results to `applyRawEdits`.
+
+**A raw edit carries an optional `expect`:**
+
+```js
+applyRawEdits([{ internalId, property, raw, expect }])
+```
+
+`raw` is the text to write; **`expect`, when given, is what the key's value span must currently say
+for the edit to happen at all**, and the edit is skipped otherwise. This plan never passes it — a
+fresh edit has nothing to expect — so it costs one ignored argument here. It is in the signature
+because the alternative is undo reading each file to check and `applyRawEdits` reading it again to
+write, with a window between the two: small, but that window is exactly the case the check exists to
+catch. The reason is `plans/table-undo-stack.md` §3 and §6.2; the consequence is that commit, undo
+and redo end up one function differing only in `raw` and `expect`.
 **Undo calls the lower layer, and must** — its text came *out of* the file, so it is already valid
 front matter, and sending it back through `toYamlText` would not be faithful: §5.1 shows `[1, 2, 10]`
 captures as `["1", "2", "10"]`, so a re-converting undo restores a file subtly unlike the one you had.
@@ -374,7 +389,7 @@ case parses into something meaningless, and writing into it would write into a k
 | Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. **Undoing a key step 4 created is the deliberate exception** — see `plans/table-undo-stack.md` §7: the rule guards against a column vanishing as a *side effect*, whereas there the column only exists because of the edit being undone. |
 | Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
 | A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong — and worth switching on as a scaffold while steps 2 to 5 are built against test folders, where the cap objection does not bite. |
-| Undo | **A separate plan, built last** — `plans/table-undo-stack.md`. It reverses writes made from the table and nothing else, and it is not built on `history.gypsum`: that file stores text, which cannot become wrong, where an edit record is a claim about structure. What this plan owes it is §4.6 and nothing more. |
+| Undo | **A separate plan, built last** — `plans/table-undo-stack.md`. It reverses writes made from the table and nothing else, and it is not built on `history.gypsum`: that file stores text, which cannot become wrong, where an edit record is a claim about structure. What this plan owes it is §4.6 and nothing more — including the `expect` argument, which exists because undo is reached by Ctrl+Z and a reflexive gesture cannot afford a read-then-read race. |
 
 **The expanded cell closes after an edit** whatever we do here, because the refresh re-renders the
 whole table. Worth knowing before it surprises someone.
@@ -422,9 +437,10 @@ The whole pipeline with `string` and nothing else, and the guards, which are the
 | the text differs from what the cell opened with — §4.5 | no |
 
 **Built to the shape of §4.6**, which is the other half of this step: `applyCellEdits` takes a list,
-converting and splicing are separate layers, and the write returns what it changed. Only one edit ever
-arrives here and nothing reads the return value, so none of it shows — which is the point. Retrofitting
-any of the three later means a second module that knows how to splice front matter.
+converting and splicing are separate layers, `applyRawEdits` carries an `expect` this plan never
+passes, and the write returns what it changed. Only one edit ever arrives here, nothing reads the
+return value and nothing sets `expect`, so none of it shows — which is the point. Retrofitting any of
+the four later means a second module that knows how to splice front matter.
 
 **Checkable by:** edit a front matter cell, watch the file on disk change, watch the table redraw
 from the file rather than from memory.

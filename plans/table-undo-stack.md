@@ -1,7 +1,9 @@
 # Plan: undoing a cell edit
 
 Status: **not built**, and deliberately last. The mechanics below are settled; **the interface is
-not** — §10 holds four open questions, and step 11a cannot be finished without them.
+not** — §10 holds five open questions, and step 11a cannot be finished without them.
+**Ctrl+Z is in scope from the start**, not a later addition: it is how people reach for undo, and
+taking it seriously changed both the write's signature (§6.2) and two of §10's answers.
 Branch: `claude/table-undo-stack-design-ica8um`
 Manifest version now: `1.202.0` → bump the minor version with each step that changes code.
 Depends on: `plans/table-cell-writing.md`, **not built** — steps 1 to 5 of it come first, and §6
@@ -171,7 +173,7 @@ the standard bug in batch splicing and free to avoid once written down.
 | layer | knows about | called by |
 |---|---|---|
 | `toYamlText(text, type, form)` in `yaml-value-write.js` | types, the quoting rule | a cell edit, a paste |
-| `applyRawEdits(rawEdits)` in `save-cell-edit.js` | spans, splicing, writing | both of those, **and undo** |
+| `applyRawEdits(rawEdits)` in `save-cell-edit.js` | spans, splicing, writing, **the §3 check** | both of those, **and undo and redo** |
 
 `applyCellEdits` is then thin: convert through `toYamlText`, hand the results to `applyRawEdits`.
 
@@ -181,8 +183,32 @@ front matter. Sending it back through `toYamlText` would not be faithful — `ta
 subtly unlike the one you had.
 
 **In step 2 `applyRawEdits` is local, not exported.** The split is there because converting and
-splicing are different jobs, not for a future caller; exporting it is a one-word change when step 6
+splicing are different jobs, not for a future caller; exporting it is a one-word change when step 11
 arrives. Step 2 carries no speculative surface.
+
+#### The check belongs inside it, and that is Ctrl+Z's doing
+
+An edit carries an optional `expect`:
+
+```js
+applyRawEdits([{ internalId, property, raw, expect }])
+```
+
+`raw` is the text to write. **`expect`, when given, is what the key's value span must currently say
+for the edit to happen** — §3's rule, stated as data. A fresh edit omits it; an undo passes the
+entry's `after`; a redo passes its `before`. The return of §6.3 gains a per-edit *applied or skipped*
+so the caller can report what §5 requires.
+
+**Written as a first-class entry point rather than a later addition, Ctrl+Z is what forces this.**
+The check needs the file's current bytes; so does the splice. Leave the check outside and the file is
+read twice, with a window between them — small, but the window is exactly the case the check exists
+to catch, so a check that opens one is answering its own question wrong. Inside, it happens during
+the read the write already does, and every caller gets it: undo, redo, and the paste, whose edits are
+the same shape.
+
+It also collapses three code paths into one. Commit, undo and redo differ only in what they put in
+`raw` and `expect` — the reading, splicing, verifying, writing and refreshing are one function with
+one set of bugs.
 
 ### 6.3 The write returns what it did
 
@@ -244,12 +270,11 @@ These are the mechanics. The interface is a separate list and is **not** decided
 
 | question | decision |
 |---|---|
-| Redo | **No.** It doubles the state machine and the staleness surface of §3, which has to know which direction you last went. Nobody has asked for it. |
 | Undoing anything other than a write | **No.** §1. |
 | Persisting the stack across a reload | **No.** In memory, in `appState`. A stack that outlives the session is mostly stale entries, and §3 would drop them one by one — the honest version is not to offer it. |
 | Depth | **20 batches.** Free (§2), so chosen for feel. |
 | Clearing it | **On folder change only.** The ids mean nothing against a different folder. Not on view change: §3 makes that unnecessary. |
-| Ctrl+Z | **Not at first**, but **design for it from the start** — §10.4. The note modal has native undo in a `contenteditable` and a global handler fights it, and an open dialog does not stop a key reaching the document delegate. A button first (§10.1), but the rule about when undo is allowed belongs in the handler rather than in what is drawn, because a key binding inherits no scope from the interface. |
+| Ctrl+Z | **Yes, and it is the primary entry point** — not a later addition. It is how people reach for undo, so a design that only works from a button is a design that has not been tested against the real gesture. §10.4 holds the guard it needs; §6.2 holds the one place it changed the shape of the write. |
 | Re-sorting after an undo | **No**, for the same reason `table-cell-writing.md` gives for an edit: the row leaps away from under you. The same `applyRefresh` argument. |
 | A history snapshot before the first edit | **Not in the shipped app.** Worth switching on while steps 2 to 5 are being built — it is a one-line call to `saveBackupEntry` and gives whole-file recovery through the existing history modal — then removed. As a scaffold against test folders the cap objection does not bite. |
 
@@ -257,9 +282,13 @@ These are the mechanics. The interface is a separate list and is **not** decided
 
 ## 10. Still to decide: the interface
 
-Everything above is about bytes. **None of the four questions below is settled**, and step 11a cannot
+Everything above is about bytes. **None of the five questions below is settled**, and step 11a cannot
 be finished without answering them. Recorded here with the constraints each one runs into, and a
 leaning where there is one.
+
+Two of them — the confirmation and redo — are really one question asked twice: *what makes an
+accidental undo recoverable?* They are answered together in §10.3 and §10.5, and both answers moved
+once Ctrl+Z stopped being a later addition.
 
 ### 10.1 Where the control lives
 
@@ -297,26 +326,36 @@ property and the file, since "it changed since" is only useful if you know where
 
 ### 10.3 Whether a warning modal is needed
 
-**Leaning: yes — and `showWarningModal(mainText, proceedText, cancelText)` already exists**, reused
-across three flows and returning a promise, so this costs no new dialog.
+`showWarningModal(mainText, proceedText, cancelText)` already exists, reused across three flows and
+returning a promise, so whatever is decided costs no new dialog.
 
-But the reason matters, because it decides what the modal says. **It earns its place as a preview,
-not as a speed bump.** "Are you sure?" on a single-cell undo is the kind of prompt people learn to
-click through, and it protects nothing. A modal that reports *48 values in 12 files, 2 skipped
-because they changed since* is telling you something no other surface can, and is worth reading
-every time — which is also the argument for showing it always rather than over a threshold. A rule
-like "confirm only above N cells" is the intricate edge-case handling the project's principles warn
-against, and it would hide the modal in exactly the case where its content is most useful.
+**Leaning: on a batch, yes. On a single cell, no** — and this is a reversal of the position taken
+before Ctrl+Z was a first-class entry point, which is worth saying out loud because the reversal is
+the evidence that taking it seriously was the right call.
 
-**It does a second job once Ctrl+Z is wired up** (§10.4): a key binding can be hit by accident in a
-way a button cannot, and held down in a way a button cannot either. The preview argument stands on
-its own, but the two together make this the easiest of the four to settle.
+The earlier argument was that the modal earns its place as a **preview** rather than a speed bump:
+*48 values in 12 files, 2 skipped because they changed since* is information no other surface can
+give, worth reading every time, so show it always. **That argument survives for a batch and collapses
+for one cell**, where the preview says "1 value in 1 file" and is worth nothing.
 
-**The consequence to weigh:** naming a skip count means running §3's check *before* the modal opens,
-which means reading the files first. Either read them twice, or hold the text read for the preview
-and write from it — the second is cleaner and the window in which it could go stale is seconds. The
-cheaper version if that feels heavy: confirm with counts only, and report skips afterwards. That
-needs no read before the modal, and makes the modal a weaker thing.
+**Ctrl+Z is a reflex, and a modal on every press fights the gesture.** The key exists to be instant;
+making it a two-step interaction is a design that works from a button and has not been tested against
+the real thing. The commonest case — the typo noticed immediately — is the one the friction lands on
+hardest.
+
+So the threshold is right after all: **confirm when the batch holds more than one edit.** One
+condition, `edits.length > 1`, not the intricate edge-case handling that objection had in mind — and
+it falls on a real line rather than an arbitrary number, between the reflexive case and the
+consequential one.
+
+**What protects the single-cell press is redo, not a modal** — §10.5. Press Ctrl+Z by accident,
+press Ctrl+Shift+Z. That is the native answer, and it is better than a dialog because it also
+covers the press you meant at the time and regretted afterwards, which no confirmation can.
+
+**One consequence carried over:** naming a skip count in the modal means knowing the §3 result before
+it opens. §6.2 puts the check inside the write, so the cheap version is to confirm with counts only
+and report skips afterwards. Previewing the skips as well means a read before the modal and a second
+inside the write — the double read that §6.2 exists to avoid.
 
 ### 10.4 Whether undo is reachable only from the table view
 
@@ -348,10 +387,55 @@ enumeration of app states, and it covers the two places the same hazard appears 
 `contenteditable` in the modal, and an open cell editor in the table itself. Undoing a *file write*
 when someone meant to undo the word they just typed is §1's trap with a disk write behind it.
 
-**So Ctrl+Z is not free the way the button is**, which is the argument for §9's "not at first"
-rather than a footnote to it: three conditions, two of which exist already, and a fourth-order case
-in key repeat — hold Ctrl+Z and auto-repeat pops several batches before you let go. The confirmation
-of §10.3 absorbs that one, which is a second reason to want it.
+**So Ctrl+Z is not free the way the button is** — but three conditions, two of which exist already,
+is a small price for the gesture people actually use, and §9 treats it as the primary entry point
+rather than a later addition.
+
+Two details that only show up once it is real:
+
+**Key repeat.** Hold Ctrl+Z and auto-repeat pops several batches before you let go. The §10.3
+confirmation absorbs it for a batch; for the single-cell case, redo (§10.5) is what makes it
+recoverable rather than alarming.
+
+**Where focus goes after a commit.** This is the moment undo is most wanted — the typo noticed
+instantly — and it works today only by accident: the refresh re-renders the whole table, the cell
+element is destroyed, nothing restores focus, so `body` has it and `isTypingTarget()` is false. It
+stays working if focus is later restored to the edited cell, because a re-rendered cell is not an
+open editor. What would break it is reopening the editor after a commit, which nothing wants. **So
+the guard has to ask whether the cell is an open editor, not whether it is the cell just edited** —
+the same distinction `cell-editor.js` already draws.
+
+### 10.5 Whether redo comes with it
+
+**Leaning: yes — and this reverses an earlier "no", on both of the grounds it was refused.**
+
+It was refused for doubling the state machine and the staleness surface, "which has to know which
+direction you last went". That is wrong. **The record of §4 is symmetric, so the check is
+direction-free:**
+
+| | check | write |
+|---|---|---|
+| the edit | — | span goes `before` → `after` |
+| undo it | span says `after` | write `before` |
+| redo it | span says `before` | write `after` |
+
+Undo and redo are the same record with the two fields swapped, through the same `expect`/`raw` pair
+of §6.2. There is no second check and no direction to remember: pop from one stack, apply, push onto
+the other. The cost is one more array in `appState` and the ordinary rule that **a new edit clears
+the redo stack**.
+
+It was also refused because nobody asked for it. But once Ctrl+Z is the primary gesture,
+Ctrl+Shift+Z is asked for by muscle memory — **undo without redo is half a gesture**, and the half
+that is missing is the one that makes the first half safe to press.
+
+That is what lets §10.3 drop the confirmation for a single cell. The two questions are really one:
+*what makes an accidental undo recoverable?* A modal answers "stop the press you did not mean"; redo
+answers "recover from any press, including the one you meant at the time". The second is stronger,
+cheaper here than it looks, and the one people already know.
+
+**What it does not change:** redo entries go stale exactly like undo entries, and the §3 check catches
+them identically — edit a cell in the note modal after undoing, and the redo is refused with the same
+sentence. Nothing new to write.
 
 ---
 
@@ -363,16 +447,18 @@ item-level splice of §4.
 
 ### Step 11a — the stack and one entry deep
 
-`appState.undoStack`, the record from §6.3 pushed onto it, `applyRawEdits` exported, and the §3 check.
-A button that undoes the most recent batch.
+`appState.undoStack`, the record from §6.3 pushed onto it, `applyRawEdits` exported with its `expect`
+argument, and the §3 check inside it. A button and Ctrl+Z, both reaching the same handler — **the key
+is part of this step, not a follow-up**, because it is the gesture the design has to survive.
 
 **§10 has to be answered before this can be finished.** The stack, the check and the write are
 buildable and testable without it — but where the button goes, what the app says afterwards, and
 whether a confirmation stands in front of it are all open, and the last of those changes whether the
 files are read once or twice (§10.3).
 
-**Checkable by:** edit a cell, undo it, watch the file on disk go back. Then edit the cell, change the
-same property in the note modal, undo, and watch it refuse.
+**Checkable by:** edit a cell, undo it with the key, watch the file on disk go back. Then edit the
+cell, change the same property in the note modal, undo, and watch it refuse. Then press Ctrl+Z with
+a note open, with a cell editor open, and in grid view, and watch nothing happen in all three.
 
 ### Step 11b — depth, and the batch
 
@@ -388,11 +474,11 @@ of fifty and a batch of one take the same path.
 | file | new? | why |
 |------|------|-----|
 | `public/js/editing/undo-cell-edits.js` | **new** | the check of §3 and the call back into `applyRawEdits` |
-| `public/js/ui/ui-functions-click/undo-cell-edit.js` | **new** | one file per user action |
-| `public/js/services/store.js` | edit | `appState.undoStack` |
+| `public/js/ui/ui-functions-click/undo-cell-edit.js` | **new** | one file per user action — undo and redo are one action with a direction, not two files |
+| `public/js/services/store.js` | edit | `appState.undoStack` and `appState.redoStack` |
 | `public/js/editing/save-cell-edit.js` | edit | export `applyRawEdits`; §6.2 built the split already |
 | `public/js/ui/event-listeners-add.js` | edit | register the action |
-| `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | the Ctrl+Z guard when it arrives, and exporting `isTypingTarget()` — §10.4 |
+| `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | Ctrl+Z and Ctrl+Shift+Z with the three-condition guard, and exporting `isTypingTarget()` — §10.4 |
 | `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the button, if §10.1 lands where it leans |
 | ~~a confirmation dialog~~ | **exists** | `showWarningModal()` is already reused across three flows and returns a promise — §10.3 needs no new dialog, only the text |
 
