@@ -119,12 +119,25 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // files that have gone drop out here.
     renderSidebarRecent();
 
+    // A render that draws the same notes in the same order moves nothing, so there is nothing for
+    // a view transition to animate — it would capture the whole page twice and then spend a second
+    // morphing every row onto itself. That is every cell edit, every autosave, and a sort that
+    // happens to change nothing.
+    //
+    // Asked before rendering, because that is when it has to be answered: the ids about to be drawn
+    // are pageFileIds, worked out above, and the ids on screen are in the DOM. A view whose renderer
+    // leaves no data-vt-id reads as "not the same", which keeps the transition it has today.
+    const onScreen = [...document.querySelectorAll('#output [data-vt-id]')].map(el => el.dataset.vtId);
+    const toDraw = [...appState.paginationState.pageFileIds];
+    const nothingMoved = onScreen.length === toDraw.length
+        && onScreen.every((id, index) => id === toDraw[index]);
+
     // Card transitions only run when the modal is closed — the ::backdrop pseudo-element
     // is not captured by the View Transitions API, so it disappears behind the overlay
     // whenever a card transition fires while the modal is open.
     const modalOpen = ['file-content-modal', 'modal-settings', 'modal-layouts', 'modal-columns']
         .some(id => document.getElementById(id)?.open);
-    if (document.startViewTransition && !modalOpen) {
+    if (document.startViewTransition && !modalOpen && !nothingMoved) {
         const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
             el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
         );
