@@ -46,8 +46,13 @@ export async function addFilterThenFindMatches(searchObject) {
 
 /**
  * Processes the search results, updates the UI, and renders the files.
+ *
+ * @param {boolean} [keepPage=false] - Stay on the current page instead of going back to page 1.
+ *   False for every filter a user adds, removes or toggles, where page 1 is where the new results
+ *   start. True for a re-run over results that were already on screen — a save re-runs the filters
+ *   so the counts stay right, and being sent back to page 1 by an edit on page 3 is startling.
  */
-export function processSeachResults() {
+export function processSeachResults(keepPage = false) {
 
     // returns an inverted set of results - fileids then filterIds, then result objects. if thismap.has(fileId) then is an OR match/ if thismap.get(fileId).values.size === count of active filters then AND match
     const fileMatchResultsMap = invertSearchResultsMap();
@@ -59,6 +64,6 @@ export function processSeachResults() {
 
     renderFilters();
 
-    renderFiles(); // note that highlights applied within the renderFiles function
+    renderFiles(true, keepPage); // note that highlights applied within the renderFiles function
 
 }

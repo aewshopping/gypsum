@@ -34,8 +34,9 @@ export function refreshFileAfterSave(snapshot, resort = true) {
 /**
  * Re-parses the saved file from disk, updates appState, and re-renders
  * the tag taxonomy and file list.
- * renderFiles keeps the current page: the file list sits behind the open modal, and a
- * save must not silently jump it back to page 1 while the user is typing.
+ * The current page is kept, whether the render happens here or inside processSeachResults: the
+ * file list sits behind the open modal, and a save must not silently jump it back to page 1 while
+ * the user is typing — nor an edit made on page 3 of a filtered table.
  * A cell edit passes resort false: the row would otherwise leap away from under the pointer when
  * the column being edited is the one the table is sorted by.
  * @param {{ filepath: string, filename: string }} snapshot
@@ -83,13 +84,17 @@ async function applyRefresh(snapshot, resort = true) {
             const { property, direction } = appState.sortState;
             sortAppStateFiles(property, propertyType(property), direction);
         }
-        renderFiles(true, true);
 
+        // One render either way. The filters are re-run first and processSeachResults does the
+        // rendering, because it renders anyway — rendering before it meant two full renders and,
+        // where a view transition ran, two of those interrupting each other.
         if (appState.search.filters.size > 0) {
             const filterIds = [...appState.search.filters.keys()];
             filterIds.forEach(id => appState.search.results.delete(id));
             await Promise.all(filterIds.map(id => searchFiles(id)));
-            processSeachResults();
+            processSeachResults(true);
+        } else {
+            renderFiles(true, true);
         }
     } catch (err) {
         console.error('Failed to refresh file state after save:', err);

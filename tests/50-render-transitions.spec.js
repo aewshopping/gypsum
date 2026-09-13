@@ -121,7 +121,7 @@ test('changing the page runs one', async ({ page }) => {
   await sortBy(page, 'title');          // any re-render picks up the new page size
   await countTransitions(page);
 
-  await page.locator('[data-action="change-page"]').nth(1).click();
+  await page.locator('[data-action="change-page"][data-page="2"]').click();
 
   await expect.poll(() => transitions(page)).toBe(1);
 });
@@ -137,4 +137,62 @@ test('a render that changes nothing at all runs none', async ({ page }) => {
   });
 
   expect(await transitions(page)).toBe(0);
+});
+
+// ---------------------------------------------------------------- one render, one page
+
+/** Counts full rewrites of #output from here on. */
+async function countRenders(page) {
+  await page.evaluate(() => {
+    window.__renders = 0;
+    new MutationObserver(() => { window.__renders++; })
+      .observe(document.getElementById('output'), { childList: true });
+  });
+}
+
+test('an edit with a filter active renders once and stays on the page', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(async () => {
+    const { setPaginationSize } = await import('/public/js/constants.js');
+    setPaginationSize(2);
+  });
+
+  // every note holds 'text' in its note property, so the filter leaves three pages of two
+  await page.fill('#searchbox', 'text');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('[data-action="change-page"][data-page="2"]')).toBeVisible();
+
+  // moved through the app's own state rather than by clicking, so the page change's own
+  // transition is finished and gone before the edit being measured starts
+  await page.evaluate(async () => {
+    const { appState } = await import('/public/js/services/store.js');
+    const { renderFiles } = await import('/public/js/ui/ui-functions-render/a-render-all-files.js');
+    appState.paginationState.currentPage = 2;
+    renderFiles(true, true);
+  });
+  await page.waitForTimeout(1500);
+
+  await countRenders(page);
+  await countTransitions(page);
+
+  const cell = page.locator('.note-table[data-vt-id] [data-prop="note"]').first();
+  const before = await cell.textContent();
+  await cell.click();
+  await cell.click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(' more');
+  await page.keyboard.press('Escape');
+
+  await expect.poll(() => page.evaluate(() => Object.values(window.__files).join('|')))
+    .toContain(`${before} more`);
+  await page.waitForTimeout(500);
+
+  const after = await page.evaluate(async () => {
+    const { appState } = await import('/public/js/services/store.js');
+    return { renders: window.__renders, vt: window.__vt, page: appState.paginationState.currentPage };
+  });
+
+  expect(after.renders).toBe(1);   // was two: one here, one inside processSeachResults
+  expect(after.vt).toBe(0);
+  expect(after.page).toBe(2);      // was reset to 1, because that second render kept no page
 });
