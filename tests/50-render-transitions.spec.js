@@ -221,3 +221,45 @@ test('a cell edit refreshes without waiting for an idle callback', async ({ page
   await expect(cellFor(page, 'Note 0', 'note')).toHaveText('written and shown', { timeout: 2000 });
   expect(await page.evaluate(() => window.__idleCalls)).toBe(0);
 });
+
+// ---------------------------------------------------------------- rows only, where that is enough
+
+test('a cell edit replaces the rows and leaves the header alone', async ({ page }) => {
+  await openTable(page);
+
+  // marks on the nodes a full render would throw away
+  await page.evaluate(() => {
+    document.querySelector('.note-table-header').dataset.kept = 'header';
+    document.querySelector('.note-table[data-vt-id]').dataset.kept = 'row';
+  });
+
+  const cell = cellFor(page, 'Note 0', 'note');
+  await cell.click();
+  await cell.click();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('rows only');
+  await page.keyboard.press('Escape');
+
+  await expect(cellFor(page, 'Note 0', 'note')).toHaveText('rows only');
+
+  await expect(page.locator('.note-table-header[data-kept="header"]')).toHaveCount(1);
+  await expect(page.locator('.note-table[data-kept="row"]')).toHaveCount(0);
+});
+
+test('a note that gains a front matter key gets the column drawn', async ({ page }) => {
+  await openTable(page);
+  await expect(page.locator('.note-table-cell-header[data-property="brandnew"]')).toHaveCount(0);
+
+  // the case the rows-only path cannot serve: the note modal's autosave can add a key, and the
+  // header has no column for it. Driven at the refresh itself, which is the seam that decides.
+  await page.evaluate(async () => {
+    window.__files['note-0.md'] =
+      '---\nstatus: draft\nnote: text 0\nbrandnew: yes\n---\n# Note 0\n\nBody.\n';
+    const { refreshFileNow } = await import('/public/js/editing/refresh-file-state.js');
+    await refreshFileNow({ filepath: 'note-0.md', filename: 'note-0.md' });
+  });
+
+  await expect(page.locator('.note-table-cell-header[data-property="brandnew"]')).toHaveCount(1);
+  await expect(cellFor(page, 'Note 0', 'brandnew')).toHaveText('yes');
+});

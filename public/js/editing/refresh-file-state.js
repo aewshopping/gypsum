@@ -53,6 +53,9 @@ export function refreshFileNow(snapshot, resort = true) {
  * The current page is kept, whether the render happens here or inside processSeachResults: the
  * file list sits behind the open modal, and a save must not silently jump it back to page 1 while
  * the user is typing — nor an edit made on page 3 of a filtered table.
+ *
+ * The table's rows are replaced on their own unless the file has gained a front matter key, which
+ * is a column the header does not have yet. Everything else a save can change is in the rows.
  * A cell edit passes resort false: the row would otherwise leap away from under the pointer when
  * the column being edited is the one the table is sorted by.
  * @param {{ filepath: string, filename: string }} snapshot
@@ -66,7 +69,14 @@ async function applyRefresh(snapshot, resort = true) {
 
         const existingFile = appState.myFiles[fileIndex];
 
+        // Re-parsing registers any front matter key the file has gained, which is a new column. The
+        // rows can be replaced on their own only while the columns are the ones already drawn, so
+        // the count is taken either side of the re-parse. A cell edit can never add one — a column
+        // exists because the property is registered — but a note edited in the modal can.
+        const propertyCount = appState.myFilesProperties.size;
+
         const freshFile = await getFileDataAndMetadata(existingFile.handle, 0);
+        const fullRender = appState.myFilesProperties.size !== propertyCount;
 
         const tagsHaveChanged = !tagsEqual(existingFile.tags, freshFile.tags);
         const colorHasChanged = existingFile.color !== freshFile.color;
@@ -108,9 +118,9 @@ async function applyRefresh(snapshot, resort = true) {
             const filterIds = [...appState.search.filters.keys()];
             filterIds.forEach(id => appState.search.results.delete(id));
             await Promise.all(filterIds.map(id => searchFiles(id)));
-            processSeachResults(true);
+            processSeachResults(fullRender, true);
         } else {
-            renderFiles(true, true);
+            renderFiles(fullRender, true);
         }
     } catch (err) {
         console.error('Failed to refresh file state after save:', err);
