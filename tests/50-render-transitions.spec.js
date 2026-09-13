@@ -263,3 +263,55 @@ test('a note that gains a front matter key gets the column drawn', async ({ page
   await expect(page.locator('.note-table-cell-header[data-property="brandnew"]')).toHaveCount(1);
   await expect(cellFor(page, 'Note 0', 'brandnew')).toHaveText('yes');
 });
+
+// ---------------------------------------------------------------- the settings toggle
+
+/** Turns "Animate view changes" off through the settings modal, the way a user would. */
+async function turnAnimationsOff(page) {
+  await page.click('[data-action="open-settings-modal"]');
+  await expect(page.locator('#view-transitions-enabled')).toBeVisible();
+  await page.locator('#view-transitions-enabled').uncheck();
+  await page.click('[data-action="close-settings-modal"]');
+  await expect(page.locator('#view-transitions-enabled')).not.toBeVisible();
+}
+
+test('with animations off, a sort starts no transition at all', async ({ page }) => {
+  await openTable(page);
+  await turnAnimationsOff(page);
+  await countTransitions(page);
+
+  const order = () => page.evaluate(() =>
+    [...document.querySelectorAll('.note-table[data-vt-id]')].map(row => row.dataset.vtId).join());
+  const before = await order();
+
+  await sortBy(page, 'status');
+
+  // the rows moved, which is what would animate with the setting on — and the sort still happened,
+  // which is the other half of "skipped" meaning skipped rather than cancelled
+  await expect.poll(order).not.toBe(before);
+  expect(await transitions(page)).toBe(0);
+});
+
+test('with animations off, opening and closing a note starts none', async ({ page }) => {
+  await openTable(page);
+  await turnAnimationsOff(page);
+  await countTransitions(page);
+
+  await page.locator('[data-action="open-file-content-modal"]').first().click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+  expect(await transitions(page)).toBe(0);
+
+  await page.click('[data-action="close-file-content-modal"]');
+  await expect(page.locator('#file-content-modal')).not.toBeVisible();
+  expect(await transitions(page)).toBe(0);
+});
+
+test('with animations on, opening a note still animates', async ({ page }) => {
+  await openTable(page);
+  await countTransitions(page);
+
+  await page.locator('[data-action="open-file-content-modal"]').first().click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+
+  expect(await transitions(page)).toBe(1);
+});

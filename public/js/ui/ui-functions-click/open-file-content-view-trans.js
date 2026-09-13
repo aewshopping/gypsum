@@ -14,6 +14,7 @@ import { showWarningModal } from './warning-modal.js';
 import { resetEditorCursorOffset } from './editor-color-pick.js';
 import { recordFileOpen } from '../../services/recent-files.js';
 import { renderSidebarRecent } from '../render-sidebar-recent.js';
+import { withViewTransition } from '../ui-functions-render/view-transition.js';
 
 const dialog = document.getElementById('file-content-modal');
 const movingbox = document.getElementById("moving-file-content-container"); // modal immediate child - need to move this not dialog because trying to move dialog gets weird quickly
@@ -98,7 +99,8 @@ window.addEventListener('beforeunload', (evt) => {
 });
 
 /**
- * Opens a file in the content modal with a view transition.
+ * Opens a file in the content modal with a view transition, or without one when the settings
+ * toggle is off — see ui-functions-render/view-transition.js.
  * @param {string} file_to_open - internalId of the file to open.
  * @param {string} color - Colour to tint the modal header and content with.
  * @param {HTMLElement|null} [animateFrom=null] - Element to animate the modal out of, normally
@@ -115,7 +117,7 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
   if (animateFrom) animateFrom.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
-  const transition = document.startViewTransition(async function () {
+  const transition = withViewTransition(async function () {
 
     dialog.showModal();
     dialog.classList.add("dialog-view"); // backdrop fade in
@@ -233,7 +235,7 @@ export function doClose() {
   // there really is nothing to animate back to.
   const animateTo = openedFileId ? (file_box ?? offscreenNoteTarget) : null;
 
-  const transition = document.startViewTransition(function () {
+  const transition = withViewTransition(function () {
 
     dialog.classList.remove("dialog-view"); // backdrop fade out
     movingbox.classList.remove("moving-file-content-view");

@@ -11,6 +11,7 @@ import { PAGINATION_SIZE } from "../../constants.js";
 import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 import { renderPagination } from "../pagination/render-pagination.js";
 import { fileTransitionName } from "./file-transition-name.js";
+import { viewTransitionsWanted } from "./view-transition.js";
 import { renderSidebarRecent } from "../render-sidebar-recent.js";
 import { reparkColumnResizer } from "../ui-functions-table/table-col-resize.js";
 
@@ -137,7 +138,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // whenever a card transition fires while the modal is open.
     const modalOpen = ['file-content-modal', 'modal-settings', 'modal-layouts', 'modal-columns']
         .some(id => document.getElementById(id)?.open);
-    if (document.startViewTransition && !modalOpen && !nothingMoved) {
+    if (viewTransitionsWanted() && !modalOpen && !nothingMoved) {
         const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
             el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
         );

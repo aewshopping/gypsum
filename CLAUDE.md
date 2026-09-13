@@ -209,6 +209,25 @@ where spans would be mangled by the first keystroke. Every input rebuilds that c
 ordinary letter looks like it cannot change anything, but the letter after a newly typed comma starts
 an item no range covers.
 
+### View transitions: when one runs at all
+
+Every re-render of the file list, and opening or closing a note, can run a view transition. One
+captures the whole page twice and then animates every named group for a second, so the question is
+worth asking before starting one — `ui-functions-render/view-transition.js` is where it is asked.
+
+- **A render that draws the same notes in the same order does not start one.** Nothing moves, so
+  there is nothing to animate — that is every cell edit and every autosave. `renderFiles` compares
+  the ids it is about to draw (`paginationState.pageFileIds`, already worked out) with the ids in
+  the DOM, before rendering, because that is when the answer is needed. A sort, a filter, a page
+  change and a view switch all still animate.
+- **"Animate view changes" off means no transition is started**, not a transition with a zero-length
+  animation. The CSS in `view-transitions-off.css` does the second thing and stays as a backstop;
+  `viewTransitionsWanted()` does the first, which is the one that saves the snapshots. Both read the
+  checkbox rather than a copy of it.
+- **`withViewTransition(update)` is for a caller that needs the transition object.** Its stand-in
+  offers `finished`, resolved once the update has run, so nothing needs a branch of its own: cleanup
+  that belongs after an animation simply happens straight away.
+
 ### Writing a cell edit back to the note
 
 Closing an edited cell writes it into the note's front matter. See
@@ -314,6 +333,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
+| `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |
