@@ -6,7 +6,7 @@ import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlText, toYamlItem } from '../services/file-parsing/yaml-value-write.js';
 import { splitFlowItems } from '../services/file-parsing/flow-list.js';
 import { saveFileCopy } from './save-file-copy.js';
-import { refreshFileAfterSave } from './refresh-file-state.js';
+import { refreshFileNow } from './refresh-file-state.js';
 
 /**
  * @file A cell edit, all the way into the note's front matter.
@@ -218,14 +218,15 @@ async function applyRawEdits(rawEdits) {
         const snapshot = { filepath: file.filepath, filename: file.filename, content: original };
         if (!await saveFileCopy(snapshot, updated)) continue;
 
+        // Now rather than at the next idle moment: the user has just pressed a key to finish with
+        // this cell and is watching the table. Autosave's deferral is for a save nobody asked for.
+        //
         // Not re-sorted: edit a cell in the column the table is sorted by and the row leaps away
         // from under you.
         //
-        // One refresh per file, which a batch across several files will have to change:
-        // refreshFileAfterSave holds one queued refresh and cancels the previous one, so it would
-        // re-parse only the last file and leave the rest stale in memory — and render them. A
-        // single edit is unaffected.
-        refreshFileAfterSave(snapshot, false);
+        // One refresh per file, which a batch across several files will have to change: it re-reads
+        // and re-renders per file, where a batch wants to re-read all of them and render once.
+        refreshFileNow(snapshot, false);
 
         for (const splice of splices) {
             records.push({

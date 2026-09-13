@@ -196,3 +196,28 @@ test('an edit with a filter active renders once and stays on the page', async ({
   expect(after.vt).toBe(0);
   expect(after.page).toBe(2);      // was reset to 1, because that second render kept no page
 });
+
+// ---------------------------------------------------------------- no waiting for an idle moment
+
+test('a cell edit refreshes without waiting for an idle callback', async ({ page }) => {
+  await openTable(page);
+
+  // An idle callback can wait up to its two-second timeout on a busy thread. Starving it outright
+  // is how to tell "we no longer wait for one" from "one happened to fire quickly".
+  await page.evaluate(() => {
+    window.__idleCalls = 0;
+    window.requestIdleCallback = () => { window.__idleCalls++; return 0; };   // never fires
+    window.cancelIdleCallback = () => {};
+  });
+
+  const cell = cellFor(page, 'Note 0', 'note');
+  await cell.click();
+  await cell.click();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('written and shown');
+  await page.keyboard.press('Escape');
+
+  await expect(cellFor(page, 'Note 0', 'note')).toHaveText('written and shown', { timeout: 2000 });
+  expect(await page.evaluate(() => window.__idleCalls)).toBe(0);
+});

@@ -19,6 +19,12 @@ let queuedRefresh = null;
  * typing. Only one refresh is ever pending — a burst of autosaves replaces the queued one
  * rather than stacking up full re-renders, and the newer snapshot reads fresher disk state
  * anyway.
+ *
+ * **For a save the user is waiting on, call refreshFileNow instead.** The deferral is right for a
+ * save nobody asked for, and wrong for one somebody just pressed a key to finish: an idle callback
+ * can wait up to its two-second timeout on a busy main thread, and the table would sit there
+ * showing the old value for all of it.
+ *
  * @param {{ filepath: string, filename: string }} snapshot
  * @param {boolean} [resort=true] - Whether to put the file back in sort order afterwards.
  * @returns {void}
@@ -29,6 +35,16 @@ export function refreshFileAfterSave(snapshot, resort = true) {
         queuedRefresh = null;
         applyRefresh(snapshot, resort);
     }, { timeout: 2000 });
+}
+
+/**
+ * The same refresh, without the wait — for a save the user is standing over, like a cell edit.
+ * @param {{ filepath: string, filename: string }} snapshot
+ * @param {boolean} [resort=true] - Whether to put the file back in sort order afterwards.
+ * @returns {Promise<void>}
+ */
+export function refreshFileNow(snapshot, resort = true) {
+    return applyRefresh(snapshot, resort);
 }
 
 /**
