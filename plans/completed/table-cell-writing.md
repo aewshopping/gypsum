@@ -548,11 +548,14 @@ reason a flow list stays a flow list. A style is chosen only where there is noth
 text calls every item of every numeric list changed, so a one-item edit would rewrite the whole list
 and take the comment between the items with it.
 
-**What is still lost, and would be cheap to keep:** a list rewritten whole re-writes every item from
-scratch, so an item the note had quoted — `- "Doe, Jane"` — comes back bare. The value is identical
-and the parser agrees, but the bytes moved for an item nobody edited. The item spans are already in
-hand, so reusing the file's own text for the items that did not change is a few lines whenever it
-starts to annoy someone.
+**What is still lost, and stays lost on purpose:** a list rewritten whole re-generates every item
+from the cell's text, so a comment between two items goes — §5 priced that in — and an item the note
+had quoted, `- "Doe, Jane"`, comes back bare. Keeping the quotes is a few lines (reuse the file's own
+text for items that did not change); keeping the comment needs real alignment between the old items
+and the new ones, which is not worth it for a comment. **Taken as a limitation rather than a bug**,
+and written into CLAUDE.md as one: do not put comments between the items of a list. Its boundary is
+held by a test — every other comment in the block survives, including one after the list's last item,
+because a comment line never extends a key's span.
 
 **A note whose front matter did not read cleanly is locked twice**, which §7 asks for once. The
 renderer marks the cells, so the caret is refused with a sentence rather than silently; and the

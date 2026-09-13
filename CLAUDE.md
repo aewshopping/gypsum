@@ -222,8 +222,9 @@ Closing an edited cell writes it into the note's front matter. See
 - **The smallest number of bytes that does the job, and never a rebuilt block.** `parseYaml`'s
   optional `spans` Map says where a key's value sits, and `editing/save-cell-edit.js` replaces that
   span and nothing else — so comments, key order, blank lines and anything the parser skipped
-  survive. A list where one item's text changed splices that item alone, which is the only way a
-  comment *between* two items survives. The spans live inside the parser because a second answer to
+  survive. A list where one item's text changed splices that item alone; a list rewritten whole
+  re-generates every item from the cell's text, which is where the comment limitation below comes
+  from. The spans live inside the parser because a second answer to
   "where does this value end" would agree on the day it was written and drift after, and that drift
   writes into the wrong bytes of a note.
 - **Quote defensively, do not validate strictly.** Almost anything may be typed; `needsQuoting()` in
@@ -421,3 +422,14 @@ These are accepted trade-offs, not bugs:
 
 - **Two-level tags only** — `#parent/child` works; `#a/b/c` does not
 - **No diffing / reactivity** — full re-renders on state change are intentional for simplicity
+- **Do not put comments between the items of a front matter list.** Editing that list from the table
+  loses them. A cell hands back a flat list of strings, so an added, removed or reordered item
+  cannot be matched to the items already in the file and the whole value is rewritten — and a
+  comment *between* two items is inside the bytes that get replaced. Everywhere else in the block is
+  safe, and stays safe by test (`tests/49-table-cell-writing.spec.js`): above a key, between two
+  keys, after a list's last item, and between two items when only one item's *text* was edited.
+  Keeping it through a rewrite needs real alignment between the old items and the new ones, which is
+  not worth it — the loss is a comment, not a value.
+- **A `#` after a value on the same line is not a comment** — `status: draft # why` is the value
+  `draft # why`, since the parser only skips a line that *starts* with a hash. It therefore shows in
+  the cell like that and is written back with the value. Not a workaround for the above.

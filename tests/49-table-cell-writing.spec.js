@@ -443,6 +443,20 @@ test('adding an item rewrites the list in the style the file already uses', asyn
   await expect(cellFor(page, 'Alpha', 'people')).toHaveText('John Smith, "Doe, Jane", Rae Chen');
 });
 
+// The exact boundary of the "comments in a list block" limitation, so it stays true rather than
+// being remembered: the span of a key's value ends at its last item's line, and a comment line
+// never extends it. So only a comment *between* two items sits inside the bytes a rewrite replaces.
+test('a comment survives a rewrite unless it sits between two items', async ({ page }) => {
+  await openTable(page, {
+    'delta.md': '---\n  # above the key\npeople:\n- a\n- b\n  # after the last item\nstatus: draft\n---\n# Delta\n\nBody.\n',
+  });
+
+  await retype(page, cellFor(page, 'Delta', 'people'), 'a, b, c');
+
+  await expect.poll(() => fileText(page, 'delta.md'))
+    .toBe('---\n  # above the key\npeople:\n- a\n- b\n- c\n  # after the last item\nstatus: draft\n---\n# Delta\n\nBody.\n');
+});
+
 test('a flow list stays a flow list, item or whole', async ({ page }) => {
   await openTable(page);
   await setType(page, 'langs', 'array');
