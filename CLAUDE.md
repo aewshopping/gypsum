@@ -108,8 +108,11 @@ point. These rules follow, and they are the ones to hold:
   column's glyph is composed from two `<use>` elements, the type drawing moved up and left by that
   shift plus `#icon-lock-badge` laid over the corner it frees. Composed rather than drawn as a symbol
   per type, so the padlock exists once and a type's shape once; never scaled, so the type mark
-  measures the same on a locked column as on an open one, and drawn at the same weight either way —
-  the badge carries the difference, not a fade.
+  measures the same on a locked column as on an open one. **The header draws locked and open at one
+  weight** and lets the badge carry the difference, because nothing in a header is pressable. **The
+  picker fades its locked button as well** (`.info-modal-row-btn:disabled`), because there the glyph
+  *is* the button: the padlock says why the column is the app's, and the fade says this one does not
+  press.
 - **The type dialog (`#modal-column-type`) is reached from two places**: the glyph on a column
   picker row, and "change type" in the table's column menu. It is a dialog rather than a menu
   because a header cell opens one menu only, and because `showModal()` makes everything outside an
