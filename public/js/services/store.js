@@ -79,6 +79,18 @@ export const appState = {
   // load clears it. It drives which glyph the save button shows, and nothing else depends on it
   // being exact — a layout saved when it did not need to be costs nothing.
   tableLayouts: { names: [], active: null, isDirty: false },
+
+  // The type the user has chosen for each property, read from the same file's propertyTypes object.
+  // Map<string, {type?: string, search_type?: string}> — an absent key means "ask FILE_PROPERTIES".
+  //
+  // Separate from columnLayout because a type belongs to the property, not to one arrangement of
+  // columns: two layouts showing `due` cannot disagree about whether it holds dates, and switching
+  // between them must not change what the table sorts by. It also gives a type somewhere to live
+  // when the active layout is the app's defaults, which a layout entry could not.
+  //
+  // Session-scoped, cleared and refilled on folder load, exactly like myFilesProperties. Ask
+  // property-type.js rather than reading this directly — the schema is the other half of the answer.
+  propertyTypes: new Map(),
 }
 
 /**
@@ -165,6 +177,9 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
  * Session-scoped: cleared when a folder is loaded, and re-seeded from the defaults by the next
  * resolveColumns(). It lives here rather than in FILE_PROPERTIES, which is the property schema
  * that sorting and search also read.
+ *
+ * **A column's type is not here.** It belongs to the property rather than to this arrangement of
+ * columns, so it lives in appState.propertyTypes and is asked for through property-type.js.
  */
 export const TABLE_VIEW_COLUMNS = {
   hidden_always: ['handle', 'contentPeek'],

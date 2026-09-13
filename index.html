@@ -688,6 +688,12 @@
     <h2 class="menu-title">Table layouts</h2>
 
     <div id="layout-list"></div>
+
+    <!-- The way out of a folder's saved layouts altogether, including one written by an older
+         version of the file format. Same escape hatch, same place, as the history modal's
+         "clear all history". -->
+    <button id="layout-clear-btn" class="layout-clear-btn" data-action="layout-clear"
+            data-tip="delete every saved layout and every column type you have set">delete all layouts</button>
   </dialog>
 
   <dialog id="modal-color-picker" data-action="close-color-picker-outside">

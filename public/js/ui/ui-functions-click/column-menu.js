@@ -25,7 +25,8 @@
 import { applySortAndRender } from './sort-object.js';
 import { openColumnTypeDialog } from './column-type-set.js';
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
-import { isInfoColumn } from '../../services/property-type.js';
+import { isPropertyEditable, setPropertyType } from '../../services/property-type.js';
+import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
@@ -146,10 +147,12 @@ export function handleColumnMenuOpen(evt, headerCell) {
     // searching it and giving it a type are all about an id nobody sees. Offered but inert, rather
     // than absent, so the menu is the same menu on every column.
     //
-    // A column the app fills in itself loses only its type. Sorting by size or by last modified is
-    // the whole point of having them, so those two items stay live.
+    // A column the app fills in itself loses only its type — sorting by size or by last modified is
+    // the whole point of having them, so those two items stay live. That is every locked column,
+    // not only the info ones: isPropertyEditable is the same question the header's padlock asks, so
+    // a column drawn as locked is a column with no type to set.
     const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(property);
-    const noType = isControl || isInfoColumn(property);
+    const noType = !isPropertyEditable(property);
 
     for (const action of ['column-sort-asc', 'column-sort-desc', 'column-search']) {
         const item = menu.querySelector(`[data-action="${action}"]`);
@@ -204,20 +207,20 @@ export function handleColumnChangeType() {
 }
 
 /**
- * Writes a header cell's type back into the layout and redraws the table.
+ * Records a header cell's type against its property, saves it, and redraws the table.
+ *
+ * The layout is not marked dirty and is not touched: a type belongs to the property rather than to
+ * this arrangement of columns, so it has its own place in the file and reaches it at once. There is
+ * nothing here for a later "save layout" to pick up.
  * @param {HTMLElement} headerCell
  * @returns {void}
  */
 function commitHeaderType(headerCell) {
-    const entry = TABLE_VIEW_COLUMNS.columnLayout.get(headerCell.dataset.property);
-    if (entry) {
-        entry.type = headerCell.dataset.type;
-        entry.search_type = headerCell.dataset.searchType;
-    }
+    setPropertyType(headerCell.dataset.property, headerCell.dataset.type, headerCell.dataset.searchType);
+    savePropertyTypes();
 
     closeColumnMenu();
     clearHeaderSelection();
-    markLayoutDirty();
     renderFiles();
 }
 

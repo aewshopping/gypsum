@@ -1,22 +1,45 @@
 /* A date cell open for editing: the text takes the caret, the calendar glyph opens the browser's
    own picker, and the user chooses which to use. See plans/table-cell-editors.md §4.3. */
 
+/* One size for the control, so the button, the invisible input laid over it and the room the text
+   leaves for it cannot drift apart. It is one line box tall and sits on the first line of the
+   value, so it stands exactly as tall as the line it is beside — which is what keeps it in
+   proportion when --table-line-height or the app's font setting changes the row's height.
+
+   Three literals before this, chosen by eye against a 32px row; the row then grew to 39.2px when it
+   was told what the leading costs (note-table.css), and the glyph stayed where it was and read as
+   too small for the box around it.
+
+   In `em` rather than pixels so it follows the app's font setting, and in a custom property so the
+   three rules below cannot be changed apart. Note a custom property carrying an `em` is substituted
+   unresolved and measured against whoever *uses* it — which is the whole reason the input below has
+   to be told `font: inherit`. */
+.note-table-cell.is-expanded {
+    --cell-date-control: calc(var(--table-line-height) * 1em);
+}
+
 /* The editable region is this span rather than the cell, so the input beside it is never inside a
    contenteditable. Its own outline would be a second box inside the cell's, which already marks
-   the open cell. Room on the right so a long value does not run under the glyph. */
+   the open cell. Room on the right so a long value does not run under the glyph: the control's own
+   width, and a cell's padding again as the gap. */
 .cell-date-text {
     display: inline-block;
-    padding-right: 1.4em;
+    padding-right: calc(var(--cell-date-control) + var(--table-cell-padding));
     outline: none;
 }
 
-/* Sits in the cell's top corner. The cell is out of flow when expanded, so it is the containing
+/* Sits on the cell's first line, inset by the same padding the cell gives its text, so its top edge
+   and the line's are the same edge. The cell is out of flow when expanded, so it is the containing
    block for both this and the input. */
 .cell-date-pick {
     position: absolute;
-    top: 3px;
-    right: 3px;
+    top: var(--table-cell-padding);
+    right: var(--table-cell-padding);
+    width: var(--cell-date-control);
+    height: var(--cell-date-control);
     display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 2px;
     border: none;
     border-radius: 4px;
@@ -30,25 +53,32 @@
 }
 
 /* The same drawing and weight the column header puts on a date column, so the glyph means the same
-   thing in both places. */
+   thing in both places. It fills its button rather than setting a size of its own, which is what
+   ties it to the row. */
 .cell-date-glyph {
-    width: 1.15em;
-    height: 1.15em;
+    width: 100%;
+    height: 100%;
     color: var(--colour-contr);
     opacity: 0.55;
 }
 
 /* The value holder, laid exactly over the button. Rendered but invisible, because showPicker()
    needs a box to anchor the calendar to — display:none and the hidden attribute both stop it
-   opening at all. pointer-events:none so the click lands on the button above it. */
+   opening at all. pointer-events:none so the click lands on the button above it.
+
+   font: inherit is what makes "exactly over" true. base.css gives it to every button but not to an
+   input, which keeps a font-size of its own — so the shared em above measured 22.7px here against
+   the button's 27.2px, and the old literals 20px against 22.4px. The picker hung off a box that had
+   never quite matched the thing that opened it. */
 .cell-date-input {
     position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 1.5em;
-    height: 1.5em;
+    top: var(--table-cell-padding);
+    right: var(--table-cell-padding);
+    width: var(--cell-date-control);
+    height: var(--cell-date-control);
     padding: 0;
     border: none;
+    font: inherit;
     opacity: 0;
     pointer-events: none;
 }

@@ -1,6 +1,6 @@
 /**
- * @file Reads and writes .gypsum/table_layouts.gypsum — every saved layout for the folder, and
- * which one is in use.
+ * @file Reads and writes .gypsum/table_layouts.gypsum — every saved layout for the folder, which
+ * one is in use, and the type the user has chosen for each property.
  *
  * One file rather than one per layout: a layout's name is a JSON key, so nothing has to be
  * sanitised into a filename, renaming is a key change rather than the write-then-delete the File
@@ -13,9 +13,18 @@
 
 import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { SAVE_FOLDER, LAYOUTS_FILENAME } from '../constants.js';
-import { layoutFromColumnLayout, applyLayoutToColumnLayout } from './layout-apply.js';
+import { layoutFromColumnLayout, applyLayoutToColumnLayout,
+         propertyTypesFromState, applyPropertyTypesFromFile } from './layout-apply.js';
 
-const LAYOUT_VERSION = 1;
+/**
+ * 2 since propertyTypes moved out of the layouts and up to the top of the document.
+ *
+ * There is no migration branch: the app is still in development, and "delete all layouts" is the
+ * way past a version 1 file. A version 1 file left in place is read as a document with no
+ * propertyTypes, and the types it kept on its columns are simply not read — so it loses its types
+ * rather than breaking. The number is here so a later shape change has something to branch on.
+ */
+const LAYOUT_VERSION = 2;
 
 /**
  * Writes run one at a time, in the order they were asked for.
@@ -36,11 +45,11 @@ function enqueue(task) {
 }
 
 /**
- * No layouts, and the app's built-in defaults in use.
- * @returns {{layoutVersion: number, active: string|null, layouts: object}}
+ * No layouts, no chosen types, and the app's built-in defaults in use.
+ * @returns {{layoutVersion: number, propertyTypes: object, active: string|null, layouts: object}}
  */
 function emptyDocument() {
-    return { layoutVersion: LAYOUT_VERSION, active: null, layouts: {} };
+    return { layoutVersion: LAYOUT_VERSION, propertyTypes: {}, active: null, layouts: {} };
 }
 
 /**
@@ -51,7 +60,7 @@ function emptyDocument() {
  * layouts could not be read". The distinction would not change what any of them do.
  *
  * @async
- * @returns {Promise<{layoutVersion: number, active: string|null, layouts: object}>}
+ * @returns {Promise<{layoutVersion: number, propertyTypes: object, active: string|null, layouts: object}>}
  */
 export async function readLayouts() {
     if (!appState.dirHandle) return emptyDocument();
@@ -61,6 +70,8 @@ export async function readLayouts() {
         const parsed = JSON.parse(await (await fileHandle.getFile()).text());
         return {
             layoutVersion: parsed.layoutVersion ?? LAYOUT_VERSION,
+            propertyTypes: (parsed.propertyTypes && typeof parsed.propertyTypes === 'object')
+                ? parsed.propertyTypes : {},
             active: typeof parsed.active === 'string' ? parsed.active : null,
             layouts: (parsed.layouts && typeof parsed.layouts === 'object') ? parsed.layouts : {},
         };
@@ -85,7 +96,9 @@ async function writeLayouts(doc) {
         const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });
         const fileHandle = await gypsumDir.getFileHandle(LAYOUTS_FILENAME, { create: true });
         const writable = await fileHandle.createWritable();
-        await writable.write(JSON.stringify(doc, null, 2));
+        // Stamped here rather than trusted from the file, so a document this app wrote always says
+        // which shape it is in — an older file re-saved is now in the new shape, whatever it said.
+        await writable.write(JSON.stringify({ ...doc, layoutVersion: LAYOUT_VERSION }, null, 2));
         await writable.close();
         return true;
     } catch {
@@ -124,21 +137,92 @@ export function nextLayoutName(names) {
 }
 
 /**
- * Loads the active layout into columnLayout, and the layout list into appState.
+ * Loads the chosen types and the active layout into memory, and the layout list into appState.
  *
  * Called by both folder loaders once a directory handle is in place. When there is no file, or
  * the active layout is the app's defaults, columnLayout is left empty and resolveColumns() seeds
  * the defaults on the next render exactly as it always has — an empty Map already means
  * "use the defaults", so a folder that has never saved a layout needs no special case.
  *
+ * The types are applied either way, before the layout and outside the `if`. They are not part of a
+ * layout, so a folder using the app's defaults has them too — which is the whole point of their
+ * having been moved out.
+ *
+ * Queued alongside the writes, unlike the other readers, because the picker's reset calls this: a
+ * reset that overtook a type still being written would repaint the list from the file as it was
+ * before the change.
+ *
  * @async
  * @returns {Promise<void>}
  */
-export async function applyActiveLayout() {
-    const doc = await readLayouts();
-    refreshState(doc);
-    const { active } = appState.tableLayouts;
-    if (active) applyLayoutToColumnLayout(doc.layouts[active].columns ?? []);
+export function applyActiveLayout() {
+    return enqueue(async () => {
+        const doc = await readLayouts();
+        refreshState(doc);
+        applyPropertyTypesFromFile(doc.propertyTypes);
+
+        const { active } = appState.tableLayouts;
+        if (active) applyLayoutToColumnLayout(doc.layouts[active].columns ?? []);
+    });
+}
+
+/**
+ * Writes the chosen types, leaving the layouts and the active pointer as they are.
+ *
+ * Its own write rather than part of saving a layout, because a type is not part of one. Setting a
+ * type is an explicit act with nowhere else to be recorded, so it lands at once — there is no
+ * "save types" for the user to forget, and it works with the app's defaults in use, which a layout
+ * entry never could.
+ *
+ * It does **not** call refreshState. That clears isDirty, and a column reorder waiting to be saved
+ * must not start looking saved because a type was set beside it.
+ *
+ * This will create the file in a folder that has never saved a layout. It creates no *layout* —
+ * `layouts` stays empty and `active` stays null — so the restraint in saveLayout below still holds:
+ * nothing watches for changes, and nothing invents a layout on the user's behalf.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export function savePropertyTypes() {
+    const propertyTypes = propertyTypesFromState();
+    return enqueue(async () => {
+        const doc = await readLayouts();
+        doc.propertyTypes = propertyTypes;
+        await writeLayouts(doc);
+    });
+}
+
+/**
+ * Deletes the whole file: every layout, the active pointer and every chosen type.
+ *
+ * The file is removed rather than overwritten with an empty document, which is what clearAllHistory
+ * does to history.gypsum. Nothing downstream can tell the difference — readLayouts already answers
+ * with an empty document for a file that is not there — but leaving nothing behind is the point:
+ * this is how a folder gets out of an older version of the format, and under OPFS there is no file
+ * manager to do it with.
+ *
+ * The columns go back to the app's defaults, unlike deleteLayout, which leaves the arrangement on
+ * screen alone. That is right for one layout and wrong for all of them: an arrangement left on
+ * screen with `active` reading "default" would be snapped away by the next reset, which re-reads
+ * the active layout.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export function deleteAllLayouts() {
+    return enqueue(async () => {
+        if (appState.dirHandle) {
+            try {
+                const gypsumDir = await appState.dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: false });
+                await gypsumDir.removeEntry(LAYOUTS_FILENAME);
+            } catch { /* no folder, no file, or no permission — the outcome is the same */ }
+        }
+
+        TABLE_VIEW_COLUMNS.columnLayout.clear();
+        appState.propertyTypes.clear();
+        refreshState(emptyDocument());
+    });
 }
 
 /**

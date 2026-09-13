@@ -64,7 +64,8 @@ import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompl
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, handleLayoutSave,
          handleLayoutPickerOpen,
-         handleLayoutSaveAs, handleLayoutEditName, handleLayoutDelete, handleLayoutNameBlur,
+         handleLayoutSaveAs, handleLayoutEditName, handleLayoutDelete, handleLayoutClear,
+         handleLayoutNameBlur,
          handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
@@ -148,6 +149,7 @@ const clickActionHandlers = {
     'layout-save-as': handleLayoutSaveAs,
     'layout-edit-name': handleLayoutEditName,
     'layout-delete': handleLayoutDelete,
+    'layout-clear': handleLayoutClear,
     'open-column-picker': handleOpenColumnPicker,
     'close-column-picker': handleCloseColumnPicker,
     'reset-columns': handleResetColumns,

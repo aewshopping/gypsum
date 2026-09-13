@@ -92,25 +92,48 @@ in `event-listeners-add.js` maps action names to handler functions.
 
 ### Column value types
 
-A table column's type is the user's choice, stored in the saved layout, not a fact about the data.
-Three rules follow from that, and they are the ones to hold:
+A column's type is the user's choice, not a fact about the data — and it belongs to the **property**,
+not to the layout showing it. It is stored in the `propertyTypes` object at the top of
+`.gypsum/table_layouts.gypsum`, keyed by property name, so two layouts cannot disagree about what
+`due` holds and switching between them never changes what the table sorts by. An earlier version put
+it on the layout's column entry; `plans/completed/table-value-types.md` §3.1 is superseded on that
+point. These rules follow, and they are the ones to hold:
 
 - **The legal type names live in `VALUE_TYPES` in `constants.js`**, and nowhere else. A layout file
   is hand-editable, so a name that is not in that list is dropped rather than honoured. One symbol
   per type is named after it (`#icon-type-<name>`), and the table header, the column picker and the
   type dialog all build the href from a column's type — so a new type needs a matching symbol, **and
-  an entry in `LOCK_SHIFT` in `render-table-header.js`**. A locked column's glyph is composed from
-  two `<use>` elements, the type drawing moved up and left by that shift plus `#icon-lock-badge` laid
-  over the corner it frees. Composed rather than drawn as a symbol per type, so the padlock exists
-  once and a type's shape once; never scaled, so the type mark measures the same on a locked column
-  as on an open one.
+  an entry in `LOCK_SHIFT` in `ui-functions-render/type-glyph.js`**. That module draws the mark for
+  the header and the picker alike, which is what keeps a column reading the same in both. A locked
+  column's glyph is composed from two `<use>` elements, the type drawing moved up and left by that
+  shift plus `#icon-lock-badge` laid over the corner it frees. Composed rather than drawn as a symbol
+  per type, so the padlock exists once and a type's shape once; never scaled, so the type mark
+  measures the same on a locked column as on an open one. **The header draws locked and open at one
+  weight** and lets the badge carry the difference, because nothing in a header is pressable. **The
+  picker fades its locked button as well** (`.info-modal-row-btn:disabled`), because there the glyph
+  *is* the button: the padlock says why the column is the app's, and the fade says this one does not
+  press.
 - **The type dialog (`#modal-column-type`) is reached from two places**: the glyph on a column
   picker row, and "change type" in the table's column menu. It is a dialog rather than a menu
   because a header cell opens one menu only, and because `showModal()` makes everything outside an
   open dialog inert — a popover reached from the column picker was painted, looked right, and
   swallowed every click.
-- **Nothing asks the schema directly.** `services/property-type.js` owns the order — the layout's
-  choice, then the schema, then text — and sorting, rendering and the picker all ask it.
+- **Nothing asks the schema directly, and nothing writes a type except `setPropertyType()`.**
+  `services/property-type.js` owns the order — the user's choice, then the schema, then text — and
+  sorting, rendering, search and the picker all ask it. The one writer is what lets the type dialog
+  and a hand-edited file be validated the same way: an unknown name is dropped rather than
+  corrected, so the property falls back to the schema. A search type is only kept on a list, because
+  nothing else searches by whole values.
+- **Setting a type reaches the disk at once.** It is not part of a layout, so there is no
+  "save layout" for the user to forget and no dirty mark, and it works with the app's built-in
+  defaults in use. `savePropertyTypes()` in `table-layouts/layout-file.js` writes it, and
+  deliberately does not clear `isDirty` — a column reorder waiting to be saved must not look saved
+  because a type was set beside it.
+- **The way out is "delete all layouts"**, at the bottom of the layouts modal. It removes the whole
+  file — every layout, the active pointer and every type — and puts the columns back to the app's
+  defaults. There is no migration code for an older file: the app is still in development, so a
+  version 1 file loses its types and is deleted rather than upgraded. `layoutVersion` is stamped on
+  write so a later shape change has something to branch on.
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
   nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
   so no confirmation is needed anywhere. See `plans/completed/table-value-types.md` §1.2.
@@ -124,14 +147,13 @@ Three rules follow from that, and they are the ones to hold:
   cell as well as in its tooltip, because a tooltip needs a pointer. The sentence is written once,
   by the renderer, onto `data-tip`, and `cell-expand.js` shows that same string.
 - **`TABLE_VIEW_COLUMNS.info_columns` holds the columns the app fills in itself** — the file link,
-  the size, the last modified date and the load error. They wear the info glyph, no type can be
-  chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
+  the size, the last modified date and the load error. They wear the info glyph under a padlock, in
+  the header and the picker both, no type can be chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
   renaming from the table is wanted later, and editing a filepath would move the file.
   **`info` sits beside a column's type rather than replacing it.** `lastModified` is still a `date`
   and still sorts and renders as one, which is why `INFO_TYPE` lives in `constants.js` *outside*
   `VALUE_TYPES` — that list fills the type dialog and is the set of names a layout file may legally
-  carry, and `info` belongs to neither. `propertyType()` also ignores a layout's stored type for
-  these columns, so a hand-edited file cannot stop last modified sorting as a date.
+  carry, and `info` belongs to neither.
 - **`TABLE_VIEW_COLUMNS.control_columns` holds columns whose cell is a control, not a value.** The
   file column is `internalId` wearing an open-file link, so its type, its sort order and a search of
   it are all about an id nobody sees. All three are refused, and `shown_always` is the same fact
@@ -154,15 +176,22 @@ Two rules, and the second follows from the first. See `plans/completed/table-cel
   their markup — `renderFilename`, `renderOpenFileLink`, `renderTags` — all belong to columns that
   refuse a caret.
 
+**A locked column is locked, and `isPropertyEditable()` is the one question.** It answers whether a
+cell takes a caret, whether the header draws a padlock, whether the type dialog is offered, and
+whether `propertyType()` reads the user's choice at all. So the app owns the type of every property
+it fills in itself — `lastModified` and the other info columns, and `title`, `tags`, `filename`,
+`filepath`, `color` and `internalLink` besides — and no file can change one. Before, a padlocked
+column still let you set its type, which was the same lie from the other side.
+
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
 or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
 per-cell question of whether the value fits its column. Both the header's lock and the caret ask the
 first one, which is what stops the table promising something the cell then refuses.
 
-**Say it before the click, not after.** A locked column's header glyph is its type drawing with a
-padlock laid over the corner — one element, so the header spends no more on a locked column than an
-open one. An opened cell
+**Say it before the click, not after.** A locked column's glyph is its type drawing with a padlock
+laid over the corner — one element, so the header spends no more on a locked column than an open
+one, and the column picker draws the same mark on the button it is about to refuse. An opened cell
 that offers no caret fades its text and its outline together, draws the outline dashed, and shows no
 text cursor. An expanded cell also takes `--colour-contr`: it has swapped to the neutral background, so
 it cannot keep the colour a coloured row forced on it. To make a property
@@ -182,9 +211,11 @@ an item no range covers.
 ### Adding a new file property
 
 1. Add it to `FILE_PROPERTIES` in `store.js` with `type`, `column_width`, `display_order`.
-   The `type` there is a **default, not the answer** — the user can override it per column from
-   the column picker, and it is stored in the saved layout. Never read `.type` off the schema:
-   ask `propertyType()` in `services/property-type.js`, which consults the layout first.
+   The `type` there is a **default, not the answer** — the user can override it from the column
+   picker or the header menu, and the override is stored against the property in the layouts file's
+   `propertyTypes` object. Never read `.type` off the schema: ask `propertyType()` in
+   `services/property-type.js`, which consults the user's choice first. (A property in
+   `CORE_FILE_PROPERTIES` cannot be overridden at all — the schema is the answer for those.)
 2. Populate it in `file-info.js` (or a new `file-parsing/` module if the logic is non-trivial).
 3. Handle its type in `file-object-sort.js` if it needs sorting.
 4. If every file carries it — i.e. you added it to the return literal in `file-info.js` rather
@@ -193,8 +224,9 @@ an item no range covers.
 5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
 6. Only add `search_type` if the property is a list that must match **whole items** ("search exact
    match" in the type dialog). Lists match on part of their text by default; `tags` is the one
-   property that opts out, so a tag pill means that one tag. Ask `propertySearchType()` rather than
-   reading the schema.
+   property that opts out, so a tag pill means that one tag — and because `tags` is a core property,
+   that is the app's answer and cannot be changed. Ask `propertySearchType()` rather than reading
+   the schema.
 
 ### Search / filter architecture
 
@@ -216,12 +248,15 @@ an item no range covers.
 | `public/js/services/file-handler.js` | File loading orchestration (File System API) |
 | `public/js/services/file-parsing/` | Metadata extraction: title, tags, YAML |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
+| `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
+| `public/js/table-layouts/` | Saved layouts and property types: `table_layouts.gypsum`, read and written |
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
+| `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |

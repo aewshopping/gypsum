@@ -115,6 +115,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     TABLE_VIEW_COLUMNS.columnLayout.clear();
     appState.myFilesProperties.clear();
+    appState.propertyTypes.clear();
     seedCoreFileProperties();
     appState.dirHandle = opfsRoot;
     document.getElementById('btn-new-note').disabled = false;

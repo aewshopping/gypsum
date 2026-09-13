@@ -88,7 +88,13 @@
 }
 
 /* A row button with nothing behind it — the type glyph on a column the app fills in itself. Faded
-   and unhoverable, so it reads as a mark rather than as a control that is ignoring you. */
+   and unhoverable, so it reads as a mark rather than as a control that is ignoring you.
+
+   The glyph inside it already wears a padlock, and the fade is not a second way of saying the same
+   thing: the padlock says *why* the column is the app's, and the fade says this particular button
+   does not press. The table header needs only the first, because nothing there is pressable at all
+   — which is why its glyph is drawn at one weight whether the column is locked or not, and this one
+   is not. */
 .info-modal-row-btn:disabled {
     opacity: 0.25;
     cursor: default;

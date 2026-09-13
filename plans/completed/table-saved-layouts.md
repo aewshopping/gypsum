@@ -196,6 +196,13 @@ source of truth for what a column is called.
 
 `layoutVersion` is what makes adding it cleanly possible later, which is the actual insurance.
 
+> **What happened next.** `plans/completed/table-value-types.md` put `type` and `search_type` on the
+> column entry after all, and the first bullet above stopped being true. It was then taken back out:
+> a type belongs to the property rather than to one arrangement of columns, so it lives in a
+> `propertyTypes` object at the top of this document instead — see
+> `plans/completed/property-type-store.md`, which is also where `layoutVersion` finally became `2`.
+> The column entry is `{order, name, label, width, visible}` again.
+
 **`layoutVersion`** so a later shape can be migrated rather than guessed at. `local-backup.js`
 already carries a legacy-format branch for want of one; cheap now, awkward to retrofit.
 

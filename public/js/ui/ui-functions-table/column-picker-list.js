@@ -1,6 +1,7 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
-import { VALUE_TYPES, SEARCH_TYPES, INFO_TYPE, labelFor } from '../../constants.js';
-import { isInfoColumn } from '../../services/property-type.js';
+import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
+import { isInfoColumn, isPropertyEditable } from '../../services/property-type.js';
+import { typeGlyph } from '../ui-functions-render/type-glyph.js';
 import { resolveColumns } from './render-table-columns-helper.js';
 
 /**
@@ -33,12 +34,12 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * space to it and every toggle sits against the same edge — see column-picker.css, where the row
  * is a grid and that box is its last track.
  *
- * The type glyph sits in that box too, and on every row bar the control columns' — read-only properties,
- * always-on columns and dead ones included — though a column the app fills in itself wears the info
- * glyph and its button is inert, since there is no type to choose. It is drawn per type, from a symbol named after the
- * stored type name, so the list can be read down rather than one tooltip at a time. Setting the type of lastModified is pointless, but a
- * type change never writes a file, so nothing can be damaged by it, and a rule with no exceptions
- * is one less thing to read the code for.
+ * The type glyph sits in that box too, on every row, drawn by the same builder the table header
+ * uses — so a column reads the same in both places. A column the app fills in wears the padlock,
+ * and its button is inert; an info column wears the info drawing under it. Drawn per type rather
+ * than described in words, so the list can be read down rather than one tooltip at a time, and
+ * drawn locked rather than merely faded, so what the button will refuse is on screen before it is
+ * pressed.
  *
  * The row carries the resolved type and search type as data attributes. That is where the popover
  * writes a change to, and where column-picker.js reads the row back from when the dialog closes,
@@ -69,17 +70,23 @@ export function renderColumnPickerList() {
                   : column.dead     ? 'this property is not in the loaded folder'
                   : 'show this column';
 
-        // Two kinds of column have no type to set: one whose cell holds a link rather than its
-        // value, and one the app fills in itself. The second still has a type underneath, and the
-        // tooltip keeps it, because it is still what the column sorts by.
+        // No type to set on a column the app owns — the same question the header's padlock asks, and
+        // now the same answer, since typeGlyph draws that padlock here too. Three of them, told
+        // apart only by what the tooltip says: a control column, whose cell holds a link rather than
+        // a value and so has no type at all; an info column, which the app fills in; and everything
+        // else the app fills in, which is title, tags and the rest of CORE_FILE_PROPERTIES. The last
+        // two keep their type in the tooltip, because it is still what the column sorts by.
         const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(column.name);
         const isInfo = isInfoColumn(column.name);
+        const noType = !isPropertyEditable(column.name);
         const typeLabel = labelFor(VALUE_TYPES, column.type);
+        const spelledOut = column.type === VALUE_TYPES.ARRAY.value
+            ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
+            : typeLabel;
         const typeTip = isControl ? 'this column opens the file, so it has no type'
                       : isInfo ? `info — ${typeLabel}, filled in by the app`
-                      : column.type === VALUE_TYPES.ARRAY.value
-                        ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
-                        : typeLabel;
+                      : noType ? `${spelledOut} — set by the app`
+                      : spelledOut;
 
         const bin = (column.dead && underSavedLayout)
             ? `<button type="button" class="info-modal-row-btn" data-action="column-delete" data-property="${column.name}" data-tip="remove this column from the layout">` +
@@ -92,8 +99,8 @@ export function renderColumnPickerList() {
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<span class="column-picker-actions">` +
-                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${typeTip}"${isControl || isInfo ? ' disabled' : ''}>` +
-                     `<svg class="info-modal-row-icon type-glyph"><use href="#icon-type-${isInfo ? INFO_TYPE.value : column.type}"></use></svg></button>` +
+                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${typeTip}"${noType ? ' disabled' : ''}>` +
+                     typeGlyph(column, 'info-modal-row-icon') + `</button>` +
                    bin +
                    `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +
                  `</span>` +

@@ -14,7 +14,7 @@ import { appState } from '../../services/store.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { renderLayoutList, renderLayoutPicker } from '../ui-functions-render/render-layout-list.js';
 import { playLayoutSaved } from '../ui-functions-table/render-table-controls.js';
-import { saveLayout, renameLayout, deleteLayout, setActiveLayout, nextLayoutName }
+import { saveLayout, renameLayout, deleteLayout, deleteAllLayouts, setActiveLayout, nextLayoutName }
     from '../../table-layouts/layout-file.js';
 import { showWarningModal } from './warning-modal.js';
 
@@ -36,10 +36,18 @@ function listElement() {
 }
 
 /**
+ * Redraws the list, and settles whether there is anything left to delete.
+ *
+ * The clear button lives outside the list in the markup, so it is set here rather than rendered
+ * with the rows — this is the one place every change to the layouts passes through.
  * @returns {void}
  */
 function paintList() {
     listElement().innerHTML = renderLayoutList();
+
+    const clear = document.getElementById('layout-clear-btn');
+    if (clear) clear.disabled = appState.tableLayouts.names.length === 0
+                             && appState.propertyTypes.size === 0;
 }
 
 /**
@@ -241,6 +249,30 @@ export async function handleLayoutDelete(evt, target) {
     if (!confirmed) return;
 
     await deleteLayout(name);
+    renderFiles();
+    paintList();
+}
+
+/**
+ * Deletes every saved layout and every chosen type, after confirmation, by removing the file.
+ *
+ * The way out of a folder's layouts, and the way past a file written by an older version of the
+ * format — under OPFS there is no file manager to delete it with. The warning names the types as
+ * well as the layouts, because the button's label does not and they are going too.
+ *
+ * The columns go back to the app's defaults, which is deleteAllLayouts' doing rather than this
+ * function's; see the reasoning there.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export async function handleLayoutClear() {
+    const confirmed = await showWarningModal(
+        'Delete every saved layout, and every column type you have set? This cannot be undone.',
+        'delete all', 'cancel');
+    if (!confirmed) return;
+
+    await deleteAllLayouts();
     renderFiles();
     paintList();
 }
