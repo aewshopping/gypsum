@@ -2,8 +2,9 @@
 
 Status: **not built**, and deliberately last. The mechanics below are settled; **the interface is
 not** — §10 holds five open questions, and step 11a cannot be finished without them.
-**Ctrl+Z is in scope from the start**, not a later addition: it is how people reach for undo, and
-taking it seriously changed both the write's signature (§6.2) and two of §10's answers.
+**Ctrl+Z is in scope from the start**, not a later addition — and so are both redo bindings,
+`Ctrl/Cmd+Shift+Z` and `Ctrl+Y` (§10.5). Taking the keys seriously changed both the write's signature
+(§6.2) and two of §10's answers.
 Branch: `claude/table-undo-stack-design-ica8um`
 Manifest version now: `1.202.0` → bump the minor version with each step that changes code.
 Depends on: `plans/table-cell-writing.md`, **not built** — steps 1 to 5 of it come first, and §6
@@ -143,11 +144,11 @@ Refusing the whole batch is unhelpful; bulldozing the two is the data loss of §
 ## 6. What `table-cell-writing.md` has to do first
 
 **This is the part that cannot wait**, and the only reason to have written this plan before that one
-is built. Three seams, all of them in its step 2, none of them undo code. Two of the three are
-forced by paste anyway.
+is built. Four seams, all of them in its step 2, none of them undo code. Two of the four are forced
+by paste anyway, and the fourth — the `expect` argument of §6.2 — is forced by the key bindings.
 
 **They are now stated there too**, as `table-cell-writing.md` §4.6, so that plan can be built from
-end to end without reading this one. What follows is the same three with the reasoning that belongs
+end to end without reading this one. What follows is the same four with the reasoning that belongs
 on this side of the pair.
 
 ### 6.1 The commit takes a list
@@ -275,6 +276,7 @@ These are the mechanics. The interface is a separate list and is **not** decided
 | Depth | **20 batches.** Free (§2), so chosen for feel. |
 | Clearing it | **On folder change only.** The ids mean nothing against a different folder. Not on view change: §3 makes that unnecessary. |
 | Ctrl+Z | **Yes, and it is the primary entry point** — not a later addition. It is how people reach for undo, so a design that only works from a button is a design that has not been tested against the real gesture. §10.4 holds the guard it needs; §6.2 holds the one place it changed the shape of the write. |
+| The redo keys | **Both of them** — `Ctrl/Cmd+Shift+Z` and `Ctrl+Y`, because there is no single convention across platforms and supporting one strands the users of the other. `Ctrl+Y` takes Ctrl only: `Cmd+Y` is the browser's History on macOS. §10.5. |
 | Re-sorting after an undo | **No**, for the same reason `table-cell-writing.md` gives for an edit: the row leaps away from under you. The same `applyRefresh` argument. |
 | A history snapshot before the first edit | **Not in the shipped app.** Worth switching on while steps 2 to 5 are being built — it is a one-line call to `saveBackupEntry` and gives whole-file recovery through the existing history modal — then removed. As a scaffold against test folders the cap objection does not bite. |
 
@@ -349,8 +351,8 @@ it falls on a real line rather than an arbitrary number, between the reflexive c
 consequential one.
 
 **What protects the single-cell press is redo, not a modal** — §10.5. Press Ctrl+Z by accident,
-press Ctrl+Shift+Z. That is the native answer, and it is better than a dialog because it also
-covers the press you meant at the time and regretted afterwards, which no confirmation can.
+press Ctrl+Shift+Z or Ctrl+Y. That is the native answer, and it is better than a dialog because it
+also covers the press you meant at the time and regretted afterwards, which no confirmation can.
 
 **One consequence carried over:** naming a skip count in the modal means knowing the §3 result before
 it opens. §6.2 puts the check inside the write, so the cheap version is to confirm with counts only
@@ -393,9 +395,9 @@ rather than a later addition.
 
 Two details that only show up once it is real:
 
-**Key repeat.** Hold Ctrl+Z and auto-repeat pops several batches before you let go. The §10.3
-confirmation absorbs it for a batch; for the single-cell case, redo (§10.5) is what makes it
-recoverable rather than alarming.
+**Key repeat.** Hold Ctrl+Z and auto-repeat pops several batches before you let go — and holding a
+redo key re-applies them just as fast. The §10.3 confirmation absorbs it for a batch; for the
+single-cell case, redo (§10.5) is what makes it recoverable rather than alarming.
 
 **Where focus goes after a commit.** This is the moment undo is most wanted — the typo noticed
 instantly — and it works today only by accident: the refresh re-renders the whole table, the cell
@@ -424,9 +426,26 @@ of §6.2. There is no second check and no direction to remember: pop from one st
 the other. The cost is one more array in `appState` and the ordinary rule that **a new edit clears
 the redo stack**.
 
-It was also refused because nobody asked for it. But once Ctrl+Z is the primary gesture,
-Ctrl+Shift+Z is asked for by muscle memory — **undo without redo is half a gesture**, and the half
-that is missing is the one that makes the first half safe to press.
+It was also refused because nobody asked for it. But once Ctrl+Z is the primary gesture, redo is
+asked for by muscle memory — **undo without redo is half a gesture**, and the half that is missing is
+the one that makes the first half safe to press.
+
+#### Both redo bindings, because there is no single one
+
+**Bind Ctrl+Y as well as Ctrl/Cmd+Shift+Z.** There is no one redo key: `Ctrl+Y` is the Windows
+convention, `Cmd+Shift+Z` the macOS one, and `Ctrl+Shift+Z` is used on Windows too. Supporting one of
+them means half the users press a key that does nothing, and it is the half that varies by whoever
+happens to open the app. Two conditions in the same handler, so there is no reason to choose.
+
+| gesture | modifier | note |
+|---|---|---|
+| undo | `Ctrl+Z` / `Cmd+Z` | the codebase already tests `evt.ctrlKey \|\| evt.metaKey` |
+| redo | `Ctrl+Shift+Z` / `Cmd+Shift+Z` | `evt.key` is `'Z'` when shift is held — `keyboard-shortcuts.js` already relies on this for `Ctrl+Shift+S` |
+| redo | `Ctrl+Y` | **Ctrl only, not Cmd**: `Cmd+Y` is the browser's own History shortcut on macOS, so taking it would break something the user has and replace it with something they would not look for there |
+
+Everything §10.4 requires of Ctrl+Z is required of these identically — the same three conditions, the
+same `preventDefault`, and the same key-repeat behaviour, which matters slightly more for redo since
+holding it re-applies writes rather than reverting them.
 
 That is what lets §10.3 drop the confirmation for a single cell. The two questions are really one:
 *what makes an accidental undo recoverable?* A modal answers "stop the press you did not mean"; redo
@@ -448,8 +467,9 @@ item-level splice of §4.
 ### Step 11a — the stack and one entry deep
 
 `appState.undoStack`, the record from §6.3 pushed onto it, `applyRawEdits` exported with its `expect`
-argument, and the §3 check inside it. A button and Ctrl+Z, both reaching the same handler — **the key
-is part of this step, not a follow-up**, because it is the gesture the design has to survive.
+argument, and the §3 check inside it. A button, Ctrl+Z, and both redo keys, all reaching the same
+handler — **the keys are part of this step, not a follow-up**, because they are the gestures the
+design has to survive.
 
 **§10 has to be answered before this can be finished.** The stack, the check and the write are
 buildable and testable without it — but where the button goes, what the app says afterwards, and
@@ -457,8 +477,9 @@ whether a confirmation stands in front of it are all open, and the last of those
 files are read once or twice (§10.3).
 
 **Checkable by:** edit a cell, undo it with the key, watch the file on disk go back. Then edit the
-cell, change the same property in the note modal, undo, and watch it refuse. Then press Ctrl+Z with
-a note open, with a cell editor open, and in grid view, and watch nothing happen in all three.
+cell, change the same property in the note modal, undo, and watch it refuse. Redo it with each of
+Ctrl+Shift+Z and Ctrl+Y, and watch both reach the same handler. Then press Ctrl+Z with a note open,
+with a cell editor open, and in grid view, and watch nothing happen in all three.
 
 ### Step 11b — depth, and the batch
 
@@ -478,7 +499,7 @@ of fifty and a batch of one take the same path.
 | `public/js/services/store.js` | edit | `appState.undoStack` and `appState.redoStack` |
 | `public/js/editing/save-cell-edit.js` | edit | export `applyRawEdits`; §6.2 built the split already |
 | `public/js/ui/event-listeners-add.js` | edit | register the action |
-| `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | Ctrl+Z and Ctrl+Shift+Z with the three-condition guard, and exporting `isTypingTarget()` — §10.4 |
+| `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | Ctrl+Z, Ctrl/Cmd+Shift+Z and Ctrl+Y behind the three-condition guard, and exporting `isTypingTarget()` — §10.4, §10.5 |
 | `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the button, if §10.1 lands where it leans |
 | ~~a confirmation dialog~~ | **exists** | `showWarningModal()` is already reused across three flows and returns a promise — §10.3 needs no new dialog, only the text |
 
