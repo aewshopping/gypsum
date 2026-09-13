@@ -143,6 +143,10 @@ Refusing the whole batch is unhelpful; bulldozing the two is the data loss of §
 is built. Three seams, all of them in its step 2, none of them undo code. Two of the three are
 forced by paste anyway.
 
+**They are now stated there too**, as `table-cell-writing.md` §4.6, so that plan can be built from
+end to end without reading this one. What follows is the same three with the reasoning that belongs
+on this side of the pair.
+
 ### 6.1 The commit takes a list
 
 ```js
