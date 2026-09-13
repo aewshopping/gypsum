@@ -74,3 +74,18 @@ export function needsQuoting(text, inFlow = false) {
 export function quoteYaml(text) {
     return text.includes('"') && !text.includes("'") ? `'${text}'` : `"${text}"`;
 }
+
+/**
+ * The text to write into a key's value span: everything after the colon, the separating space
+ * included.
+ *
+ * A scalar's span starts immediately after the colon, so the separator is this function's to
+ * supply — which is what lets an empty `title:` be written into exactly as a filled one is.
+ *
+ * @param {string} text - What was captured from the cell.
+ * @returns {string}
+ */
+export function toYamlText(text) {
+    const trimmed = text.trim();
+    return ` ${needsQuoting(trimmed) ? quoteYaml(trimmed) : trimmed}`;
+}

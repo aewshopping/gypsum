@@ -1,6 +1,7 @@
 import { VALUE_TYPES } from '../../constants.js';
 import { propertyType, isPropertyEditable } from '../../services/property-type.js';
 import { openDateEditor, closeDateEditor } from './cell-date-editor.js';
+import { commitCellEdit } from './cell-edit-commit.js';
 
 /**
  * @file What opening a cell gives you, and what closing it takes away.
@@ -26,6 +27,10 @@ const READONLY = 'is-readonly';
  * - **its value does not fit its column** — a fact about this one cell, which the renderer already
  *   worked out and left on it. Read off the cell rather than computed again, because a cell that
  *   disagreed with its own marker would be very hard to see
+ * - **the note's front matter did not read cleanly** — every value in the block is then a guess,
+ *   and splicing into it writes into a key nobody created. The whole note is the fix, so the cell
+ *   opens to be read and says where to go. Left on the cell by the renderer for the same reason as
+ *   the mismatch above
  * - **the column cannot be typed into at all** — the app fills it in, or the property does not come
  *   from front matter. That is isPropertyEditable's question, and asking it here rather than
  *   answering it again is what keeps the caret and the header's lock the same decision
@@ -34,7 +39,10 @@ const READONLY = 'is-readonly';
  * @returns {boolean}
  */
 function isEditable(cell) {
-    return !cell.dataset.mismatch && isPropertyEditable(cell.dataset.prop);
+    // `in` rather than a truth test: the yaml marker is a bare attribute, so its value is ''.
+    return !cell.dataset.mismatch
+        && !('yamlError' in cell.dataset)
+        && isPropertyEditable(cell.dataset.prop);
 }
 
 /**
@@ -45,9 +53,10 @@ function isEditable(cell) {
  * @returns {void}
  */
 export function openEditor(cell) {
-    // A mismatched cell says why in the cell itself. The sentence is the one already on its tooltip,
-    // so the pointer and the touch paths cannot say different things.
-    if (cell.dataset.mismatch) {
+    // A cell refused for something that can be fixed says why in the cell itself. The sentence is
+    // the one already on its tooltip, so the pointer and the touch paths cannot say different
+    // things. An info column says nothing: nothing is wrong and there is nothing to do about it.
+    if (cell.dataset.mismatch || 'yamlError' in cell.dataset) {
         cell.insertAdjacentHTML('beforeend', `<span class="${NOTE}">${cell.dataset.tip}</span>`);
     }
 
@@ -59,6 +68,12 @@ export function openEditor(cell) {
         cell.focus();
         return;
     }
+
+    // What the cell opened with, for the commit to compare against. On the cell because that is
+    // where a fact about that cell lives, and beside the decision this function already makes about
+    // what the cell offers — only a cell that took a caret can have been typed in. See §4.5 of
+    // plans/table-cell-writing.md.
+    cell.dataset.openedText = cell.textContent;
 
     if (propertyType(cell.dataset.prop) === VALUE_TYPES.DATE.value) {
         openDateEditor(cell);
@@ -73,10 +88,18 @@ export function openEditor(cell) {
 
 /**
  * Takes back whatever openEditor gave, leaving the cell as the renderer drew it.
+ *
+ * **The commit happens here**, before anything is taken back, because every way of finishing with a
+ * cell — Escape, a click outside, a click on another cell, Enter — collapses it and so arrives
+ * through this one function. The cell's text reads the same either side of the date editor's
+ * unwrapping, so the order costs nothing and saying "capture first" is the honest arrangement.
+ *
  * @param {HTMLElement} cell
  * @returns {void}
  */
 export function closeEditor(cell) {
+    commitCellEdit(cell);
+    delete cell.dataset.openedText;
     closeDateEditor(cell);
     cell.classList.remove(READONLY);
     cell.removeAttribute('contenteditable');
@@ -84,25 +107,30 @@ export function closeEditor(cell) {
 }
 
 /**
- * Stops Enter putting a line break into a cell that stands for one value.
+ * Stops Enter putting a line break into a cell that stands for one value, and says the cell is
+ * finished with instead.
  *
  * A line break cannot be written to front matter at all — the block is line-based, so a value
- * holding one destroys it — and a date or a number has no use for a second line anyway. A list is
- * the exception: there a break is how you add an item, which flow-list.js reads back.
+ * holding one destroys it — and a date or a number has no use for a second line anyway. So Enter
+ * means "done with this cell": the caller collapses it, and collapsing is what writes the edit. A
+ * list is the exception, where a break is how you add an item, which flow-list.js reads back.
  *
  * Called from the keydown delegate rather than registered as a data-action, the same arrangement
- * the autocomplete's keys use, because a key is not a click on anything.
+ * the autocomplete's keys use, because a key is not a click on anything. It returns the answer
+ * rather than collapsing the cell itself, so that opening a cell and closing it stay one module's
+ * job and this one stays a question about a key.
  *
  * @param {KeyboardEvent} evt
- * @returns {void}
+ * @returns {boolean} True when the cell should now be closed.
  */
 export function handleCellEditorKeydown(evt) {
-    if (evt.key !== 'Enter') return;
+    if (evt.key !== 'Enter') return false;
 
     const cell = evt.target.closest?.('.note-table-cell.is-expanded');
-    if (!cell || !isEditable(cell)) return;
+    if (!cell || !isEditable(cell)) return false;
 
-    if (propertyType(cell.dataset.prop) !== VALUE_TYPES.ARRAY.value) {
-        evt.preventDefault();
-    }
+    if (propertyType(cell.dataset.prop) === VALUE_TYPES.ARRAY.value) return false;
+
+    evt.preventDefault();
+    return true;
 }

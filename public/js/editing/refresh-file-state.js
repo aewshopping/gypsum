@@ -20,13 +20,14 @@ let queuedRefresh = null;
  * rather than stacking up full re-renders, and the newer snapshot reads fresher disk state
  * anyway.
  * @param {{ filepath: string, filename: string }} snapshot
+ * @param {boolean} [resort=true] - Whether to put the file back in sort order afterwards.
  * @returns {void}
  */
-export function refreshFileAfterSave(snapshot) {
+export function refreshFileAfterSave(snapshot, resort = true) {
     if (queuedRefresh !== null) cancelIdleCallback(queuedRefresh);
     queuedRefresh = requestIdleCallback(() => {
         queuedRefresh = null;
-        applyRefresh(snapshot);
+        applyRefresh(snapshot, resort);
     }, { timeout: 2000 });
 }
 
@@ -35,10 +36,13 @@ export function refreshFileAfterSave(snapshot) {
  * the tag taxonomy and file list.
  * renderFiles keeps the current page: the file list sits behind the open modal, and a
  * save must not silently jump it back to page 1 while the user is typing.
+ * A cell edit passes resort false: the row would otherwise leap away from under the pointer when
+ * the column being edited is the one the table is sorted by.
  * @param {{ filepath: string, filename: string }} snapshot
+ * @param {boolean} [resort=true] - Whether to put the file back in sort order.
  * @returns {Promise<void>}
  */
-async function applyRefresh(snapshot) {
+async function applyRefresh(snapshot, resort = true) {
     try {
         const fileIndex = appState.myFiles.findIndex(f => f.filepath === snapshot.filepath);
         if (fileIndex === -1) return;
@@ -75,8 +79,10 @@ async function applyRefresh(snapshot) {
             if (appState.tagTaxonomyVisible) renderTagTaxonomy();
         }
 
-        const { property, direction } = appState.sortState;
-        sortAppStateFiles(property, propertyType(property), direction);
+        if (resort) {
+            const { property, direction } = appState.sortState;
+            sortAppStateFiles(property, propertyType(property), direction);
+        }
         renderFiles(true, true);
 
         if (appState.search.filters.size > 0) {

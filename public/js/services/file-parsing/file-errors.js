@@ -40,6 +40,25 @@ export function yamlSegment(skippedLines, shadowedKeys) {
 }
 
 /**
+ * Whether a file's front matter did not read cleanly — a line the parser skipped, or a key the app
+ * reserves that was dropped.
+ *
+ * Here rather than beside the table, because the leading word is this file's convention: every
+ * segment the yaml check writes starts with 'yaml', which is what makes this a lookup rather than a
+ * second opinion about what counts as broken.
+ *
+ * It is what locks a note's front matter cells until it is fixed in the note — see §7 of
+ * plans/table-cell-writing.md. The writing path asks the parser itself rather than asking this,
+ * because by then it has the file's current bytes in hand and this answer is as old as the load.
+ *
+ * @param {object} file - A file object from appState.myFiles.
+ * @returns {boolean}
+ */
+export function hasYamlError(file) {
+    return (file.errorOnLoad ?? '').split(' | ').some(segment => segment.startsWith('yaml:'));
+}
+
+/**
  * Counts the file's [[internal links]] that name no loaded file. Collection-time: the link
  * targets were already gathered during parsing, so this is a lookup per link and no more.
  * @param {object} file - A file object from appState.myFiles.
