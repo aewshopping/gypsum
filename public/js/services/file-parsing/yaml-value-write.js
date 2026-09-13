@@ -24,12 +24,17 @@ import { splitFlowItems } from './flow-list.js';
  * Whether this text has to be quoted to survive being written into front matter and read back as
  * itself.
  *
- * Two halves. The first is the text that would break the block, and it is the same for a value and
- * for one item of a list. The second is the group that damages files rather than the group everyone
- * imagines: `007` written plainly reads back as the number seven, and `null` as nothing at all.
- * Rather than list the shapes that do it, it asks the parser's own coercion what this text would
- * come back as — a second list would agree on the day it was written and drift after. A date needs
- * no mention: the parser never builds one, so date text is already itself.
+ * **The promise is the text, not the value.** A column's type lives in gypsum, not in the note, and
+ * the parser reads a file before any type is applied — so `note: 42` comes back as the number
+ * forty-two whatever the column says, and there is nothing quoting can do about that which the
+ * reader would notice. What quoting is for is the text that comes back *different*: `007` reads as
+ * `7`, `1.50` as `1.5`, `+3` as `3`. Rather than list the shapes that do it, it asks the parser's
+ * own coercion what this text would print as — a second list would agree on the day it was written
+ * and drift after. A date needs no mention: the parser never builds one, so date text is already
+ * itself.
+ *
+ * One rule for a value and for one item of a list, which is what stops an edit to one item of
+ * `[1, 2, 10]` quietly turning a note's list of numbers into a list of strings.
  *
  * @param {string} text - The value's own text, already trimmed.
  * @param {boolean} [inFlow=false] - True for an item inside a flow list (`tags: [a, b]`), where a
@@ -38,7 +43,14 @@ import { splitFlowItems } from './flow-list.js';
  * @returns {boolean}
  */
 export function needsQuoting(text, inFlow = false) {
-    return breaksBlock(text, inFlow) || coerceValue(text) !== text;
+    if (breaksBlock(text, inFlow)) return true;
+
+    // The one coercion that does not show up as different text, because it shows up as no text at
+    // all: `null` and `~` are read as nothing, and a cell draws nothing for them. Someone who typed
+    // the word meant the word.
+    if (coerceValue(text) === null) return true;
+
+    return String(coerceValue(text)) !== text;
 }
 
 /**
@@ -60,9 +72,11 @@ function breaksBlock(text, inFlow) {
     // refuses. Both are ': ' or a colon ending the line, which is what the parser itself tests for.
     if (/:(\s|$)/.test(text)) return true;
 
-    // A dash makes the line a list item, a hash a comment, a quote a quoted value that then does
-    // not end where it should, and a bracket a flow list.
-    if (/^[-#["']/.test(text)) return true;
+    // A dash followed by a space makes the line a list item — the parser's own test, so that an
+    // ordinary negative number is not quoted for looking like one. A hash opens a comment, a quote
+    // a quoted value that then does not end where it should, and a bracket a flow list.
+    if (/^-(\s|$)/.test(text)) return true;
+    if (/^[#["']/.test(text)) return true;
 
     return inFlow && /[,[\]"']/.test(text);
 }
@@ -92,10 +106,14 @@ export function quoteYaml(text) {
  * A scalar's span starts immediately after the colon, so the separator is this function's to
  * supply — which is what lets an empty `title:` be written into exactly as a filled one is.
  *
- * **Only a number has anything to decide.** Written plainly it closes the round trip: `42` typed
- * into a number column comes back as the number forty-two rather than as text that then shows as
- * not matching its column. Text that is not a number is written as text, which is what leaves the
- * cell readable and the column's type the thing to look at.
+ * **What the file already says at this key is kept**, rather than a style being chosen here: a
+ * quoted value stays quoted, a flow list stays a flow list, and a block list keeps the indentation
+ * the note was written with. So editing one cell of a note leaves it looking like the same note,
+ * and nothing arrives in it that nobody typed.
+ *
+ * **Only a number has anything to decide.** Written plainly it reads back as the number it looks
+ * like, which is what a number column is for — unless the key was quoted already, where keeping the
+ * file's own answer wins.
  *
  * **A date writes no ISO of its own**, and that is the editors plan's decision rather than an
  * omission here: a date cell offers a caret *and* a picker, so typed text is written verbatim and
@@ -109,16 +127,23 @@ export function quoteYaml(text) {
  *
  * @param {string} text - What was captured from the cell.
  * @param {string} type - The column's type, one of VALUE_TYPES' values.
- * @param {string} [form] - The form the key's value already has, as parseYaml's span reports it.
- *   Only 'flow' means anything here; a key with no value yet has none, and gets a block list.
- * @param {string} [itemPrefix='  - '] - What the file already puts before an item of this list,
- *   the dash included — `'  - '`, `'- '`, a tab. Two spaces where there is nothing to copy.
+ * @param {object} [shape] - What the file already looks like at this key, or nothing for a key it
+ *   does not have yet.
+ * @param {string} [shape.form] - The form of its value, as parseYaml's span reports it. Only 'flow'
+ *   means anything here; a key with no value has none, and gets a block list.
+ * @param {string} [shape.itemPrefix='  - '] - What it puts before an item of this list, the dash
+ *   included — `'  - '`, `'- '`, a tab. Two spaces where there is nothing to copy.
+ * @param {boolean} [shape.quoted] - Whether its value is quoted today.
  * @returns {string}
  */
-export function toYamlText(text, type, form, itemPrefix = '  - ') {
-    if (type === VALUE_TYPES.ARRAY.value) return listText(splitFlowItems(text), form, itemPrefix);
+export function toYamlText(text, type, shape = {}) {
+    if (type === VALUE_TYPES.ARRAY.value) {
+        return listText(splitFlowItems(text), shape.form, shape.itemPrefix ?? '  - ');
+    }
 
     const trimmed = text.trim();
+
+    if (shape.quoted) return ` ${quoteYaml(trimmed)}`;
 
     if (type === VALUE_TYPES.NUMBER.value && typeof coerceValue(trimmed) === 'number') {
         return ` ${trimmed}`;
@@ -130,22 +155,16 @@ export function toYamlText(text, type, form, itemPrefix = '  - ') {
 /**
  * One item of a list, quoted if it needs to be.
  *
- * **An item has to come back as the same text, where a value has to come back as the same value** —
- * a weaker promise, and the right one here. A list is text in the editor and values in the file, so
- * `1` coming back as the number one is inherent rather than a fault (§5.1) and quoting it would
- * quietly turn a note's list of numbers into a list of strings. `007` is a different matter: it
- * comes back as `7`, which is not what anyone typed.
- *
  * Exported because writing one item into a list that is otherwise untouched is the splice's job,
- * and the rule for what an item has to look like is this file's.
+ * and the rule for what an item has to look like is this file's. The rule is the same one a value
+ * gets; only the flow list's own punctuation is extra.
  *
  * @param {string} item - The item's own text.
  * @param {boolean} inFlow - True when it is going into a flow list.
  * @returns {string}
  */
 export function toYamlItem(item, inFlow) {
-    const quote = breaksBlock(item, inFlow) || String(coerceValue(item)) !== item;
-    return quote ? quoteYaml(item) : item;
+    return needsQuoting(item, inFlow) ? quoteYaml(item) : item;
 }
 
 /**

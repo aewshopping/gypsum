@@ -227,11 +227,21 @@ Closing an edited cell writes it into the note's front matter. See
   "where does this value end" would agree on the day it was written and drift after, and that drift
   writes into the wrong bytes of a note.
 - **Quote defensively, do not validate strictly.** Almost anything may be typed; `needsQuoting()` in
-  `file-parsing/yaml-value-write.js` makes the *writing* safe. It asks the parser's own
-  `coerceValue` what the text would be read back as, rather than listing the shapes that coerce. The
-  app guarantees the file stays readable; the user owns whether the values mean what they intended.
-  **A value must come back as the same value; an item of a list need only come back as the same
-  text** — that is why `[1, 2, 10]` stays numbers while `007` is quoted anywhere.
+  `file-parsing/yaml-value-write.js` makes the *writing* safe. The app guarantees the file stays
+  readable; the user owns whether the values mean what they intended.
+- **The promise is the text, not the value**, and it is one rule for a value and for an item of a
+  list. A column's type lives in gypsum, not in the note, and the parser reads a file before any
+  type is applied — so `note: 42` comes back as the number forty-two whatever the column says, and
+  a cell draws `String(value)`, which is `42` either way. Quoting is therefore for the text that
+  comes back *different*: `007` reads as `7`, `1.50` as `1.5`, and `null` as nothing at all. Rather
+  than list the shapes that coerce, `needsQuoting()` asks the parser's own `coerceValue` what the
+  text would print as. Quoting more than that puts marks in a note that nobody typed, and quoting an
+  item by the stricter rule turned `[1, 2, 10]` into a list of strings.
+- **What the note already says at that key is kept, never restyled.** A quoted value stays quoted, a
+  flow list stays a flow list, and a block list keeps its own indentation — `save-cell-edit.js`
+  reads all three off the span and hands them to the writer, which is why `toYamlText` takes the
+  file's shape rather than deciding one. A style is chosen only where there is nothing to copy: two
+  spaces for the first item of a list the note has never had.
 - **Two layers, and the split is load-bearing.** `applyCellEdits` knows types and format;
   `applyRawEdits` knows spans, splicing and the write. It takes a *list* of edits because a pasted
   range cannot be fifty verified writes, applies a file's edits back to front so no span is

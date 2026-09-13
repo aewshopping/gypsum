@@ -1,7 +1,7 @@
 import { appState } from '../services/store.js';
 import { VALUE_TYPES } from '../constants.js';
 import { propertyType } from '../services/property-type.js';
-import { parseYaml, coerceValue } from '../services/file-parsing/yaml-parse.js';
+import { parseYaml, coerceValue, isQuoted } from '../services/file-parsing/yaml-parse.js';
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlText, toYamlItem } from '../services/file-parsing/yaml-value-write.js';
 import { splitFlowItems } from '../services/file-parsing/flow-list.js';
@@ -42,11 +42,12 @@ export async function applyCellEdits(edits) {
         return {
             internalId: edit.internalId,
             property: edit.property,
-            // A function rather than a string, because a list is written in the form the file
-            // already uses and only the parse knows what that is. Deferring the call is what keeps
-            // every question about format in yaml-value-write.js and every question about bytes
-            // here; undo passes a plain string, which is text that came out of a file already.
-            raw: (form, itemPrefix) => toYamlText(edit.text, type, form, itemPrefix),
+            // A function rather than a string, because the write keeps whatever style the file
+            // already uses at that key and only the parse knows what that is. Deferring the call is
+            // what keeps every question about format in yaml-value-write.js and every question
+            // about bytes here; undo passes a plain string, which is text that came out of a file
+            // already.
+            raw: (shape) => toYamlText(edit.text, type, shape),
             ...(type === VALUE_TYPES.ARRAY.value && { items: splitFlowItems(edit.text) }),
         };
     });
@@ -98,8 +99,8 @@ function changedItem(text, span, items) {
  * Puts already-converted text into the files, one verified write per file.
  *
  * `raw` is the text to write into the key's whole value span, the separating space included — or a
- * function returning it, given the form and item indentation the file already uses, which only this
- * layer can know. `items`, on a list edit, is what the cell now holds, item by item: when exactly
+ * function returning it, given the shape the file already has at that key, which only this layer can
+ * know. `items`, on a list edit, is what the cell now holds, item by item: when exactly
  * one of them has changed, that item's span is spliced and every other byte is left alone, a comment
  * sitting between two items included. `expect`, when given, is what the value span must currently
  * say for the edit to happen at all — the check an undo needs, stated as data so that it happens
@@ -164,12 +165,17 @@ async function applyRawEdits(rawEdits) {
             const item = span && edit.items ? changedItem(text, span, edit.items) : null;
             if (item === SKIP) return;
 
-            // The file's own indentation for an item of this list, so replacing the value keeps the
-            // style the note was written in. A key with no list has none to copy.
-            const itemPrefix = span?.items.length
-                ? text.slice(span.items[0].lineStart, span.items[0].valueStart)
-                : undefined;
-            const raw = typeof edit.raw === 'function' ? edit.raw(span?.form, itemPrefix) : edit.raw;
+            // What the note already looks like at this key, so the write keeps its style rather
+            // than choosing one: the form of the value, the indentation of its list items, and
+            // whether it is quoted. A key the note does not have yet has none of it.
+            const shape = span ? {
+                form: span.form,
+                itemPrefix: span.items.length
+                    ? text.slice(span.items[0].lineStart, span.items[0].valueStart)
+                    : undefined,
+                quoted: isQuoted(before.trim()),
+            } : {};
+            const raw = typeof edit.raw === 'function' ? edit.raw(shape) : edit.raw;
 
             if (span && !item && raw === before) return;
 

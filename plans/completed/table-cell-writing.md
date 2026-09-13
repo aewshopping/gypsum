@@ -523,18 +523,36 @@ The same parse is what tells one item's edit from a rewrite, so a list edit also
 the cell's text item by item. Both are additions to the shape §4.6 fixed, not changes to it: the
 signature, the batch, the `expect` and the returned records are all as stated.
 
-**An item is not quoted by the same rule as a value.** §9 step 1 writes one rule, and §5 adds the
-flow-list characters to it. Built, that rule turned a note's `scores: [1, 2, 10]` into a list of
-strings the first time anyone touched an unrelated item of it: a value has to come back as the same
-*value*, so `42` in a text column is quoted, but an item only has to come back as the same *text*,
-which §5.1 had already conceded when it accepted that a list of numbers captures as strings. So
-`yaml-value-write.js` holds the shared half — what would break the block — and two rules over it.
-`007` is still quoted in a list, because `7` is not what anyone typed.
+**The rule promises the text, not the value.** §9 step 1 asks for a value that reads back as
+itself, and built that way it turned `scores: [1, 2, 10]` into a list of strings the first time
+anyone touched an unrelated item of it. The first fix was two rules, one for a value and a weaker
+one for an item; the right fix, arrived at by asking what the strict rule was buying, is the weaker
+one everywhere. **A column's type lives in gypsum, not in the note**, and the parser reads a file
+before any type is applied — so `42` in a text column comes back as the number forty-two whatever is
+written, and the cell draws `String(value)` either way. Nothing in the app can tell, so the quotes
+were only marks in a note that nobody typed. What survives is the text that comes back *different*:
+`007` as `7`, `1.50` as `1.5`, `+3` as `3`, and `null` as nothing at all — the one coercion that
+shows up as no text rather than as other text, and so the one clause that has to be named.
+
+The same question narrowed the leading-dash clause to a dash **followed by a space**, which is the
+parser's own test for a list item — so an ordinary `-1.5` is no longer quoted for looking like one.
+
+**And what the note already says at that key is kept rather than restyled**, which is where "let
+`"42"` stay `"42"`" actually belongs: a cell never shows a value's quotes, so it cannot be typed
+either way, but the file can be asked. `toYamlText` takes the shape the splice read off the span —
+form, item indentation, and whether the value is quoted — so a quoted key stays quoted for the same
+reason a flow list stays a flow list. A style is chosen only where there is nothing to copy.
 
 **The one-item test compares through the parser's coercion** for the same reason, and this is the
 §5.1 trap arriving where it was not predicted: comparing the file's `- 2` with the cell's `"2"` as
 text calls every item of every numeric list changed, so a one-item edit would rewrite the whole list
 and take the comment between the items with it.
+
+**What is still lost, and would be cheap to keep:** a list rewritten whole re-writes every item from
+scratch, so an item the note had quoted — `- "Doe, Jane"` — comes back bare. The value is identical
+and the parser agrees, but the bytes moved for an item nobody edited. The item spans are already in
+hand, so reusing the file's own text for the items that did not change is a few lines whenever it
+starts to annoy someone.
 
 **A note whose front matter did not read cleanly is locked twice**, which §7 asks for once. The
 renderer marks the cells, so the caret is refused with a sentence rather than silently; and the

@@ -21,6 +21,7 @@ async function setupFiles(page, extra = {}) {
         'note: plain',
         'count: 3',
         'due: 2026-03-01',
+        'ref: "0042"',        // quoted in the note, so an edit has a style to keep
         'people:',            // flush with its key, so replacing the value has a style to copy
         '- John Smith',
         '  # the one in the middle',
@@ -162,6 +163,24 @@ test('a value that would read back as a number is quoted on the way in', async (
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: "007"');
   // and it comes back as the text that was typed, not as seven
   await expect(cellFor(page, 'Alpha', 'status')).toHaveText('007');
+});
+
+test('a value that prints back as itself is written without quotes', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Alpha', 'note'), '42');
+
+  // the parser reads it as the number forty-two whatever the column says, and prints it back as
+  // `42` — so quotes would only put marks in the note that nobody typed
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('note: 42');
+  await expect(cellFor(page, 'Alpha', 'note')).toHaveText('42');
+});
+
+test('a key that is quoted in the note stays quoted', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Alpha', 'ref'), '0043');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('ref: "0043"');
+  await expect(cellFor(page, 'Alpha', 'ref')).toHaveText('0043');
 });
 
 test('clearing a cell writes an empty value and keeps the key', async ({ page }) => {
