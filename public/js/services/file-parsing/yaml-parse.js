@@ -23,10 +23,14 @@ export const isQuoted = (value) => {
 /**
  * Coerces a string value into its appropriate JavaScript type (null, boolean, number, or string).
  * Handles quoted strings to preserve them as strings.
+ *
+ * Exported because yaml-value-write.js asks it what a value it is about to write would be read
+ * back as. A second answer to that question would agree on the day it was written and drift after.
+ *
  * @param {string} value The string value to coerce.
  * @returns {null|boolean|number|string} The coerced value.
  */
-const coerceValue = (value) => {
+export const coerceValue = (value) => {
     const trimmed = value.trim();
 
     if (trimmed === "null" || trimmed === "~") return null;
