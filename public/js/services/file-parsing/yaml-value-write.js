@@ -1,5 +1,6 @@
 import { VALUE_TYPES } from '../../constants.js';
 import { coerceValue } from './yaml-parse.js';
+import { splitFlowItems } from './flow-list.js';
 
 /**
  * @file A value's text, made safe to write into a front matter block.
@@ -23,12 +24,12 @@ import { coerceValue } from './yaml-parse.js';
  * Whether this text has to be quoted to survive being written into front matter and read back as
  * itself.
  *
- * The last test is the one worth understanding, because it is the group that damages files rather
- * than the group everyone imagines: `007` written plainly reads back as the number seven, and
- * `null` as nothing at all. Rather than list the shapes that do it, it asks the parser's own
- * coercion what this text would come back as — a second list would agree on the day it was written
- * and drift after. A date needs no mention: the parser never builds one, so date text is already
- * itself.
+ * Two halves. The first is the text that would break the block, and it is the same for a value and
+ * for one item of a list. The second is the group that damages files rather than the group everyone
+ * imagines: `007` written plainly reads back as the number seven, and `null` as nothing at all.
+ * Rather than list the shapes that do it, it asks the parser's own coercion what this text would
+ * come back as — a second list would agree on the day it was written and drift after. A date needs
+ * no mention: the parser never builds one, so date text is already itself.
  *
  * @param {string} text - The value's own text, already trimmed.
  * @param {boolean} [inFlow=false] - True for an item inside a flow list (`tags: [a, b]`), where a
@@ -37,6 +38,16 @@ import { coerceValue } from './yaml-parse.js';
  * @returns {boolean}
  */
 export function needsQuoting(text, inFlow = false) {
+    return breaksBlock(text, inFlow) || coerceValue(text) !== text;
+}
+
+/**
+ * The half of the rule that is about the block's shape rather than about what a value means.
+ * @param {string} text - The value's own text, already trimmed.
+ * @param {boolean} inFlow - True for an item inside a flow list.
+ * @returns {boolean}
+ */
+function breaksBlock(text, inFlow) {
     // `key:` with nothing after it opens a nested map, which the parser prunes — so the key would
     // survive in the file and vanish from the table, taking the column with it if no other note
     // carries it. `""` is an empty value that is still a value.
@@ -53,9 +64,7 @@ export function needsQuoting(text, inFlow = false) {
     // not end where it should, and a bracket a flow list.
     if (/^[-#["']/.test(text)) return true;
 
-    if (inFlow && /[,[\]"']/.test(text)) return true;
-
-    return coerceValue(text) !== text;
+    return inFlow && /[,[\]"']/.test(text);
 }
 
 /**
@@ -93,11 +102,22 @@ export function quoteYaml(text) {
  * the picker is what produces ISO, before this is ever involved. Nothing here reinterprets a date —
  * see plans/completed/table-cell-editors.md §4.
  *
+ * **A list keeps the form the file already uses.** The editor's commas are how a list is shown and
+ * typed, never a reason to rewrite a block list as a flow one — so the form and the indentation the
+ * file chose are passed in rather than decided here. The one place a style is chosen is a key that
+ * has no list to copy one from.
+ *
  * @param {string} text - What was captured from the cell.
  * @param {string} type - The column's type, one of VALUE_TYPES' values.
+ * @param {string} [form] - The form the key's value already has, as parseYaml's span reports it.
+ *   Only 'flow' means anything here; a key with no value yet has none, and gets a block list.
+ * @param {string} [itemPrefix='  - '] - What the file already puts before an item of this list,
+ *   the dash included — `'  - '`, `'- '`, a tab. Two spaces where there is nothing to copy.
  * @returns {string}
  */
-export function toYamlText(text, type) {
+export function toYamlText(text, type, form, itemPrefix = '  - ') {
+    if (type === VALUE_TYPES.ARRAY.value) return listText(splitFlowItems(text), form, itemPrefix);
+
     const trimmed = text.trim();
 
     if (type === VALUE_TYPES.NUMBER.value && typeof coerceValue(trimmed) === 'number') {
@@ -105,4 +125,43 @@ export function toYamlText(text, type) {
     }
 
     return ` ${needsQuoting(trimmed) ? quoteYaml(trimmed) : trimmed}`;
+}
+
+/**
+ * One item of a list, quoted if it needs to be.
+ *
+ * **An item has to come back as the same text, where a value has to come back as the same value** —
+ * a weaker promise, and the right one here. A list is text in the editor and values in the file, so
+ * `1` coming back as the number one is inherent rather than a fault (§5.1) and quoting it would
+ * quietly turn a note's list of numbers into a list of strings. `007` is a different matter: it
+ * comes back as `7`, which is not what anyone typed.
+ *
+ * Exported because writing one item into a list that is otherwise untouched is the splice's job,
+ * and the rule for what an item has to look like is this file's.
+ *
+ * @param {string} item - The item's own text.
+ * @param {boolean} inFlow - True when it is going into a flow list.
+ * @returns {string}
+ */
+export function toYamlItem(item, inFlow) {
+    const quote = breaksBlock(item, inFlow) || String(coerceValue(item)) !== item;
+    return quote ? quoteYaml(item) : item;
+}
+
+/**
+ * A list as the text after its key's colon.
+ *
+ * **A list with nothing left in it is written `[]`**, whatever form it had. A block list with no
+ * items has no lines to be written on, and a bare `people:` opens a nested map that the parser then
+ * prunes — so the key would survive in the file and the column would vanish from the table.
+ *
+ * @param {string[]} items - The items, in order.
+ * @param {string} [form] - 'flow' keeps a flow list a flow list; anything else is block form.
+ * @param {string} itemPrefix - What goes before each item of a block list.
+ * @returns {string}
+ */
+function listText(items, form, itemPrefix) {
+    if (items.length === 0) return ' []';
+    if (form === 'flow') return ` [${items.map(item => toYamlItem(item, true)).join(', ')}]`;
+    return items.map(item => `\n${itemPrefix}${toYamlItem(item, false)}`).join('');
 }

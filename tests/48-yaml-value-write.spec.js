@@ -108,3 +108,69 @@ test('a quoted flow item still reads back as one item', async ({ page }) => {
 
   expect(items).toEqual(['Smith, John', 'Jane Doe', 'a", b']);
 });
+
+// ---------------------------------------------------------------- what a type writes
+
+/** toYamlText() for each case, as the text that goes after the colon. */
+const writes = (page, cases) => page.evaluate(async (cases) => {
+  const { toYamlText } = await import('/public/js/services/file-parsing/yaml-value-write.js');
+  return cases.map(([text, type, form, prefix]) => toYamlText(text, type, form, prefix));
+}, cases);
+
+test('a number is written plainly, and text in a number column is not', async ({ page }) => {
+  const [number, negative, words] = await writes(page,
+    [['42', 'number'], ['-1.5', 'number'], ['about five', 'number']]);
+
+  expect(number).toBe(' 42');
+  expect(negative).toBe(' -1.5');
+  expect(words).toBe(' about five');
+});
+
+test('a date is written as it was typed, whatever shape that is', async ({ page }) => {
+  const [iso, words] = await writes(page, [['2026-03-01', 'date'], ['1 March 2026', 'date']]);
+
+  expect(iso).toBe(' 2026-03-01');
+  expect(words).toBe(' 1 March 2026');
+});
+
+test('a list keeps the form and the indentation the file already uses', async ({ page }) => {
+  const [flow, block, tabbed, fresh] = await writes(page, [
+    ['en, fr', 'array', 'flow'],
+    ['John Smith, Rae Chen', 'array', 'block', '- '],
+    ['a, b', 'array', 'block', '\t- '],
+    ['a, b', 'array'],
+  ]);
+
+  expect(flow).toBe(' [en, fr]');
+  expect(block).toBe('\n- John Smith\n- Rae Chen');
+  expect(tabbed).toBe('\n\t- a\n\t- b');
+  // two spaces is the one style this chooses, and only where there is nothing to copy
+  expect(fresh).toBe('\n  - a\n  - b');
+});
+
+test('an item is quoted for the form it lands in, and for its own text', async ({ page }) => {
+  const [flow, block, numbers, padded] = await writes(page, [
+    // as the cell shows a one-item list whose item holds a comma
+    ['"Smith, John"', 'array', 'flow'],
+    ['"Smith, John"', 'array', 'block', '- '],
+    ['1, 2, 10', 'array', 'flow'],
+    ['007, x', 'array', 'flow'],
+  ]);
+
+  // the comma ends an item in flow form and cannot in block form, where the line does
+  expect(flow).toBe(' ["Smith, John"]');
+  expect(block).toBe('\n- Smith, John');
+
+  // a list is text in the editor and values in the file, so numbers stay numbers — but 007 would
+  // come back as 7, which is not what anyone typed
+  expect(numbers).toBe(' [1, 2, 10]');
+  expect(padded).toBe(' ["007", x]');
+});
+
+test('a list with nothing left in it is written as an empty list', async ({ page }) => {
+  const [emptied, emptiedBlock] = await writes(page, [['', 'array', 'flow'], ['  ', 'array', 'block', '- ']]);
+
+  // a bare key would open a nested map, which the parser prunes — and the column would vanish
+  expect(emptied).toBe(' []');
+  expect(emptiedBlock).toBe(' []');
+});

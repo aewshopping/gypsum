@@ -14,7 +14,28 @@ const { loadFolder } = require('./helpers');
 async function setupFiles(page, extra = {}) {
   await page.addInitScript((extra) => {
     window.__files = {
-      'alpha.md': '---\nstatus: draft\n  # a comment the parser skips\nnote: plain\ncount: 3\ndue: 2026-03-01\n---\n# Alpha\n\nBody text.\n',
+      'alpha.md': [
+        '---',
+        'status: draft',
+        '  # a comment the parser skips',
+        'note: plain',
+        'count: 3',
+        'due: 2026-03-01',
+        'people:',            // flush with its key, so replacing the value has a style to copy
+        '- John Smith',
+        '  # the one in the middle',
+        '- "Doe, Jane"',
+        'langs: [en, fr]',
+        'scores:',
+        '  - 1',
+        '  - 2',
+        '  - 10',
+        '---',
+        '# Alpha',
+        '',
+        'Body text.',
+        '',
+      ].join('\n'),
       'beta.md': '---\nstatus: live\nextra: beta only\nthis line has no colon\n---\n# Beta\n\nBody text.\n',
       'gamma.md': '# Gamma\n\nNo front matter here.\n',
       ...extra,
@@ -105,14 +126,14 @@ const fileText = (page, name) => page.evaluate(name => window.__files[name], nam
 
 test('typing in a cell writes the value into the note', async ({ page }) => {
   await openTable(page);
-  await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
+  const original = await fileText(page, 'alpha.md');
 
+  await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: published');
 
-  // the smallest number of bytes that does the job: the comment, the other key and the body are
-  // all exactly where they were
-  const text = await fileText(page, 'alpha.md');
-  expect(text).toBe('---\nstatus: published\n  # a comment the parser skips\nnote: plain\ncount: 3\ndue: 2026-03-01\n---\n# Alpha\n\nBody text.\n');
+  // the smallest number of bytes that does the job: every other byte of the note, the comments and
+  // the body included, is exactly where it was
+  expect(await fileText(page, 'alpha.md')).toBe(original.replace('status: draft', 'status: published'));
 });
 
 test('the table redraws from the file rather than from memory', async ({ page }) => {
@@ -231,11 +252,17 @@ test('clicking another cell writes the one being left', async ({ page }) => {
 test('the edited row does not leap away when its column is the sorted one', async ({ page }) => {
   await openTable(page);
 
-  // sorted by status ascending — a header opens its menu on the second click
-  const header = page.locator('.note-table-cell-header[data-property="status"]');
-  await header.click();
-  await header.click();
-  await page.locator('[data-action="column-sort-asc"]').click();
+  // Sorted by status ascending, through the controls above the table: the column's own header is
+  // off to the right of a table this wide, and both controls are styled into labels that a click
+  // cannot reach headlessly — so the change event they answer to is dispatched directly.
+  await page.evaluate(() => {
+    const direction = document.getElementById('sort-direction');
+    direction.checked = true;
+    direction.dispatchEvent(new Event('change', { bubbles: true }));
+    const select = document.getElementById('sort-select');
+    select.value = 'status';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 
   const titles = () => page.evaluate(() => [...document.querySelectorAll('.note-table[data-vt-id]')]
     .map(row => row.querySelector('[data-prop="title"]').textContent));
@@ -321,7 +348,7 @@ test('a key the note does not have is appended to its block', async ({ page }) =
 
   // at the end of the block, with everything else where it was
   const text = await fileText(page, 'alpha.md');
-  expect(text).toContain('due: 2026-03-01\nextra: filled in\n---\n# Alpha');
+  expect(text).toContain('  - 10\nextra: filled in\n---\n# Alpha');
   await expect(cellFor(page, 'Alpha', 'extra')).toHaveText('filled in');
 });
 
@@ -351,4 +378,91 @@ test('a block written above a setext heading is still read as front matter', asy
   const cell = cellFor(page, 'Underlined Title', 'status');
   await expect(cell).toHaveText('new here');
   await expect(cell).not.toHaveAttribute('data-yaml-error', /.*/);   // it read back cleanly
+});
+
+// ---------------------------------------------------------------- lists
+
+test('changing one item of a list leaves every other byte alone', async ({ page }) => {
+  await openTable(page);
+  const original = await fileText(page, 'alpha.md');
+
+  await retype(page, cellFor(page, 'Alpha', 'people'), 'Jane Smith, "Doe, Jane"');
+
+  await expect.poll(() => fileText(page, 'alpha.md'))
+    .toBe(original.replace('- John Smith', '- Jane Smith'));
+
+  // which is what keeps a comment sitting between two items
+  expect(await fileText(page, 'alpha.md')).toContain('# the one in the middle');
+  await expect(cellFor(page, 'Alpha', 'people')).toHaveText('Jane Smith, "Doe, Jane"');
+});
+
+test('a list of numbers is compared by value, so one edit is still one splice', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'scores', 'array');
+  const original = await fileText(page, 'alpha.md');
+
+  // the cell reads 1, 2, 10 and captures back as strings — compared as raw text every item would
+  // look changed, and the whole list would be rewritten
+  await retype(page, cellFor(page, 'Alpha', 'scores'), '1, 7, 10');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toBe(original.replace('- 2', '- 7'));
+});
+
+test('adding an item rewrites the list in the style the file already uses', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Alpha', 'people'), 'John Smith, "Doe, Jane", Rae Chen');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('- Rae Chen');
+
+  // flush with the key, because that is how this note writes a list — and the comment between the
+  // items is the price of rewriting the whole value, which is the plan's stated cost
+  // flush with the key, because that is how this note writes a list. The item holding a comma
+  // loses the quotes it had, and rightly: a block item runs to the end of its line, so the quotes
+  // were never what held it together.
+  const text = await fileText(page, 'alpha.md');
+  expect(text).toContain('people:\n- John Smith\n- Doe, Jane\n- Rae Chen\nlangs:');
+  await expect(cellFor(page, 'Alpha', 'people')).toHaveText('John Smith, "Doe, Jane", Rae Chen');
+});
+
+test('a flow list stays a flow list, item or whole', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'langs', 'array');
+
+  await retype(page, cellFor(page, 'Alpha', 'langs'), 'en, de');
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('langs: [en, de]');
+
+  await retype(page, cellFor(page, 'Alpha', 'langs'), 'en, de, nl');
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('langs: [en, de, nl]');
+});
+
+test('an item holding a comma is quoted inside a flow list', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'langs', 'array');
+
+  await retype(page, cellFor(page, 'Alpha', 'langs'), 'en, "Dutch, spoken"');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('langs: [en, "Dutch, spoken"]');
+  // and it comes back as one item rather than two
+  await expect(cellFor(page, 'Alpha', 'langs')).toHaveText('en, "Dutch, spoken"');
+});
+
+test('emptying a list writes an empty list rather than a bare key', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Alpha', 'people'), '');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('people: []');
+
+  // the column survives, which a key holding nothing would have risked
+  await expect(cellFor(page, 'Alpha', 'people')).toHaveText('');
+  await expect(page.locator('.note-table-cell-header[data-property="people"]')).toHaveCount(1);
+});
+
+test('the first item into a note with no such key is written in block form', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Gamma', 'people'), 'Rae Chen, Sam Lee');
+
+  // two spaces: the one place a style is chosen, because there is nothing to copy
+  await expect.poll(() => fileText(page, 'gamma.md'))
+    .toBe('---\npeople:\n  - Rae Chen\n  - Sam Lee\n---\n# Gamma\n\nNo front matter here.\n');
+  await expect(cellFor(page, 'Gamma', 'people')).toHaveText('Rae Chen, Sam Lee');
 });

@@ -1,9 +1,10 @@
 import { appState } from '../services/store.js';
 import { VALUE_TYPES } from '../constants.js';
 import { propertyType } from '../services/property-type.js';
-import { parseYaml } from '../services/file-parsing/yaml-parse.js';
+import { parseYaml, coerceValue } from '../services/file-parsing/yaml-parse.js';
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
-import { toYamlText } from '../services/file-parsing/yaml-value-write.js';
+import { toYamlText, toYamlItem } from '../services/file-parsing/yaml-value-write.js';
+import { splitFlowItems } from '../services/file-parsing/flow-list.js';
 import { saveFileCopy } from './save-file-copy.js';
 import { refreshFileAfterSave } from './refresh-file-state.js';
 
@@ -36,32 +37,81 @@ import { refreshFileAfterSave } from './refresh-file-state.js';
  * @returns {Promise<Array<object>>} One record per edit that changed a file — see applyRawEdits.
  */
 export async function applyCellEdits(edits) {
-    const rawEdits = edits
-        // A list is several values in one cell and is written a different way; lifted by step 5 of
-        // plans/table-cell-writing.md.
-        .filter(edit => propertyType(edit.property) !== VALUE_TYPES.ARRAY.value)
-        .map(edit => ({
+    const rawEdits = edits.map(edit => {
+        const type = propertyType(edit.property);
+        return {
             internalId: edit.internalId,
             property: edit.property,
-            raw: toYamlText(edit.text, propertyType(edit.property)),
-        }));
+            // A function rather than a string, because a list is written in the form the file
+            // already uses and only the parse knows what that is. Deferring the call is what keeps
+            // every question about format in yaml-value-write.js and every question about bytes
+            // here; undo passes a plain string, which is text that came out of a file already.
+            raw: (form, itemPrefix) => toYamlText(edit.text, type, form, itemPrefix),
+            ...(type === VALUE_TYPES.ARRAY.value && { items: splitFlowItems(edit.text) }),
+        };
+    });
 
     return applyRawEdits(rawEdits);
+}
+
+// changedItem() saying the list is exactly as the file already has it, which is not the same answer
+// as "rewrite the whole value": nothing is written at all.
+const SKIP = Symbol('no item changed');
+
+/**
+ * Where one item of a list has to be rewritten, when that is all that has happened to it.
+ *
+ * Splicing one item leaves every other byte alone, which is the only way a comment sitting between
+ * two items survives an edit. Anything else — an item added, removed or reordered — is the whole
+ * value rewritten, and the comment is the price of an editor that lets you rewrite the list at once.
+ *
+ * **What the file holds is compared through the parser's own coercion**, because capture is not the
+ * inverse of render: a list of numbers is drawn as `1, 2, 10` and read back as strings, and a padded
+ * item comes back trimmed. Comparing the raw slices would call every list of numbers changed and
+ * rewrite it.
+ *
+ * @param {string} text - The whole file.
+ * @param {object} span - The key's span, as parseYaml filled it in.
+ * @param {string[]} items - What the cell now holds, item by item.
+ * @returns {{start: number, end: number, written: string}|SKIP|null} The item's span and its new
+ *   text; SKIP when no item changed; null when this is not a one-item edit.
+ */
+function changedItem(text, span, items) {
+    if (span.items.length !== items.length) return null;
+
+    const changed = span.items
+        .map((range, index) => ({ range, item: items[index] }))
+        .filter(({ range, item }) =>
+            String(coerceValue(text.slice(range.valueStart, range.valueEnd))) !== item);
+
+    if (changed.length === 0) return SKIP;
+    if (changed.length > 1) return null;
+
+    return {
+        start: changed[0].range.valueStart,
+        end: changed[0].range.valueEnd,
+        written: toYamlItem(changed[0].item, span.form === 'flow'),
+    };
 }
 
 /**
  * Puts already-converted text into the files, one verified write per file.
  *
- * `raw` is the text to write into the key's whole value span, the separating space included.
- * `expect`, when given, is what that span must currently say for the edit to happen at all — the
- * check an undo needs, stated as data so that it happens inside the read this write already does
- * rather than in a read of its own with a window between the two. Nothing passes it yet.
+ * `raw` is the text to write into the key's whole value span, the separating space included — or a
+ * function returning it, given the form and item indentation the file already uses, which only this
+ * layer can know. `items`, on a list edit, is what the cell now holds, item by item: when exactly
+ * one of them has changed, that item's span is spliced and every other byte is left alone, a comment
+ * sitting between two items included. `expect`, when given, is what the value span must currently
+ * say for the edit to happen at all — the check an undo needs, stated as data so that it happens
+ * inside the read this write already does rather than in a read of its own with a window between the
+ * two. Nothing passes it yet.
  *
  * A key the note does not have is appended to the end of its block, and a note with no block at all
  * is given one. Not an edge case: a column exists because *some* file carries that key, so the empty
  * cells in every other row are exactly the ones someone wants to fill in.
  *
- * @param {Array<{internalId: string, property: string, raw: string, expect?: string}>} rawEdits
+ * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
+ *   expect?: string}>} rawEdits
  * @returns {Promise<Array<{internalId: string, property: string, before: string, after: string,
  *   existed: boolean}>>} One record per edit that changed a file, holding the key's whole value
  *   span before and after. Nothing reads it yet; undo is what it is for.
@@ -110,18 +160,39 @@ async function applyRawEdits(rawEdits) {
             const before = span ? text.slice(span.valueStart, span.valueEnd) : '';
 
             if (edit.expect !== undefined && edit.expect !== before) return;
-            if (span && edit.raw === before) return;
+
+            const item = span && edit.items ? changedItem(text, span, edit.items) : null;
+            if (item === SKIP) return;
+
+            // The file's own indentation for an item of this list, so replacing the value keeps the
+            // style the note was written in. A key with no list has none to copy.
+            const itemPrefix = span?.items.length
+                ? text.slice(span.items[0].lineStart, span.items[0].valueStart)
+                : undefined;
+            const raw = typeof edit.raw === 'function' ? edit.raw(span?.form, itemPrefix) : edit.raw;
+
+            if (span && !item && raw === before) return;
+
+            // Three shapes of splice: a key that is not there yet arrives as a whole line, one item
+            // of a list replaces that item alone, and everything else replaces the key's value.
+            const target = item
+                ? { start: item.start, end: item.end, written: item.written }
+                : span
+                    ? { start: span.valueStart, end: span.valueEnd, written: raw }
+                    : { start: blockEnd, end: blockEnd, written: `${edit.property}:${raw}\n` };
 
             splices.push({
                 property: edit.property,
                 order,
-                start: span ? span.valueStart : blockEnd,
-                end: span ? span.valueEnd : blockEnd,
-                // A key that is not there yet arrives as a whole line; one that is has only its
-                // value replaced.
-                written: span ? edit.raw : `${edit.property}:${edit.raw}\n`,
+                ...target,
                 before,
-                after: edit.raw,
+                // The record is the key's whole value span whichever splice it was. An item splice
+                // happens inside that span, so the span afterwards is the same replacement applied
+                // at the same offset — no re-parse needed.
+                after: item
+                    ? before.slice(0, target.start - span.valueStart) + target.written
+                        + before.slice(target.end - span.valueStart)
+                    : raw,
                 existed: Boolean(span),
             });
         });
