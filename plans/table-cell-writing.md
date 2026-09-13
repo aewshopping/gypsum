@@ -7,6 +7,9 @@ Manifest version now: `1.202.0` → bump the minor version with each step that c
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
 Paired with: `plans/completed/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
+Paired with: `plans/table-undo-stack.md`, **which comes last** — but four of its requirements land in
+step 2 of this plan and are awkward to retrofit, so §4.6 states them here. The fourth is the `expect`
+argument, which this plan never passes and cannot be added later without a read-then-read race.
 
 Someone has finished editing a cell. This plan gets what they typed into the note's front matter
 without damaging anything else in it.
@@ -124,6 +127,9 @@ preview. Forced on us, and right anyway.
 **Never rebuild the block from the parsed values.** That silently destroys comments, key order,
 blank lines and anything the parser skipped. Replace the smallest span that does the job.
 
+**Stages 3 and 5 stay two layers rather than one function** — §4.6, which is where the requirements
+that come from outside this plan are gathered.
+
 ### 4.1 The write is already built
 
 `saveFileCopy` writes a verified copy into `.gypsum`, overwrites the original only once that copy
@@ -200,6 +206,86 @@ rather than four.
 `data-mismatch`, `data-info` and `data-list` — the cell is where a fact about that cell lives, and only
 one is ever open. `openEditor` in `cell-editor.js` is where it goes, beside the decision it already
 makes about what the cell offers.
+
+### 4.6 The shape the write has to have
+
+Four things about the *shape* of this code, rather than what it does. None of them is undo code, and
+two are forced by the pasted range anyway — but all four are awkward to retrofit, and skipping them
+means a second module that knows how to splice front matter, which is the drift §4.2 puts the spans
+inside the parser to avoid. See `plans/table-undo-stack.md` §6.
+
+**The commit takes a list of edits, not one.**
+
+```js
+/**
+ * @param {Array<{internalId: string, property: string, text: string}>} edits
+ * @returns {Promise<Array<object>>} one record per edit that changed the file
+ */
+export async function applyCellEdits(edits)
+```
+
+Group by file; per file read the text fresh, parse once with `spans`, apply that file's edits, call
+`saveFileCopy` once. Step 2's caller passes an array of one and nothing else changes. A pasted range
+updating fifty rows cannot be fifty verified write cycles and fifty refreshes, so the batch is the
+real shape of the operation rather than a generalisation of it.
+
+**Apply a file's edits back to front, by `valueStart`.** Splice the first key and every later span is
+off by the length delta. Working backwards keeps every span valid without recomputing anything — the
+standard bug in batch splicing, and free to avoid once it is written down.
+
+**Converting and splicing are two layers.**
+
+| layer | knows about | called by |
+|---|---|---|
+| `toYamlText(text, type, form)` in `yaml-value-write.js` | types, the quoting rule of step 1 | a cell edit, a paste |
+| `applyRawEdits(rawEdits)` in `save-cell-edit.js` | spans, splicing, the write, the guard below | both of those, and undo, and redo |
+
+`applyCellEdits` is then thin: convert through `toYamlText`, hand the results to `applyRawEdits`.
+
+**A raw edit carries an optional `expect`:**
+
+```js
+applyRawEdits([{ internalId, property, raw, expect }])
+```
+
+`raw` is the text to write; **`expect`, when given, is what the key's value span must currently say
+for the edit to happen at all**, and the edit is skipped otherwise. This plan never passes it — a
+fresh edit has nothing to expect — so it costs one ignored argument here. It is in the signature
+because the alternative is undo reading each file to check and `applyRawEdits` reading it again to
+write, with a window between the two: small, but that window is exactly the case the check exists to
+catch. The reason is `plans/table-undo-stack.md` §3 and §6.2; the consequence is that commit, undo
+and redo end up one function differing only in `raw` and `expect`.
+**Undo calls the lower layer, and must** — its text came *out of* the file, so it is already valid
+front matter, and sending it back through `toYamlText` would not be faithful: §5.1 shows `[1, 2, 10]`
+captures as `["1", "2", "10"]`, so a re-converting undo restores a file subtly unlike the one you had.
+
+**In this plan `applyRawEdits` stays local, not exported.** The split is there because converting a
+typed value and putting bytes in a file are different jobs, not for a future caller; exporting it is a
+one-word change when the undo plan arrives.
+
+**The write returns what it changed**, one record per edit that actually changed something — which
+the §4.5 no-change test has already filtered:
+
+```js
+{ internalId, property, before, after, existed }
+```
+
+`before` and `after` are the key's **whole value span**, sliced from the file text before and after
+the splice — even in step 5, where the write itself splices one item of a list. The write stays as
+narrow as §5 makes it; the record stays one shape. `after` needs no re-parse: the item splice happens
+inside the key span, so it is `before` with the same replacement applied at the same offset.
+
+`internalId` rather than `filepath`, because `rename-file.js` exists and a rename must not orphan the
+record. And **sliced from the file, never from the cell** — §5.1 again: the cell holds a rendering,
+the file holds the bytes.
+
+**Nothing in this plan reads that return value.** `cell-edit-commit.js` ignores it.
+
+**One thing a batch will need that a single edit does not**, worth knowing before it surprises
+someone: `refreshFileAfterSave` holds *one* queued refresh and cancels the previous one, so calling it
+per file across a batch re-parses only the last file and leaves the rest stale in memory — and renders
+them. A single edit is unaffected, so this is not step 2's problem; it is the paste's, and undoing a
+paste's. The batch path wants "re-read these files, then `renderFiles` once".
 
 ---
 
@@ -300,9 +386,10 @@ case parses into something meaningless, and writing into it would write into a k
 |---|---|
 | The same file open in the note modal | **Nothing to do.** `#file-content-modal` uses `showModal()`, which makes every node outside it inert, so the table cannot be touched while a note is open. |
 | A property the file does not have yet | **Editable, and a file with no front matter block at all is included.** Step 4 lifts the guard for both: the key is appended to the block, or the block is written when there is none. Not an edge case — a column exists because *some* file carries that key, so the empty cells in every other row are exactly the ones someone wants to fill in, and a note that has never had front matter is the commonest note there is. |
-| Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. |
+| Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. **Undoing a key step 4 created is the deliberate exception** — see `plans/table-undo-stack.md` §7: the rule guards against a column vanishing as a *side effect*, whereas there the column only exists because of the edit being undone. |
 | Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
-| A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong. |
+| A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong — and worth switching on as a scaffold while steps 2 to 5 are built against test folders, where the cap objection does not bite. |
+| Undo | **A separate plan, built last** — `plans/table-undo-stack.md`. It reverses writes made from the table and nothing else, and it is not built on `history.gypsum`: that file stores text, which cannot become wrong, where an edit record is a claim about structure. What this plan owes it is §4.6 and nothing more — including the `expect` argument, which exists because undo is reached by Ctrl+Z and a reflexive gesture cannot afford a read-then-read race. |
 
 **The expanded cell closes after an edit** whatever we do here, because the refresh re-renders the
 whole table. Worth knowing before it surprises someone.
@@ -349,6 +436,12 @@ The whole pipeline with `string` and nothing else, and the guards, which are the
 | the file already has a front matter block, and that key in it — lifted by step 4 | no |
 | the text differs from what the cell opened with — §4.5 | no |
 
+**Built to the shape of §4.6**, which is the other half of this step: `applyCellEdits` takes a list,
+converting and splicing are separate layers, `applyRawEdits` carries an `expect` this plan never
+passes, and the write returns what it changed. Only one edit ever arrives here, nothing reads the
+return value and nothing sets `expect`, so none of it shows — which is the point. Retrofitting any of
+the four later means a second module that knows how to splice front matter.
+
 **Checkable by:** edit a front matter cell, watch the file on disk change, watch the table redraw
 from the file rather than from memory.
 
@@ -393,8 +486,8 @@ supposed to save you from.
 
 | file | new? | why |
 |---|---|---|
-| `public/js/services/file-parsing/yaml-value-write.js` | **new** | a value plus a type becomes the text after the colon, including the quoting rule |
-| `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place — including the two step 4 cases, since choosing between splicing into a block and writing one is part of building the new file text |
+| `public/js/services/file-parsing/yaml-value-write.js` | **new** | the quoting rule step 1 builds, and `toYamlText` over it: a value plus a type becomes the text after the colon |
+| `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place — including the two step 4 cases, since choosing between splicing into a block and writing one is part of building the new file text. Two layers inside it: `applyCellEdits` converts, `applyRawEdits` splices and writes — §4.6 |
 | `public/js/ui/ui-functions-cell/cell-edit-commit.js` | **new** | the user finished editing a cell — the folder the editors plan groups this feature into |
 | ~~`public/js/services/property-type.js`~~ | **done** | `isPropertyEditable()` answers "may this property be edited", and the header's lock asks it too |
 | `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES` — its second job |
