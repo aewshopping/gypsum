@@ -131,7 +131,7 @@ export const FILE_PROPERTIES = new Map([
  *
  * Add to this when adding a property to that return literal.
  *
- * **Its second job is a promise about writing.** Nothing in this list comes from a note's front
+ * **It is also a promise about writing.** Nothing in this list comes from a note's front
  * matter, so a cell edit has nowhere to put it: isPropertyEditable() refuses the caret for every
  * property in here, and the table header draws the padlock from the same answer. Making one
  * editable later is an exception in isPropertyEditable(), never a deletion from this list — the

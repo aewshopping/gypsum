@@ -72,7 +72,7 @@ export function openEditor(cell) {
     // What the cell opened with, for the commit to compare against. On the cell because that is
     // where a fact about that cell lives, and beside the decision this function already makes about
     // what the cell offers — only a cell that took a caret can have been typed in. See §4.5 of
-    // plans/table-cell-writing.md.
+    // plans/completed/table-cell-writing.md.
     cell.dataset.openedText = cell.textContent;
 
     if (propertyType(cell.dataset.prop) === VALUE_TYPES.DATE.value) {

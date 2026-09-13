@@ -4,9 +4,9 @@ Status: **built**, every step, at manifest `1.195.0`.
 Branch: `claude/table-cell-date-editor-h2at27`
 Manifest version when it landed: `1.195.0`.
 Depends on: `plans/completed/table-value-types.md`, **built**.
-Paired with: `plans/table-cell-writing.md`, which takes what comes out of here and puts it in the
-note, and which is **not built**. Everything here stops at the DOM: an edit still lives in the cell
-and is discarded by the next render.
+Paired with: `plans/completed/table-cell-writing.md`, which takes what comes out of here and puts it
+in the note, and which is **now built** — an edit reaches the file, and the table is redrawn from
+what the file then holds.
 
 A cell is a `contenteditable` div today — one editor for everything, never argued for, just
 inherited. This plan decides what a click on an editable cell actually opens, per type, and whether

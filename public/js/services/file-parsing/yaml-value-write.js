@@ -12,7 +12,7 @@ import { splitFlowItems } from './flow-list.js';
  *
  * **The policy is quote defensively rather than validate strictly** — accept nearly anything that
  * was typed and make the writing safe instead of policing the typing. See
- * plans/table-cell-writing.md §3.
+ * plans/completed/table-cell-writing.md §3.
  *
  * **This is not the rule flow-list.js uses.** That one protects a text box, so `[draft]` goes
  * through it unquoted; this one protects a YAML block, where the same text reads back as a list.

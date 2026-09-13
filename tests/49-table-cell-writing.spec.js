@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { loadFolder } = require('./helpers');
 
 /**
- * plans/table-cell-writing.md, end to end: type in a cell, watch the note on disk change, watch
+ * plans/completed/table-cell-writing.md, end to end: type in a cell, watch the note on disk change, watch
  * the table redraw from the file rather than from memory.
  *
  * What each note is for:

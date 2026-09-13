@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 /**
- * Step 1 of plans/table-cell-writing.md: the quoting rule, on its own.
+ * Step 1 of plans/completed/table-cell-writing.md: the quoting rule, on its own.
  *
  * Pure text in, text out, so these are unit tests — no folder loaded, no table, no disk. The
  * round-trip block at the bottom is the one that matters: it writes a value the way the app would

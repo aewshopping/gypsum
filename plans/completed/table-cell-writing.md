@@ -1,13 +1,15 @@
 # Plan: writing a cell edit into the note
 
-Status: **not built.** Four of its guards arrived early, three with the types plan and one with the
-editors plan — §6. Capture arrived with them, and is one expression — §4.
-Branch: `claude/table-cell-date-editor-h2at27`
-Manifest version now: `1.202.0` → bump the minor version with each step that changes code.
+Status: **built**, every step, at manifest `1.211.0`. Four of its guards arrived early, three with the
+types plan and one with the editors plan — §6. Capture arrived with them, and is one expression — §4.
+What building it settled, including the two places the design below needed a decision it had left
+open, is §11.
+Branch: `claude/table-cell-writing-l96h4t`
+Manifest version when it landed: `1.211.0`.
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
 Paired with: `plans/completed/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
-Paired with: `plans/table-undo-stack.md`, **which comes last** — but four of its requirements land in
+Paired with: `plans/table-undo-stack.md`, **which comes last** and is not built — but four of its requirements land in
 step 2 of this plan and are awkward to retrofit, so §4.6 states them here. The fourth is the `expect`
 argument, which this plan never passes and cannot be added later without a read-then-read race.
 
@@ -502,3 +504,39 @@ damage a file with on its own.
 **`save-cell-edit.js` belongs in `editing/`** beside `save-current-file.js`, `autosave.js` and
 `refresh-file-state.js`, and it reuses two of them. It is the likeliest file to grow past eighty
 lines, since it co-ordinates the others.
+
+
+---
+
+## 11. What building it settled
+
+Two things the design above left open, and one it had wrong. All three matter to
+`plans/table-undo-stack.md`, which calls the same lower layer.
+
+**`raw` may be a function, and a list edit carries its `items`.** §4.6 gives `toYamlText` a `form`
+argument, and the only thing that knows a key's form is the parse — which happens inside
+`applyRawEdits`, one layer below the caller that has to supply it. So a raw edit's `raw` may be a
+function of `(form, itemPrefix)` rather than a string, called during that parse. An undo passes a
+plain string, as §6.2 requires, and nothing about its path changes.
+
+The same parse is what tells one item's edit from a rewrite, so a list edit also carries `items` —
+the cell's text item by item. Both are additions to the shape §4.6 fixed, not changes to it: the
+signature, the batch, the `expect` and the returned records are all as stated.
+
+**An item is not quoted by the same rule as a value.** §9 step 1 writes one rule, and §5 adds the
+flow-list characters to it. Built, that rule turned a note's `scores: [1, 2, 10]` into a list of
+strings the first time anyone touched an unrelated item of it: a value has to come back as the same
+*value*, so `42` in a text column is quoted, but an item only has to come back as the same *text*,
+which §5.1 had already conceded when it accepted that a list of numbers captures as strings. So
+`yaml-value-write.js` holds the shared half — what would break the block — and two rules over it.
+`007` is still quoted in a list, because `7` is not what anyone typed.
+
+**The one-item test compares through the parser's coercion** for the same reason, and this is the
+§5.1 trap arriving where it was not predicted: comparing the file's `- 2` with the cell's `"2"` as
+text calls every item of every numeric list changed, so a one-item edit would rewrite the whole list
+and take the comment between the items with it.
+
+**A note whose front matter did not read cleanly is locked twice**, which §7 asks for once. The
+renderer marks the cells, so the caret is refused with a sentence rather than silently; and the
+write asks the parser again, because by then it has the file's current bytes and the load's answer
+is as old as the load.

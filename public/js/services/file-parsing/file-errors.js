@@ -48,7 +48,7 @@ export function yamlSegment(skippedLines, shadowedKeys) {
  * second opinion about what counts as broken.
  *
  * It is what locks a note's front matter cells until it is fixed in the note — see §7 of
- * plans/table-cell-writing.md. The writing path asks the parser itself rather than asking this,
+ * plans/completed/table-cell-writing.md. The writing path asks the parser itself rather than asking this,
  * because by then it has the file's current bytes in hand and this answer is as old as the load.
  *
  * @param {object} file - A file object from appState.myFiles.

@@ -186,8 +186,9 @@ column still let you set its type, which was the same lie from the other side.
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
 or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
-per-cell question of whether the value fits its column. Both the header's lock and the caret ask the
-first one, which is what stops the table promising something the cell then refuses.
+two per-cell questions: whether the value fits its column, and whether the note's front matter read
+cleanly at all. Both the header's lock and the caret ask the first one, which is what stops the table
+promising something the cell then refuses.
 
 **Say it before the click, not after.** A locked column's glyph is its type drawing with a padlock
 laid over the corner — one element, so the header spends no more on a locked column than an open
@@ -208,6 +209,47 @@ where spans would be mangled by the first keystroke. Every input rebuilds that c
 ordinary letter looks like it cannot change anything, but the letter after a newly typed comma starts
 an item no range covers.
 
+### Writing a cell edit back to the note
+
+Closing an edited cell writes it into the note's front matter. See
+`plans/completed/table-cell-writing.md`.
+
+- **Nothing here becomes an in-memory value again.** The edit reaches the file and the existing
+  `refreshFileAfterSave` re-reads it, re-parses it and redraws the table, so **what you see after an
+  edit is what the file actually contains**, checked every time rather than assumed. The one
+  argument it gained is *not to re-sort*: edit a cell in the column the table is sorted by and the
+  row would leap away from under you.
+- **The smallest number of bytes that does the job, and never a rebuilt block.** `parseYaml`'s
+  optional `spans` Map says where a key's value sits, and `editing/save-cell-edit.js` replaces that
+  span and nothing else — so comments, key order, blank lines and anything the parser skipped
+  survive. A list where one item's text changed splices that item alone, which is the only way a
+  comment *between* two items survives. The spans live inside the parser because a second answer to
+  "where does this value end" would agree on the day it was written and drift after, and that drift
+  writes into the wrong bytes of a note.
+- **Quote defensively, do not validate strictly.** Almost anything may be typed; `needsQuoting()` in
+  `file-parsing/yaml-value-write.js` makes the *writing* safe. It asks the parser's own
+  `coerceValue` what the text would be read back as, rather than listing the shapes that coerce. The
+  app guarantees the file stays readable; the user owns whether the values mean what they intended.
+  **A value must come back as the same value; an item of a list need only come back as the same
+  text** — that is why `[1, 2, 10]` stays numbers while `007` is quoted anywhere.
+- **Two layers, and the split is load-bearing.** `applyCellEdits` knows types and format;
+  `applyRawEdits` knows spans, splicing and the write. It takes a *list* of edits because a pasted
+  range cannot be fifty verified writes, applies a file's edits back to front so no span is
+  invalidated, carries an `expect` nothing passes yet, and returns what it changed. All four are for
+  `plans/table-undo-stack.md`, and all four are awkward to retrofit — the alternative is a second
+  module that knows how to splice front matter.
+- **A cell that was opened but not typed in writes nothing.** The test is the cell's text now
+  against the text stashed on it when it opened (`data-opened-text`), never the captured value
+  against the file's: rendering a value and capturing it back is not a round trip.
+- **A note whose front matter did not read cleanly cannot be edited from the table**, and is locked
+  twice over: the renderer marks those cells so the caret is refused with a sentence, and the write
+  re-parses the file's current bytes before touching them.
+- **A key the note does not have is appended to its block, and a note with no block gets one at byte
+  0.** Byte 0 because `findFrontMatterIndices` takes a separator on the first line at its word,
+  where one lower down has first to be told apart from a setext underline and a thematic break.
+  Clearing a cell writes an empty value rather than deleting the key — a deleted key can unregister
+  the column, and a column vanishing as a side effect of clearing one cell is startling.
+
 ### Adding a new file property
 
 1. Add it to `FILE_PROPERTIES` in `store.js` with `type`, `column_width`, `display_order`.
@@ -220,7 +262,9 @@ an item no range covers.
 3. Handle its type in `file-object-sort.js` if it needs sorting.
 4. If every file carries it — i.e. you added it to the return literal in `file-info.js` rather
    than deriving it from front matter — add it to `CORE_FILE_PROPERTIES` in `store.js` too.
-   That list is what registers properties when a folder holds no files.
+   That list is what registers properties when a folder holds no files, **and it is also what
+   makes a property read-only from the table** — which is the right answer for anything the app
+   fills in itself, since a cell edit splices into front matter and these do not live there.
 5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
 6. Only add `search_type` if the property is a list that must match **whole items** ("search exact
    match" in the type dialog). Lists match on part of their text by default; `tags` is the one
@@ -251,9 +295,11 @@ an item no range covers.
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/table-layouts/` | Saved layouts and property types: `table_layouts.gypsum`, read and written |
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
+| `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
+| `public/js/editing/save-cell-edit.js` | A cell edit into the note: convert, locate, splice, write, refresh |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |

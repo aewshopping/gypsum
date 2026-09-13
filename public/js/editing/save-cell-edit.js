@@ -14,7 +14,7 @@ import { refreshFileAfterSave } from './refresh-file-state.js';
  * Read the file fresh, find where the key's value sits, replace those bytes and nothing else, write
  * through the existing verified save, and let the existing refresh re-read the file and redraw the
  * table. **What you see after an edit is what the file actually contains**, checked every time
- * rather than assumed — see plans/table-cell-writing.md §1.1.
+ * rather than assumed — see plans/completed/table-cell-writing.md §1.1.
  *
  * **Never rebuild the block from the parsed values.** That silently destroys comments, key order,
  * blank lines and anything the parser skipped. The smallest span that does the job is replaced, and
