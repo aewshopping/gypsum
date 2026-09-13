@@ -11,12 +11,13 @@ const { loadFolder } = require('./helpers');
  *   beta.md  — front matter that does not read cleanly, so its cells are locked (§7).
  *   gamma.md — no front matter at all.
  */
-async function setupFiles(page) {
-  await page.addInitScript(() => {
+async function setupFiles(page, extra = {}) {
+  await page.addInitScript((extra) => {
     window.__files = {
       'alpha.md': '---\nstatus: draft\n  # a comment the parser skips\nnote: plain\ncount: 3\ndue: 2026-03-01\n---\n# Alpha\n\nBody text.\n',
-      'beta.md': '---\nstatus: live\nthis line has no colon\n---\n# Beta\n\nBody text.\n',
+      'beta.md': '---\nstatus: live\nextra: beta only\nthis line has no colon\n---\n# Beta\n\nBody text.\n',
       'gamma.md': '# Gamma\n\nNo front matter here.\n',
+      ...extra,
     };
     window.__saved = {};
     window.__removed = [];
@@ -60,12 +61,12 @@ async function setupFiles(page) {
         throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
       },
     });
-  });
+  }, extra);
 }
 
-async function openTable(page) {
+async function openTable(page, extra) {
   await page.setViewportSize({ width: 1400, height: 900 });
-  await setupFiles(page);
+  await setupFiles(page, extra);
   await page.goto('/');
   await loadFolder(page);
   await page.selectOption('#view-select', 'table');
@@ -306,4 +307,48 @@ test('a picked date is written as the ISO the picker produced', async ({ page })
   await page.keyboard.press('Escape');
 
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('due: 2026-12-25');
+});
+
+// ---------------------------------------------------------------- a key, or a block, that is new
+
+test('a key the note does not have is appended to its block', async ({ page }) => {
+  await openTable(page);
+  // Beta carries status and Alpha carries note, so Beta's note cell is empty for want of the key.
+  // Gamma is the one to write into: it has no block at all, so Alpha's keys are the empty ones.
+  await retype(page, cellFor(page, 'Alpha', 'extra'), 'filled in');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('extra: filled in');
+
+  // at the end of the block, with everything else where it was
+  const text = await fileText(page, 'alpha.md');
+  expect(text).toContain('due: 2026-03-01\nextra: filled in\n---\n# Alpha');
+  await expect(cellFor(page, 'Alpha', 'extra')).toHaveText('filled in');
+});
+
+test('a note with no front matter at all is given a block at byte 0', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Gamma', 'status'), 'new here');
+
+  await expect.poll(() => fileText(page, 'gamma.md'))
+    .toBe('---\nstatus: new here\n---\n# Gamma\n\nNo front matter here.\n');
+
+  // the heading is still the title, because a title is matched anywhere in the file
+  await expect(cellFor(page, 'Gamma', 'title')).toHaveText('Gamma');
+  await expect(cellFor(page, 'Gamma', 'status')).toHaveText('new here');
+});
+
+// Byte 0 is the one placement that cannot be re-read as something else. A separator lower down has
+// to be told apart from a setext underline above it, so a note written with underlined headings is
+// exactly the note a cleverer placement would break.
+test('a block written above a setext heading is still read as front matter', async ({ page }) => {
+  await openTable(page, { 'delta.md': 'Underlined Title\n----------------\n\nBody text.\n' });
+
+  await retype(page, cellFor(page, 'Underlined Title', 'status'), 'new here');
+
+  await expect.poll(() => fileText(page, 'delta.md'))
+    .toBe('---\nstatus: new here\n---\nUnderlined Title\n----------------\n\nBody text.\n');
+
+  const cell = cellFor(page, 'Underlined Title', 'status');
+  await expect(cell).toHaveText('new here');
+  await expect(cell).not.toHaveAttribute('data-yaml-error', /.*/);   // it read back cleanly
 });

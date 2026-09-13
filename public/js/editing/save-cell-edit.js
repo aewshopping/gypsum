@@ -2,6 +2,7 @@ import { appState } from '../services/store.js';
 import { VALUE_TYPES } from '../constants.js';
 import { propertyType } from '../services/property-type.js';
 import { parseYaml } from '../services/file-parsing/yaml-parse.js';
+import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlText } from '../services/file-parsing/yaml-value-write.js';
 import { saveFileCopy } from './save-file-copy.js';
 import { refreshFileAfterSave } from './refresh-file-state.js';
@@ -56,6 +57,10 @@ export async function applyCellEdits(edits) {
  * check an undo needs, stated as data so that it happens inside the read this write already does
  * rather than in a read of its own with a window between the two. Nothing passes it yet.
  *
+ * A key the note does not have is appended to the end of its block, and a note with no block at all
+ * is given one. Not an edge case: a column exists because *some* file carries that key, so the empty
+ * cells in every other row are exactly the ones someone wants to fill in.
+ *
  * @param {Array<{internalId: string, property: string, raw: string, expect?: string}>} rawEdits
  * @returns {Promise<Array<{internalId: string, property: string, before: string, after: string,
  *   existed: boolean}>>} One record per edit that changed a file, holding the key's whole value
@@ -72,11 +77,12 @@ async function applyRawEdits(rawEdits) {
 
     for (const [internalId, fileEdits] of byFile) {
         const file = appState.myFiles.find(candidate => candidate.internalId === internalId);
-        const text = await (await file.handle.getFile()).text();
+        const original = await (await file.handle.getFile()).text();
+        const indices = findFrontMatterIndices(original);
 
         const errors = [];
         const spans = new Map();
-        parseYaml(text, errors, spans);
+        parseYaml(original, errors, spans, indices);
 
         // §7: a file whose front matter did not read cleanly is not written into. A broken block
         // parses into something meaningless — '- apple: red' into a key nobody created — and
@@ -84,36 +90,55 @@ async function applyRawEdits(rawEdits) {
         // question asked of the bytes on disk, which is the only place the answer is current.
         if (errors.length > 0) continue;
 
-        const splices = [];
-        for (const edit of fileEdits) {
-            // No span means the key is not in the block, or there is no block. Lifted by step 4.
-            const span = spans.get(edit.property);
-            if (!span) continue;
+        // A note with no front matter at all is given a block at byte 0 — rather than anywhere
+        // cleverer, because findFrontMatterIndices takes a separator on the first line at its word
+        // however the rest of the file is written, where one lower down has first to be told apart
+        // from a setext underline and a thematic break. Empty, so that a key is appended to it the
+        // same way as to a block that was already there. A leading heading still becomes the title,
+        // which is matched anywhere in the file rather than at its top.
+        const text = indices ? original : `---\n---\n${original}`;
 
-            const before = text.slice(span.valueStart, span.valueEnd);
-            if (edit.expect !== undefined && edit.expect !== before) continue;
-            if (edit.raw === before) continue;
+        // Where a key the note does not have is written: the first character of the closing
+        // separator's line, which is where a key nobody has ordered belongs.
+        const blockEnd = indices
+            ? text.split('\n').slice(0, indices.end).reduce((offset, line) => offset + line.length + 1, 0)
+            : '---\n'.length;
+
+        const splices = [];
+        fileEdits.forEach((edit, order) => {
+            const span = spans.get(edit.property);
+            const before = span ? text.slice(span.valueStart, span.valueEnd) : '';
+
+            if (edit.expect !== undefined && edit.expect !== before) return;
+            if (span && edit.raw === before) return;
 
             splices.push({
                 property: edit.property,
-                start: span.valueStart,
-                end: span.valueEnd,
+                order,
+                start: span ? span.valueStart : blockEnd,
+                end: span ? span.valueEnd : blockEnd,
+                // A key that is not there yet arrives as a whole line; one that is has only its
+                // value replaced.
+                written: span ? edit.raw : `${edit.property}:${edit.raw}\n`,
                 before,
                 after: edit.raw,
+                existed: Boolean(span),
             });
-        }
+        });
         if (splices.length === 0) continue;
 
         // Back to front. Splice the first key and every later span is off by the length delta;
-        // working backwards keeps every span valid without recomputing anything.
-        splices.sort((a, b) => b.start - a.start);
+        // working backwards keeps every span valid without recomputing anything. Two new keys share
+        // the one insertion point, so they are applied back to front as well and end up in the
+        // order they were asked for.
+        splices.sort((a, b) => b.start - a.start || b.order - a.order);
 
         let updated = text;
         for (const splice of splices) {
-            updated = updated.slice(0, splice.start) + splice.after + updated.slice(splice.end);
+            updated = updated.slice(0, splice.start) + splice.written + updated.slice(splice.end);
         }
 
-        const snapshot = { filepath: file.filepath, filename: file.filename, content: text };
+        const snapshot = { filepath: file.filepath, filename: file.filename, content: original };
         if (!await saveFileCopy(snapshot, updated)) continue;
 
         // Not re-sorted: edit a cell in the column the table is sorted by and the row leaps away
@@ -131,7 +156,7 @@ async function applyRawEdits(rawEdits) {
                 property: splice.property,
                 before: splice.before,
                 after: splice.after,
-                existed: true,
+                existed: splice.existed,
             });
         }
     }
