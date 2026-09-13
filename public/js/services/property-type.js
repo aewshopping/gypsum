@@ -1,5 +1,5 @@
 import { VALUE_TYPES, SEARCH_TYPES } from '../constants.js';
-import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS, CORE_FILE_PROPERTIES } from './store.js';
+import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS, CORE_FILE_PROPERTIES } from './store.js';
 
 /**
  * @file The one answer to "what type is this column, and how is it searched?".
@@ -10,7 +10,8 @@ import { FILE_PROPERTIES, TABLE_VIEW_COLUMNS, CORE_FILE_PROPERTIES } from './sto
  * be six chances to disagree, and a sort that disagreed with the cell it sorted would be very
  * hard to see.
  *
- * No page, no disk, no state of its own: it reads the layout and the schema and returns a word.
+ * No page, no disk: it reads the user's chosen types and the schema, and returns a word. It also
+ * holds the one writer for that choice, so nothing else has to know which type names are legal.
  */
 
 const LEGAL_TYPES = new Set(Object.values(VALUE_TYPES).map(entry => entry.value));
@@ -26,8 +27,8 @@ function isLegal(legal, value) {
 }
 
 /**
- * The type a property is treated as: what the user chose for that column, then what the app's
- * own schema says, then text.
+ * The type a property is treated as: what the user chose for it, then what the app's own schema
+ * says, then text.
  *
  * Text is the floor rather than "no type", so every caller gets a word it can switch on and none
  * of them needs a fallback of its own. An illegal value is ignored at each level rather than
@@ -40,10 +41,10 @@ function isLegal(legal, value) {
  * @returns {string} One of VALUE_TYPES' values.
  */
 export function propertyType(name) {
-    // The app owns an info column's type, so a layout file cannot change it. Without this, a
-    // hand-edited layout saying `type: "number"` on lastModified would silently stop it sorting as
-    // a date — and a layout file is a genuine boundary everywhere else in this feature.
-    const chosen = isInfoColumn(name) ? undefined : TABLE_VIEW_COLUMNS.columnLayout.get(name)?.type;
+    // The app owns the type of every property it fills in itself, so a hand-edited file cannot
+    // change one. Without this, `type: "number"` on lastModified would silently stop it sorting as
+    // a date, and `type: "date"` on tags would break a column that is always a list.
+    const chosen = isPropertyEditable(name) ? appState.propertyTypes.get(name)?.type : undefined;
     if (isLegal(LEGAL_TYPES, chosen)) return chosen;
 
     const schema = FILE_PROPERTIES.get(name)?.type;
@@ -56,8 +57,9 @@ export function propertyType(name) {
  * Whether the app fills this column in itself, rather than reading it from a note.
  *
  * It does not replace the column's type — `lastModified` is still a date and still sorts as one.
- * It decides three things and no others: the glyph the column wears, that the type dialog is not
- * offered, and that its cells take no caret.
+ * It decides one thing and no others: the glyph the column wears. Whether the type dialog is
+ * offered and whether the cells take a caret are both isPropertyEditable(), which is the wider
+ * question and already covers every info column.
  *
  * @param {string} name - The file property key.
  * @returns {boolean}
@@ -77,9 +79,12 @@ export function isInfoColumn(name) {
  *   columns. The writing path splices a value into a front matter block, and none of these live in
  *   one: a title is body text, and a filename or a filepath is the file itself.
  *
- * **Here rather than beside either caller**, because two of them ask: `cell-editor.js` decides
- * whether an opened cell gets a caret, and the table header decides whether to draw the lock. A
- * header that promised something the cell then refused would be a small lie told at scale.
+ * **Here rather than beside any one caller**, because several ask: `cell-editor.js` decides whether
+ * an opened cell gets a caret, the table header decides whether to draw the lock, the column menu
+ * and the picker decide whether to offer the type dialog, and propertyType() decides whether to
+ * read the user's choice at all. A header that promised something the cell then refused would be a
+ * small lie told at scale — and a padlock over a column whose type you could still change was the
+ * same lie from the other side.
  *
  * To make one of these editable later, add the exception here — do not take it out of
  * CORE_FILE_PROPERTIES, which has a second job registering properties when a folder holds no files.
@@ -150,11 +155,55 @@ function readsAsNumber(value) {
  * @returns {string} One of SEARCH_TYPES' values.
  */
 export function propertySearchType(name) {
-    const chosen = TABLE_VIEW_COLUMNS.columnLayout.get(name)?.search_type;
+    // Guarded the same way as the type above, and for the same reason: tags is searched by whole
+    // items because the app says so, and a file on disk does not get to unpin that.
+    const chosen = isPropertyEditable(name) ? appState.propertyTypes.get(name)?.search_type : undefined;
     if (isLegal(LEGAL_SEARCH_TYPES, chosen)) return chosen;
 
     const schema = FILE_PROPERTIES.get(name)?.search_type;
     if (isLegal(LEGAL_SEARCH_TYPES, schema)) return schema;
 
     return SEARCH_TYPES.STRING.value;
+}
+
+/**
+ * Records the user's chosen type for a property, or forgets it.
+ *
+ * The one way into appState.propertyTypes, so nothing else has to know which names are legal. Two
+ * callers reach it from the type dialog — the column menu and the column picker — and the layouts
+ * file reaches it through the same door on load, which is what makes a hand-edited file and a click
+ * arrive validated in exactly the same way.
+ *
+ * **An illegal value is dropped rather than corrected.** Leaving the key absent falls the property
+ * back to the schema, which is a better answer than text for every property the app knows about and
+ * the same answer for the rest. Forgetting the entry entirely when neither value survives keeps
+ * "absent means ask the schema" true, so the file never fills with empty objects.
+ *
+ * **A search type is only kept on a list.** Nothing else in the app searches by whole values, and
+ * the dialog greys the choice off for every other type — so recording one there would write a
+ * setting that says nothing into a file meant to be read. The type it is judged against is the one
+ * being set, or the property's current answer when this call is not setting one, which is what lets
+ * a hand-edited file name a search type without repeating a type the schema already gives.
+ *
+ * **A property the app fills in itself is refused outright.** Those types belong to the app, and
+ * the same question — isPropertyEditable — is what stops the dialog being offered for them in the
+ * first place, so this is the boundary rather than a second opinion.
+ *
+ * @param {string} name - The file property key.
+ * @param {*} type - The chosen value type, or anything else to leave it unset.
+ * @param {*} searchType - The chosen search type, or anything else to leave it unset.
+ * @returns {void}
+ */
+export function setPropertyType(name, type, searchType) {
+    if (!isPropertyEditable(name)) return;
+
+    const isList = (isLegal(LEGAL_TYPES, type) ? type : propertyType(name)) === VALUE_TYPES.ARRAY.value;
+
+    const entry = {
+        ...(isLegal(LEGAL_TYPES, type) && { type }),
+        ...(isList && isLegal(LEGAL_SEARCH_TYPES, searchType) && { search_type: searchType }),
+    };
+
+    if (Object.keys(entry).length) appState.propertyTypes.set(name, entry);
+    else appState.propertyTypes.delete(name);
 }

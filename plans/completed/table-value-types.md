@@ -118,6 +118,12 @@ not saved, and you can neither see it nor change it.
 
 ### 3.1 You set a column's type, and the layout remembers it
 
+> **Superseded on where it is stored.** A type belongs to the property, not to one arrangement of
+> columns, and putting it on the layout entry meant switching layout could change what a column
+> sorted by. It now lives in a `propertyTypes` object at the top of the same file, keyed by property
+> name. See `plans/completed/property-type-store.md`. Everything else in this section still holds,
+> §1.2 above included.
+
 The type becomes something you choose from the column picker modal, stored in the saved layout
 alongside the width and the visibility.
 

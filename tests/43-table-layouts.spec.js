@@ -82,7 +82,7 @@ test('save as new writes every column to the layout', async ({ page }) => {
 
   const doc = await layoutsFile(page);
   expect(doc.active).toBe('review');
-  expect(doc.layoutVersion).toBe(1);
+  expect(doc.layoutVersion).toBe(2);
 
   const columns = doc.layouts.review.columns;
   // Hidden columns are written too, with their place and width, so switching one back on
@@ -90,11 +90,14 @@ test('save as new writes every column to the layout', async ({ page }) => {
   expect(columns.find(c => c.name === 'tags').visible).toBe(false);
   expect(columns.find(c => c.name === 'title').visible).toBe(true);
 
-  // Every column carries all of its metrics, none inferred.
+  // Every column carries all of its metrics, none inferred — and no type, which belongs to the
+  // property and lives in the document's own propertyTypes object.
   for (const column of columns) {
     expect(typeof column.label).toBe('string');
     expect(Number.isFinite(column.width)).toBe(true);
     expect(typeof column.visible).toBe('boolean');
+    expect(column.type).toBeUndefined();
+    expect(column.search_type).toBeUndefined();
   }
   // order is regenerated from position on every write
   expect(columns.map(c => c.order)).toEqual(columns.map((_, i) => i));
@@ -818,4 +821,170 @@ test('the warning wraps to a readable width, panel open or shut', async ({ page 
   const box = await warning.evaluate(el => el.getBoundingClientRect());
   expect(box.right).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth));
   expect(box.left).toBeGreaterThanOrEqual(panel);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Property types. They are not part of a layout: they sit in the document's own propertyTypes
+// object, so switching layout cannot change what a column sorts by, and setting one works with
+// the app's defaults in use. See the plan that undid table-value-types.md §3.1.
+// ---------------------------------------------------------------------------------------------
+
+/** Sets a column's value type from the picker, the way a user does. */
+async function setTypeFromPicker(page, property, type) {
+  await openPicker(page);
+  await page.locator(`.info-modal-row[data-property="${property}"] .column-picker-type`).click();
+  await page.locator(`#modal-column-type [data-action="column-type-set"][data-value="${type}"]`).click();
+  await page.keyboard.press('Escape');
+  await page.click('[data-action="close-column-picker"]');
+  await expect(page.locator('#modal-columns')).not.toBeVisible();
+}
+
+const resolvedType = (page, property) => page.evaluate(async name => {
+  const m = await import('/public/js/services/property-type.js');
+  return m.propertyType(name);
+}, property);
+
+/** Sets a column's value type from the table header's own menu. */
+async function setTypeFromHeader(page, property, type) {
+  const header = page.locator(`.note-table-cell-header[data-property="${property}"]`);
+  await header.scrollIntoViewIfNeeded();
+  await header.click();
+  await header.click();
+  await page.locator('[data-action="column-change-type"]').click();
+  await page.locator(`#modal-column-type [data-action="column-type-set"][data-value="${type}"]`).click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#modal-column-type')).not.toBeVisible();
+}
+
+// From the header menu rather than the picker, because closing the picker marks the layout dirty
+// whatever was done in it — including nothing. The header menu changes one thing, so it is where
+// "a type does not make a layout unsaved" can actually be seen.
+test('a type is written at once, without saving a layout, and leaves the layout alone', async ({ page }) => {
+  await openTable(page);
+  // wide enough that the date column's header is on screen to be clicked
+  await page.setViewportSize({ width: 1800, height: 900 });
+  await setTypeFromHeader(page, 'date', 'string');
+
+  await expect.poll(() => page.evaluate(() => window.__layoutsFileContent)).not.toBe('');
+  const doc = await layoutsFile(page);
+  expect(doc.propertyTypes.date).toEqual({ type: 'string' });
+
+  // no layout was invented on the user's behalf, and none was marked unsaved
+  expect(doc.layouts).toEqual({});
+  expect(doc.active).toBeNull();
+  await expect(layoutName(page)).toContainText('default');
+  expect(await isDirty(page)).toBe(false);
+});
+
+test('a type survives switching between layouts', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await hideTags(page);
+  await saveAsNew(page, 'planning');
+
+  await setTypeFromPicker(page, 'date', 'string');
+  expect(await resolvedType(page, 'date')).toBe('string');
+
+  await openLayouts(page);
+  await layoutRows(page).filter({ hasText: 'review' }).locator('.layout-row-name').first().click();
+  await page.locator('[data-action="close-layouts-modal"]').click();
+  await expect(layoutName(page)).toContainText('review');
+
+  expect(await resolvedType(page, 'date')).toBe('string');
+});
+
+test('a type set under the app defaults comes back when the folder is reloaded', async ({ page }) => {
+  await openTable(page);
+  await setTypeFromPicker(page, 'date', 'string');
+  await expect.poll(() => page.evaluate(() => window.__layoutsFileContent)).not.toBe('');
+
+  // The file is carried across in the init script, so this is the same folder opened again.
+  const saved = await page.evaluate(() => window.__layoutsFileContent);
+  await page.addInitScript(content => { window.__layoutsFileContent = content; }, saved);
+  await page.reload();
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  await expect(layoutName(page)).toContainText('default');
+  expect(await resolvedType(page, 'date')).toBe('string');
+});
+
+// A file from before types moved. Its column entries are simply not read for a type any more, so
+// the folder starts with none rather than half-reading an older shape.
+test('a type left on a column by an older file is ignored; the propertyTypes object is not', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await setupMockDirectoryWithLayouts(page);
+  await page.addInitScript(() => {
+    window.__layoutsFileContent = JSON.stringify({
+      layoutVersion: 1, active: 'review',
+      layouts: { review: { updated: '2026-01-01T00:00:00.000Z', columns: [
+        { order: 0, name: 'internalId', label: 'file', width: 90, visible: true, type: 'string' },
+        { order: 1, name: 'date', label: 'date', width: 150, visible: true, type: 'string' },
+        { order: 2, name: 'people', label: 'people', width: 200, visible: true, type: 'string' },
+      ] } },
+    });
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  // the schema's answer, not the file's
+  expect(await resolvedType(page, 'date')).toBe('date');
+  expect(await resolvedType(page, 'people')).toBe('array');
+
+  // and the new object is honoured where the old key is not
+  await page.evaluate(async () => {
+    const f = await import('/public/js/table-layouts/layout-apply.js');
+    f.applyPropertyTypesFromFile({ date: { type: 'string' } });
+  });
+  expect(await resolvedType(page, 'date')).toBe('string');
+});
+
+test('delete all layouts removes the file and returns the table to the defaults', async ({ page }) => {
+  await openTable(page);
+  await hideTags(page);
+  await saveAsNew(page, 'review');
+  await setTypeFromPicker(page, 'date', 'string');
+  await expect.poll(() => page.evaluate(() => window.__layoutsFileContent)).not.toBe('');
+
+  await openLayouts(page);
+  await page.locator('[data-action="layout-clear"]').click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-proceed"]');
+
+  await expect.poll(() => page.evaluate(() => window.__layoutsFileContent)).toBe('');
+  expect(await page.evaluate(async () => {
+    const { appState } = await import('/public/js/services/store.js');
+    return {
+      names: appState.tableLayouts.names,
+      active: appState.tableLayouts.active,
+      types: appState.propertyTypes.size,
+    };
+  })).toEqual({ names: [], active: null, types: 0 });
+
+  await page.locator('[data-action="close-layouts-modal"]').click();
+  await expect(layoutName(page)).toContainText('default');
+  // back to the schema's own columns and types: tags is shown again, and date is a date
+  await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(1);
+  expect(await resolvedType(page, 'date')).toBe('date');
+});
+
+test('delete all layouts asks first, and is offered only when there is something to delete', async ({ page }) => {
+  await openTable(page);
+  await openLayouts(page);
+  await expect(page.locator('#layout-clear-btn')).toBeDisabled();
+  await page.locator('[data-action="close-layouts-modal"]').click();
+
+  await saveAsNew(page, 'review');
+  await openLayouts(page);
+  await expect(page.locator('#layout-clear-btn')).toBeEnabled();
+
+  await page.locator('[data-action="layout-clear"]').click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-cancel"]');
+
+  await expect(layoutRows(page).filter({ hasText: 'review' })).toHaveCount(1);
+  expect((await layoutsFile(page)).layouts.review).toBeTruthy();
 });

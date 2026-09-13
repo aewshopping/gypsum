@@ -188,3 +188,30 @@
 #layout-save-btn.saving > svg {
     opacity: 0.6;
 }
+
+/* The layouts modal's escape hatch, sitting under the list. The same treatment as the history
+   modal's "clear all history" — a plain outlined button rather than a row, because it is not one
+   of the layouts and must not read as one. The declarations are repeated rather than shared with
+   modal-history-overview.css, which belongs to another component. */
+.layout-clear-btn {
+    margin-top: 1rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--colour-contr);
+    border-radius: 4px;
+    background-color: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.layout-clear-btn:hover:not(:disabled) {
+    background-color: var(--colour-contr);
+    color: var(--colour-neutral);
+}
+
+/* There is nothing to delete: no saved layout and no chosen type. Faded rather than hidden, so the
+   button stays where it is and the modal does not change shape as layouts come and go. */
+.layout-clear-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

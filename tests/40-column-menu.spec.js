@@ -86,9 +86,11 @@ test('the menu opens against the header cell it was launched from', async ({ pag
     return !!el?.closest('#column-menu');
   })).toBe(true);
 
-  // every item in the menu is live: sort both ways, search, resize, auto-size, change type, hide
-  await expect(menu(page).locator('button[disabled]')).toHaveCount(0);
-  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(7);
+  // every item is live except change type: sort both ways, search, resize, auto-size, hide. The
+  // app writes the title column itself, so its type belongs to the app — the same rule the
+  // padlock on its header states.
+  await expect(menu(page).locator('button:not([disabled])')).toHaveCount(6);
+  await expect(menu(page).locator('button[data-action="column-change-type"]')).toBeDisabled();
 });
 
 test('sorting from the menu also updates the sort dropdown and direction', async ({ page }) => {

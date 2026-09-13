@@ -944,6 +944,12 @@ async function setupMockDirectoryWithLayouts(page, { longProp = false } = {}) {
         if (name === 'history.gypsum') return stringHandle('__backupFileContent');
         throw new Error(`Unexpected getFileHandle call for: ${name}`);
       },
+      // An empty string is the mock's "no such file": JSON.parse('') throws, which is the same
+      // path readLayouts takes for a file that is not there.
+      removeEntry: async (name) => {
+        if (name === 'table_layouts.gypsum') { window.__layoutsFileContent = ''; return; }
+        throw new Error(`Unexpected removeEntry call for: ${name}`);
+      },
     };
 
     window.showDirectoryPicker = async () => ({

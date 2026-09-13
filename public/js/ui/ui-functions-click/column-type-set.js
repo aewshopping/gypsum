@@ -1,5 +1,7 @@
 import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { setPropertyType } from '../../services/property-type.js';
+import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 
 /**
  * @file The column type dialog: which type a column is read as, and how a list column is searched.
@@ -14,13 +16,16 @@ import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
  *
  * Two things are handed in. **A host**, the element carrying `data-type` and `data-search-type`,
  * which a choice is written onto and whose glyph is redrawn; a picker row and a header cell both
- * carry those. **A commit**, what to do once the dialog closes — nothing at all from the picker,
- * where the column dialog already reads its rows on close, and a write to the layout plus a
- * re-render from the header, where there is no dialog to wait for.
+ * carry those. **A commit**, what to do once the dialog closes — both callers record the type and
+ * save it, and the header's also re-renders the table, which the picker leaves to its own close.
  *
  * The header's re-render waits for the close rather than happening per choice because it replaces
  * the header cell, and the host would be an element no longer on the page while the dialog was
  * still open.
+ *
+ * **A type is recorded against the property, not the column**, and reaches disk as soon as it is
+ * set — see services/property-type.js and table-layouts/layout-file.js. That is why neither commit
+ * marks the layout dirty: a type is not part of a layout and cannot make one unsaved.
  *
  * **Lists of buttons, not <select>s.** A native select's dropdown is painted outside its container,
  * so picking an option counted as a click outside and dismissed what held it.
@@ -106,14 +111,31 @@ export function openColumnTypeDialog(host, commit) {
 }
 
 /**
- * Opens the dialog from a column picker row. Nothing is committed: the column dialog reads every
- * row into the layout when it closes, which is what lets reset undo a type change with the rest.
+ * Opens the dialog from a column picker row.
+ *
+ * It commits, the same way the header menu's does. The picker used to hold a type back until the
+ * whole dialog closed so that reset could undo it along with the toggles — but a type is no longer
+ * part of the layout, and it is written to disk as soon as it is set, so there was nothing left for
+ * reset to undo. Holding it back only made the two ways of setting a type behave differently.
  * @param {MouseEvent} evt
  * @param {HTMLElement} target - The type glyph button on the row.
  * @returns {void}
  */
 export function handleColumnTypeMenuOpen(evt, target) {
-    openColumnTypeDialog(target.closest('.info-modal-row'));
+    openColumnTypeDialog(target.closest('.info-modal-row'), commitPickerType);
+}
+
+/**
+ * Writes a picker row's type back and saves it.
+ *
+ * No render: the table is behind an open dialog, and the picker's own close re-renders it. The
+ * row's glyph has already followed the choice as it was made.
+ * @param {HTMLElement} row - The picker row, carrying data-property, data-type and data-search-type.
+ * @returns {void}
+ */
+function commitPickerType(row) {
+    setPropertyType(row.dataset.property, row.dataset.type, row.dataset.searchType);
+    savePropertyTypes();
 }
 
 /**

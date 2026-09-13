@@ -1,15 +1,18 @@
 /**
- * @file Converts between the table's in-memory layout and the array a layout file holds.
+ * @file Converts between what the layouts file holds and what the app holds in memory: the columns
+ * array on one side, and the propertyTypes object on the other.
  *
- * No File System API, no DOM — just the two directions of the same fact, kept in one place so
- * they cannot drift apart. layout-file.js does the reading and writing around it.
+ * No File System API, no DOM — just the two directions of each fact, kept in one place so they
+ * cannot drift apart. layout-file.js does the reading and writing around it.
+ *
+ * Two facts rather than one, because they belong to different things. A column entry says how this
+ * arrangement draws a property; a propertyTypes entry says what the property is. That is why a type
+ * is not on the column any more — see plans/completed/table-value-types.md and the plan that undid
+ * its §3.1.
  */
 
-import { TABLE_VIEW_COLUMNS, defaultColumnEntry } from '../services/store.js';
-import { VALUE_TYPES, SEARCH_TYPES } from '../constants.js';
-
-const LEGAL_TYPES = new Set(Object.values(VALUE_TYPES).map(entry => entry.value));
-const LEGAL_SEARCH_TYPES = new Set(Object.values(SEARCH_TYPES).map(entry => entry.value));
+import { appState, TABLE_VIEW_COLUMNS, defaultColumnEntry } from '../services/store.js';
+import { setPropertyType } from '../services/property-type.js';
 
 /**
  * The current layout as the array a file holds: one object per column, carrying its position.
@@ -66,14 +69,14 @@ function resolveOrder(columns) {
  *   duplicate would silently take one entry's place and another's width.
  * - **An unusable label or width falls back to the schema's.** A width of `"wide"` in a grid
  *   track is a broken table rather than an error, so it never gets that far.
- * - **A type this app has never heard of is dropped rather than kept.** It is left absent instead
- *   of corrected to text, so the property falls back to whatever the schema says about it — which
- *   is a better answer than text for every property the app knows, and the same answer for the
- *   rest.
  * - **A column is shown only if it says `visible: true`.** A layout is a closed statement of which
  *   columns its user wants, so anything else — `false`, a string, or no flag at all — leaves the
  *   column hidden. That is the same answer resolveColumns() gives a property the layout does not
  *   mention, so a hand-edited file cannot get a column shown by saying less than a saved one does.
+ *
+ * A `type` or `search_type` left on a column by an older file is not one of them: it is simply not
+ * read, so it falls through the whitelist this builds. Those belong to the property now, and the
+ * pair below is where they are read from.
  *
  * @param {Array<object>} columns - The `columns` array as parsed from the file.
  * @returns {void}
@@ -91,8 +94,38 @@ export function applyLayoutToColumnLayout(columns) {
             label: typeof column.label === 'string' ? column.label : fallback.label,
             width: Number.isFinite(column.width) ? column.width : fallback.width,
             visible: column.visible === true,
-            ...(LEGAL_TYPES.has(column.type) && { type: column.type }),
-            ...(LEGAL_SEARCH_TYPES.has(column.search_type) && { search_type: column.search_type }),
         });
+    }
+}
+
+/**
+ * The chosen types as the object a file holds: one entry per property, keyed by its name.
+ *
+ * Only properties someone has typed appear. An absent key is the answer "ask the schema", so
+ * writing every property out with its resolved type would turn a handful of choices into a wall of
+ * defaults — which is exactly what storing the type on every column of every layout used to do.
+ *
+ * @returns {Object<string, {type?: string, search_type?: string}>}
+ */
+export function propertyTypesFromState() {
+    return Object.fromEntries(appState.propertyTypes);
+}
+
+/**
+ * Fills appState.propertyTypes from a file's propertyTypes object, replacing whatever was there.
+ *
+ * Every entry goes through setPropertyType, so a hand-edited file and a click on the type dialog
+ * are validated by the same function: an unknown type name is dropped rather than corrected, and a
+ * property the app fills in itself is refused however the file asks.
+ *
+ * @param {*} raw - The `propertyTypes` object as parsed from the file, or anything at all.
+ * @returns {void}
+ */
+export function applyPropertyTypesFromFile(raw) {
+    appState.propertyTypes.clear();
+    if (!raw || typeof raw !== 'object') return;
+
+    for (const [name, entry] of Object.entries(raw)) {
+        setPropertyType(name, entry?.type, entry?.search_type);
     }
 }

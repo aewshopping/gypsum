@@ -80,7 +80,9 @@ test('every picker row carries a type glyph, and it says what the column is', as
     .toHaveAttribute('data-tip', 'info — date, filled in by the app');
   // A list says how it is searched too, since that is the only place the setting is visible.
   await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, search text');
-  await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, search exact match');
+  // ...and tags is one the app fills in, so its list-and-search reading is followed by who chose it.
+  await expect(pickerRow(page, 'tags').locator('.column-picker-type'))
+    .toHaveAttribute('data-tip', 'list, search exact match — set by the app');
 });
 
 // The table header says what a column holds too, so the two places agree without opening anything.
@@ -308,28 +310,28 @@ test('a value that cannot be drawn as its column type shows its text, marked', a
   await openTable(page);
 
   const cell = property => rowFor(page, 'Alpha').locator(`.note-table-cell[data-prop="${property}"]`);
-  await expect(cell('tags')).not.toHaveAttribute('data-mismatch', /.*/);
+  await expect(cell('people')).not.toHaveAttribute('data-mismatch', /.*/);
 
   // a list column set to a single-value type
   await openPicker(page);
-  await pickerRow(page, 'tags').locator('.column-picker-type').click();
+  await pickerRow(page, 'people').locator('.column-picker-type').click();
   await typeOption(page, 'date').click();
   await page.keyboard.press('Escape');
   await closePicker(page);
 
-  await expect(cell('tags')).toHaveAttribute('data-mismatch', 'shape');
-  await expect(cell('tags')).toContainText('planning');   // the tag names, not "[object Map]"
-  await expect(cell('tags')).toHaveAttribute('data-tip', /change this column's type/);
+  await expect(cell('people')).toHaveAttribute('data-mismatch', 'shape');
+  await expect(cell('people')).toContainText('John Smith');   // the names, not a blank cell
+  await expect(cell('people')).toHaveAttribute('data-tip', /change this column's type/);
 
   // and a single value in a column set to list
   await openPicker(page);
-  await pickerRow(page, 'title').locator('.column-picker-type').click();
+  await pickerRow(page, 'due').locator('.column-picker-type').click();
   await typeOption(page, 'array').click();
   await page.keyboard.press('Escape');
   await closePicker(page);
 
-  await expect(cell('title')).toHaveAttribute('data-mismatch', 'shape');
-  await expect(cell('title')).toContainText('Alpha');     // not blank
+  await expect(cell('due')).toHaveAttribute('data-mismatch', 'shape');
+  await expect(cell('due')).toContainText('2026-03-01');      // not blank
 });
 
 // The other kind: the right shape, but text that cannot be read as the type. The column is fine and
@@ -382,20 +384,45 @@ test('a mismatched cell cannot be edited, and says why when opened', async ({ pa
   await expect(ok.locator('.cell-mismatch-note')).toHaveCount(0);
 });
 
-// Searching a list as text ran String() over the tag Map and searched "[object Map]", so it matched
-// nothing, ever. Setting tags to "search text" was a silent way to break tag search.
-test('a list searched as text reads its items', async ({ page }) => {
+// Searching a list reads its items rather than running String() over the value. Set against people
+// rather than tags, which used to serve here: the app fills tags in, so its whole-item matching is
+// the app's to say and the picker will not offer to change it.
+test('a list searched as text reads part of an item, and exact match does not', async ({ page }) => {
   await openTable(page);
+
+  // "search text" is the default for a list the app knows nothing about, so part of a name hits
+  await page.fill('#searchbox', 'people:Smi');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('.note-table')).toHaveCount(1);
+
   await openPicker(page);
-  await pickerRow(page, 'tags').locator('.column-picker-type').click();
-  await searchOption(page, 'string').click();
+  await pickerRow(page, 'people').locator('.column-picker-type').click();
+  await searchOption(page, 'array').click();
   await page.keyboard.press('Escape');
   await closePicker(page);
 
-  // "cat" and "category" are both in the folder, and contains-text finds both
+  // switched to whole items, the same part of a name matches nothing, and the whole one still does
+  await page.keyboard.press('Alt+x');
+  await page.fill('#searchbox', 'people:Smi');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('.note-table')).toHaveCount(0);
+
+  await page.keyboard.press('Alt+x');
+  await page.fill('#searchbox', 'people:John Smith');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('.note-table')).toHaveCount(1);
+});
+
+// The tag pill's whole-item matching is the app's answer, so it holds without anyone setting it —
+// and cannot be switched off from the picker, where tags is one of the app's own columns.
+test('a tag pill matches that tag only', async ({ page }) => {
+  await openTable(page);
   await page.fill('#searchbox', 'tags:cat');
   await page.press('#searchbox', 'Enter');
-  await expect(page.locator('.note-table')).toHaveCount(2);
+  await expect(page.locator('.note-table')).toHaveCount(1);
+
+  await openPicker(page);
+  await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toBeDisabled();
 });
 
 // The file column's cell is a link that opens the note, not the value of internalId. Sorting it,
@@ -458,15 +485,23 @@ test('an info column keeps the type underneath, and still renders and sorts by i
 });
 
 // The app owns these columns, so a hand-edited layout file cannot quietly change what one sorts by.
-test('a layout file cannot set a type on an info column', async ({ page }) => {
+test('a file cannot set a type on a column the app fills in', async ({ page }) => {
   await openTable(page);
   const after = await page.evaluate(async () => {
     const s = await import('/public/js/services/store.js');
     const m = await import('/public/js/services/property-type.js');
-    s.TABLE_VIEW_COLUMNS.columnLayout.get('lastModified').type = 'number';
-    return m.propertyType('lastModified');
+    // Written straight into the Map, past setPropertyType, which is the most a hand-edited file
+    // could ever manage.
+    s.appState.propertyTypes.set('lastModified', { type: 'number' });
+    s.appState.propertyTypes.set('title', { type: 'date' });
+    s.appState.propertyTypes.set('tags', { search_type: 'string' });
+    return {
+      modified: m.propertyType('lastModified'),
+      title: m.propertyType('title'),
+      tagSearch: m.propertySearchType('tags'),
+    };
   });
-  expect(after).toBe('date');
+  expect(after).toEqual({ modified: 'date', title: 'string', tagSearch: 'array' });
 });
 
 // It loses its type and nothing else. Sorting by size or by last modified is the point of having
@@ -485,8 +520,12 @@ test('an info column offers no type, but still sorts and searches', async ({ pag
   await expect(pickerRow(page, 'sizeInBytes').locator('.column-picker-type')).toBeDisabled();
   await expect(pickerRow(page, 'sizeInBytes').locator('.column-picker-type'))
     .toHaveAttribute('data-tip', 'info — number, filled in by the app');
-  // the type underneath is still named, since it is still what the column sorts by
-  await expect(pickerRow(page, 'title').locator('.column-picker-type')).toBeEnabled();
+  // A column the app fills in that is not an info column is refused too, and says who chose for it
+  await expect(pickerRow(page, 'title').locator('.column-picker-type')).toBeDisabled();
+  await expect(pickerRow(page, 'title').locator('.column-picker-type'))
+    .toHaveAttribute('data-tip', 'text — set by the app');
+  // ...while a property read from a note's front matter is the user's to set
+  await expect(pickerRow(page, 'due').locator('.column-picker-type')).toBeEnabled();
 });
 
 // Quietly, unlike a mismatch: nothing is wrong and there is nothing to do about it, so a sentence

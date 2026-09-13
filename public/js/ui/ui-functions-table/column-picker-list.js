@@ -1,6 +1,6 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { VALUE_TYPES, SEARCH_TYPES, INFO_TYPE, labelFor } from '../../constants.js';
-import { isInfoColumn } from '../../services/property-type.js';
+import { isInfoColumn, isPropertyEditable } from '../../services/property-type.js';
 import { resolveColumns } from './render-table-columns-helper.js';
 
 /**
@@ -69,17 +69,23 @@ export function renderColumnPickerList() {
                   : column.dead     ? 'this property is not in the loaded folder'
                   : 'show this column';
 
-        // Two kinds of column have no type to set: one whose cell holds a link rather than its
-        // value, and one the app fills in itself. The second still has a type underneath, and the
-        // tooltip keeps it, because it is still what the column sorts by.
+        // No type to set on a column the app owns — the same question the header's padlock asks, so
+        // a locked column is locked here too. Three of them, told apart only by what the tooltip
+        // says: a control column, whose cell holds a link rather than a value and so has no type at
+        // all; an info column, which the app fills in; and everything else the app fills in, which
+        // is title, tags and the rest of CORE_FILE_PROPERTIES. The last two keep their type in the
+        // tooltip, because it is still what the column sorts by.
         const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(column.name);
         const isInfo = isInfoColumn(column.name);
+        const noType = !isPropertyEditable(column.name);
         const typeLabel = labelFor(VALUE_TYPES, column.type);
+        const spelledOut = column.type === VALUE_TYPES.ARRAY.value
+            ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
+            : typeLabel;
         const typeTip = isControl ? 'this column opens the file, so it has no type'
                       : isInfo ? `info — ${typeLabel}, filled in by the app`
-                      : column.type === VALUE_TYPES.ARRAY.value
-                        ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
-                        : typeLabel;
+                      : noType ? `${spelledOut} — set by the app`
+                      : spelledOut;
 
         const bin = (column.dead && underSavedLayout)
             ? `<button type="button" class="info-modal-row-btn" data-action="column-delete" data-property="${column.name}" data-tip="remove this column from the layout">` +
@@ -92,7 +98,7 @@ export function renderColumnPickerList() {
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<span class="column-picker-actions">` +
-                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${typeTip}"${isControl || isInfo ? ' disabled' : ''}>` +
+                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${typeTip}"${noType ? ' disabled' : ''}>` +
                      `<svg class="info-modal-row-icon type-glyph"><use href="#icon-type-${isInfo ? INFO_TYPE.value : column.type}"></use></svg></button>` +
                    bin +
                    `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +

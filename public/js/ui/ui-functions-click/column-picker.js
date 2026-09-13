@@ -117,6 +117,11 @@ export function handleHideAllColumns() {
  * The Map is cleared first: applyActiveLayout only fills it, and on the app's defaults there is
  * nothing to fill it with — an empty Map is what asks resolveColumns() for the defaults.
  *
+ * **A type set since the dialog opened is not undone.** It was written to disk when it was set,
+ * because a type is not part of a layout and this button resets a layout. Re-reading the file puts
+ * the same types back, so the rows are repainted consistent with what is stored rather than with
+ * what was on screen when the dialog opened.
+ *
  * The table is not re-rendered here; like every other change in this dialog it lands on close.
  * @returns {Promise<void>}
  */
@@ -133,10 +138,8 @@ export async function handleResetColumns() {
  * as they sit are the new layout. Each entry is spread forward first, which carries a dragged
  * width across a reorder or a hide.
  *
- * The type and search type come off the row's data attributes rather than the spread, because the
- * type popover writes its change there. That is what puts a type change on the same path as a
- * reorder or a hide: nothing lands until the dialog closes, and reset undoes it with everything
- * else by repainting the list from the layout.
+ * Visibility and order only. A column's type is not read here and is not in the layout: it belongs
+ * to the property, so the type dialog records it against the property and saves it there and then.
  *
  * Two callers: closing the dialog, and removing a dead column — which writes the layout to disk
  * and so has to write what is on screen rather than what was on screen when the dialog opened.
@@ -151,8 +154,6 @@ function readPickerIntoLayout() {
         layout.set(row.dataset.property, {
             ...previous.get(row.dataset.property),
             visible: row.querySelector('input.toggle').checked,
-            type: row.dataset.type,
-            search_type: row.dataset.searchType,
         });
     });
 }
