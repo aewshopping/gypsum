@@ -1,3 +1,4 @@
+import { VALUE_TYPES } from '../../constants.js';
 import { coerceValue } from './yaml-parse.js';
 
 /**
@@ -82,10 +83,26 @@ export function quoteYaml(text) {
  * A scalar's span starts immediately after the colon, so the separator is this function's to
  * supply — which is what lets an empty `title:` be written into exactly as a filled one is.
  *
+ * **Only a number has anything to decide.** Written plainly it closes the round trip: `42` typed
+ * into a number column comes back as the number forty-two rather than as text that then shows as
+ * not matching its column. Text that is not a number is written as text, which is what leaves the
+ * cell readable and the column's type the thing to look at.
+ *
+ * **A date writes no ISO of its own**, and that is the editors plan's decision rather than an
+ * omission here: a date cell offers a caret *and* a picker, so typed text is written verbatim and
+ * the picker is what produces ISO, before this is ever involved. Nothing here reinterprets a date —
+ * see plans/completed/table-cell-editors.md §4.
+ *
  * @param {string} text - What was captured from the cell.
+ * @param {string} type - The column's type, one of VALUE_TYPES' values.
  * @returns {string}
  */
-export function toYamlText(text) {
+export function toYamlText(text, type) {
     const trimmed = text.trim();
+
+    if (type === VALUE_TYPES.NUMBER.value && typeof coerceValue(trimmed) === 'number') {
+        return ` ${trimmed}`;
+    }
+
     return ` ${needsQuoting(trimmed) ? quoteYaml(trimmed) : trimmed}`;
 }

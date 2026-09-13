@@ -42,7 +42,7 @@ export async function applyCellEdits(edits) {
         .map(edit => ({
             internalId: edit.internalId,
             property: edit.property,
-            raw: toYamlText(edit.text),
+            raw: toYamlText(edit.text, propertyType(edit.property)),
         }));
 
     return applyRawEdits(rawEdits);

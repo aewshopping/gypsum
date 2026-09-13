@@ -14,7 +14,7 @@ const { loadFolder } = require('./helpers');
 async function setupFiles(page) {
   await page.addInitScript(() => {
     window.__files = {
-      'alpha.md': '---\nstatus: draft\n  # a comment the parser skips\nnote: plain\n---\n# Alpha\n\nBody text.\n',
+      'alpha.md': '---\nstatus: draft\n  # a comment the parser skips\nnote: plain\ncount: 3\ndue: 2026-03-01\n---\n# Alpha\n\nBody text.\n',
       'beta.md': '---\nstatus: live\nthis line has no colon\n---\n# Beta\n\nBody text.\n',
       'gamma.md': '# Gamma\n\nNo front matter here.\n',
     };
@@ -77,6 +77,17 @@ const cellFor = (page, title, prop) => rowFor(page, title).locator(`.note-table-
 
 const open = async (cell) => { await cell.click(); await cell.click(); };
 
+/** Sets a column's type through the column picker, the way a user would. */
+async function setType(page, property, value) {
+  await page.click('[data-action="open-column-picker"]');
+  await expect(page.locator('#modal-columns')).toBeVisible();
+  await page.locator(`.info-modal-row[data-property="${property}"] .column-picker-type`).click();
+  await page.locator(`[data-action="column-type-set"][data-value="${value}"]`).click();
+  await page.keyboard.press('Escape');
+  await page.click('[data-action="close-column-picker"]');
+  await expect(page.locator('#modal-columns')).not.toBeVisible();
+}
+
 /** Opens a cell, replaces everything in it, and closes it the way Escape does. */
 async function retype(page, cell, text) {
   await open(cell);
@@ -100,7 +111,7 @@ test('typing in a cell writes the value into the note', async ({ page }) => {
   // the smallest number of bytes that does the job: the comment, the other key and the body are
   // all exactly where they were
   const text = await fileText(page, 'alpha.md');
-  expect(text).toBe('---\nstatus: published\n  # a comment the parser skips\nnote: plain\n---\n# Alpha\n\nBody text.\n');
+  expect(text).toBe('---\nstatus: published\n  # a comment the parser skips\nnote: plain\ncount: 3\ndue: 2026-03-01\n---\n# Alpha\n\nBody text.\n');
 });
 
 test('the table redraws from the file rather than from memory', async ({ page }) => {
@@ -234,4 +245,65 @@ test('the edited row does not leap away when its column is the sorted one', asyn
   await expect(cellFor(page, 'Alpha', 'status')).toHaveText('zzz');
 
   expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma']);
+});
+
+// ---------------------------------------------------------------- number and date
+
+test('a number is written plainly, so it comes back a number', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'count', 'number');
+  await retype(page, cellFor(page, 'Alpha', 'count'), '42');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('count: 42');
+
+  // the round trip is closed: quoted, it would read back as text and then show as not matching
+  await expect(cellFor(page, 'Alpha', 'count')).toHaveText('42');
+  await expect(cellFor(page, 'Alpha', 'count')).not.toHaveAttribute('data-mismatch', /.*/);
+});
+
+test('text in a number column is written as text, and says so afterwards', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'count', 'number');
+  await retype(page, cellFor(page, 'Alpha', 'count'), 'about five');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('count: about five');
+  await expect(cellFor(page, 'Alpha', 'count')).toHaveAttribute('data-mismatch', 'unreadable');
+  await expect(cellFor(page, 'Alpha', 'count')).toHaveText('about five');
+});
+
+test('a date is written exactly as it was typed', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'due', 'date');
+
+  const cell = cellFor(page, 'Alpha', 'due');
+  await open(cell);
+  const text = cell.locator('.cell-date-text');
+  await text.evaluate(el => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  await page.keyboard.type('1 March 2026');
+  await page.keyboard.press('Escape');
+
+  // nothing reinterprets it: no ISO of ours, and no locale rendering either
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('due: 1 March 2026');
+  await expect(cellFor(page, 'Alpha', 'due')).toHaveText('1 March 2026');
+});
+
+test('a picked date is written as the ISO the picker produced', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'due', 'date');
+
+  const cell = cellFor(page, 'Alpha', 'due');
+  await open(cell);
+  await cell.locator('.cell-date-input').evaluate(el => {
+    el.value = '2026-12-25';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.keyboard.press('Escape');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('due: 2026-12-25');
 });
