@@ -249,7 +249,7 @@ These are the mechanics. The interface is a separate list and is **not** decided
 | Persisting the stack across a reload | **No.** In memory, in `appState`. A stack that outlives the session is mostly stale entries, and §3 would drop them one by one — the honest version is not to offer it. |
 | Depth | **20 batches.** Free (§2), so chosen for feel. |
 | Clearing it | **On folder change only.** The ids mean nothing against a different folder. Not on view change: §3 makes that unnecessary. |
-| Ctrl+Z | **Not at first.** The note modal has native undo in a `contenteditable` and a global handler fights it. A button first — §10.1 on where it goes; a key scoped to the table view with no cell open, later. |
+| Ctrl+Z | **Not at first**, but **design for it from the start** — §10.4. The note modal has native undo in a `contenteditable` and a global handler fights it, and an open dialog does not stop a key reaching the document delegate. A button first (§10.1), but the rule about when undo is allowed belongs in the handler rather than in what is drawn, because a key binding inherits no scope from the interface. |
 | Re-sorting after an undo | **No**, for the same reason `table-cell-writing.md` gives for an edit: the row leaps away from under you. The same `applyRefresh` argument. |
 | A history snapshot before the first edit | **Not in the shipped app.** Worth switching on while steps 2 to 5 are being built — it is a one-line call to `saveBackupEntry` and gives whole-file recovery through the existing history modal — then removed. As a scaffold against test folders the cap objection does not bite. |
 
@@ -308,6 +308,10 @@ every time — which is also the argument for showing it always rather than over
 like "confirm only above N cells" is the intricate edge-case handling the project's principles warn
 against, and it would hide the modal in exactly the case where its content is most useful.
 
+**It does a second job once Ctrl+Z is wired up** (§10.4): a key binding can be hit by accident in a
+way a button cannot, and held down in a way a button cannot either. The preview argument stands on
+its own, but the two together make this the easiest of the four to settle.
+
 **The consequence to weigh:** naming a skip count means running §3's check *before* the modal opens,
 which means reading the files first. Either read them twice, or hold the text read for the preview
 and write from it — the second is cleaner and the window in which it could go stale is seconds. The
@@ -319,14 +323,35 @@ needs no read before the modal, and makes the modal a weaker thing.
 **Leaning: yes.** The stack records edits made in the table, the affordance belongs where those edits
 happen, and in any other view there is nothing for the result to be seen against.
 
-**It costs nothing**, which is the part worth noticing. The stack is not cleared on a view change
-(§9), so switching away and back leaves it intact — table-only is a restriction on where the button
-is drawn, not on what survives. And a note open in `#file-content-modal` uses `showModal()`, which
-makes everything outside it inert, so the control cannot be reached while a note is open without any
-work at all.
+**But it is a guard, not an absence**, and that is the thing to be clear about before any of this is
+built. A button is scoped by not being drawn; a key binding is not scoped by anything. Since Ctrl+Z
+is the binding anyone would reach for, plan for the key and let the button inherit the rule, rather
+than the other way round.
 
-The keyboard question is separate and already answered in §9: no Ctrl+Z at first, because the note
-modal has native undo in a `contenteditable` and a global handler fights it.
+**`showModal()` does not stop a key reaching the handler.** It makes everything outside the dialog
+inert for the pointer and for focus, but keys pressed *inside* the dialog bubble to the document like
+any other event, and `keyDownDelegate` is registered on the document. The codebase already proves it:
+the number-key shortcut in `keyboard-shortcuts.js` has to test `document.querySelector('dialog[open]')`
+by hand, which it would not need if an open dialog swallowed the event.
+
+So the key means "undo a cell edit" only when all three hold:
+
+| condition | already an idiom? |
+|---|---|
+| the table view is current | `appState.viewState` |
+| no dialog is open | **yes** — `!document.querySelector('dialog[open]')`, as the number keys do |
+| focus is not in something with its own undo | **yes** — `isTypingTarget()`, though it is local to `keyboard-shortcuts.js` and would need exporting |
+
+The third is the one worth stating as a rule rather than a list: **if focus is in something that has
+its own undo, the key is not ours.** That is one question about the focused element rather than an
+enumeration of app states, and it covers the two places the same hazard appears — a note's
+`contenteditable` in the modal, and an open cell editor in the table itself. Undoing a *file write*
+when someone meant to undo the word they just typed is §1's trap with a disk write behind it.
+
+**So Ctrl+Z is not free the way the button is**, which is the argument for §9's "not at first"
+rather than a footnote to it: three conditions, two of which exist already, and a fourth-order case
+in key repeat — hold Ctrl+Z and auto-repeat pops several batches before you let go. The confirmation
+of §10.3 absorbs that one, which is a second reason to want it.
 
 ---
 
@@ -367,6 +392,7 @@ of fifty and a batch of one take the same path.
 | `public/js/services/store.js` | edit | `appState.undoStack` |
 | `public/js/editing/save-cell-edit.js` | edit | export `applyRawEdits`; §6.2 built the split already |
 | `public/js/ui/event-listeners-add.js` | edit | register the action |
+| `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | the Ctrl+Z guard when it arrives, and exporting `isTypingTarget()` — §10.4 |
 | `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the button, if §10.1 lands where it leans |
 | ~~a confirmation dialog~~ | **exists** | `showWarningModal()` is already reused across three flows and returns a promise — §10.3 needs no new dialog, only the text |
 
