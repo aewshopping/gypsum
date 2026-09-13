@@ -1,10 +1,11 @@
 # Plan: writing a cell edit into the note
 
-Status: **not built.** Two of its guards arrived early with the types plan — §6.
-Branch: `claude/table-view-types-arch-4yhgmf`
-Manifest version now: `1.191.0` → bump the minor version with each step that changes code.
+Status: **not built.** Four of its guards arrived early, three with the types plan and one with the
+editors plan — §6. Capture arrived with them, and is one expression — §4.
+Branch: `claude/table-cell-date-editor-h2at27`
+Manifest version now: `1.202.0` → bump the minor version with each step that changes code.
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
-Paired with: `plans/table-cell-editors.md`, **which comes first** — it decides what a click on a
+Paired with: `plans/completed/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
 
 Someone has finished editing a cell. This plan gets what they typed into the note's front matter
@@ -108,11 +109,11 @@ Eight stages, two of them genuinely new:
 
 | # | stage | what it does | new? |
 |---|---|---|---|
-| 1 | capture | read what was typed out of the cell | the editors plan |
+| 1 | capture | read what was typed out of the cell | **done** — §4.4 |
 | 2 | guard | may this be edited, did it change, is the file safe to touch | part built — §6 |
 | 3 | convert | the type turns what was typed into the text after the colon | **new** |
 | 4 | locate | find where that key lives in the front matter | **done** — §4.2 |
-| 5 | splice | build the new file text around it | small |
+| 5 | splice | build the new file text around it, or the block itself when the file has none | small |
 | 6 | write | the existing verified write in `save-file-copy.js` | exists |
 | 7 | refresh | the existing re-read and re-render | exists |
 | 8 | render | untouched | exists |
@@ -159,15 +160,55 @@ an empty `title:` still works. An item's starts after the dash and its whitespac
 |---|---|
 | `string` | the text, quoted when it would not read back as itself |
 | `number` | the digits plainly when it reads as a number, else quoted text |
-| `date` | a plain ISO date — the editors plan decides what from |
+| `date` | the text, as typed, quoted by the same rule as `string` — see below |
 | `array` | §5 |
+
+**`date` writes no ISO of its own**, and that is the editors plan's decision, now taken: a date cell
+offers a caret *and* a picker, so typed text is written verbatim and the picker is what produces ISO —
+before this plan is ever involved. Nothing here reinterprets a date. See `completed/table-cell-editors.md` §4.
+
+### 4.4 Capture is one expression, and that is not an accident
+
+**`cell.textContent`, for every type.** Three things the editors plan built are what make it true, and
+each was a deliberate choice rather than a happy result:
+
+- **a cell holds nothing but escaped text** — the renderers that mean their markup all belong to
+  columns that refuse a caret, so `textContent` returns the note's own characters rather than the
+  browser's reading of them
+- **a date cell's editor is a span beside a button and an input**, none of which contribute text, so
+  the swap on opening leaves `textContent` exactly as the renderer wrote it
+- **a mismatched cell's explanation never reaches here**, because a cell carrying one takes no caret
+
+So there is no per-type capture to write, and adding one later would be the mistake: a type that
+needed special reading would mean the cell had stopped being the value.
+
+### 4.5 What counts as a change
+
+**The text the cell holds now, against the text it held when it opened.** Not against the file's value,
+and not as parsed values compared to parsed values.
+
+Comparing against the file's value looks more direct and is wrong, because **rendering a value and
+capturing it back is not a round trip** — a list of numbers comes back as a list of strings, and a
+padded item comes back trimmed (§5.1). Every one of those would report a change on a cell nobody
+touched, and this plan's whole job is writing to files.
+
+Comparing text with text has none of that: if you did not type, the two strings are identical, whatever
+the value was and whatever the renderer did with it. It is also type-free, so it is one comparison
+rather than four.
+
+**The opening text is stashed on the cell when it opens**, the same way the renderer already leaves
+`data-mismatch`, `data-info` and `data-list` — the cell is where a fact about that cell lives, and only
+one is ever open. `openEditor` in `cell-editor.js` is where it goes, beside the decision it already
+makes about what the cell offers.
 
 ---
 
 ## 5. Lists
 
-The editors plan hands over an array of strings, in order. Turning that back into front matter uses
-the per-item spans where they pay:
+The editors plan hands over an array of strings, in order — read out of the cell by `splitFlowItems()`
+in `file-parsing/flow-list.js`, which is the parser's own comma scanner. **No item can contain a line
+break**, because that editor splits on one, so the case that destroys a block outright cannot arrive
+here. Turning the array back into front matter uses the per-item spans where they pay:
 
 | what changed | what is written |
 |---|---|
@@ -181,20 +222,44 @@ discovering.
 
 **A flow list (`tags: [a, b]`) stays a flow list**, which is where the quoting rule earns its keep:
 an item written into flow form needs quoting if it holds a comma, a bracket or a quote. An item in a
-block list does not — it runs to the end of its line.
+block list does not — it runs to the end of its line. **A block list stays a block list too**: the
+editor's commas are how a list is shown and typed, never a reason to rewrite the file's own form.
+And this rule is not the editor's display rule — see `completed/table-cell-editors.md` §3.2, which explains why
+the two must stay separate.
 
 **Tags is not editable** however editable lists become (§2.1), and three of the remaining four list
 properties come from the body text. So the lists this reaches are mostly ones the user invented,
 which is the right place to start.
 
+### 5.1 Capture is not the inverse of render, and the change test must not assume it is
+
+`joinFlowItems` draws the cell and `splitFlowItems` reads it back, and **the pair does not round-trip
+for every value**. Measured against the built functions:
+
+| the file holds | the cell shows | capture returns |
+|---|---|---|
+| `[1, 2, 10]` | `1, 2, 10` | `["1", "2", "10"]` |
+| `["  spaced  "]` | `"  spaced  "` | `["spaced"]` |
+
+Two rows rather than three: there is no boolean here to write one for. `VALUE_TYPES` is text, number,
+date and list and nothing else, so a column can never be asked to hold `true` as anything but text.
+
+Neither row is a fault to fix. The parser coerces `1` to a number while the editor deals in text, and
+trimming an item is what makes typing tolerable. They matter for one reason: **a cell nobody touched
+can capture as something that does not equal what the file holds**, so a change test that compares the
+captured array with the file's value would report a change on every list of numbers and rewrite it.
+
+**The test compares text with text** — §4.5.
+
 ---
 
 ## 6. What already exists
 
-Two of step 2's guards arrived with the types plan, and the harder one is the one that is built.
+Four of step 2's guards are built, three from the types plan and one from the editors plan — and so is
+capture, which was never listed as a risk and turned out to carry one (§4.4).
 
 **A mismatched cell already refuses to be edited.** `typeMismatch()` in `property-type.js` says
-whether a value can be drawn as its column's type; `cell-expand.js` opens such a cell without a
+whether a value can be drawn as its column's type; `cell-editor.js` opens such a cell without a
 caret, and says why in the cell and in its tooltip. The sentence names which of the two faults it
 is, because they have different fixes: the column's type is wrong and changing it fixes every cell
 at once, or the note is wrong and only opening the note fixes it. That second case is §2's
@@ -203,6 +268,15 @@ at once, or the note is wrong and only opening the note fixes it. That second ca
 **A column the app fills in refuses a caret.** `info_columns` covers the file link, the size, the
 last modified date and the load error. Its cell opens so a long value stays readable and takes no
 caret, silently — unlike a mismatch, nothing is wrong and there is nothing to do about it.
+
+**A property that cannot be written refuses a caret**, and that guard now lives in `cell-editor.js` with
+the other two — see `completed/table-cell-editors.md` §5.2. `title`, `filename` and `filepath` look editable today
+and never were; the editors plan stops them pretending. Step 2's table below drops that row.
+
+**A cell contains nothing but escaped text**, which is what makes capture a single expression rather
+than a per-type reader — §4.4. It was built as a precondition for exactly this: before it, a front
+matter value holding `a <b> c` rendered as `a  c`, so opening that cell and committing would have
+rewritten the note with the browser's reading of it rather than the note's own characters.
 
 **The file column is refused everything.** `TABLE_VIEW_COLUMNS.control_columns` holds columns whose
 cell is a control rather than a value — the file column is `internalId` wearing an open-file link —
@@ -225,7 +299,7 @@ case parses into something meaningless, and writing into it would write into a k
 | question | decision |
 |---|---|
 | The same file open in the note modal | **Nothing to do.** `#file-content-modal` uses `showModal()`, which makes every node outside it inert, so the table cannot be touched while a note is open. |
-| A property the file does not have yet | **Not editable in version one.** Step 4 adds it back for files that already have a block. A file with no front matter at all stays out of scope: creating one from a cell edit is a bigger intervention than a cell edit should be. |
+| A property the file does not have yet | **Editable, and a file with no front matter block at all is included.** Step 4 lifts the guard for both: the key is appended to the block, or the block is written when there is none. Not an edge case — a column exists because *some* file carries that key, so the empty cells in every other row are exactly the ones someone wants to fill in, and a note that has never had front matter is the commonest note there is. |
 | Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. |
 | Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
 | A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong. |
@@ -248,7 +322,9 @@ The cases, all confirmed against the built parser:
 
 - a colon followed by a space, which splits the line into a new key
 - a leading dash, hash or quote
-- a line break, which destroys the block
+- a line break, which destroys the block. **Narrower than it was**: Enter is prevented in a one-line
+  editor and a list item cannot hold one, because that editor splits on it — so a paste is the only
+  route left, and the rule stays for that
 - a value beginning with `[`, or it reads back as a list. Strictly only when it also ends with `]`,
   but the rule should not try to be that clever — the text after the next edit might end with one
 - text that would read back as a number or a date when it is meant to be text
@@ -264,32 +340,48 @@ The whole pipeline with `string` and nothing else, and the guards, which are the
 
 | guard | built? |
 |---|---|
-| the property is not in `CORE_FILE_PROPERTIES` | no |
+| the property is not in `CORE_FILE_PROPERTIES` | **yes** — the editors plan, §5.2 |
 | the property is not a control column | **yes** |
 | the property is not an info column | **yes** |
 | the value fits the column's type | **yes** |
 | the column's type is not `array` — lifted by step 5 | no |
 | the file's front matter read cleanly | no |
-| the file already has that key — lifted by step 4 | no |
-| the text actually changed | no |
+| the file already has a front matter block, and that key in it — lifted by step 4 | no |
+| the text differs from what the cell opened with — §4.5 | no |
 
 **Checkable by:** edit a front matter cell, watch the file on disk change, watch the table redraw
 from the file rather than from memory.
 
 ### Step 3 — Number and date
 
-`number` and `date` in the convert function. What `date` receives depends on the editors plan's
-decision, which is why that plan comes first.
+`number` and `date` in the convert function. `date` turned out to be the cheap half: the editors plan
+settled on a caret beside a picker, so a date is written as typed and only `number` has anything to
+decide.
 
 Without this, typing `42` into a number column writes `"42"`, which reads back as text and then
 shows as not matching the column. The types are what closes the round trip.
 
-### Step 4 — A key the file does not have yet
+### Step 4 — A key, or a block, the file does not have yet
 
-Lift the sixth guard: editing a cell for a property the note lacks appends the line to the end of
-its front matter block. Small, because we already locate the block.
+Lift the sixth guard. Two cases, and the second is the one worth writing down:
 
-Without it, filling in a missing value means opening the note, which undercuts the point.
+- **a block without that key** — append the line to the end of it. Small, because we already locate
+  the block, and the end of it is where a key nobody has ordered belongs.
+- **no block at all** — write one at byte 0: `---`, the line, `---`, then the file's existing text,
+  untouched from its first character on. An empty file becomes just the block.
+
+**Byte 0, rather than anywhere cleverer.** `findFrontMatterIndices` will accept a block that opens
+lower down — blank lines and ATX headings may sit above it, within the first five lines — but it
+only does so after ruling out a setext underline above the separator and prose between two
+horizontal rules. A separator on the *first* line has nothing above it to be a break between, so it
+is taken at its word however the rest of the file is written. That makes byte 0 the one placement
+that cannot be re-read as something else, whatever the note starts with: a `# Title`, a paragraph
+underlined with dashes, or a thematic break. A leading heading still becomes the title afterwards,
+because the title is matched anywhere in the file rather than at its top.
+
+Without this, filling in a missing value means opening the note, which undercuts the point — and for
+a note with no front matter it means writing a YAML block by hand, which is the thing the table is
+supposed to save you from.
 
 ### Step 5 — Lists
 
@@ -302,11 +394,11 @@ Without it, filling in a missing value means opening the note, which undercuts t
 | file | new? | why |
 |---|---|---|
 | `public/js/services/file-parsing/yaml-value-write.js` | **new** | a value plus a type becomes the text after the colon, including the quoting rule |
-| `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place |
-| `public/js/ui/ui-functions-click/cell-edit-commit.js` | **new** | the user finished editing a cell |
-| `public/js/services/property-type.js` | edit | may this property be edited |
+| `public/js/editing/save-cell-edit.js` | **new** | the whole sequence, in one place — including the two step 4 cases, since choosing between splicing into a block and writing one is part of building the new file text |
+| `public/js/ui/ui-functions-cell/cell-edit-commit.js` | **new** | the user finished editing a cell — the folder the editors plan groups this feature into |
+| ~~`public/js/services/property-type.js`~~ | **done** | `isPropertyEditable()` answers "may this property be edited", and the header's lock asks it too |
 | `public/js/services/store.js` | edit | one sentence on `CORE_FILE_PROPERTIES` — its second job |
-| `public/js/ui/ui-functions-click/cell-expand.js` | edit | commit on collapse |
+| `public/js/ui/ui-functions-cell/cell-editor.js` | edit | stash the opening text in `openEditor`, commit from `closeEditor` — collapsing a cell already goes through there, so `cell-expand.js` needs no change |
 | `public/js/ui/event-listeners-add.js` | edit | register the new action |
 | `public/js/editing/refresh-file-state.js` | edit | the option not to re-sort |
 

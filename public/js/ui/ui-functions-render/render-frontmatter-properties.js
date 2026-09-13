@@ -1,18 +1,5 @@
 import { parseYaml } from '../../services/file-parsing/yaml-parse.js';
-
-/**
- * Escapes HTML-significant characters in a string so it can be safely injected into markup,
- * including as a quoted attribute value.
- * @param {string} value - The raw string to escape.
- * @returns {string} The escaped string.
- */
-function escapeHtml(value) {
-    return value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
+import { escapeHtml } from './escape-html.js';
 
 /**
  * Renders a single value as a clickable, tag-style pill. Clicking it triggers a search

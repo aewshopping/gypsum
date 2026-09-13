@@ -68,6 +68,18 @@
     --colour-highlight-light:   var(--colour-compl-emph-light);
     --colour-highlight-contr:   var(--colour-compl-emph-contr);
     --colour-highlight-mix-pct: 60%;
+
+    /* The items inside a list cell — see highlight.css. The text colour rather than a colour of its
+       own, because the mark is punctuation's job rather than a category: it says "these are separate
+       values", not "these are special". Pointing at the token rather than copying it means every
+       theme's own contrast colour comes through. The percentage is the one number to turn if the
+       bands want to be quieter. */
+    --list-mark:         var(--colour-contr);
+    --list-mark-mix-pct: 14%;
+
+    /* How far an opened cell that takes no caret fades, text and outline together — see
+       note-table-cell.css. Against transparent, so it settles over whatever the cell is sitting on. */
+    --cell-readonly-fade: 50%;
 }
 
 :root:has(#and_filter:checked) {

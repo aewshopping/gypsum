@@ -1,0 +1,120 @@
+/* One table cell: the box, the two steps of opening it, and what an unopenable one says.
+
+   Split out of note-table.css, which had grown to 356 lines against a 190-line next-largest in a
+   codebase that keeps CSS in component files. The colour rules for a cell stay there, beside the
+   row colouring they are part of. See plans/table-cell-editors.md §5.1. */
+
+.note-table-cell {
+    overflow: hidden;
+    text-wrap: nowrap;
+
+    /* Open or closed, because it is one element either way — the expanded rule below adds a class to
+       this same div, so this declaration serves both states and there is no second one to drift
+       from. The row's height is computed from this same token, so a line always has room. */
+    line-height: var(--table-line-height);
+    border-top: var(--table-line);
+    border-right: var(--table-line);
+    padding: var(--table-cell-padding);
+}
+
+/* Clicking a cell selects it; clicking it again expands it. outline rather than border,
+   so marking a cell never nudges the layout. */
+.note-table-cell.is-selected {
+    outline: 2px solid var(--colour-contr);
+    outline-offset: -2px;
+}
+
+/* Out of flow, so the row keeps its height and the other columns keep their widths.
+   left/right pin it to its own column: it only grows downwards.
+
+   The cursor is deliberately NOT text here. Not every expanded cell takes a caret — the app's own
+   columns, the properties that are not front matter, and any value that does not fit its column all
+   open to be read and nothing more — and a text cursor over one of those promised an editor that
+   never arrived. The rule below gives it back wherever a caret actually exists. */
+.note-table-cell.is-expanded {
+    cursor: default;
+    text-wrap: wrap;
+
+    /* No line-height here. It is --table-line-height on .note-table-cell above, which is this same
+       element: the leading a list cell's marks need in order not to touch the marks on the line
+       above is the same leading the collapsed cell has to have, or the first line moves when you
+       open one. */
+
+    /* A value with no spaces in it — a URL, a path, a run-together tag — has nowhere the browser
+       will break it, and this cell is overflow: visible, so it painted straight over the column
+       beside it. Breaking mid-word is ugly; leaving the box is worse. */
+    overflow-wrap: anywhere;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: auto;
+    min-height: 100%;
+    z-index: 3;
+    overflow: visible;
+    background-color: var(--colour-neutral);
+
+    /* And therefore the neutral foreground. A row carrying a file's colour forces its text to
+       whatever reads against that colour, which an expanded cell would otherwise keep while sitting
+       on the neutral it just swapped to — black text on a dark ground in the dark palette. */
+    color: var(--colour-contr);
+    outline: 2px solid var(--colour-contr);
+    outline-offset: -2px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+/* Wherever there is something to type into, and only there. The date editor puts the caret on a
+   span inside the cell rather than on the cell, so both are named. */
+.note-table-cell.is-expanded[contenteditable],
+.cell-date-text {
+    cursor: text;
+}
+
+/* An opened cell that offers no caret: its text and its outline fade together, and the outline is
+   dashed.
+
+   Faded to the same colour so the two read as one thing rather than two marks. Against transparent,
+   so it settles over the cell's own background whatever the row is wearing. The dashes stay as well
+   as the fade: saying it twice is cheap, and the second way survives being read by someone who does
+   not see the first.
+
+   No sentence, because there is nothing to do about it — a mismatched cell explains itself in words
+   since something is wrong there, while a size or a filename cell is working exactly as intended and
+   the padlock on its column has already said so. */
+.note-table-cell.is-expanded.is-readonly {
+    outline-style: dashed;
+    color: color-mix(in srgb, var(--colour-contr) var(--cell-readonly-fade), transparent);
+    outline-color: color-mix(in srgb, var(--colour-contr) var(--cell-readonly-fade), transparent);
+}
+
+/* A cell whose value cannot be drawn as its column's type. It shows its text, so that what the file
+   holds is still readable and you can see which type it wanted.
+
+   Tinted rather than restyled, and with the colour the load-error nudge already uses for "this is a
+   bit off": a wrong type is a column that looks odd until it is changed back, not an error. See
+   plans/completed/table-value-types.md §1.2.
+
+   Deliberately not an underline and not italic. A dotted underline is already an unresolved
+   internal link, a search highlight and the load-error nudge, and italic is the filename column.
+   Four things that mean different things must not look the same. */
+.note-table-cell[data-mismatch] {
+    color: color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%);
+}
+
+/* The same sentence the cell's tooltip carries, shown inside the cell once it is opened, because a
+   tooltip needs a pointer. On its own line under the value, and small, so the value stays the thing
+   being read.
+
+   It keeps the column's width like the rest of an opened cell, and wraps. Widening it was tried and
+   put back: a cell grows rightward, so on the last column — which is exactly where a newly typed
+   property sits — the explanation ran off the edge of the table. The sentences are short enough to
+   wrap tolerably instead. */
+.cell-mismatch-note {
+    display: block;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    font-size: 0.85em;
+    text-wrap: wrap;
+}

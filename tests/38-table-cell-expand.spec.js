@@ -10,7 +10,8 @@ async function setupLongTitles(page) {
       return { kind: 'directory', name: 'root', values: async function* () {
         for (let i = 1; i <= 30; i++) {
           yield mk(`note-${String(i).padStart(2, '0')}.md`,
-            `# Note ${i} with a deliberately long title that will not fit inside one table cell\n\nbody #work/project`);
+            `---\nnote: a front matter value long enough that its cell cannot show all of it\n---\n`
+            + `# Note ${i} with a deliberately long title that will not fit inside one table cell\n\nbody #work/project`);
         }
       } };
     };
@@ -115,9 +116,11 @@ test('a cell in the last row still opens downward, and the header stays above it
 });
 
 
+// A front matter property rather than the title: only what a note's front matter holds can be
+// written back, so those are the only cells that take a caret. See plans/completed/table-cell-editors.md §5.2.
 test('an expanded cell can be typed into, without the app stealing the keys', async ({ page }) => {
   await openTable(page);
-  const cell = page.locator('.note-table .note-table-cell[data-prop="title"]').nth(2);
+  const cell = page.locator('.note-table .note-table-cell[data-prop="note"]').nth(2);
 
   await cell.click(); await cell.click();
   await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');

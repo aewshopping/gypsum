@@ -98,7 +98,12 @@ Three rules follow from that, and they are the ones to hold:
 - **The legal type names live in `VALUE_TYPES` in `constants.js`**, and nowhere else. A layout file
   is hand-editable, so a name that is not in that list is dropped rather than honoured. One symbol
   per type is named after it (`#icon-type-<name>`), and the table header, the column picker and the
-  type dialog all build the href from a column's type — so a new type needs a matching symbol.
+  type dialog all build the href from a column's type — so a new type needs a matching symbol, **and
+  an entry in `LOCK_SHIFT` in `render-table-header.js`**. A locked column's glyph is composed from
+  two `<use>` elements, the type drawing moved up and left by that shift plus `#icon-lock-badge` laid
+  over the corner it frees. Composed rather than drawn as a symbol per type, so the padlock exists
+  once and a type's shape once; never scaled, so the type mark measures the same on a locked column
+  as on an open one.
 - **The type dialog (`#modal-column-type`) is reached from two places**: the glyph on a column
   picker row, and "change type" in the table's column menu. It is a dialog rather than a menu
   because a header cell opens one menu only, and because `showModal()` makes everything outside an
@@ -133,6 +138,46 @@ Three rules follow from that, and they are the ones to hold:
   from the other side: the link is the only way to open a note from the table. Two lists rather than
   one, because they refuse different things: an info column must stay sortable and searchable, since
   sorting by size or by last modified is the point of having it. `internalId` is in both.
+
+### What a table cell may contain
+
+Two rules, and the second follows from the first. See `plans/completed/table-cell-editors.md`.
+
+- **A cell shows the note's own text, not a rendering of it.** A date cell shows what the file says
+  rather than `toLocaleDateString()`, and a list shows one comma-joined line rather than a `<ul>`.
+  Both were changed for the same reason: a cell is what an edit is read back out of, and
+  `01/03/2026` read back by `new Date()` is the third of January. `lastModified` is the exception,
+  because the app owns that value and its cell takes no caret.
+- **Escape everything that came from a file**, with `ui-functions-render/escape-html.js`. That is
+  what makes the first rule safe, and together with the caret rules it gives the invariant worth
+  keeping: *a cell that takes a caret contains nothing but escaped text.* The renderers that mean
+  their markup — `renderFilename`, `renderOpenFileLink`, `renderTags` — all belong to columns that
+  refuse a caret.
+
+**A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
+typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
+or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
+per-cell question of whether the value fits its column. Both the header's lock and the caret ask the
+first one, which is what stops the table promising something the cell then refuses.
+
+**Say it before the click, not after.** A locked column's header glyph is its type drawing with a
+padlock laid over the corner — one element, so the header spends no more on a locked column than an
+open one. An opened cell
+that offers no caret fades its text and its outline together, draws the outline dashed, and shows no
+text cursor. An expanded cell also takes `--colour-contr`: it has swapped to the neutral background, so
+it cannot keep the colour a coloured row forced on it. To make a property
+editable later, add the exception in `isPropertyEditable` — do not take it out of
+`CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
+a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
+
+**A list cell's items are marked with a CSS custom highlight**, not with spans — see
+`ui-functions-highlight/list-highlight.js`, which exports `itemRangesIn()` as the one answer to where
+an item begins: the marks use it, and so does auto-sizing a list column, which fits the widest **item**
+rather than the whole comma-joined line. Fitting the line measures every item in the busiest row added
+together, which has no natural bound and just runs into the width cap. Ranges survive a `contenteditable` and lay nothing out,
+where spans would be mangled by the first keystroke. Every input rebuilds that cell's ranges: an
+ordinary letter looks like it cannot change anything, but the letter after a newly typed comma starts
+an item no range covers.
 
 ### Adding a new file property
 
@@ -171,8 +216,10 @@ Three rules follow from that, and they are the ones to hold:
 | `public/js/services/file-handler.js` | File loading orchestration (File System API) |
 | `public/js/services/file-parsing/` | Metadata extraction: title, tags, YAML |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
+| `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

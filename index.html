@@ -93,6 +93,16 @@
         <path d="M13 16h2M23 16h14M13 25h2M23 25h14M13 34h2M23 34h14"/>
       </g>
     </symbol>
+
+    <!-- The padlock a locked column's glyph wears, drawn where it sits: the bottom-right corner,
+         which the type drawing is moved out of to make room. Its own symbol rather than one combined
+         symbol per type — the header lays it over the plain type glyph with a second <use>, so this
+         path exists once instead of five times and a type's drawing keeps its single definition. -->
+    <symbol id="icon-lock-badge" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
+        <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
+      </g>
+    </symbol>
     <symbol id="icon-close" viewBox="0 0 66.3 64.5">
       <g fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linecap="round">
         <g transform="translate(10 10.4)"><path d="M0 0 C3.8 3.3 15.5 12.6 23 19.8 C30.4 27 41.1 39.2 44.7 43"/></g>

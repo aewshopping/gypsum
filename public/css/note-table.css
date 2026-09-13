@@ -4,6 +4,17 @@
     /* The grid lines, between rows and between columns. Deliberately faint: they should separate
        the cells without ruling the table. */
     --table-line: 0.5px solid color-mix(in srgb, var(--colour-contr) 10%, transparent);
+
+    /* The leading in a cell, and the two things that follow from it: what a cell pads itself by, and
+       how tall a row therefore has to be.
+
+       All three are one number stated once because they cannot be allowed to disagree. The leading
+       went on the expanded cell alone first, and opening a cell moved its first line 5px down while
+       the cells either side of it stayed put. Sharing it between the two states fixed that and broke
+       something else: the row is a fixed height, so a taller line box had nowhere to go and the text
+       sat low in the row with its descenders clipped. A row has to be told what a line now costs. */
+    --table-line-height: 1.7;
+    --table-cell-padding: 6px;
 }
 
 .table-wrapper {
@@ -66,7 +77,16 @@
        the one value that pairs with visible: hidden on either axis would force the other
        to auto and make the row a scroll container. */
     overflow: clip visible;
-    height: 32px; /* deleting height line means rows expand vertically to fit content */
+    /* Every row the same height, so the table reads as a grid rather than as a list of paragraphs —
+       deleting this line lets rows grow to fit their content instead. Computed rather than a number,
+       because what a row has to hold is one line of text at the leading a cell uses, plus what the
+       cell pads itself by.
+
+       The calc is here rather than in a token beside the others because of the `em`: a custom
+       property resolves its lengths where it is declared, and base.css scales the app's text on the
+       body rather than on :root — so an em declared up there would freeze the row at the default
+       size while the text inside it grew. */
+    height: calc(var(--table-line-height) * 1em + 2 * var(--table-cell-padding));
     cursor: default;
     position: relative; /* the containing block an expanded cell is placed against */
 
@@ -130,42 +150,6 @@
         style(--colours-suppress: true): transparent;
         else: color-mix(in oklch, var(--colour-dynamic-fade) 80%, var(--color-mono-contr, var(--colour-contr)))
     );
-}
-
-.note-table-cell {
-    overflow: hidden;
-    text-wrap: nowrap;
-    border-top: var(--table-line);
-    border-right: var(--table-line);
-    padding: 6px;
-}
-
-/* Clicking a cell selects it; clicking it again expands it. outline rather than border,
-   so marking a cell never nudges the layout. */
-.note-table-cell.is-selected {
-    outline: 2px solid var(--colour-contr);
-    outline-offset: -2px;
-}
-
-/* Out of flow, so the row keeps its height and the other columns keep their widths.
-   left/right pin it to its own column: it only grows downwards. An expanded cell is
-   editable, hence the text cursor over the row's default one. */
-.note-table-cell.is-expanded {
-    cursor: text;
-    text-wrap: wrap;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: auto;
-    height: auto;
-    min-height: 100%;
-    z-index: 3;
-    overflow: visible;
-    background-color: var(--colour-neutral);
-    outline: 2px solid var(--colour-contr);
-    outline-offset: -2px;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
 
 /* Clips the header, which is wider than the viewport, to the visible width.
@@ -245,6 +229,11 @@
     border-bottom: var(--table-line);
     padding: 6px;
 
+    /* Tighter than the .flex-row utility's 4px, which is right everywhere else but not here: this
+       row is a heading and three marks competing for a column's width, so every gap is taken from
+       the heading. Overridden here rather than in the utility, which half the app uses. */
+    gap: 2px;
+
     &:hover {
         background-color: var(--colour-neutral-alt);
     }
@@ -283,7 +272,9 @@
    The same colour and weight as the type glyph it sits beside, so the two marks at the end of a
    header read as one pair rather than as a mark and a piece of text. */
 .column-sort-indicator {
-    padding: 6px;
+    /* Vertical padding only. The horizontal 6px put 12px between the chevron and the glyph beside
+       it, which on a header that is mostly heading is 12px the heading does not get. */
+    padding: 6px 0;
     line-height: 1;
     color: var(--colour-contr);
     opacity: 0.45;
@@ -309,12 +300,6 @@
     rotate: -90deg;
 }
 
-.table-view-array-list{
-    list-style-type: "- ";
-    padding-left:12px;
-    margin:0px;
-}
-
 /* column hover — selector managed by table-col-hover.js */
 .note-table-header .note-table-cell-header[data-property=""],
 .list-table .note-table-cell[data-prop=""] {
@@ -322,35 +307,4 @@
         style(--colours-suppress: true): var(--colour-neutral-alt);
         else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))
     );
-}
-
-/* A cell whose value cannot be drawn as its column's type. It shows its text, so that what the file
-   holds is still readable and you can see which type it wanted.
-
-   Tinted rather than restyled, and with the colour the load-error nudge already uses for "this is a
-   bit off": a wrong type is a column that looks odd until it is changed back, not an error. See
-   plans/completed/table-value-types.md §1.2.
-
-   Deliberately not an underline and not italic. A dotted underline is already an unresolved
-   internal link, a search highlight and the load-error nudge, and italic is the filename column.
-   Four things that mean different things must not look the same. */
-.note-table-cell[data-mismatch] {
-    color: color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%);
-}
-
-/* The same sentence the cell's tooltip carries, shown inside the cell once it is opened, because a
-   tooltip needs a pointer. On its own line under the value, and small, so the value stays the thing
-   being read.
-
-   It keeps the column's width like the rest of an opened cell, and wraps. Widening it was tried and
-   put back: a cell grows rightward, so on the last column — which is exactly where a newly typed
-   property sits — the explanation ran off the edge of the table. The sentences are short enough to
-   wrap tolerably instead. */
-.cell-mismatch-note {
-    display: block;
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-    font-size: 0.85em;
-    text-wrap: wrap;
 }

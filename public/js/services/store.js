@@ -92,8 +92,9 @@ export const FILE_PROPERTIES = new Map([
   ['internalId', { label: 'file', type: 'string', column_width: 90, display_order: 0 }],
   ['title', { type: 'string', column_width: 350, display_order: 2 }],
   ['filename', { type: 'string', column_width: 250, display_order: 1 }],
-  // 175 rather than 150: the header now carries a type glyph as well as the sort chevron, and at
-  // 150 the longest default heading in the table no longer fitted beside both.
+  // 175 rather than 150: the header carries a type glyph as well as the sort chevron, and at 150 the
+  // longest default heading in the table no longer fitted beside both. It went to 195 when a locked
+  // column wore a second glyph, and came back when the two became one.
   ['lastModified', {label: 'last modified', type: 'date', column_width: 175, display_order: 4 }],
   // search_type pins tags to whole-item matching. It is the only property that needs to say so:
   // a list is searched by part of its text unless it asks otherwise, and a tag pill means that

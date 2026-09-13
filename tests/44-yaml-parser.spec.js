@@ -228,3 +228,68 @@ test('below the first line, a block of prose is not claimed', async ({ page }) =
   expect(data).toEqual({});
   expect(errors).toEqual([]);
 });
+
+// ---------------------------------------------------------------------------------------------
+// flow-list.js: a list as one line of text, in both directions. Here rather than in its own file
+// because it borrows the parser's comma scanner — one scanner, so the editor and the file can
+// never disagree about where an item ends. See plans/completed/table-cell-editors.md §3.
+
+/**
+ * Runs splitFlowItems in the page.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} text
+ */
+const split = (page, text) => page.evaluate(async text => {
+  const { splitFlowItems } = await import('/public/js/services/file-parsing/flow-list.js');
+  return splitFlowItems(text);
+}, text);
+
+/**
+ * Runs joinFlowItems in the page, then reads it straight back.
+ * @param {import('@playwright/test').Page} page
+ * @param {string[]} items
+ */
+const roundTrip = (page, items) => page.evaluate(async items => {
+  const { splitFlowItems, joinFlowItems } = await import('/public/js/services/file-parsing/flow-list.js');
+  const text = joinFlowItems(items);
+  return { text, back: splitFlowItems(text) };
+}, items);
+
+test('a comma-separated line reads back as its items', async ({ page }) => {
+  await page.goto('/');
+  expect(await split(page, 'John Smith, Jane Doe')).toEqual(['John Smith', 'Jane Doe']);
+  expect(await split(page, '"Doe, Jane", Sam')).toEqual(['Doe, Jane', 'Sam']);
+});
+
+test('empty items and a trailing comma fall out, which the scanner already did', async ({ page }) => {
+  await page.goto('/');
+  expect(await split(page, ' a , , b,')).toEqual(['a', 'b']);
+  expect(await split(page, '')).toEqual([]);
+});
+
+test('a newline separates items too, and no quote protects it', async ({ page }) => {
+  // Pasting a column out of a spreadsheet then does what it looks like it should, and no item can
+  // hold a line break — which is the one thing that destroys a front matter block outright.
+  await page.goto('/');
+  expect(await split(page, 'a\nb\nc')).toEqual(['a', 'b', 'c']);
+  expect(await split(page, '"a\nb"')).toEqual(['"a', 'b"']);
+  expect(await split(page, 'a, b\nc, d')).toEqual(['a', 'b', 'c', 'd']);
+});
+
+test('items that need quoting survive a round trip through the editor', async ({ page }) => {
+  await page.goto('/');
+
+  expect(await roundTrip(page, ['a', 'b'])).toEqual({ text: 'a, b', back: ['a', 'b'] });
+
+  for (const items of [['Smith, John', 'Jane'], ["it's, here"], ['say "hi", now'], ['  padded  ']]) {
+    const { back } = await roundTrip(page, items);
+    expect(back).toEqual(items.map(item => item.trim()));
+  }
+});
+
+test('an item is not coerced to a number or a boolean on the way out', async ({ page }) => {
+  // coerceValue would have: the editor deals in text, and what a value means is the parser's
+  // business when the file is read back.
+  await page.goto('/');
+  expect(await split(page, '12, true, null')).toEqual(['12', 'true', 'null']);
+});

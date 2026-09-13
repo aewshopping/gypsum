@@ -10,6 +10,8 @@
 @import url("css/note-lanes.css");
 @import url("css/keyboard-nav.css");
 @import url("css/note-table.css");
+@import url("css/note-table-cell.css");
+@import url("css/cell-date-editor.css");
 @import url("css/note-table-scrollbar.css");
 @import url("css/note-list.css");
 @import url("css/note-search-view.css");

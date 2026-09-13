@@ -68,7 +68,10 @@ import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, ha
          handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
-import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-click/cell-expand.js';
+import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-cell/cell-expand.js';
+import { handleCellEditorKeydown } from './ui-functions-cell/cell-editor.js';
+import { handleCellDatePick, handleCellDateSet } from './ui-functions-cell/cell-date-editor.js';
+import { handleListCellInput } from './ui-functions-highlight/list-highlight.js';
 import { initTooltip } from './tooltip.js';
 
 /**
@@ -108,7 +111,7 @@ export function addActionHandlers() {
     // all reach, which is why the dialog is read there rather than from a "done" button.
     document.getElementById('modal-columns').addEventListener('close', handleColumnPickerClose);
     document.addEventListener("mousedown", (evt) => {
-        if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"]')) {
+        if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"], [data-action="cell-date-pick"]')) {
             evt.preventDefault();
         }
         if (evt.target.closest('[data-action="editor-color-pick"]')) {
@@ -158,6 +161,7 @@ const clickActionHandlers = {
     'column-type-set': handleColumnTypeSet,
     'column-search-type-set': handleColumnSearchTypeSet,
     'expand-cell': handleCellExpand,
+    'cell-date-pick': handleCellDatePick,
     'toggle-render-text': handleToggleRenderText,
     'delete-filter': handleDeleteFilter,
     'filter-togglestate': handleFilterToggleState,
@@ -224,6 +228,7 @@ const changeActionHandlers = {
     'pagination-size-change': handlePaginationSizeChange,
     'checkbox-toggle': handleCheckboxToggle,
     'column-toggle': handleColumnToggle,
+    'cell-date-set': handleCellDateSet,
 };
 
 const pointerDownActionHandlers = {
@@ -307,6 +312,7 @@ function pointerDownDelegate(evt) {
  */
 function keyDownDelegate(evt) {
     if (handleAutocompleteKeydown(evt)) return;
+    handleCellEditorKeydown(evt);
     handleKeyboardShortcuts(evt);
 }
 
@@ -334,6 +340,8 @@ function keyUpDelegate(evt) {
  * @param {Event} evt The input event.
  */
 function inputDelegate(evt) {
+    handleListCellInput(evt);
+
     const actionElement = evt.target.closest('[data-action]');
 
     if (actionElement) {
