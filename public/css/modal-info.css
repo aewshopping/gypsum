@@ -87,10 +87,14 @@
     opacity: 0.9;
 }
 
-/* A row button with nothing behind it — the type glyph on a column the app fills in itself. Faded
-   and unhoverable, so it reads as a mark rather than as a control that is ignoring you. */
+/* A row button with nothing behind it — the type glyph on a column the app fills in itself. It is
+   left at the resting weight, because the glyph inside it already wears a padlock and fading the
+   button would make that the faintest thing on the row. The header settled this the same way: a
+   locked column's mark is drawn no lighter than an open one, and the badge carries the difference.
+
+   Unhoverable is what is left of the fade — the rule above withholds the lift to 0.9, so a locked
+   glyph stays put under the pointer while a live one comes up. */
 .info-modal-row-btn:disabled {
-    opacity: 0.25;
     cursor: default;
 }
 

@@ -103,11 +103,13 @@ point. These rules follow, and they are the ones to hold:
   is hand-editable, so a name that is not in that list is dropped rather than honoured. One symbol
   per type is named after it (`#icon-type-<name>`), and the table header, the column picker and the
   type dialog all build the href from a column's type — so a new type needs a matching symbol, **and
-  an entry in `LOCK_SHIFT` in `render-table-header.js`**. A locked column's glyph is composed from
-  two `<use>` elements, the type drawing moved up and left by that shift plus `#icon-lock-badge` laid
-  over the corner it frees. Composed rather than drawn as a symbol per type, so the padlock exists
-  once and a type's shape once; never scaled, so the type mark measures the same on a locked column
-  as on an open one.
+  an entry in `LOCK_SHIFT` in `ui-functions-render/type-glyph.js`**. That module draws the mark for
+  the header and the picker alike, which is what keeps a column reading the same in both. A locked
+  column's glyph is composed from two `<use>` elements, the type drawing moved up and left by that
+  shift plus `#icon-lock-badge` laid over the corner it frees. Composed rather than drawn as a symbol
+  per type, so the padlock exists once and a type's shape once; never scaled, so the type mark
+  measures the same on a locked column as on an open one, and drawn at the same weight either way —
+  the badge carries the difference, not a fade.
 - **The type dialog (`#modal-column-type`) is reached from two places**: the glyph on a column
   picker row, and "change type" in the table's column menu. It is a dialog rather than a menu
   because a header cell opens one menu only, and because `showModal()` makes everything outside an
@@ -142,8 +144,8 @@ point. These rules follow, and they are the ones to hold:
   cell as well as in its tooltip, because a tooltip needs a pointer. The sentence is written once,
   by the renderer, onto `data-tip`, and `cell-expand.js` shows that same string.
 - **`TABLE_VIEW_COLUMNS.info_columns` holds the columns the app fills in itself** — the file link,
-  the size, the last modified date and the load error. They wear the info glyph, no type can be
-  chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
+  the size, the last modified date and the load error. They wear the info glyph under a padlock, in
+  the header and the picker both, no type can be chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
   renaming from the table is wanted later, and editing a filepath would move the file.
   **`info` sits beside a column's type rather than replacing it.** `lastModified` is still a `date`
   and still sorts and renders as one, which is why `INFO_TYPE` lives in `constants.js` *outside*
@@ -184,9 +186,9 @@ or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.
 per-cell question of whether the value fits its column. Both the header's lock and the caret ask the
 first one, which is what stops the table promising something the cell then refuses.
 
-**Say it before the click, not after.** A locked column's header glyph is its type drawing with a
-padlock laid over the corner — one element, so the header spends no more on a locked column than an
-open one. An opened cell
+**Say it before the click, not after.** A locked column's glyph is its type drawing with a padlock
+laid over the corner — one element, so the header spends no more on a locked column than an open
+one, and the column picker draws the same mark on the button it is about to refuse. An opened cell
 that offers no caret fades its text and its outline together, draws the outline dashed, and shows no
 text cursor. An expanded cell also takes `--colour-contr`: it has swapped to the neutral background, so
 it cannot keep the colour a coloured row forced on it. To make a property
@@ -251,6 +253,7 @@ an item no range covers.
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
+| `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |

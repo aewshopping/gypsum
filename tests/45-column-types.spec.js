@@ -93,7 +93,9 @@ test('the table header carries the same glyph as the picker', async ({ page }) =
   await openPicker(page);
 
   for (const property of ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes']) {
-    const inPicker = await pickerRow(page, property).locator('.column-picker-type use').getAttribute('href');
+    // .first() on both sides: a locked column's glyph is the type drawing plus a padlock, and the
+    // type drawing is the one that has to agree.
+    const inPicker = await pickerRow(page, property).locator('.column-picker-type use').first().getAttribute('href');
     // .first(), because a locked column's glyph holds the type drawing and a padlock laid over it.
     // The type drawing is the one that has to agree with the picker.
     const inHeader = await header(page, property).locator('.type-glyph use').first().getAttribute('href');
@@ -121,7 +123,7 @@ test('the glyph is drawn for the type, and follows a change', async ({ page }) =
   await openPicker(page);
 
   // Columns whose type is the user's to set. The app's own are covered by the info tests below.
-  const glyphHref = property => pickerRow(page, property).locator('.column-picker-type use');
+  const glyphHref = property => pickerRow(page, property).locator('.column-picker-type use').first();
   await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-string');
   await expect(glyphHref('tags')).toHaveAttribute('href', '#icon-type-array');
 
