@@ -1,6 +1,7 @@
 # Plan: undoing a cell edit
 
-Status: **not built**, and deliberately last.
+Status: **not built**, and deliberately last. The mechanics below are settled; **the interface is
+not** — §10 holds four open questions, and step 11a cannot be finished without them.
 Branch: `claude/table-undo-stack-design-ica8um`
 Manifest version now: `1.202.0` → bump the minor version with each step that changes code.
 Depends on: `plans/table-cell-writing.md`, **not built** — steps 1 to 5 of it come first, and §6
@@ -239,6 +240,8 @@ record.**
 
 ## 9. Decisions taken
 
+These are the mechanics. The interface is a separate list and is **not** decided — §10.
+
 | question | decision |
 |---|---|
 | Redo | **No.** It doubles the state machine and the staleness surface of §3, which has to know which direction you last went. Nobody has asked for it. |
@@ -246,36 +249,116 @@ record.**
 | Persisting the stack across a reload | **No.** In memory, in `appState`. A stack that outlives the session is mostly stale entries, and §3 would drop them one by one — the honest version is not to offer it. |
 | Depth | **20 batches.** Free (§2), so chosen for feel. |
 | Clearing it | **On folder change only.** The ids mean nothing against a different folder. Not on view change: §3 makes that unnecessary. |
-| Ctrl+Z | **Not at first.** The note modal has native undo in a `contenteditable` and a global handler fights it. A button first; a key scoped to the table view with no cell open, later. |
+| Ctrl+Z | **Not at first.** The note modal has native undo in a `contenteditable` and a global handler fights it. A button first — §10.1 on where it goes; a key scoped to the table view with no cell open, later. |
 | Re-sorting after an undo | **No**, for the same reason `table-cell-writing.md` gives for an edit: the row leaps away from under you. The same `applyRefresh` argument. |
 | A history snapshot before the first edit | **Not in the shipped app.** Worth switching on while steps 2 to 5 are being built — it is a one-line call to `saveBackupEntry` and gives whole-file recovery through the existing history modal — then removed. As a scaffold against test folders the cap objection does not bite. |
 
 ---
 
-## 10. Steps
+## 10. Still to decide: the interface
+
+Everything above is about bytes. **None of the four questions below is settled**, and step 11a cannot
+be finished without answering them. Recorded here with the constraints each one runs into, and a
+leaning where there is one.
+
+### 10.1 Where the control lives
+
+**Leaning: the table's own control row.** `renderTableControls()` in `ui-functions-table/` already
+draws it — the layout name, the column picker, the layouts edit, the save — and it is the row that
+says what the table is showing and then offers to change it. An undo button belongs in that sentence.
+
+The alternative worth weighing is a transient offer beside the cell just edited, which reads better
+for the typo-noticed-immediately case. But it is not the cheaper option it looks: the refresh
+re-renders the whole table, so anything attached to a cell has to survive that, which means it lives
+in `appState` — which is the stack. Same state, different surface.
+
+### 10.2 How the app says an undo happened
+
+**The open one. There is no existing answer to copy**: the app has no toast or notification module,
+and the nearest thing is `save-spin.js`, where the save button carries three glyphs and CSS shows one
+according to a class.
+
+Two facts make this harder than it sounds:
+
+- **A single-cell undo just changes the cell.** The re-render is silent, and a value going back to
+  what it was is exactly what a cell that was never edited looks like.
+- **A batch undo may visibly change nothing at all.** Restore forty-eight values across twelve files
+  and the rows may be on other pages, or filtered out. "Nothing happened" and "everything happened"
+  look identical.
+
+Options to weigh: a count reported in the control row; a transient highlight on the affected cells
+that are on the current page; or nothing for a single cell and a report for a batch. The list-item
+custom highlight in `ui-functions-highlight/` is the closest precedent for marking cells without
+touching their markup.
+
+**The refusal is not optional**, whatever is decided for success. §3's stale-entry case is the one
+path where someone asked for something and nothing happened, and it has to say why — naming the
+property and the file, since "it changed since" is only useful if you know where to look.
+
+### 10.3 Whether a warning modal is needed
+
+**Leaning: yes — and `showWarningModal(mainText, proceedText, cancelText)` already exists**, reused
+across three flows and returning a promise, so this costs no new dialog.
+
+But the reason matters, because it decides what the modal says. **It earns its place as a preview,
+not as a speed bump.** "Are you sure?" on a single-cell undo is the kind of prompt people learn to
+click through, and it protects nothing. A modal that reports *48 values in 12 files, 2 skipped
+because they changed since* is telling you something no other surface can, and is worth reading
+every time — which is also the argument for showing it always rather than over a threshold. A rule
+like "confirm only above N cells" is the intricate edge-case handling the project's principles warn
+against, and it would hide the modal in exactly the case where its content is most useful.
+
+**The consequence to weigh:** naming a skip count means running §3's check *before* the modal opens,
+which means reading the files first. Either read them twice, or hold the text read for the preview
+and write from it — the second is cleaner and the window in which it could go stale is seconds. The
+cheaper version if that feels heavy: confirm with counts only, and report skips afterwards. That
+needs no read before the modal, and makes the modal a weaker thing.
+
+### 10.4 Whether undo is reachable only from the table view
+
+**Leaning: yes.** The stack records edits made in the table, the affordance belongs where those edits
+happen, and in any other view there is nothing for the result to be seen against.
+
+**It costs nothing**, which is the part worth noticing. The stack is not cleared on a view change
+(§9), so switching away and back leaves it intact — table-only is a restriction on where the button
+is drawn, not on what survives. And a note open in `#file-content-modal` uses `showModal()`, which
+makes everything outside it inert, so the control cannot be reached while a note is open without any
+work at all.
+
+The keyboard question is separate and already answered in §9: no Ctrl+Z at first, because the note
+modal has native undo in a `contenteditable` and a global handler fights it.
+
+---
+
+## 11. Steps
 
 Undo is **step 6 of `table-cell-writing.md`**, after lists. Building it earlier means writing it
 against an imagined interface, and rewriting it twice: step 4 adds §7's created key, step 5 adds the
 item-level splice of §4.
 
-### Step 6a — the stack and one entry deep
+### Step 11a — the stack and one entry deep
 
 `appState.undoStack`, the record from §6.3 pushed onto it, `applyRawEdits` exported, and the §3 check.
 A button that undoes the most recent batch.
 
+**§10 has to be answered before this can be finished.** The stack, the check and the write are
+buildable and testable without it — but where the button goes, what the app says afterwards, and
+whether a confirmation stands in front of it are all open, and the last of those changes whether the
+files are read once or twice (§10.3).
+
 **Checkable by:** edit a cell, undo it, watch the file on disk go back. Then edit the cell, change the
 same property in the note modal, undo, and watch it refuse.
 
-### Step 6b — depth, and the batch
+### Step 11b — depth, and the batch
 
-Twenty batches, the button reporting what it will undo. Nothing new to build once 6a is in: a batch of
-fifty and a batch of one take the same path.
+Twenty batches, the button reporting what it will undo. Nothing new to build once 11a is in: a batch
+of fifty and a batch of one take the same path.
 
 **Arrives with paste**, and is the reason the seams are in step 2.
 
 ---
 
-## 11. Where the code goes
+## 12. Where the code goes
 
 | file | new? | why |
 |------|------|-----|
@@ -284,6 +367,12 @@ fifty and a batch of one take the same path.
 | `public/js/services/store.js` | edit | `appState.undoStack` |
 | `public/js/editing/save-cell-edit.js` | edit | export `applyRawEdits`; §6.2 built the split already |
 | `public/js/ui/event-listeners-add.js` | edit | register the action |
+| `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the button, if §10.1 lands where it leans |
+| ~~a confirmation dialog~~ | **exists** | `showWarningModal()` is already reused across three flows and returns a promise — §10.3 needs no new dialog, only the text |
 
 **`undo-cell-edits.js` is separate from `save-cell-edit.js`** because it is the only module that knows
 an edit can be stale. Everything about writing bytes stays in one place, as §6.2 arranges it.
+
+**Nothing here covers §10.2**, because there is nothing to reuse: the app has no toast or
+notification module, and what undo needs to say is the one part of this plan with no precedent in
+the codebase to point at.
