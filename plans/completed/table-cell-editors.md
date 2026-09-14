@@ -4,9 +4,9 @@ Status: **built**, every step, at manifest `1.195.0`.
 Branch: `claude/table-cell-date-editor-h2at27`
 Manifest version when it landed: `1.195.0`.
 Depends on: `plans/completed/table-value-types.md`, **built**.
-Paired with: `plans/table-cell-writing.md`, which takes what comes out of here and puts it in the
-note, and which is **not built**. Everything here stops at the DOM: an edit still lives in the cell
-and is discarded by the next render.
+Paired with: `plans/completed/table-cell-writing.md`, which takes what comes out of here and puts it
+in the note, and which is **now built** — an edit reaches the file, and the table is redrawn from
+what the file then holds.
 
 A cell is a `contenteditable` div today — one editor for everything, never argued for, just
 inherited. This plan decides what a click on an editable cell actually opens, per type, and whether
@@ -115,6 +115,13 @@ So `[draft]` needs no quotes in the editor, which has no brackets of its own to 
 them in the file.
 
 ### 3.3 A newline separates items as well
+
+> **Superseded in part, at manifest `1.220.0`.** A newline still separates items — a paste brings
+> its own, and `splitFlowItems` still reads one as the end of an item, so the spreadsheet column
+> below arrives exactly as described. What has gone is **Enter typing that newline**: Enter now
+> finishes with a cell whatever the column holds, because it had come to mean "done with this" for
+> every other type, and a list was the only cell that could not be finished with from the keyboard.
+> The commented-out line and the reasoning are in `cell-editor.js`.
 
 **A newline has to mean something, so the only choice is what.** `plaintext-only` lets someone press
 Enter, and paste brings newlines in regardless — and an item holding a line break cannot be written to
@@ -344,7 +351,7 @@ destroys a block outright. So:
 
 | type | Enter |
 |---|---|
-| list | inserts the break, which §3.3 reads as a new item |
+| list | ~~inserts the break, which §3.3 reads as a new item~~ — superseded: it commits, like the rest |
 | text, number, date | prevented — later, it commits |
 
 Route it through `keyDownDelegate` beside `handleAutocompleteKeydown`, the established pattern for a key

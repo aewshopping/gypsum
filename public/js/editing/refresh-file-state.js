@@ -19,33 +19,64 @@ let queuedRefresh = null;
  * typing. Only one refresh is ever pending — a burst of autosaves replaces the queued one
  * rather than stacking up full re-renders, and the newer snapshot reads fresher disk state
  * anyway.
+ *
+ * **For a save the user is waiting on, call refreshFileNow instead.** The deferral is right for a
+ * save nobody asked for, and wrong for one somebody just pressed a key to finish: an idle callback
+ * can wait up to its two-second timeout on a busy main thread, and the table would sit there
+ * showing the old value for all of it.
+ *
  * @param {{ filepath: string, filename: string }} snapshot
+ * @param {boolean} [resort=true] - Whether to put the file back in sort order afterwards.
  * @returns {void}
  */
-export function refreshFileAfterSave(snapshot) {
+export function refreshFileAfterSave(snapshot, resort = true) {
     if (queuedRefresh !== null) cancelIdleCallback(queuedRefresh);
     queuedRefresh = requestIdleCallback(() => {
         queuedRefresh = null;
-        applyRefresh(snapshot);
+        applyRefresh(snapshot, resort);
     }, { timeout: 2000 });
+}
+
+/**
+ * The same refresh, without the wait — for a save the user is standing over, like a cell edit.
+ * @param {{ filepath: string, filename: string }} snapshot
+ * @param {boolean} [resort=true] - Whether to put the file back in sort order afterwards.
+ * @returns {Promise<void>}
+ */
+export function refreshFileNow(snapshot, resort = true) {
+    return applyRefresh(snapshot, resort);
 }
 
 /**
  * Re-parses the saved file from disk, updates appState, and re-renders
  * the tag taxonomy and file list.
- * renderFiles keeps the current page: the file list sits behind the open modal, and a
- * save must not silently jump it back to page 1 while the user is typing.
+ * The current page is kept, whether the render happens here or inside processSeachResults: the
+ * file list sits behind the open modal, and a save must not silently jump it back to page 1 while
+ * the user is typing — nor an edit made on page 3 of a filtered table.
+ *
+ * The table's rows are replaced on their own unless the file has gained a front matter key, which
+ * is a column the header does not have yet. Everything else a save can change is in the rows.
+ * A cell edit passes resort false: the row would otherwise leap away from under the pointer when
+ * the column being edited is the one the table is sorted by.
  * @param {{ filepath: string, filename: string }} snapshot
+ * @param {boolean} [resort=true] - Whether to put the file back in sort order.
  * @returns {Promise<void>}
  */
-async function applyRefresh(snapshot) {
+async function applyRefresh(snapshot, resort = true) {
     try {
         const fileIndex = appState.myFiles.findIndex(f => f.filepath === snapshot.filepath);
         if (fileIndex === -1) return;
 
         const existingFile = appState.myFiles[fileIndex];
 
+        // Re-parsing registers any front matter key the file has gained, which is a new column. The
+        // rows can be replaced on their own only while the columns are the ones already drawn, so
+        // the count is taken either side of the re-parse. A cell edit can never add one — a column
+        // exists because the property is registered — but a note edited in the modal can.
+        const propertyCount = appState.myFilesProperties.size;
+
         const freshFile = await getFileDataAndMetadata(existingFile.handle, 0);
+        const fullRender = appState.myFilesProperties.size !== propertyCount;
 
         const tagsHaveChanged = !tagsEqual(existingFile.tags, freshFile.tags);
         const colorHasChanged = existingFile.color !== freshFile.color;
@@ -75,15 +106,21 @@ async function applyRefresh(snapshot) {
             if (appState.tagTaxonomyVisible) renderTagTaxonomy();
         }
 
-        const { property, direction } = appState.sortState;
-        sortAppStateFiles(property, propertyType(property), direction);
-        renderFiles(true, true);
+        if (resort) {
+            const { property, direction } = appState.sortState;
+            sortAppStateFiles(property, propertyType(property), direction);
+        }
 
+        // One render either way. The filters are re-run first and processSeachResults does the
+        // rendering, because it renders anyway — rendering before it meant two full renders and,
+        // where a view transition ran, two of those interrupting each other.
         if (appState.search.filters.size > 0) {
             const filterIds = [...appState.search.filters.keys()];
             filterIds.forEach(id => appState.search.results.delete(id));
             await Promise.all(filterIds.map(id => searchFiles(id)));
-            processSeachResults();
+            processSeachResults(fullRender, true);
+        } else {
+            renderFiles(fullRender, true);
         }
     } catch (err) {
         console.error('Failed to refresh file state after save:', err);

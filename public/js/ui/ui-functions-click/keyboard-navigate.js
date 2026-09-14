@@ -4,6 +4,9 @@
  * PageDown/PageUp jump by one screenful of rows (with one row of overlap).
  * Column count and rows-on-screen are derived from element Y-positions and
  * cached via ResizeObserver on #output.
+ *
+ * In the table, a cell arrived at is also the cell selected, because selection follows focus —
+ * cell-expand.js does that, and moving focus is this file's whole job.
  */
 
 let _cachedCols = 0;
@@ -57,6 +60,16 @@ export function handleKeyboardNavigate(evt) {
     if (focused.isContentEditable) return; // an expanded cell: the keys belong to the caret
 
     const key = evt.key;
+
+    // F2 opens a table cell for editing, which is where a spreadsheet puts it. Only a cell: on a
+    // card the same click opens the note, and F2 does not mean that anywhere. Enter and Space open
+    // both, being "activate what is focused" rather than "edit it".
+    if (key === 'F2' && focused.classList.contains('note-table-cell')) {
+        evt.preventDefault();
+        focused.click();
+        return;
+    }
+
     if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Enter', ' ', 'PageDown', 'PageUp'].includes(key)) return;
 
     evt.preventDefault();

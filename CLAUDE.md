@@ -186,8 +186,9 @@ column still let you set its type, which was the same lie from the other side.
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
 or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
-per-cell question of whether the value fits its column. Both the header's lock and the caret ask the
-first one, which is what stops the table promising something the cell then refuses.
+two per-cell questions: whether the value fits its column, and whether the note's front matter read
+cleanly at all. Both the header's lock and the caret ask the first one, which is what stops the table
+promising something the cell then refuses.
 
 **Say it before the click, not after.** A locked column's glyph is its type drawing with a padlock
 laid over the corner — one element, so the header spends no more on a locked column than an open
@@ -199,6 +200,58 @@ editable later, add the exception in `isPropertyEditable` — do not take it out
 `CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
 a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
 
+**Selection follows focus, and that is the whole rule.** The selected cell is the cell focus is in;
+one `focusin` handler in `cell-expand.js` marks it and lets every other cell go, and letting go
+collapses an open one, which is what writes the edit. **So Tab is never intercepted** — it moves
+focus, and the mark, the commit and the caret all follow. The arrow keys, a click, and a render that
+restores focus all go through the same door. Focus arriving *inside* a cell counts as arriving in it,
+so the file column's link keeps its cell marked.
+
+**Collapse on arrival, never on the way out.** A `focusout` handler that touches the DOM — and
+closing an editor means removing a `contenteditable` — makes Chrome abandon the focus move in
+flight, so Tab out of an open cell landed on the body. By `focusin` the move is done and the cell
+being left can safely be taken apart.
+
+**The first click is the one that brings focus.** Since focus now does the selecting, the click
+handler cannot tell the first press from the second by looking at the class — so a `pointerdown`
+handler records whether the press landed on a cell that already had focus, which is the only moment
+that answer still exists. A click the app made itself (Enter, Space, F2) carries `detail === 0` and
+always opens, since those keys only reach a focused cell.
+
+**Finishing with a cell leaves it selected and focused**, which is the state one press puts a cell in,
+so one more press reopens it. `finishOpenCell()` is Escape's and Enter's way out; Tab and a click
+elsewhere reach the same collapse through the focus handler. The commit's re-render would otherwise
+destroy the focused node and drop focus to the body, so `ui-functions-render/keep-cell-state.js`
+reads focus before the rows are replaced and puts it back after — carried in the renderer, like the
+table's horizontal scroll position, so no caller has to remember. Focus alone is enough, because the
+selection follows it back. A cell is addressed by its row's id and its column, never by `data-index`,
+which shifts when the rows do.
+
+**A table cell wears one mark.** The selection outline is it, and because that follows focus it is
+the same mark however you got there — `keyboard-nav.css` keeps its `:focus-visible` ring off cells
+for exactly that reason, or tabbing to a cell would look different from arrowing to it.
+
+**A cell opened from the keyboard needs the caret put in it.** `focus()` does nothing when the
+element already has focus, which is exactly the keyboard's case — the arrow keys focused the cell
+while it was a plain div, and Enter makes that same element editable. Without
+`focus-with-caret.js` the cell was editable and focused with no selection inside it: no caret,
+nothing typeable, and the arrow keys falling through to the page. A mouse click needed no help,
+which is why the last cell clicked was the only one that worked afterwards. **The question has to be
+asked before focusing**, because focusing an element that lacked focus puts a caret at its start,
+which afterwards is indistinguishable from the one a click left. **F2 opens a cell and closes it
+again**, beside Enter and Space; only in the table, since on a card the same key would open a note.
+
+**Escape is the one way out that writes nothing.** It puts the cell back to the text it opened with
+(`cancelEdit`), which makes the commit a no-op through the ordinary change test rather than through a
+second path in the writer. Enter, and clicking anywhere else, commit — **Enter finishes a cell of
+any type**, a list included, which is why `cell-editor.js` carries a commented-out line where the
+list exception used to be: a newline is still how a pasted spreadsheet column becomes items, but it
+is no longer something Enter types. Escape steps back one level at
+a time only as far as the editor: an open cell closes and stays selected, and a second Escape
+changes nothing, because the mark follows focus and Escape does not move focus. **The Enter that
+finishes a cell must not fall through to keyboard navigation**, which turns Enter on a selected cell into a
+click — the cell would reopen the instant it closed.
+
 **A list cell's items are marked with a CSS custom highlight**, not with spans — see
 `ui-functions-highlight/list-highlight.js`, which exports `itemRangesIn()` as the one answer to where
 an item begins: the marks use it, and so does auto-sizing a list column, which fits the widest **item**
@@ -207,6 +260,81 @@ together, which has no natural bound and just runs into the width cap. Ranges su
 where spans would be mangled by the first keystroke. Every input rebuilds that cell's ranges: an
 ordinary letter looks like it cannot change anything, but the letter after a newly typed comma starts
 an item no range covers.
+
+### View transitions: when one runs at all
+
+Every re-render of the file list, and opening or closing a note, can run a view transition. One
+captures the whole page twice and then animates every named group for a second, so the question is
+worth asking before starting one — `ui-functions-render/view-transition.js` is where it is asked.
+
+- **A render that draws the same notes in the same order does not start one.** Nothing moves, so
+  there is nothing to animate — that is every cell edit and every autosave. `renderFiles` compares
+  the ids it is about to draw (`paginationState.pageFileIds`, already worked out) with the ids in
+  the DOM, before rendering, because that is when the answer is needed. A sort, a filter, a page
+  change and a view switch all still animate.
+- **"Animate view changes" off means no transition is started**, not a transition with a zero-length
+  animation. The CSS in `view-transitions-off.css` does the second thing and stays as a backstop;
+  `viewTransitionsWanted()` does the first, which is the one that saves the snapshots. Both read the
+  checkbox rather than a copy of it.
+- **`withViewTransition(update)` is for a caller that needs the transition object.** Its stand-in
+  offers `finished`, resolved once the update has run, so nothing needs a branch of its own: cleanup
+  that belongs after an animation simply happens straight away.
+
+### Writing a cell edit back to the note
+
+Closing an edited cell writes it into the note's front matter. See
+`plans/completed/table-cell-writing.md`.
+
+- **Nothing here becomes an in-memory value again.** The edit reaches the file and the existing
+  `refreshFileAfterSave` re-reads it, re-parses it and redraws the table, so **what you see after an
+  edit is what the file actually contains**, checked every time rather than assumed. The one
+  argument it gained is *not to re-sort*: edit a cell in the column the table is sorted by and the
+  row would leap away from under you.
+- **The smallest number of bytes that does the job, and never a rebuilt block.** `parseYaml`'s
+  optional `spans` Map says where a key's value sits, and `editing/save-cell-edit.js` replaces that
+  span and nothing else — so comments, key order, blank lines and anything the parser skipped
+  survive. A list where one item's text changed splices that item alone; a list rewritten whole
+  re-generates every item from the cell's text, which is where the comment limitation below comes
+  from. The spans live inside the parser because a second answer to
+  "where does this value end" would agree on the day it was written and drift after, and that drift
+  writes into the wrong bytes of a note.
+- **Quote defensively, do not validate strictly.** Almost anything may be typed; `needsQuoting()` in
+  `file-parsing/yaml-value-write.js` makes the *writing* safe. The app guarantees the file stays
+  readable; the user owns whether the values mean what they intended.
+- **The promise is the text, not the value**, and it is one rule for a value and for an item of a
+  list. A column's type lives in gypsum, not in the note, and the parser reads a file before any
+  type is applied — so `note: 42` comes back as the number forty-two whatever the column says, and
+  a cell draws `String(value)`, which is `42` either way. Quoting is therefore for the text that
+  comes back *different*: `007` reads as `7`, `1.50` as `1.5`, and `null` as nothing at all. Rather
+  than list the shapes that coerce, `needsQuoting()` asks the parser's own `coerceValue` what the
+  text would print as. Quoting more than that puts marks in a note that nobody typed, and quoting an
+  item by the stricter rule turned `[1, 2, 10]` into a list of strings.
+- **What the note already says at that key is kept, never restyled.** A quoted value stays quoted, a
+  flow list stays a flow list, and a block list keeps its own indentation — `save-cell-edit.js`
+  reads all three off the span and hands them to the writer, which is why `toYamlText` takes the
+  file's shape rather than deciding one. A style is chosen only where there is nothing to copy: two
+  spaces for the first item of a list the note has never had.
+- **Two layers, and the split is load-bearing.** `applyCellEdits` knows types and format;
+  `applyRawEdits` knows spans, splicing and the write. It takes a *list* of edits because a pasted
+  range cannot be fifty verified writes, applies a file's edits back to front so no span is
+  invalidated, carries an `expect` nothing passes yet, and returns what it changed. All four are for
+  `plans/table-undo-stack.md`, and all four are awkward to retrofit — the alternative is a second
+  module that knows how to splice front matter.
+- **A cell that was opened but not typed in writes nothing.** The test is the cell's text now
+  against the text stashed on it when it opened (`data-opened-text`), never the captured value
+  against the file's: rendering a value and capturing it back is not a round trip.
+- **A note whose front matter did not read cleanly cannot be edited from the table**, and is locked
+  twice over: the renderer marks those cells so the caret is refused with a sentence, and the write
+  re-parses the file's current bytes before touching them.
+- **A key the note does not have is appended to its block, and a note with no block gets one at byte
+  0, with a blank line after it.** Byte 0 because `findFrontMatterIndices` takes a separator on the
+  first line at its word, where one lower down has first to be told apart from a setext underline and
+  a thematic break. The blank line is not decoration: a markdown parser reading `# Title` on the line
+  straight below the closing separator does not see a heading, and gypsum — which matches a title
+  anywhere in the file — would go on showing one, which is the kind of disagreement nobody notices
+  until they open the note somewhere else. One line, not two, if the note already starts with one.
+  Clearing a cell writes an empty value rather than deleting the key — a deleted key can unregister
+  the column, and a column vanishing as a side effect of clearing one cell is startling.
 
 ### Adding a new file property
 
@@ -220,7 +348,9 @@ an item no range covers.
 3. Handle its type in `file-object-sort.js` if it needs sorting.
 4. If every file carries it — i.e. you added it to the return literal in `file-info.js` rather
    than deriving it from front matter — add it to `CORE_FILE_PROPERTIES` in `store.js` too.
-   That list is what registers properties when a folder holds no files.
+   That list is what registers properties when a folder holds no files, **and it is also what
+   makes a property read-only from the table** — which is the right answer for anything the app
+   fills in itself, since a cell edit splices into front matter and these do not live there.
 5. It will appear automatically in the table view unless added to `TABLE_VIEW_COLUMNS.hidden_always`.
 6. Only add `search_type` if the property is a list that must match **whole items** ("search exact
    match" in the type dialog). Lists match on part of their text by default; `tags` is the one
@@ -251,12 +381,15 @@ an item no range covers.
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/table-layouts/` | Saved layouts and property types: `table_layouts.gypsum`, read and written |
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
+| `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
+| `public/js/editing/save-cell-edit.js` | A cell edit into the note: convert, locate, splice, write, refresh |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
+| `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |
@@ -365,3 +498,14 @@ These are accepted trade-offs, not bugs:
 
 - **Two-level tags only** — `#parent/child` works; `#a/b/c` does not
 - **No diffing / reactivity** — full re-renders on state change are intentional for simplicity
+- **Do not put comments between the items of a front matter list.** Editing that list from the table
+  loses them. A cell hands back a flat list of strings, so an added, removed or reordered item
+  cannot be matched to the items already in the file and the whole value is rewritten — and a
+  comment *between* two items is inside the bytes that get replaced. Everywhere else in the block is
+  safe, and stays safe by test (`tests/49-table-cell-writing.spec.js`): above a key, between two
+  keys, after a list's last item, and between two items when only one item's *text* was edited.
+  Keeping it through a rewrite needs real alignment between the old items and the new ones, which is
+  not worth it — the loss is a comment, not a value.
+- **A `#` after a value on the same line is not a comment** — `status: draft # why` is the value
+  `draft # why`, since the parser only skips a line that *starts* with a hash. It therefore shows in
+  the cell like that and is written back with the value. Not a workaround for the above.

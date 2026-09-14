@@ -13,7 +13,7 @@ import { handleToggleRenderText } from './toggle-render-text.js';
 import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
 import { toggleWrapSelection } from '../../editing/wrap-selection.js';
-import { clearExpandedCells } from '../ui-functions-cell/cell-expand.js';
+import { finishOpenCell } from '../ui-functions-cell/cell-expand.js';
 import { clearHeaderSelection } from './column-menu.js';
 import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
@@ -144,7 +144,10 @@ export function handleKeyboardShortcuts(evt) {
         if (document.activeElement === searchbox) {
             searchbox.blur(); // Removes focus from the element
         }
-        clearExpandedCells();
+        // An open cell closes and stays selected, writing nothing — the only exit that does not,
+        // which is what makes it safe to open a cell just to look at it. It does not go on to let
+        // go of the cell: the mark follows focus, and Escape does not move that.
+        finishOpenCell(true);
         clearHeaderSelection();
     }
 

@@ -10,6 +10,8 @@
  * value the picker seeds from and the caret edits. Nothing has to be looked up.
  */
 
+import { focusWithCaret } from './focus-with-caret.js';
+
 const TEXT = 'cell-date-text';
 
 /**
@@ -25,6 +27,20 @@ function toIsoDate(date) {
     return date.getFullYear()
         + '-' + String(date.getMonth() + 1).padStart(2, '0')
         + '-' + String(date.getDate()).padStart(2, '0');
+}
+
+/**
+ * The span a date cell keeps its text in, or null for any other cell.
+ *
+ * Exported so that putting a cell's text back does not need to know how a date cell is built: its
+ * own textContent holds the picker as well, and writing over that would take the button and the
+ * input with it.
+ *
+ * @param {HTMLElement} cell
+ * @returns {HTMLElement|null}
+ */
+export function dateEditorText(cell) {
+    return cell.querySelector(`.${TEXT}`);
 }
 
 /**
@@ -62,7 +78,7 @@ export function openDateEditor(cell) {
         `</button>` +
         `<input type="date" class="cell-date-input" data-action="cell-date-set" tabindex="-1" value="${iso}">`);
 
-    span.focus();
+    focusWithCaret(span);
 }
 
 /**

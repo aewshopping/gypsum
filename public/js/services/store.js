@@ -130,6 +130,13 @@ export const FILE_PROPERTIES = new Map([
  * dropdown, table columns and property search work even in a folder with no files in it.
  *
  * Add to this when adding a property to that return literal.
+ *
+ * **It is also a promise about writing.** Nothing in this list comes from a note's front
+ * matter, so a cell edit has nowhere to put it: isPropertyEditable() refuses the caret for every
+ * property in here, and the table header draws the padlock from the same answer. Making one
+ * editable later is an exception in isPropertyEditable(), never a deletion from this list — the
+ * writer is the real work and differs per property, since a title is body text while a filename
+ * and a filepath already have editing/rename-file.js.
  * @type {string[]}
  */
 export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',

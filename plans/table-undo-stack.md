@@ -7,8 +7,9 @@ not** — §10 holds five open questions, and step 11a cannot be finished withou
 (§6.2) and two of §10's answers.
 Branch: `claude/table-undo-stack-design-ica8um`
 Manifest version now: `1.202.0` → bump the minor version with each step that changes code.
-Depends on: `plans/table-cell-writing.md`, **not built** — steps 1 to 5 of it come first, and §6
-below is the part of this plan that has to land inside that one.
+Depends on: `plans/completed/table-cell-writing.md`, **built** — its steps 1 to 5 all landed, §6
+below among them, so `applyRawEdits` already takes a list, carries `expect` and returns the records
+of §4. See that plan's §11 for the two places its shape grew while being built.
 
 Someone edited a cell, or pasted a range over fifty of them, and wants it back the way it was.
 

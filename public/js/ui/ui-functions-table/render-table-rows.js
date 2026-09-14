@@ -1,7 +1,12 @@
 import { appState } from '../../services/store.js';
-import { typeMismatch, isInfoColumn } from '../../services/property-type.js';
+import { typeMismatch, isInfoColumn, isPropertyEditable } from '../../services/property-type.js';
+import { hasYamlError } from '../../services/file-parsing/file-errors.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
 import { renderCellValue, mismatchMessage, rendersAsList } from './render-cell-value.js';
+
+// Said to whoever opens a cell of a note whose front matter did not read cleanly. Every value in
+// that block is a guess, so the fix is the note rather than anything the table can offer.
+const YAML_ERROR_TIP = 'this note\'s front matter could not be read — fix it in the note';
 
 /**
  * Renders the rows for the table view.
@@ -44,6 +49,16 @@ export function renderTableRows(current_props, renderEverything) {
                 // cell-editor.js reads the cell, not the schema.
                 const info = isInfoColumn(prop.name) ? ' data-info' : '';
 
+                // A note whose front matter did not read cleanly has the cells that come from it
+                // locked until it is fixed in the note — writing into a broken block writes into a
+                // key nobody created. Only the cells that would otherwise take a caret are marked,
+                // so a column that is locked anyway says nothing new about it. The sentence gives
+                // way to a mismatch's below, which is the more specific thing to say about this one
+                // cell — and both send you to the same note.
+                const brokenYaml = isPropertyEditable(prop.name) && hasYamlError(file)
+                    ? ` data-yaml-error${mismatch ? '' : ` data-tip="${YAML_ERROR_TIP}"`}`
+                    : '';
+
                 // Marks the cells whose items list-highlight.js bands after the render. On the cell
                 // for the same reason data-info is: the renderer knows, and asking again later is
                 // how the mark and the text end up disagreeing.
@@ -54,7 +69,7 @@ export function renderTableRows(current_props, renderEverything) {
                 const flag = mismatch
                     ? ` data-mismatch="${mismatch}" data-tip="${mismatchMessage(mismatch, prop.type)}"`
                     : '';
-                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
+                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${brokenYaml}${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

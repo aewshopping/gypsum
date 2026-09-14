@@ -33,7 +33,11 @@ export function renderFileList_table(renderEverything, fullRender = true) {
     // a narrower one clamps its own scrollLeft — which is the value being carried across.
     applyColumnWidths(TABLE_VIEW_COLUMNS.current_props);
 
-    if (fullRender) {
+    // A partial render puts new rows into the scroll container a full one built, so it needs that
+    // container to still be there. Two callers reach it now — the header's own sort trigger and the
+    // post-save refresh — and an empty-state message replaces the whole table, so it is checked
+    // rather than assumed.
+    if (fullRender || !document.querySelector('.list-table')) {
         // Where we want to generate full table including headers and scroll bar
 
         // The header cell the menu anchors to is about to be replaced, which would leave

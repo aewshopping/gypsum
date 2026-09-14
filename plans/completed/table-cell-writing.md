@@ -1,13 +1,15 @@
 # Plan: writing a cell edit into the note
 
-Status: **not built.** Four of its guards arrived early, three with the types plan and one with the
-editors plan — §6. Capture arrived with them, and is one expression — §4.
-Branch: `claude/table-cell-date-editor-h2at27`
-Manifest version now: `1.202.0` → bump the minor version with each step that changes code.
+Status: **built**, every step, at manifest `1.211.0`. Four of its guards arrived early, three with the
+types plan and one with the editors plan — §6. Capture arrived with them, and is one expression — §4.
+What building it settled, including the two places the design below needed a decision it had left
+open, is §11.
+Branch: `claude/table-cell-writing-l96h4t`
+Manifest version when it landed: `1.211.0`.
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
 Paired with: `plans/completed/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
-Paired with: `plans/table-undo-stack.md`, **which comes last** — but four of its requirements land in
+Paired with: `plans/table-undo-stack.md`, **which comes last** and is not built — but four of its requirements land in
 step 2 of this plan and are awkward to retrofit, so §4.6 states them here. The fourth is the `expect`
 argument, which this plan never passes and cannot be added later without a read-then-read race.
 
@@ -502,3 +504,65 @@ damage a file with on its own.
 **`save-cell-edit.js` belongs in `editing/`** beside `save-current-file.js`, `autosave.js` and
 `refresh-file-state.js`, and it reuses two of them. It is the likeliest file to grow past eighty
 lines, since it co-ordinates the others.
+
+
+---
+
+## 11. What building it settled
+
+Two things the design above left open, and one it had wrong. All three matter to
+`plans/table-undo-stack.md`, which calls the same lower layer.
+
+**`raw` may be a function, and a list edit carries its `items`.** §4.6 gives `toYamlText` a `form`
+argument, and the only thing that knows a key's form is the parse — which happens inside
+`applyRawEdits`, one layer below the caller that has to supply it. So a raw edit's `raw` may be a
+function of `(form, itemPrefix)` rather than a string, called during that parse. An undo passes a
+plain string, as §6.2 requires, and nothing about its path changes.
+
+The same parse is what tells one item's edit from a rewrite, so a list edit also carries `items` —
+the cell's text item by item. Both are additions to the shape §4.6 fixed, not changes to it: the
+signature, the batch, the `expect` and the returned records are all as stated.
+
+**The rule promises the text, not the value.** §9 step 1 asks for a value that reads back as
+itself, and built that way it turned `scores: [1, 2, 10]` into a list of strings the first time
+anyone touched an unrelated item of it. The first fix was two rules, one for a value and a weaker
+one for an item; the right fix, arrived at by asking what the strict rule was buying, is the weaker
+one everywhere. **A column's type lives in gypsum, not in the note**, and the parser reads a file
+before any type is applied — so `42` in a text column comes back as the number forty-two whatever is
+written, and the cell draws `String(value)` either way. Nothing in the app can tell, so the quotes
+were only marks in a note that nobody typed. What survives is the text that comes back *different*:
+`007` as `7`, `1.50` as `1.5`, `+3` as `3`, and `null` as nothing at all — the one coercion that
+shows up as no text rather than as other text, and so the one clause that has to be named.
+
+The same question narrowed the leading-dash clause to a dash **followed by a space**, which is the
+parser's own test for a list item — so an ordinary `-1.5` is no longer quoted for looking like one.
+
+**And what the note already says at that key is kept rather than restyled**, which is where "let
+`"42"` stay `"42"`" actually belongs: a cell never shows a value's quotes, so it cannot be typed
+either way, but the file can be asked. `toYamlText` takes the shape the splice read off the span —
+form, item indentation, and whether the value is quoted — so a quoted key stays quoted for the same
+reason a flow list stays a flow list. A style is chosen only where there is nothing to copy.
+
+**The one-item test compares through the parser's coercion** for the same reason, and this is the
+§5.1 trap arriving where it was not predicted: comparing the file's `- 2` with the cell's `"2"` as
+text calls every item of every numeric list changed, so a one-item edit would rewrite the whole list
+and take the comment between the items with it.
+
+**What is still lost, and stays lost on purpose:** a list rewritten whole re-generates every item
+from the cell's text, so a comment between two items goes — §5 priced that in — and an item the note
+had quoted, `- "Doe, Jane"`, comes back bare. Keeping the quotes is a few lines (reuse the file's own
+text for items that did not change); keeping the comment needs real alignment between the old items
+and the new ones, which is not worth it for a comment. **Taken as a limitation rather than a bug**,
+and written into CLAUDE.md as one: do not put comments between the items of a list. Its boundary is
+held by a test — every other comment in the block survives, including one after the list's last item,
+because a comment line never extends a key's span.
+
+**A block written at byte 0 is followed by a blank line**, which step 4 did not say. Without it the
+note's first line sits directly under the closing separator, and a markdown parser reading `# Title`
+there does not see a heading — while gypsum, which matches a title anywhere in the file, goes on
+showing one. The disagreement is invisible in the app and obvious in any other reader.
+
+**A note whose front matter did not read cleanly is locked twice**, which §7 asks for once. The
+renderer marks the cells, so the caret is refused with a sentence rather than silently; and the
+write asks the parser again, because by then it has the file's current bytes and the load's answer
+is as old as the load.

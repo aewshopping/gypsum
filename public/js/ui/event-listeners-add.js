@@ -69,7 +69,8 @@ import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, ha
          handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
-import { handleCellExpand, handleCellExpandClickOutside } from './ui-functions-cell/cell-expand.js';
+import { handleCellExpand, handleCellExpandClickOutside, finishOpenCell,
+         handleCellFocusIn, handleCellPointerDown } from './ui-functions-cell/cell-expand.js';
 import { handleCellEditorKeydown } from './ui-functions-cell/cell-editor.js';
 import { handleCellDatePick, handleCellDateSet } from './ui-functions-cell/cell-date-editor.js';
 import { handleListCellInput } from './ui-functions-highlight/list-highlight.js';
@@ -91,6 +92,12 @@ export function addActionHandlers() {
     document.addEventListener('mouseover', handleTableColHover);
     document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
     document.addEventListener('focusout', handleLayoutNameBlur);  // nor does blur
+
+    // Selection follows focus, which is what leaves Tab alone: the browser moves focus and the mark
+    // goes with it. The press is watched too, because only before it moves focus can a first click
+    // on a cell be told from a second — see cell-expand.js.
+    document.addEventListener('focusin', handleCellFocusIn);
+    document.addEventListener('pointerdown', handleCellPointerDown);
     document.addEventListener('keydown', handleLayoutNameKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is
@@ -314,7 +321,13 @@ function pointerDownDelegate(evt) {
  */
 function keyDownDelegate(evt) {
     if (handleAutocompleteKeydown(evt)) return;
-    handleCellEditorKeydown(evt);
+    // Enter in a one-line cell means "done with this": collapsing is what writes the edit, and the
+    // cell is left selected and focused, so one more Enter reopens it.
+    //
+    // And this key is finished with — the same arrangement the autocomplete's keys have above.
+    // Falling through would hand the same Enter to keyboard navigation, which turns Enter on a
+    // selected cell into a click, and the cell would reopen the instant it closed.
+    if (handleCellEditorKeydown(evt)) { finishOpenCell(); return; }
     handleKeyboardShortcuts(evt);
 }
 
