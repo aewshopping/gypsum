@@ -382,8 +382,9 @@ test('a note with no front matter at all is given a block at byte 0', async ({ p
   await openTable(page);
   await retype(page, cellFor(page, 'Gamma', 'status'), 'new here');
 
+  // the blank line is what keeps '# Gamma' a heading to a markdown parser
   await expect.poll(() => fileText(page, 'gamma.md'))
-    .toBe('---\nstatus: new here\n---\n# Gamma\n\nNo front matter here.\n');
+    .toBe('---\nstatus: new here\n---\n\n# Gamma\n\nNo front matter here.\n');
 
   // the heading is still the title, because a title is matched anywhere in the file
   await expect(cellFor(page, 'Gamma', 'title')).toHaveText('Gamma');
@@ -393,13 +394,22 @@ test('a note with no front matter at all is given a block at byte 0', async ({ p
 // Byte 0 is the one placement that cannot be re-read as something else. A separator lower down has
 // to be told apart from a setext underline above it, so a note written with underlined headings is
 // exactly the note a cleverer placement would break.
+test('a note that already starts with a blank line does not gain a second', async ({ page }) => {
+  await openTable(page, { 'delta.md': '\n# Underlined Title\n\nBody text.\n' });
+
+  await retype(page, cellFor(page, 'Underlined Title', 'status'), 'new here');
+
+  await expect.poll(() => fileText(page, 'delta.md'))
+    .toBe('---\nstatus: new here\n---\n\n# Underlined Title\n\nBody text.\n');
+});
+
 test('a block written above a setext heading is still read as front matter', async ({ page }) => {
   await openTable(page, { 'delta.md': 'Underlined Title\n----------------\n\nBody text.\n' });
 
   await retype(page, cellFor(page, 'Underlined Title', 'status'), 'new here');
 
   await expect.poll(() => fileText(page, 'delta.md'))
-    .toBe('---\nstatus: new here\n---\nUnderlined Title\n----------------\n\nBody text.\n');
+    .toBe('---\nstatus: new here\n---\n\nUnderlined Title\n----------------\n\nBody text.\n');
 
   const cell = cellFor(page, 'Underlined Title', 'status');
   await expect(cell).toHaveText('new here');
@@ -503,7 +513,7 @@ test('the first item into a note with no such key is written in block form', asy
 
   // two spaces: the one place a style is chosen, because there is nothing to copy
   await expect.poll(() => fileText(page, 'gamma.md'))
-    .toBe('---\npeople:\n  - Rae Chen\n  - Sam Lee\n---\n# Gamma\n\nNo front matter here.\n');
+    .toBe('---\npeople:\n  - Rae Chen\n  - Sam Lee\n---\n\n# Gamma\n\nNo front matter here.\n');
   await expect(cellFor(page, 'Gamma', 'people')).toHaveText('Rae Chen, Sam Lee');
 });
 

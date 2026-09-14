@@ -557,6 +557,11 @@ and written into CLAUDE.md as one: do not put comments between the items of a li
 held by a test — every other comment in the block survives, including one after the list's last item,
 because a comment line never extends a key's span.
 
+**A block written at byte 0 is followed by a blank line**, which step 4 did not say. Without it the
+note's first line sits directly under the closing separator, and a markdown parser reading `# Title`
+there does not see a heading — while gypsum, which matches a title anywhere in the file, goes on
+showing one. The disagreement is invisible in the app and obvious in any other reader.
+
 **A note whose front matter did not read cleanly is locked twice**, which §7 asks for once. The
 renderer marks the cells, so the caret is refused with a sentence rather than silently; and the
 write asks the parser again, because by then it has the file's current bytes and the load's answer

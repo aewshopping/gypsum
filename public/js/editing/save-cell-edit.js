@@ -145,9 +145,16 @@ async function applyRawEdits(rawEdits) {
         // cleverer, because findFrontMatterIndices takes a separator on the first line at its word
         // however the rest of the file is written, where one lower down has first to be told apart
         // from a setext underline and a thematic break. Empty, so that a key is appended to it the
-        // same way as to a block that was already there. A leading heading still becomes the title,
-        // which is matched anywhere in the file rather than at its top.
-        const text = indices ? original : `---\n---\n${original}`;
+        // same way as to a block that was already there.
+        //
+        // **And a blank line after it**, which is not decoration: a markdown parser reading `# Title`
+        // on the line straight below the closing separator does not see a heading, so the note's own
+        // title would stop being one everywhere except here — gypsum matches a title anywhere in the
+        // file and would go on showing it, which is the kind of disagreement nobody notices until
+        // they open the note somewhere else. One line, not two: a note that already starts with a
+        // blank line keeps the one it has.
+        const blankLine = original.startsWith('\n') ? '' : '\n';
+        const text = indices ? original : `---\n---\n${blankLine}${original}`;
 
         // Where a key the note does not have is written: the first character of the closing
         // separator's line, which is where a key nobody has ordered belongs.

@@ -308,8 +308,12 @@ Closing an edited cell writes it into the note's front matter. See
   twice over: the renderer marks those cells so the caret is refused with a sentence, and the write
   re-parses the file's current bytes before touching them.
 - **A key the note does not have is appended to its block, and a note with no block gets one at byte
-  0.** Byte 0 because `findFrontMatterIndices` takes a separator on the first line at its word,
-  where one lower down has first to be told apart from a setext underline and a thematic break.
+  0, with a blank line after it.** Byte 0 because `findFrontMatterIndices` takes a separator on the
+  first line at its word, where one lower down has first to be told apart from a setext underline and
+  a thematic break. The blank line is not decoration: a markdown parser reading `# Title` on the line
+  straight below the closing separator does not see a heading, and gypsum — which matches a title
+  anywhere in the file — would go on showing one, which is the kind of disagreement nobody notices
+  until they open the note somewhere else. One line, not two, if the note already starts with one.
   Clearing a cell writes an empty value rather than deleting the key — a deleted key can unregister
   the column, and a column vanishing as a side effect of clearing one cell is startling.
 
