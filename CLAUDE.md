@@ -202,7 +202,10 @@ a title is body text, while a filename and a filepath already have `editing/rena
 
 **Finishing with a cell leaves it selected and focused.** That is the state one click puts a cell
 in, so one more click or Enter reopens it, and the arrow keys move from it because a closed cell is
-focusable and takes no caret. `finishOpenCell()` in `cell-expand.js` is Escape's and Enter's way out;
+focusable and takes no caret. **The arrow keys carry the selection with them** — `go()` in
+`keyboard-navigate.js` focuses and then calls `selectCell()`, so the mark is on the cell the keyboard
+is on, Enter opens that cell rather than selecting it first, and an open cell you navigate away from
+closes. Clicking is untouched: one click selects, a second opens. `finishOpenCell()` in `cell-expand.js` is Escape's and Enter's way out;
 a click elsewhere reaches the same collapse and the cell that was clicked becomes the selected one.
 The commit's re-render would otherwise destroy the focused node and drop focus to the body, so
 `ui-functions-render/keep-cell-state.js` reads focus and selection before the rows are replaced and

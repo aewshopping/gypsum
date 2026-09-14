@@ -607,6 +607,44 @@ test('the arrow keys move from the cell that was just edited', async ({ page }) 
   expect(await focusedCell(page)).toBe(`Alpha/${next}`);
 });
 
+test('the selection follows the arrow keys, and Enter opens where you are', async ({ page }) => {
+  await openTable(page);
+
+  const start = cellFor(page, 'Alpha', 'note');
+  await start.click();                                   // one click selects, as it always did
+  await expect(start).toHaveClass(/is-selected/);
+
+  const columns = await page.evaluate(() =>
+    [...document.querySelectorAll('.note-table-cell-header')].map(h => h.dataset.property));
+  const next = cellFor(page, 'Alpha', columns[columns.indexOf('note') + 1]);
+
+  await page.keyboard.press('ArrowRight');
+
+  // the mark moves with the keyboard rather than being left behind on the cell you came from
+  expect(await focusedCell(page)).toBe(`Alpha/${columns[columns.indexOf('note') + 1]}`);
+  await expect(next).toHaveClass(/is-selected/);
+  await expect(start).not.toHaveClass(/is-selected/);
+  expect(await page.locator('.note-table-cell.is-selected').count()).toBe(1);
+
+  // so one Enter opens it, the same as a second click would
+  await page.keyboard.press('Enter');
+  await expect(next).toHaveClass(/is-expanded/);
+});
+
+test('arrowing away from an open cell closes it', async ({ page }) => {
+  await openTable(page);
+
+  // a locked cell opens to be read and keeps the arrow keys, having no caret to give them to
+  const locked = cellFor(page, 'Alpha', 'title');
+  await open(locked);
+  await expect(locked).toHaveClass(/is-expanded/);
+
+  await page.keyboard.press('ArrowRight');
+
+  await expect(locked).not.toHaveClass(/is-expanded/);
+  await expect(locked).not.toHaveClass(/is-selected/);
+});
+
 test('leaving by clicking another cell leaves you on that one', async ({ page }) => {
   await openTable(page);
 

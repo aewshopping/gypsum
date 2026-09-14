@@ -40,6 +40,26 @@ export function clearExpandedCells() {
 }
 
 /**
+ * Makes a cell the selected one, letting go of whatever was selected or open before.
+ *
+ * The arrow keys carry the selection with them, so the mark is always on the cell the keyboard is
+ * on and Enter opens that cell rather than selecting it first. Two marks on screen — one on the cell
+ * you left and one on the cell you are on — look like the same thing said twice.
+ *
+ * Anything that is not a table cell is left alone: a card is keyboard-navigable too and has no
+ * selected state to move.
+ *
+ * @param {HTMLElement} cell
+ * @returns {void}
+ */
+export function selectCell(cell) {
+    if (!cell.classList.contains('note-table-cell')) return;
+
+    clearExpandedCells();
+    cell.classList.add(SELECTED);
+}
+
+/**
  * Finishes with the cell that is open, leaving it selected and focused.
  *
  * **That is the state one click puts a cell in**, which is what makes the way out match the way in:
