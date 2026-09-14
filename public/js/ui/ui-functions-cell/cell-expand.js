@@ -1,4 +1,4 @@
-import { openEditor, closeEditor } from './cell-editor.js';
+import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
 
 /**
  * @file Expands a single table cell to show its full content.
@@ -37,6 +37,30 @@ function collapse(cell) {
 export function clearExpandedCells() {
     document.querySelectorAll(`.note-table-cell.${SELECTED}, .note-table-cell.${EXPANDED}`)
         .forEach(collapse);
+}
+
+/**
+ * Finishes with the cell that is open, leaving it selected and focused.
+ *
+ * **That is the state one click puts a cell in**, which is what makes the way out match the way in:
+ * one more click or Enter reopens it, and the arrow keys move from it, because a closed cell is
+ * focusable and takes no caret. Without it the commit's re-render drops focus onto the body and the
+ * arrow keys do nothing until something is clicked.
+ *
+ * @param {boolean} [discard=false] - Put the cell back to the text it opened with first, so nothing
+ *   is written. Escape's answer; Enter, and clicking another cell, commit.
+ * @returns {boolean} False when no cell was open, which is the caller's cue that Escape has nothing
+ *   to step back from here.
+ */
+export function finishOpenCell(discard = false) {
+    const cell = document.querySelector(`.note-table-cell.${EXPANDED}`);
+    if (!cell) return false;
+
+    if (discard) cancelEdit(cell);
+    collapse(cell);
+    cell.classList.add(SELECTED);
+    cell.focus();
+    return true;
 }
 
 /**

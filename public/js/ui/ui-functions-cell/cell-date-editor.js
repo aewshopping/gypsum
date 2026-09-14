@@ -28,6 +28,20 @@ function toIsoDate(date) {
 }
 
 /**
+ * The span a date cell keeps its text in, or null for any other cell.
+ *
+ * Exported so that putting a cell's text back does not need to know how a date cell is built: its
+ * own textContent holds the picker as well, and writing over that would take the button and the
+ * input with it.
+ *
+ * @param {HTMLElement} cell
+ * @returns {HTMLElement|null}
+ */
+export function dateEditorText(cell) {
+    return cell.querySelector(`.${TEXT}`);
+}
+
+/**
  * Replaces a date cell's text with the editable span, and adds the picker beside it.
  *
  * **The editable region is the span, not the cell.** An input inside a contenteditable container is

@@ -12,6 +12,7 @@ import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
 import { renderPagination } from "../pagination/render-pagination.js";
 import { fileTransitionName } from "./file-transition-name.js";
 import { viewTransitionsWanted } from "./view-transition.js";
+import { captureCellState, restoreCellState } from "./keep-cell-state.js";
 import { renderSidebarRecent } from "../render-sidebar-recent.js";
 import { reparkColumnResizer } from "../ui-functions-table/table-col-resize.js";
 
@@ -57,6 +58,10 @@ export function renderFiles(fullRender = true, keepPage = false) {
     );
 
     const doRender = () => {
+        // Read before anything is replaced and put back after, so the cell you were in is still the
+        // one the arrow keys move from and still one click from opening again.
+        const cellState = captureCellState();
+
         // Remove stale pagination nav (required for the table fullRender=false path)
         document.querySelector('.pagination')?.remove();
 
@@ -113,6 +118,8 @@ export function renderFiles(fullRender = true, keepPage = false) {
         }
 
         applyHighlights(); // need to apply again because we have a complete refresh of output html
+
+        restoreCellState(cellState);
     };
 
     // The panel is not part of the filtered output, so it renders outside doRender — which sits

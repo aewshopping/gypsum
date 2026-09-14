@@ -69,7 +69,7 @@ import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, ha
          handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
-import { handleCellExpand, handleCellExpandClickOutside, clearExpandedCells } from './ui-functions-cell/cell-expand.js';
+import { handleCellExpand, handleCellExpandClickOutside, finishOpenCell } from './ui-functions-cell/cell-expand.js';
 import { handleCellEditorKeydown } from './ui-functions-cell/cell-editor.js';
 import { handleCellDatePick, handleCellDateSet } from './ui-functions-cell/cell-date-editor.js';
 import { handleListCellInput } from './ui-functions-highlight/list-highlight.js';
@@ -314,9 +314,13 @@ function pointerDownDelegate(evt) {
  */
 function keyDownDelegate(evt) {
     if (handleAutocompleteKeydown(evt)) return;
-    // Enter in a one-line cell means "done with this": collapsing is what writes the edit, and it
-    // is the same collapse Escape and a click outside reach.
-    if (handleCellEditorKeydown(evt)) clearExpandedCells();
+    // Enter in a one-line cell means "done with this": collapsing is what writes the edit, and the
+    // cell is left selected and focused, so one more Enter reopens it.
+    //
+    // And this key is finished with — the same arrangement the autocomplete's keys have above.
+    // Falling through would hand the same Enter to keyboard navigation, which turns Enter on a
+    // selected cell into a click, and the cell would reopen the instant it closed.
+    if (handleCellEditorKeydown(evt)) { finishOpenCell(); return; }
     handleKeyboardShortcuts(evt);
 }
 

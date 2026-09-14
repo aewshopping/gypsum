@@ -78,6 +78,12 @@ const transitions = (page) => page.evaluate(() => window.__vt);
 const cellFor = (page, title, prop) => page.locator('.note-table').filter({ hasText: title }).first()
   .locator(`.note-table-cell[data-prop="${prop}"]`);
 
+/**
+ * Finishes with the open cell in a way that writes. Escape puts the cell back to the text it
+ * opened with, so this clicks away from the table instead.
+ */
+const commit = (page) => page.locator('#searchbox').click();
+
 /** Sorts by a property through the controls above the table, which a wide table pushes offscreen. */
 const sortBy = (page, property) => page.evaluate((property) => {
   const select = document.getElementById('sort-select');
@@ -95,7 +101,7 @@ test('editing a cell draws the same rows, so no view transition runs', async ({ 
   await page.keyboard.press('Home');
   await page.keyboard.press('Shift+End');
   await page.keyboard.type('edited');
-  await page.keyboard.press('Escape');
+  await commit(page);
 
   await expect.poll(() => page.evaluate(() => window.__files['note-0.md'])).toContain('note: edited');
   await expect(cellFor(page, 'Note 0', 'note')).toHaveText('edited');
@@ -181,7 +187,7 @@ test('an edit with a filter active renders once and stays on the page', async ({
   await cell.click();
   await page.keyboard.press('End');
   await page.keyboard.type(' more');
-  await page.keyboard.press('Escape');
+  await commit(page);
 
   await expect.poll(() => page.evaluate(() => Object.values(window.__files).join('|')))
     .toContain(`${before} more`);
@@ -216,7 +222,7 @@ test('a cell edit refreshes without waiting for an idle callback', async ({ page
   await page.keyboard.press('Home');
   await page.keyboard.press('Shift+End');
   await page.keyboard.type('written and shown');
-  await page.keyboard.press('Escape');
+  await commit(page);
 
   await expect(cellFor(page, 'Note 0', 'note')).toHaveText('written and shown', { timeout: 2000 });
   expect(await page.evaluate(() => window.__idleCalls)).toBe(0);
@@ -239,7 +245,7 @@ test('a cell edit replaces the rows and leaves the header alone', async ({ page 
   await page.keyboard.press('Home');
   await page.keyboard.press('Shift+End');
   await page.keyboard.type('rows only');
-  await page.keyboard.press('Escape');
+  await commit(page);
 
   await expect(cellFor(page, 'Note 0', 'note')).toHaveText('rows only');
 

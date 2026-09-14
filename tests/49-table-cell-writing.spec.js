@@ -111,14 +111,21 @@ async function setType(page, property, value) {
   await expect(page.locator('#modal-columns')).not.toBeVisible();
 }
 
-/** Opens a cell, replaces everything in it, and closes it the way Escape does. */
+/**
+ * Finishes with the open cell in a way that writes. Escape no longer is one — it puts the cell back
+ * to the text it opened with — so this clicks away from the table, which is what a user leaving a
+ * cell alone does.
+ */
+const commit = (page) => page.locator('#searchbox').click();
+
+/** Opens a cell, replaces everything in it, and leaves in a way that writes. */
 async function retype(page, cell, text) {
   await open(cell);
   await page.keyboard.press('Home');
   await page.keyboard.press('Shift+End');
   if (text !== '') await page.keyboard.type(text);
   else await page.keyboard.press('Delete');
-  await page.keyboard.press('Escape');
+  await commit(page);
 }
 
 const fileText = (page, name) => page.evaluate(name => window.__files[name], name);
@@ -333,7 +340,7 @@ test('a date is written exactly as it was typed', async ({ page }) => {
     selection.addRange(range);
   });
   await page.keyboard.type('1 March 2026');
-  await page.keyboard.press('Escape');
+  await commit(page);
 
   // nothing reinterprets it: no ISO of ours, and no locale rendering either
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('due: 1 March 2026');
@@ -350,7 +357,7 @@ test('a picked date is written as the ISO the picker produced', async ({ page })
     el.value = '2026-12-25';
     el.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await page.keyboard.press('Escape');
+  await commit(page);
 
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('due: 2026-12-25');
 });
@@ -498,4 +505,119 @@ test('the first item into a note with no such key is written in block form', asy
   await expect.poll(() => fileText(page, 'gamma.md'))
     .toBe('---\npeople:\n  - Rae Chen\n  - Sam Lee\n---\n# Gamma\n\nNo front matter here.\n');
   await expect(cellFor(page, 'Gamma', 'people')).toHaveText('Rae Chen, Sam Lee');
+});
+
+// ---------------------------------------------------------------- the way out, and what it leaves
+
+/** The cell a page's focus is in, as "title/property", or what else has focus. */
+const focusedCell = (page) => page.evaluate(() => {
+  const el = document.activeElement;
+  const cell = el?.closest?.('.note-table-cell');
+  if (!cell) return el === document.body ? 'body' : (el?.id || el?.tagName);
+  const row = cell.closest('.note-table');
+  return `${row.querySelector('[data-prop="title"]').textContent}/${cell.dataset.prop}`;
+});
+
+test('Escape leaves the cell without writing anything', async ({ page }) => {
+  await openTable(page);
+  const original = await fileText(page, 'alpha.md');
+
+  const cell = cellFor(page, 'Alpha', 'status');
+  await open(cell);
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('never written');
+  await expect(cell).toHaveText('never written');   // it was typed
+
+  await page.keyboard.press('Escape');
+
+  await expect(cellFor(page, 'Alpha', 'status')).toHaveText('draft');   // and taken back
+  expect(await fileText(page, 'alpha.md')).toBe(original);
+  expect(await page.evaluate(() => Object.keys(window.__saved).length)).toBe(0);
+});
+
+test('Escape in a date cell puts its text back too', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'due', 'date');
+  const original = await fileText(page, 'alpha.md');
+
+  const cell = cellFor(page, 'Alpha', 'due');
+  await open(cell);
+  await cell.locator('.cell-date-input').evaluate(el => {
+    el.value = '2026-12-25';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(cell).toHaveText('2026-12-25');
+
+  await page.keyboard.press('Escape');
+
+  await expect(cellFor(page, 'Alpha', 'due')).toHaveText('2026-03-01');
+  expect(await fileText(page, 'alpha.md')).toBe(original);
+});
+
+test('Escape steps back one level at a time', async ({ page }) => {
+  await openTable(page);
+  const cell = cellFor(page, 'Alpha', 'status');
+  await open(cell);
+
+  await page.keyboard.press('Escape');
+  await expect(cell).not.toHaveClass(/is-expanded/);
+  await expect(cell).toHaveClass(/is-selected/);   // still the cell you were in
+
+  await page.keyboard.press('Escape');
+  await expect(cell).not.toHaveClass(/is-selected/);
+});
+
+test('a cell you have finished with is still the cell you are on', async ({ page }) => {
+  await openTable(page);
+
+  const cell = cellFor(page, 'Alpha', 'status');
+  await open(cell);
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('published');
+  await page.keyboard.press('Enter');
+
+  // the write and its re-render land, and the cell is still where the keyboard is
+  await expect(cellFor(page, 'Alpha', 'status')).toHaveText('published');
+  expect(await focusedCell(page)).toBe('Alpha/status');
+  await expect(cellFor(page, 'Alpha', 'status')).toHaveClass(/is-selected/);
+
+  // so one Enter opens it again, rather than two
+  await page.keyboard.press('Enter');
+  await expect(cellFor(page, 'Alpha', 'status')).toHaveAttribute('contenteditable', 'plaintext-only');
+});
+
+test('the arrow keys move from the cell that was just edited', async ({ page }) => {
+  await openTable(page);
+
+  const cell = cellFor(page, 'Alpha', 'note');
+  await open(cell);
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('edited');
+  await page.keyboard.press('Enter');
+  await expect(cellFor(page, 'Alpha', 'note')).toHaveText('edited');
+
+  const columns = await page.evaluate(() =>
+    [...document.querySelectorAll('.note-table-cell-header')].map(h => h.dataset.property));
+  const next = columns[columns.indexOf('note') + 1];
+
+  await page.keyboard.press('ArrowRight');
+  expect(await focusedCell(page)).toBe(`Alpha/${next}`);
+});
+
+test('leaving by clicking another cell leaves you on that one', async ({ page }) => {
+  await openTable(page);
+
+  const cell = cellFor(page, 'Alpha', 'status');
+  await open(cell);
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('clicked away');
+  await cellFor(page, 'Alpha', 'note').click();
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: clicked away');
+  expect(await focusedCell(page)).toBe('Alpha/note');
+  await expect(cellFor(page, 'Alpha', 'note')).toHaveClass(/is-selected/);
 });

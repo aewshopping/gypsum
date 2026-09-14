@@ -200,6 +200,23 @@ editable later, add the exception in `isPropertyEditable` — do not take it out
 `CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
 a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
 
+**Finishing with a cell leaves it selected and focused.** That is the state one click puts a cell
+in, so one more click or Enter reopens it, and the arrow keys move from it because a closed cell is
+focusable and takes no caret. `finishOpenCell()` in `cell-expand.js` is Escape's and Enter's way out;
+a click elsewhere reaches the same collapse and the cell that was clicked becomes the selected one.
+The commit's re-render would otherwise destroy the focused node and drop focus to the body, so
+`ui-functions-render/keep-cell-state.js` reads focus and selection before the rows are replaced and
+puts them back after — carried in the renderer, like the table's horizontal scroll position, so no
+caller has to remember. A cell is addressed by its row's id and its column, never by `data-index`,
+which shifts when the rows do.
+
+**Escape is the one way out that writes nothing.** It puts the cell back to the text it opened with
+(`cancelEdit`), which makes the commit a no-op through the ordinary change test rather than through a
+second path in the writer. Enter, and clicking anywhere else, commit. Escape steps back one level at
+a time: an open cell closes and stays selected, a selected one is let go. **The Enter that finishes a
+cell must not fall through to keyboard navigation**, which turns Enter on a selected cell into a
+click — the cell would reopen the instant it closed.
+
 **A list cell's items are marked with a CSS custom highlight**, not with spans — see
 `ui-functions-highlight/list-highlight.js`, which exports `itemRangesIn()` as the one answer to where
 an item begins: the marks use it, and so does auto-sizing a list column, which fits the widest **item**

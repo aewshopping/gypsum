@@ -1,6 +1,7 @@
 import { VALUE_TYPES } from '../../constants.js';
 import { propertyType, isPropertyEditable } from '../../services/property-type.js';
-import { openDateEditor, closeDateEditor } from './cell-date-editor.js';
+import { openDateEditor, closeDateEditor, dateEditorText } from './cell-date-editor.js';
+import { updateListHighlights } from '../ui-functions-highlight/list-highlight.js';
 import { commitCellEdit } from './cell-edit-commit.js';
 
 /**
@@ -104,6 +105,32 @@ export function closeEditor(cell) {
     cell.classList.remove(READONLY);
     cell.removeAttribute('contenteditable');
     cell.querySelector(`.${NOTE}`)?.remove();
+}
+
+/**
+ * Puts a cell back to the text it opened with, so closing it writes nothing.
+ *
+ * **Escape's answer, and it needs no second path through the writer.** The change test compares the
+ * cell's text with the text stashed when it opened, so restoring that text makes the commit a
+ * no-op — one way out that does not write, and no way for it to disagree with the way that does.
+ *
+ * A date cell's text lives in a span beside the picker, which is what is put back: the cell's own
+ * textContent holds the button and the input too, and closeDateEditor would then have no span to
+ * hand focus back from.
+ *
+ * A list cell's item marks are ranges into the text node being replaced, and no render follows an
+ * edit that writes nothing — so they are rebuilt here rather than left pointing at the text that was
+ * typed.
+ *
+ * @param {HTMLElement} cell
+ * @returns {void}
+ */
+export function cancelEdit(cell) {
+    const opened = cell.dataset.openedText;
+    if (opened === undefined) return;
+
+    (dateEditorText(cell) ?? cell).textContent = opened;
+    if ('list' in cell.dataset) updateListHighlights();
 }
 
 /**
