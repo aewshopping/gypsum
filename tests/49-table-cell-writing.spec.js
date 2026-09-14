@@ -659,3 +659,38 @@ test('leaving by clicking another cell leaves you on that one', async ({ page })
   expect(await focusedCell(page)).toBe('Alpha/note');
   await expect(cellFor(page, 'Alpha', 'note')).toHaveClass(/is-selected/);
 });
+
+// ---------------------------------------------------------------- Enter in a list cell
+
+test('Enter writes a list cell rather than starting a new item', async ({ page }) => {
+  await openTable(page);
+
+  const cell = cellFor(page, 'Alpha', 'people');
+  await open(cell);
+  await page.keyboard.press('End');
+  await page.keyboard.type(', Rae Chen');
+  await page.keyboard.press('Enter');
+
+  await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(0);
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('- Rae Chen');
+  await expect(cellFor(page, 'Alpha', 'people')).toHaveText('John Smith, "Doe, Jane", Rae Chen');
+});
+
+test('a pasted spreadsheet column still arrives as separate items', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openTable(page);
+
+  // The half of the old Enter that mattered: a paste brings its own newlines whatever that key
+  // does, and a newline is still where an item ends.
+  const cell = cellFor(page, 'Alpha', 'people');
+  await open(cell);
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.evaluate(() => navigator.clipboard.writeText('Ada Lovelace\nAlan Turing\nRae Chen'));
+  await page.keyboard.press('ControlOrMeta+V');
+  await page.keyboard.press('Enter');
+
+  await expect.poll(() => fileText(page, 'alpha.md'))
+    .toContain('- Ada Lovelace\n- Alan Turing\n- Rae Chen');
+  await expect(cellFor(page, 'Alpha', 'people')).toHaveText('Ada Lovelace, Alan Turing, Rae Chen');
+});

@@ -116,6 +116,13 @@ them in the file.
 
 ### 3.3 A newline separates items as well
 
+> **Superseded in part, at manifest `1.220.0`.** A newline still separates items — a paste brings
+> its own, and `splitFlowItems` still reads one as the end of an item, so the spreadsheet column
+> below arrives exactly as described. What has gone is **Enter typing that newline**: Enter now
+> finishes with a cell whatever the column holds, because it had come to mean "done with this" for
+> every other type, and a list was the only cell that could not be finished with from the keyboard.
+> The commented-out line and the reasoning are in `cell-editor.js`.
+
 **A newline has to mean something, so the only choice is what.** `plaintext-only` lets someone press
 Enter, and paste brings newlines in regardless — and an item holding a line break cannot be written to
 front matter at all, since the parser is line-based and a line break is the thing that destroys a block
@@ -344,7 +351,7 @@ destroys a block outright. So:
 
 | type | Enter |
 |---|---|
-| list | inserts the break, which §3.3 reads as a new item |
+| list | ~~inserts the break, which §3.3 reads as a new item~~ — superseded: it commits, like the rest |
 | text, number, date | prevented — later, it commits |
 
 Route it through `keyDownDelegate` beside `handleAutocompleteKeydown`, the established pattern for a key

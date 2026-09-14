@@ -134,13 +134,12 @@ export function cancelEdit(cell) {
 }
 
 /**
- * Stops Enter putting a line break into a cell that stands for one value, and says the cell is
- * finished with instead.
+ * Stops Enter putting a line break into a cell, and says the cell is finished with instead.
  *
  * A line break cannot be written to front matter at all — the block is line-based, so a value
  * holding one destroys it — and a date or a number has no use for a second line anyway. So Enter
- * means "done with this cell": the caller collapses it, and collapsing is what writes the edit. A
- * list is the exception, where a break is how you add an item, which flow-list.js reads back.
+ * means "done with this cell", whatever the column holds: the caller collapses it, and collapsing
+ * is what writes the edit.
  *
  * Called from the keydown delegate rather than registered as a data-action, the same arrangement
  * the autocomplete's keys use, because a key is not a click on anything. It returns the answer
@@ -156,7 +155,20 @@ export function handleCellEditorKeydown(evt) {
     const cell = evt.target.closest?.('.note-table-cell.is-expanded');
     if (!cell || !isEditable(cell)) return false;
 
-    if (propertyType(cell.dataset.prop) === VALUE_TYPES.ARRAY.value) return false;
+    // A list cell used to keep Enter for itself, so that the break it typed read as a new item:
+    //
+    //     if (propertyType(cell.dataset.prop) === VALUE_TYPES.ARRAY.value) return false;
+    //
+    // That was plans/completed/table-cell-editors.md §3.3, and it was there for two things: Enter
+    // meaning "new item" while typing one, and a column copied out of a spreadsheet arriving as
+    // separate items. It is gone because Enter now means "done with this cell" everywhere — one key
+    // with one meaning, beside an Escape that reverts — and a list was the only cell you could not
+    // finish with from the keyboard.
+    //
+    // **Pasting a spreadsheet column still works**, which is why this was only ever half the
+    // feature: a paste brings its own newlines in whatever this key does, and splitFlowItems still
+    // reads a newline as the end of an item. What has gone is typing a break by hand, and a comma
+    // says the same thing.
 
     evt.preventDefault();
     return true;

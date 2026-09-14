@@ -215,7 +215,10 @@ which shifts when the rows do.
 
 **Escape is the one way out that writes nothing.** It puts the cell back to the text it opened with
 (`cancelEdit`), which makes the commit a no-op through the ordinary change test rather than through a
-second path in the writer. Enter, and clicking anywhere else, commit. Escape steps back one level at
+second path in the writer. Enter, and clicking anywhere else, commit — **Enter finishes a cell of
+any type**, a list included, which is why `cell-editor.js` carries a commented-out line where the
+list exception used to be: a newline is still how a pasted spreadsheet column becomes items, but it
+is no longer something Enter types. Escape steps back one level at
 a time: an open cell closes and stays selected, a selected one is let go. **The Enter that finishes a
 cell must not fall through to keyboard navigation**, which turns Enter on a selected cell into a
 click — the cell would reopen the instant it closed.

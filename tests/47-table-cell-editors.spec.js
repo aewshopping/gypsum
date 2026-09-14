@@ -182,22 +182,25 @@ test('a property that cannot be written back takes no caret', async ({ page }) =
 
 // ---------------------------------------------------------------- Enter
 
-test('Enter adds an item to a list and does nothing to a one-line value', async ({ page }) => {
+// Enter used to belong to a list cell, where it typed the break that reads as a new item — §3.3,
+// now superseded. It finishes a cell of any type, so that one key means one thing.
+test('Enter finishes with a cell, whatever the column holds', async ({ page }) => {
   await openTable(page);
 
   const list = cellFor(page, 'Alpha', 'people');
   await open(list);
   await page.keyboard.press('End');
   await page.keyboard.press('Enter');
-  await page.keyboard.type('Sam');
-  expect(await list.evaluate(el => el.textContent)).toContain('\nSam');
 
-  await page.keyboard.press('Escape');
+  await expect(list).not.toHaveClass(/is-expanded/);
+  expect(await list.evaluate(el => el.textContent)).not.toContain('\n');
 
   const text = cellFor(page, 'Alpha', 'markup');
   await open(text);
   const before = await text.evaluate(el => el.textContent);
   await page.keyboard.press('Enter');
+
+  await expect(text).not.toHaveClass(/is-expanded/);
   expect(await text.evaluate(el => el.textContent)).toBe(before);
 });
 
