@@ -1,18 +1,14 @@
-/* Not a table cell: there the selection outline is the mark, and it follows focus — so a second,
-   differently drawn ring would be the same thing said twice, and worse, it would come and go with
-   :focus-visible, so tabbing to a cell looked different from arrowing to it. */
-.keyboard-navigable:not(.note-table-cell):focus-visible {
-    outline: 3px solid var(--colour-contr);
-    outline-offset:0px;
-}
+/* Anything keyboard-navigable that is not a table cell — a card in either card view — has no
+   selected state of its own, so focus is the only mark that says "you are here". That is why it
+   shows on :focus rather than :focus-visible: restoring focus after a re-render is programmatic,
+   and a programmatic focus that follows a mouse click is never :focus-visible, so filtering with
+   the pointer used to take the mark off the card the keyboard was on.
 
-/* A card has no selected state of its own, so focus is the only mark that says "you are here" —
-   which is why it shows on focus rather than only on :focus-visible. Restoring focus after a
-   re-render is programmatic, and a programmatic focus that follows a mouse click is never
-   :focus-visible, so filtering with the pointer used to take the mark off the card the keyboard was
-   on. A table cell is the other case: it carries the selection outline as well, and a ring on every
-   clicked cell would say the same thing twice. */
-.note-grid.keyboard-navigable:focus {
+   A table cell is the other case, and the :not() is what keeps it out: it already carries the
+   selection outline, which follows focus, so a second ring would say the same thing twice — and
+   drawn on :focus-visible it would come and go, making a tabbed-to cell look unlike an arrowed-to
+   one. */
+.keyboard-navigable:not(.note-table-cell):focus {
     outline: 3px solid var(--colour-contr);
     outline-offset: 0px;
 }
