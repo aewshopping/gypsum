@@ -42,10 +42,27 @@ async function setAutosave(page, enabled) {
   }, enabled);
 }
 
-// Advance the fake clock past the 3-second pause, then wait for async file ops.
+// Advance the fake clock past the 2-second pause, then wait for async file ops.
 async function fireDebouncedAutosave(page) {
   await page.clock.runFor(3001);
   await page.waitForTimeout(300);
+}
+
+// Holds the write to the original file open, so a test can stand inside a save that is still
+// running. On a real disk that window is tens to hundreds of milliseconds wide — long enough for
+// a close click to land in it — while the mock's write resolves in a microtask.
+async function gateWrites(page) {
+  await page.evaluate(() => {
+    let release;
+    window.__writeGate = new Promise(r => { release = r; });
+    window.__releaseWrite = () => { window.__writeGate = null; release(); };
+  });
+}
+
+/** Advances the clock so the pause timer fires, and lets the save reach the gated write. */
+async function startGatedSave(page) {
+  await page.clock.runFor(2001);
+  await page.waitForTimeout(100);
 }
 
 /** Opens the first note in text mode with the given autosave setting. */
@@ -181,6 +198,46 @@ test.describe('autosave saves when the user leaves', () => {
 
     await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
     expect(await originalFile(page)).toBeUndefined();
+  });
+
+  // The close used to ask "are there unsaved changes?" of a file that was being saved at that
+  // moment: the flush skipped a write already in flight, and it is the end of that write which
+  // clears the dirty flag.
+  test('closing while a save is still running waits for it, and does not warn', async ({ page }) => {
+    await openForEditing(page);
+    await gateWrites(page);
+
+    await page.clock.install();
+    await editContent(page, 'written while the modal was closing');
+    await startGatedSave(page);
+
+    await page.click('[data-action="close-file-content-modal"]');
+    await page.evaluate(() => window.__releaseWrite());
+
+    await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+    expect(await originalFile(page)).toBe('written while the modal was closing');
+  });
+
+  // A save captures its text up front, so anything typed before it finishes is not in the bytes
+  // it wrote. Taking the baseline from the editor afterwards marked those characters saved.
+  test('text typed while a save is running reaches the file, not just the baseline', async ({ page }) => {
+    await openForEditing(page);
+    await gateWrites(page);
+
+    await page.clock.install();
+    await editContent(page, 'first');
+    await startGatedSave(page);
+
+    await editContent(page, 'first and second');
+    await page.evaluate(() => window.__releaseWrite());
+    await page.waitForTimeout(100);
+
+    await page.click('[data-action="close-file-content-modal"]');
+
+    await expect(page.locator('#file-content-modal')).toBeHidden();
+    await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
+    expect(await originalFile(page)).toBe('first and second');
   });
 
 });

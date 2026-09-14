@@ -71,6 +71,26 @@ test.describe('unsaved changes alert', () => {
     })).toBe(true);
   });
 
+  test('Escape on the warning means keep editing, and the close button still answers', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    await editContent(page);
+
+    await page.click(closeBtn);
+    await expect(page.locator(warningDialog)).toBeVisible();
+
+    // A <dialog> answers Escape itself, without going through either button. The close waiting
+    // on that answer must still get one, or it never finishes and the close button goes dead.
+    await page.keyboard.press('Escape');
+    await expect(page.locator(warningDialog)).not.toBeVisible();
+    await expect(page.locator(modal)).toBeVisible();
+
+    await page.click(closeBtn);
+    await expect(page.locator(warningDialog)).toBeVisible();
+  });
+
   test('"Discard changes" closes the modal, and reopening starts clean', async ({ page }) => {
     await setupMockDirectoryWithHistory(page);
     await page.goto('/');

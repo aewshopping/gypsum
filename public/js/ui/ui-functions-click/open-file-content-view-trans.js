@@ -26,6 +26,7 @@ export const offscreenNoteTarget = document.getElementById("offscreen-note-targe
 const sidebarRecent = document.getElementById("sidebar-recent");
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
+let closeInFlight = null; // the close already running, so a second click joins it rather than starting another
 
 // Re-apply search highlights automatically whenever modal content changes.
 // Previously, every code path that mutated modal content (fileContentRender,
@@ -283,7 +284,22 @@ export function doClose() {
  * @returns {Promise<boolean>} True once the modal has closed, false if the user chose to keep
  *   editing. internal-link-click awaits this before opening the linked note.
  */
-export async function handleCloseModal() {
+export function handleCloseModal() {
+  // The flush waits for a write the pause timer already started, and the modal stays clickable
+  // while it does — so a second click joins this close rather than starting its own. Two would
+  // each show the warning dialog, and the second overwrites the one resolve function that
+  // warning-modal.js holds, leaving the first close waiting forever.
+  closeInFlight ??= runClose().finally(() => { closeInFlight = null; });
+  return closeInFlight;
+}
+
+/**
+ * The close itself: save, ask if the save left anything behind, then run the transition.
+ * @async
+ * @returns {Promise<boolean>} True once the modal has closed, false if the user chose to keep
+ *   editing.
+ */
+async function runClose() {
 
   await flushAutosave();
 
