@@ -213,6 +213,16 @@ puts them back after — carried in the renderer, like the table's horizontal sc
 caller has to remember. A cell is addressed by its row's id and its column, never by `data-index`,
 which shifts when the rows do.
 
+**A cell opened from the keyboard needs the caret put in it.** `focus()` does nothing when the
+element already has focus, which is exactly the keyboard's case — the arrow keys focused the cell
+while it was a plain div, and Enter makes that same element editable. Without
+`focus-with-caret.js` the cell was editable and focused with no selection inside it: no caret,
+nothing typeable, and the arrow keys falling through to the page. A mouse click needed no help,
+which is why the last cell clicked was the only one that worked afterwards. **The question has to be
+asked before focusing**, because focusing an element that lacked focus puts a caret at its start,
+which afterwards is indistinguishable from the one a click left. **F2 opens a cell and closes it
+again**, beside Enter and Space; only in the table, since on a card the same key would open a note.
+
 **Escape is the one way out that writes nothing.** It puts the cell back to the text it opened with
 (`cancelEdit`), which makes the commit a no-op through the ordinary change test rather than through a
 second path in the writer. Enter, and clicking anywhere else, commit — **Enter finishes a cell of

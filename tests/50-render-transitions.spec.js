@@ -321,3 +321,4 @@ test('with animations on, opening a note still animates', async ({ page }) => {
 
   expect(await transitions(page)).toBe(1);
 });
+

@@ -10,6 +10,8 @@
  * value the picker seeds from and the caret edits. Nothing has to be looked up.
  */
 
+import { focusWithCaret } from './focus-with-caret.js';
+
 const TEXT = 'cell-date-text';
 
 /**
@@ -76,7 +78,7 @@ export function openDateEditor(cell) {
         `</button>` +
         `<input type="date" class="cell-date-input" data-action="cell-date-set" tabindex="-1" value="${iso}">`);
 
-    span.focus();
+    focusWithCaret(span);
 }
 
 /**

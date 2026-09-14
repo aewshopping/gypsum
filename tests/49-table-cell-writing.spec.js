@@ -694,3 +694,71 @@ test('a pasted spreadsheet column still arrives as separate items', async ({ pag
     .toContain('- Ada Lovelace\n- Alan Turing\n- Rae Chen');
   await expect(cellFor(page, 'Alpha', 'people')).toHaveText('Ada Lovelace, Alan Turing, Rae Chen');
 });
+
+// ---------------------------------------------------------------- opening a cell from the keyboard
+
+// The bug this covers: focus() does nothing when the element already has focus, so a cell opened
+// from the keyboard was editable and focused with no selection inside it — no caret, nothing typed,
+// and the arrow keys falling through to the page. Only the cell last clicked worked, because the
+// click had left a selection in it.
+test('Enter opens a cell you arrowed to, with a caret that takes text', async ({ page }) => {
+  await openTable(page);
+
+  // arrive by keyboard alone, from a cell in another column
+  await cellFor(page, 'Alpha', 'note').click();
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+
+  const cell = cellFor(page, 'Alpha', 'note');
+  await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
+
+  // the caret is at the end, so typing continues the value rather than going nowhere
+  await page.keyboard.type(' and typed');
+  await expect(cell).toHaveText('plain and typed');
+
+  await page.keyboard.press('Enter');
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('note: plain and typed');
+});
+
+test('Space opens a cell too, without typing a space into it', async ({ page }) => {
+  await openTable(page);
+
+  await cellFor(page, 'Alpha', 'note').click();
+  await page.keyboard.press(' ');
+
+  const cell = cellFor(page, 'Alpha', 'note');
+  await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
+  await expect(cell).toHaveText('plain');
+
+  await page.keyboard.type('!');
+  await expect(cell).toHaveText('plain!');
+});
+
+test('F2 opens a cell and F2 again finishes with it', async ({ page }) => {
+  await openTable(page);
+
+  await cellFor(page, 'Alpha', 'note').click();
+  await page.keyboard.press('F2');
+
+  const cell = cellFor(page, 'Alpha', 'note');
+  await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
+
+  await page.keyboard.type(' by F2');
+  await page.keyboard.press('F2');
+
+  await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(0);
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('note: plain by F2');
+  expect(await focusedCell(page)).toBe('Alpha/note');   // and still where you were
+});
+
+test('a date cell opened from the keyboard takes a caret as well', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'due', 'date');
+
+  await cellFor(page, 'Alpha', 'due').click();
+  await page.keyboard.press('F2');
+
+  await page.keyboard.type('!');
+  await expect(cellFor(page, 'Alpha', 'due').locator('.cell-date-text')).toHaveText('2026-03-01!');
+});

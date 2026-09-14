@@ -2,6 +2,7 @@ import { VALUE_TYPES } from '../../constants.js';
 import { propertyType, isPropertyEditable } from '../../services/property-type.js';
 import { openDateEditor, closeDateEditor, dateEditorText } from './cell-date-editor.js';
 import { updateListHighlights } from '../ui-functions-highlight/list-highlight.js';
+import { focusWithCaret } from './focus-with-caret.js';
 import { commitCellEdit } from './cell-edit-commit.js';
 
 /**
@@ -82,9 +83,8 @@ export function openEditor(cell) {
     }
 
     // plaintext-only keeps pasted markup out of a cell that ultimately stands for text in a file.
-    // Focusing puts the caret in without a further click.
     cell.setAttribute('contenteditable', 'plaintext-only');
-    cell.focus();
+    focusWithCaret(cell);
 }
 
 /**
@@ -134,7 +134,8 @@ export function cancelEdit(cell) {
 }
 
 /**
- * Stops Enter putting a line break into a cell, and says the cell is finished with instead.
+ * Stops Enter putting a line break into a cell, and says the cell is finished with instead. F2 says
+ * the same thing, being the key that opened it.
  *
  * A line break cannot be written to front matter at all — the block is line-based, so a value
  * holding one destroys it — and a date or a number has no use for a second line anyway. So Enter
@@ -150,7 +151,7 @@ export function cancelEdit(cell) {
  * @returns {boolean} True when the cell should now be closed.
  */
 export function handleCellEditorKeydown(evt) {
-    if (evt.key !== 'Enter') return false;
+    if (evt.key !== 'Enter' && evt.key !== 'F2') return false;
 
     const cell = evt.target.closest?.('.note-table-cell.is-expanded');
     if (!cell || !isEditable(cell)) return false;

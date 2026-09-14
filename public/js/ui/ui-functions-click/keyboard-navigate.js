@@ -78,6 +78,16 @@ export function handleKeyboardNavigate(evt) {
     if (focused.isContentEditable) return; // an expanded cell: the keys belong to the caret
 
     const key = evt.key;
+
+    // F2 opens a table cell for editing, which is where a spreadsheet puts it. Only a cell: on a
+    // card the same click opens the note, and F2 does not mean that anywhere. Enter and Space open
+    // both, being "activate what is focused" rather than "edit it".
+    if (key === 'F2' && focused.classList.contains('note-table-cell')) {
+        evt.preventDefault();
+        focused.click();
+        return;
+    }
+
     if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Enter', ' ', 'PageDown', 'PageUp'].includes(key)) return;
 
     evt.preventDefault();
