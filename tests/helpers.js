@@ -251,6 +251,9 @@ async function setupMockDirectoryWithSaveSupport(page) {
 
     const fileContent = '# My Notes\nSome content here';
 
+    // __writeGate lets a test hold the write to the original file open, which is the only way
+    // to stand inside a save that is still running — a real disk takes long enough for a click
+    // to land there, and these mock writes resolve in a microtask. Unset, it costs nothing.
     const makeFile = (name, content) => ({
       kind: 'file', name,
       getFile: async () => ({
@@ -258,7 +261,10 @@ async function setupMockDirectoryWithSaveSupport(page) {
         text: async () => window.__originalFiles[name] ?? content,
       }),
       createWritable: async () => ({
-        write: async (c) => { window.__originalFiles[name] = c; },
+        write: async (c) => {
+          if (window.__writeGate) await window.__writeGate;
+          window.__originalFiles[name] = c;
+        },
         close: async () => {},
       }),
     });

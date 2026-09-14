@@ -11,7 +11,7 @@ const MIN_INTERVAL_MS = 60_000; // minimum gap between silent temp-file writes (
 
 let pauseTimer = null;
 let editsSinceSave = 0;
-let saveInFlight = false;
+let saveInFlight = null;        // the write currently running, so a close can join it
 let lastAutosaveContent = null; // null means "use openFileSnapshot as baseline"
 let lastAutosaveTime = 0;       // epoch ms of the last silent temp-file write
 
@@ -51,11 +51,22 @@ export function resetAutosave() {
  * Saves immediately, bypassing the pause timer, when the Autosave setting is on.
  * Called when the user closes the file. No-op when the setting is off: the silent temp
  * file is deleted on close anyway, so writing one on the way out would be wasted work.
+ *
+ * The pause timer may already have a write running, and that write is what clears isDirty — so
+ * a close that did not wait for it asked "are there unsaved changes?" of a file that was being
+ * saved at that moment, and warned about it. Waiting, then saving again, is also what gets text
+ * typed during that write onto disk: runAutosave's own answer is to retry after the next pause,
+ * and on the way out there is no next pause. The second call is a no-op when nothing is left.
+ *
+ * Looping rather than awaiting once so a write started while we waited is waited for too. Nothing
+ * can start one between the loop ending and runAutosave reading saveInFlight: a save begins only
+ * from a timer or an event handler, and neither runs between two microtasks.
  * @async
  * @returns {Promise<void>}
  */
 export async function flushAutosave() {
     if (!document.getElementById('autosave-enabled')?.checked) return;
+    while (saveInFlight) await saveInFlight;
     await runAutosave();
 }
 
@@ -74,7 +85,9 @@ async function runAutosave() {
     pauseTimer = null;
     editsSinceSave = 0;
 
-    // Keystrokes landing during a write are not dropped — retry after the next pause.
+    // Keystrokes landing during a write are not dropped — retry after the next pause. Deferring
+    // is right for the timer, which has a next pause to retry on; the close path does not come
+    // through here, because flushAutosave waits the write out instead.
     if (saveInFlight) {
         pauseTimer = setTimeout(runAutosave, PAUSE_MS);
         return;
@@ -88,15 +101,15 @@ async function runAutosave() {
     if (!appState.dirHandle) return;
     if (!appState.openFileSnapshot) return;
 
-    saveInFlight = true;
+    // Assigned before it is awaited: flushAutosave joins this promise rather than skipping past
+    // a write it cannot see the end of.
+    saveInFlight = document.getElementById('autosave-enabled')?.checked
+        ? saveCurrentFile()
+        : silentAutosave(appState.openFileSnapshot);
     try {
-        if (document.getElementById('autosave-enabled')?.checked) {
-            await saveCurrentFile();
-        } else {
-            await silentAutosave(appState.openFileSnapshot);
-        }
+        await saveInFlight;
     } finally {
-        saveInFlight = false;
+        saveInFlight = null;
     }
 }
 

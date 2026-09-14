@@ -83,14 +83,22 @@ export function getCurrentRawContent() {
 }
 
 /**
- * Resets the saved baseline to the current live content.
- * Called after a successful save so that hasUnsavedChanges() returns false
- * and the unsaved-changes indicator is cleared.
+ * Resets the saved baseline to the text that reached disk, then re-tests the editor against it.
+ * Called after a successful save, so that hasUnsavedChanges() returns false and the
+ * unsaved-changes indicator clears — for a file nobody typed into while the write ran.
+ *
+ * The baseline is the bytes that were written rather than whatever the editor holds now, and the
+ * flag is recomputed rather than forced false, because a write takes long enough to type into:
+ * the save captured its text up front, so anything added since is not on disk, and marking it
+ * clean would drop it — the pending autosave's first guard is isDirty. Same shape of baseline as
+ * the one taken on open, CRLF normalisation included, since the comparison is against innerText
+ * either way.
+ * @param {string} savedText - The content that was written and verified.
  * @returns {void}
  */
-export function resetUnsavedBaseline() {
+export function resetUnsavedBaseline(savedText) {
     readEditorIntoState();
-    appState.editSession.openNormalized = appState.editSession.liveRaw.trimEnd();
+    appState.editSession.openNormalized = savedText.replace(/\r\n|\r/g, '\n').trimEnd();
     appState.editSession.openTextLen = appState.editSession.openNormalized.replace(/\n/g, '').length;
-    appState.editSession.isDirty = false;
+    refreshDirtyState(appState.editSession.liveRaw);
 }

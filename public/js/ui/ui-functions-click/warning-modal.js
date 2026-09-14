@@ -48,3 +48,9 @@ export function handleWarningCancel() {
     pendingResolve = null;
     resolve?.(false);
 }
+
+// Escape closes a <dialog> itself, without going through either button, which left the promise
+// pending forever — and with it whatever was waiting on the answer. Escape on a confirm dialog
+// means cancel, which is what handleWarningCancel already says. 'cancel' rather than 'close',
+// because the buttons close the dialog themselves and would otherwise come back through here.
+warningDialog.addEventListener('cancel', handleWarningCancel);

@@ -28,7 +28,7 @@ export async function saveCurrentFile() {
         const verified = await saveFileCopy(snapshot, textToSave);
         if (verified) {
             saveBtn?.classList.remove('save-error');
-            resetUnsavedBaseline();
+            resetUnsavedBaseline(textToSave);
             refreshFileAfterSave(snapshot);
             // The arrow glyph plays over the top of whichever state the modal is in, so the
             // button shows the save happening rather than jumping from unsaved to saved.
