@@ -1,4 +1,7 @@
-.keyboard-navigable:focus-visible {
+/* Not a table cell: there the selection outline is the mark, and it follows focus — so a second,
+   differently drawn ring would be the same thing said twice, and worse, it would come and go with
+   :focus-visible, so tabbing to a cell looked different from arrowing to it. */
+.keyboard-navigable:not(.note-table-cell):focus-visible {
     outline: 3px solid var(--colour-contr);
     outline-offset:0px;
 }

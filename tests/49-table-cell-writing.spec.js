@@ -565,7 +565,7 @@ test('Escape in a date cell puts its text back too', async ({ page }) => {
   expect(await fileText(page, 'alpha.md')).toBe(original);
 });
 
-test('Escape steps back one level at a time', async ({ page }) => {
+test('Escape closes the cell and leaves you on it', async ({ page }) => {
   await openTable(page);
   const cell = cellFor(page, 'Alpha', 'status');
   await open(cell);
@@ -574,8 +574,10 @@ test('Escape steps back one level at a time', async ({ page }) => {
   await expect(cell).not.toHaveClass(/is-expanded/);
   await expect(cell).toHaveClass(/is-selected/);   // still the cell you were in
 
+  // and a second Escape changes nothing: the mark follows focus, and Escape does not move that
   await page.keyboard.press('Escape');
-  await expect(cell).not.toHaveClass(/is-selected/);
+  await expect(cell).toHaveClass(/is-selected/);
+  expect(await focusedCell(page)).toBe('Alpha/status');
 });
 
 test('a cell you have finished with is still the cell you are on', async ({ page }) => {
@@ -771,4 +773,66 @@ test('a date cell opened from the keyboard takes a caret as well', async ({ page
 
   await page.keyboard.type('!');
   await expect(cellFor(page, 'Alpha', 'due').locator('.cell-date-text')).toHaveText('2026-03-01!');
+});
+
+// ---------------------------------------------------------------- Tab
+
+// Tab is never intercepted: it moves focus, and the mark follows focus, so the two cannot disagree.
+test('Tab moves the mark with it, and marks the cell the same way a click does', async ({ page }) => {
+  await openTable(page);
+
+  const clicked = cellFor(page, 'Alpha', 'note');
+  await clicked.click();
+  const clickedOutline = await clicked.evaluate(el => getComputedStyle(el).outline);
+
+  await page.keyboard.press('Tab');
+
+  const focused = await page.evaluate(() => {
+    const el = document.activeElement;
+    return { prop: el.dataset.prop, outline: getComputedStyle(el).outline,
+             selected: el.classList.contains('is-selected') };
+  });
+
+  expect(focused.prop).not.toBe('note');          // Tab went somewhere else
+  expect(focused.selected).toBe(true);            // and took the mark with it
+  expect(focused.outline).toBe(clickedOutline);   // drawn the same, so nothing switches style
+  await expect(clicked).not.toHaveClass(/is-selected/);
+  await expect(page.locator('.note-table-cell.is-selected')).toHaveCount(1);
+});
+
+test('Tab out of an open cell writes it and leaves one cell marked', async ({ page }) => {
+  await openTable(page);
+
+  const cell = cellFor(page, 'Alpha', 'note');
+  await open(cell);
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('tabbed away');
+  await page.keyboard.press('Tab');
+
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('note: tabbed away');
+
+  await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(0);
+  await expect(cellFor(page, 'Alpha', 'note')).not.toHaveClass(/is-selected/);
+  await expect(page.locator('.note-table-cell.is-selected')).toHaveCount(1);
+
+  // you are on the next cell now, one press from editing it
+  await page.keyboard.press('F2');
+  await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(1);
+});
+
+test('a button inside a cell keeps that cell marked', async ({ page }) => {
+  await openTable(page);
+
+  // the file column's cell holds the open-file link, so Tab stops at the cell and then at the link
+  const fileCell = cellFor(page, 'Alpha', 'internalId');
+  await fileCell.focus();
+  await expect(fileCell).toHaveClass(/is-selected/);
+
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => document.activeElement.tagName)).toBe('A');
+
+  // focus is inside the cell, so the cell is still the one you are on
+  await expect(fileCell).toHaveClass(/is-selected/);
+  await expect(page.locator('.note-table-cell.is-selected')).toHaveCount(1);
 });

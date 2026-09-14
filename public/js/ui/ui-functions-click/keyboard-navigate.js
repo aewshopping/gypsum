@@ -1,5 +1,3 @@
-import { selectCell } from '../ui-functions-cell/cell-expand.js';
-
 /**
  * @file Keyboard navigation for keyboard-navigable file cards.
  * Arrow keys move focus spatially; Enter/Space opens the focused card.
@@ -7,28 +5,12 @@ import { selectCell } from '../ui-functions-cell/cell-expand.js';
  * Column count and rows-on-screen are derived from element Y-positions and
  * cached via ResizeObserver on #output.
  *
- * In the table, a cell arrived at is also the cell selected — see go() below.
+ * In the table, a cell arrived at is also the cell selected, because selection follows focus —
+ * cell-expand.js does that, and moving focus is this file's whole job.
  */
 
 let _cachedCols = 0;
 let _cachedRowsOnScreen = 0;
-
-/**
- * Moves to an element: focuses it, and makes it the selected cell when it is one.
- *
- * Every move goes through here rather than calling focus() directly, so that a table cell arrived at
- * by keyboard is in the same state as one arrived at by clicking — which is what lets Enter open it,
- * and what stops the previous cell keeping a mark it no longer means.
- *
- * @param {Element} [element] - Absent where the grid has no cell in that direction.
- * @returns {void}
- */
-function go(element) {
-    if (!element) return;
-
-    element.focus();
-    selectCell(element);
-}
 
 /**
  * Computes the number of columns by finding the first element (after index 0)
@@ -100,30 +82,30 @@ export function handleKeyboardNavigate(evt) {
 
     if (evt.ctrlKey) {
         if (key === 'ArrowRight') {
-            go(els[Math.min(Math.floor(idx / cols) * cols + cols - 1, els.length - 1)]);
+            els[Math.min(Math.floor(idx / cols) * cols + cols - 1, els.length - 1)].focus();
             return;
         }
         if (key === 'ArrowLeft') {
-            go(els[Math.floor(idx / cols) * cols]);
+            els[Math.floor(idx / cols) * cols].focus();
             return;
         }
         if (key === 'ArrowDown') {
             let n = idx;
             while (els[n + cols]) n += cols;
-            go(els[n]);
+            els[n].focus();
             return;
         }
         if (key === 'ArrowUp') {
-            go(els[idx % cols]);
+            els[idx % cols].focus();
             return;
         }
     }
 
-    if (key === 'ArrowRight') { go(els[idx + 1]); return; }
-    if (key === 'ArrowLeft')  { go(els[idx - 1]); return; }
+    if (key === 'ArrowRight') { els[idx + 1]?.focus(); return; }
+    if (key === 'ArrowLeft')  { els[idx - 1]?.focus(); return; }
 
-    if (key === 'ArrowDown') { go(els[idx + cols]); return; }
-    if (key === 'ArrowUp')   { go(els[idx - cols]); return; }
+    if (key === 'ArrowDown') { els[idx + cols]?.focus(); return; }
+    if (key === 'ArrowUp')   { els[idx - cols]?.focus(); return; }
 
     // PageDown/PageUp: jump by (rowsOnScreen - 1) rows, preserving column.
     // The -1 gives one row of overlap with the previous view (standard paging behaviour).
@@ -133,12 +115,12 @@ export function handleKeyboardNavigate(evt) {
     if (key === 'PageDown') {
         let target = idx + pageDelta;
         while (target > idx && !els[target]) target -= cols;
-        if (target > idx) go(els[target]);
+        if (target > idx) els[target].focus();
         return;
     }
     if (key === 'PageUp') {
         let target = idx - pageDelta;
         while (target < idx && !els[target]) target += cols;
-        if (target < idx) go(els[target]);
+        if (target < idx) els[target].focus();
     }
 }

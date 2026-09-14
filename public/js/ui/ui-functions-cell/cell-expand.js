@@ -1,17 +1,24 @@
 import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
 
 /**
- * @file Expands a single table cell to show its full content.
+ * @file Which cell is selected, which is open, and what opens one.
  *
- * Click once to select a cell, again to expand it, again to collapse. The two steps exist because
- * cells contain their own clickable things — tag pills, the open button, internal links — and a
- * single click would have to compete with them.
+ * **Selection follows focus.** The selected cell is the cell focus is in, and nothing else decides
+ * it: the arrow keys, Tab, a click and a restored render all move focus, and the mark goes with it.
+ * That is why Tab needs no handling at all — it moves focus, and the rest follows — and why a cell
+ * focus has left lets go of the mark and of whatever was typed into it, which is written on the way
+ * out.
  *
- * Only the clicked cell grows, and only downward: it is taken out of flow, so the row keeps its
+ * Click once to select a cell, again to open it. The two steps exist because cells contain their own
+ * clickable things — tag pills, the open button, internal links — and a single click would have to
+ * compete with them. The first press is the one that brings focus to the cell, which is how the two
+ * are told apart now that the click itself no longer does the selecting.
+ *
+ * Only the opened cell grows, and only downward: it is taken out of flow, so the row keeps its
  * height and every column keeps its width.
  *
- * **What an expanded cell offers is cell-editor.js's question, not this file's.** Selecting,
- * expanding and collapsing is the whole job here; it asks what to open and does it.
+ * **What an open cell offers is cell-editor.js's question, not this file's.** Selecting, expanding
+ * and collapsing is the whole job here; it asks what to open and does it.
  */
 
 const SELECTED = 'is-selected';
@@ -40,23 +47,47 @@ export function clearExpandedCells() {
 }
 
 /**
- * Makes a cell the selected one, letting go of whatever was selected or open before.
+ * Focus has arrived somewhere: that cell is the selected one now, and every other lets go.
  *
- * The arrow keys carry the selection with them, so the mark is always on the cell the keyboard is
- * on and Enter opens that cell rather than selecting it first. Two marks on screen — one on the cell
- * you left and one on the cell you are on — look like the same thing said twice.
+ * The whole of "selection follows focus", and it is why Tab is left alone — the browser moves focus
+ * and the rest follows, whether the key was Tab, an arrow, or none at all. Focus arriving outside
+ * the table marks nothing and still lets the old cell go, which is what closes an open cell when you
+ * Tab or click out of it: collapsing is what writes the edit.
  *
- * Anything that is not a table cell is left alone: a card is keyboard-navigable too and has no
- * selected state to move.
+ * **On arrival rather than on the way out**, which is not a detail: a focusout handler that touches
+ * the DOM — and closing an editor means removing its contenteditable — makes Chrome abandon the
+ * focus move that was in flight, so Tab out of an open cell landed on the body instead of the next
+ * cell. By focusin the move is done and the old cell can be taken apart safely.
  *
- * @param {HTMLElement} cell
+ * Focus moving *within* a cell is not leaving it: a date cell's picker button and its input are both
+ * in there, and the cell they belong to is the one this finds.
+ *
+ * @param {FocusEvent} evt
  * @returns {void}
  */
-export function selectCell(cell) {
-    if (!cell.classList.contains('note-table-cell')) return;
+export function handleCellFocusIn(evt) {
+    const cell = evt.target.closest?.('.note-table-cell');
 
-    clearExpandedCells();
-    cell.classList.add(SELECTED);
+    for (const other of document.querySelectorAll(`.note-table-cell.${SELECTED}, .note-table-cell.${EXPANDED}`)) {
+        if (other !== cell) collapse(other);
+    }
+
+    cell?.classList.add(SELECTED);
+}
+
+// Whether the press landed on a cell the keyboard was already on. Read before the press moves focus,
+// because that is the only moment the answer still exists: by the time the click arrives, the first
+// press of the cycle has focused the cell and looks exactly like the second.
+let pressedFocusedCell = false;
+
+/**
+ * Records what the press is about to change, before it changes it.
+ * @param {PointerEvent} evt
+ * @returns {void}
+ */
+export function handleCellPointerDown(evt) {
+    const cell = evt.target.closest?.('.note-table-cell');
+    pressedFocusedCell = Boolean(cell?.contains(document.activeElement));
 }
 
 /**
@@ -103,27 +134,24 @@ function expand(cell) {
 }
 
 /**
- * Click handler for a table cell: selects it, expands it, or collapses it again.
+ * Click handler for a table cell: opens it, or leaves the press to have done the selecting.
+ *
+ * **Nothing here selects anything.** The press that lands on an unselected cell focuses it, and
+ * focus is what marks it — so the first click of the cycle has already done its work by the time
+ * this runs, and this is only ever asked whether to open.
+ *
  * @param {MouseEvent} evt
  * @param {HTMLElement} cell - The cell carrying data-action="expand-cell".
  * @returns {void}
  */
 export function handleCellExpand(evt, cell) {
-    // Clicks inside an already-expanded cell belong to the caret, not to us. Escape or a
-    // click outside closes it.
+    // Clicks inside an already-open cell belong to the caret, not to us. Escape, Tab, or a click
+    // elsewhere closes it.
     if (cell.classList.contains(EXPANDED)) return;
 
-    // select -> expand. Clicking a different cell starts the cycle there, so only one
-    // cell is ever open.
-    const shouldExpand = cell.classList.contains(SELECTED);
-
-    clearExpandedCells();
-
-    if (shouldExpand) {
-        expand(cell);
-    } else {
-        cell.classList.add(SELECTED);
-    }
+    // A click the app made itself carries no press — detail is 0 — and only Enter, Space and F2
+    // make one, each of them on the cell that already has focus.
+    if (evt.detail === 0 || pressedFocusedCell) expand(cell);
 }
 
 /**

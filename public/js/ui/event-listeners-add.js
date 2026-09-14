@@ -69,7 +69,8 @@ import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, ha
          handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
-import { handleCellExpand, handleCellExpandClickOutside, finishOpenCell } from './ui-functions-cell/cell-expand.js';
+import { handleCellExpand, handleCellExpandClickOutside, finishOpenCell,
+         handleCellFocusIn, handleCellPointerDown } from './ui-functions-cell/cell-expand.js';
 import { handleCellEditorKeydown } from './ui-functions-cell/cell-editor.js';
 import { handleCellDatePick, handleCellDateSet } from './ui-functions-cell/cell-date-editor.js';
 import { handleListCellInput } from './ui-functions-highlight/list-highlight.js';
@@ -91,6 +92,12 @@ export function addActionHandlers() {
     document.addEventListener('mouseover', handleTableColHover);
     document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
     document.addEventListener('focusout', handleLayoutNameBlur);  // nor does blur
+
+    // Selection follows focus, which is what leaves Tab alone: the browser moves focus and the mark
+    // goes with it. The press is watched too, because only before it moves focus can a first click
+    // on a cell be told from a second — see cell-expand.js.
+    document.addEventListener('focusin', handleCellFocusIn);
+    document.addEventListener('pointerdown', handleCellPointerDown);
     document.addEventListener('keydown', handleLayoutNameKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is

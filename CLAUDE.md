@@ -200,18 +200,36 @@ editable later, add the exception in `isPropertyEditable` — do not take it out
 `CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
 a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
 
-**Finishing with a cell leaves it selected and focused.** That is the state one click puts a cell
-in, so one more click or Enter reopens it, and the arrow keys move from it because a closed cell is
-focusable and takes no caret. **The arrow keys carry the selection with them** — `go()` in
-`keyboard-navigate.js` focuses and then calls `selectCell()`, so the mark is on the cell the keyboard
-is on, Enter opens that cell rather than selecting it first, and an open cell you navigate away from
-closes. Clicking is untouched: one click selects, a second opens. `finishOpenCell()` in `cell-expand.js` is Escape's and Enter's way out;
-a click elsewhere reaches the same collapse and the cell that was clicked becomes the selected one.
-The commit's re-render would otherwise destroy the focused node and drop focus to the body, so
-`ui-functions-render/keep-cell-state.js` reads focus and selection before the rows are replaced and
-puts them back after — carried in the renderer, like the table's horizontal scroll position, so no
-caller has to remember. A cell is addressed by its row's id and its column, never by `data-index`,
+**Selection follows focus, and that is the whole rule.** The selected cell is the cell focus is in;
+one `focusin` handler in `cell-expand.js` marks it and lets every other cell go, and letting go
+collapses an open one, which is what writes the edit. **So Tab is never intercepted** — it moves
+focus, and the mark, the commit and the caret all follow. The arrow keys, a click, and a render that
+restores focus all go through the same door. Focus arriving *inside* a cell counts as arriving in it,
+so the file column's link keeps its cell marked.
+
+**Collapse on arrival, never on the way out.** A `focusout` handler that touches the DOM — and
+closing an editor means removing a `contenteditable` — makes Chrome abandon the focus move in
+flight, so Tab out of an open cell landed on the body. By `focusin` the move is done and the cell
+being left can safely be taken apart.
+
+**The first click is the one that brings focus.** Since focus now does the selecting, the click
+handler cannot tell the first press from the second by looking at the class — so a `pointerdown`
+handler records whether the press landed on a cell that already had focus, which is the only moment
+that answer still exists. A click the app made itself (Enter, Space, F2) carries `detail === 0` and
+always opens, since those keys only reach a focused cell.
+
+**Finishing with a cell leaves it selected and focused**, which is the state one press puts a cell in,
+so one more press reopens it. `finishOpenCell()` is Escape's and Enter's way out; Tab and a click
+elsewhere reach the same collapse through the focus handler. The commit's re-render would otherwise
+destroy the focused node and drop focus to the body, so `ui-functions-render/keep-cell-state.js`
+reads focus before the rows are replaced and puts it back after — carried in the renderer, like the
+table's horizontal scroll position, so no caller has to remember. Focus alone is enough, because the
+selection follows it back. A cell is addressed by its row's id and its column, never by `data-index`,
 which shifts when the rows do.
+
+**A table cell wears one mark.** The selection outline is it, and because that follows focus it is
+the same mark however you got there — `keyboard-nav.css` keeps its `:focus-visible` ring off cells
+for exactly that reason, or tabbing to a cell would look different from arrowing to it.
 
 **A cell opened from the keyboard needs the caret put in it.** `focus()` does nothing when the
 element already has focus, which is exactly the keyboard's case — the arrow keys focused the cell
@@ -229,8 +247,9 @@ second path in the writer. Enter, and clicking anywhere else, commit — **Enter
 any type**, a list included, which is why `cell-editor.js` carries a commented-out line where the
 list exception used to be: a newline is still how a pasted spreadsheet column becomes items, but it
 is no longer something Enter types. Escape steps back one level at
-a time: an open cell closes and stays selected, a selected one is let go. **The Enter that finishes a
-cell must not fall through to keyboard navigation**, which turns Enter on a selected cell into a
+a time only as far as the editor: an open cell closes and stays selected, and a second Escape
+changes nothing, because the mark follows focus and Escape does not move focus. **The Enter that
+finishes a cell must not fall through to keyboard navigation**, which turns Enter on a selected cell into a
 click — the cell would reopen the instant it closed.
 
 **A list cell's items are marked with a CSS custom highlight**, not with spans — see

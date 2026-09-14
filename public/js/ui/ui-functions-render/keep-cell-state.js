@@ -1,13 +1,12 @@
-// The class cell-expand.js marks a selected cell with. Repeated here rather than imported, because
-// importing it would close a cycle: a cell's commit reaches the renderer through the save path.
-const SELECTED = 'is-selected';
-
 /**
- * @file Focus and selection, carried across a re-render.
+ * @file Focus, carried across a re-render.
  *
  * A render replaces the rows, and the browser drops focus to the body when the focused node goes —
  * so the cell you were just in stops being the cell the arrow keys move from, and stops being one
  * click from opening again. Nothing else puts that back.
+ *
+ * **Focus alone is enough**, because selection follows it: putting focus back on the cell marks it
+ * again, through the same handler a click or an arrow key goes through.
  *
  * **Carried here rather than by each caller**, the same arrangement the table's horizontal scroll
  * position already has and for the same reason: filtering, sorting, paging and saving would each
@@ -48,22 +47,18 @@ function elementAt(address) {
 }
 
 /**
- * What has focus and what is selected, before a render takes them away.
- * @returns {{focused: object|null, selected: object|null}}
+ * Where focus is, before a render takes it away.
+ * @returns {{focused: object|null}}
  */
 export function captureCellState() {
-    return {
-        focused: addressOf(document.activeElement),
-        selected: addressOf(document.querySelector(`.note-table-cell.${SELECTED}`)),
-    };
+    return { focused: addressOf(document.activeElement) };
 }
 
 /**
- * Puts both back on the elements the render has just drawn.
- * @param {{focused: object|null, selected: object|null}} state - From captureCellState.
+ * Puts it back on the element the render has just drawn.
+ * @param {{focused: object|null}} state - From captureCellState.
  * @returns {void}
  */
 export function restoreCellState(state) {
-    elementAt(state.selected)?.classList.add(SELECTED);
     elementAt(state.focused)?.focus();
 }
