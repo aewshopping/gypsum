@@ -1,0 +1,9 @@
+.flowchart-code {
+    background-color: var(--colour-neutral-alt);
+    color: var(--colour-contr);
+    border: none;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 0;
+    font-family: var(--fontfam-mkdwn);
+}
