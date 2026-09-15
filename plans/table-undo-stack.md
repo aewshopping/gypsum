@@ -294,6 +294,34 @@ The two stores answer different questions. History: *what did this file contain 
 undo buffer and a version history is not a contradiction. **The stack is a pending intention, not a
 record.**
 
+### 8.1 And the edit path writes no history either
+
+The converse of the above, and the one that needs saying out loud because it is a rule to *keep*
+rather than a thing to build: **a table write does not call `saveBackupEntry`, and must not start.**
+
+Nothing in the write path touches history today — `save-cell-edit.js`, `save-file-copy.js`,
+`save-current-file.js` and `file-save.js` have no reference to it between them. Snapshots are written
+from exactly two places, `load-file-content.js` on opening a note and
+`open-file-content-view-trans.js` on closing one. So there is nothing to remove; there is a line not
+to add.
+
+**The undo stack is what replaces it**, in a different form and a better one for this job: it reverses
+the property that changed rather than restoring the file around it, which is §1's whole argument.
+
+Two reasons to keep the write path clear of it, and they compound:
+
+- **Clutter.** `MAX_SNAPSHOTS_PER_FILE` is 15. A dozen cell edits on one note would evict the
+  open-and-close history that the store is actually for, so the feature that made history denser would
+  be the feature that emptied it.
+- **Speed, and this is the one that bites later.** `saveBackupEntry` rewrites the entire history file
+  per call. A pasted range across fifty rows would be fifty whole-file rewrites of `history.gypsum`
+  on top of the writes it actually came to do — sitting in the path of the operation with the least
+  headroom in the app. `plans/table-range-paste.md` inherits a fast write path only if it is kept
+  fast now.
+
+Which is also why §9's scaffold row reads the way it does: a snapshot before the first edit was worth
+switching on by hand while the write was being built, and is not something the shipped app does.
+
 ---
 
 ## 9. Decisions taken
@@ -309,7 +337,8 @@ These are the mechanics. The interface is §10, and is decided too. §13 is what
 | Ctrl+Z | **Yes, and it is the primary entry point** — not a later addition. It is how people reach for undo, so a design that only works from a button is a design that has not been tested against the real gesture. §10.4 holds the guard it needs; §6.2 holds the one place it changed the shape of the write. |
 | The redo keys | **Both of them** — `Ctrl/Cmd+Shift+Z` and `Ctrl+Y`, because there is no single convention across platforms and supporting one strands the users of the other. `Ctrl+Y` takes Ctrl only: `Cmd+Y` is the browser's History on macOS. §10.5. |
 | Re-sorting after an undo | **No**, for the same reason `table-cell-writing.md` gives for an edit: the row leaps away from under you. The same `applyRefresh` argument. |
-| A history snapshot before the first edit | **Not in the shipped app.** Worth switching on while steps 2 to 5 are being built — it is a one-line call to `saveBackupEntry` and gives whole-file recovery through the existing history modal — then removed. As a scaffold against test folders the cap objection does not bite. |
+| A history snapshot on a table write | **No — and there is nothing to remove.** No save path calls `saveBackupEntry`; only opening and closing a note does. The undo stack replaces it in a different form, and the write path stays clear of it for clutter and for speed. §8.1. |
+| A snapshot as a build-time scaffold | **Done with.** It was worth switching on by hand while `table-cell-writing.md`'s steps 2 to 5 were being written; those landed, and the one-line call is not in the tree. Do not reinstate it for this plan's steps. |
 | A confirmation before an undo | **No — not on one cell and not on a batch.** §10.3. |
 | Where the buttons live | **The table's control row, pushed to its right end.** §10.1. |
 | What an undo looks like | **The affected cells invert their colours briefly**, in CSS. §10.2. |
