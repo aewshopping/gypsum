@@ -195,14 +195,19 @@ and renaming. No per-algorithm build is published and the worker build is the sa
 into the same output file as a deferred function, so other views would pay nothing and the artefact
 would stay one file. Tested, and worth remembering — but it only defers execution, not download.)*
 
-**dagre** is the right size and does layered layout well. It cannot merge edges — the convergence §1
-names as this class of graph's defining shape. Five nodes arriving at one hub draw as five separate
-arrowheads into one box. It also routes only polylines, and routes back edges — which any graph with a
-loop has — as long swoops across the diagram.
+**dagre** is the right size and does layered layout well. It has no edge merging at all, so a graph
+where convergence wants tidying can never be given it — five nodes arriving at one hub always draw as
+five separate arrowheads into one box, and that is the *only* rendering on offer. It also routes only
+polylines, and routes back edges — which any graph with a loop has — as long swoops across the
+diagram.
 
-**So the choice was 1.6 MB for the feature, or 48 KB without it.** Writing it gives both, and edge
+**The point is not that merging looks better. It is that it has to be available** (§5.5): it is the
+right answer for some graphs and the wrong one for others, so the engine has to be able to do both.
+elkjs can, at 1.6 MB; dagre can only ever do one of them.
+
+**So the choice was 1.6 MB for the option, or 48 KB without it.** Writing it gives both, and edge
 merging is not a standard algorithm anyone would be reusing anyway: it is a custom pass ELK bolted on,
-and roughly 45 lines to do ourselves.
+and roughly 45 lines to do ourselves — which is also what makes it cheap to switch off.
 
 ### 5.2 The pipeline
 
@@ -242,7 +247,8 @@ scope:
 - No splines. Orthogonal segments only, with corners rounded in the SVG.
 - No incremental or stable layout across renders. Every layout is from scratch.
 - No hyperedges, no self-loops drawn prettily (a note linking to itself gets a small stub).
-- Roughly eight options (§5.4), not 235.
+- Roughly eight options (§5.4), not 235 — of which one, `mergeEdges`, is a real choice (§5.5)
+  rather than a number to tune.
 
 ### 5.4 The config block
 
@@ -253,7 +259,7 @@ lose the lot:
 direction: down
 layerGap: 70
 nodeGap: 40
-mergeEdges: true
+mergeEdges: off
 labelPlacement: segment
 maxNodeWidth: 220
 ```
@@ -262,6 +268,34 @@ maxNodeWidth: 220
 **an unknown key is dropped rather than honoured** — the rule `table_layouts.gypsum` already follows
 for a hand-edited type name, and for the same reason: a typo must not invent behaviour. Dropped keys
 are named in the report line, via the existing `output-report.js`.
+
+### 5.5 Edge merging is a choice, not an improvement
+
+`mergeEdges` is the one option here that is a genuine aesthetic fork rather than a number to tune, and
+it is worth saying why it is not simply switched on.
+
+**Merged**, the edges arriving at a node meet at a junction a gap above it and enter as one trunk. It
+is tidier at high fan-in and it makes the *node* the thing you read — "everything ends up here".
+**Unmerged**, every edge runs its own path to its own arrowhead. It is busier, and it keeps every edge
+traceable end to end — you can follow one link from its source to its target without losing it in a
+shared trunk.
+
+Which is better depends on the graph, and on two things in particular:
+
+- **Fan-in.** At two or three inbound edges, merging buys tidiness nobody needed and costs
+  traceability. At ten, unmerged is a thicket.
+- **Whether the edges carry labels.** This is the one that flips the answer, and it works against the
+  case that prompted the view: with a label on every edge, a merged trunk makes it genuinely harder to
+  tell which label belongs to which incoming path, because the labels sit on branches of a shared
+  stem. A graph with labelled edges probably wants merging *off*.
+
+So: **`mergeEdges: off` is the default**, because unmerged is the honest drawing and merging is the
+stylistic choice made on purpose. The pass is `merge-edges.js` (§5.2) and it simply does not run.
+
+The obvious refinement, and barely more code than the boolean, is to make it a **fan-in threshold** —
+`mergeEdges: 4` meaning "merge only where four or more edges arrive", so a quiet part of the graph
+stays traceable while a hub gets tidied. Worth doing once there is something to look at; §11's spike
+should show both modes on the same graph so the default can be chosen from evidence rather than taste.
 
 ---
 
@@ -394,7 +428,9 @@ order:
 2. **A linear run of nodes draws as a straight vertical line.** If the spine zigzags, coordinate
    assignment is not good enough and the map is unpleasant to read. This is the pass most likely to
    disappoint.
-3. **Convergence looks deliberate** — five edges into one node read as a fan, not a mess.
+3. **Convergence looks deliberate** — five edges into one node read as a fan, not a mess. **Judged in
+   both merged and unmerged modes** (§5.5), on the same graph, since the point of the option is that
+   neither is universally right.
 4. **The back edges are visible as back edges** and do not cross the body of the diagram.
 5. **It fits on a screen at a sensible zoom** for 40-ish nodes.
 
