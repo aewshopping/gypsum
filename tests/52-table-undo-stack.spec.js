@@ -100,7 +100,8 @@ async function retype(page, cell, text) {
 
 const undoBtn = (page) => page.locator('#table-undo-btn');
 const redoBtn = (page) => page.locator('#table-redo-btn');
-const report = (page) => page.locator('#table-undo-report');
+const report = (page) => page.locator('#output-report .output-report-undo');
+const reportLine = (page) => page.locator('#output-report');
 
 // ---------------------------------------------------------------- the round trip
 
@@ -223,11 +224,14 @@ test('the report line counts what was undone', async ({ page }) => {
   await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
 
   await undoBtn(page).click();
-  await expect(report(page)).toHaveText('undo (1 cells)');
+  await expect(report(page)).toHaveText('undo: 1 values');
   await expect(report(page)).not.toHaveClass(/has-failures/);
 
+  // the count the line opens with is the render's, not the undo's, and is there either way
+  await expect(reportLine(page)).toHaveText('files filtered: 2 | undo: 1 values');
+
   await redoBtn(page).click();
-  await expect(report(page)).toHaveText('redo (1 cells)');
+  await expect(report(page)).toHaveText('redo: 1 values');
 });
 
 test('the undone cell is marked', async ({ page }) => {
@@ -253,8 +257,11 @@ test('an entry the file has moved past is refused, and says so', async ({ page }
   await undoBtn(page).click();
 
   // nothing written, and the hand-typed value still there
-  await expect(report(page)).toHaveText('undo (0 cells | 1 fail)');
+  await expect(report(page)).toHaveText('undo: 0 values, 1 fail');
   await expect(report(page)).toHaveClass(/has-failures/);
+
+  // the warning colour is the undo half's alone — the count beside it did not fail
+  await expect(reportLine(page)).not.toHaveClass(/has-failures/);
   expect(await fileText(page, 'alpha.md')).toContain('status: archived');
 
   // the entry is gone rather than waiting to be tried again

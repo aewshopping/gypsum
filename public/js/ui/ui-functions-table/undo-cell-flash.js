@@ -1,47 +1,12 @@
 /**
- * @file What an undo says it did, and the mark it leaves on the cells it changed.
+ * @file The mark an undo leaves on the cells it changed.
  *
  * Two surfaces, because a batch needs both. The cells say *which* values moved, and are silent about
- * the ones that are filtered out or on another page; the line says *how many*, and is the only thing
- * that speaks when nothing visible changed at all. See plans/table-undo-stack.md §10.2 and §10.6.
+ * the ones that are filtered out or on another page; the line above the file list says *how many*,
+ * and is the only thing that speaks when nothing visible changed at all. That line is not here — it
+ * belongs to every view, so it lives in ui-functions-render/output-report.js. See
+ * plans/table-undo-stack.md §10.2 and §10.6.
  */
-
-/** How long the line stays before it fades, in ms. Long enough to read twice, short enough to go. */
-const REPORT_MS = 4000;
-
-let clearTimer = null;
-
-/**
- * Says what an undo or redo just did, in the line under the table's control row.
- *
- * Counts rather than names. It does not say *which* cell was refused, and a refusal on a row that is
- * filtered out or on another page shows nothing on screen either — so a refusal out of view is a
- * number and no more. Accepted deliberately: a refusal is rare, a count is enough to know to go
- * looking, and the line has to fit one line at phone width. §13.3.
- *
- * @param {'undo'|'redo'} direction - Which word the line opens with.
- * @param {number} applied - How many cells were put back.
- * @param {number} failed - How many the check refused because the file had moved on.
- * @returns {void}
- */
-export function reportUndo(direction, applied, failed) {
-    const line = document.getElementById('table-undo-report');
-    if (!line) return;
-
-    line.textContent = failed > 0
-        ? `${direction} (${applied} cells | ${failed} fail)`
-        : `${direction} (${applied} cells)`;
-    line.classList.toggle('has-failures', failed > 0);
-
-    // Emptied rather than hidden, so the line keeps its height and the table below it does not move.
-    // A second undo while the first is still up replaces it rather than queueing behind it: the line
-    // is the state of the last press, not a log.
-    clearTimeout(clearTimer);
-    clearTimer = setTimeout(() => {
-        line.textContent = '';
-        line.classList.remove('has-failures');
-    }, REPORT_MS);
-}
 
 /**
  * Inverts the cells an undo changed, briefly.

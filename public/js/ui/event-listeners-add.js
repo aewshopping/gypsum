@@ -42,7 +42,7 @@ import { handleHistoryRecreate } from './ui-functions-click/history-recreate-cli
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
 import { handleTableUndo, handleTableRedo } from './ui-functions-click/undo-cell-edit.js';
-import { handleUndoFlashEnd } from './ui-functions-table/render-undo-report.js';
+import { handleUndoFlashEnd } from './ui-functions-table/undo-cell-flash.js';
 import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside, captureEditorCursorOffset } from './ui-functions-click/editor-color-pick.js';
 import { handleColorPickerExpand } from './ui-functions-click/color-picker-expand.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';

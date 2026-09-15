@@ -771,3 +771,40 @@ view is a number and no more.
 Accepted because a refusal is rare, a count is enough to know to go looking, and the line has to fit
 one phone-width line. **If it proves too thin, the line is what grows** — a naming sentence goes in
 there, not into a second surface.
+
+---
+
+## 14. What changed after it was built
+
+§10 and §12 describe the report and the mark as they were first shipped. Three things moved after
+the fact, so where those sections disagree with the code below, these are the ones that hold.
+
+**The report line left the table.** It was `#table-undo-report`, rendered by `renderTableControls()`
+and sitting under the control row; it is now `#output-report`, a permanent element in `index.html`
+between the tag taxonomy and `#output`, owned by `ui-functions-render/output-report.js`. The reason
+is that it gained a second thing to say which is not the table's: **every render, in every view,
+writes the filtered file count into it** — `files filtered: 42`, from `renderFiles`, before the
+early returns, since the two empty states are themselves answers to "how many".
+
+So the line reads `files filtered: 42 | undo: 3 values, 1 fail`, and the two writers do not know
+about each other — it is repainted from both halves held in that module, because a render is exactly
+what an undo causes and whichever spoke last would otherwise erase the other. The undo half is a
+`<span>`, and **the warning colour is that span's alone**: the count beside it did not fail and must
+not look as though it had. §10.6's "the whole line in the warning colour" is superseded on that
+point, and so is the wording — `undo (3 cells | 1 fail)` is now `undo: 3 values, 1 fail`.
+
+It takes `#fileCountElement`'s voice exactly — same size, same interface font, same colour — rather
+than the quiet grey it borrowed from `--colour-load-msg`, which was scoped to that element anyway
+and never resolved here. The undo half now stays for **5 s** rather than 4.
+
+**The mark on a cell is gentler and lasts longer.** 3 s rather than ~0.8, and a muted
+`color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt))` rather than the full
+inversion — the mix a pressed button already uses, with that button's text colour over it.
+
+The shape of the animation changed with it: **no fade in at all**, a 2 s hold, then a 1 s fade out.
+That is `animation: undo-flash var(--undo-flash-out) ease-out var(--undo-flash-hold) backwards` —
+the hold is the animation's *delay*, and `backwards` gives the cell the first keyframe for the whole
+of it. Both durations stay durations that way; written as keyframe percentages the three seconds
+would be spread across a list and neither number would be legible.
+
+`render-undo-report.js` is now `undo-cell-flash.js`, and is only the mark.

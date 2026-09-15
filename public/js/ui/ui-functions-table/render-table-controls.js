@@ -22,11 +22,10 @@ import { canReverse } from '../ui-functions-click/undo-cell-edit.js';
  * the save button's `saved` class has and for the same reason: a cell edit re-renders the rows only,
  * so a button waiting for the next full render would go live at some unrelated moment.
  *
- * The report line sits under the row rather than inside it. The row is a run of controls and that is
- * a sentence — in the row it would jump the row's height when it appeared, and wrap the buttons
- * rather than itself at phone width. It is `role="status"`, so an undo reached by the key says what
- * it did to a screen reader as well as to the eye: the cell mark alone is colour and nothing else.
- * §10.6.
+ * **What an undo did is not said here.** It is said in #output-report, the line above the file list,
+ * which belongs to every view rather than to the table — see ui-functions-render/output-report.js.
+ * The row is a run of controls and that report is a sentence; inside the row it would jump the row's
+ * height as it appeared and wrap the buttons rather than itself at phone width.
  *
  * The name is a button in the app's understated fill rather than a bordered one: it is a place to
  * look before it is a thing to press, and it sits between a label and two icon buttons that would
@@ -72,8 +71,7 @@ export function renderTableControls() {
                 <button type="button" id="table-redo-btn" class="svg-wrapper-style" data-action="table-redo" data-tip="redo cell edit | Ctrl+Shift+Z"${canReverse('redo') ? '' : ' disabled'}>
                     <svg viewBox="0 0 45 48"><use href="#icon-redo"></use></svg>
                 </button>
-            </div>
-            <div id="table-undo-report" role="status"></div>`;
+            </div>`;
 }
 
 /**

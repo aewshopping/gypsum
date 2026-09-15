@@ -1,11 +1,13 @@
 /* The mark an undone cell wears for a moment.
 
    A single-cell undo is otherwise a silent re-render: a value going back to what it was looks
-   exactly like a cell nobody touched. So the cell inverts — the app's contrast colour behind, the
-   neutral in front — quickly in and gently out. See plans/table-undo-stack.md §10.2.
+   exactly like a cell nobody touched. So the cell swaps to a muted version of the app's contrast
+   colour — the same mix a pressed button uses, with the same text colour over it — instantly, holds,
+   and then fades. See plans/table-undo-stack.md §10.2.
 
    Driven entirely from here. The JS adds a class and takes it off again on animationend; it sets no
-   colours and runs no timer of its own.
+   colours and runs no timer of its own, so the three seconds the cell is marked for are stated once,
+   in the two custom properties below.
 
    An animation rather than a transition: a transition needs the end state applied and then removed,
    which is two renders and a race with the one that drew the cell. This plays once and leaves
@@ -13,36 +15,42 @@
 
 .note-table-cell.undo-flash,
 .note-table-cell.undo-flash-refused {
-    /* Quick in, gentle out, and the asymmetry is the point: the mark has to arrive fast enough to
-       be caught on a cell you were already looking at, and leave slowly enough not to read as a
-       glitch. Named in two halves so the ratio is visible rather than buried in percentages. */
-    --undo-flash-in: 90ms;
-    --undo-flash-out: 700ms;
+    /* No fade in, a long hold, a gentle fade out — and the asymmetry is the point. The mark has to
+       be there on the frame the class lands, so it cannot be missed on a cell you were already
+       looking at; it leaves slowly enough not to read as a glitch.
 
-    animation: undo-flash calc(var(--undo-flash-in) + var(--undo-flash-out)) ease-out;
+       The hold is the animation's *delay*, not a pair of keyframes, which is what keeps both
+       durations as durations: `backwards` gives the cell the animation's first frame for the whole
+       delay, so it is already marked before the animation runs. Written as percentages instead, the
+       three seconds would be spread across a keyframe list and neither number would be visible. */
+    --undo-flash-hold: 2s;
+    --undo-flash-out: 1s;
+
+    /* The mix a pressed button already uses (button-base.css), with that button's text colour over
+       it — a mark the app has a place for rather than a full inversion invented here. */
+    --undo-flash-bg: color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt));
+
+    animation: undo-flash var(--undo-flash-out) ease-out var(--undo-flash-hold) backwards;
 
     /* Nothing here touches pointer-events or the caret. The cell stays live while the mark plays,
        so undo and then typing in the same cell is one uninterrupted movement. */
 }
 
 @keyframes undo-flash {
-    /* 0% is the cell's own colours, so nothing jumps on the frame the class lands; the inverted
-       state is reached in the first ninth and fades back across the rest. */
-    0%   { background-color: transparent; color: inherit; }
-    11%  { background-color: var(--colour-contr); color: var(--undo-flash-text); }
-    100% { background-color: transparent; color: inherit; }
+    from { background-color: var(--undo-flash-bg); color: var(--undo-flash-text); }
+    to   { background-color: transparent;          color: inherit; }
 }
 
 .note-table-cell.undo-flash {
     --undo-flash-text: var(--colour-neutral-alt);
 }
 
-/* A cell whose undo the check refused inverts identically and says so in its text colour, so the
+/* A cell whose undo the check refused is marked identically and says so in its text colour, so the
    two outcomes are told apart by what the cell says rather than by whether it said anything at all.
 
-   The same mix the load warnings and a mismatched cell's note use — but resolved against the
-   inverted foreground rather than against currentColor, because inside this animation the colour
-   the warning has to read against is the one the cell has just swapped to. */
+   The same mix the load warnings and a mismatched cell's note use — but resolved against the marked
+   foreground rather than against currentColor, because inside this animation the colour the warning
+   has to read against is the one the cell has just swapped to. */
 .note-table-cell.undo-flash-refused {
     --undo-flash-text: color-mix(in srgb, var(--colour-contr-warning) 65%, var(--colour-neutral-alt) 35%);
 }

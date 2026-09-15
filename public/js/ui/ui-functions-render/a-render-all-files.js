@@ -15,6 +15,7 @@ import { viewTransitionsWanted } from "./view-transition.js";
 import { captureCellState, restoreCellState } from "./keep-cell-state.js";
 import { renderSidebarRecent } from "../render-sidebar-recent.js";
 import { reparkColumnResizer } from "../ui-functions-table/table-col-resize.js";
+import { reportFileCount } from "./output-report.js";
 
 /**
  * Orchestrates the rendering of files based on the current view state and active filters.
@@ -44,6 +45,11 @@ export function renderFiles(fullRender = true, keepPage = false) {
     const visibleFiles = renderEverything
         ? appState.myFiles
         : appState.myFiles.filter(f => checkFilesToShow(f.internalId) === true);
+
+    // Said on every render and in every view, before the early returns below can skip the drawing:
+    // the two empty states are themselves answers to "how many", and a line that kept the previous
+    // render's number while one of them showed would be contradicting the page.
+    reportFileCount(visibleFiles.length);
 
     // Clamp current page in case a filter reduces the total number of pages
     const totalPages = Math.max(1, Math.ceil(visibleFiles.length / PAGINATION_SIZE));
