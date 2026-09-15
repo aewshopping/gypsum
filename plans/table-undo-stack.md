@@ -1,8 +1,8 @@
 # Plan: undoing a cell edit
 
 Status: **not built**, and deliberately last. The mechanics below are settled, and **the interface
-now mostly is too** — §10 records the answers rather than the questions, and §13 holds the handful
-that are left.
+now is too** — §10 records the answers rather than the questions, and §13 records what v1 knowingly
+does not do.
 **Ctrl+Z is in scope from the start**, not a later addition — and so are both redo bindings,
 `Ctrl/Cmd+Shift+Z` and `Ctrl+Y` (§10.5). Taking the keys seriously changed both the write's signature
 (§6.2) and two of §10's answers.
@@ -119,6 +119,10 @@ with the same replacement applied at the same offset.
 reason: rendering a value and capturing it back is not a round trip, so the cell holds a rendering
 and the file holds the bytes. Undo deals in bytes.
 
+**`existed` is recorded but not acted on in v1** — §7. It is kept because the version that removes a
+key needs it and cannot recover it afterwards: once the key is there, nothing in the file says who
+put it there.
+
 ---
 
 ## 5. The unit is the batch, not the cell
@@ -139,8 +143,14 @@ is already there.
 
 **Check each edit in a batch separately** (§3). Paste fifty cells, hand-edit two of them, and undo
 should restore the forty-eight it can still safely reverse, skip the two, and say two were skipped.
-Refusing the whole batch is unhelpful; bulldozing the two is the data loss of §3. **What it says, and
-where** — §13.1. **What then goes on the redo stack** — §13.5.
+Refusing the whole batch is unhelpful; bulldozing the two is the data loss of §3.
+
+**What it says, and where** — §10.6: `undo (48 cells | 2 fail)`, on one line under the control row.
+**What then goes on the redo stack: the forty-eight only.** The two were never reversed, so there is
+nothing about them to redo — and an entry holding all fifty would send a *new* write at the
+hand-typed value that caused the skip, which is §3's data loss arriving by the back door. No
+filtering to write either way: `applyRawEdits` already returns one record per edit that changed
+something, so the redo entry is its return value.
 
 ---
 
@@ -225,22 +235,36 @@ hazard `table-cell-writing.md` §4.2 puts the spans inside the parser to avoid.
 
 ---
 
-## 7. Undoing a key that did not exist
+## 7. Undoing a key that did not exist — v1 puts the value back, not the key
 
-Step 4 of `table-cell-writing.md` writes a key the file never had, and may write the whole block. So
-`existed: false`, and **undo removes the line rather than writing an empty value.**
+Step 4 of `table-cell-writing.md` writes a key the file never had, and may write the whole block. The
+obvious reading is that undo should take the line out again, and an earlier draft of this section said
+so. **It does not, in v1: undo writes an empty value and leaves the key where it is.**
 
-This is a deliberate exception to that plan's "clearing a cell writes an empty value, never deletes
-the key", and the exception is right: that rule exists so a column does not vanish as a side effect
-of clearing one cell, whereas here the column only appeared *because* of the edit being undone.
-Undoing a pasted column and leaving two hundred empty keys behind is the outcome to avoid.
+That is the *same* answer `table-cell-writing.md` gives for clearing a cell by hand — "write an empty
+value; do not delete the key" — so undo needs no exception, no second splice shape and no new
+argument on the write. **Which is the point.** Removing a key means teaching `applyRawEdits` to delete
+a line, then to notice that the block is now empty, then to take the block and its blank line out
+too — a third splice shape and two questions the parser does not currently answer. That is a yaml
+layer rewrite in service of the smallest case this plan has, and v1 does not need it.
 
-**If removing the line leaves the block empty, remove the block.** Checked at undo time rather than
-recorded, so there is no "did I create this block" flag to keep true.
+**So undo is not a total inverse, and the plan should be read that way.** Undo an edit that created
+`status` and the note keeps a bare `status:`. The cell draws empty, which is what an undone cell
+should look like; the column stays registered, which is a key that was not there before. The cost is
+a dangling empty key, and the thing it buys is that every undo in v1 is the one splice shape the
+write already performs.
 
-**How `applyRawEdits` is told to do either is open** — §13.4, which also has the hole this case opens
-under `expect`: a created key's `before` is `''`, and `''` is what the write computes for a key that
-is absent *and* for a key that is present and empty.
+**It also closes a hole rather than opening one.** A removal would have needed `expect` to tell "the
+key is absent" from "the key is present and empty" — `applyRawEdits` computes `''` for both, so a
+redo carrying `expect: ''` would have fired against a key someone had since added and left blank, and
+appended a second copy of it. With no removal, a created key's `after` is always a real value (a
+commit that changed nothing writes nothing, so an empty create cannot happen), and by the time its
+redo runs the key is present and empty, which is what `''` means there. One value, one meaning.
+
+**When this has to be revisited:** paste. Undoing a pasted column across two hundred rows would leave
+two hundred empty keys, which is the outcome the earlier draft was written to avoid. So key removal
+is a prerequisite of §11b and the paste plan, not of §11a — and `existed` is on the record from the
+start so that version has what it needs.
 
 ---
 
@@ -274,7 +298,7 @@ record.**
 
 ## 9. Decisions taken
 
-These are the mechanics. The interface is §10, and is now decided too, bar §13.
+These are the mechanics. The interface is §10, and is decided too. §13 is what is knowingly left out.
 
 | question | decision |
 |---|---|
@@ -290,15 +314,19 @@ These are the mechanics. The interface is §10, and is now decided too, bar §13
 | Where the buttons live | **The table's control row, pushed to its right end.** §10.1. |
 | What an undo looks like | **The affected cells invert their colours briefly**, in CSS. §10.2. |
 | Redo | **In this plan, not a follow-up.** §10.5, and step 11a builds it. |
+| What an undo reports | **One short line under the control row** — `undo (3 cells | 1 fail)`. §10.6. |
+| Undoing a key the edit created | **The value goes back to empty; the key stays.** §7. Not a total inverse, and deliberately so in v1. |
+| What a partly-applied undo can redo | **Only the edits that were applied.** §5. |
+| Renders per undo | **One**, however many files the batch touched. §10.2. |
 
 ---
 
 ## 10. The interface
 
-Everything above is about bytes. **All five questions below are now answered**, and the answers move
-two things that were settled the other way while the confirmation was still in: §10.3 drops the modal
-entirely, which deletes the only reason this plan had to read a file twice. What is left open is
-§13, and none of it is about where the controls go or what they say.
+Everything above is about bytes. **All of it is now answered.** Two things moved from where they were
+settled while the confirmation was still in: §10.3 drops the modal entirely, which deletes the only
+reason this plan had to read a file twice, and §10.6 — which did not exist while the modal was going
+to do the reporting — is where an undo now says what it did. §13 is what v1 knowingly does not do.
 
 ### 10.1 Where the control lives — the table's control row
 
@@ -355,7 +383,7 @@ It answers the first of the two facts that made this hard: **a single-cell undo 
 re-render**, because a value going back to what it was looks exactly like a cell nobody touched. The
 mark lands on the thing that changed, which is where the eye already is — no toast to look away to,
 and no module to invent for one. The second fact, that a batch may change nothing visible at all, is
-§13.1.
+what §10.6 is for.
 
 **The cell stays live while it plays.** No `pointer-events` change and nothing to wait for: press
 undo and start typing in the same cell if you want to. The flash is information, not a state.
@@ -366,11 +394,18 @@ Three mechanics follow from that, and the first is not cosmetic:
   replaces the rows — so a class put on the cell before the write is on an element that no longer
   exists by the time the animation would run. The cells are found again afterwards by address: the
   row's `data-vt-id` and the column's `data-prop`, which is how `keep-cell-state.js` already carries
-  a cell across a render. **Which means the refresh has to be awaited** — see §13.2, because a batch
-  makes that more than a missing `await`.
+  a cell across a render. **Which means the refresh has to be awaited**, and awaited once for the
+  whole batch rather than once per file — the split that makes that possible is below.
 - **A cell that is not on screen gets nothing.** Filtered out, on another page, or in a column that
   is hidden: there is nothing to invert, and inventing something would mean scrolling the table on
-  the user's behalf. §13.1.
+  the user's behalf. The line of §10.6 covers that case by counting rather than pointing — §13.3.
+- **A cell whose undo was refused inverts too, but its text goes warning-coloured.** Same animation,
+  same duration, one colour different — so the two outcomes are told apart by what the cell says
+  rather than by whether it said anything. The colour is the same expression the info line uses,
+  `color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%)`, which
+  `note-table-cell.css` already uses for a mismatched cell's note and `load-error-nudge.css` for the
+  load warnings. **Worth a screenshot rather than an argument**: `currentColor` inside an inverted
+  cell is `--colour-neutral-alt`, so the mix lands somewhere the same expression has not been tried.
 - **The class comes off on `animationend`**, so undoing the same cell twice plays it twice. A class
   that is already there restarts nothing.
 
@@ -378,6 +413,24 @@ Where an inverted cell reads oddly is the coloured row: a file's colour forces t
 whatever reads against it, and the flash overrides both properties, so it lands on the theme's
 contrast pair whatever colour the row is. That is the same choice `.note-table-cell.is-expanded`
 already makes for the same reason.
+
+#### One render per undo, not one per file
+
+`applyRawEdits` calls `refreshFileNow` **once per file**, and does not await it. Neither half survives
+contact with this plan: the flash needs the render to have happened, and a batch across twelve files
+would otherwise be twelve full re-renders of the table — twelve sorts, twelve filter passes, twelve
+view transitions interrupting each other.
+
+`save-cell-edit.js` already says so in a comment — "which a batch across several files will have to
+change: it re-reads and re-renders per file, where a batch wants to re-read all of them and render
+once" — and assigns it to paste. **It lands here instead**, because undoing a batch is the first
+multi-file caller either plan has.
+
+So `applyRefresh` splits along the seam its own comment names: **re-read a file into `appState`**, and
+**render what is there**. The write calls the first for each file it touched and the second once; the
+existing single-file entry points keep their signatures by calling both. It is a real change to a
+function every save goes through, which is the reason to do it deliberately and not as a side effect
+of the first paste.
 
 ### 10.3 Whether a warning modal is needed — no, on neither
 
@@ -398,7 +451,7 @@ this section used to end on. Nothing needs to know the §3 skip count before any
 check stays inside the write where §6.2 puts it and each file is read exactly once. `showWarningModal`
 is not used by this plan at all.
 
-The refusal still has to be said (§3), and that is now the whole of what §10.2 leaves open — §13.1.
+**The refusal still has to be said** (§3), and with the modal gone §10.6 is what says it.
 
 ### 10.4 Whether undo is reachable only from the table view — yes
 
@@ -449,8 +502,10 @@ open editor. What would break it is reopening the editor after a commit, which n
 the guard has to ask whether the cell is an open editor, not whether it is the cell just edited** —
 the same distinction `cell-editor.js` already draws.
 
-**Pressing the button while a cell is open is its own case** — see §13.3. The key cannot reach the
-handler with an editor focused, but a click on the button can, and it commits the cell on the way in.
+**A cell editor keeping Ctrl+Z is the feature, not the cost.** The third condition hands the key back
+to the browser while you are typing in a cell, which is the undo you want at that moment — the word
+you just typed, not the file you saved a minute ago. Nothing here tries to be cleverer than that.
+Pressing the *button* with a cell open is the one rough edge left, and it is left: see §13.2.
 
 ### 10.5 Whether redo comes with it — yes, and in this plan
 
@@ -497,6 +552,37 @@ more for redo since holding it re-applies writes rather than reverting them.
 **What redo does not change:** redo entries go stale exactly like undo entries, and the §3 check
 catches them identically — edit a cell in the note modal after undoing, and the redo is refused with
 the same sentence. Nothing new to write.
+
+### 10.6 What an undo says it did
+
+**Decided: one short line in its own block under the control row.**
+
+| | |
+|---|---|
+| everything applied | `undo (1 cells)` — or `undo (3 cells)` for a batch |
+| some refused | `undo (3 cells | 1 fail)`, the whole line in the warning colour |
+| redo | the same two shapes, reading `redo (…)` |
+
+**It borrows the load message's voice**, which is the app's existing answer to "say what just happened
+and then stop mattering": `--colour-load-msg` for the quiet state, and
+`color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%)` for the warning, which is
+`.load-error-nudge`'s exact colour. Nothing new is invented — the app still has no toast module and
+still does not need one.
+
+**Its own block below the control row**, not inside it. The row is a run of controls and this is a
+sentence; putting it in the row would make the row's height jump when the sentence appears, and at
+mobile width it would wrap the buttons rather than itself.
+
+**Short enough to fit one line on a phone**, which is why it counts rather than points. It does not
+say *which* cell failed, and on a filtered-out or off-page row the inverted cell says nothing either —
+so a refusal that happens out of view is a number and no more. That is accepted: a refusal is rare, a
+count is enough to know to go looking, and the alternative is a sentence naming a file and a property
+that does not fit the line. **If it proves too thin, more goes in this line** — it is the surface to
+grow, not a second one to add.
+
+The line clears itself the way the load message settles: shown on an undo, gone a few seconds later.
+An undo arriving while one is still up replaces it.
+
 ---
 
 ## 11. Steps
@@ -505,42 +591,54 @@ Undo is **step 6 of `table-cell-writing.md`**, after lists — which have landed
 on that plan any more. Building it earlier would have meant writing it against an imagined interface
 and rewriting it twice: step 4 added §7's created key, step 5 added the item-level splice of §4.
 
-### Step 11a — the stacks, the keys and the buttons
+### Step 11a — the stacks, the keys, the buttons and the line
 
 One step, because every part of it is load-bearing for another part: the flash needs the awaited
-refresh, redo is what makes undo safe to press, and the disabled buttons are what say the stacks are
-empty.
+render, redo is what makes undo safe to press with no confirmation in front of it, and the disabled
+buttons are what say the stacks are empty.
 
 1. `appState.undoStack` and `appState.redoStack`, cleared on folder change.
-2. `applyRawEdits` exported, its `expect` argument honoured (it is already written and already
-   checked — nothing passes it yet), and the two shapes §7 needs: a key removed, and the block
-   removed with it. §13.4.
-3. `applyCellEdits` pushes one batch per call and clears the redo stack. **Not `applyRawEdits`** —
-   undo calls that one, and a stack that pushed from there would push the undo. §13.5.
-4. `undo-cell-edits.js`: pop, swap `raw` and `expect`, call `applyRawEdits`, push what was applied
-   onto the other stack.
-5. The keys — Ctrl+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y — behind §10.4's three conditions, the `evt.repeat`
+2. `applyRefresh` split into re-read-a-file and render, so a batch re-reads each file it touched and
+   renders once — §10.2. The existing single-file entry points keep their signatures.
+3. `applyRawEdits` exported, its `expect` argument honoured (it is already written and already
+   checked — nothing passes it yet), and the refresh awaited so the caller knows when the rows exist.
+4. `applyCellEdits` pushes one batch per call and clears the redo stack. **Not `applyRawEdits`** —
+   undo calls that one, and a stack that pushed from there would push the undo.
+5. `undo-cell-edits.js`: pop, swap `raw` and `expect`, call `applyRawEdits`, push **what came back**
+   onto the other stack — which is the applied edits and only those, §5.
+6. The keys — Ctrl+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y — behind §10.4's three conditions, the `evt.repeat`
    guard and the in-flight flag.
-6. The glyphs moved into the sprite, the control row made full-width, the two buttons drawn from
+7. The glyphs moved into the sprite, the control row made full-width, the two buttons drawn from
    `appState` and moved by hand.
-7. The flash: one class, one keyframe rule in a CSS file of its own, applied after the refresh by
-   address.
+8. The flash: one class, one keyframe rule, applied after the render by address — and its
+   warning-coloured variant for a cell that was refused.
+9. The report line under the control row — §10.6.
+
+**No key is ever removed** (§7), so there is no third splice shape to write and no new spelling of
+`expect`. That is the single biggest thing keeping this step to one sitting.
 
 **Checkable by:** edit a cell, undo it with the key, watch the file on disk go back and the cell
-flash. Then edit the cell, change the same property in the note modal, undo, and watch it refuse.
-Redo it with each of Ctrl+Shift+Z and Ctrl+Y, and watch both reach the same handler. Then press
-Ctrl+Z with a note open, with a cell editor open, and in grid view, and watch nothing happen in all
-three. Then watch the buttons: dark on a fresh folder, undo live after one edit, undo dark and redo
-live after one press, both dark after a folder change.
+flash. Then edit the cell, change the same property in the note modal, undo, and watch it refuse —
+the cell warning-coloured, the line reading `undo (0 cells | 1 fail)`. Redo it with each of
+Ctrl+Shift+Z and Ctrl+Y, and watch both reach the same handler. Then press Ctrl+Z with a note open,
+with a cell editor open, and in grid view, and watch nothing happen in all three — in the cell editor
+because the browser took it, which is the point. Then watch the buttons: dark on a fresh folder, undo
+live after one edit, undo dark and redo live after one press, both dark after a folder change.
 
-**Screenshots, not expectations** — the buttons' disabled states and the flash are exactly the kind
-of thing that looks right in the code and wrong on screen.
+**Screenshots, not expectations** — the disabled states, the flash, the warning mix inside an inverted
+cell and the report line at mobile width are all things that look right in the code and wrong on
+screen.
 
-### Step 11b — depth, and the batch
+### Step 11b — depth, the batch, and the key that has to go
 
-Twenty batches, and a batch bigger than one. Nothing new to build once 11a is in: a batch of fifty
-and a batch of one take the same path, and §13.1 and §13.2 are the two places where that is not quite
-true yet.
+Twenty batches, and a batch bigger than one. Most of it is nothing new once 11a is in: a batch of
+fifty and a batch of one take the same path, the render is already one per batch, and the report line
+already counts.
+
+**What is new is §7.** Undoing a pasted column across two hundred rows leaves two hundred empty keys,
+which is where "undo does not remove a key" stops being an acceptable v1 simplification. Key removal —
+the line, the emptied block, and `expect` learning to mean "absent" — belongs here, with paste, where
+there is a reason to pay for it.
 
 **Arrives with paste**, and is the reason the seams are in step 2.
 
@@ -552,149 +650,62 @@ true yet.
 |------|------|-----|
 | `public/js/editing/undo-cell-edits.js` | **new** | the direction swap of §10.5 and the call back into `applyRawEdits` |
 | `public/js/ui/ui-functions-click/undo-cell-edit.js` | **new** | one file per user action — undo and redo are one action with a direction, not two files |
-| `public/css/table-undo-flash.css` | **new** | the inverted cell of §10.2. Its own file: a new component gets one, and this is a mark no other rule shares |
+| `public/css/table-undo-flash.css` | **new** | the inverted cell of §10.2 and its warning variant. Its own file: a new component gets one, and this is a mark no other rule shares |
+| `public/js/ui/ui-functions-table/render-undo-report.js` | **new** | the line of §10.6 — what it says, and clearing it |
+| `public/css/table-undo-report.css` | **new** | that line's quiet and warning states, borrowing `--colour-load-msg` and `.load-error-nudge`'s mix |
 | `public/js/services/store.js` | edit | `appState.undoStack` and `appState.redoStack` |
-| `public/js/editing/save-cell-edit.js` | edit | export `applyRawEdits`, honour `expect`, add §7's removal shapes, push the batch from `applyCellEdits` |
+| `public/js/editing/save-cell-edit.js` | edit | export `applyRawEdits`, honour `expect`, await the render, push the batch from `applyCellEdits` |
+| `public/js/editing/refresh-file-state.js` | edit | split `applyRefresh` into re-read-a-file and render — §10.2 |
 | `public/js/ui/event-listeners-add.js` | edit | register `table-undo` and `table-redo` |
 | `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | Ctrl+Z, Ctrl/Cmd+Shift+Z and Ctrl+Y behind the three-condition guard, and exporting `isTypingTarget()` — §10.4, §10.5 |
 | `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the two buttons, the spacer, and `markUndoState()` beside `markLayoutDirty()` — §10.1 |
 | `index.html` | edit | `#icon-undo` and `#icon-redo` into the shared sprite; the content modal's two buttons become `<use>` — §10.1 |
 | `public/css/table-layouts.css` | edit | drop `width: fit-content` from `.table-controls`, and the plate comment with it — §10.1 |
-| `public/js/editing/refresh-file-state.js` | edit | only if §13.2 lands as one render per batch |
 | ~~a confirmation dialog~~ | **not used** | §10.3 drops the modal on both paths, so `showWarningModal()` is not part of this plan |
+| ~~a yaml removal path~~ | **not in v1** | §7 — undo writes an empty value, so no splice shape and no parser question is added |
 
 **`undo-cell-edits.js` is separate from `save-cell-edit.js`** because it is the only module that knows
 an edit can be stale. Everything about writing bytes stays in one place, as §6.2 arranges it.
 
-**What says a refusal happened is still unwritten** — §13.1. The app has no toast or notification
-module, and the flash of §10.2 covers success on screen and nothing else.
+**The two new CSS files are two components, not one.** The cell's mark and the row's sentence are in
+different places, appear at different moments and are read for different things; the only thing they
+share is a colour expression, and that already lives in `load-error-nudge.css` for a third caller to
+copy.
 
 ---
 
-## 13. What is still open
+## 13. What v1 knowingly does not do
 
-Six questions, none of them about where the controls go. The first two change what gets built; the
-last four are mechanical and want a decision recorded rather than discovered halfway through.
+Three accepted limitations. None of them is a question — they are recorded so that hitting one is
+recognised rather than diagnosed.
 
-### 13.1 What a refusal says, and where
+### 13.1 Undo does not remove a key it created
 
-**§3's refusal is not optional** — it is the one path where someone asked for something and nothing
-happened, and it has to say why, naming the property and the file, since "it changed since" is only
-useful if you know where to look. The flash of §10.2 says nothing about it, and there is no toast
-module to reach for.
+§7. Undoing an edit that created a property writes an empty value and leaves the key in the note, so
+the column stays registered and the note keeps a bare `status:`. **Undo is not a total inverse.** The
+cost is bounded at one dangling key per undone create, and it stops being bounded with paste — which
+is where the fix belongs (§11b).
 
-The same surface has to cover the batch that visibly changed nothing: restore forty-eight values
-across twelve files and the rows may be on other pages or filtered out, so **"nothing happened" and
-"everything happened" look identical.**
+### 13.2 The button pressed with a cell open may undo the wrong batch
 
-Three candidates:
+The *key* cannot reach the handler while a cell editor has focus, and that is deliberate (§10.4): the
+browser's own undo is the right one while you are typing. **A click on the button can**, and it
+commits the cell on the way in — `focusin` moves to the button, the open cell collapses, the commit
+is written. That write is asynchronous, so the batch it creates may not be on the stack yet when the
+click handler runs, and the press undoes the batch before it.
 
-- **A line in the control row**, in the space the `.flexgrow` spacer now holds — "2 of 50 skipped:
-  changed since", fading after a few seconds. It is where the button is, so it is where the eye is
-  after a click; it says nothing at all when there is nothing to say; and it costs one element and no
-  new module. It is mute for a keyboard press with the table scrolled away from the row.
-- **A warning-coloured flash** on the cells that were skipped, `--colour-contr-warning` in place of
-  `--colour-contr`, plus nothing else. One mechanism for both answers, and useless for a skip on a
-  row that is not on screen — which is most of them.
-- **`showWarningModal` as an acknowledge-only alert**, which §10.3 has just thrown out for the
-  success path but which is the only surface that cannot be missed. Reasonable for a refusal
-  precisely because a refusal is rare.
+**Left alone deliberately.** Holding the commit's promise and awaiting it before popping would fix it,
+and would put a piece of cross-module sequencing into a path whose whole virtue is that it has none.
+The gesture that gets it right — press Escape or Enter, then press the button — is the one most people
+make anyway, and Ctrl+Z after a commit has none of this problem because focus has left the cell by
+then.
 
-They are not exclusive: the line plus the warning flash covers both the visible and the invisible
-case with one sentence and one colour.
+### 13.3 A refusal says how many, never which
 
-### 13.2 One render per batch, or one per file
+§10.6. `undo (3 cells | 1 fail)` counts; it does not name the file or the property, and a refused cell
+on a filtered-out or off-page row shows nothing on screen either. So a refusal that happens out of
+view is a number and no more.
 
-`applyRawEdits` calls `refreshFileNow` **once per file**, and does not await it. Two consequences,
-and undoing a batch is the first caller to feel either:
-
-- **The flash needs the render to have happened**, so the refresh has to be awaited (§10.2).
-- **A batch across twelve files is twelve refreshes and twelve full re-renders of the table.**
-  `save-cell-edit.js` already says so in a comment — "which a batch across several files will have to
-  change: it re-reads and re-renders per file, where a batch wants to re-read all of them and render
-  once". That change was assigned to paste. **Undoing a batch is the first multi-file caller**, so it
-  lands here instead.
-
-The question is whether 11a does it or 11b does. Doing it in 11a means `applyRefresh` splitting into
-"re-read this file" and "render", which is a real change to a file every save goes through. Deferring
-it means 11a awaits a single-file refresh and 11b does the split — and 11a is single-file anyway,
-since a batch of more than one only arrives with paste.
-
-Leaning: **defer the split to 11b, await the refresh in 11a.** The `await` is needed either way, and
-splitting `applyRefresh` on behalf of a caller that does not exist yet is the abstraction CLAUDE.md
-says not to build.
-
-### 13.3 The undo button pressed while a cell is open
-
-The key cannot reach the handler with an editor focused — that is §10.4's third condition. **A click
-on the button can**, and it commits the cell on the way in: `focusin` moves to the button, which
-collapses the open cell, which writes it. So the press means "undo the edit I just made by clicking
-this button", which is arguably what the user wants — except that the commit is asynchronous, so the
-new batch may not be on the stack yet when the click handler runs, and undo pops the *previous* one.
-
-Three answers:
-
-- **Await any in-flight commit before popping.** One promise held in `save-cell-edit.js`. The press
-  then always undoes the cell just left, which is the intuitive reading.
-- **Ignore a press that arrives while a commit is in flight**, and let the button's disabled state
-  say so. Simplest, and occasionally drops a press the user meant.
-- **Do nothing**, and accept that clicking undo with a cell open is undefined. Not really tenable:
-  it is not an exotic sequence, it is "type in a cell, then reach for undo with the mouse".
-
-Leaning: the first. The in-flight flag of §10.4 already exists; this makes it cover the commit as
-well as the undo.
-
-### 13.4 How `applyRawEdits` is told to remove a key
-
-§7 says undoing a key the note never had **removes the line rather than writing an empty value**, and
-that if the block is left empty the block goes too. `applyRawEdits` has no way to express that today:
-every splice it makes replaces a value span, and a `raw` of `''` writes `status:` with nothing after
-it — the empty value §7 exists to avoid.
-
-So it needs a third splice shape, and the record needs no new field: `existed: false` is already
-there, and §7 deliberately checks "is the block empty now" at undo time rather than recording a flag
-that could go stale.
-
-But the `expect` check has a hole underneath it. For a created key the record's `before` is `''`, and
-`''` is what `applyRawEdits` computes for **both** "the key is absent" and "the key is present with
-an empty value". So a redo whose `expect` is `''` would fire against a key someone has since added
-and left blank — and then append a *second* copy of the key, since the redo's write is the
-append. The fix is to make absence its own value: `expect: null` meaning "this key must not be
-there", distinct from `expect: ''` meaning "its value must be empty".
-
-Decisions wanted: the shape of the removal (a flag on the edit, `raw: null`, or a distinct field),
-and whether `expect: null` is the right spelling for absence.
-
-Two smaller ones follow from the same case:
-
-- **If the edit created the front matter block**, undo removing the last key leaves `---\n---\n\n`.
-  §7 says remove the block. Does that include the blank line the write added after it? It should —
-  the note is otherwise left with a leading blank line it did not have.
-- **An empty block that the edit did not create** — a note that already had `---\n---\n` before
-  anyone touched it — should presumably be left alone, since §7's rule is about not leaving debris
-  behind, not about tidying notes. Worth stating either way.
-
-### 13.5 A batch that was only partly applied
-
-Paste fifty cells, hand-edit two, undo: forty-eight are restored and two are refused (§5). The batch
-is popped either way — there is nothing sensible to leave on the stack. **What goes on the redo
-stack?**
-
-- **Only the forty-eight that were applied.** The two skipped edits were never reversed, so redoing
-  them would be a write nobody asked for — a *new* edit dressed as a redo, overwriting the hand-typed
-  value that caused the skip in the first place. This is §3's data loss arriving by the back door.
-- **All fifty.** Simpler, and wrong for exactly that reason: the §3 check would catch the two, but
-  only because their `before` no longer matches — which is luck, not design.
-
-Leaning: **the applied ones only.** `applyRawEdits` already returns one record per edit that changed
-something, so the redo entry is that return value and nothing else — no filtering to write.
-
-### 13.6 The full-width control row
-
-`.table-controls` is `width: fit-content` today, and the comment above it says why: it is meant to
-read as "a faint plate holding the layout and what can be done to it" rather than a rule across the
-width of the table. Making it full width so undo and redo can be pushed right is the decision taken
-in §10.1; this is just the note that **it changes what that row is**, from a plate to a bar.
-
-It carries no background and `border: none`, so in practice nothing is drawn differently — the
-controls simply stop huddling. Worth a screenshot before and after rather than an argument.
+Accepted because a refusal is rare, a count is enough to know to go looking, and the line has to fit
+one phone-width line. **If it proves too thin, the line is what grows** — a naming sentence goes in
+there, not into a second surface.
