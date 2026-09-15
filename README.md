@@ -16,7 +16,7 @@ This is built for my personal use so I don't make any guarantees about how well 
 
 ## Warnings
 
-1. It is only tested on up to date versions of Chrome and Edge. It relies on a filesystem access API that at time of writing is fully available on Safari (eg showDirectoryPicker). It also relies on a fair bit of new and newish css to work so I suspect that Safari would mess things up (as it often does) and Firefox would be way behind.
+1. It is only tested on up to date versions of Chrome and Edge. It relies on a filesystem access API that at time of writing is not fully available on Safari (eg showDirectoryPicker). It also relies on a fair bit of new and newish css to work so I suspect that Safari would mess things up (as it often does) and Firefox would be way behind.
 2. Only use on your own trusted text and markdown files. I have not escaped anything so html will just get ignored by the markdown engine and get rendered as is.
 3. You have to select your folder with text files every time you load the page. I feel like there is no point saving the directory handle to indexedDB because you still have to approve a bunch of permissions anyway.
 
