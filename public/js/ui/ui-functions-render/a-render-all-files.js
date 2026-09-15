@@ -4,6 +4,7 @@ import { renderFileList_table } from "../render-file-list-table.js";
 import { renderFileList_list } from "../render-file-list-list.js";
 import { renderFileList_peek } from "../render-file-list-peek.js";
 import { renderFileList_search } from "../render-file-list-search.js";
+import { renderFileList_flowchart } from "../render-file-list-flowchart.js";
 import { countActiveFilters } from "../ui-functions-search/a-count-activefilters.js";
 import { checkFilesToShow } from "../ui-functions-search/a-check-files-to-show.js";
 import { VIEWS } from "../../constants.js";
@@ -111,6 +112,9 @@ export function renderFiles(fullRender = true, keepPage = false) {
                 break;
             case VIEWS.SEARCH.value:
                 renderFileList_search(renderEverything);
+                break;
+            case VIEWS.FLOWCHART.value:
+                renderFileList_flowchart(renderEverything);
                 break;
             default:
                 renderFileList_grid(renderEverything);

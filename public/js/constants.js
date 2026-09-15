@@ -23,7 +23,8 @@ export const VIEWS = {
     CARDS:  { value: "cards",  label: "cards view"  },
     LIST:   { value: "list",   label: "list view"   },
     PEEK:   { value: "peek",   label: "peek view"   },
-    SEARCH: { value: "search", label: "search view" }
+    SEARCH: { value: "search", label: "search view" },
+    FLOWCHART: { value: "flowchart", label: "flowchart view" }
 };
 
 /**
