@@ -6,14 +6,17 @@ Branch: `claude/magical-cori-z4j585`
 Manifest version at step 1: `1.228.0` — bump the minor version with each step that changes code.
 
 The view draws the note graph: one node per visible note, one edge per `[[internal link]]`, laid out
-by ELK and drawn as SVG, with the mermaid source kept as an editable intermediate so the layout can
+by dagre and drawn as SVG, with the mermaid source kept as an editable intermediate so the layout can
 be tweaked and so the same text can be pasted into a mermaid editor elsewhere.
 
-Four things are new to the codebase and each carries its own risk: a 1.6 MB vendored library, a
+Four things are new to the codebase and each carries its own risk: a vendored layout library, a
 parser for text the user may have edited, a renderer that is not a string of HTML, and writes to a
 note that do not come from a table cell. §11 lists the problems I think are real, and §12 the
 decisions I would take on them. **Read §11 before building any of this** — three of its points change
 what step 3 has to emit.
+
+The engine is **dagre**, not elkjs. §4.1 has the measurements behind that and §4.3 why elkjs was
+rejected on size.
 
 ---
 
@@ -36,7 +39,7 @@ so the graph can leave the app. It is not saved anywhere and is not a file forma
 
 ```
 #output
-  ├─ ELK config block        (contenteditable, layout options as key: value lines)
+  ├─ layout config block     (contenteditable, layout options as key: value lines)
   ├─ toggle: code | chart
   └─ either the mermaid code block  (step 1, built)
      or     the SVG canvas          (steps 3-5)
@@ -95,36 +98,32 @@ there should not be one; see §12.1 for how the view says so before it happens.
 
 ---
 
-## 4. ELK
+## 4. The layout engine
 
-### 4.1 The library
+### 4.1 dagre, not elkjs
 
-`elkjs` 0.12.0, vendored as `public/js/services/elk.bundled.js`, following the `marked.eos.js`
-precedent that CLAUDE.md names. **Verified in Chromium against a local copy, not assumed:**
+`@dagrejs/dagre` 3.1.1, vendored as `public/js/services/dagre.esm.js`, following the `marked.eos.js`
+precedent that CLAUDE.md names. **Measured against a local copy in Chromium, not assumed:**
 
-- The published `lib/elk.bundled.js` is UMD. In an ES module neither the `exports` nor the `define`
-  branch matches, so it assigns `window.ELK`, and appending one line —
-  `export default window.ELK;` — makes it importable. That is the whole conversion, which keeps the
-  diff from upstream to a single line.
-- `new ELK()` with no arguments runs **on the main thread**. The bundled build falls back to the
-  "fake worker" in `elk-worker.min.js`, which is same-thread. No `Worker`, no `workerUrl`, no blob
-  URL, and no network request beyond the module itself — which is what the no-worker, no-network
-  constraints both need.
-- A 3-node graph laid out in 71 ms including first-call initialisation; **50 nodes and 49 edges in
-  137 ms**. A full page is comfortably inside one frame's worth of jank and needs no spinner. It is
-  not linear, so §11.4 is about the cap.
-- `await elk.knownLayoutOptions()` returns 235 option descriptors (id, type, default, description),
-  89 of them `layered`-specific. That is the list the config block validates against, so the app
-  never has to carry its own copy of ELK's vocabulary.
+| | raw | gzipped |
+|---|---|---|
+| `dagre.esm.js` | 48,559 | 16,954 |
+| `marked.eos.js`, already vendored here | 39,521 | — |
+| `elk.bundled.js`, for comparison | 1,609,707 | 469,661 |
 
-**Size is the real cost: 1.6 MB raw, 470 KB gzipped.** Every `.js` file under `public/` today comes
-to 766 KB, so this is twice the entire application, and it is served uncompressed on a hard reload in
-development. §11.5.
+- **Already an ES module**, self-contained: no `import` of anything external, exporting `layout`,
+  `Graph`, `graphlib` and a default. Vendoring is a straight copy with no conversion at all — where
+  elkjs needed a UMD-to-ESM hack.
+- **No worker, no network** beyond the module itself. Same-thread by construction.
+- **Faster than elkjs**: 50 nodes / 49 edges in **45 ms** against elkjs's 137 ms. 200 nodes in
+  131 ms, **500 nodes in 391 ms** — which is what lets §12.3 drop the node cap to a warning.
+- Edges come back as a `points` polyline per edge, nodes as centre `x`/`y` with the `width`/`height`
+  we gave them. Close enough to ELK's `sections`/`bendPoints` that §5.4's renderer is the same code
+  either way.
+- It is the layered (Sugiyama) algorithm mermaid itself used for years, which is the one thing a
+  `flowchart TD` needs.
 
-**Licence: EPL-2.0 OR GPL-3.0-or-later.** The header comment stays in the vendored file. The
-single-file artefact from `.github/workflows/bundle.yaml` will contain EPL code, which is fine on
-EPL's file-level terms as long as the notice rides along — but it is a distribution decision and it
-is yours, not mine.
+**MIT licensed**, so none of the EPL/GPL distribution question in §4.3 applies.
 
 ### 4.2 The config block
 
@@ -132,21 +131,55 @@ Layout options as one `key: value` per line, not JSON — the block has to be ty
 missing brace should not lose the lot:
 
 ```
-elk.algorithm: layered
-elk.direction: DOWN
-elk.spacing.nodeNode: 40
-elk.layered.spacing.nodeNodeBetweenLayers: 60
-elk.layered.mergeEdges: true
+rankdir: TB
+ranksep: 60
+nodesep: 40
+edgesep: 20
+ranker: network-simplex
+marginx: 20
+marginy: 20
 ```
 
-**Validated against `knownLayoutOptions()`, and an unknown key is dropped rather than honoured** —
-the same rule `table_layouts.gypsum` follows for a hand-edited type name, and for the same reason: a
-typo must not be able to invent behaviour. Dropped keys are named in the report line above the list,
-using the existing `output-report.js`.
+dagre has roughly fifteen graph-level options rather than ELK's 235, and no runtime descriptor list
+to validate against — so `services/flowchart/layout-options.js` carries the allowed keys, their types
+and their defaults explicitly. That is a list the app has to maintain, which ELK would have given for
+free; at fifteen entries it is a table, not a burden, and having it written down is what lets the
+block offer sensible defaults and refuse nonsense.
 
-The defaults above are seeded into the block on first render so there is something to edit.
+**An unknown key is dropped rather than honoured** — the same rule `table_layouts.gypsum` follows for
+a hand-edited type name, and for the same reason: a typo must not be able to invent behaviour.
+Dropped keys are named in the report line above the list, using the existing `output-report.js`.
 
----
+### 4.3 Why not elkjs
+
+It was the first choice and it works — I vendored it, converted it and ran it before measuring it.
+It is rejected on size alone:
+
+- **1.6 MB raw / 470 KB gzipped**, against 766 KB raw / 220 KB gzipped for every `.js` file under
+  `public/` combined. Twice the entire application, on both measures, for one view.
+- **There is no subset to take.** elkjs is GWT-compiled Java: one closure with string-keyed algorithm
+  registries and dynamic dispatch, so a bundler cannot prove that `force`, `radial`, `stress`,
+  `mrtree` and `rectpacking` are dead. Tested rather than assumed — `esbuild --bundle --minify`, which
+  tree-shakes, took it from 1,609,707 to 1,459,774 bytes (**9%**, and gzipped only 6%). All of that is
+  whitespace and renaming; no dead code was eliminated. elkjs publishes no per-algorithm build, and
+  `elk-worker.min.js` at 1.59 MB is the same payload.
+- The bulk is `layered` itself — the algorithm we actually want — so even a hypothetical
+  algorithm-level split would not help much.
+- Licensing is EPL-2.0 OR GPL-3.0-or-later, which the single-file artefact would have to carry.
+
+**What is genuinely lost**, and it is not nothing:
+
+- **Edge merging.** Your outline asked for it. `elk.layered.mergeEdges` makes edges sharing a source
+  or target run together into a trunk near that node, which reads well on a hub. dagre has no
+  equivalent. (Merging *parallel* edges — two links between the same pair — is a different thing and
+  is already handled: `internalLink` is deduped per note, so parallel edges do not arise.)
+- **Orthogonal and spline edge routing.** dagre gives one polyline per edge; ELK offers routing
+  styles. A rounded polyline looks fine and §5.4 can smooth corners itself.
+- **Fine control.** Fifteen options against 235.
+
+If the chart is built and any of those turns out to matter, `layout-graph.js` (§5.3) is the only
+module that would change — which is the point of it being a service that takes plain data and returns
+plain data.
 
 ## 5. Parsing, laying out, drawing
 
@@ -156,7 +189,7 @@ Parses the subset the app generates, and nothing else:
 
 | line | meaning |
 |---|---|
-| `flowchart TD` / `LR` | direction; maps to `elk.direction` unless the config block sets it |
+| `flowchart TD` / `LR` | direction; maps to `rankdir` unless the config block sets it |
 | `%% gypsum:<id> <internalId>` | the identity map of §3 |
 | `id("text")` and the other shape delimiters | a node, its label, its shape |
 | `a --> b`, `a -->\|"text"\| b` | an edge, with an optional label |
@@ -166,12 +199,13 @@ Anything else is a parse failure. **A failure keeps the previous chart on screen
 report line** — it does not blank the canvas, because you are usually mid-edit when it happens and a
 disappearing diagram punishes a typo far out of proportion.
 
-The parser returns plain data (`{ direction, nodes, edges }`), knows nothing about ELK or the DOM,
+The parser returns plain data (`{ direction, nodes, edges }`), knows nothing about the layout engine
+or the DOM,
 and lives in `services/` because it is neither.
 
 ### 5.2 Node sizes
 
-ELK needs `width` and `height` per node before it can place anything.
+dagre needs `width` and `height` per node before it can place anything.
 
 **Measure the text, do not estimate it from length.** A rough outline of this plan said to size boxes
 from string length; with the proportional fonts this app uses, `WWWWW` and `iiiii` differ by about
@@ -184,11 +218,13 @@ disagree.
 
 ### 5.3 Layout
 
-`services/flowchart/layout-graph.js` turns parser output plus config into ELK's JSON, awaits
-`elk.layout()`, and hands back the enriched object — nodes with `x`/`y`, edges with
-`sections[].startPoint`, `.bendPoints`, `.endPoint`. Async, so the renderer that calls it is async,
-which is new for a view renderer and is why step 3 draws into a container the synchronous render
-already put on the page.
+`services/flowchart/layout-graph.js` turns parser output plus config into a `dagre.graphlib.Graph`,
+runs `dagre.layout()`, and hands back plain data — nodes with a centre `x`/`y` and the `width`/`height`
+they were given, edges with a `points` polyline. It is the **only** module that knows which engine is
+in use, so swapping dagre for something else later (§4.3) touches one file.
+
+`dagre.layout()` is synchronous, so the view renderer stays synchronous like every other one — one
+fewer thing that is special about this view.
 
 ### 5.4 SVG renderer — `ui/ui-functions-flowchart/render-svg.js`
 
@@ -231,11 +267,11 @@ In rough order of cost. **Everything from "drag to link" down writes to a note**
 
 | Path | |
 |---|---|
-| `public/js/services/elk.bundled.js` | vendored, one appended export line |
+| `public/js/services/dagre.esm.js` | vendored, copied unmodified |
 | `public/js/services/flowchart/parse-mermaid.js` | text → `{direction, nodes, edges}` |
 | `public/js/services/flowchart/measure-label.js` | label → wrapped lines + box |
-| `public/js/services/flowchart/layout-graph.js` | graph + config → ELK → placed graph |
-| `public/js/services/flowchart/elk-options.js` | config block text ↔ validated options |
+| `public/js/services/flowchart/layout-graph.js` | graph + config → dagre → placed graph |
+| `public/js/services/flowchart/layout-options.js` | config block text ↔ validated options |
 | `public/js/ui/render-file-list-flowchart.js` | **built** — emits the mermaid source |
 | `public/js/ui/ui-functions-flowchart/render-svg.js` | placed graph → SVG DOM |
 | `public/js/ui/ui-functions-flowchart/pan-zoom.js` | the viewBox |
@@ -254,10 +290,10 @@ Each is shippable and each bumps the manifest minor version.
 
 - **Step 1 — the code block.** *Built.* `1.228.0`.
 - **Step 2 — the UI frame.** Config block, code/chart toggle, four property pickers; the pickers
-  change what step 1 emits. No ELK yet. Proves the controls before anything depends on them.
+  change what step 1 emits. No layout engine yet. Proves the controls before anything depends on them.
 - **Step 3 — identity comments.** Add the `%% gypsum:` lines and the parser. Still no chart: the
   test is that parsing the app's own output reproduces the graph it was generated from.
-- **Step 4 — first chart.** Vendor ELK, lay out, draw the SVG, no interaction. Ship the toggle.
+- **Step 4 — first chart.** Vendor dagre, lay out, draw the SVG, no interaction. Ship the toggle.
 - **Step 5 — pan, zoom, click-to-open.** Read-only interaction; the view becomes genuinely useful
   here and could reasonably stop here for a while.
 - **Step 6 — the writes.** Edge label, then drag-to-link, then drag-to-create. Only after §11.2 has
@@ -271,7 +307,7 @@ Each is shippable and each bumps the manifest minor version.
 
 - No sub-graphs, no clusters, no node grouping by tag or folder.
 - No saved chart: the config and the pickers are session state (§11.8), the mermaid text is scratch.
-- No node dragging to reposition — ELK owns placement. A hand-placed node would be lost on the next
+- No node dragging to reposition — the layout engine owns placement. A hand-placed node would be lost on the next
   layout and there is nowhere to persist it.
 - No deleting a note or a link from the canvas. Removing an edge means removing a value from a file,
   and a drag that silently unlinks two notes is the one gesture here that could lose data quietly.
@@ -285,7 +321,7 @@ Playwright, following `tests/helpers.js`. The parser and the options validator a
 over strings and deserve direct tests. The chart needs: a graph draws with the right node count; a
 broken link draws a faded unmapped node; a hand-edit to the text changes the chart; a nonsense edit
 keeps the previous chart and reports; an unknown config key is dropped and named; click-to-open opens
-the right note. Screenshot the SVG in all three themes — ELK output is deterministic for a given
+the right note. Screenshot the SVG in all three themes — dagre's output is deterministic for a given
 input, so the geometry is stable enough to compare.
 
 ---
@@ -340,19 +376,19 @@ The orchestrator computes a 50-file page for every view and appends the paginati
 In a table, page 2 is just the next rows. In a graph, a link to a note on another page becomes an
 orphan node — the chart shows a fragment while looking like a whole.
 
-Against that: ELK's 137 ms at 50 nodes is not linear, and a 500-note folder laid out on the main
-thread will be a visible freeze.
+Against that: layout cost grows with the graph. dagre does 500 nodes in 391 ms on the main thread,
+which is a perceptible but survivable pause — so this is a question about truthfulness, not speed.
 
-### 11.5 The size of it
+### 11.5 The size of it — resolved by §4.3, but not to zero
 
-1.6 MB raw / 470 KB gzipped, against 766 KB for every `.js` file in `public/` combined. In
-development there is no build step, so that file crosses the wire uncompressed on a hard reload. The
-single-file artefact roughly triples.
+elkjs at 1.6 MB was the original answer and was rejected; dagre at 48.5 KB raw / 17 KB gzipped is the
+same order as the already-vendored `marked.eos.js`, so it sits inside the precedent CLAUDE.md names
+rather than stretching it.
 
-CLAUDE.md sanctions vendoring a library, so this is not a rule violation — it is a cost, and the
-"keep it small and readable" principle is worth weighing it against deliberately. Loading ELK only
-when the flowchart view is first opened (a dynamic `import()`) keeps every other view exactly as fast
-as it is today, which I think makes the cost acceptable; the single-file artefact still carries it.
+What remains: it is still a sixth of the app's raw JS arriving for one view, and in development there
+is no build step, so it crosses the wire on a hard reload. A dynamic `import()` at the point the
+flowchart view is first opened keeps every other view exactly as fast as it is today, and costs one
+`await`. Worth doing; not worth doing before step 4 proves the view earns its place.
 
 ### 11.6 A drag that ends in a prompt is a poor gesture
 
@@ -372,7 +408,7 @@ There is also a real question of whether Ctrl+Z on a canvas means "undo my last 
 ### 11.8 Nowhere to persist the pickers or the config
 
 `table_layouts.gypsum` holds column layouts and property types; the flowchart's four pickers and its
-ELK options belong to neither, and that file is named for the table. A new `.gypsum` file is a
+layout options belong to neither, and that file is named for the table. A new `.gypsum` file is a
 migration, a writer, and a way to delete it — real work for something nobody has asked to keep yet.
 
 ### 11.9 Smaller things
@@ -380,13 +416,14 @@ migration, a writer, and a way to delete it — real work for something nobody h
 - **View transitions.** The flowchart renderer emits no `data-vt-id`, so `renderFiles` sees "nothing
   matches" and starts a transition on every render. Crossfading a whole SVG re-layout for a second is
   not what anyone wants. It needs to opt out.
-- **Re-layout on every keystroke** in the code block would run ELK per character. Layout on blur, or
-  debounced, and never on input.
+- **Re-layout on every keystroke** in the code block would parse and lay out per character. Layout on
+  blur, or debounced, and never on input.
 - **Node shapes need a mapping.** A property holds `decision`, not `{}`. It wants a small
   value → shape-name table (`rounded`, `stadium`, `circle`, `rhombus`, `hexagon`, `subroutine`,
   `cylinder`) with an unknown value falling back to `()`.
-- **ELK does not do shapes.** It places boxes; the shape is the SVG renderer's business, and a rhombus
-  wants more width than its text to stay legible.
+- **The engine does not do shapes.** dagre places boxes; the shape is the SVG renderer's business,
+  and a rhombus wants more width than its text to stay legible, which §5.2's measurement has to know
+  about.
 
 ---
 
@@ -419,15 +456,17 @@ this one.
 ### 12.3 Lay out the filtered set, not the page
 
 The flowchart opts out of pagination — `renderFiles` learns one flag for it, and the nav is not
-appended — with a cap (500 feels right, measurable at step 4) above which the view declines to draw
-and says to filter first. A partial graph that looks whole is worse than a graph that says it will not
-draw.
+appended. A partial graph that looks whole is worse than a graph that says it will not draw.
+
+dagre's 391 ms at 500 nodes means the cap is about legibility rather than speed: a 500-node chart is
+unreadable long before it is slow. So draw it, and say in the report line that it is large — rather
+than refusing, which is what elkjs's cost would have forced.
 
 ### 12.4 Session state, and revisit it
 
 Pickers and config live in `appState.flowchartState`, lost on reload, exactly as `viewState` is. If
-you find yourself retyping the same ELK options every session, that is the evidence that they want a
-file — and by then the flowchart will have told us what else belongs in it.
+you find yourself retyping the same layout options every session, that is the evidence that they want
+a file — and by then the flowchart will have told us what else belongs in it.
 
 ### 12.5 Undo stays out
 
@@ -446,5 +485,6 @@ edits properties well and the flowchart's job is showing structure.
    mermaid canonical.
 3. **The pan/zoom implementation you mentioned** — worth dropping in before step 5 so this plan
    adopts it rather than growing a second one.
-4. **Is the 1.6 MB acceptable to you** for the single-file artefact, given a dynamic import keeps the
-   other views untouched?
+4. **Is losing ELK's edge merging a problem?** It is the one thing in your outline that dagre has no
+   answer for (§4.3). If a hub note with twenty inbound links has to read well, that is the argument
+   for paying elkjs's 1.6 MB after all — and §5.3 keeps the swap to one file.
