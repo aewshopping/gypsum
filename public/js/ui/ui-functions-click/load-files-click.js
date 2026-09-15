@@ -12,6 +12,7 @@ import { propertyType } from '../../services/property-type.js';
 import { populateSortSelect } from '../ui-elements-load/sort-select-load.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from '../event-listeners-add.js';
+import { clearUndoStacks } from '../../editing/undo-cell-edits.js';
 
 /**
  * Opens the folder picker and loads the chosen directory.
@@ -84,6 +85,11 @@ function postLoad() {
     // Cleared before renderFiles below, or the empty-folder message is suppressed on the very
     // render that should show it.
     appState.isLoading = false;
+
+    // An entry names a file by an id that means nothing against a different folder. This is the
+    // only thing that clears them — a view change needs no clearing, because the check at undo time
+    // is a fact about the file rather than a guess about the app. See plans/table-undo-stack.md §9.
+    clearUndoStacks();
     if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     const sortProp = appState.sortState.property;
     sortAppStateFiles(sortProp, propertyType(sortProp), appState.sortState.direction);

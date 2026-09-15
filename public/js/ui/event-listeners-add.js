@@ -41,6 +41,8 @@ import { handleHistoryOpenFile } from './ui-functions-click/history-open-file-cl
 import { handleHistoryRecreate } from './ui-functions-click/history-recreate-click.js';
 import { handleEditorUndo } from './ui-functions-click/editor-undo.js';
 import { handleEditorRedo } from './ui-functions-click/editor-redo.js';
+import { handleTableUndo, handleTableRedo } from './ui-functions-click/undo-cell-edit.js';
+import { handleUndoFlashEnd } from './ui-functions-table/render-undo-report.js';
 import { handleEditorColorPick, handleColorCirclePick, handleCloseColorPickerOutside, captureEditorCursorOffset } from './ui-functions-click/editor-color-pick.js';
 import { handleColorPickerExpand } from './ui-functions-click/color-picker-expand.js';
 import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy } from './ui-functions-click/tag-taxonomy-toggle.js';
@@ -90,6 +92,10 @@ export function addActionHandlers() {
     document.addEventListener("input", inputDelegate);
     document.addEventListener("pointerdown", pointerDownDelegate);
     document.addEventListener('mouseover', handleTableColHover);
+
+    // The undo mark takes itself off when it has played, so the next one starts from nothing.
+    // animationend does bubble, so one listener covers every cell.
+    document.addEventListener('animationend', handleUndoFlashEnd);
     document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
     document.addEventListener('focusout', handleLayoutNameBlur);  // nor does blur
 
@@ -153,6 +159,8 @@ const clickActionHandlers = {
     'layout-picker-open': handleLayoutPickerOpen,
     'layout-select': handleLayoutSelect,
     'layout-save': handleLayoutSave,
+    'table-undo': handleTableUndo,
+    'table-redo': handleTableRedo,
     'layout-save-as': handleLayoutSaveAs,
     'layout-edit-name': handleLayoutEditName,
     'layout-delete': handleLayoutDelete,

@@ -262,8 +262,8 @@ test('a note that gains a front matter key gets the column drawn', async ({ page
   await page.evaluate(async () => {
     window.__files['note-0.md'] =
       '---\nstatus: draft\nnote: text 0\nbrandnew: yes\n---\n# Note 0\n\nBody.\n';
-    const { refreshFileNow } = await import('/public/js/editing/refresh-file-state.js');
-    await refreshFileNow({ filepath: 'note-0.md', filename: 'note-0.md' });
+    const { refreshFilesNow } = await import('/public/js/editing/refresh-file-state.js');
+    await refreshFilesNow([{ filepath: 'note-0.md', filename: 'note-0.md' }]);
   });
 
   await expect(page.locator('.note-table-cell-header[data-property="brandnew"]')).toHaveCount(1);

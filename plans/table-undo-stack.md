@@ -1,13 +1,15 @@
 # Plan: undoing a cell edit
 
-Status: **not built**, and deliberately last. The mechanics below are settled, and **the interface
-now is too** — §10 records the answers rather than the questions, and §13 records what v1 knowingly
-does not do.
-**Ctrl+Z is in scope from the start**, not a later addition — and so are both redo bindings,
+Status: **step 11a is built.** The stacks, the check, both buttons, all three key bindings, the cell
+mark and the report line all landed together — the interface of §10 as decided, and the limitations
+of §13 as accepted. **Step 11b is not built and waits for paste**, which is what makes a batch bigger
+than one and what makes §7's key removal worth paying for.
+Covered by `tests/52-table-undo-stack.spec.js`.
+**Ctrl+Z was in scope from the start**, not a later addition — and so were both redo bindings,
 `Ctrl/Cmd+Shift+Z` and `Ctrl+Y` (§10.5). Taking the keys seriously changed both the write's signature
 (§6.2) and two of §10's answers.
 Branch: `claude/vibrant-bohr-6a05pm`
-Manifest version now: `1.225.0` → bump the minor version with each step that changes code.
+Manifest version at 11a: `1.226.0` → bump the minor version with each step that changes code.
 Depends on: `plans/completed/table-cell-writing.md`, **built** — its steps 1 to 5 all landed, §6
 below among them, so `applyRawEdits` already takes a list, carries `expect` and returns the records
 of §4. See that plan's §11 for the two places its shape grew while being built.
@@ -380,6 +382,12 @@ to make the row "a faint plate holding the layout and what can be done to it", a
 something at each end is not that shape any more. It carries no background and `border: none`
 already, so nothing else about the plate has to be unpicked.
 
+**One thing was holding the row's shape up that nobody had noticed**: `.btn-menu` is `width: 100%`,
+which is right in the side panel it was written for and invisible while the row was `fit-content`.
+Full width, the layout name stretched the whole way across the table. `#layout-name` is sized to its
+own text instead — which is what makes the gap to the right of it the spacer's rather than the
+button's.
+
 **Both buttons start disabled, and become live only when there is something to press.** Edit one
 property and undo lights up; press it and undo goes dark and redo lights up. The condition is just
 whether the matching stack has an entry, plus the in-flight flag of §10.4.
@@ -419,7 +427,7 @@ undo and start typing in the same cell if you want to. The flash is information,
 
 Three mechanics follow from that, and the first is not cosmetic:
 
-- **The class goes on after the refresh, not before.** `applyRawEdits` calls `refreshFileNow`, which
+- **The class goes on after the refresh, not before.** `applyRawEdits` calls the refresh, which
   replaces the rows — so a class put on the cell before the write is on an element that no longer
   exists by the time the animation would run. The cells are found again afterwards by address: the
   row's `data-vt-id` and the column's `data-prop`, which is how `keep-cell-state.js` already carries
@@ -445,7 +453,7 @@ already makes for the same reason.
 
 #### One render per undo, not one per file
 
-`applyRawEdits` calls `refreshFileNow` **once per file**, and does not await it. Neither half survives
+`applyRawEdits` called `refreshFileNow` **once per file**, and did not await it. Neither half survives
 contact with this plan: the flash needs the render to have happened, and a batch across twelve files
 would otherwise be twelve full re-renders of the table — twelve sorts, twelve filter passes, twelve
 view transitions interrupting each other.
@@ -456,10 +464,11 @@ once" — and assigns it to paste. **It lands here instead**, because undoing a 
 multi-file caller either plan has.
 
 So `applyRefresh` splits along the seam its own comment names: **re-read a file into `appState`**, and
-**render what is there**. The write calls the first for each file it touched and the second once; the
-existing single-file entry points keep their signatures by calling both. It is a real change to a
-function every save goes through, which is the reason to do it deliberately and not as a side effect
-of the first paste.
+**render what is there**. `refreshFilesNow(snapshots)` calls the first for each file and the second
+once, and is what both the deferred autosave path and the write now go through — `refreshFileNow`
+is gone rather than kept as a one-line wrapper nothing calls. It is a real change to a function every
+save goes through, which is the reason to do it deliberately and not as a side effect of the first
+paste.
 
 ### 10.3 Whether a warning modal is needed — no, on neither
 
@@ -556,6 +565,14 @@ of §6.2. There is no second check and no direction to remember: pop from one st
 the other. The cost is one more array in `appState` and the ordinary rule that **a new edit clears
 the redo stack**.
 
+**Built, it turned out to need no swap at all** — which is this argument one step further than it was
+written. A record means "this span went `before` → `after`", and `applyRawEdits` returns a fresh
+record for *every* write, oriented to the write it just did. So the undo's own record already reads
+`after` → `before`, and reversing *that* is the redo. Both directions are the same two lines —
+`raw: edit.before, expect: edit.after` — and the only thing the direction decides is which stack is
+popped and which is pushed. The table above is still the truth about the bytes; it just describes one
+record being read twice rather than two ways of reading it.
+
 It was also refused because nobody asked for it. But once Ctrl+Z is the primary gesture, redo is
 asked for by muscle memory — **undo without redo is half a gesture**, and the half that is missing is
 the one that makes the first half safe to press. With the confirmation gone (§10.3) it is the *only*
@@ -610,7 +627,16 @@ that does not fit the line. **If it proves too thin, more goes in this line** �
 grow, not a second one to add.
 
 The line clears itself the way the load message settles: shown on an undo, gone a few seconds later.
-An undo arriving while one is still up replaces it.
+An undo arriving while one is still up replaces it. It is `role="status"`, so an undo reached by the
+key says what it did to a screen reader too — the cell mark is colour and nothing else.
+
+**It keeps its height when it has nothing to say.** A block that appears and disappears moves the
+whole table down and back up — twice per press, and a run of Ctrl+Z would have it hopping. So the
+element is always in flow and simply emptied. Getting that to a true zero took one more
+thing than it looks: the app is `box-sizing: border-box` everywhere, so a reserved `min-height`
+swallowed the line's padding while it was empty and did not once it had text, and the table moved by
+exactly that padding. This one element is `content-box`, which is what makes the two heights the same
+number rather than two numbers that happen to be close.
 
 ---
 
@@ -627,14 +653,16 @@ render, redo is what makes undo safe to press with no confirmation in front of i
 buttons are what say the stacks are empty.
 
 1. `appState.undoStack` and `appState.redoStack`, cleared on folder change.
-2. `applyRefresh` split into re-read-a-file and render, so a batch re-reads each file it touched and
-   renders once — §10.2. The existing single-file entry points keep their signatures.
+2. `applyRefresh` split into re-read-a-file and render, and `refreshFilesNow(snapshots)` putting them
+   back together, so a batch re-reads each file it touched and renders once — §10.2.
+   `refreshFileAfterSave` keeps its signature and calls it; `refreshFileNow` is deleted rather than
+   left as a one-line wrapper with no callers.
 3. `applyRawEdits` exported, its `expect` argument honoured (it is already written and already
    checked — nothing passes it yet), and the refresh awaited so the caller knows when the rows exist.
 4. `applyCellEdits` pushes one batch per call and clears the redo stack. **Not `applyRawEdits`** —
    undo calls that one, and a stack that pushed from there would push the undo.
-5. `undo-cell-edits.js`: pop, swap `raw` and `expect`, call `applyRawEdits`, push **what came back**
-   onto the other stack — which is the applied edits and only those, §5.
+5. `undo-cell-edits.js`: pop, call `applyRawEdits`, push **what came back** onto the other stack —
+   which is the applied edits and only those, §5. No swap; see §10.5.
 6. The keys — Ctrl+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y — behind §10.4's three conditions, the `evt.repeat`
    guard and the in-flight flag.
 7. The glyphs moved into the sprite, the control row made full-width, the two buttons drawn from
@@ -677,19 +705,24 @@ there is a reason to pay for it.
 
 | file | new? | why |
 |------|------|-----|
-| `public/js/editing/undo-cell-edits.js` | **new** | the direction swap of §10.5 and the call back into `applyRawEdits` |
+| `public/js/editing/undo-cell-edits.js` | **new** | the two stacks, and the call back into `applyRawEdits` — §10.5 |
 | `public/js/ui/ui-functions-click/undo-cell-edit.js` | **new** | one file per user action — undo and redo are one action with a direction, not two files |
 | `public/css/table-undo-flash.css` | **new** | the inverted cell of §10.2 and its warning variant. Its own file: a new component gets one, and this is a mark no other rule shares |
 | `public/js/ui/ui-functions-table/render-undo-report.js` | **new** | the line of §10.6 — what it says, and clearing it |
 | `public/css/table-undo-report.css` | **new** | that line's quiet and warning states, borrowing `--colour-load-msg` and `.load-error-nudge`'s mix |
 | `public/js/services/store.js` | edit | `appState.undoStack` and `appState.redoStack` |
 | `public/js/editing/save-cell-edit.js` | edit | export `applyRawEdits`, honour `expect`, await the render, push the batch from `applyCellEdits` |
-| `public/js/editing/refresh-file-state.js` | edit | split `applyRefresh` into re-read-a-file and render — §10.2 |
+| `public/js/editing/refresh-file-state.js` | edit | split `applyRefresh` into re-read-a-file and render, add `refreshFilesNow`, drop `refreshFileNow` — §10.2 |
+| `public/js/ui/ui-functions-cell/cell-edit-commit.js` | edit | light the buttons once a commit's batch has landed — a DOM question, so it belongs this side of the layer |
+| `public/js/ui/ui-functions-click/load-files-click.js` | edit | clear both stacks in `postLoad`, which all three load paths run |
+| `tests/52-table-undo-stack.spec.js` | **new** | the checks in §11a, plus the buttons, the report line and both marks |
 | `public/js/ui/event-listeners-add.js` | edit | register `table-undo` and `table-redo` |
 | `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | Ctrl+Z, Ctrl/Cmd+Shift+Z and Ctrl+Y behind the three-condition guard, and exporting `isTypingTarget()` — §10.4, §10.5 |
-| `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the two buttons, the spacer, and `markUndoState()` beside `markLayoutDirty()` — §10.1 |
+| `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the two buttons, the spacer, the report line, and `markUndoState()` beside `markLayoutDirty()` — §10.1 |
 | `index.html` | edit | `#icon-undo` and `#icon-redo` into the shared sprite; the content modal's two buttons become `<use>` — §10.1 |
-| `public/css/table-layouts.css` | edit | drop `width: fit-content` from `.table-controls`, and the plate comment with it — §10.1 |
+| `public/css/table-layouts.css` | edit | drop `width: fit-content` from `.table-controls`, size `#layout-name` to its text, and the disabled fade for the two buttons — §10.1 |
+| `public/style.css` | edit | import the two new component files |
+| `tests/50-render-transitions.spec.js` | edit | it drove `refreshFileNow` directly; now drives `refreshFilesNow` |
 | ~~a confirmation dialog~~ | **not used** | §10.3 drops the modal on both paths, so `showWarningModal()` is not part of this plan |
 | ~~a yaml removal path~~ | **not in v1** | §7 — undo writes an empty value, so no splice shape and no parser question is added |
 

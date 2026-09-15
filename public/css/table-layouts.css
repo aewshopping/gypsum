@@ -126,15 +126,25 @@
 
 /* --- the control row --------------------------------------------------------------------- */
 
-/* Shrinks to its contents rather than ruling the width of the table, and is drawn as one thing:
-   a faint plate holding the layout and what can be done to it. The border is mixed with
-   transparent rather than being a lighter colour of its own, so it stays a whisper of whatever
-   the theme's contrast colour is. */
+/* Runs the width of the table, because it now has something at each end: the layout controls on the
+   left and undo and redo on the right, with a spacer between them. It was fit-content while it was
+   a faint plate holding the layout and what can be done to it — a shape it stopped being once the
+   two ends stopped being the same kind of thing. It draws no background and no border either way,
+   so nothing is visibly plated; the controls simply stop huddling. */
 .table-controls {
-    width: fit-content;
     padding-inline: 8px;
     border-radius: 6px;
     border:none;
+}
+
+/* Undo and redo say when there is nothing to press, because otherwise a dead button and a live one
+   look identical — the glyph *is* the button here, as it is on a column picker row, so the fade is
+   the only thing left to say it with. The same 0.25 .info-modal-row-btn:disabled uses, and the
+   cursor back to default from the pointer .svg-wrapper-style hands every icon button. */
+#table-undo-btn:disabled,
+#table-redo-btn:disabled {
+    opacity: 0.25;
+    cursor: default;
 }
 
 /* The list of layouts, hung under the name it belongs to. Its chrome and its small-screen bottom
@@ -143,6 +153,12 @@
    against, which is the only reason the column menu has one. */
 #layout-name {
     anchor-name: --layout-picker-anchor;
+
+    /* .btn-menu is width: 100%, which is right in the side panel it was written for and wrong in a
+       flex row: once the row stopped being fit-content, the layout name stretched across the whole
+       table. Sized to its own text instead, which is what makes the gap to the right of it the
+       spacer's rather than the button's. */
+    width: auto;
 }
 
 #layout-picker {

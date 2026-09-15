@@ -91,7 +91,24 @@ export const appState = {
   // Session-scoped, cleared and refilled on folder load, exactly like myFilesProperties. Ask
   // property-type.js rather than reading this directly — the schema is the other half of the answer.
   propertyTypes: new Map(),
+
+  // Table cell edits that can be put back, newest last. One entry is one batch — a single cell edit
+  // is a batch of one — and each holds the records applyRawEdits returned for it: the key's whole
+  // value span before and after the splice. See plans/table-undo-stack.md §4 and §5.
+  //
+  // In memory only. A stack that outlived the session would be mostly stale entries, and the check
+  // at undo time would drop them one at a time; not offering it is the honest version. Cleared on
+  // folder load and nowhere else: the ids mean nothing against a different folder, and a view change
+  // needs no clearing because the check is a fact about the file rather than a guess about the app.
+  //
+  // Capped at UNDO_DEPTH. Undo pushes onto redoStack and redo pushes back, so an entry is never in
+  // both; a fresh edit empties redoStack, which is the ordinary rule.
+  undoStack: [],
+  redoStack: [],
 }
+
+/** How many batches the undo and redo stacks hold. Free (§2 of the plan), so chosen for feel. */
+export const UNDO_DEPTH = 20;
 
 /**
  * Defines metadata for known - or potential - file object properties.

@@ -1,4 +1,5 @@
 import { applyCellEdits } from '../../editing/save-cell-edit.js';
+import { markUndoState } from '../ui-functions-table/render-table-controls.js';
 
 /**
  * @file Someone has finished editing a cell.
@@ -24,6 +25,10 @@ import { applyCellEdits } from '../../editing/save-cell-edit.js';
  * Nothing waits for the write. The table is redrawn from the file when it lands, which is the
  * existing display path; a failure past this point is the File System API's, so it is reported.
  *
+ * **The undo button is lit from here**, once the write has landed and pushed its batch. It is a
+ * question about the DOM, so it belongs on this side of the layer rather than in the write — and the
+ * write's own re-render replaces the rows only, so nothing else would have redrawn the control row.
+ *
  * @param {HTMLElement} cell - The cell being closed.
  * @returns {void}
  */
@@ -35,5 +40,7 @@ export function commitCellEdit(cell) {
         internalId: cell.closest('.note-table').dataset.vtId,
         property: cell.dataset.prop,
         text: cell.textContent,
-    }]).catch(error => console.error('Failed to write a cell edit:', error));
+    }])
+        .then(markUndoState)
+        .catch(error => console.error('Failed to write a cell edit:', error));
 }
