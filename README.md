@@ -1,6 +1,6 @@
 # Gypsum
 
-A browser based view of text files saved on your computer. I named it Gypsum because it is a flakier, less robust version of Obsidian. It is also (at the time of writing) 350kb and no external scripts vs Obsidian which as an electron app weights in something like 100mb or more... 
+A browser based view of text files saved on your computer. I named it Gypsum because it is a flakier, less robust version of Obsidian. It is also (at the time of writing) 550kb ish and no external scripts vs Obsidian which as an electron app weights in something like 100mb or more... 
 
 This is built for my personal use so I don't make any guarantees about how well it will work for anyone else!
 
@@ -16,7 +16,7 @@ This is built for my personal use so I don't make any guarantees about how well 
 
 ## Warnings
 
-1. It is only tested on up to date versions of Chrome and Edge. It relies on a fair bit of new and newish css to work so I suspect that Safari would mess things up (as it often does) and Firefox would be way behind.
+1. It is only tested on up to date versions of Chrome and Edge. It relies on a filesystem access API that at time of writing is fully available on Safari (eg showDirectoryPicker). It also relies on a fair bit of new and newish css to work so I suspect that Safari would mess things up (as it often does) and Firefox would be way behind.
 2. Only use on your own trusted text and markdown files. I have not escaped anything so html will just get ignored by the markdown engine and get rendered as is.
 3. You have to select your folder with text files every time you load the page. I feel like there is no point saving the directory handle to indexedDB because you still have to approve a bunch of permissions anyway.
 
@@ -29,22 +29,21 @@ This is built for my personal use so I don't make any guarantees about how well 
 5. You can filter notes based on selected tags, either with an `and` filter or an `or` filter.
 6. Add a tag of the format `#color/red` (ie `#color/[color]`) and it will use this colour in the file viewer for that file, assuming it is a valid html color name.
 7. You can add simple YAML properties to the files, in front matter (ie key value pairs below one `---`and above another `---`). These are visible as columns in the table view.
-8. Given it such a simple app it is simple for coding agents to fork, adjust or add features that other users may want.
+8. Links between files, using the `[[myfile]]` format.
+9. Given it such a simple app it is simple for coding agents to fork, adjust or add features that other users may want.
 
 ## Limitations
 
 1. For tag hierarchies only one level of tag classifcation is allowed. Ie `#that/this` is fine `#that/this/them` isn't.
 2. Technically this works on mobile - screen sizes work etc - but because accessing the file system is incredibly slow it is basically broken. It will take several seconds to load a handful of files. This is a shame! There is a workaround which is to use the OPFS but this is not a first class feature.
-3. No links between files - just don't need it right now as I link with tags.
 
 ## Future to do list
 
 General principle is only to build a feature if I have a need for it right now... given 
 
 - Table view is a work in progress. I don't really use it right now, but if I wanted to use text files sort of like a relational database in future this is where I would put in the effort, for example:
-  - Saved table views for selected properties (columns).
-  - Editing YAML frontmatter properties from the table cells.
-  - Links between files (I imagine this as sort of "tunnel" where two files each have the same hash sequence perhaps as query statement after the filename url. The url is cosmetic so if the file name changes it still works because it is anchored on the hash - the filename is cosmetic but also potentially provides obsidian compatability).
+  - Saved table views for selected properties (columns). DONE
+  - Editing YAML frontmatter properties from the table cells. DONE
   - ability to paste in values across multiple columns and rows (and copy from a range selection too).
 - Maybe add markdown extension for footnotes? [marked.js footnotes extension](https://github.com/bent10/marked-extensions/tree/main/packages/footnote)
 - Maybe create an extension to allow marked.js to use [uplot](https://github.com/leeoniya/uplot) for charts. I like the look of this library because it is so small at 50kb.
