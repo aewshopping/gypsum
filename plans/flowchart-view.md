@@ -5,13 +5,17 @@ block (`public/js/ui/render-file-list-flowchart.js`). Everything below is unbuil
 Branch: `claude/magical-cori-z4j585`
 Manifest version at step 1: `1.228.0` — bump the minor version with each step that changes code.
 
-The view draws a **choose-your-own-adventure story map**: one node per note, one edge per choice,
+The view draws a **directed map of the links between notes**: one node per note, one edge per link,
 laid out top-down and drawn as SVG, with the mermaid source kept as an editable intermediate so the
 same graph can be pasted into a mermaid editor elsewhere.
 
+The case that prompted it is a branching story — each note a node of a choose-your-own-adventure,
+each link a choice — and that is what the defaults are tuned for. **Nothing in the design is
+story-only**, and §1 is written as the class of graph the view suits rather than the one use of it.
+
 **The layout engine is written here, not vendored.** That is the plan's bet and §5 is where it is
 argued. It is a bet because the alternatives were measured first and both were wrong for this: elkjs
-is 1.6 MB for one view, and dagre is small but cannot do the one thing a story map most needs. §5.1
+is 1.6 MB for one view, and dagre is small but cannot do the one thing this class of graph most needs. §5.1
 has those numbers. **Step 2 exists to find out whether the bet comes off**, before anything else is
 built on it.
 
@@ -19,22 +23,26 @@ built on it.
 
 ## 1. What the view is for
 
-**Authoring a branching story.** Every note is one story node; every `[[link]]` is a choice the
-reader can take; the link's text is the words on the choice. The map is how the author sees the shape
-of what they have written — and, once §7 lands, how they extend it.
+**Seeing the shape of a set of linked notes, and extending it.** Every node is a note, every edge is a
+link held in one of its properties, and the map is how the structure becomes visible — structure being
+the one thing a file list, a table and a search all hide.
 
-That is not the same thing as an Obsidian-style vault graph, and the difference decides almost every
-question below:
+It is not a general diagramming tool and not an Obsidian-style vault graph. **It suits a particular
+class of graph**, and every decision below follows from that class rather than from any one use of it:
 
-- **Direction is real.** "A leads to B" means the reader moves from A to B. Drawing it top-down
-  asserts something true, where in a vault graph it would assert a hierarchy that is not there.
-- **The graph is mostly a DAG**, with a few deliberate loops back ("return to the crossroads"). That
-  is the easy case for layered layout — a densely reciprocal graph is what breaks it.
-- **It is small and hand-made.** Bounded by what one person wrote: tens of nodes, maybe a couple of
-  hundred. Throughput does not matter; how good it looks at fifty nodes matters enormously.
-- **Convergence is the signature shape.** Five choices arriving at "you reach the tavern" is what a
-  story graph does constantly, and drawing it well is the single biggest quality difference between
-  a good story map and a bad one.
+- **Direction means something.** "A leads to B" is a fact worth drawing as a fact. A top-down layout
+  asserts it; in a graph of loose associations it would assert a hierarchy that is not there.
+- **Mostly acyclic**, with a few deliberate loops back. That is the easy case for layered layout — a
+  densely reciprocal graph is what breaks it.
+- **Small and hand-made.** Bounded by what a person wrote: tens of nodes, maybe a couple of hundred.
+  Throughput does not matter; how good it looks at fifty nodes matters enormously.
+- **Convergence is common.** Several nodes arriving at one is the shape that most separates a good
+  map from a bad one, and §5.1 is why it drives the choice of engine.
+
+A branching story fits that description exactly, which is why it prompted the work. So do a process or
+runbook, a dependency map, a decision tree, a set of linked meeting notes leading to one decision, a
+recipe's steps. **The test applied to every feature below is whether it makes sense in those too**, and
+where a feature only made sense for a story it has been generalised or dropped.
 
 **The mermaid text is a working surface, not a document.** It exists so the graph can leave the app
 and so the layout can be nudged. It is not saved and is not a file format the app owns.
@@ -46,7 +54,7 @@ and so the layout can be nudged. It is not saved and is not a file format the ap
 ```
 #output
   ├─ layout config block     (contenteditable, layout options as key: value lines)
-  ├─ toggle: code | chart    + the property pickers + the story checks
+  ├─ toggle: code | chart    + the property pickers + the graph checks
   └─ either the mermaid code block  (step 1, built)
      or     the SVG canvas          (steps 3-6)
 ```
@@ -56,7 +64,7 @@ and so the layout can be nudged. It is not saved and is not a file format the ap
 | picks | default | what it must be |
 |---|---|---|
 | link source | `internalLink` | a list property |
-| choice text | `internalLinkText` | a list property, read index-aligned with the link source |
+| link text | `internalLinkText` | a list property, read index-aligned with the link source |
 | node text | `title` | any property |
 | node shape | *(none)* | any property; no selection means every node is `()` |
 
@@ -64,18 +72,24 @@ The defaults are what step 1 already emits. A picker pointed at a property holdi
 the user's business, exactly as a column type is — an unusable choice makes an odd-looking chart, not
 an error.
 
-**The shape picker earns its place here in a way it would not in a note graph**: a story has node
-*kinds* — the opening, an ordinary beat, an ending — and a front matter `nodeType` mapped to a shape
-is how the map shows them apart at a glance.
+**The shape picker is a second channel, not a story feature.** Any graph has node kinds worth telling
+apart at a glance, and shape is simply a dimension the map has going spare. It deliberately reads *any*
+property rather than a convention the app invents: **`color` and `tags` already mark kinds** and work
+without this, so the picker adds a way to show a distinction the notes already carry — it does not ask
+for a new one to be created.
 
 ---
 
-## 3. Where the links and the choice text live
+## 3. Where the links and the link text live
 
-**Front matter, not the prose, and the reason is the static site generator.** The book is built from
-these files with Eleventy: the body is the story text that becomes the page, and the choices are
-navigation that the template renders separately as links or buttons. Putting `[[cave.md|push the
-door]]` inline would mean the SSG has to strip it back out of the prose it is trying to render.
+**Front matter, not the body prose.** The reason came from the motivating case and generalises
+straight away: these files are built into a site with Eleventy, where the body is the text that becomes
+the page and the links are navigation the template renders separately. An inline `[[cave.md|push the
+door]]` would have to be stripped back out of the prose it is trying to render.
+
+That is true of any pipeline that treats a note's body as content and its links as structure — a
+runbook rendering steps, a docs site building a nav tree. Front matter is where structure lives; the
+body is where the writing lives.
 
 So the two defaults are front matter lists, read index-aligned:
 
@@ -89,8 +103,8 @@ internalLinkText:
 ```
 
 **That alignment is the plan's main data risk**, and it is §13.2. Two lists that must stay in step,
-edited by hand, with nothing to keep them honest: delete one entry from one list and every choice
-silently attaches to the wrong door.
+edited by hand, with nothing to keep them honest: delete one entry from one list and every label after
+it silently attaches to the wrong link.
 
 ### 3.1 The one-list form, as v2
 
@@ -110,7 +124,7 @@ and Eleventy's side is a `split('|')` in a filter.
 The cost is that it is denser to read in the file, which is the reason it is v2 and not v1.
 Mitigations worth weighing when it comes: once §7 lands the flowchart writes these, so they are rarely
 hand-typed; and the table could render a piped list as two readable columns without changing what is
-stored. One rule if it is built: **split on the first pipe only**, so a choice containing one survives.
+stored. One rule if it is built: **split on the first pipe only**, so link text containing one survives.
 
 **The list-of-maps form — the one that reads best — is not available.** Tested, not assumed:
 
@@ -121,7 +135,7 @@ choices:
 ```
 
 gypsum's YAML parser refuses it, with `list item holding a key is not supported` and `key inside a
-list is not supported`, so every story node would carry a load error. It needs the parser to grow
+list is not supported`, so every node's note would carry a load error. It needs the parser to grow
 nesting first, which is its own plan, not a v3 of this one.
 
 ---
@@ -150,8 +164,8 @@ flowchart TD
 
 **A node with no mapping line is drawn but is not a note**: not clickable, not writable, drawn faded
 to say so. That covers the `u1("missing-note.md")` nodes step 1 already emits for a broken link — in a
-story, a choice pointing at a scene you have not written yet, which is a thing an author does on
-purpose — and it covers anything typed by hand. The degradation is the feature.
+branching story, a choice pointing at a scene not yet written, which is a thing people do on
+purpose in any graph they are still building — and it covers anything typed by hand. The degradation is the feature.
 
 **A write regenerates the text**, discarding hand-edits. There is no merge and there should not be
 one; §14.1 is how the view says so before it happens.
@@ -181,10 +195,10 @@ and renaming. No per-algorithm build is published and the worker build is the sa
 into the same output file as a deferred function, so other views would pay nothing and the artefact
 would stay one file. Tested, and worth remembering — but it only defers execution, not download.)*
 
-**dagre** is the right size and does layered layout well. It cannot merge edges — the exact shape §1
-says a story map is made of. Five choices arriving at the tavern draw as five separate arrowheads into
-one box. It also routes only polylines, and routes back edges — which a story has — as long swoops
-across the diagram.
+**dagre** is the right size and does layered layout well. It cannot merge edges — the convergence §1
+names as this class of graph's defining shape. Five nodes arriving at one hub draw as five separate
+arrowheads into one box. It also routes only polylines, and routes back edges — which any graph with a
+loop has — as long swoops across the diagram.
 
 **So the choice was 1.6 MB for the feature, or 48 KB without it.** Writing it gives both, and edge
 merging is not a standard algorithm anyone would be reusing anyway: it is a custom pass ELK bolted on,
@@ -262,7 +276,7 @@ differ about threefold, so estimated boxes would clip labels and gape in the sam
 `CanvasRenderingContext2D`, reused across the render with its `font` set from the computed style of
 the node class, measures a label in microseconds. `services/flowchart/measure-label.js` wraps to
 `maxNodeWidth` and returns the box — and **returns the wrapped lines too**, so the measurement and the
-drawing cannot disagree. A non-rectangular shape (a rhombus ending) needs more box than its text, so
+drawing cannot disagree. A non-rectangular shape — a rhombus, say — needs more box than its text, so
 the shape is an input here, not only to the renderer.
 
 ### 6.2 The SVG
@@ -287,13 +301,13 @@ In rough order of cost.
    viewBox must survive a re-render, the way `keep-cell-state.js` carries the table's scroll position.
 2. **Click a node to open the note.** `data-file-id` is already what `open-file-content-modal`
    expects, so this is a `data-action` and nothing more.
-3. **Click an edge to write its choice text.** Writes the choice-text property — ordinary front
+3. **Click an edge to write its label.** Writes the link-text property — ordinary front
    matter, so `applyCellEdits` already does it. §13.2 is the catch.
-4. **Drag node → node to add a choice.** Appends to the link-source list of the drag-start note, and
-   a matching entry to the choice-text list. Two lists to keep in step, which is §3.1's argument
+4. **Drag node → node to add a link.** Appends to the link-source list of the drag-start note, and
+   a matching entry to the link-text list. Two lists to keep in step, which is §3.1's argument
    restated as code.
-5. **Drag node → empty space to write the next scene.** The gesture that grows the story:
-   `createEmptyNote()` makes the file, then the choice is added as in 4, then the new note opens.
+5. **Drag node → empty space to create the next note.** The gesture that grows the graph:
+   `createEmptyNote()` makes the file, then the link is added as in 4, then the new note opens.
    §13.5 is the naming problem.
 
 **All of these are front-matter writes**, which is the happy consequence of §3 — no body writer is
@@ -302,22 +316,29 @@ rest of the file.
 
 ---
 
-## 8. The story checks
+## 8. The graph checks
 
-The thing a story map is *for*, beyond looking at. None of it is layout; all of it is a walk over the
-parsed graph, and it is cheap once the graph exists.
+The thing a map is *for*, beyond looking at. None of it is layout; all of it is a walk over the parsed
+graph, and it is cheap once the graph exists. **Each is a plain graph property, not a story concept** —
+which is why they survive the generalisation test intact and only their names needed changing.
 
-- **Unreachable scenes** — written, but no path from the start reaches them. The most common real bug
-  in a branching story and invisible in a file list.
-- **Dead ends** — a scene with no outgoing choices that is not marked as an ending. The reader hits a
-  wall.
-- **Broken choices** — a link naming no file. Already surfaced as `errorOnLoad` by `file-errors.js`
-  (`linkSegment`), so this is drawing what the app already knows.
-- **The start node** — one scene has to be the opening. A front matter flag, or failing that the node
-  with no inbound edges; if there are several, that is itself worth saying.
+| check | the graph question | what it catches |
+|---|---|---|
+| **unreachable** | no path from any root reaches this node | a note nothing leads to: a scene the reader can never see, a runbook step no branch arrives at, a page absent from the nav |
+| **leaf** | no outgoing links | the end of a path — an ending, a terminal step, or a note somebody forgot to finish |
+| **broken** | a link naming no loaded file | already found by `file-errors.js` (`linkSegment`) and surfaced as `errorOnLoad`, so this is drawing what the app already knows |
+| **roots** | no incoming links | where the graph starts. One root is the ordinary case; several is worth saying, because it usually means either several entry points or a node that got detached |
 
-Each marks its nodes in the SVG and reports a count in the line above the list. **Nothing is
-auto-fixed** — these are things only the author can resolve.
+**A leaf is not an error and must not be drawn as one.** In one graph it is a finished ending, in
+another an unwritten branch, and the app cannot tell which — so it marks and counts them, and the
+person decides. The same goes for several roots.
+
+Each check marks its nodes in the SVG and reports a count in the line above the list, via the existing
+`output-report.js`. **Nothing is auto-fixed.**
+
+Deliberately absent: any notion of a node *kind* the app defines. Marking a leaf as "a real ending"
+rather than an unfinished one is what `color` and `tags` are already for (§2), and inventing a
+`nodeType` convention would be the app asking for a vocabulary it does not need.
 
 ---
 
@@ -329,7 +350,7 @@ auto-fixed** — these are things only the author can resolve.
 | `public/js/services/flowchart/measure-label.js` | label + shape → wrapped lines and box |
 | `public/js/services/flowchart/layout-options.js` | config block text ↔ validated options |
 | `public/js/services/flowchart/layout/*.js` | the nine passes of §5.2 |
-| `public/js/services/flowchart/story-checks.js` | §8, a walk over the graph |
+| `public/js/services/flowchart/graph-checks.js` | §8, a walk over the graph |
 | `public/js/ui/render-file-list-flowchart.js` | **built** — emits the mermaid source |
 | `public/js/ui/ui-functions-flowchart/render-svg.js` | placed graph → SVG DOM |
 | `public/js/ui/ui-functions-flowchart/pan-zoom.js` | the viewBox |
@@ -346,8 +367,8 @@ DOM; the SVG renderer produces nodes and reads `appState`; the click and drag fi
 
 - **Step 1 — the code block.** *Built.* `1.228.0`.
 - **Step 2 — the layout spike. This is the go/no-go.** Build passes 1 to 5 — cycles, layers, dummies,
-  crossings, placement — as a throwaway outside the repo, feed it a realistic branching story of
-  40-60 scenes with the convergences and the loops back, and *look at it*. §11 is the standard it has
+  crossings, placement — as a throwaway outside the repo, feed it a real graph of 40-60 nodes with
+  the convergences and the loops back that §1 describes, and *look at it*. §11 is the standard it has
   to meet. Nothing else here is worth building until this has been seen.
 - **Step 3 — the UI frame.** Config block, code/chart toggle, the four pickers; the pickers change
   what step 1 emits. Independent of step 2, so it can proceed in parallel.
@@ -357,7 +378,7 @@ DOM; the SVG renderer produces nodes and reads `appState`; the click and drag fi
   No interaction.
 - **Step 6 — pan, zoom, click-to-open.** Read-only. The view becomes genuinely useful here and could
   reasonably rest a while.
-- **Step 7 — the story checks.** §8. Cheap, and the highest value per line in the whole plan.
+- **Step 7 — the graph checks.** §8. Cheap, and the highest value per line in the whole plan.
 - **Step 8 — the writes.** Edge text, then drag-to-link, then drag-to-create.
 - **Step 9 — the one-list choice format.** §3.1, and migrating to it.
 
@@ -369,16 +390,16 @@ Vague acceptance criteria are how a spike gets waved through. These are the ones
 order:
 
 1. **No edge crosses another where a human would obviously not draw it so.** A few crossings in a
-   branching story are unavoidable; a tangle is the failure.
-2. **A linear run of scenes draws as a straight vertical line.** If the spine zigzags, coordinate
+   branching graph are unavoidable; a tangle is the failure.
+2. **A linear run of nodes draws as a straight vertical line.** If the spine zigzags, coordinate
    assignment is not good enough and the map is unpleasant to read. This is the pass most likely to
    disappoint.
-3. **Convergence looks deliberate** — five choices into the tavern read as a fan, not a mess.
+3. **Convergence looks deliberate** — five edges into one node read as a fan, not a mess.
 4. **The back edges are visible as back edges** and do not cross the body of the diagram.
-5. **It fits on a screen at a sensible zoom** for 40-ish scenes.
+5. **It fits on a screen at a sensible zoom** for 40-ish nodes.
 
-Judged on screenshots of a real story graph, not a synthetic one — a synthetic graph has none of the
-convergence that makes this hard.
+Judged on screenshots of a real graph, not a synthetic one — a generated graph has none of the
+convergence that makes this hard, and will flatter the engine.
 
 **If it fails**, the retreat is dagre for passes 1-5 with our own routing and merging on top. It is
 explicitly *not* the plan and not the thing to design for — naming it here so that a disappointing
@@ -392,10 +413,11 @@ spike is a decision rather than a surprise.
 - No saved chart: the pickers and config are session state (§14.4), the mermaid text is scratch.
 - No node dragging to reposition — the engine owns placement, and a hand-placed node would be lost at
   the next layout with nowhere to persist it.
-- No deleting a scene or a choice from the canvas. Removing an edge means removing a value from a
-  file, and a drag that silently unlinks two scenes is the one gesture here that could lose writing.
+- No deleting a note or a link from the canvas. Removing an edge means removing a value from a file,
+  and a drag that silently unlinks two notes is the one gesture here that could lose work.
 - No mermaid feature the app does not itself emit.
-- No playtesting the story in-app. Tempting, and a different plan.
+- No walking the graph in-app — following links as a reader would, rather than looking at the map.
+  Tempting, and a different plan.
 
 ---
 
@@ -408,23 +430,25 @@ and the failure is very visible: needless crossings and zigzagging spines. The c
 looks fine on an eight-node test and falls apart at sixty. That is exactly why §10's step 2 comes
 before everything and why §11 is written down in advance.
 
-Mitigating it: story graphs are the *easy* case — small, mostly acyclic, mostly shallow — and the
-passes that are hardest to get right are the ones that matter most on the graphs we are not drawing.
+Mitigating it: the graphs §1 describes are the *easy* case — small, mostly acyclic, mostly shallow —
+and the passes that are hardest to get right are the ones that matter most on the graphs we are
+deliberately not drawing.
 
 ### 13.2 Two lists that must stay in step
 
 `internalLinkText[n]` labels `internalLink[n]`, with nothing enforcing it. Hand-edit one list and
 every choice after the edit attaches to the wrong door — silently, because both lists are still valid.
 
-Worse here than in a note graph, because the payload is the words the reader sees. §3.1 is the answer
-and it is deferred to v2; until then the flowchart's own writes must update both lists together, and
-the story checks (§8) should probably flag a length mismatch as a sixth check.
+The payload is text somebody wrote and will be read, so a silent mis-attachment is worse than a
+missing one. §3.1 is the answer and it is deferred to v2; until then the flowchart's own writes must
+update both lists together, and §8 should carry a fifth check for a length mismatch between the two.
 
-### 13.3 Pagination makes a story that is not true
+### 13.3 Pagination makes a graph that is not true
 
 `renderFiles` computes a 50-file page for every view and appends the nav unconditionally. In a table
-that is just the next rows. In a story map, a choice leading to a scene on another page becomes an
-orphan node — the map shows a fragment while looking whole. §14.3.
+that is just the next rows. In a map, a link leading to a note on another page becomes an orphan
+node — the map shows a fragment while looking whole, and §8's reachability check would be answering
+about the page rather than the graph. §14.3.
 
 ### 13.4 The round trip fights itself
 
@@ -435,8 +459,8 @@ No merge is available once the text has been retyped. §14.1 takes the honest ve
 ### 13.5 A drag that ends in a prompt is a poor gesture
 
 Drag-to-empty-space has to name a file, and stopping the gesture to open a modal breaks it. An
-auto-named `scene-7.md` opened straight into the editor is probably better than asking, since the
-author is about to write the scene anyway and can rename from the table.
+auto-named note opened straight into the editor is probably better than asking, since the person is
+about to write it anyway and can rename from the table.
 
 ### 13.6 Smaller things
 
@@ -445,7 +469,7 @@ author is about to write the scene anyway and can rename from the table.
   not wanted; it needs to opt out.
 - **Re-layout on every keystroke** in the code block would parse and lay out per character. On blur,
   or debounced, never on input.
-- **Node shapes need a mapping** from a property value (`ending`, `start`) to a shape name, with an
+- **Node shapes need a mapping** from a property value to a shape name, with an
   unknown value falling back to `()`.
 - **`title` is read-only**, being derived from the `# heading`, so node text cannot be edited from the
   map. Correct, and worth knowing before someone tries.
@@ -472,8 +496,8 @@ keeps every write in §7 on the existing, tested `applyRawEdits` path.
 ### 14.3 Lay out the filtered set, not the page
 
 The flowchart opts out of pagination — `renderFiles` learns one flag, and the nav is not appended. A
-story is bounded by what one person wrote, so there is no cap worth enforcing; if a folder is large
-enough to be slow, the honest answer is that it is not one story and should be filtered.
+graph §1 describes is bounded by what a person wrote, so there is no cap worth enforcing; a folder
+large enough to be slow is not one graph, and filtering is the honest answer.
 
 ### 14.4 Session state, and revisit it
 
@@ -485,14 +509,15 @@ will have said what else belongs in it.
 
 ## 15. Open questions
 
-1. **Is there a real story to test against?** Step 2's judgement depends on it, and a synthetic graph
-   will flatter the engine by having none of the convergence that makes layout hard.
-2. **How is an ending marked?** A `nodeType` front matter property is the obvious answer and it feeds
-   the shape picker and two of the story checks at once — but it is a convention the book's Eleventy
-   templates will also want, so it should be decided once, for both.
-3. **Does the mermaid round trip still earn its keep?** It was designed when the purpose was unstated.
-   An author working in files may only ever want the export, in which case §4's identity comments stay
-   but §14.1's detached state could go, and the plan gets simpler.
-4. **Loops back — as edges, or as something else?** "Return to the crossroads" drawn as a long edge up
-   the diagram is honest but noisy. Some story tools draw it as a labelled stub instead. Worth
-   deciding at step 5, once there is something to look at.
+1. **Is there a real graph to test against?** Step 2's judgement depends on it, and a generated graph
+   will flatter the engine by having none of the convergence that makes layout hard. The branching
+   story is the obvious candidate; anything with the §1 shape would do.
+2. **Does the mermaid round trip still earn its keep?** It was designed before the purpose was stated.
+   Someone working in the files may only ever want the export, in which case §4's identity comments
+   stay but §14.1's detached state could go, and the plan gets simpler.
+3. **Loops back — as edges, or as something else?** An edge running up the whole diagram is honest but
+   noisy, and some tools draw it as a labelled stub instead. Worth deciding at step 5, once there is
+   something to look at.
+4. **Should §8's checks be available outside this view?** They are a walk over the link graph and have
+   no dependency on the SVG — "which notes does nothing link to" is a question worth answering in the
+   table too. If so, `graph-checks.js` belongs in `services/` proper rather than under `flowchart/`.
