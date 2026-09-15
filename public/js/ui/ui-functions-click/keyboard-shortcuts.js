@@ -17,6 +17,7 @@ import { finishOpenCell } from '../ui-functions-cell/cell-expand.js';
 import { clearHeaderSelection } from './column-menu.js';
 import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
+import { reverseCellEdits, canReverse } from './undo-cell-edit.js';
 import { appState } from '../../services/store.js';
 
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 'number', 'tel']);
@@ -25,11 +26,49 @@ const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 
  * Whether the user is currently typing into something, and so bare-key shortcuts should
  * be left alone. Covers text inputs, textareas, and editable elements such as an
  * expanded table cell.
+ *
+ * **Exported for Ctrl+Z**, where it is the whole of the third condition and worth stating as a rule
+ * rather than a list: if focus is in something that has its own undo, the key is not ours. That one
+ * question covers both places the hazard appears — a note's contenteditable in the modal, and an
+ * open cell editor in the table. See plans/table-undo-stack.md §10.4.
  * @returns {boolean}
  */
-function isTypingTarget() {
+export function isTypingTarget() {
     const active = document.activeElement;
     return !!active && (TEXT_INPUT_TYPES.has(active.type) || active.tagName === 'TEXTAREA' || active.isContentEditable);
+}
+
+/**
+ * Undo or redo a table cell edit, if the key is ours to take.
+ *
+ * Three conditions, two of which are idioms the file already uses: the table view is current, no
+ * dialog is open, and focus is not in something with its own undo. An open dialog does not stop a
+ * key reaching here — showModal makes everything outside it inert for the pointer and for focus, but
+ * a key pressed inside the dialog bubbles to the document like any other event, which is why the
+ * number-key shortcut below tests for one by hand too.
+ *
+ * **Nothing is prevented unless the key is taken.** Every reason not to act is asked before
+ * preventDefault, the empty stack included, so in another view or with nothing to undo the press
+ * goes on to mean whatever it would have meant.
+ *
+ * **Auto-repeat is ignored.** There is no confirmation in front of this, so a held Ctrl+Z would pop
+ * the whole stack in about a second, each entry a verified read-and-write cycle per file — and
+ * holding a redo key would re-apply them just as fast. One press, one batch. §10.4.
+ *
+ * Alt is refused as well: Ctrl+Alt+Z is AltGr+Z on the layouts that have one, and that types a
+ * character rather than asking for anything.
+ *
+ * @param {KeyboardEvent} evt
+ * @param {'undo'|'redo'} direction
+ * @returns {void}
+ */
+function undoTableKey(evt, direction) {
+    if (evt.repeat || evt.altKey) return;
+    if (document.querySelector('dialog[open]') || isTypingTarget()) return;
+    if (!canReverse(direction)) return;
+
+    evt.preventDefault();
+    reverseCellEdits(direction);
 }
 
 /**
@@ -51,6 +90,24 @@ export function handleKeyboardShortcuts(evt) {
             evt.preventDefault();
             handleSaveFileCopy();
         }
+    }
+
+    // Undo and redo a table cell edit. Three conditions, all of them in undoTableKey below, and the
+    // guard is what makes the key safe: a cell editor or the note modal keeps Ctrl+Z, which is the
+    // browser's own undo and the one wanted while typing.
+    //
+    // **Both redo bindings**, because there is no one redo key: Ctrl+Y is the Windows convention,
+    // Cmd+Shift+Z the macOS one, and Ctrl+Shift+Z is used on Windows too. Ctrl+Y takes Ctrl only —
+    // Cmd+Y is the browser's own History on macOS, and taking it would break something the user has
+    // and replace it with something they would not look for there.
+    //
+    // Matched on the lower-cased key rather than on 'z' and 'Z', because whether a shifted letter
+    // arrives upper-cased depends on the layout and on who is synthesising the event. One question
+    // about which letter, one about whether shift was down.
+    if (evt.ctrlKey || evt.metaKey) {
+        const key = evt.key?.toLowerCase();
+        if (key === 'z') undoTableKey(evt, evt.shiftKey ? 'redo' : 'undo');
+        if (key === 'y' && evt.ctrlKey && !evt.shiftKey) undoTableKey(evt, 'redo');
     }
 
     const noModalAltActions = {

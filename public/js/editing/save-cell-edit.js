@@ -6,7 +6,8 @@ import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlText, toYamlItem } from '../services/file-parsing/yaml-value-write.js';
 import { splitFlowItems } from '../services/file-parsing/flow-list.js';
 import { saveFileCopy } from './save-file-copy.js';
-import { refreshFileNow } from './refresh-file-state.js';
+import { refreshFilesNow } from './refresh-file-state.js';
+import { pushUndoBatch } from './undo-cell-edits.js';
 
 /**
  * @file A cell edit, all the way into the note's front matter.
@@ -33,6 +34,10 @@ import { refreshFileNow } from './refresh-file-state.js';
  * batch is the real shape of the operation and retrofitting it means a second module that knows how
  * to splice front matter.
  *
+ * **This is where an undo batch is pushed**, and deliberately not in applyRawEdits: undo calls that
+ * one, so a stack pushed from down there would record the undo as something to undo. See
+ * plans/table-undo-stack.md §11a.
+ *
  * @param {Array<{internalId: string, property: string, text: string}>} edits
  * @returns {Promise<Array<object>>} One record per edit that changed a file — see applyRawEdits.
  */
@@ -52,7 +57,9 @@ export async function applyCellEdits(edits) {
         };
     });
 
-    return applyRawEdits(rawEdits);
+    const records = await applyRawEdits(rawEdits);
+    pushUndoBatch(records);
+    return records;
 }
 
 // changedItem() saying the list is exactly as the file already has it, which is not the same answer
@@ -111,13 +118,19 @@ function changedItem(text, span, items) {
  * is given one. Not an edge case: a column exists because *some* file carries that key, so the empty
  * cells in every other row are exactly the ones someone wants to fill in.
  *
+ * **Every file is written and only then is the list rendered, once.** A batch reaching the refresh
+ * one file at a time would be a sort, a filter pass and a view transition per file, interrupting
+ * one another — and the caller could not mark the cells it changed, because the rows do not exist
+ * until the render has run. See plans/table-undo-stack.md §10.2.
+ *
  * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
  *   expect?: string}>} rawEdits
  * @returns {Promise<Array<{internalId: string, property: string, before: string, after: string,
  *   existed: boolean}>>} One record per edit that changed a file, holding the key's whole value
- *   span before and after. Nothing reads it yet; undo is what it is for.
+ *   span before and after. This is what an undo entry is made of, and what a partly-applied undo
+ *   hands to the redo stack — so an edit the check refused is simply absent from it.
  */
-async function applyRawEdits(rawEdits) {
+export async function applyRawEdits(rawEdits) {
     const byFile = new Map();
     for (const edit of rawEdits) {
         if (!byFile.has(edit.internalId)) byFile.set(edit.internalId, []);
@@ -125,6 +138,7 @@ async function applyRawEdits(rawEdits) {
     }
 
     const records = [];
+    const written = [];
 
     for (const [internalId, fileEdits] of byFile) {
         const file = appState.myFiles.find(candidate => candidate.internalId === internalId);
@@ -225,15 +239,7 @@ async function applyRawEdits(rawEdits) {
         const snapshot = { filepath: file.filepath, filename: file.filename, content: original };
         if (!await saveFileCopy(snapshot, updated)) continue;
 
-        // Now rather than at the next idle moment: the user has just pressed a key to finish with
-        // this cell and is watching the table. Autosave's deferral is for a save nobody asked for.
-        //
-        // Not re-sorted: edit a cell in the column the table is sorted by and the row leaps away
-        // from under you.
-        //
-        // One refresh per file, which a batch across several files will have to change: it re-reads
-        // and re-renders per file, where a batch wants to re-read all of them and render once.
-        refreshFileNow(snapshot, false);
+        written.push(snapshot);
 
         for (const splice of splices) {
             records.push({
@@ -245,6 +251,14 @@ async function applyRawEdits(rawEdits) {
             });
         }
     }
+
+    // Now rather than at the next idle moment: the user has just pressed a key to finish with this
+    // cell and is watching the table. Autosave's deferral is for a save nobody asked for.
+    //
+    // Not re-sorted: edit a cell in the column the table is sorted by and the row leaps away from
+    // under you. Awaited, so that by the time this returns the rows the caller may want to mark
+    // are the ones on screen.
+    if (written.length > 0) await refreshFilesNow(written, false);
 
     return records;
 }

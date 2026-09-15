@@ -1,13 +1,31 @@
 import { appState } from '../../services/store.js';
 import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-render/render-layout-list.js';
 import { spinSaveArrow, SAVE_SPIN_MS } from '../save-spin.js';
+import { canReverse } from '../ui-functions-click/undo-cell-edit.js';
 
 /**
- * Renders the table's control row: the layout in use, and the three things you can do to it.
+ * Renders the table's control row: the layout in use, the three things you can do to it, and undo
+ * and redo at the far end.
  *
  * Reading left to right it says what the table is showing and then offers to change it — the name,
  * which opens a list of the layouts to switch between; the column picker; edit, which opens the
  * layouts modal; and save.
+ *
+ * **Undo and redo are pushed to the right**, past a spacer, because the four controls on the left
+ * are all about the layout and these two are not: undo does not save, load or change the columns,
+ * and sitting it next to the save glyph would read as though it undid the save. Their glyphs are the
+ * content modal's own undo and redo, reached from the shared sprite so that one drawing serves both
+ * places — see plans/table-undo-stack.md §10.1.
+ *
+ * **Both start disabled**, and become live only when the matching stack has something on it. The
+ * state is read from appState here and moved by hand by markUndoState below, the same arrangement
+ * the save button's `saved` class has and for the same reason: a cell edit re-renders the rows only,
+ * so a button waiting for the next full render would go live at some unrelated moment.
+ *
+ * **What an undo did is not said here.** It is said in #output-report, the line above the file list,
+ * which belongs to every view rather than to the table — see ui-functions-render/output-report.js.
+ * The row is a run of controls and that report is a sentence; inside the row it would jump the row's
+ * height as it appeared and wrap the buttons rather than itself at phone width.
  *
  * The name is a button in the app's understated fill rather than a bordered one: it is a place to
  * look before it is a thing to press, and it sits between a label and two icon buttons that would
@@ -46,7 +64,31 @@ export function renderTableControls() {
                     <svg viewBox="0 0 50 50"><use href="#icon-save"></use></svg>
                     <svg viewBox="0 0 50 50"><use href="#icon-save-done"></use></svg>
                 </button>
+                <div class="flexgrow"></div>
+                <button type="button" id="table-undo-btn" class="svg-wrapper-style" data-action="table-undo" data-tip="undo last cell edit | Ctrl+Z"${canReverse('undo') ? '' : ' disabled'}>
+                    <svg viewBox="0 0 45 48"><use href="#icon-undo"></use></svg>
+                </button>
+                <button type="button" id="table-redo-btn" class="svg-wrapper-style" data-action="table-redo" data-tip="redo cell edit | Ctrl+Shift+Z"${canReverse('redo') ? '' : ' disabled'}>
+                    <svg viewBox="0 0 45 48"><use href="#icon-redo"></use></svg>
+                </button>
             </div>`;
+}
+
+/**
+ * Lights the undo and redo buttons, or puts them out.
+ *
+ * Called after every push, pop and clear, and either side of a reversal — the write is asynchronous,
+ * so a button left live during it would take a second press against bytes the first has not written.
+ * A render that has not drawn the row yet simply finds nothing, which is the same no-op the layout
+ * helpers below rely on.
+ * @returns {void}
+ */
+export function markUndoState() {
+    const undo = document.getElementById('table-undo-btn');
+    const redo = document.getElementById('table-redo-btn');
+
+    if (undo) undo.disabled = !canReverse('undo');
+    if (redo) redo.disabled = !canReverse('redo');
 }
 
 /**

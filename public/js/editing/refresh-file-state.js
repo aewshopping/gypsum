@@ -20,7 +20,7 @@ let queuedRefresh = null;
  * rather than stacking up full re-renders, and the newer snapshot reads fresher disk state
  * anyway.
  *
- * **For a save the user is waiting on, call refreshFileNow instead.** The deferral is right for a
+ * **For a save the user is waiting on, call refreshFilesNow instead.** The deferral is right for a
  * save nobody asked for, and wrong for one somebody just pressed a key to finish: an idle callback
  * can wait up to its two-second timeout on a busy main thread, and the table would sit there
  * showing the old value for all of it.
@@ -33,97 +33,118 @@ export function refreshFileAfterSave(snapshot, resort = true) {
     if (queuedRefresh !== null) cancelIdleCallback(queuedRefresh);
     queuedRefresh = requestIdleCallback(() => {
         queuedRefresh = null;
-        applyRefresh(snapshot, resort);
+        refreshFilesNow([snapshot], resort);
     }, { timeout: 2000 });
 }
 
 /**
- * The same refresh, without the wait — for a save the user is standing over, like a cell edit.
- * @param {{ filepath: string, filename: string }} snapshot
- * @param {boolean} [resort=true] - Whether to put the file back in sort order afterwards.
+ * The same refresh without the wait, for a save the user is standing over — like a cell edit.
+ *
+ * **Takes a list, and renders once however long it is.** One snapshot at a time would be one sort,
+ * one filter pass and one view transition *per file* — twelve of each for a twelve-file undo,
+ * interrupting one another — so the re-read and the render are separate functions below and this is
+ * what puts them back together.
+ *
+ * **Awaited, and worth awaiting**: the rows the caller wants to mark do not exist until it returns.
+ * That is what lets an undo flash the cells it changed — see plans/table-undo-stack.md §10.2.
+ *
+ * @param {Array<{ filepath: string, filename: string }>} snapshots - One per file written.
+ * @param {boolean} [resort=true] - Whether to put the files back in sort order afterwards.
  * @returns {Promise<void>}
  */
-export function refreshFileNow(snapshot, resort = true) {
-    return applyRefresh(snapshot, resort);
+export async function refreshFilesNow(snapshots, resort = true) {
+    try {
+        let fullRender = false;
+        for (const snapshot of snapshots) {
+            // Or-assigned rather than assigned: one file gaining a key is a new column, and the
+            // render that draws it has to be a full one however many files were quiet.
+            fullRender = await rereadFile(snapshot) || fullRender;
+        }
+        await renderRefreshed(fullRender, resort);
+    } catch (err) {
+        console.error('Failed to refresh file state after save:', err);
+    }
 }
 
 /**
- * Re-parses the saved file from disk, updates appState, and re-renders
- * the tag taxonomy and file list.
+ * Re-parses one saved file from disk and updates appState. Renders nothing.
+ *
+ * @param {{ filepath: string, filename: string }} snapshot
+ * @returns {Promise<boolean>} Whether the file gained a property, so the next render must be full.
+ */
+async function rereadFile(snapshot) {
+    const fileIndex = appState.myFiles.findIndex(f => f.filepath === snapshot.filepath);
+    if (fileIndex === -1) return false;
+
+    const existingFile = appState.myFiles[fileIndex];
+
+    // Re-parsing registers any front matter key the file has gained, which is a new column. The
+    // rows can be replaced on their own only while the columns are the ones already drawn, so
+    // the count is taken either side of the re-parse. A cell edit can never add one — a column
+    // exists because the property is registered — but a note edited in the modal can.
+    const propertyCount = appState.myFilesProperties.size;
+
+    const freshFile = await getFileDataAndMetadata(existingFile.handle, 0);
+    const gainedProperty = appState.myFilesProperties.size !== propertyCount;
+
+    const tagsHaveChanged = !tagsEqual(existingFile.tags, freshFile.tags);
+    const colorHasChanged = existingFile.color !== freshFile.color;
+
+    appState.myFiles[fileIndex] = {
+        ...freshFile,
+        handle: existingFile.handle,
+        internalId: existingFile.internalId,
+        filepath: existingFile.filepath,
+    };
+
+    // getFileDataAndMetadata only rewrote the parse-time errors; re-run the rest against
+    // the new content, so fixing one of two broken links leaves the other one reported.
+    checkFileErrors(appState.myFiles[fileIndex]);
+
+    if (colorHasChanged && appState.openFileSnapshot?.filepath === snapshot.filepath) {
+        const newColor = freshFile.color ?? '';
+        document.getElementById('file-content-header').dataset.color = newColor;
+        document.getElementById('file-content-footer').dataset.color = newColor;
+        document.getElementById('modal-content').dataset.color = newColor;
+    }
+
+    if (tagsHaveChanged) {
+        appState.myParentMap = buildParentMap(appState.myFiles);
+        invalidateTagCache();
+        invalidateNoteNameIndex();
+        if (appState.tagTaxonomyVisible) renderTagTaxonomy();
+    }
+
+    return gainedProperty;
+}
+
+/**
+ * Re-sorts if asked, re-runs the filters, and renders the file list once.
+ *
  * The current page is kept, whether the render happens here or inside processSeachResults: the
  * file list sits behind the open modal, and a save must not silently jump it back to page 1 while
  * the user is typing — nor an edit made on page 3 of a filtered table.
  *
- * The table's rows are replaced on their own unless the file has gained a front matter key, which
- * is a column the header does not have yet. Everything else a save can change is in the rows.
- * A cell edit passes resort false: the row would otherwise leap away from under the pointer when
- * the column being edited is the one the table is sorted by.
- * @param {{ filepath: string, filename: string }} snapshot
- * @param {boolean} [resort=true] - Whether to put the file back in sort order.
+ * @param {boolean} fullRender - Whether the header has to be rebuilt as well as the rows.
+ * @param {boolean} resort - Whether to put the files back in sort order first.
  * @returns {Promise<void>}
  */
-async function applyRefresh(snapshot, resort = true) {
-    try {
-        const fileIndex = appState.myFiles.findIndex(f => f.filepath === snapshot.filepath);
-        if (fileIndex === -1) return;
+async function renderRefreshed(fullRender, resort) {
+    if (resort) {
+        const { property, direction } = appState.sortState;
+        sortAppStateFiles(property, propertyType(property), direction);
+    }
 
-        const existingFile = appState.myFiles[fileIndex];
-
-        // Re-parsing registers any front matter key the file has gained, which is a new column. The
-        // rows can be replaced on their own only while the columns are the ones already drawn, so
-        // the count is taken either side of the re-parse. A cell edit can never add one — a column
-        // exists because the property is registered — but a note edited in the modal can.
-        const propertyCount = appState.myFilesProperties.size;
-
-        const freshFile = await getFileDataAndMetadata(existingFile.handle, 0);
-        const fullRender = appState.myFilesProperties.size !== propertyCount;
-
-        const tagsHaveChanged = !tagsEqual(existingFile.tags, freshFile.tags);
-        const colorHasChanged = existingFile.color !== freshFile.color;
-
-        appState.myFiles[fileIndex] = {
-            ...freshFile,
-            handle: existingFile.handle,
-            internalId: existingFile.internalId,
-            filepath: existingFile.filepath,
-        };
-
-        // getFileDataAndMetadata only rewrote the parse-time errors; re-run the rest against
-        // the new content, so fixing one of two broken links leaves the other one reported.
-        checkFileErrors(appState.myFiles[fileIndex]);
-
-        if (colorHasChanged && appState.openFileSnapshot?.filepath === snapshot.filepath) {
-            const newColor = freshFile.color ?? '';
-            document.getElementById('file-content-header').dataset.color = newColor;
-            document.getElementById('file-content-footer').dataset.color = newColor;
-            document.getElementById('modal-content').dataset.color = newColor;
-        }
-
-        if (tagsHaveChanged) {
-            appState.myParentMap = buildParentMap(appState.myFiles);
-            invalidateTagCache();
-            invalidateNoteNameIndex();
-            if (appState.tagTaxonomyVisible) renderTagTaxonomy();
-        }
-
-        if (resort) {
-            const { property, direction } = appState.sortState;
-            sortAppStateFiles(property, propertyType(property), direction);
-        }
-
-        // One render either way. The filters are re-run first and processSeachResults does the
-        // rendering, because it renders anyway — rendering before it meant two full renders and,
-        // where a view transition ran, two of those interrupting each other.
-        if (appState.search.filters.size > 0) {
-            const filterIds = [...appState.search.filters.keys()];
-            filterIds.forEach(id => appState.search.results.delete(id));
-            await Promise.all(filterIds.map(id => searchFiles(id)));
-            processSeachResults(fullRender, true);
-        } else {
-            renderFiles(fullRender, true);
-        }
-    } catch (err) {
-        console.error('Failed to refresh file state after save:', err);
+    // One render either way. The filters are re-run first and processSeachResults does the
+    // rendering, because it renders anyway — rendering before it meant two full renders and,
+    // where a view transition ran, two of those interrupting each other.
+    if (appState.search.filters.size > 0) {
+        const filterIds = [...appState.search.filters.keys()];
+        filterIds.forEach(id => appState.search.results.delete(id));
+        await Promise.all(filterIds.map(id => searchFiles(id)));
+        processSeachResults(fullRender, true);
+    } else {
+        renderFiles(fullRender, true);
     }
 }
 
