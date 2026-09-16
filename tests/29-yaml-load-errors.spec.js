@@ -40,7 +40,7 @@ test('no nudge appears when every file reads cleanly', async ({ page }) => {
   await page.goto('/');
   await loadFolder(page);
 
-  await expect(page.locator('#fileCountElement')).toContainText('files: 3');
+  await expect(page.locator('#fileCountElement')).toContainText('files loaded: 3');
   await expect(page.locator('#fileCountElement .load-error-nudge')).toHaveCount(0);
 });
 

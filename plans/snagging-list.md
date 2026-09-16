@@ -21,5 +21,8 @@ work than the snag implies.
 - [ ] **Redo tooltip should offer Ctrl + Y**, and the table's undo/redo shortcuts should be
   listed in the settings modal.
 - [ ] **Row hover and column hover should use one colour**, and a more subtle one.
-- [ ] **`files: XXX | ${source}` should read `files loaded: XXX | ${source}`**, to tell it apart
+- [x] **`files: XXX | ${source}` should read `files loaded: XXX | ${source}`**, to tell it apart
   from the "files filtered" report lower down.
+  Both finished-load messages in `ui/load-progress-finish.js` now say "files loaded" — the
+  one carrying the duration as well as the one carrying the source, so the line does not
+  rename itself three seconds in. The progress counter during the load is untouched.

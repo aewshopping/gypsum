@@ -65,11 +65,11 @@ export function finishLoadProgress(el, fileCount, durationText, sourceLabel,
 
     setTimeout(() => {
         el.classList.remove('load-fading');
-        el.innerHTML = `files: ${fileCount} | ${durationText}s${problems}`;
+        el.innerHTML = `files loaded: ${fileCount} | ${durationText}s${problems}`;
         setTimeout(() => {
             // problems sit inside the span, not after it: the separators they carry would
             // otherwise inherit the element's full-contrast colour and break up the faded line.
-            el.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${sourceLabel}${problems}</span>`;
+            el.innerHTML = `<span class="load-finished-msg">files loaded: ${fileCount} | ${sourceLabel}${problems}</span>`;
         }, 3000);
     }, fadeMs);
 }
