@@ -275,7 +275,7 @@ test('clicking another cell writes the one being left', async ({ page }) => {
 
 // ---------------------------------------------------------------- the row stays put
 
-test('the edited row does not leap away when its column is the sorted one', async ({ page }) => {
+test('the edited row goes to its new place, and the cell stays the selected one', async ({ page }) => {
   await openTable(page);
 
   // Sorted by status ascending, through the controls above the table: the column's own header is
@@ -294,11 +294,24 @@ test('the edited row does not leap away when its column is the sorted one', asyn
     .map(row => row.querySelector('[data-prop="title"]').textContent));
   await expect.poll(titles).toEqual(['Alpha', 'Beta', 'Gamma']);
 
-  // 'zzz' sorts after 'live', so a re-sort would put Alpha second
-  await retype(page, cellFor(page, 'Alpha', 'status'), 'zzz');
-  await expect(cellFor(page, 'Alpha', 'status')).toHaveText('zzz');
+  // 'zzz' sorts after 'live', and Gamma has no status at all so it stays at the end whichever way
+  // the column runs. A write moves the file's last modified time as well, which is what the table
+  // sorts by until someone says otherwise — an order that stayed put was telling the user the file
+  // had not been touched.
+  await open(cellFor(page, 'Alpha', 'status'));
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('zzz');
+  await page.keyboard.press('Enter');
 
-  expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma']);
+  await expect.poll(titles).toEqual(['Beta', 'Alpha', 'Gamma']);
+
+  // Nothing marks the move, and nothing has to: Enter leaves the cell selected and focused, and the
+  // renderer carries that across the re-sort — so the cell you were in is still the marked one
+  // wherever its row has gone.
+  await expect(cellFor(page, 'Alpha', 'status')).toHaveText('zzz');
+  await expect(cellFor(page, 'Alpha', 'status')).toHaveClass(/is-selected/);
+  await expect(cellFor(page, 'Alpha', 'status')).toBeFocused();
 });
 
 // ---------------------------------------------------------------- number and date

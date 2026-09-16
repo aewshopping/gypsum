@@ -96,6 +96,10 @@ const sortBy = (page, property) => page.evaluate((property) => {
 
 test('editing a cell draws the same rows, so no view transition runs', async ({ page }) => {
   await openTable(page);
+  // Sorted by status, not by the app's default: every write moves the file's last modified time,
+  // so under that sort an edit does move a row and should animate. The claim here is about a render
+  // that changes nothing — so the table is sorted by a column this edit leaves alone.
+  await sortBy(page, 'status');
   await countTransitions(page);
 
   const cell = cellFor(page, 'Note 0', 'note');
@@ -134,6 +138,9 @@ async function countRenders(page) {
 
 test('an edit with a filter active renders once and stays on the page', async ({ page }) => {
   await openTable(page);
+  // As above: sorted by a column the edit does not touch, so the rows this measures are the same
+  // rows in the same order and the count is about the render, not about a re-sort.
+  await sortBy(page, 'status');
   await page.evaluate(async () => {
     const { setPaginationSize } = await import('/public/js/constants.js');
     setPaginationSize(2);

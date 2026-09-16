@@ -27,9 +27,15 @@ import { reportFileCount } from "./output-report.js";
  * If the array order may have changed (e.g. a file was added or its sort-relevant
  * metadata was updated), call sortAppStateFiles() from services/file-object-sort.js
  * using appState.sortState before calling this function.
+ * **Returns when the rows are drawn, not when the animation is over.** A view transition runs the
+ * update a frame later, so anything that means to touch the rows this draws — an undo's mark on the
+ * cells it changed, an edit's — has to wait for `updateCallbackDone` or it puts a class on elements
+ * that are about to be thrown away. Without a transition the same promise is already resolved, so a
+ * caller needs no branch.
+ *
  * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render.
  * @param {boolean} [keepPage=false] - When true, stays on the current page instead of resetting to page 1.
- * @returns {void}
+ * @returns {{updateCallbackDone: Promise<void>}} Resolved once the rows on screen are the new ones.
  */
 export function renderFiles(fullRender = true, keepPage = false) {
 
@@ -172,9 +178,10 @@ export function renderFiles(fullRender = true, keepPage = false) {
             );
             reparkColumnResizer();
         });
-    } else {
-        doRender();
-        reparkColumnResizer();
+        return transition;
     }
 
+    doRender();
+    reparkColumnResizer();
+    return { updateCallbackDone: Promise.resolve() };
 }

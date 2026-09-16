@@ -51,6 +51,22 @@ work than the snag implies.
   `9/16/2026`. The info date now carries hours and minutes beside the date, and
   `tests/53-cell-edit-modified-time.spec.js` holds both halves — that an edit moves the file
   on, and that the same-day case shows.
+  **The order was the other half, and it was not the comparator.** `compareByProperty` sorts a
+  date by `getTime()`, so it has the time of day in it already. What kept the row where it was
+  is that the cell-edit refresh asked not to re-sort — added so a row would not leap away when
+  you edit the column the table is sorted by. But every write moves `lastModified`, which is
+  what the table sorts by until someone says otherwise, so under the default sort no edit ever
+  reordered anything: measured at three notes, the edited one's timestamp became the newest and
+  it stayed at the bottom, and a later filter did not put it right either, because a sort is
+  applied once and the array keeps that order.
+  Now re-sorted, at your call. Nothing marks the move and nothing has to: selection follows
+  focus, and `keep-cell-state.js` carries focus across the render by the row's id and the
+  column, so the cell you were in is still the selected one wherever its row has gone —
+  checked by test rather than assumed.
+  One thing the re-sort exposed: a view transition runs the update a frame later, so an undo's
+  mark on the cells it changed was landing on rows that were about to be replaced. `renderFiles`
+  now hands back its `updateCallbackDone` and the refresh waits for it, which is what makes any
+  mark on what was just drawn land on the elements that are actually on screen.
 - [x] **Table controls element looks squashed.** Needs a little margin above and below.
   `margin-block: 8px` on `.table-controls` in `css/note-table.css`, beside the padding it
   already had — so the row is no longer pressed between the filtered-files count and the

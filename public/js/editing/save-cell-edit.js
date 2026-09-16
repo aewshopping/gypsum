@@ -255,10 +255,16 @@ export async function applyRawEdits(rawEdits) {
     // Now rather than at the next idle moment: the user has just pressed a key to finish with this
     // cell and is watching the table. Autosave's deferral is for a save nobody asked for.
     //
-    // Not re-sorted: edit a cell in the column the table is sorted by and the row leaps away from
-    // under you. Awaited, so that by the time this returns the rows the caller may want to mark
-    // are the ones on screen.
-    if (written.length > 0) await refreshFilesNow(written, false);
+    // **And re-sorted.** Every write moves the file's last modified time, which is what the table
+    // is sorted by until someone says otherwise — so a list that kept its old order was saying the
+    // file had not been touched. It costs the thing this argument was added to avoid: the row can
+    // leave the place you were looking at. Nothing else is needed to find it again — selection
+    // follows focus, and keep-cell-state.js carries focus across the render by the row's id and the
+    // column, so the cell you were in is still the marked one wherever the row has gone.
+    //
+    // Awaited, so that by the time this returns the rows the caller may want to mark are the ones
+    // on screen.
+    if (written.length > 0) await refreshFilesNow(written, true);
 
     return records;
 }

@@ -125,6 +125,10 @@ async function rereadFile(snapshot) {
  * file list sits behind the open modal, and a save must not silently jump it back to page 1 while
  * the user is typing — nor an edit made on page 3 of a filtered table.
  *
+ * **Waits for the rows to be on screen**, which is not the same as waiting for the render call: a
+ * view transition draws them a frame later. A caller that marks what it changed — an undo, an edit —
+ * would otherwise mark elements about to be replaced. See renderFiles.
+ *
  * @param {boolean} fullRender - Whether the header has to be rebuilt as well as the rows.
  * @param {boolean} resort - Whether to put the files back in sort order first.
  * @returns {Promise<void>}
@@ -138,14 +142,17 @@ async function renderRefreshed(fullRender, resort) {
     // One render either way. The filters are re-run first and processSeachResults does the
     // rendering, because it renders anyway — rendering before it meant two full renders and,
     // where a view transition ran, two of those interrupting each other.
+    let drawn;
     if (appState.search.filters.size > 0) {
         const filterIds = [...appState.search.filters.keys()];
         filterIds.forEach(id => appState.search.results.delete(id));
         await Promise.all(filterIds.map(id => searchFiles(id)));
-        processSeachResults(fullRender, true);
+        drawn = processSeachResults(fullRender, true);
     } else {
-        renderFiles(fullRender, true);
+        drawn = renderFiles(fullRender, true);
     }
+
+    await drawn.updateCallbackDone;
 }
 
 /**
