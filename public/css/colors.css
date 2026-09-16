@@ -18,7 +18,7 @@
     --colour-compl-alt-emph-contr: black; /* tag select text */
 }    
 
-:root:has(input[type="radio"]#calm:checked) {
+:root:has(input[type="radio"]#glow:checked) {
     --colour-neutral: DarkSlateGray; /* bg */
     --colour-neutral-alt: #0b6f6f; /* card bg */
     --colour-contr: aquamarine; /* text */
@@ -38,7 +38,7 @@
     --colour-compl-alt-emph-contr: DarkSlateGray; /* tag select text */
 }
 
-:root:has(input[type="radio"]#snow:checked) {
+:root:has(input[type="radio"]#calm:checked) {
     --colour-neutral: ivory; /* bg */ /*WhiteSmoke #F6FFFC #80AAFF*/
     --colour-neutral-alt: #fae6c5; /* card bg */ /* white / lightgoldenrodyellow */
     --colour-contr: DarkSlateGray; /* text */

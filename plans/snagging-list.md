@@ -31,10 +31,11 @@ work than the snag implies.
   The suggested `2px 2px 2px 2px color-mix(in srgb, var(--colour-contr) 10%, transparent)` on
   `::picker(select)` in `css/select.css`, checked open against the view select: the list has no
   border, so the shadow is the only thing saying it is in front of the page.
-- [x] **Rename the "glow" colour scheme to "calm".**
+- [x] **Rename the "snow" colour scheme to "calm".**
   The radio's id, its label and its tooltip in `index.html`, and the selector in
   `css/colors.css` that reads that id. Nothing stores the choice, so there is nothing to
-  migrate.
+  migrate. Renamed "glow" first, which was the wrong one of the two — that is reverted and
+  "glow" keeps its name.
 - [ ] **Side panel open/close should use a view transition** rather than a width transition, so
   the main body is not laid out again on every frame. Off when "animate view changes" is off.
   **Tried and reverted, at your call: it looked worse than the width transition it replaced.**
