@@ -137,6 +137,12 @@ export function renderCellValue(prop, file, mismatch) {
  * object with no note text behind it, printing raw as "Sun Mar 01 2026 00:00:00 GMT+0000 (…)", and
  * its cell takes no caret for anyone to edit.
  *
+ * **And it carries the time of day**, because the column's job is to say which note was touched
+ * last. A cell edit does bump the file's modified time — the write goes through the same verified
+ * save as any other, and the refresh re-reads it off disk — but the date alone cannot show it: a
+ * note edited twice in one afternoon read 9/16/2026 before and after, which looks exactly like a
+ * write that never happened. Hours and minutes only; the seconds would be noise in a column.
+ *
  * @param {string} name - The file property key.
  * @param {*} value
  * @returns {string}
@@ -146,7 +152,9 @@ function renderDate(name, value) {
 
     if (isInfoColumn(name)) {
         const asDate = new Date(value);
-        return escapeHtml(isNaN(asDate) ? String(value) : asDate.toLocaleDateString());
+        if (isNaN(asDate)) return escapeHtml(String(value));
+        const time = asDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return escapeHtml(`${asDate.toLocaleDateString()} ${time}`);
     }
 
     return escapeHtml(String(value));

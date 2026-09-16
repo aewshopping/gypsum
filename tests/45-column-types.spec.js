@@ -477,9 +477,9 @@ test('an info column keeps the type underneath, and still renders and sorts by i
   });
   expect(resolved).toEqual({ modified: 'date', size: 'number' });
 
-  // a date, not a raw Date object printed out
+  // a date and a time of day, not a raw Date object printed out
   await expect(rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="lastModified"]'))
-    .toHaveText(/^\d+\/\d+\/\d+$/);
+    .toHaveText(/^\d+\/\d+\/\d+ \d+:\d+(\s?[AP]M)?$/);
 
   // and both are still offered in the sort dropdown
   await expect(page.locator('[data-action="sort-select"] option[value="sizeInBytes"]')).toHaveCount(1);

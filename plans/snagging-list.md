@@ -4,8 +4,18 @@ Small fixes and tidy-ups, one commit per bullet. A checked box means it is done 
 note underneath says how; an unchecked box with a note means it needs a decision or more
 work than the snag implies.
 
-- [ ] **Cell edit does not update the file's last modified date.** Editing a property from a
+- [x] **Cell edit does not update the file's last modified date.** Editing a property from a
   table cell should bump `lastModified` the way saving a note does.
+  It always did — the column could not show it. A cell edit writes through `saveFileCopy`, the
+  same verified write a note save uses, and `refreshFilesNow` re-reads the file off disk, so
+  the new modified time is in `appState` straight away. But the cell rendered
+  `toLocaleDateString()`, so a note edited twice in one day read `9/16/2026` before and after —
+  which is the "does not always occur": a note last touched on an earlier day did visibly move.
+  Measured with a mock that keeps an mtime per file and bumps it on write, rather than the
+  `Date.now()` every other mock reports: before the edit the cell read `1/2/2020`, after it
+  `9/16/2026`. The info date now carries hours and minutes beside the date, and
+  `tests/53-cell-edit-modified-time.spec.js` holds both halves — that an edit moves the file
+  on, and that the same-day case shows.
 - [x] **Table controls element looks squashed.** Needs a little margin above and below.
   `margin-block: 8px` on `.table-controls` in `css/note-table.css`, beside the padding it
   already had — so the row is no longer pressed between the filtered-files count and the
