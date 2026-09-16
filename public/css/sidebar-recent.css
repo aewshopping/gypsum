@@ -6,13 +6,8 @@
    reads — see sidebar-push.css — and it is registered as a <length> so those consumers get a
    resolved length rather than a calc.
 
-   Both are registered and inherited, so setting the one number on :root re-resolves every offset
-   derived from it, in lockstep.
-
-   It is set, not animated. A transition on --sidebar-width laid the whole page out again on every
-   frame of the slide, because the body's padding is one of the things derived from it. The panel
-   opens and closes inside a view transition instead — see sidebar-push.css — which lays the page
-   out once and animates pictures of it. */
+   Both are registered and inherited, so animating the one number on :root re-resolves every offset
+   derived from it, in lockstep, from a single transition declaration. */
 
 @property --sidebar-progress {
     syntax: '<number>';
@@ -29,6 +24,7 @@
 :root {
     --sidebar-size: min(240px, 40vw);
     --sidebar-width: calc(var(--sidebar-size) * var(--sidebar-progress));
+    transition: --sidebar-progress 250ms ease;
 }
 
 /* The panel is open when a button has said so, or when focus is inside it. The focus half is what
@@ -113,10 +109,10 @@
     gap: 4px;   
 
     /* Closed, the panel sits off-screen, where these buttons would still be reachable by tab —
-       unlike the folder button above, which is meant to be. It can be hidden the moment the panel
-       shuts: the view transition animates the picture taken before that, so nothing is seen to
-       vanish early. */
+       unlike the folder button above, which is meant to be. The transition holds the hide back
+       until the slide-out has finished. */
     visibility: if(style(--sidebar-open: true): visible; else: hidden);
+    transition: visibility 250ms;
 }
 
 .sidebar-recent-item {

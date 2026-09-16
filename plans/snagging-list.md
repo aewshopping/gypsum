@@ -58,26 +58,17 @@ work than the snag implies.
   The radio's id, its label and its tooltip in `index.html`, and the selector in
   `css/colors.css` that reads that id. Nothing stores the choice, so there is nothing to
   migrate.
-- [x] **Side panel open/close should use a view transition** rather than a width transition, so
+- [ ] **Side panel open/close should use a view transition** rather than a width transition, so
   the main body is not laid out again on every frame. Off when "animate view changes" is off.
-  `--sidebar-progress` now flips rather than transitioning, and both handlers in
-  `recent-panel-toggle.js` go through `withViewTransition`, which is what makes the settings
-  toggle cover it. `sidebar-push.css` names the page's top row, `main`, the panel and the open
-  note's dialog while the class `sidebar-animating` is on — added before the capture and removed
-  when the transition finishes, the same way `file-list-transitioning` works. The dialog needs
-  naming because it is in the top layer and so is not part of the page's snapshot; without it
-  an open note jumped its 240px in one frame while the page behind it slid.
-  Two things found by watching frames rather than by reasoning:
-  - Letting both snapshots cross-fade drew the old page and the new one over each other at
-    slightly different sizes, which reads as doubled text. The old snapshot of the moving groups
-    is hidden, so what is seen is the page as it will be, stretched into the shape it is leaving.
-  - The close button's focus move had to stay **outside** the transition's update. Inside, it ran
-    a frame later and took focus back off whatever had been focused in between — which made
-    `tests/51-card-keyboard-focus.spec.js` fail about half the time, since `loadFolder()` closes
-    the panel and the test focuses a card straight after.
-  One thing deliberately not animated: tabbing into the panel opens it through
-  `:has(:focus-within)`, with no DOM change for a transition to wrap, so that path now snaps open
-  rather than sliding.
+  **Tried and reverted, at your call: it looked worse than the width transition it replaced.**
+  The mechanism worked — the state flipped inside `withViewTransition`, so the page was laid out
+  once and the settings toggle covered it — but what it looks like is the point, and it did not
+  hold up in use. Reverted in full: `--sidebar-progress` transitions again, the handlers are back
+  to toggling the class, and the group names and the test that watched for the transition class
+  are gone with them. Worth knowing if it is picked up again: the open note's dialog is in the
+  top layer and so is not in the page's snapshot, and the close button's focus move has to stay
+  outside the transition's update or it lands a frame late and takes focus back.
+
 - [x] **Side panel file buttons should say `open file | ${title}`** rather than just `open file`.
   `render-sidebar-recent.js` now names the label in the tooltip as well as on the button —
   the panel is narrow, so a long title is cut off on the button itself. The label goes through

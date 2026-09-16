@@ -2,7 +2,8 @@
 
    Opening the panel pushes the whole page right — including the file modal and the dimmed
    backdrop behind it. Every offset here is derived from --sidebar-width (declared in
-   sidebar-recent.css), so they all move together, and all of them arrive at once.
+   sidebar-recent.css), so they all move together, and all of them animate from that variable's
+   single transition.
 
    Anything in normal flow is handled by the body padding. Anything in the top layer escapes the
    body box and has to be offset in its own right, which is what the rest of this file does. */
@@ -63,60 +64,4 @@ dialog::backdrop {
     :root {
         --sidebar-width: 0px !important;
     }
-}
-
-/* The slide itself, which is a view transition rather than a transition on --sidebar-width.
-
-   Animating the variable meant the body's padding changed on every frame, so the whole page was
-   laid out sixty times a second for a quarter of a second — on a long file list that is the
-   slowest thing the app does. A view transition lays the page out once, at its new width, and
-   animates a picture of the old one into the shape of the new. The page shrinking and the panel
-   arriving are then the same two groups sliding, which is what it looked like before.
-
-   **Named only while the panel is moving.** A view-transition-name left on for good would join
-   every other transition in the app — every file list re-render, every note opened — and give the
-   page's two halves groups of their own inside animations that never move them. The class is put
-   on before the capture and taken off when the transition has finished, the same way
-   file-list-transitioning works in view-transitions-file-list.css.
-
-   Nothing here says how long it takes: the browser's own 250ms was what the old transition was set
-   to, and "animate view changes" off zeroes it through view-transitions-off.css like any other. */
-:root.sidebar-animating {
-    & .page-top-row {
-        view-transition-name: sidebar-push-top;
-    }
-
-    & main {
-        view-transition-name: sidebar-push-main;
-    }
-
-    /* The panel is captured where it is, which closed is off the left edge — so the group slides in
-       from there rather than fading in on the spot. */
-    & #sidebar-recent {
-        view-transition-name: sidebar-panel;
-    }
-
-    /* An open note is a dialog in the top layer, so it is not part of the page's snapshot and would
-       otherwise jump its 240px in one frame while the page behind it slid. */
-    & #file-content-modal {
-        view-transition-name: sidebar-push-modal;
-    }
-}
-
-/* Only the new page is drawn while the two groups move. Both snapshots visible means the old page
-   and the new one are laid over each other at slightly different sizes for the length of the
-   animation, which reads as doubled text rather than as a page changing width. Showing the page as
-   it will be, stretched into the shape it is leaving, is the squeeze the panel used to make. */
-::view-transition-old(sidebar-push-main),
-::view-transition-old(sidebar-push-top),
-::view-transition-old(sidebar-push-modal) {
-    animation: none;
-    opacity: 0;
-}
-
-::view-transition-new(sidebar-push-main),
-::view-transition-new(sidebar-push-top),
-::view-transition-new(sidebar-push-modal) {
-    animation: none;
-    opacity: 1;
 }

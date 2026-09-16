@@ -115,34 +115,4 @@ test.describe('recent files panel', () => {
     await expect(page.locator('.sidebar-recent-empty')).toHaveCount(1);
   });
 
-  // The panel slides through a view transition rather than through a transition on its width, so
-  // the page is laid out once instead of on every frame. What can be checked from out here is that
-  // the class naming the transition's groups is cleaned up after it, since a name left behind would
-  // join every other transition in the app.
-  test('the slide leaves no transition class behind, animated or not', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-
-    const rootClasses = () => page.evaluate(() => [...document.documentElement.classList]);
-
-    await openPanel(page);
-    await expect.poll(rootClasses).toContain('sidebar-recent-open');
-    await expect.poll(rootClasses).not.toContain('sidebar-animating');
-
-    await page.click('#btn-recent-close');
-    await expect.poll(rootClasses).not.toContain('sidebar-recent-open');
-    await expect.poll(rootClasses).not.toContain('sidebar-animating');
-
-    // And with animation off, where no transition is started at all.
-    await page.keyboard.press('?');
-    await page.locator('#view-transitions-enabled').uncheck();
-    await page.keyboard.press('Escape');
-    await expect(page.locator('#modal-settings')).toBeHidden();
-
-    await page.keyboard.press('Alt+b');
-    await expect.poll(rootClasses).toContain('sidebar-recent-open');
-    await expect.poll(rootClasses).not.toContain('sidebar-animating');
-    await expect(page.locator('#sidebar-recent')).toHaveJSProperty('offsetLeft', 0);
-  });
-
 });
