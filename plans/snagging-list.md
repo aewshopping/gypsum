@@ -13,8 +13,11 @@ work than the snag implies.
 - [ ] **Select inputs resize a moment after opening.** The picker opens at one width and snaps
   to the width of its widest option ~500ms later. Seen on the view select and the file-content
   history select; the settings font selects do not do it.
-- [ ] **`::picker(select)` needs a subtle box shadow** so the open list reads as floating above
+- [x] **`::picker(select)` needs a subtle box shadow** so the open list reads as floating above
   the page.
+  The suggested `2px 2px 2px 2px color-mix(in srgb, var(--colour-contr) 10%, transparent)` on
+  `::picker(select)` in `css/select.css`, checked open against the view select: the list has no
+  border, so the shadow is the only thing saying it is in front of the page.
 - [x] **Rename the "glow" colour scheme to "calm".**
   The radio's id, its label and its tooltip in `index.html`, and the selector in
   `css/colors.css` that reads that id. Nothing stores the choice, so there is nothing to
