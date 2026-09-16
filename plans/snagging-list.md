@@ -23,8 +23,11 @@ work than the snag implies.
   "highlight column".
   `HEADER_TIP_IDLE` in `ui-functions-click/column-menu.js`. The selected tooltip still says
   "column options", since by then one click opens the menu.
-- [ ] **Redo tooltip should offer Ctrl + Y**, and the table's undo/redo shortcuts should be
+- [x] **Redo tooltip should offer Ctrl + Y**, and the table's undo/redo shortcuts should be
   listed in the settings modal.
+  The redo button's tooltip now reads "redo cell edit | Ctrl+Y" — the key was already bound,
+  only the tooltip named the less familiar one. A "Table view" group in the settings modal's
+  shortcut list carries undo, redo and the Ctrl+Shift+Z spelling of redo.
 - [ ] **Row hover and column hover should use one colour**, and a more subtle one.
 - [x] **`files: XXX | ${source}` should read `files loaded: XXX | ${source}`**, to tell it apart
   from the "files filtered" report lower down.
