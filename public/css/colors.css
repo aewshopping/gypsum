@@ -18,7 +18,7 @@
     --colour-compl-alt-emph-contr: black; /* tag select text */
 }    
 
-:root:has(input[type="radio"]#glow:checked) {
+:root:has(input[type="radio"]#calm:checked) {
     --colour-neutral: DarkSlateGray; /* bg */
     --colour-neutral-alt: #0b6f6f; /* card bg */
     --colour-contr: aquamarine; /* text */

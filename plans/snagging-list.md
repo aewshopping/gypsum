@@ -12,7 +12,10 @@ work than the snag implies.
   history select; the settings font selects do not do it.
 - [ ] **`::picker(select)` needs a subtle box shadow** so the open list reads as floating above
   the page.
-- [ ] **Rename the "glow" colour scheme to "calm".**
+- [x] **Rename the "glow" colour scheme to "calm".**
+  The radio's id, its label and its tooltip in `index.html`, and the selector in
+  `css/colors.css` that reads that id. Nothing stores the choice, so there is nothing to
+  migrate.
 - [ ] **Side panel open/close should use a view transition** rather than a width transition, so
   the main body is not laid out again on every frame. Off when "animate view changes" is off.
 - [ ] **Side panel file buttons should say `open file | ${title}`** rather than just `open file`.
