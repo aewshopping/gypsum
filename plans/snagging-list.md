@@ -21,7 +21,11 @@ work than the snag implies.
   migrate.
 - [ ] **Side panel open/close should use a view transition** rather than a width transition, so
   the main body is not laid out again on every frame. Off when "animate view changes" is off.
-- [ ] **Side panel file buttons should say `open file | ${title}`** rather than just `open file`.
+- [x] **Side panel file buttons should say `open file | ${title}`** rather than just `open file`.
+  `render-sidebar-recent.js` now names the label in the tooltip as well as on the button —
+  the panel is narrow, so a long title is cut off on the button itself. The label goes through
+  `escapeHtml` on its way into both, since it now sits in an attribute too. The main file list
+  is unchanged: the title is in plain view beside its link there.
 - [x] **Table header hover tooltip** should say "double click for column options" rather than
   "highlight column".
   `HEADER_TIP_IDLE` in `ui-functions-click/column-menu.js`. The selected tooltip still says
