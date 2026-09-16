@@ -83,68 +83,6 @@ test.describe('tag autocomplete — editor', () => {
     expect(await occurrences()).toBe(before + 2);
   });
 
-  test('a long space-free line does not break the backward walk', async ({ page }) => {
-    // A base64-encoded image produces one massive line with no spaces. The backward walk
-    // is capped, so a '#' on the NEXT line must still trigger, while one typed at the end
-    // of the long line itself — with no word boundary in the lookback — must not.
-    const longLine = 'A'.repeat(5000);
-    await page.addInitScript((line) => {
-      window.showDirectoryPicker = async () => ({
-        kind: 'directory', name: 'root',
-        values: async function* () {
-          yield {
-            kind: 'file', name: 'base64-test.md',
-            getFile: async () => ({
-              name: 'base64-test.md',
-              size: line.length + 10,
-              lastModified: Date.now(),
-              text: async () => `${line}\nsome text #personal`,
-            }),
-          };
-        },
-      });
-    }, longLine);
-    await page.goto('/');
-    await loadFolder(page);
-    await page.locator('.note-grid').first().click();
-    await page.evaluate(() => {
-      const t = document.getElementById('render_toggle');
-      if (!t.checked) t.click();
-    });
-    await expect(page.locator('#modal-content-text pre')).toBeVisible();
-
-    // Place caret after the <br> that follows the long line (start of "some text...")
-    await page.evaluate(() => {
-      const pre = document.querySelector('#modal-content-text pre');
-      const br = pre.querySelector('br');
-      const range = document.createRange();
-      range.setStartAfter(br);
-      range.collapse(true);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      pre.focus();
-    });
-    await page.keyboard.type('#p');
-    await expect(page.locator(popup)).toBeVisible();
-    await page.keyboard.press('Escape');
-
-    // Now at the end of the long line itself, where there is no boundary to find
-    await page.locator('#modal-content-text pre').click();
-    await page.evaluate(() => {
-      const pre = document.querySelector('#modal-content-text pre');
-      const range = document.createRange();
-      range.setStart(pre.firstChild, pre.firstChild.length);
-      range.collapse(true);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      pre.focus();
-    });
-    await page.keyboard.type('#p');
-    await expect(page.locator(popup)).not.toBeVisible();
-  });
-
   test('a child-only tag and a same-name parented tag show as the bare name once', async ({ page }) => {
     // File 1 has #brie (orphan), File 2 has #cheese/brie (parented).
     // buildParentMap classifies 'brie' as a family tag (appears under cheese),
@@ -178,36 +116,6 @@ test.describe('tag autocomplete — editor', () => {
 
 test.describe('tag autocomplete — searchbox', () => {
 
-  test('tags: opens the popup, and arrow keys walk it', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await loadFiles(page);
-
-    await page.fill('#searchbox', 'tags:');
-    await expect(page.locator(popup)).toBeVisible();
-
-    await page.locator('#searchbox').press('ArrowDown');
-    await expect(page.locator('.ac-picker-item[data-active="true"]')).toBeVisible();
-    await page.locator('#searchbox').press('ArrowDown');
-    expect(await page.evaluate(() => {
-      const items = [...document.querySelectorAll('.ac-picker-item')];
-      return items.findIndex(el => el.dataset.active === 'true');
-    })).toBe(1);
-  });
-
-  test('clicking an item runs the search immediately', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await loadFiles(page);
-
-    await page.fill('#searchbox', 'tags:p');
-    await expect(page.locator(popup)).toContainText('personal');
-    await page.locator('.ac-picker-item').filter({ hasText: 'personal' }).click();
-    await expect(page.locator(popup)).not.toBeVisible();
-    // shopping.txt and big-ideas.md both have #personal
-    await expect(page.locator('.note-grid')).toHaveCount(2);
-  });
-
   test('Enter runs the search, both with the popup open and after dismissing it', async ({ page }) => {
     await setupMockFiles(page);
     await page.goto('/');
@@ -228,28 +136,6 @@ test.describe('tag autocomplete — searchbox', () => {
     await page.fill('#searchbox', 'personal');
     await page.locator('#searchbox').press('Enter');
     await expect(page.locator('.note-grid')).toHaveCount(2);
-  });
-
-  // The searchbox carries data-tip, and the tooltip writes anchor-name inline on whatever
-  // it points at. Hovering the box first is the ordinary way to reach it, so the popup has
-  // to stay anchored to the box afterwards. Geometry, not visibility: a popup that has lost
-  // its anchor still passes toBeVisible(), it just renders at the foot of <body>.
-  test('the popup sits under the searchbox even after its tooltip has shown', async ({ page }) => {
-    await setupMockFiles(page);
-    await page.goto('/');
-    await loadFiles(page);
-
-    await page.hover('#searchbox');
-    await expect(page.locator('#tooltip')).toBeVisible();
-
-    await page.fill('#searchbox', 'tags:');
-    await expect(page.locator(popup)).toBeVisible();
-
-    const box = await page.locator('#searchbox').boundingBox();
-    const pop = await page.locator(popup).boundingBox();
-    expect(Math.abs(pop.x - box.x)).toBeLessThan(4);
-    expect(pop.y - (box.y + box.height)).toBeGreaterThanOrEqual(0);
-    expect(pop.y - (box.y + box.height)).toBeLessThan(12);
   });
 
 });

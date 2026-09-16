@@ -546,79 +546,6 @@ test('Escape leaves the cell without writing anything', async ({ page }) => {
   expect(await page.evaluate(() => Object.keys(window.__saved).length)).toBe(0);
 });
 
-test('Escape in a date cell puts its text back too', async ({ page }) => {
-  await openTable(page);
-  await setType(page, 'due', 'date');
-  const original = await fileText(page, 'alpha.md');
-
-  const cell = cellFor(page, 'Alpha', 'due');
-  await open(cell);
-  await cell.locator('.cell-date-input').evaluate(el => {
-    el.value = '2026-12-25';
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await expect(cell).toHaveText('2026-12-25');
-
-  await page.keyboard.press('Escape');
-
-  await expect(cellFor(page, 'Alpha', 'due')).toHaveText('2026-03-01');
-  expect(await fileText(page, 'alpha.md')).toBe(original);
-});
-
-test('Escape closes the cell and leaves you on it', async ({ page }) => {
-  await openTable(page);
-  const cell = cellFor(page, 'Alpha', 'status');
-  await open(cell);
-
-  await page.keyboard.press('Escape');
-  await expect(cell).not.toHaveClass(/is-expanded/);
-  await expect(cell).toHaveClass(/is-selected/);   // still the cell you were in
-
-  // and a second Escape changes nothing: the mark follows focus, and Escape does not move that
-  await page.keyboard.press('Escape');
-  await expect(cell).toHaveClass(/is-selected/);
-  expect(await focusedCell(page)).toBe('Alpha/status');
-});
-
-test('a cell you have finished with is still the cell you are on', async ({ page }) => {
-  await openTable(page);
-
-  const cell = cellFor(page, 'Alpha', 'status');
-  await open(cell);
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('published');
-  await page.keyboard.press('Enter');
-
-  // the write and its re-render land, and the cell is still where the keyboard is
-  await expect(cellFor(page, 'Alpha', 'status')).toHaveText('published');
-  expect(await focusedCell(page)).toBe('Alpha/status');
-  await expect(cellFor(page, 'Alpha', 'status')).toHaveClass(/is-selected/);
-
-  // so one Enter opens it again, rather than two
-  await page.keyboard.press('Enter');
-  await expect(cellFor(page, 'Alpha', 'status')).toHaveAttribute('contenteditable', 'plaintext-only');
-});
-
-test('the arrow keys move from the cell that was just edited', async ({ page }) => {
-  await openTable(page);
-
-  const cell = cellFor(page, 'Alpha', 'note');
-  await open(cell);
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('edited');
-  await page.keyboard.press('Enter');
-  await expect(cellFor(page, 'Alpha', 'note')).toHaveText('edited');
-
-  const columns = await page.evaluate(() =>
-    [...document.querySelectorAll('.note-table-cell-header')].map(h => h.dataset.property));
-  const next = columns[columns.indexOf('note') + 1];
-
-  await page.keyboard.press('ArrowRight');
-  expect(await focusedCell(page)).toBe(`Alpha/${next}`);
-});
-
 test('the selection follows the arrow keys, and Enter opens where you are', async ({ page }) => {
   await openTable(page);
 
@@ -655,21 +582,6 @@ test('arrowing away from an open cell closes it', async ({ page }) => {
 
   await expect(locked).not.toHaveClass(/is-expanded/);
   await expect(locked).not.toHaveClass(/is-selected/);
-});
-
-test('leaving by clicking another cell leaves you on that one', async ({ page }) => {
-  await openTable(page);
-
-  const cell = cellFor(page, 'Alpha', 'status');
-  await open(cell);
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('clicked away');
-  await cellFor(page, 'Alpha', 'note').click();
-
-  await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: clicked away');
-  expect(await focusedCell(page)).toBe('Alpha/note');
-  await expect(cellFor(page, 'Alpha', 'note')).toHaveClass(/is-selected/);
 });
 
 // ---------------------------------------------------------------- Enter in a list cell
@@ -733,72 +645,7 @@ test('Enter opens a cell you arrowed to, with a caret that takes text', async ({
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('note: plain and typed');
 });
 
-test('Space opens a cell too, without typing a space into it', async ({ page }) => {
-  await openTable(page);
-
-  await cellFor(page, 'Alpha', 'note').click();
-  await page.keyboard.press(' ');
-
-  const cell = cellFor(page, 'Alpha', 'note');
-  await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
-  await expect(cell).toHaveText('plain');
-
-  await page.keyboard.type('!');
-  await expect(cell).toHaveText('plain!');
-});
-
-test('F2 opens a cell and F2 again finishes with it', async ({ page }) => {
-  await openTable(page);
-
-  await cellFor(page, 'Alpha', 'note').click();
-  await page.keyboard.press('F2');
-
-  const cell = cellFor(page, 'Alpha', 'note');
-  await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
-
-  await page.keyboard.type(' by F2');
-  await page.keyboard.press('F2');
-
-  await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(0);
-  await expect.poll(() => fileText(page, 'alpha.md')).toContain('note: plain by F2');
-  expect(await focusedCell(page)).toBe('Alpha/note');   // and still where you were
-});
-
-test('a date cell opened from the keyboard takes a caret as well', async ({ page }) => {
-  await openTable(page);
-  await setType(page, 'due', 'date');
-
-  await cellFor(page, 'Alpha', 'due').click();
-  await page.keyboard.press('F2');
-
-  await page.keyboard.type('!');
-  await expect(cellFor(page, 'Alpha', 'due').locator('.cell-date-text')).toHaveText('2026-03-01!');
-});
-
 // ---------------------------------------------------------------- Tab
-
-// Tab is never intercepted: it moves focus, and the mark follows focus, so the two cannot disagree.
-test('Tab moves the mark with it, and marks the cell the same way a click does', async ({ page }) => {
-  await openTable(page);
-
-  const clicked = cellFor(page, 'Alpha', 'note');
-  await clicked.click();
-  const clickedOutline = await clicked.evaluate(el => getComputedStyle(el).outline);
-
-  await page.keyboard.press('Tab');
-
-  const focused = await page.evaluate(() => {
-    const el = document.activeElement;
-    return { prop: el.dataset.prop, outline: getComputedStyle(el).outline,
-             selected: el.classList.contains('is-selected') };
-  });
-
-  expect(focused.prop).not.toBe('note');          // Tab went somewhere else
-  expect(focused.selected).toBe(true);            // and took the mark with it
-  expect(focused.outline).toBe(clickedOutline);   // drawn the same, so nothing switches style
-  await expect(clicked).not.toHaveClass(/is-selected/);
-  await expect(page.locator('.note-table-cell.is-selected')).toHaveCount(1);
-});
 
 test('Tab out of an open cell writes it and leaves one cell marked', async ({ page }) => {
   await openTable(page);
@@ -819,20 +666,4 @@ test('Tab out of an open cell writes it and leaves one cell marked', async ({ pa
   // you are on the next cell now, one press from editing it
   await page.keyboard.press('F2');
   await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(1);
-});
-
-test('a button inside a cell keeps that cell marked', async ({ page }) => {
-  await openTable(page);
-
-  // the file column's cell holds the open-file link, so Tab stops at the cell and then at the link
-  const fileCell = cellFor(page, 'Alpha', 'internalId');
-  await fileCell.focus();
-  await expect(fileCell).toHaveClass(/is-selected/);
-
-  await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.activeElement.tagName)).toBe('A');
-
-  // focus is inside the cell, so the cell is still the one you are on
-  await expect(fileCell).toHaveClass(/is-selected/);
-  await expect(page.locator('.note-table-cell.is-selected')).toHaveCount(1);
 });

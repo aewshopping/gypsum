@@ -111,45 +111,6 @@ test.describe('internal links — navigation', () => {
     await expect(page.locator('#modal-content-text')).not.toContainText('A plain link to');
   });
 
-  test('a link opens a note that has no card on screen, and closes cleanly', async ({ page }) => {
-    // Two elements sharing view-transition-name silently break the NEXT transition, and the
-    // off-screen target is inert, so focus must not be parked on it either.
-    await setupMockFilesWithLinks(page);
-    await page.goto('/');
-    await openHub(page);
-    await shrinkToOnePage(page);
-
-    await page.locator('a.internal-link[data-link-target="subdir/nested.md"]').click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await expect(page.locator('#modal-content-text')).toContainText('The nested target');
-    await expect(page.locator('#offscreen-note-target')).not.toHaveClass(/moving-file-content-view/);
-
-    await page.click('[data-action="close-file-content-modal"]');
-    await expect(page.locator('#file-content-modal')).not.toBeVisible();
-    await expect(page.locator('#offscreen-note-target')).not.toHaveClass(/moving-file-content-view/);
-    expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('offscreen-note-target');
-  });
-
-  test('closing returns focus to the card, keeping arrow-key navigation alive', async ({ page }) => {
-    // handleKeyboardNavigate ignores keys unless activeElement is .keyboard-navigable, so
-    // losing focus on close silently kills card navigation.
-    await setupMockFilesWithLinks(page);
-    await page.goto('/');
-    await loadFolder(page);
-    await expect(page.locator('.note-grid').first()).toBeVisible();
-
-    const firstId = await page.locator('.note-grid').first().getAttribute('data-file-id');
-    await page.locator('.note-grid').first().focus();
-    await page.keyboard.press('Enter');
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.locator('#file-content-modal')).not.toBeVisible();
-
-    expect(await page.evaluate(() => document.activeElement?.dataset.fileId)).toBe(firstId);
-    await page.keyboard.press('ArrowRight');
-    expect(await page.evaluate(() => document.activeElement?.dataset.fileId)).not.toBe(firstId);
-  });
-
   test('unsaved changes are warned about, and cancelling keeps the current note open', async ({ page }) => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
@@ -186,42 +147,6 @@ test.describe('internal links — note picker', () => {
     await page.keyboard.press('Enter');
     await expect(page.locator('#modal-content-text pre')).toContainText('[[shopping.txt]]');
     await expect(page.locator('.ac-picker-popup')).toHaveCount(0);
-  });
-
-  test('a note in a folder is offered by its full path, and the inserted link resolves', async ({ page }) => {
-    await setupMockFilesWithLinks(page);
-    await page.goto('/');
-    await openHubInTextMode(page);
-
-    await typeAtEnd(page, '\n[[nested');
-    await expect(page.locator('.ac-picker-item')).toHaveCount(1);
-    await expect(page.locator('.ac-picker-item')).toHaveText('subdir/nested.md');
-
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('Enter');
-    await expect(page.locator('#modal-content-text pre')).toContainText('[[subdir/nested.md]]');
-
-    // Back to html view: the inserted link must resolve, not render inert.
-    await page.evaluate(() => {
-      const toggle = document.getElementById('render_toggle');
-      if (toggle.checked) toggle.click();
-    });
-    await expect(page.locator('a.internal-link[data-link-target="subdir/nested.md"]').last()).toBeVisible();
-  });
-
-  test('a folder name matches the notes inside it, and a query with spaces still matches', async ({ page }) => {
-    await setupMockFilesWithLinks(page);
-    await page.goto('/');
-    await openHubInTextMode(page);
-
-    await typeAtEnd(page, '\n[[subdir');
-    await expect(page.locator('.ac-picker-item')).toHaveText('subdir/nested.md');
-    await page.keyboard.press('Escape');
-
-    // The caret walk must not stop at the space in the query
-    await typeAtEnd(page, '\n[[my long');
-    await expect(page.locator('.ac-picker-popup')).toBeVisible();
-    await expect(page.locator('.ac-picker-popup')).toContainText('my long note.md');
   });
 
 });

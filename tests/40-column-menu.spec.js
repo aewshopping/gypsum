@@ -141,61 +141,6 @@ test('search column primes the search box for that property', async ({ page }) =
   )).toBe(true);
 });
 
-test('opening the menu puts focus on its first item, so it can be tabbed through', async ({ page }) => {
-  await openTable(page);
-  await openMenuFor(page, titleHeader(page));
-
-  const focused = () => page.evaluate(() => document.activeElement?.textContent);
-  expect(await focused()).toBe('sort A-Z');
-
-  await page.keyboard.press('Tab');
-  expect(await focused()).toBe('sort Z-A');
-  await page.keyboard.press('Tab');
-  expect(await focused()).toBe('search column');
-  await page.keyboard.press('Tab');
-  expect(await focused()).toBe('resize column');
-});
-
-test('a header cell is reachable by keyboard, and Enter does what a click does', async ({ page }) => {
-  await openTable(page);
-
-  // a real <button>, which is what puts it in the tab order and makes Enter fire a click
-  expect(await titleHeader(page).evaluate(el => el.tagName)).toBe('BUTTON');
-
-  // tab in from the search box, forward only, stopping at the first header cell
-  await page.locator('#searchbox').focus();
-  const focusedProp = () => page.evaluate(() => document.activeElement?.dataset?.property ?? null);
-  // Bounded rather than open-ended, but the bound allows for the table's control row: each of its
-  // buttons is a tab stop on the way to the headers, counted so that adding one is not a failure
-  // here — the same reason the tabbing test above counts them.
-  const maxTabs = 10 + await page.locator('.table-controls button').count();
-  for (let i = 0; i < maxTabs && !(await focusedProp()); i++) await page.keyboard.press('Tab');
-  expect(await focusedProp()).toBe('internalId');   // the file column leads the table
-
-  // Tab walks along the columns
-  await page.keyboard.press('Tab');
-  expect(await focusedProp()).toBe('filename');
-  await page.keyboard.press('Tab');
-  expect(await focusedProp()).toBe('title');
-
-  // first Enter selects, exactly as a first click does
-  await page.keyboard.press('Enter');
-  await expect(titleHeader(page)).toHaveClass(/is-selected/);
-  await expect(menu(page)).toBeHidden();
-  expect(await titleHeader(page).getAttribute('data-tip')).toBe('column options');
-
-  // second Enter opens the menu, and focus carries into it
-  await page.keyboard.press('Enter');
-  await expect(menu(page)).toBeVisible();
-  expect(await menu(page).getAttribute('data-property')).toBe('title');
-  expect(await page.evaluate(() => document.activeElement?.textContent)).toBe('sort A-Z');
-
-  // Escape closes it and hands focus back to the column it came from
-  await page.keyboard.press('Escape');
-  await expect(menu(page)).toBeHidden();
-  expect(await focusedProp()).toBe('title');
-});
-
 // ---------------------------------------------------------------- auto-size
 
 // A fixture with a list column whose whole line is much wider than any one item in it, which is

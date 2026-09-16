@@ -100,56 +100,6 @@ test.describe('markdown bold / italic shortcuts', () => {
     expect(await editorText(page)).toBe('the quick brown fox');
   });
 
-  test('Ctrl+B strips ** when the markers are just outside the selection', async ({ page }) => {
-    await openEditor(page);
-    await setEditorHtml(page, 'the quick **brown** fox');
-    await selectText(page, 'brown');
-    await page.keyboard.press('Control+b');
-    expect(await editorText(page)).toBe('the quick brown fox');
-  });
-
-  test('Ctrl+I toggles _ inside, outside and back', async ({ page }) => {
-    await openEditor(page);
-    await setEditorHtml(page, 'the quick brown fox');
-
-    await selectText(page, 'brown');
-    await page.keyboard.press('Control+i');
-    expect(await editorText(page)).toBe('the quick _brown_ fox');
-
-    await selectText(page, '_brown_');
-    await page.keyboard.press('Control+i');
-    expect(await editorText(page)).toBe('the quick brown fox');
-
-    await selectText(page, 'brown');
-    await page.keyboard.press('Control+i');
-    await selectText(page, 'brown');
-    await page.keyboard.press('Control+i');
-    expect(await editorText(page)).toBe('the quick brown fox');
-  });
-
-  test('the text stays selected, so the toggle can be pressed twice', async ({ page }) => {
-    await openEditor(page);
-    await setEditorHtml(page, 'the quick brown fox');
-    await selectText(page, 'brown');
-
-    await page.keyboard.press('Control+b');
-    expect(await selectedText(page)).toBe('brown');
-    expect(await editorText(page)).toBe('the quick **brown** fox');
-
-    await page.keyboard.press('Control+b');
-    expect(await selectedText(page)).toBe('brown');
-    expect(await editorText(page)).toBe('the quick brown fox');
-  });
-
-  test('bold and italic compose on the same phrase', async ({ page }) => {
-    await openEditor(page);
-    await setEditorHtml(page, 'the quick brown fox');
-    await selectText(page, 'brown');
-    await page.keyboard.press('Control+b');
-    await page.keyboard.press('Control+i');
-    expect(await editorText(page)).toBe('the quick **_brown_** fox');
-  });
-
   test('a selection spanning a line break wraps without breaking the flat DOM', async ({ page }) => {
     await openEditor(page);
     await setEditorHtml(page, 'line one<br>line two<br>line three');
@@ -165,23 +115,6 @@ test.describe('markdown bold / italic shortcuts', () => {
     await selectText(page, 'one\nline two');
     await page.keyboard.press('Control+b');
     expect(await editorText(page)).toBe('line one\nline two\nline three');
-  });
-
-  test('a collapsed caret is a no-op', async ({ page }) => {
-    await openEditor(page);
-    await setEditorHtml(page, 'the quick brown fox');
-    await page.evaluate((sel) => {
-      const pre = document.querySelector(sel);
-      pre.focus();
-      const range = document.createRange();
-      range.setStart(pre.firstChild, 4);
-      range.collapse(true);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }, EDITOR);
-    await page.keyboard.press('Control+b');
-    expect(await editorText(page)).toBe('the quick brown fox');
   });
 
   test('undo restores the text after wrapping and after unwrapping', async ({ page }) => {
@@ -245,39 +178,4 @@ test.describe('markdown bold / italic shortcuts', () => {
     expect(await editorText(page)).toBe(before);
   });
 
-  test('a selection anchored outside the editor is ignored', async ({ page }) => {
-    await openEditor(page);
-    await setEditorHtml(page, 'the quick brown fox');
-    const before = await editorText(page);
-
-    // Anchor the range in the modal chrome and dispatch the keydown at the editor, so the
-    // handler runs but the contains() guard is what has to stop it.
-    const ran = await page.evaluate((sel) => {
-      const pre = document.querySelector(sel);
-      const outside = document.getElementById('modal-content');
-      const range = document.createRange();
-      range.setStart(outside, 0);
-      range.setEnd(pre.firstChild, 9);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-      return pre.dispatchEvent(new KeyboardEvent('keydown', {
-        key: 'b', ctrlKey: true, bubbles: true, cancelable: true,
-      }));
-    }, EDITOR);
-
-    expect(ran).toBe(false); // preventDefault ran, so the handler was reached
-    expect(await editorText(page)).toBe(before);
-  });
-
-  test('the settings modal lists both shortcuts', async ({ page }) => {
-    await setupMockDirectoryWithSaveSupport(page);
-    await page.goto('/');
-    await loadFolder(page);
-    await page.keyboard.press('?');
-    const settings = page.locator('#modal-settings');
-    await expect(settings).toBeVisible();
-    await expect(settings).toContainText('Bold selection');
-    await expect(settings).toContainText('Italic selection');
-  });
 });

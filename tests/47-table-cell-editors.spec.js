@@ -78,12 +78,6 @@ test('a date cell shows the note\'s own words, and an app-owned one stays format
   await expect(cellFor(page, 'Alpha', 'lastModified')).toHaveText(/\d+[/.-]\d+[/.-]\d+/);
 });
 
-test('an empty date cell is blank rather than N/A', async ({ page }) => {
-  await openTable(page);
-  await setType(page, 'due', 'date');
-  await expect(cellFor(page, 'Gamma', 'due')).toHaveText('');
-});
-
 test('a date cell opens with a caret and a picker, and picking rewrites the text', async ({ page }) => {
   await openTable(page);
   await setType(page, 'due', 'date');
@@ -110,19 +104,6 @@ test('a date cell opens with a caret and a picker, and picking rewrites the text
   await expect(cell).toHaveText('2026-12-25');   // the button and input contribute no text
 });
 
-test('clicking the picker keeps the cell open and the caret inside it', async ({ page }) => {
-  await openTable(page);
-  await setType(page, 'due', 'date');
-
-  const cell = cellFor(page, 'Alpha', 'due');
-  await open(cell);
-  await cell.locator('.cell-date-pick').click();
-
-  await expect(cell).toHaveClass(/is-expanded/);
-  expect(await cell.evaluate(el => el.contains(document.activeElement))).toBe(true);
-  await page.keyboard.press('Escape');
-});
-
 test('collapsing a date cell leaves plain text and hands focus back to the cell', async ({ page }) => {
   await openTable(page);
   await setType(page, 'due', 'date');
@@ -139,19 +120,6 @@ test('collapsing a date cell leaves plain text and hands focus back to the cell'
   // keyboard navigation reads document.activeElement and needs the cell itself, so losing focus
   // to the body here would kill the arrow keys until something was clicked
   expect(await cell.evaluate(el => document.activeElement === el)).toBe(true);
-});
-
-test('a date that cannot be read gets no caret and no picker', async ({ page }) => {
-  await openTable(page);
-  await setType(page, 'due', 'date');
-
-  const bad = cellFor(page, 'Beta', 'due');
-  await open(bad);
-
-  await expect(bad).toHaveClass(/is-expanded/);
-  await expect(bad.locator('.cell-date-pick')).toHaveCount(0);
-  await expect(bad).not.toHaveAttribute('contenteditable', /.*/);
-  await expect(bad.locator('.cell-mismatch-note')).toHaveText(/fix this in the note/);
 });
 
 // ---------------------------------------------------------------- lists

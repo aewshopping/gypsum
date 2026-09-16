@@ -121,19 +121,6 @@ test('a sort moves the rows, so it still runs one', async ({ page }) => {
   await expect.poll(() => transitions(page)).toBe(1);
 });
 
-test('a render that changes nothing at all runs none', async ({ page }) => {
-  await openTable(page);
-  await countTransitions(page);
-
-  await page.evaluate(async () => {
-    const { renderFiles } = await import('/public/js/ui/ui-functions-render/a-render-all-files.js');
-    renderFiles(true, true);
-    renderFiles(true, true);
-  });
-
-  expect(await transitions(page)).toBe(0);
-});
-
 // ---------------------------------------------------------------- one render, one page
 
 /** Counts full rewrites of #output from here on. */

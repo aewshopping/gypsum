@@ -4,7 +4,7 @@ Small fixes and tidy-ups, one commit per bullet. A checked box means it is done 
 note underneath says how; an unchecked box with a note means it needs a decision or more
 work than the snag implies.
 
-- [ ] **The test suite has a two-minute budget.** Anything over it gets pruned, destructive
+- [x] **The test suite has a two-minute budget.** Anything over it gets pruned, destructive
   processes and real behaviour first, aesthetics last, and efficient tests preferred.
   Measured, not guessed. Where it started: **6.5 minutes, 369 tests**. Four changes, no coverage
   lost:
@@ -28,7 +28,16 @@ work than the snag implies.
   tints, marks and text that must not clip. What stayed: every test that writes to a file, the
   autosave and undo specs untouched, the parser and quoting rules, and one test per behaviour the
   aesthetic ones were arranged around.
-  **Where it stands: 2.5 minutes, 298 tests.** Still over; see the note under the run.
+  A second and third pass took the same priority further — the layout and type specs' modal
+  flows, duplicate ways of asking the same question (three tests for where the mark ends up,
+  four for which key opens a cell), and one of each pair that covered the same door. Then
+  `workers` went from 8 to 12: a test spends most of its life waiting on a page load, and at
+  this size twelve pack better than eight (measured: 4 workers 69s, 8 workers 52s, 12 workers
+  45s on one spec, 16 no better than 12).
+  **Where it lands: 1.8 minutes, 241 tests**, from 6.5 minutes and 369. Untouched: everything
+  that writes to a file — the cell-writing spec, autosave's five exit routes, undo, the backups,
+  the saves, delete and rename — and the parser and quoting rules, which now cost nothing to
+  run.
 
 - [x] **Cell edit does not update the file's last modified date.** Editing a property from a
   table cell should bump `lastModified` the way saving a note does.

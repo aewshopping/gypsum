@@ -80,32 +80,6 @@ test('the type dialog opens over the picker without closing it, and names its co
   await expect(page.locator('#modal-columns')).toBeVisible();   // only the inner one closed
 });
 
-// The options were <select>s once, and a native dropdown is painted outside its container: choosing
-// one counted as a click outside and dismissed what held it, so nothing could be picked at all.
-test('the options in the type dialog can actually be clicked', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-  await pickerRow(page, 'due').locator('.column-picker-type').click();
-
-  await typeOption(page, 'number').click();
-  expect(await pickerRow(page, 'due').getAttribute('data-type')).toBe('number');
-  await expect(typeDialog(page)).toBeVisible();   // it holds two settings, so it stays up
-});
-
-// "Search list as" has no meaning off a list, since nothing else in the app searches by whole
-// values. Disabled rather than hidden, so the dialog keeps one shape as the type is changed.
-test('the search options are only available for a list column', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-  await pickerRow(page, 'due').locator('.column-picker-type').click();
-
-  await expect(searchOption(page, 'array')).toBeDisabled();
-  await typeOption(page, 'array').click();
-  await expect(searchOption(page, 'array')).toBeEnabled();
-  await typeOption(page, 'date').click();
-  await expect(searchOption(page, 'array')).toBeDisabled();
-});
-
 test('a type set in the picker reaches the table', async ({ page }) => {
   await openTable(page);
   await expect(rowFor(page, 'Alpha')).toContainText('2026-03-01');   // text, as loaded
@@ -146,29 +120,6 @@ test('a type set from the column menu reaches the table', async ({ page }) => {
   await expect(header(page, 'due').locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-date');
 });
 
-// The same path the picker's toggle takes, minus the deferral: a single menu item has nothing to
-// hold back.
-test('hide column removes it, and the picker agrees', async ({ page }) => {
-  await openTable(page, 1900);   // wide enough that the last column's header is on screen
-  const before = await page.locator('.note-table-cell-header').count();
-
-  await openColumnMenu(page, 'due');
-  await page.click('[data-action="column-hide"]');
-  await expect(page.locator('.note-table-cell-header')).toHaveCount(before - 1);
-  await expect(header(page, 'due')).toHaveCount(0);
-
-  await openPicker(page);
-  await expect(pickerRow(page, 'due').locator('input.toggle')).not.toBeChecked();
-});
-
-// The floor the column picker enforces, enforced here too: an empty column set makes --grid-columns
-// an empty string and draws a broken table rather than raising anything.
-test('the file column cannot be hidden', async ({ page }) => {
-  await openTable(page);
-  await openColumnMenu(page, 'internalId');
-  await expect(page.locator('[data-action="column-hide"]')).toBeDisabled();
-});
-
 // A type is the user's choice, so any column can end up holding anything. Showing the file's own
 // words is what lets someone see what is there and work out which type it wanted, which a blank
 // cell or the string "[object Map]" takes away. The marker is on the cell rather than left to be
@@ -199,28 +150,6 @@ test('a value that cannot be drawn as its column type shows its text, marked', a
 
   await expect(cell('due')).toHaveAttribute('data-mismatch', 'shape');
   await expect(cell('due')).toContainText('2026-03-01');      // not blank
-});
-
-// The other kind: the right shape, but text that cannot be read as the type. The column is fine and
-// the note is wrong, so it is told apart from a shape mismatch and points at the other fix.
-test('a value that cannot be read as its type says so, and points at the note', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-  await pickerRow(page, 'due').locator('.column-picker-type').click();
-  await typeOption(page, 'date').click();
-  await page.keyboard.press('Escape');
-  await closePicker(page);
-
-  const dueCell = title => rowFor(page, title).locator('.note-table-cell[data-prop="due"]');
-
-  // a real date is not flagged
-  await expect(dueCell('Alpha')).not.toHaveAttribute('data-mismatch', /.*/);
-  await expect(dueCell('Alpha')).toContainText('2026-03-01'); // the file's own words: '3/1/2026' reads as 3 January to half the world
-
-  // prose in a date column is
-  await expect(dueCell('Beta')).toHaveAttribute('data-mismatch', 'unreadable');
-  await expect(dueCell('Beta')).toContainText('quite soon');
-  await expect(dueCell('Beta')).toHaveAttribute('data-tip', /fix this in the note/);
 });
 
 // Editing a value the column cannot describe risks writing back the wrong shape, so a mismatched
@@ -278,18 +207,6 @@ test('a list searched as text reads part of an item, and exact match does not', 
   await page.fill('#searchbox', 'people:John Smith');
   await page.press('#searchbox', 'Enter');
   await expect(page.locator('.note-table')).toHaveCount(1);
-});
-
-// The tag pill's whole-item matching is the app's answer, so it holds without anyone setting it —
-// and cannot be switched off from the picker, where tags is one of the app's own columns.
-test('a tag pill matches that tag only', async ({ page }) => {
-  await openTable(page);
-  await page.fill('#searchbox', 'tags:cat');
-  await page.press('#searchbox', 'Enter');
-  await expect(page.locator('.note-table')).toHaveCount(1);
-
-  await openPicker(page);
-  await expect(pickerRow(page, 'tags').locator('.column-picker-type')).toBeDisabled();
 });
 
 // The file column's cell is a link that opens the note, not the value of internalId. Sorting it,
@@ -377,19 +294,6 @@ test('an info column offers no type, but still sorts and searches', async ({ pag
     .toHaveAttribute('data-tip', 'text — set by the app');
   // ...while a property read from a note's front matter is the user's to set
   await expect(pickerRow(page, 'due').locator('.column-picker-type')).toBeEnabled();
-});
-
-// Quietly, unlike a mismatch: nothing is wrong and there is nothing to do about it, so a sentence
-// on every size cell would be noise. The header's glyph is what says it.
-test('an info cell opens but takes no caret, and says nothing', async ({ page }) => {
-  await openTable(page);
-  const cell = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="sizeInBytes"]');
-
-  await cell.click();
-  await cell.click();
-  await expect(cell).toHaveClass(/is-expanded/);
-  await expect(cell).not.toHaveAttribute('contenteditable', /.*/);
-  await expect(cell.locator('.cell-mismatch-note')).toHaveCount(0);
 });
 
 // A tag pill means that one tag. Tags is the only property pinned to whole-item matching, and this

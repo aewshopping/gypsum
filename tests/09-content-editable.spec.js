@@ -81,38 +81,4 @@ test.describe('contentEditable state in TXT mode', () => {
     expect(html).toMatch(/<p[^>]*>.*paragraph two.*<\/p>/s);
   });
 
-  test('source line breaks become <br>, and HTML characters stay literal', async ({ page }) => {
-    await page.addInitScript(() => {
-      const content = 'Price: $5 <small>, tax & fees\nNext line >';
-      const makeFile = (name, c) => ({
-        kind: 'file', name,
-        getFile: async () => ({ name, size: c.length, lastModified: Date.now(), text: async () => c }),
-      });
-      window.showDirectoryPicker = async () => ({
-        kind: 'directory', name: 'root',
-        values: async function* () { yield makeFile('notes.md', content); },
-        getFileHandle: async () => { throw new Error('no backup'); },
-      });
-    });
-    await page.goto('/');
-    await loadFolder(page);
-    await page.locator('.note-grid').first().click();
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await switchToTxt(page);
-
-    const innerHTML = await page.evaluate(() =>
-      document.querySelector('#modal-content-text pre').innerHTML
-    );
-    // One \n in the source → exactly one <br>
-    expect(innerHTML.split('<br>').length - 1).toBe(1);
-
-    // The raw HTML must not contain a live <small> element
-    expect(await page.evaluate(() =>
-      !!document.querySelector('#modal-content-text pre small'))).toBe(false);
-
-    const text = await page.locator('#modal-content-text pre').textContent();
-    expect(text).toContain('<small>');
-    expect(text).toContain('& fees');
-  });
-
 });

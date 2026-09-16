@@ -60,24 +60,6 @@ test.describe('recent files panel', () => {
     await expect(items.nth(1)).toHaveAttribute('data-file-id', 'big-ideas.md');
   });
 
-  test('an entry opens its file, and stays clickable while another is open', async ({ page }) => {
-    await setupMockFiles(page);
-    await loadFiles(page);
-    await openCard(page, 'Quarterly Review');
-    await closeModal(page);
-    await openPanel(page);
-    await openCard(page, 'Big Ideas');
-
-    // A modal dialog makes everything outside it inert, so this only works because the panel is
-    // parked inside the dialog while it is open.
-    const entry = page.locator('.sidebar-recent-item[data-file-id="meeting-notes.md"]');
-    await expect(entry).toBeVisible();
-    await entry.click();
-
-    await expect(page.locator('#file-content-modal')).toBeVisible();
-    await expect(page.locator('#modal-content-text')).toContainText('Discussion points');
-  });
-
   test('a renamed file keeps its place under the new name, and a deleted one drops out', async ({ page }) => {
     await setupMockFiles(page);
     await loadFiles(page);
