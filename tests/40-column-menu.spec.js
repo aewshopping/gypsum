@@ -362,7 +362,7 @@ test('the header tooltip says what the next click will do', async ({ page }) => 
   const header = titleHeader(page);
   const tip = () => header.getAttribute('data-tip');
 
-  expect(await tip()).toBe('highlight column');
+  expect(await tip()).toBe('double click for column options');
 
   await header.click();                      // selects the column
   expect(await tip()).toBe('column options');
@@ -374,7 +374,7 @@ test('the header tooltip says what the next click will do', async ({ page }) => 
   // selecting a different column hands the idle tip back
   const other = page.locator('.note-table-cell-header', { hasText: 'filename' });
   await other.click();
-  expect(await tip()).toBe('highlight column');
+  expect(await tip()).toBe('double click for column options');
   expect(await other.getAttribute('data-tip')).toBe('column options');
 });
 

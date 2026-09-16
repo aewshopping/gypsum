@@ -19,8 +19,10 @@ work than the snag implies.
 - [ ] **Side panel open/close should use a view transition** rather than a width transition, so
   the main body is not laid out again on every frame. Off when "animate view changes" is off.
 - [ ] **Side panel file buttons should say `open file | ${title}`** rather than just `open file`.
-- [ ] **Table header hover tooltip** should say "double click for column options" rather than
+- [x] **Table header hover tooltip** should say "double click for column options" rather than
   "highlight column".
+  `HEADER_TIP_IDLE` in `ui-functions-click/column-menu.js`. The selected tooltip still says
+  "column options", since by then one click opens the menu.
 - [ ] **Redo tooltip should offer Ctrl + Y**, and the table's undo/redo shortcuts should be
   listed in the settings modal.
 - [ ] **Row hover and column hover should use one colour**, and a more subtle one.
