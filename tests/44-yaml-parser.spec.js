@@ -1,50 +1,46 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFilesYamlShapes, loadFolder } = require('./helpers');
+const { setupMockFilesYamlShapes, loadFolder, appModule } = require('./helpers');
 
 /**
- * Parses a front matter block in the page and returns the result, the recorded errors and,
- * when asked, the spans resolved back into the text they point at.
+ * Parses a front matter block and returns the result, the recorded errors and, when asked, the
+ * spans resolved back into the text they point at.
  *
- * @param {import('@playwright/test').Page} page
+ * The parser is a function from text to values, so it is called here rather than in a page — see
+ * appModule in helpers.js.
+ *
  * @param {string} doc - The whole file text, front matter included.
  * @param {boolean} [withSpans=false] - Also resolve every span into its substring.
  */
-async function parse(page, doc, withSpans = false) {
-  return page.evaluate(async ({ doc, withSpans }) => {
-    const { parseYaml } = await import('/public/js/services/file-parsing/yaml-parse.js');
-    const errors = [];
-    const spans = withSpans ? new Map() : null;
-    const data = parseYaml(doc, errors, spans);
-    const resolved = {};
-    if (spans) {
-      for (const [key, span] of spans) {
-        resolved[key] = {
-          form: span.form,
-          value: doc.slice(span.valueStart, span.valueEnd),
-          items: span.items.map(item => ({
-            value: doc.slice(item.valueStart, item.valueEnd),
-            prefix: doc.slice(item.lineStart, item.valueStart),
-          })),
-        };
-      }
+async function parse(doc, withSpans = false) {
+  const { parseYaml } = await appModule('services/file-parsing/yaml-parse.js');
+  const errors = [];
+  const spans = withSpans ? new Map() : null;
+  const data = parseYaml(doc, errors, spans);
+  const resolved = {};
+  if (spans) {
+    for (const [key, span] of spans) {
+      resolved[key] = {
+        form: span.form,
+        value: doc.slice(span.valueStart, span.valueEnd),
+        items: span.items.map(item => ({
+          value: doc.slice(item.valueStart, item.valueEnd),
+          prefix: doc.slice(item.lineStart, item.valueStart),
+        })),
+      };
     }
-    return { data, errors, spans: resolved };
-  }, { doc, withSpans });
+  }
+  return { data, errors, spans: resolved };
 }
 
 const block = (yaml) => `---\n${yaml}\n---\n\n# Body\n`;
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-});
-
 // The table in §0 of plans/completed/yaml-parser.md: every one of these used to produce an empty object,
 // shown in the table as [object Object].
-test('a list is read whatever whitespace precedes the dash', async ({ page }) => {
-  const spaces = await parse(page, block('tags:\n  - web\n  - prod'));
-  const tab = await parse(page, block('tags:\n\t- web\n\t- prod'));
-  const flush = await parse(page, block('tags:\n- web\n- prod'));
-  const nbsp = await parse(page, block('tags:\n\u00a0- web\n\u00a0- prod'));
+test('a list is read whatever whitespace precedes the dash', async () => {
+  const spaces = await parse(block('tags:\n  - web\n  - prod'));
+  const tab = await parse(block('tags:\n\t- web\n\t- prod'));
+  const flush = await parse(block('tags:\n- web\n- prod'));
+  const nbsp = await parse(block('tags:\n\u00a0- web\n\u00a0- prod'));
 
   for (const result of [spaces, tab, flush, nbsp]) {
     expect(result.data).toEqual({ tags: ['web', 'prod'] });
@@ -52,8 +48,8 @@ test('a list is read whatever whitespace precedes the dash', async ({ page }) =>
   }
 });
 
-test('a dash line holding a colon is a list item, and says so', async ({ page }) => {
-  const { data, errors } = await parse(page, block('tags:\n  - apple: red'));
+test('a dash line holding a colon is a list item, and says so', async () => {
+  const { data, errors } = await parse(block('tags:\n  - apple: red'));
 
   // Previously read as a key named '- apple', with nothing recorded.
   expect(data).toEqual({ tags: ['apple: red'] });
@@ -61,51 +57,51 @@ test('a dash line holding a colon is a list item, and says so', async ({ page })
   expect(errors[0]).toContain('list item holding a key');
 });
 
-test('a key left holding nothing is dropped rather than stored as an empty object', async ({ page }) => {
-  expect((await parse(page, block('foo:\nbar: 1'))).data).toEqual({ bar: 1 });
-  expect((await parse(page, block('a:\n  b:\nc: 1'))).data).toEqual({ c: 1 });
+test('a key left holding nothing is dropped rather than stored as an empty object', async () => {
+  expect((await parse(block('foo:\nbar: 1'))).data).toEqual({ bar: 1 });
+  expect((await parse(block('a:\n  b:\nc: 1'))).data).toEqual({ c: 1 });
 });
 
-test('flow lists are read, quoted items included', async ({ page }) => {
-  expect((await parse(page, block('tags: [ web, production ]'))).data).toEqual({ tags: ['web', 'production'] });
-  expect((await parse(page, block('tags: ["spider web", "production"]'))).data).toEqual({ tags: ['spider web', 'production'] });
-  expect((await parse(page, block('tags: [web]'))).data).toEqual({ tags: ['web'] });
-  expect((await parse(page, block('tags: []'))).data).toEqual({ tags: [] });
+test('flow lists are read, quoted items included', async () => {
+  expect((await parse(block('tags: [ web, production ]'))).data).toEqual({ tags: ['web', 'production'] });
+  expect((await parse(block('tags: ["spider web", "production"]'))).data).toEqual({ tags: ['spider web', 'production'] });
+  expect((await parse(block('tags: [web]'))).data).toEqual({ tags: ['web'] });
+  expect((await parse(block('tags: []'))).data).toEqual({ tags: [] });
 });
 
-test('a bracket that does not open a list is left as text', async ({ page }) => {
-  const prose = await parse(page, block('note: [draft] needs work'));
+test('a bracket that does not open a list is left as text', async () => {
+  const prose = await parse(block('note: [draft] needs work'));
   expect(prose.data).toEqual({ note: '[draft] needs work' });
   expect(prose.errors).toEqual([]);
 
-  const unclosed = await parse(page, block('tags: [a, b'));
+  const unclosed = await parse(block('tags: [a, b'));
   expect(unclosed.data).toEqual({ tags: '[a, b' });
   expect(unclosed.errors[0]).toContain('unclosed flow list');
 });
 
-test('nesting still works, with spaces, tabs, and lists flush with their key', async ({ page }) => {
-  expect((await parse(page, block('a:\n  b: 1\n  c: 2'))).data).toEqual({ a: { b: 1, c: 2 } });
-  expect((await parse(page, block('a:\n  b:\n    - x\n    - y\n  c: 3'))).data).toEqual({ a: { b: ['x', 'y'], c: 3 } });
-  expect((await parse(page, block('a:\n  b:\n  - x\n  - y\n  c: 3'))).data).toEqual({ a: { b: ['x', 'y'], c: 3 } });
-  expect((await parse(page, block('a:\n\tb: 1'))).data).toEqual({ a: { b: 1 } });
-  expect((await parse(page, block('tags:\n- web\nother: 1'))).data).toEqual({ tags: ['web'], other: 1 });
-  expect((await parse(page, block('a:\n- 1\nb:\n- 2'))).data).toEqual({ a: [1], b: [2] });
+test('nesting still works, with spaces, tabs, and lists flush with their key', async () => {
+  expect((await parse(block('a:\n  b: 1\n  c: 2'))).data).toEqual({ a: { b: 1, c: 2 } });
+  expect((await parse(block('a:\n  b:\n    - x\n    - y\n  c: 3'))).data).toEqual({ a: { b: ['x', 'y'], c: 3 } });
+  expect((await parse(block('a:\n  b:\n  - x\n  - y\n  c: 3'))).data).toEqual({ a: { b: ['x', 'y'], c: 3 } });
+  expect((await parse(block('a:\n\tb: 1'))).data).toEqual({ a: { b: 1 } });
+  expect((await parse(block('tags:\n- web\nother: 1'))).data).toEqual({ tags: ['web'], other: 1 });
+  expect((await parse(block('a:\n- 1\nb:\n- 2'))).data).toEqual({ a: [1], b: [2] });
 });
 
-test('shapes the parser does not support are reported rather than mangled', async ({ page }) => {
-  const onArray = await parse(page, block('items:\n  - name: a\n    id: 1'));
+test('shapes the parser does not support are reported rather than mangled', async () => {
+  const onArray = await parse(block('items:\n  - name: a\n    id: 1'));
   expect(onArray.errors.some(text => text.includes('key inside a list'))).toBe(true);
 
-  const orphan = await parse(page, block('title: X\n- orphan'));
+  const orphan = await parse(block('title: X\n- orphan'));
   expect(orphan.data).toEqual({ title: 'X' });
   expect(orphan.errors[0]).toContain('no parent key');
 
-  const filled = await parse(page, block('a:\n  x: 1\n- 2'));
+  const filled = await parse(block('a:\n  x: 1\n- 2'));
   expect(filled.errors[0]).toContain('already holds values');
 });
 
-test('values keep their types, and Infinity stays text', async ({ page }) => {
-  const { data } = await parse(page, block('a: true\nb: false\nc: null\nd: ~\ne: 12\nf: "12"\ng: 2025-09-30\nh: Infinity\ni: http://a.b/c:8080'));
+test('values keep their types, and Infinity stays text', async () => {
+  const { data } = await parse(block('a: true\nb: false\nc: null\nd: ~\ne: 12\nf: "12"\ng: 2025-09-30\nh: Infinity\ni: http://a.b/c:8080'));
   expect(data).toEqual({
     a: true, b: false, c: null, d: null, e: 12, f: '12',
     g: '2025-09-30', h: 'Infinity', i: 'http://a.b/c:8080',
@@ -113,31 +109,29 @@ test('values keep their types, and Infinity stays text', async ({ page }) => {
 });
 
 // §6.1: the shape that used to have its first paragraphs eaten, and the shape that must not be.
-test('a setext heading no longer claims the front matter block', async ({ page }) => {
+test('a setext heading no longer claims the front matter block', async () => {
   const setext = 'My Title\n---\n\nSome body text.\n\nAnother section\n---\n\nmore text';
-  expect((await parse(page, setext)).data).toEqual({});
+  expect((await parse(setext)).data).toEqual({});
 
   const rules = '# Title\n\n---\n\nSection one\n\n---\n\nSection two';
-  expect((await parse(page, rules)).data).toEqual({});
+  expect((await parse(rules)).data).toEqual({});
 });
 
-test('front matter under an ATX heading is still front matter', async ({ page }) => {
+test('front matter under an ATX heading is still front matter', async () => {
   const doc = '# my title \n---\nday: Monday\n---\n';
-  expect((await parse(page, doc)).data).toEqual({ day: 'Monday' });
+  expect((await parse(doc)).data).toEqual({ day: 'Monday' });
 });
 
-test('a note whose front matter is eaten keeps its body in the rendered output', async ({ page }) => {
-  const rendered = await page.evaluate(async () => {
-    const { parseContent } = await import('/public/js/services/parse-content.js');
-    return parseContent('My Title\n---\n\nSome body text.\n\nAnother section\n---\n\nmore text');
-  });
+test('a note whose front matter is eaten keeps its body in the rendered output', async () => {
+  const { parseContent } = await appModule('services/parse-content.js');
+  const rendered = parseContent('My Title\n---\n\nSome body text.\n\nAnother section\n---\n\nmore text');
   expect(rendered).toContain('Some body text.');
   expect(rendered).toContain('Another section');
 });
 
-test('spans point at each value, and at each item of a list', async ({ page }) => {
+test('spans point at each value, and at each item of a list', async () => {
   const doc = '---\ntitle: Hello\ntags:\n  - web\n  # a comment inside the list\n  - prod\nflush:\n- a\n- b\nflow: [x, "y z"]\nnest:\n  deep: 1\n---\n';
-  const { spans } = await parse(page, doc, true);
+  const { spans } = await parse(doc, true);
 
   expect(spans.title).toMatchObject({ form: 'scalar', value: ' Hello' });
   expect(spans.nest).toMatchObject({ form: 'map', value: '\n  deep: 1' });
@@ -155,38 +149,36 @@ test('spans point at each value, and at each item of a list', async ({ page }) =
   expect(spans.flow.items.map(item => item.value)).toEqual(['x', '"y z"']);
 });
 
-test('editing one list item leaves every other byte alone, comments included', async ({ page }) => {
+test('editing one list item leaves every other byte alone, comments included', async () => {
   const doc = '---\ntitle: Hello\ntags:\n  - web\n  # a comment inside the list\n  - prod\n---\n\nBody\n';
-  const edited = await page.evaluate(async (doc) => {
-    const { parseYaml } = await import('/public/js/services/file-parsing/yaml-parse.js');
-    const spans = new Map();
-    parseYaml(doc, [], spans);
-    const item = spans.get('tags').items[1];
-    return doc.slice(0, item.valueStart) + 'staging' + doc.slice(item.valueEnd);
-  }, doc);
+  const { parseYaml } = await appModule('services/file-parsing/yaml-parse.js');
+  const spans = new Map();
+  parseYaml(doc, [], spans);
+  const item = spans.get('tags').items[1];
+  const edited = doc.slice(0, item.valueStart) + 'staging' + doc.slice(item.valueEnd);
 
   expect(edited).toBe('---\ntitle: Hello\ntags:\n  - web\n  # a comment inside the list\n  - staging\n---\n\nBody\n');
 });
 
-test('an inserted item copies the indentation already in the file', async ({ page }) => {
-  const insert = async (doc) => page.evaluate(async (doc) => {
-    const { parseYaml } = await import('/public/js/services/file-parsing/yaml-parse.js');
+test('an inserted item copies the indentation already in the file', async () => {
+  const { parseYaml } = await appModule('services/file-parsing/yaml-parse.js');
+  const insert = (doc) => {
     const spans = new Map();
     parseYaml(doc, [], spans);
     const items = spans.get('tags').items;
     const last = items[items.length - 1];
     const prefix = doc.slice(last.lineStart, last.valueStart);
     return doc.slice(0, last.valueEnd) + '\n' + prefix + 'added' + doc.slice(last.valueEnd);
-  }, doc);
+  };
 
-  expect(await insert('---\ntags:\n  - web\n---\n')).toBe('---\ntags:\n  - web\n  - added\n---\n');
-  expect(await insert('---\ntags:\n- web\n---\n')).toBe('---\ntags:\n- web\n- added\n---\n');
-  expect(await insert('---\ntags:\n\t- web\n---\n')).toBe('---\ntags:\n\t- web\n\t- added\n---\n');
+  expect(insert('---\ntags:\n  - web\n---\n')).toBe('---\ntags:\n  - web\n  - added\n---\n');
+  expect(insert('---\ntags:\n- web\n---\n')).toBe('---\ntags:\n- web\n- added\n---\n');
+  expect(insert('---\ntags:\n\t- web\n---\n')).toBe('---\ntags:\n\t- web\n\t- added\n---\n');
 });
 
-test('spans and splices survive CRLF line endings', async ({ page }) => {
+test('spans and splices survive CRLF line endings', async () => {
   const doc = '---\r\ntitle: Hi\r\ntags:\r\n  - a\r\n  - b\r\n---\r\nbody';
-  const { data, spans } = await parse(page, doc, true);
+  const { data, spans } = await parse(doc, true);
 
   expect(data).toEqual({ title: 'Hi', tags: ['a', 'b'] });
   // The '\r' belongs to the line ending, not the value — a span that swallowed it would delete it.
@@ -213,18 +205,18 @@ test('the new shapes register as properties when a folder is loaded', async ({ p
   ]);
 });
 
-test('a block opening on the first line is front matter even when none of it parses', async ({ page }) => {
+test('a block opening on the first line is front matter even when none of it parses', async () => {
   // Nothing precedes the separator, so it cannot be a thematic break — the file is claiming
   // front matter, and a block that then fails to parse should report itself rather than go quiet.
-  const { data, errors } = await parse(page, '---\na line with no colon\n---\n\n# Title\n');
+  const { data, errors } = await parse('---\na line with no colon\n---\n\n# Title\n');
 
   expect(data).toEqual({});
   expect(errors).toHaveLength(1);
   expect(errors[0]).toContain('unrecognised line');
 });
 
-test('below the first line, a block of prose is not claimed', async ({ page }) => {
-  const { data, errors } = await parse(page, '# my title\n---\nnot front matter\n---\n');
+test('below the first line, a block of prose is not claimed', async () => {
+  const { data, errors } = await parse('# my title\n---\nnot front matter\n---\n');
   expect(data).toEqual({});
   expect(errors).toEqual([]);
 });
@@ -235,61 +227,51 @@ test('below the first line, a block of prose is not claimed', async ({ page }) =
 // never disagree about where an item ends. See plans/completed/table-cell-editors.md §3.
 
 /**
- * Runs splitFlowItems in the page.
- * @param {import('@playwright/test').Page} page
+ * splitFlowItems, called directly.
  * @param {string} text
  */
-const split = (page, text) => page.evaluate(async text => {
-  const { splitFlowItems } = await import('/public/js/services/file-parsing/flow-list.js');
-  return splitFlowItems(text);
-}, text);
+const split = async (text) =>
+  (await appModule('services/file-parsing/flow-list.js')).splitFlowItems(text);
 
 /**
- * Runs joinFlowItems in the page, then reads it straight back.
- * @param {import('@playwright/test').Page} page
+ * joinFlowItems, read straight back.
  * @param {string[]} items
  */
-const roundTrip = (page, items) => page.evaluate(async items => {
-  const { splitFlowItems, joinFlowItems } = await import('/public/js/services/file-parsing/flow-list.js');
+const roundTrip = async (items) => {
+  const { splitFlowItems, joinFlowItems } = await appModule('services/file-parsing/flow-list.js');
   const text = joinFlowItems(items);
   return { text, back: splitFlowItems(text) };
-}, items);
+};
 
-test('a comma-separated line reads back as its items', async ({ page }) => {
-  await page.goto('/');
-  expect(await split(page, 'John Smith, Jane Doe')).toEqual(['John Smith', 'Jane Doe']);
-  expect(await split(page, '"Doe, Jane", Sam')).toEqual(['Doe, Jane', 'Sam']);
+test('a comma-separated line reads back as its items', async () => {
+  expect(await split('John Smith, Jane Doe')).toEqual(['John Smith', 'Jane Doe']);
+  expect(await split('"Doe, Jane", Sam')).toEqual(['Doe, Jane', 'Sam']);
 });
 
-test('empty items and a trailing comma fall out, which the scanner already did', async ({ page }) => {
-  await page.goto('/');
-  expect(await split(page, ' a , , b,')).toEqual(['a', 'b']);
-  expect(await split(page, '')).toEqual([]);
+test('empty items and a trailing comma fall out, which the scanner already did', async () => {
+  expect(await split(' a , , b,')).toEqual(['a', 'b']);
+  expect(await split('')).toEqual([]);
 });
 
-test('a newline separates items too, and no quote protects it', async ({ page }) => {
+test('a newline separates items too, and no quote protects it', async () => {
   // Pasting a column out of a spreadsheet then does what it looks like it should, and no item can
   // hold a line break — which is the one thing that destroys a front matter block outright.
-  await page.goto('/');
-  expect(await split(page, 'a\nb\nc')).toEqual(['a', 'b', 'c']);
-  expect(await split(page, '"a\nb"')).toEqual(['"a', 'b"']);
-  expect(await split(page, 'a, b\nc, d')).toEqual(['a', 'b', 'c', 'd']);
+  expect(await split('a\nb\nc')).toEqual(['a', 'b', 'c']);
+  expect(await split('"a\nb"')).toEqual(['"a', 'b"']);
+  expect(await split('a, b\nc, d')).toEqual(['a', 'b', 'c', 'd']);
 });
 
-test('items that need quoting survive a round trip through the editor', async ({ page }) => {
-  await page.goto('/');
-
-  expect(await roundTrip(page, ['a', 'b'])).toEqual({ text: 'a, b', back: ['a', 'b'] });
+test('items that need quoting survive a round trip through the editor', async () => {
+  expect(await roundTrip(['a', 'b'])).toEqual({ text: 'a, b', back: ['a', 'b'] });
 
   for (const items of [['Smith, John', 'Jane'], ["it's, here"], ['say "hi", now'], ['  padded  ']]) {
-    const { back } = await roundTrip(page, items);
+    const { back } = await roundTrip(items);
     expect(back).toEqual(items.map(item => item.trim()));
   }
 });
 
-test('an item is not coerced to a number or a boolean on the way out', async ({ page }) => {
+test('an item is not coerced to a number or a boolean on the way out', async () => {
   // coerceValue would have: the editor deals in text, and what a value means is the parser's
   // business when the file is read back.
-  await page.goto('/');
-  expect(await split(page, '12, true, null')).toEqual(['12', 'true', 'null']);
+  expect(await split('12, true, null')).toEqual(['12', 'true', 'null']);
 });

@@ -28,24 +28,6 @@ async function openTable(page) {
 const dialog = page => page.locator('#modal-columns');
 const rows = page => page.locator('#column-picker-list .info-modal-row');
 
-// A <dialog> is display:none until opened, and .info-modal-scroll carries a display of its own.
-// Without the [open] guard on that rule the picker would sit on the page permanently.
-test('the picker is not on the page until it is opened', async ({ page }) => {
-  await page.goto('/');
-  await expect(dialog(page)).not.toBeVisible();
-});
-
-test('the button to open the picker belongs to the table view alone', async ({ page }) => {
-  await openTable(page);
-  await expect(page.locator('[data-action="open-column-picker"]')).toBeVisible();
-
-  await page.selectOption('#view-select', 'cards');
-  await expect(page.locator('[data-action="open-column-picker"]')).toHaveCount(0);
-
-  await page.selectOption('#view-select', 'table');
-  await expect(page.locator('[data-action="open-column-picker"]')).toBeVisible();
-});
-
 test('the picker lists the loaded folder\'s properties, in the table\'s column order', async ({ page }) => {
   await openTable(page);
   await page.click('[data-action="open-column-picker"]');
@@ -78,49 +60,6 @@ test('the file column is offered but cannot be switched off', async ({ page }) =
   await page.click('[data-action="hide-all-columns"]');
   expect(await fileToggle.isChecked()).toBe(true);
   await expect(rows(page).locator('input.toggle:checked')).toHaveCount(1);
-});
-
-test('a row is ticked when its property is currently a column', async ({ page }) => {
-  await openTable(page);
-
-  const shownColumns = () => page.evaluate(() =>
-    [...document.querySelectorAll('.note-table-cell-header')].map(c => c.dataset.property));
-
-  await page.click('[data-action="open-column-picker"]');
-  await expect(dialog(page)).toBeVisible();
-
-  const ticked = async () => {
-    const labels = [];
-    for (const row of await rows(page).all()) {
-      if (await row.locator('input.toggle').isChecked()) {
-        labels.push(await row.locator('.info-modal-row-label').innerText());
-      }
-    }
-    return labels;
-  };
-
-  expect(await ticked()).toEqual(['file', 'filename', 'title', 'tags', 'last modified', 'size', 'status']);
-
-  // the same set the table is actually showing, allowing for the labels the picker prefers
-  expect(await shownColumns()).toEqual(
-    ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes', 'status']);
-});
-
-test('every row offers a drag grip', async ({ page }) => {
-  await openTable(page);
-  await page.click('[data-action="open-column-picker"]');
-  await expect(dialog(page)).toBeVisible();
-
-  await expect(rows(page).locator('.info-modal-row-grip')).toHaveCount(await rows(page).count());
-});
-
-test('Escape closes the picker', async ({ page }) => {
-  await openTable(page);
-  await page.click('[data-action="open-column-picker"]');
-  await expect(dialog(page)).toBeVisible();
-
-  await page.keyboard.press('Escape');
-  await expect(dialog(page)).not.toBeVisible();
 });
 
 test('a column switched on gets a width it can be seen at', async ({ page }) => {

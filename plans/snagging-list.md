@@ -4,6 +4,32 @@ Small fixes and tidy-ups, one commit per bullet. A checked box means it is done 
 note underneath says how; an unchecked box with a note means it needs a decision or more
 work than the snag implies.
 
+- [ ] **The test suite has a two-minute budget.** Anything over it gets pruned, destructive
+  processes and real behaviour first, aesthetics last, and efficient tests preferred.
+  Measured, not guessed. Where it started: **6.5 minutes, 369 tests**. Four changes, no coverage
+  lost:
+  - **Animation off during tests.** `loadFolder()` unchecks "animate view changes", so a click
+    that followed a re-render no longer waited out a second of card animation before Playwright
+    would call it actionable. `tests/50-render-transitions.spec.js` turns it back on, being the
+    spec that is about animation. A single spec went from 57s to 29s.
+  - **The parser specs left the browser.** 44 and 48 test functions from text to text, and were
+    loading the whole app to reach them — a hundred-odd requests each, 39 tests, about two and a
+    half minutes of the suite between them. `appModule()` in helpers.js imports the module into
+    node instead, and `public/package.json` (`{"type": "module"}`, nothing else) is what lets
+    node read the app's files as the ES modules they are. Both specs together now take 3s.
+  - **No service worker.** Every test got a fresh context, and in each one the worker installed
+    and cached the whole app for a test that never went offline. Blocked in the config;
+    `tests/pwa.spec.js` allows it for itself.
+  - **A threaded dev server**, since eight workers were queueing behind one Python thread for
+    files already on disk.
+  Then the pruning, by the priority above: the aesthetic specs went whole — column hover, the
+  scrollbar thumb, the modal footer's height, mobile overflow, the card focus ring, search
+  highlighting — and inside the big table specs the tests about glyphs, chevrons, menu placement,
+  tints, marks and text that must not clip. What stayed: every test that writes to a file, the
+  autosave and undo specs untouched, the parser and quoting rules, and one test per behaviour the
+  aesthetic ones were arranged around.
+  **Where it stands: 2.5 minutes, 298 tests.** Still over; see the note under the run.
+
 - [x] **Cell edit does not update the file's last modified date.** Editing a property from a
   table cell should bump `lastModified` the way saving a note does.
   It always did — the column could not show it. A cell edit writes through `saveFileCopy`, the

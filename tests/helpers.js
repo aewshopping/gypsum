@@ -1,3 +1,6 @@
+const { join } = require('path');
+const { pathToFileURL } = require('url');
+
 /**
  * Injects a mock version of window.showDirectoryPicker into the page
  * before the app's JavaScript runs. This lets tests simulate loading
@@ -885,13 +888,57 @@ async function setupMockDirectoryWithNoteCreation(page) {
 }
 
 /**
+ * Imports one of the app's modules straight into Node, for a test of a function that has nothing to
+ * do with a page.
+ *
+ * The app is plain ES modules with no bundler, so node can load one as it stands. Reaching a pure
+ * function through a browser meant loading the whole app — a hundred-odd requests — for a test that
+ * takes a string and returns one: tests/44-yaml-parser.spec.js and tests/48-yaml-value-write.spec.js
+ * spent about two and a half minutes of the suite's time between them doing that.
+ *
+ * @param {string} path - Path under public/js, e.g. 'services/file-parsing/yaml-parse.js'.
+ * @returns {Promise<object>} The module.
+ */
+function appModule(modulePath) {
+  const url = pathToFileURL(join(__dirname, '../public/js', modulePath)).href;
+  // new Function, because Playwright compiles these spec files as CommonJS and rewrites a plain
+  // import() into a require(), which cannot load an ES module. This one is compiled at run time,
+  // so it is the real import().
+  return esmImport(url);
+}
+
+const esmImport = new Function('url', 'return import(url)');
+
+/**
+ * Turns "animate view changes" on or off, the setting rather than a copy of it.
+ *
+ * Off is what the suite runs with, and it is a large part of why it runs in the time it does: a
+ * view transition holds the page still and uninteractive for the length of its animation, so every
+ * click that followed a re-render waited out a second of card animation before Playwright would
+ * call the target actionable. The transitions themselves are covered by
+ * tests/50-render-transitions.spec.js, which turns them back on.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {boolean} wanted
+ */
+async function setViewTransitions(page, wanted) {
+  await page.evaluate((on) => {
+    const box = document.getElementById('view-transitions-enabled');
+    if (box) box.checked = on;
+  }, wanted);
+}
+
+/**
  * Clicks the mock folder picker. The folder button lives inside the recent files panel, so the
  * panel is opened to reach it and closed again afterwards, leaving the app in the state it starts
  * in — otherwise every later measurement would be shifted by the width of an open panel.
  *
+ * Animation goes off first, before anything has been rendered — see setViewTransitions.
+ *
  * @param {import('@playwright/test').Page} page
  */
 async function loadFolder(page) {
+  await setViewTransitions(page, false);
   await page.click('#btn-recent-toggle');
   await page.click('[data-action="load-folder"]');
   await page.click('#btn-recent-close');
@@ -973,4 +1020,4 @@ async function setupMockDirectoryWithLayouts(page, { longProp = false } = {}) {
   }, longProp);
 }
 
-module.exports = { loadFolder, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };
+module.exports = { loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };

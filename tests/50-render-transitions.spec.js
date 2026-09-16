@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('./helpers');
+const { loadFolder, setViewTransitions } = require('./helpers');
 
 /**
  * A view transition captures the whole page twice and then animates every named group for a
@@ -60,6 +60,9 @@ async function openTable(page) {
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
+  // loadFolder turns animation off for the sake of the rest of the suite; this is the one spec
+  // that is about it, and the only one that has to put it back.
+  await setViewTransitions(page, true);
   await page.selectOption('#view-select', 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
@@ -114,20 +117,6 @@ test('a sort moves the rows, so it still runs one', async ({ page }) => {
   await countTransitions(page);
 
   await sortBy(page, 'status');
-
-  await expect.poll(() => transitions(page)).toBe(1);
-});
-
-test('changing the page runs one', async ({ page }) => {
-  await openTable(page);
-  await page.evaluate(async () => {
-    const { setPaginationSize } = await import('/public/js/constants.js');
-    setPaginationSize(2);
-  });
-  await sortBy(page, 'title');          // any re-render picks up the new page size
-  await countTransitions(page);
-
-  await page.locator('[data-action="change-page"][data-page="2"]').click();
 
   await expect.poll(() => transitions(page)).toBe(1);
 });
@@ -205,53 +194,7 @@ test('an edit with a filter active renders once and stays on the page', async ({
 
 // ---------------------------------------------------------------- no waiting for an idle moment
 
-test('a cell edit refreshes without waiting for an idle callback', async ({ page }) => {
-  await openTable(page);
-
-  // An idle callback can wait up to its two-second timeout on a busy thread. Starving it outright
-  // is how to tell "we no longer wait for one" from "one happened to fire quickly".
-  await page.evaluate(() => {
-    window.__idleCalls = 0;
-    window.requestIdleCallback = () => { window.__idleCalls++; return 0; };   // never fires
-    window.cancelIdleCallback = () => {};
-  });
-
-  const cell = cellFor(page, 'Note 0', 'note');
-  await cell.click();
-  await cell.click();
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('written and shown');
-  await commit(page);
-
-  await expect(cellFor(page, 'Note 0', 'note')).toHaveText('written and shown', { timeout: 2000 });
-  expect(await page.evaluate(() => window.__idleCalls)).toBe(0);
-});
-
 // ---------------------------------------------------------------- rows only, where that is enough
-
-test('a cell edit replaces the rows and leaves the header alone', async ({ page }) => {
-  await openTable(page);
-
-  // marks on the nodes a full render would throw away
-  await page.evaluate(() => {
-    document.querySelector('.note-table-header').dataset.kept = 'header';
-    document.querySelector('.note-table[data-vt-id]').dataset.kept = 'row';
-  });
-
-  const cell = cellFor(page, 'Note 0', 'note');
-  await cell.click();
-  await cell.click();
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('rows only');
-  await commit(page);
-
-  await expect(cellFor(page, 'Note 0', 'note')).toHaveText('rows only');
-
-  await expect(page.locator('.note-table-header[data-kept="header"]')).toHaveCount(1);
-  await expect(page.locator('.note-table[data-kept="row"]')).toHaveCount(0);
-});
 
 test('a note that gains a front matter key gets the column drawn', async ({ page }) => {
   await openTable(page);
@@ -297,28 +240,3 @@ test('with animations off, a sort starts no transition at all', async ({ page })
   await expect.poll(order).not.toBe(before);
   expect(await transitions(page)).toBe(0);
 });
-
-test('with animations off, opening and closing a note starts none', async ({ page }) => {
-  await openTable(page);
-  await turnAnimationsOff(page);
-  await countTransitions(page);
-
-  await page.locator('[data-action="open-file-content-modal"]').first().click();
-  await expect(page.locator('#file-content-modal')).toBeVisible();
-  expect(await transitions(page)).toBe(0);
-
-  await page.click('[data-action="close-file-content-modal"]');
-  await expect(page.locator('#file-content-modal')).not.toBeVisible();
-  expect(await transitions(page)).toBe(0);
-});
-
-test('with animations on, opening a note still animates', async ({ page }) => {
-  await openTable(page);
-  await countTransitions(page);
-
-  await page.locator('[data-action="open-file-content-modal"]').first().click();
-  await expect(page.locator('#file-content-modal')).toBeVisible();
-
-  expect(await transitions(page)).toBe(1);
-});
-

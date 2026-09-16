@@ -14,6 +14,10 @@ module.exports = defineConfig({
   workers: 8,
   use: {
     baseURL,
+    // Every test gets a fresh context, and in each one the page registered the service worker and
+    // let it cache the whole app — a hundred-odd files — for tests that never go offline.
+    // tests/pwa.spec.js, which is about the worker, allows it again for itself.
+    serviceWorkers: 'block',
   },
   webServer: {
     command: 'python -m http.server 8000',

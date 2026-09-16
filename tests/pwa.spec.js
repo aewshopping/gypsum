@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+// The rest of the suite blocks the service worker — see playwright.config.js. This spec is the one
+// that is about it.
+test.use({ serviceWorkers: 'allow' });
+
 test('the manifest is linked and valid, and the service worker activates', async ({ page }) => {
   await page.goto('/');
   expect(await page.getAttribute('link[rel="manifest"]', 'href')).toBe('manifest.json');

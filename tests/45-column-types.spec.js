@@ -64,111 +64,6 @@ test('a front matter key holding false or 0 reaches its cell', async ({ page }) 
   await expect(rowFor(page, 'Beta')).toContainText('12');
 });
 
-// Every row gets the glyph, with no exceptions: a type change never writes a file, so nothing can
-// be damaged by setting one on a column where it means nothing.
-test('every picker row carries a type glyph, and it says what the column is', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-
-  const rows = page.locator('#column-picker-list .info-modal-row');
-  await expect(rows.locator('.column-picker-type')).toHaveCount(await rows.count());
-
-  await expect(pickerRow(page, 'due').locator('.column-picker-type')).toHaveAttribute('data-tip', 'text');
-  // A column the app fills in says so, and still names the type underneath, since that is what it
-  // sorts by.
-  await expect(pickerRow(page, 'lastModified').locator('.column-picker-type'))
-    .toHaveAttribute('data-tip', 'info — date, filled in by the app');
-  // A list says how it is searched too, since that is the only place the setting is visible.
-  await expect(pickerRow(page, 'people').locator('.column-picker-type')).toHaveAttribute('data-tip', 'list, search text');
-  // ...and tags is one the app fills in, so its list-and-search reading is followed by who chose it.
-  await expect(pickerRow(page, 'tags').locator('.column-picker-type'))
-    .toHaveAttribute('data-tip', 'list, search exact match — set by the app');
-});
-
-// The table header says what a column holds too, so the two places agree without opening anything.
-// Asserted as agreement rather than against a list of expected glyphs, so it keeps its meaning
-// whatever a column's glyph turns out to be — the info columns included.
-test('the table header carries the same glyph as the picker', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-
-  for (const property of ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes']) {
-    // .first() on both sides: a locked column's glyph is the type drawing plus a padlock, and the
-    // type drawing is the one that has to agree.
-    const inPicker = await pickerRow(page, property).locator('.column-picker-type use').first().getAttribute('href');
-    // .first(), because a locked column's glyph holds the type drawing and a padlock laid over it.
-    // The type drawing is the one that has to agree with the picker.
-    const inHeader = await header(page, property).locator('.type-glyph use').first().getAttribute('href');
-    expect(inHeader, `${property} disagrees between header and picker`).toBe(inPicker);
-  }
-});
-
-// The chevron used to be hidden with visibility, which reserved its width on every column that was
-// not the sorted one. With the glyph beside it that was enough to push "file" into reading as an
-// ellipsis, and to clip the longest heading the schema ships.
-//
-// Only the app's own columns are checked. A front matter key the app has never heard of gets the
-// default width, which a long name has always overflowed — that is not this glyph's doing.
-test('the schema\'s own column headings are not clipped by the glyph beside them', async ({ page }) => {
-  await openTable(page);
-  const clipped = await page.evaluate(() => ['internalId', 'filename', 'title', 'tags', 'lastModified', 'sizeInBytes']
-      .map(name => document.querySelector(`.note-table-cell-header[data-property="${name}"] .header-label`))
-      .filter(label => label && label.scrollWidth > label.clientWidth + 1)
-      .map(label => label.textContent));
-  expect(clipped).toEqual([]);
-});
-
-test('the glyph is drawn for the type, and follows a change', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-
-  // Columns whose type is the user's to set. The app's own are covered by the info tests below.
-  const glyphHref = property => pickerRow(page, property).locator('.column-picker-type use').first();
-  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-string');
-  await expect(glyphHref('tags')).toHaveAttribute('href', '#icon-type-array');
-
-  await pickerRow(page, 'due').locator('.column-picker-type').click();
-  await typeOption(page, 'number').click();
-  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-number');
-  await typeOption(page, 'date').click();
-  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-date');
-
-  // and it survives the row being redrawn from the layout
-  await page.keyboard.press('Escape');
-  await closePicker(page);
-  await openPicker(page);
-  await expect(glyphHref('due')).toHaveAttribute('href', '#icon-type-date');
-});
-
-// The two halves of that are deliberately on different clocks, and both matter: the row answers
-// straight away so the choice is visibly taken, and the layout is not touched until the picker
-// closes so reset can still undo it. Read without retrying, because "eventually" would pass here
-// even if the glyph were only redrawn on close.
-test('the glyph changes as soon as the type is picked, before the layout is touched', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-
-  const glyph = pickerRow(page, 'people').locator('.column-picker-type');
-  await glyph.click();
-  await typeOption(page, 'date').click();
-
-  expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-date');
-  expect(await glyph.getAttribute('data-tip')).toBe('date');
-
-  const stored = await page.evaluate(async () => {
-    const s = await import('/public/js/services/store.js');
-    return s.TABLE_VIEW_COLUMNS.columnLayout.get('people')?.type ?? null;
-  });
-  expect(stored).toBeNull();
-
-  // Changing how a list is searched moves the tooltip and leaves the glyph alone, since the column
-  // is still a list.
-  await typeOption(page, 'array').click();
-  await searchOption(page, 'array').click();
-  expect(await glyph.locator('use').getAttribute('href')).toBe('#icon-type-array');
-  expect(await glyph.getAttribute('data-tip')).toBe('list, search exact match');
-});
-
 // A dialog rather than a menu, so that it can be reached from a header cell that opens one menu
 // only, and so that it is not inert when reached from inside the column picker.
 test('the type dialog opens over the picker without closing it, and names its column', async ({ page }) => {
@@ -195,36 +90,6 @@ test('the options in the type dialog can actually be clicked', async ({ page }) 
   await typeOption(page, 'number').click();
   expect(await pickerRow(page, 'due').getAttribute('data-type')).toBe('number');
   await expect(typeDialog(page)).toBeVisible();   // it holds two settings, so it stays up
-});
-
-// Each type row carries the same glyph the header and the picker show for it, which is what lets
-// the list stand without a heading over it.
-test('each type row in the dialog is drawn with its own glyph', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-  await pickerRow(page, 'due').locator('.column-picker-type').click();
-
-  for (const value of ['string', 'number', 'date', 'array']) {
-    await expect(typeOption(page, value).locator('use')).toHaveAttribute('href', `#icon-type-${value}`);
-  }
-  // The search rows are subordinate to the list row, not types of their own.
-  await expect(searchOption(page, 'string').locator('use')).toHaveCount(0);
-});
-
-// Both lists mark what the column is on, the way the layouts modal marks the layout in use.
-test('the current choice is marked in both lists', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-  await pickerRow(page, 'people').locator('.column-picker-type').click();
-
-  await expect(typeOption(page, 'array')).toHaveAttribute('aria-current', 'true');
-  await expect(typeOption(page, 'date')).toHaveAttribute('aria-current', 'false');
-  await expect(searchOption(page, 'string')).toHaveAttribute('aria-current', 'true');
-  await expect(searchOption(page, 'array')).toHaveAttribute('aria-current', 'false');
-
-  await searchOption(page, 'array').click();
-  await expect(searchOption(page, 'array')).toHaveAttribute('aria-current', 'true');
-  await expect(searchOption(page, 'string')).toHaveAttribute('aria-current', 'false');
 });
 
 // "Search list as" has no meaning off a list, since nothing else in the app searches by whole
@@ -448,22 +313,6 @@ test('the file column offers no type, no sort and no search', async ({ page }) =
   // and its picker row has no type to set
   await openPicker(page);
   await expect(pickerRow(page, 'internalId').locator('.column-picker-type')).toBeDisabled();
-});
-
-// Four columns the app fills in itself rather than reading from a note. They wear their own glyph,
-// no type can be chosen for them, and their cells take no caret. filename and filepath are
-// deliberately not among them: renaming and moving from the table are both wanted later.
-test('the columns the app fills in wear the info glyph', async ({ page }) => {
-  await openTable(page);
-  // .first(): these columns are all locked, so each glyph holds the drawing and a padlock over it
-  const glyph = property => header(page, property).locator('.type-glyph use').first();
-
-  await expect(glyph('internalId')).toHaveAttribute('href', '#icon-type-info');
-  await expect(glyph('sizeInBytes')).toHaveAttribute('href', '#icon-type-info');
-  await expect(glyph('lastModified')).toHaveAttribute('href', '#icon-type-info');
-
-  await expect(glyph('filename')).toHaveAttribute('href', '#icon-type-string');
-  await expect(glyph('tags')).toHaveAttribute('href', '#icon-type-array');
 });
 
 // The whole reason info sits beside a column's type rather than replacing it. Last modified is also

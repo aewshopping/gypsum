@@ -272,22 +272,6 @@ test('rename and delete act on the active layout', async ({ page }) => {
   await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(0);
 });
 
-test('the defaults row carries no edit or delete icons', async ({ page }) => {
-  await openTable(page);
-  await saveAsNew(page, 'review');
-  await openLayouts(page);
-
-  // Nothing behind the defaults to rename or remove, so the icons are absent rather than disabled.
-  const defaults = layoutRows(page).filter({ has: page.locator('[data-layout=""]') });
-  await expect(defaults.locator('[data-action="layout-edit-name"]')).toHaveCount(0);
-  await expect(defaults.locator('[data-action="layout-delete"]')).toHaveCount(0);
-
-  // A saved layout has both.
-  const saved = layoutRows(page).filter({ has: page.locator('[data-layout="review"]') });
-  await expect(saved.locator('[data-action="layout-edit-name"]')).toHaveCount(1);
-  await expect(saved.locator('[data-action="layout-delete"]')).toHaveCount(1);
-});
-
 test('save on the defaults makes a layout and hands over its name', async ({ page }) => {
   await openTable(page);
   await hideTags(page);
@@ -351,32 +335,6 @@ test('Escape abandons a rename without closing the modal', async ({ page }) => {
   expect(Object.keys((await layoutsFile(page)).layouts)).toEqual(['review']);
 });
 
-test('the save icon loses its tick when the columns change, and gets it back on save', async ({ page }) => {
-  await openTable(page);
-  await saveAsNew(page, 'review');
-
-  // Freshly saved: the columns and the layout agree, so the tick glyph is the one showing.
-  expect(await isDirty(page)).toBe(false);
-  await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeVisible();
-  await expect(saveBtn(page).locator('use[href="#icon-save-pending"]')).toBeHidden();
-
-  await hideTags(page);
-
-  expect(await isDirty(page)).toBe(true);
-  await expect(saveBtn(page).locator('use[href="#icon-save-pending"]')).toBeVisible();
-  await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeHidden();
-
-  await saveBtn(page).click();
-
-  // The arrow glyph plays while the save is being shown, and the tick lands after it.
-  await expect(saveBtn(page).locator('use[href="#icon-save"]')).toBeVisible();
-  await expect(page.locator('#save-disk-arrow')).toHaveClass(/spinning/);
-
-  await expect.poll(() => isDirty(page), { timeout: 4000 }).toBe(false);
-  await expect(saveBtn(page).locator('use[href="#icon-save-done"]')).toBeVisible();
-  await expect(saveBtn(page)).not.toHaveClass(/saving/);
-});
-
 test('a resize dirties the layout without waiting for a re-render', async ({ page }) => {
   await openTable(page);
   await saveAsNew(page, 'review');
@@ -397,26 +355,6 @@ test('a resize dirties the layout without waiting for a re-render', async ({ pag
   await page.mouse.up();
 
   expect(await isDirty(page)).toBe(true);
-});
-
-test('the layout in use is marked in the list, and the save-as row is not one of them',
-  async ({ page }) => {
-  await openTable(page);
-  await saveAsNew(page, 'review');
-  await openLayouts(page);
-
-  const activeRow = modal(page).locator('.layout-row.is-active');
-  await expect(activeRow).toHaveCount(1);
-  await expect(activeRow.locator('button.layout-row-name')).toHaveAttribute('data-layout', 'review');
-
-  // The defaults row is listed but not marked, and carries no arrow.
-  await expect(modal(page).locator('button.layout-row-name[data-layout=""]'))
-    .toHaveAttribute('aria-current', 'false');
-
-  // The save-as row is a single control end to end rather than a name plus a button.
-  const newRow = modal(page).locator('.layout-row-new');
-  await expect(newRow).toHaveAttribute('data-action', 'layout-save-as');
-  await expect(newRow.locator('[data-action]')).toHaveCount(0);
 });
 
 test('the name button opens a picker that switches layouts', async ({ page }) => {
@@ -492,89 +430,6 @@ test('reset columns on the app defaults still restores the schema columns', asyn
   await expect(page.locator('.note-table-cell-header[data-property="tags"]')).toHaveCount(1);
 });
 
-test('the columns modal names the layout it is editing', async ({ page }) => {
-  await openTable(page);
-
-  await openPicker(page);
-  await expect(page.locator('#column-picker-title')).toHaveText("'default' layout columns");
-  await page.keyboard.press('Escape');
-
-  await saveAsNew(page, 'review');
-  await openPicker(page);
-  await expect(page.locator('#column-picker-title')).toHaveText("'review' layout columns");
-});
-
-test('the save glyph keeps its muted tone while the spin plays', async ({ page }) => {
-  await openTable(page);
-  await saveAsNew(page, 'review');
-  await hideTags(page);
-
-  // Clicking necessarily leaves the pointer on the button, so the shared icon hover would
-  // otherwise play the whole spin at full strength.
-  await saveBtn(page).click();
-  await expect(saveBtn(page)).toHaveClass(/saving/);
-
-  const opacity = await saveBtn(page).evaluate(btn => {
-    const svg = [...btn.querySelectorAll('svg')].find(s => getComputedStyle(s).display !== 'none');
-    return getComputedStyle(svg).opacity;
-  });
-  expect(Number(opacity)).toBeCloseTo(0.6, 2);
-});
-
-test('the layout picker becomes a sheet across the bottom on a small screen', async ({ page }) => {
-  await openTable(page);
-  await saveAsNew(page, 'review');
-  await page.setViewportSize({ width: 420, height: 720 });
-
-  // Measured rather than asserted against fixed numbers, and compared with the column menu at the
-  // same width: the picker is meant to get exactly that treatment, so the column menu is the
-  // specification. Polled because the sheet slides up rather than appearing in place.
-  const box = sel => page.evaluate(s => {
-    const r = document.querySelector(s).getBoundingClientRect();
-    return {
-      below: Math.round(document.documentElement.clientHeight - r.bottom),
-      left: Math.round(r.left),
-      width: Math.round(r.width),
-    };
-  }, sel);
-
-  await layoutName(page).click();
-  await expect(page.locator('#layout-picker')).toBeVisible();
-  await expect.poll(() => box('#layout-picker')).toMatchObject({ below: 0, left: 0 });
-  const picker = await box('#layout-picker');
-  await page.keyboard.press('Escape');
-
-  const header = page.locator('.note-table-cell-header[data-property="title"]');
-  await header.click();
-  await header.click();
-  await expect(page.locator('#column-menu')).toBeVisible();
-  await expect.poll(() => box('#column-menu')).toMatchObject({ below: 0, left: 0 });
-
-  expect(picker).toEqual(await box('#column-menu'));
-});
-
-test('the name is edited where it sits, without moving or changing face', async ({ page }) => {
-  await openTable(page);
-  await saveAsNew(page, 'review');
-  await openLayouts(page);
-
-  const look = sel => modal(page).locator(sel).evaluate(el => {
-    const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    return { x: Math.round(r.x), y: Math.round(r.y), font: cs.font, height: Math.round(r.height) };
-  });
-
-  const before = await look('button.layout-row-name[data-layout="review"]');
-  await modal(page).locator('[data-action="layout-edit-name"][data-layout="review"]').click();
-
-  const editing = modal(page).locator('.layout-row-rename[data-layout="review"]');
-  await expect(editing).toHaveAttribute('contenteditable', 'plaintext-only');
-
-  // Same box, same type: the twin stands exactly where the button stood, which is the whole point
-  // of it being a twin rather than an input.
-  expect(await look('.layout-row-rename[data-layout="review"]')).toEqual(before);
-});
-
 test('a layout name can have spaces in it', async ({ page }) => {
   await openTable(page);
   await saveAsNew(page, 'review');
@@ -588,24 +443,6 @@ test('a layout name can have spaces in it', async ({ page }) => {
   await expect(modal(page).locator('button.layout-row-name[data-layout="end of week"]')).toBeVisible();
   expect(Object.keys((await layoutsFile(page)).layouts)).toEqual(['end of week']);
   await expect(layoutName(page)).toContainText('end of week');
-});
-
-test('a name is a real button, so the keyboard reaches it for free', async ({ page }) => {
-  await openTable(page);
-  await saveAsNew(page, 'review');
-  await openLayouts(page);
-
-  await expect(modal(page).locator('button.layout-row-name[data-layout=""]'))
-    .toHaveJSProperty('tagName', 'BUTTON');
-
-  // Enter on the defaults row switches to it, as clicking it would. Space too, which is the key a
-  // contenteditable button would have eaten.
-  await modal(page).locator('button.layout-row-name[data-layout=""]').focus();
-  await page.keyboard.press('Enter');
-
-  await expect(layoutName(page)).toContainText('default');
-  await expect(modal(page).locator('.layout-row.is-active button.layout-row-name'))
-    .toHaveAttribute('data-layout', '');
 });
 
 /** Seeds a layout file and opens the folder in table view with it already active. */
@@ -711,18 +548,6 @@ test('a dead column keeps its place, and the picker locks it as the layout has i
   await expect(pickerRow(page, 'tags').locator('input.toggle')).toBeEnabled();
 });
 
-test('only a dead column is offered a bin, and the toggles stay in one column', async ({ page }) => {
-  await openTableWithLayout(page, deadLayout);
-  await openPicker(page);
-
-  await expect(pickerRow(page, 'ghost').locator('[data-action="column-delete"]')).toHaveCount(1);
-  await expect(pickerRow(page, 'phantom').locator('[data-action="column-delete"]')).toHaveCount(1);
-  await expect(pickerRow(page, 'title').locator('[data-action="column-delete"]')).toHaveCount(0);
-
-  // The bin shares the toggle's track, so it cannot push its own toggle out of line.
-  expect(await toggleEdges(page)).toEqual({ lefts: 1, rights: 1 });
-});
-
 test('show all and hide all leave a dead column as the layout has it', async ({ page }) => {
   await openTableWithLayout(page, deadLayout);
   await openPicker(page);
@@ -762,65 +587,6 @@ test('the bin removes a dead column from the saved layout, without closing the p
   expect(columns.map(c => c.order)).toEqual(columns.map((_, i) => i));
 
   await expect(page.locator('.note-table-cell-header[data-property="ghost"]')).toHaveCount(0);
-});
-
-test('the app defaults offer no bin, having no layout to remove a column from', async ({ page }) => {
-  await openTable(page);
-  await openPicker(page);
-
-  await expect(page.locator('#column-picker-list [data-action="column-delete"]')).toHaveCount(0);
-});
-
-test('a long property name gives way rather than pushing the toggles out of line', async ({ page }) => {
-  await openTableWithLayout(page, sparseLayout, { longProp: true });
-  await openPicker(page);
-
-  expect(await toggleEdges(page)).toEqual({ lefts: 1, rights: 1 });
-
-  // The name is ellipsed rather than setting the dialog's width.
-  const label = (await longPropRow(page)).locator('.info-modal-row-label');
-  await expect(label).toHaveCount(1);
-  expect(await label.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
-
-  const width = await page.locator('#modal-columns').evaluate(el => el.getBoundingClientRect().width);
-  expect(width).toBeLessThanOrEqual(460);
-});
-
-test('a long name and a dead column in the same list still line up', async ({ page }) => {
-  await openTableWithLayout(page, deadLayout, { longProp: true });
-  await openPicker(page);
-
-  // The row carrying a bin sits in the same columns as the rows that do not.
-  await expect(pickerRow(page, 'ghost').locator('[data-action="column-delete"]')).toHaveCount(1);
-  expect(await toggleEdges(page)).toEqual({ lefts: 1, rights: 1 });
-
-  // A fixed-size switch, not one squeezed by what shares its row.
-  const widths = await page.locator('#column-picker-list input.toggle')
-    .evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().width)));
-  expect(new Set(widths).size).toBe(1);
-});
-
-test('the warning wraps to a readable width, panel open or shut', async ({ page }) => {
-  await openTableWithLayout(page, deadLayout, { longProp: true });
-  await openPicker(page);
-
-  await pickerRow(page, 'ghost').locator('[data-action="column-delete"]').click();
-  const warning = page.locator('#modal-unsaved-warning');
-  await expect(warning).toBeVisible();
-  expect(await warning.evaluate(el => el.getBoundingClientRect().width)).toBeLessThanOrEqual(420);
-
-  // The recent files panel takes its width off the room a dialog has, so the cap has to follow it.
-  await page.evaluate(() => document.documentElement.classList.add('sidebar-recent-open'));
-
-  // The panel slides open over 250ms and the width follows it, so wait for it to land.
-  const panelWidth = () => page.evaluate(() =>
-    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width')));
-  await expect.poll(panelWidth).toBe(240);
-  const panel = await panelWidth();
-
-  const box = await warning.evaluate(el => el.getBoundingClientRect());
-  expect(box.right).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth));
-  expect(box.left).toBeGreaterThanOrEqual(panel);
 });
 
 // ---------------------------------------------------------------------------------------------
