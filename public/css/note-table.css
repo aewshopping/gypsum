@@ -36,6 +36,9 @@
     align-items: center;
     gap: 8px;
     padding-block: 4px;
+    /* Room above and below, or the row is pressed between the filtered-files count and the
+       table header and reads as part of one or the other. */
+    margin-block: 8px;
 }
 
 /* The top scrollbar and the header live here, OUTSIDE .list-table, so they can stick

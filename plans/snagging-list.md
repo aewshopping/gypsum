@@ -6,7 +6,10 @@ work than the snag implies.
 
 - [ ] **Cell edit does not update the file's last modified date.** Editing a property from a
   table cell should bump `lastModified` the way saving a note does.
-- [ ] **Table controls element looks squashed.** Needs a little margin above and below.
+- [x] **Table controls element looks squashed.** Needs a little margin above and below.
+  `margin-block: 8px` on `.table-controls` in `css/note-table.css`, beside the padding it
+  already had — so the row is no longer pressed between the filtered-files count and the
+  table header.
 - [ ] **Select inputs resize a moment after opening.** The picker opens at one width and snaps
   to the width of its widest option ~500ms later. Seen on the view select and the file-content
   history select; the settings font selects do not do it.
