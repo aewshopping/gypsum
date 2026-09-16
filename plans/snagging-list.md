@@ -35,7 +35,14 @@ work than the snag implies.
   The redo button's tooltip now reads "redo cell edit | Ctrl+Y" — the key was already bound,
   only the tooltip named the less familiar one. A "Table view" group in the settings modal's
   shortcut list carries undo, redo and the Ctrl+Shift+Z spelling of redo.
-- [ ] **Row hover and column hover should use one colour**, and a more subtle one.
+- [x] **Row hover and column hover should use one colour**, and a more subtle one.
+  Both already mixed the same way, but each rule spelled the proportion out — including the
+  one `table-col-hover.js` inserts from JS. They now all read `--table-hover-mix`, which
+  replaces the unused `--table-hover-bg` token, and it moved from 80% to 92% of the cell's own
+  colour. A finished colour could not be shared, because a row mixes from its own `data-color`
+  and the file cell from its faded one; the proportion is what they have in common. Measured
+  after the change: a hovered row and a hovered column's cell both compute to
+  `oklch(0.92 …)`.
 - [x] **`files: XXX | ${source}` should read `files loaded: XXX | ${source}`**, to tell it apart
   from the "files filtered" report lower down.
   Both finished-load messages in `ui/load-progress-finish.js` now say "files loaded" — the
