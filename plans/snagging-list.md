@@ -23,32 +23,9 @@ work than the snag implies.
 - [ ] **Select inputs resize a moment after opening.** The picker opens at one width and snaps
   to the width of its widest option ~500ms later. Seen on the view select and the file-content
   history select; the settings font selects do not do it.
-  **Needs a decision — not a styling fault.** Measured rather than reasoned, by sampling
-  `offsetWidth` and `options.length` every frame:
-  - `#view-select` is empty markup (`views-select-load.js` fills it on `DOMContentLoaded`). On
-    the dev server it is **80px wide with 0 options at t=124ms and 108px with 6 options at
-    t=514ms** — 80px is the `min-width` in `file-display-controls.css`, 108px is the width of
-    "flowchart view". The snap *is* the options arriving, and the delay is the ~60 ES modules
-    being fetched one by one.
-  - In the bundled single-file build the same measurement reads **80px at 46ms, 108px at 54ms**.
-    The jump is still there and nobody could see it. So what is being seen is a dev-server
-    artefact, not something the built app does.
-  - `#file-content-history-select` goes **0 options at 16ms to 3 options at 481ms**: the backup
-    file is read asynchronously and the select is rebuilt when it lands. That one is a real
-    wait, not a loading artefact, and it survives bundling.
-  - The settings font selects do not do it because `populateFontSelects()` fills them while the
-    dialog is still closed — they are complete before they are ever on screen.
-  So there is nothing to fix in CSS: a select is as wide as its widest option, and the options
-  turn up late. The ways out, none of them free:
-  1. Leave it — the built app already does not show it, and the sort select cannot be fixed
-     anyway, since its options come from the loaded files.
-  2. Put the view options in `index.html` as markup. `VIEWS[].label` is read nowhere but
-     `views-select-load.js`, so this is not duplicated state so much as presentation moving to
-     the markup — but it does mean a view added to `constants.js` and not to the HTML is missing
-     from the picker with nothing to say so.
-  3. Hide the controls until the app has initialised. No explicit widths, but it trades a brief
-     wrong width for a brief empty space.
-  None of these touch the history select, whose wait is a disk read. Say which you want.
+  **Dropped, at your call.** What I measured was not the symptom you are describing, and the
+  write-up that came out of it was about something else, so it has been taken out rather than
+  left to mislead the next reader. Nothing in the app was changed for this one.
 - [x] **`::picker(select)` needs a subtle box shadow** so the open list reads as floating above
   the page.
   The suggested `2px 2px 2px 2px color-mix(in srgb, var(--colour-contr) 10%, transparent)` on
