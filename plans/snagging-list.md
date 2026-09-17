@@ -99,20 +99,19 @@ work than the snag implies. The previous list, all of it settled, is
   antialiasing on one glyph; the load arrow's hidden and spinning states are pixel-identical, and
   the spin still runs.
 
-- [ ] **Opening a file from the table should animate from the row, not from the link.** The modal
-  animates out of whatever was clicked — `handleOpenFileContent` hands the click target straight to
-  `openFileContent` as `animateFrom` — and in the table that target is the small "open" link inside
-  the file cell (`renderOpenFileLink`). The row is what stands for the file, so the row is what the
-  modal should grow out of and shrink back into: `.note-table[data-vt-id]`, which is already the
-  element everything else in the table addresses a row by.
-  Two details to keep: `openFileContent` reads `data-fileId` and `data-color` off the element it is
-  given, and the row carries `data-color` but not `data-file-id` — so either the row gains one or
-  the handler takes the ids from the link and the element from the row. And the way back goes
-  through `findFileCard`, which looks for `[data-action="open-file-content-modal"][data-file-id]`;
-  it has to find the same element the open animated from, or the close animates to the link while
-  the open animated from the row.
-  **List view is deliberately unchanged** — its open control stays the transition element it is
-  today.
+- [x] **Opening a file from the table should animate from the row, not from the link.** It does now:
+  `animationSource()` in `ui-functions-click/open-file-content-view-trans.js` climbs from whatever
+  was clicked to its `.note-table` row, and finds nothing to climb to in any other view — which is
+  how list view keeps its own open control without being told about it by name.
+  **Both ends ask the same question**, which is the whole of the fix: the open passes the click
+  target through it, and `findFileCard` passes what it found through it too, so the close shrinks
+  back into the element the open came out of. The ids still come off the clicked element, where
+  `data-file-id` and `data-color` live — only the element being animated changed.
+  Checked by screenshot on the first frame of the animation: the modal used to start as a small box
+  over the word "open" in the file column, and now starts as the row, full width. A test in
+  `tests/2-behaviour/50-render-transitions.spec.js` watches which element wears
+  `moving-file-content-view` — the row in the table, never the link, and the span in list view —
+  and it fails against the old code.
 
 - [ ] **List view should render property values the way the table does.** Each property in the list
   view is rendered ad hoc — `render-file-list-list.js` walks the file object's own keys and prints
