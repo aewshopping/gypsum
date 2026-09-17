@@ -893,7 +893,7 @@ async function setupMockDirectoryWithNoteCreation(page) {
  *
  * The app is plain ES modules with no bundler, so node can load one as it stands. Reaching a pure
  * function through a browser meant loading the whole app — a hundred-odd requests — for a test that
- * takes a string and returns one: tests/44-yaml-parser.spec.js and tests/48-yaml-value-write.spec.js
+ * takes a string and returns one: tests/1-data/44-yaml-parser.spec.js and tests/1-data/48-yaml-value-write.spec.js
  * spent about two and a half minutes of the suite's time between them doing that.
  *
  * @param {string} path - Path under public/js, e.g. 'services/file-parsing/yaml-parse.js'.
@@ -916,7 +916,7 @@ const esmImport = new Function('url', 'return import(url)');
  * view transition holds the page still and uninteractive for the length of its animation, so every
  * click that followed a re-render waited out a second of card animation before Playwright would
  * call the target actionable. The transitions themselves are covered by
- * tests/50-render-transitions.spec.js, which turns them back on.
+ * tests/2-behaviour/50-render-transitions.spec.js, which turns them back on.
  *
  * @param {import('@playwright/test').Page} page
  * @param {boolean} wanted

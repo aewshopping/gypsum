@@ -10,7 +10,7 @@ work than the snag implies.
   lost:
   - **Animation off during tests.** `loadFolder()` unchecks "animate view changes", so a click
     that followed a re-render no longer waited out a second of card animation before Playwright
-    would call it actionable. `tests/50-render-transitions.spec.js` turns it back on, being the
+    would call it actionable. `tests/2-behaviour/50-render-transitions.spec.js` turns it back on, being the
     spec that is about animation. A single spec went from 57s to 29s.
   - **The parser specs left the browser.** 44 and 48 test functions from text to text, and were
     loading the whole app to reach them — a hundred-odd requests each, 39 tests, about two and a
@@ -38,6 +38,11 @@ work than the snag implies.
   that writes to a file — the cell-writing spec, autosave's five exit routes, undo, the backups,
   the saves, delete and rename — and the parser and quoting rules, which now cost nothing to
   run.
+  **Superseded by the three levels**, which is the better answer to the same problem: a flat
+  budget makes every new test an argument about whether the suite can afford it. The suite is
+  now split by directory — `tests/1-data`, `tests/2-behaviour`, `tests/3-occasional` — a whole
+  spec sits at one level, `npm test` runs level 1 and appends any path you give it, and where a
+  new test goes is one question with one answer. See CLAUDE.md.
 
 - [x] **Cell edit does not update the file's last modified date.** Editing a property from a
   table cell should bump `lastModified` the way saving a note does.
@@ -49,7 +54,7 @@ work than the snag implies.
   Measured with a mock that keeps an mtime per file and bumps it on write, rather than the
   `Date.now()` every other mock reports: before the edit the cell read `1/2/2020`, after it
   `9/16/2026`. The info date now carries hours and minutes beside the date, and
-  `tests/53-cell-edit-modified-time.spec.js` holds both halves — that an edit moves the file
+  `tests/1-data/53-cell-edit-modified-time.spec.js` holds both halves — that an edit moves the file
   on, and that the same-day case shows.
   **The order was the other half, and it was not the comparator.** `compareByProperty` sorts a
   date by `getTime()`, so it has the time of day in it already. What kept the row where it was
