@@ -4,15 +4,24 @@ const MAX_SEARCH_LINES = 5;
 /**
  * Whether a line may sit above the opening separator without disqualifying it.
  *
- * In markdown a '---' underlines a paragraph, never a heading, so a separator following an ATX
- * heading cannot be a setext underline — which is what lets '# my title' sit above front matter
- * while 'My Title' cannot. Without this, a note written with underlined headings has the prose
- * after its first heading read as front matter and deleted from the rendered view.
+ * What this is for: in markdown a '---' underlines a paragraph, so a note written with underlined
+ * headings had the prose after its first heading read as front matter and deleted from the
+ * rendered view. Refusing prose above the separator is what stops that.
+ *
+ * A line of hashes is not prose. A heading is the case the markdown argues for — '---' cannot
+ * underline one, so '# my title' may sit above front matter while 'My Title' may not. A tag line
+ * is the case it argues against, since '#admin' is a paragraph and a '---' under it is a setext
+ * underline by the letter of the spec; it is allowed anyway, because a tag above one's own front
+ * matter is a shape people write and an underlined heading spelt '#admin' is not. One test covers
+ * both, which is why this asks for a leading hash rather than for a well-formed heading.
+ *
+ * The allowance is paid for below: when anything sits above the separator the block must also
+ * hold a key or a list item, so the shapes that would cost a note its body are still refused.
  *
  * @param {string} trimmed - A line with its surrounding whitespace removed.
- * @returns {boolean} True when the line is blank or an ATX heading.
+ * @returns {boolean} True when the line is blank, or is a heading or a line of tags.
  */
-const canPrecedeBlock = (trimmed) => trimmed === "" || /^#{1,6}(\s|$)/.test(trimmed);
+const canPrecedeBlock = (trimmed) => trimmed === "" || trimmed.startsWith("#");
 
 /**
  * Whether a line reads as front matter content rather than prose. Recognising a block and
@@ -32,9 +41,9 @@ const readsAsFrontMatter = (trimmed) =>
 /**
  * Locates the line indices of the YAML front-matter block, including the '---' separators.
  *
- * Nothing but blank lines and ATX headings may sit above the opening separator, which rejects a
- * setext underline. When something does sit above it, the block must also contain at least one
- * line that reads as front matter, which rejects prose caught between two horizontal rules. A
+ * Nothing but blank lines, headings and tag lines may sit above the opening separator, which
+ * rejects a setext underline. When something does sit above it, the block must also contain at
+ * least one line that reads as front matter, which rejects prose between two horizontal rules. A
  * separator on the first line is unambiguous and needs only the first test.
  *
  * @param {string} fullString - The raw content string.

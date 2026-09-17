@@ -476,6 +476,23 @@ Checked against the old behaviour:
 | `# Title`, rule, prose, rule | found — the same bug | **rejected**, by condition 2 |
 | all three fixtures in `tests/helpers.js` | found | found, same error counts |
 
+**Amended later: condition 1 is "blank, or a line starting with `#`".** As written above it asked
+for a well-formed ATX heading, so `#admin` — a note's own tag, sitting above its front matter —
+disqualified the block and the note loaded with no properties at all. The markdown argument does
+not stretch to cover the fix: a tag line *is* a paragraph, so a `---` below one is a setext
+underline by the letter of the spec. It is allowed regardless, because a tag above one's own front
+matter is a shape people write and an underlined heading spelt `#admin` is not.
+
+Condition 1 was measured before it was widened, since a rule that only refuses things invites the
+question of whether it earns its place. **It buys no speed** — deleting it outright costs 97.2 µs
+against 93.4 µs on a 4000-line note with no front matter, which is noise, and both are dominated by
+the `split("\n")` §7.3 declined to remove. **It cannot be dropped**, because condition 2 alone
+claims three ordinary shapes: a setext title over a bullet list, a setext title over any body
+holding a `Key: value` line, and prose above a blank line, a rule, colon lines and a rule. Each is
+the §6.1 data loss under another name. Condition 2 is still what pays for the widening — the tag
+equivalent of the setext trap, `#admin` then a rule then body paragraphs then a rule, holds neither
+a key nor a list item and is refused.
+
 Condition 2 is what keeps condition 1 from having to be strict. It is also why `broken-yaml.md`
 still works: it has one line that parses, `title: Broken Note`, so the block is recognised and the
 two lines that do not parse are recorded as errors exactly as they are today. **Recognising a
