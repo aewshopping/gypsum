@@ -1,5 +1,6 @@
 import { applyCellEdits } from '../../editing/save-cell-edit.js';
 import { markUndoState } from '../ui-functions-table/render-table-controls.js';
+import { holdRowMove } from '../ui-functions-table/pending-row-move.js';
 
 /**
  * @file Someone has finished editing a cell.
@@ -29,6 +30,11 @@ import { markUndoState } from '../ui-functions-table/render-table-controls.js';
  * question about the DOM, so it belongs on this side of the layer rather than in the write — and the
  * write's own re-render replaces the rows only, so nothing else would have redrawn the control row.
  *
+ * **And the row's move is held here too.** The write does not re-sort for this caller: the file's
+ * new last modified time usually belongs somewhere else in the order, but moving the row now takes
+ * it out from under the cell that is still selected. So the row is outlined instead, and goes when
+ * focus leaves it — see ui-functions-table/pending-row-move.js.
+ *
  * @param {HTMLElement} cell - The cell being closed.
  * @returns {void}
  */
@@ -36,11 +42,16 @@ export function commitCellEdit(cell) {
     const opened = cell.dataset.openedText;
     if (opened === undefined || cell.textContent === opened) return;
 
+    const internalId = cell.closest('.note-table').dataset.vtId;
+
     applyCellEdits([{
-        internalId: cell.closest('.note-table').dataset.vtId,
+        internalId,
         property: cell.dataset.prop,
         text: cell.textContent,
-    }])
-        .then(markUndoState)
+    }], { resort: false })
+        .then(() => {
+            markUndoState();
+            holdRowMove(internalId);
+        })
         .catch(error => console.error('Failed to write a cell edit:', error));
 }

@@ -113,6 +113,20 @@
 
 }
 
+/* A row that has been written to and belongs somewhere else in the sort order, waiting for you to
+   finish with it — see ui-functions-table/pending-row-move.js.
+
+   Dashed, because the row is telling you it is not where it belongs yet: the app already draws a
+   dashed outline on a cell that will not do what a solid one promises, and this is the same kind of
+   statement about a row. Inside the row rather than around it (the negative offset), so the table's
+   own horizontal clip cannot cut the left and right edges off it.
+
+   The same mix the undo mark fills with, which is the app's colour for "this just changed". */
+.note-table.move-pending {
+    outline: 2px dashed color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt));
+    outline-offset: -2px;
+}
+
 /* Also used in list view */
 .show-content-tag {
     --border-width: 2px;

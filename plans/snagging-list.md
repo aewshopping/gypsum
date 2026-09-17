@@ -67,6 +67,18 @@ work than the snag implies.
   mark on the cells it changed was landing on rows that were about to be replaced. `renderFiles`
   now hands back its `updateCallbackDone` and the refresh waits for it, which is what makes any
   mark on what was just drawn land on the elements that are actually on screen.
+  **Then the move was made to wait**, which is the version that shipped. Re-sorting the moment a
+  cell is finished with takes the row out from under the cell you are still in, so instead the row
+  is outlined — dashed, saying it is not where it belongs yet — and moves when focus leaves it.
+  `ui-functions-table/pending-row-move.js` holds it, `appState.pendingRowMove` is the one row
+  waiting, and the row renderer draws the outline from that state so it survives the renders that
+  happen while the row waits. The release goes through the same `focusin` handler that already
+  decides which cell is selected, so a click, Tab, the arrow keys and a focus put back by a render
+  all reach it the same way. Two cases the first attempt got wrong, both found by test:
+  a hold is only taken when focus is still in the row — leaving a cell by clicking the searchbox
+  is the write and the departure in one gesture, and the write lands after the departure, so there
+  is nobody in the row to protect and it moves at once; and any sort clears the hold, which is why
+  `sortAppStateFiles` is where that happens rather than at each of the paths that sort.
 - [x] **Table controls element looks squashed.** Needs a little margin above and below.
   `margin-block: 8px` on `.table-controls` in `css/note-table.css`, beside the padding it
   already had — so the row is no longer pressed between the filtered-files count and the

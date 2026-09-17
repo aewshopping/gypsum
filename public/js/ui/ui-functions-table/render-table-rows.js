@@ -74,8 +74,14 @@ export function renderTableRows(current_props, renderEverything) {
 
             // this is the "wrapper" div that contains the table row elements rendered above
             const tagList = file.tags instanceof Map ? [...file.tags.keys()].join(" ") : "";
+
+            // Drawn from state rather than left on the element, so a row holding a move keeps its
+            // outline through the renders that happen while it waits — another edit in the same
+            // row, an autosave. pending-row-move.js puts the same class on directly for the render
+            // that has already happened by the time it is asked.
+            const pending = file.internalId === appState.pendingRowMove ? ' move-pending' : '';
             rowsHtml += `
-                <div class="note-table ${tagList} color-dynamic-transparent-fallback" data-color="${file.color}" data-vt-id="${file.internalId}">
+                <div class="note-table ${tagList} color-dynamic-transparent-fallback${pending}" data-color="${file.color}" data-vt-id="${file.internalId}">
                     ${cellsHtml}
                 </div>
             `;

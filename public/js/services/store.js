@@ -39,6 +39,9 @@ export const appState = {
 
   viewState: VIEWS.PEEK.value, // sets initial view state
   sortState: { property: 'lastModified', direction: 'desc'},
+
+  // The row whose move is waiting for you to finish with it — see ui-functions-table/pending-row-move.js.
+  pendingRowMove: null,
   paginationState: {
     currentPage: 1,
     pageFileIds: new Set(),

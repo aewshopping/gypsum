@@ -39,9 +39,10 @@ import { pushUndoBatch } from './undo-cell-edits.js';
  * plans/table-undo-stack.md §11a.
  *
  * @param {Array<{internalId: string, property: string, text: string}>} edits
+ * @param {{resort?: boolean}} [options] - Passed to applyRawEdits; see there.
  * @returns {Promise<Array<object>>} One record per edit that changed a file — see applyRawEdits.
  */
-export async function applyCellEdits(edits) {
+export async function applyCellEdits(edits, options) {
     const rawEdits = edits.map(edit => {
         const type = propertyType(edit.property);
         return {
@@ -57,7 +58,7 @@ export async function applyCellEdits(edits) {
         };
     });
 
-    const records = await applyRawEdits(rawEdits);
+    const records = await applyRawEdits(rawEdits, options);
     pushUndoBatch(records);
     return records;
 }
@@ -123,14 +124,21 @@ function changedItem(text, span, items) {
  * one another — and the caller could not mark the cells it changed, because the rows do not exist
  * until the render has run. See plans/table-undo-stack.md §10.2.
  *
+ * `resort` is whether the refresh puts the files back in sort order. True by default, because a
+ * written file's last modified time has moved and that is what the table is sorted by until someone
+ * says otherwise. The one caller that passes false is a cell being finished with: there the move is
+ * held until focus leaves the row, which is ui-functions-table/pending-row-move.js's business, not
+ * this module's.
+ *
  * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
  *   expect?: string}>} rawEdits
+ * @param {{resort?: boolean}} [options] - `resort` false leaves the list in the order it is in.
  * @returns {Promise<Array<{internalId: string, property: string, before: string, after: string,
  *   existed: boolean}>>} One record per edit that changed a file, holding the key's whole value
  *   span before and after. This is what an undo entry is made of, and what a partly-applied undo
  *   hands to the redo stack — so an edit the check refused is simply absent from it.
  */
-export async function applyRawEdits(rawEdits) {
+export async function applyRawEdits(rawEdits, { resort = true } = {}) {
     const byFile = new Map();
     for (const edit of rawEdits) {
         if (!byFile.has(edit.internalId)) byFile.set(edit.internalId, []);
@@ -255,16 +263,14 @@ export async function applyRawEdits(rawEdits) {
     // Now rather than at the next idle moment: the user has just pressed a key to finish with this
     // cell and is watching the table. Autosave's deferral is for a save nobody asked for.
     //
-    // **And re-sorted.** Every write moves the file's last modified time, which is what the table
-    // is sorted by until someone says otherwise — so a list that kept its old order was saying the
-    // file had not been touched. It costs the thing this argument was added to avoid: the row can
-    // leave the place you were looking at. Nothing else is needed to find it again — selection
-    // follows focus, and keep-cell-state.js carries focus across the render by the row's id and the
-    // column, so the cell you were in is still the marked one wherever the row has gone.
+    // **Re-sorted unless the caller says otherwise.** Every write moves the file's last modified
+    // time, which is what the table is sorted by until someone says otherwise — so a list that kept
+    // its old order was saying the file had not been touched. An undo takes the sort at once, being
+    // nowhere near the rows; a cell being finished with holds it until focus leaves the row.
     //
     // Awaited, so that by the time this returns the rows the caller may want to mark are the ones
     // on screen.
-    if (written.length > 0) await refreshFilesNow(written, true);
+    if (written.length > 0) await refreshFilesNow(written, resort);
 
     return records;
 }
