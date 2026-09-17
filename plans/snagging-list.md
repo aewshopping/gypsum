@@ -113,24 +113,20 @@ work than the snag implies. The previous list, all of it settled, is
   `moving-file-content-view` — the row in the table, never the link, and the span in list view —
   and it fails against the old code.
 
-- [ ] **List view should render property values the way the table does.** Each property in the list
-  view is rendered ad hoc — `render-file-list-list.js` walks the file object's own keys and prints
-  `${value}` for anything that is not a Map or a nested object — so a date, a number and a list all
-  read as whatever JavaScript prints for them, and nothing is escaped. It should use the same
-  rendering the table uses (`ui-functions-table/render-cell-value.js`), so a value reads the same
-  wherever it is seen and a property's type means something in both views. **Render only** — no
-  cells, no carets, nothing editable — so it is `renderCellValue` that is shared, not the row
-  builder or the cell machinery around it.
-  Three exceptions, all deliberate:
-  - **`internalId` shows its value**, not an open-file link. In the table that column *is* the way
-    to open a note, which is why its cell holds a link and refuses a type; here the list already
-    has its own "open" control and the id should read as the id.
-  - **Plainer styling is fine.** The filename should not be italic here, though `renderFilename`
-    draws it that way for the table.
-  - **A list's items still get their CSS custom highlight**, as in the table —
-    `ui-functions-highlight/list-highlight.js`, whose `itemRangesIn()` is already the one answer to
-    where an item begins. That needs the same comma-joined single line the table cell holds, and the
-    same `data-list` mark on whatever element carries it.
-  Where a rendering function has to change to serve both, change the function rather than writing a
-  second one — the point of the snag is that there is one answer to "what does this value look
-  like".
+- [x] **List view should render property values the way the table does.** It does: every value in
+  the list is drawn by `renderCellValue`, the table's own renderer, asked for its plain form. What
+  that fixed, all of it visible in one screenshot of two notes: a value holding `<b>` was being
+  parsed as markup and put the rest of the list in bold, a list read `John Smith,Doe, Jane` with
+  nothing to say where an item ended, `lastModified` was blank, and `color` and `errorOnLoad` said
+  the word "null". A mismatched value now shows its text the way the table shows it.
+  **`plain` is the one thing the renderer had to learn**, and it names the exceptions rather than
+  hiding them: the file column wears an open-file link and the filename is italic *in the table*,
+  because there the link is the only way to open a note. Neither is about the value, so list view —
+  which has its own open control — passes `plain` and gets the id as an id and the filename as text.
+  Everything that is about the value is shared, which is the point.
+  **The item marks are shared too.** `updateListHighlights()` now looks for `[data-list]` rather
+  than `.note-table-cell[data-list]`, so a value span that says it holds a list is banded wherever
+  it is drawn; `itemRangesIn()` is unchanged and still the one answer to where an item begins.
+  Nothing here is editable and nothing here reaches the cell machinery — it renders and stops.
+  `tests/2-behaviour/03-view-switching.spec.js` holds the five things that were wrong, and fails
+  against the old renderer.

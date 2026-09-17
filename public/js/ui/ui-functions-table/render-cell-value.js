@@ -83,12 +83,22 @@ export function rendersAsList(prop, file, mismatch) {
 /**
  * The HTML for one cell's content.
  *
+ * **`plain` is what lets a view that only reads share this.** Two properties draw something other
+ * than their value in the table: the file column wears an open-file link, because the link is the
+ * only way to open a note from there, and the filename is set in italics. Neither is about the
+ * value, and both are wrong outside the table — list view has its own open control, so there the id
+ * should read as the id it is. Everything that *is* about the value — the type, the mismatch, the
+ * escaping, a list as one comma-joined line — is the same in both, which is the point of asking
+ * here rather than writing a second renderer.
+ *
  * @param {object} prop - The column, carrying `name` and the `type` propertyType() gave it.
  * @param {object} file - The file object the row is for.
  * @param {'shape'|'unreadable'|null} mismatch - What typeMismatch() said about this value.
+ * @param {boolean} [plain=false] - Draw every property as its own value, with no control and no
+ *   styling of the table's.
  * @returns {string} The cell's inner HTML.
  */
-export function renderCellValue(prop, file, mismatch) {
+export function renderCellValue(prop, file, mismatch, plain = false) {
     const value = file[prop.name];
 
     // A cell whose value cannot be drawn as its column's type shows its text and says so, rather
@@ -97,9 +107,9 @@ export function renderCellValue(prop, file, mismatch) {
 
     switch (prop.type) {
         case VALUE_TYPES.STRING.value:
-            if (prop.name === 'internalId') return renderOpenFileLink(file.internalId, file.color);
+            if (!plain && prop.name === 'internalId') return renderOpenFileLink(file.internalId, file.color);
             // the full path from the root, now that folders are loaded
-            if (prop.name === 'filename') return renderFilename(file.filepath || '');
+            if (!plain && prop.name === 'filename') return renderFilename(file.filepath || '');
             return escapeHtml(String(value ?? ''));
 
         case VALUE_TYPES.DATE.value:
