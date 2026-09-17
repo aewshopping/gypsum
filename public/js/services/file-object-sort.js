@@ -1,5 +1,6 @@
 // javascript
 import { appState } from './store.js';
+import { isDateType } from '../constants.js';
 
 /**
  * Converts a date string into a numerical timestamp.
@@ -24,7 +25,7 @@ function getTimestamp(dateValue) {
  * any list of objects — the history overview sorts its rows with it too.
  *
  * @param {string} property The name of the property to sort by.
- * @param {string} dataType The data type of the property ('string', 'number', 'date', 'array').
+ * @param {string} dataType The data type of the property ('string', 'number', 'date', 'datetime', 'array').
  * @param {string} [sortOrder='asc'] The sort order, either 'asc' for ascending or 'desc' for descending.
  * @returns {(a: object, b: object) => number} Comparator function.
  */
@@ -43,6 +44,7 @@ export function compareByProperty(property, dataType, sortOrder = 'asc') {
         
         switch (dataType) {
             case 'date':
+            case 'datetime':
                 // Use helper to handle null/undefined/empty string and Invalid Date strings, normalizing them to NaN
                 normA = getTimestamp(valA);
                 normB = getTimestamp(valB);
@@ -65,7 +67,7 @@ export function compareByProperty(property, dataType, sortOrder = 'asc') {
             if (typeof value === 'string' && value === '') return true; 
 
             // Check for invalid date (NaN timestamp)
-            if (type === 'date' && isNaN(value)) return true;
+            if (isDateType(type) && isNaN(value)) return true;
             
             return false;
         };
@@ -92,6 +94,7 @@ export function compareByProperty(property, dataType, sortOrder = 'asc') {
 
             case 'number':
             case 'date':
+            case 'datetime':
                 // Comparison works for both numbers and date timestamps (non-NaN)
                 comparison = normA - normB; 
                 break;
@@ -115,7 +118,7 @@ export function compareByProperty(property, dataType, sortOrder = 'asc') {
 /**
  * Sorts the `appState.myFiles` array in place based on a specified property and data type.
  * @param {string} property The name of the property on the file objects to sort by.
- * @param {string} dataType The data type of the property ('string', 'number', 'date', 'array').
+ * @param {string} dataType The data type of the property ('string', 'number', 'date', 'datetime', 'array').
  * @param {string} [sortOrder='asc'] The sort order, either 'asc' for ascending or 'desc' for descending.
  */
 export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {

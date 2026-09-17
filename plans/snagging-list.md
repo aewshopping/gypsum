@@ -38,7 +38,7 @@ work than the snag implies. The previous list, all of it settled, is
   `nameSortItems()` in `ui-functions-click/column-menu.js` writes both items when the menu opens,
   beside the code that already decides which items are inert for this column. It asks
   `propertyType()` rather than the schema, so a column the user has retyped reads in its new terms.
-  `lastModified` comes out right for free — an info column is still a date, so it offers old to new.
+  `lastModified` comes out right for free — an info column still holds a date, so it offers old to new.
   The static labels in `index.html` are the text wording, which is what an unopened menu reads as.
   **Numbers deliberately have no pair yet** — `NUMBER` carries no `sortEnds`, and a type without one
   borrows text's, so a number column still says A to Z. That was the open question in this bullet
@@ -46,24 +46,31 @@ work than the snag implies. The previous list, all of it settled, is
   Checked by screenshot on a date column and a list column, and by test in
   `tests/2-behaviour/40-column-menu.spec.js`.
 
-- [ ] **A "date and time" type, now that last modified carries a time.** The info date renders hours
-  and minutes beside the date, and the table sorts dates by `getTime()`, so the time of day is
-  already in the data and in the order — what is missing is a type a *note's* own property can be
-  given when it holds one. Low cost and worth having: the practical difference is the editor, where
-  the picker becomes a native `datetime-local` rather than a `date`
-  (`ui-functions-cell/cell-date-editor.js` seeds the picker from the cell's text and writes a plain
-  ISO date back, and that seeding and writing is where the work is).
-  What it touches, from CLAUDE.md's rules for a new type: an entry in `VALUE_TYPES` in
-  `constants.js`, a matching `#icon-type-<name>` symbol drawn like the date one is, an entry in
-  `LOCK_SHIFT` in `ui-functions-render/type-glyph.js` so the locked glyph composes, `typeMismatch()`
-  in `services/property-type.js` for what counts as unreadable, and the `renderDate` branch in
-  `ui-functions-table/render-cell-value.js` — which for a note's own value still shows the file's
-  own text, so there is less here than it looks. No migration is needed for a layouts file written
-  before the type exists: an unknown name is dropped and the property falls back to the schema, and
-  a file that has never heard of the new name simply does not carry it.
-  **Decide while doing it:** whether `lastModified` becomes the new type. It is an info column, so
-  nobody can choose its type either way, and `INFO_TYPE` sits beside the type rather than replacing
-  it — the question is only which type it sits beside, and whether that changes what its cell draws.
+- [x] **A "date and time" type, now that last modified carries a time.** `datetime`, labelled
+  "date and time", sits beside `date` in `VALUE_TYPES` and appears in the type dialog and the column
+  picker without either being told about it — both build themselves from that list, which is what
+  makes adding a type cheap.
+  **What the two date types share, they share through one question.** `isDateType()` in
+  `constants.js` is what ordering, `typeMismatch()` and "which cell opens a picker" all ask, so the
+  difference between them stays in the two places it is real: the picker the cell opens, and the
+  drawing the column wears. A date and a date-and-time are already ordered by the same number —
+  `compareByProperty` sorts both by `getTime()` — so the comparator gained a case beside `date`
+  rather than a branch of its own.
+  **The picker is the point of the type.** A `datetime` cell opens the same editor with
+  `type="datetime-local"`, seeded `2026-03-01T14:30` from the cell's own text, and writes back what
+  the browser hands it — the browser's spelling rather than one of ours. `toIsoDate` gained the time
+  half and still uses local getters, never `toISOString()`, which would shift the hour of every
+  value it touched. Nothing in the write path needed changing: that text is not a number, so
+  `needsQuoting()` leaves it alone and the parser reads it straight back, which
+  `tests/1-data/48-yaml-value-write.spec.js` now states.
+  **The glyph is its own drawing** — the calendar smaller, with a clock in the corner that frees —
+  rather than the date one with a mark added, because the two are told apart at 16px. `LOCK_SHIFT`
+  has its entry, so a locked column of this type composes like the rest. Checked magnified and at
+  header size against the plain calendar.
+  **And `lastModified` is now this type in the schema**, which was the decision this bullet left
+  open. It changes nothing on screen — an info column draws the info glyph and takes no caret, and
+  it still sorts old to new — but the column does show a time, and the schema now says so rather
+  than claiming a plain date.
 
 - [ ] **Gather every SVG icon into one block of symbols at the top of the page.** Some icons already
   follow the symbol/`use` pattern and some are drawn inline where they are used; the symbols that

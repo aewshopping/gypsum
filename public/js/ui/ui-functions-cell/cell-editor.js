@@ -1,4 +1,4 @@
-import { VALUE_TYPES } from '../../constants.js';
+import { isDateType } from '../../constants.js';
 import { propertyType, isPropertyEditable } from '../../services/property-type.js';
 import { openDateEditor, closeDateEditor, dateEditorText } from './cell-date-editor.js';
 import { updateListHighlights } from '../ui-functions-highlight/list-highlight.js';
@@ -77,8 +77,9 @@ export function openEditor(cell) {
     // plans/completed/table-cell-writing.md.
     cell.dataset.openedText = cell.textContent;
 
-    if (propertyType(cell.dataset.prop) === VALUE_TYPES.DATE.value) {
-        openDateEditor(cell);
+    const type = propertyType(cell.dataset.prop);
+    if (isDateType(type)) {
+        openDateEditor(cell, type);
         return;
     }
 

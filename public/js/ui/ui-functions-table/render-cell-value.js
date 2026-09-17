@@ -103,6 +103,9 @@ export function renderCellValue(prop, file, mismatch) {
             return escapeHtml(String(value ?? ''));
 
         case VALUE_TYPES.DATE.value:
+        case VALUE_TYPES.DATETIME.value:
+            // Both draw the note's own text, so the difference between them is in the editor the
+            // cell opens rather than in what it says.
             return renderDate(prop.name, value);
 
         case VALUE_TYPES.ARRAY.value:

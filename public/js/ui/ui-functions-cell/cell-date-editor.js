@@ -8,25 +8,35 @@
  *
  * It works because a date cell renders the file's own text (§4.2), so the cell already holds the
  * value the picker seeds from and the caret edits. Nothing has to be looked up.
+ *
+ * **A `date and time` column opens the same editor with the browser's other picker.** That is the
+ * whole difference between the two types here: `datetime-local` asks for a time as well and hands
+ * back `2026-03-01T14:30`, where `date` hands back `2026-03-01`. Both are text the parser reads
+ * straight back as itself — neither coerces to a number — so the promise that a cell holds the
+ * note's own words survives either picker.
  */
 
+import { VALUE_TYPES } from '../../constants.js';
 import { focusWithCaret } from './focus-with-caret.js';
 
 const TEXT = 'cell-date-text';
 
 /**
- * A Date as `yyyy-mm-dd`, using local getters.
+ * A Date as `yyyy-mm-dd`, or `yyyy-mm-ddThh:mm` when the picker wants a time too.
  *
  * Deliberately not toISOString(), which converts to UTC first and so shifts the day either side of
- * midnight for a value the parser read as local time.
+ * midnight for a value the parser read as local time — and would shift the hour of every value that
+ * carries one.
  *
  * @param {Date} date
+ * @param {boolean} withTime - Whether to append the time of day.
  * @returns {string}
  */
-function toIsoDate(date) {
-    return date.getFullYear()
-        + '-' + String(date.getMonth() + 1).padStart(2, '0')
-        + '-' + String(date.getDate()).padStart(2, '0');
+function toIsoDate(date, withTime) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const day = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+
+    return withTime ? `${day}T${pad(date.getHours())}:${pad(date.getMinutes())}` : day;
 }
 
 /**
@@ -52,13 +62,19 @@ export function dateEditorText(cell) {
  * no text and an input's value is not text content, so whatever captures a cell edit still reads
  * one expression for every kind of cell.
  *
+ * The column's type reaches three things and nothing else: which picker opens, how the cell's
+ * current text is seeded into it, and which glyph the button wears. Everything past that is the
+ * same editor.
+ *
  * @param {HTMLElement} cell - The expanded cell.
+ * @param {string} [type=VALUE_TYPES.DATE.value] - The column's type, one of the two date ones.
  * @returns {void}
  */
-export function openDateEditor(cell) {
+export function openDateEditor(cell, type = VALUE_TYPES.DATE.value) {
+    const withTime = type === VALUE_TYPES.DATETIME.value;
     const text = cell.textContent.trim();
     const asDate = new Date(text);
-    const iso = text && !isNaN(asDate) ? toIsoDate(asDate) : '';
+    const iso = text && !isNaN(asDate) ? toIsoDate(asDate, withTime) : '';
 
     cell.textContent = '';
 
@@ -71,12 +87,14 @@ export function openDateEditor(cell) {
     // The input is the value holder and the button opens it: a visible date input would be a second
     // field of dd/mm/yyyy segments duplicating the text beside it. It is rendered rather than
     // hidden because showPicker() needs a box to anchor the calendar to — see cell-date-editor.css.
+    const label = withTime ? 'pick a date and time' : 'pick a date';
     cell.insertAdjacentHTML('beforeend',
         `<button class="cell-date-pick" data-action="cell-date-pick" tabindex="-1"` +
-        ` aria-label="pick a date" data-tip="pick a date">` +
-        `<svg class="type-glyph cell-date-glyph" aria-hidden="true"><use href="#icon-type-date"></use></svg>` +
+        ` aria-label="${label}" data-tip="${label}">` +
+        `<svg class="type-glyph cell-date-glyph" aria-hidden="true"><use href="#icon-type-${type}"></use></svg>` +
         `</button>` +
-        `<input type="date" class="cell-date-input" data-action="cell-date-set" tabindex="-1" value="${iso}">`);
+        `<input type="${withTime ? 'datetime-local' : 'date'}" class="cell-date-input"` +
+        ` data-action="cell-date-set" tabindex="-1" value="${iso}">`);
 
     focusWithCaret(span);
 }
@@ -116,9 +134,13 @@ export function handleCellDatePick(evt, button) {
 }
 
 /**
- * Writes a picked date into the cell's text, replacing whatever was there — a time component
- * included, since the picker deals in days. Not silent: the text beside the picker is what changes,
- * so what would be written is on screen with the caret right there to undo it.
+ * Writes a picked date into the cell's text, replacing whatever was there — including a time the
+ * note carried and a `date` column's picker cannot express, since that picker deals in days. Not
+ * silent: the text beside the picker is what changes, so what would be written is on screen with
+ * the caret right there to undo it.
+ *
+ * The input's own value is what lands, whichever picker it came from, so a `date and time` column
+ * writes `2026-03-01T14:30` — the browser's spelling rather than one of ours.
  *
  * @param {Event} evt
  * @param {HTMLInputElement} input - The element carrying data-action="cell-date-set".

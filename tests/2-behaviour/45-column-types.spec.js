@@ -241,7 +241,7 @@ test('an info column keeps the type underneath, and still renders and sorts by i
     const m = await import('/public/js/services/property-type.js');
     return { modified: m.propertyType('lastModified'), size: m.propertyType('sizeInBytes') };
   });
-  expect(resolved).toEqual({ modified: 'date', size: 'number' });
+  expect(resolved).toEqual({ modified: 'datetime', size: 'number' });
 
   // a date and a time of day, not a raw Date object printed out
   await expect(rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="lastModified"]'))
@@ -269,7 +269,7 @@ test('a file cannot set a type on a column the app fills in', async ({ page }) =
       tagSearch: m.propertySearchType('tags'),
     };
   });
-  expect(after).toEqual({ modified: 'date', title: 'string', tagSearch: 'array' });
+  expect(after).toEqual({ modified: 'datetime', title: 'string', tagSearch: 'array' });
 });
 
 // It loses its type and nothing else. Sorting by size or by last modified is the point of having

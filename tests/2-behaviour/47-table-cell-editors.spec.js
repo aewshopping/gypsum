@@ -7,6 +7,7 @@ const { loadFolder } = require('../helpers');
 //          `a  c` would have rewritten the note on the first commit.
 //   b.md — prose in the date column, so a mismatched cell is on screen beside a matching one.
 //   c.md — no front matter at all, so an empty date cell can be checked.
+//   d.md — a date carrying a time, which only the "date and time" type can put in a picker.
 async function setupFiles(page) {
   await page.addInitScript(() => {
     window.showDirectoryPicker = async () => {
@@ -18,6 +19,8 @@ async function setupFiles(page) {
         // a colour tag, because a coloured row forces its text to whatever reads against that
         // colour — and an expanded cell swaps to the neutral background underneath it
         yield mk('c.md', '# Gamma\n\n#color/coral\n');
+        // a time of day in the date column, for the type that can hold one
+        yield mk('d.md', '---\ndue: 2026-03-01 14:30\nmarkup: plain\n---\n# Delta\n');
       } };
     };
   });
@@ -102,6 +105,27 @@ test('a date cell opens with a caret and a picker, and picking rewrites the text
   });
   await expect(text).toHaveText('2026-12-25');
   await expect(cell).toHaveText('2026-12-25');   // the button and input contribute no text
+});
+
+test('a date and time column opens the picker that has a clock in it', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'due', 'datetime');
+
+  const cell = cellFor(page, 'Delta', 'due');
+  await expect(cell).toHaveText('2026-03-01 14:30');   // still the note's own words
+  await open(cell);
+
+  // The difference between the two date types is the picker and nothing else: same span, same
+  // caret, an input that asks for a time as well and is seeded with the one the note carries.
+  const input = cell.locator('.cell-date-input');
+  await expect(input).toHaveAttribute('type', 'datetime-local');
+  await expect(input).toHaveValue('2026-03-01T14:30');
+
+  await input.evaluate(el => {
+    el.value = '2026-12-25T09:05';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(cell).toHaveText('2026-12-25T09:05');   // the browser's spelling, not one of ours
 });
 
 test('collapsing a date cell leaves plain text and hands focus back to the cell', async ({ page }) => {

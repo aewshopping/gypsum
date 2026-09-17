@@ -1,4 +1,4 @@
-import { VALUE_TYPES, SEARCH_TYPES } from '../constants.js';
+import { isDateType, VALUE_TYPES, SEARCH_TYPES } from '../constants.js';
 import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS, CORE_FILE_PROPERTIES } from './store.js';
 
 /**
@@ -126,7 +126,7 @@ export function typeMismatch(value, type) {
     const isList = value instanceof Map || Array.isArray(value);
     if (isList !== (type === VALUE_TYPES.ARRAY.value)) return 'shape';
 
-    if (type === VALUE_TYPES.DATE.value && isNaN(new Date(value))) return 'unreadable';
+    if (isDateType(type) && isNaN(new Date(value))) return 'unreadable';
     if (type === VALUE_TYPES.NUMBER.value && !readsAsNumber(value)) return 'unreadable';
 
     return null;

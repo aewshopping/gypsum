@@ -159,6 +159,18 @@ test('a date is written as it was typed, whatever shape that is', async () => {
   expect(words).toBe(' 1 March 2026');
 });
 
+test('a date and time is written as the picker spells it, and reads back as that text', async () => {
+  const [picked, spaced] = await writes([['2026-03-01T14:30', 'datetime'], ['2026-03-01 14:30', 'datetime']]);
+
+  expect(picked).toBe(' 2026-03-01T14:30');
+  expect(spaced).toBe(' 2026-03-01 14:30');
+
+  // Neither coerces, so neither is quoted and both come back out of the parser unchanged — which
+  // is what lets the cell go on holding the note's own words.
+  const [iso] = await roundTrip(['2026-03-01T14:30']);
+  expect(iso.value).toBe('2026-03-01T14:30');
+});
+
 test('a list keeps the form and the indentation the file already uses', async () => {
   const [flow, block, tabbed, fresh] = await writes([
     ['en, fr', 'array', { form: 'flow' }],

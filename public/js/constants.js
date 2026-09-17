@@ -41,11 +41,27 @@ export const VIEWS = {
  * borrows text's, which is why `number` can wait for a decision without the menu breaking.
  */
 export const VALUE_TYPES = {
-    STRING: { value: "string", label: "text",   sortEnds: ["A", "Z"]      },
-    NUMBER: { value: "number", label: "number"                            },
-    DATE:   { value: "date",   label: "date",   sortEnds: ["old", "new"]  },
-    ARRAY:  { value: "array",  label: "list",   sortEnds: ["few", "many"] }
+    STRING:   { value: "string",   label: "text",          sortEnds: ["A", "Z"]      },
+    NUMBER:   { value: "number",   label: "number"                                   },
+    DATE:     { value: "date",     label: "date",          sortEnds: ["old", "new"]  },
+    DATETIME: { value: "datetime", label: "date and time", sortEnds: ["old", "new"]  },
+    ARRAY:    { value: "array",    label: "list",          sortEnds: ["few", "many"] }
 };
+
+/**
+ * Whether a type holds a moment in time, which `date` and `datetime` both do.
+ *
+ * Asked wherever the two behave alike — ordering, what counts as unreadable, which cell offers a
+ * picker — so that the difference between them stays in the two places it is real: the picker the
+ * cell opens, and the drawing the column wears. Without it the pair would be spelled out at each
+ * of those sites, and the next type of date would have to find them all.
+ *
+ * @param {string} type - One of VALUE_TYPES' values.
+ * @returns {boolean}
+ */
+export function isDateType(type) {
+    return type === VALUE_TYPES.DATE.value || type === VALUE_TYPES.DATETIME.value;
+}
 
 /**
  * The type the app gives a column it fills in itself — the file link, the size, the last modified

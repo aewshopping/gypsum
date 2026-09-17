@@ -79,6 +79,18 @@
         <path d="M12 16h26v22H12zM19 11v8M31 11v8M12 26h26"/>
       </g>
     </symbol>
+    <!-- date and time: the same calendar drawn smaller, with a clock in the corner that frees. Its
+         own drawing rather than the date one plus a mark, because the two types are told apart at
+         header size and a difference has to survive being 16px wide. -->
+    <symbol id="icon-type-datetime" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+        <path d="M10 16h18v14H10zM15 11v8M23 11v8M10 23h18"/>
+        <g stroke-width="3.4">
+          <circle cx="36" cy="36" r="7"/>
+          <path d="M36 32v4h3"/>
+        </g>
+      </g>
+    </symbol>
     <!-- info: a lowercase i, for the columns the app fills in itself. A drawn circle rather than a
          zero-length round-capped path, so the dot does not depend on that rendering trick. -->
     <symbol id="icon-type-info" viewBox="0 0 50 50">
