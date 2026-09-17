@@ -72,18 +72,32 @@ work than the snag implies. The previous list, all of it settled, is
   it still sorts old to new — but the column does show a time, and the schema now says so rather
   than claiming a plain date.
 
-- [ ] **Gather every SVG icon into one block of symbols at the top of the page.** Some icons already
-  follow the symbol/`use` pattern and some are drawn inline where they are used; the symbols that
-  exist are themselves scattered — a group near the top of `index.html`, and others further down
-  beside the modals they belong to. All of them should be defined once, together, at the top, and
-  every use site should be a `<use href="#icon-…">`. Currently 44 `<svg>` elements in the file.
-  **The trap is the double viewBox.** An inline `<svg>` carries its own `viewBox`, and the symbol it
-  becomes carries one too — nesting a `use` of a `viewBox`-bearing symbol inside a `viewBox`-bearing
-  `<svg>` scales and offsets the drawing a second time, which moves and resizes icons in ways that
-  are easy to miss one at a time. The existing symbols do not share one viewBox either (`0 0 50 50`,
-  `5 5 45 48`, `0 0 66.3 64.5`, `0 0 82.2 79.5`), so each conversion keeps its own. Check the result
-  by screenshot, icon by icon, rather than by reading the markup — and note that the type glyphs are
-  composed deliberately from two `<use>` elements and must not be flattened while tidying.
+- [x] **Gather every SVG icon into one block of symbols at the top of the page.** Every icon in the
+  app is now a `<symbol>` in the one sprite at the top of `index.html`, and every use site — in the
+  page and in `render-table-controls.js`, which drew two of them from JS — is
+  `<svg viewBox="0 0 W H"><use href="#icon-name"></use></svg>` and nothing else. The three sprites
+  that had grown up beside the dialogs that used them (the settings reset, the history rows, the
+  column picker's grip) moved in with the rest. 20 drawings lifted out; nothing in the page holds
+  path data any more.
+  **The double viewBox was real, and the check caught it.** A `<use>` with no width or height is
+  100% of the outer viewport *starting at 0,0 in its coordinates*, and the symbol's own viewBox then
+  maps its content onto that box — so an outer `viewBox="5 5 45 45"` repeating the symbol's own
+  moved every one of those drawings up and left by five units. `0 0 45 45` outside and `5 5 45 45`
+  inside is the identity. Found by pixel diff, not by eye: at 26px the shift looked like nothing.
+  **The other half was CSS that reached into an icon.** A rule matching an element inside a symbol
+  styles every copy of it — which is how `#save-disk-arrow` has always spun — but a rule needing an
+  ancestor *outside* the icon matches nothing once the drawing lives in the sprite, because the
+  copy's ancestors are the sprite's. Three did: the load button's spinning arrow, the content-search
+  dot, and the highlighter pen's ink. All three now hand the value in as a custom property, which
+  does inherit through a `<use>`, so the state still lives in one place in the stylesheet and the
+  drawing reads it. Two drawings that were `#1e1e1e` and `black` and relied on a stylesheet to
+  repaint them say `currentColor` themselves, and `.svg-wrapper-style > svg { g, path { stroke:
+  currentColor } }` — which could no longer reach any icon — is gone.
+  **Checked pixel for pixel**, 126 icon shots across nine surfaces (grid, table, the note, settings,
+  history and column-picker dialogs, the filter row, the side panel, and the load button mid-load),
+  before against after. After the viewBox fix the largest difference left is three pixels of
+  antialiasing on one glyph; the load arrow's hidden and spinning states are pixel-identical, and
+  the spin still runs.
 
 - [ ] **Opening a file from the table should animate from the row, not from the link.** The modal
   animates out of whatever was clicked — `handleOpenFileContent` hands the click target straight to

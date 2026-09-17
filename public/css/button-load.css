@@ -78,21 +78,21 @@
 
 .load-finished-msg {color: var(--colour-load-msg);}
 
-#btn_loadDirectoryHandles:not(.loading) .svg-wrapper-style #load-folder-arrow { opacity: 0; }
-
-
 @keyframes load-folder-spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
 }
 
+/* The arrow lives inside the #icon-folder-open symbol, and a selector cannot reach into the copy a
+   <use> draws — so the button hands its state in as custom properties instead, which do inherit
+   through one. The arrow reads them in the sprite; here is what the two states are. */
+#btn_loadDirectoryHandles.loading {
+    --load-arrow-opacity: 1;
+    --load-arrow-spin: load-folder-spin 1s linear infinite;
+}
+
 #load-folder-arrow {
     transform-box: fill-box;
     transform-origin: center;
-    transition: opacity 0.5s ease-in-out;
-}
-
-#btn_loadDirectoryHandles.loading #load-folder-arrow {
-    animation: load-folder-spin 1s linear infinite;
     transition: opacity 0.5s ease-in-out;
 }
