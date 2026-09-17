@@ -122,6 +122,32 @@ test('front matter under an ATX heading is still front matter', async () => {
   expect((await parse(doc)).data).toEqual({ day: 'Monday' });
 });
 
+// A note's own tag above its front matter. The '#' test that lets a heading sit there has to let
+// a tag sit there too, and the block below is what stops that allowance costing a note its body.
+test('a tag line above the block is still front matter', async () => {
+  const withTitle = '# this is my title\n\n#admin\n\n---\nday: Monday\n---\n';
+  expect((await parse(withTitle)).data).toEqual({ day: 'Monday' });
+
+  const tagOnly = '#admin\n\n---\nday: Monday\n---\n';
+  expect((await parse(tagOnly)).data).toEqual({ day: 'Monday' });
+
+  const adjacent = '#work/q3 #admin\n---\nday: Monday\n---\n';
+  expect((await parse(adjacent)).data).toEqual({ day: 'Monday' });
+});
+
+// The shapes that show what refusing prose above the separator is worth. Both hold something that
+// reads as front matter, so the block test alone would claim them: the list is asserted through
+// the rendered output because a keyless list parses to nothing either way — what would be lost is
+// the body, not the values.
+test('a setext heading over a list or a key is not front matter', async () => {
+  const { parseContent } = await appModule('services/parse-content.js');
+  const list = 'My Title\n---\n\n- milk\n- eggs\n\nAnother section\n---\n';
+  expect(parseContent(list)).toContain('milk');
+
+  const key = 'My Title\n---\n\nNote: this is important\n\nAnother section\n---\n';
+  expect((await parse(key)).data).toEqual({});
+});
+
 test('a note whose front matter is eaten keeps its body in the rendered output', async () => {
   const { parseContent } = await appModule('services/parse-content.js');
   const rendered = parseContent('My Title\n---\n\nSome body text.\n\nAnother section\n---\n\nmore text');
