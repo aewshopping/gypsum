@@ -1,24 +1,23 @@
 /**
  * @file The list view: one collapsible entry per file, with every property it carries inside.
  *
- * **A value looks the same here as it does in the table**, because it is drawn by the same
- * function — `renderCellValue`, asked for its plain form (see render-cell-value.js). A date shows
- * the note's own words, a list is one comma-joined line with its items marked, a mismatched value
- * shows its text rather than a blank, and everything from a file is escaped. Before, this file
- * printed `${value}` and got `[object Map]` for tags, a raw `Date` for last modified and no
- * escaping at all.
+ * **What the file object holds, shown as it stands** — that is the whole brief. Every value goes
+ * through `renderValue`, which asks the value what it is rather than asking the layouts file what
+ * its column was set to: tags are pills because a pill is a filter, a list is one comma-joined
+ * line, the app's own date carries its time, and everything else is its own escaped text. Before,
+ * this file printed `${value}` and got `[object Map]` for tags, a raw `Date` for last modified, the
+ * word "null" for an empty key and no escaping at all.
  *
- * **Plain, because nothing here is editable.** The table's file column wears an open-file link and
- * its filename is italic; neither is about the value, and this view has its own open control, so
- * the id reads as the id and the filename as text. There is no caret anywhere in this view and no
- * cell machinery behind it: this renders, and that is all.
+ * **A column's type is not consulted, and that is the point.** It is the table's fact — it decides
+ * how a column sorts and which editor a cell opens — and while this view read it, retyping a table
+ * column from list to text changed what this view said about the same note. Nothing here is
+ * editable, nothing here reaches the cell machinery: it renders, and that is all.
  */
 
 import { appState } from '../services/store.js';
-import { propertyType, typeMismatch } from '../services/property-type.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 import { escapeHtml } from './ui-functions-render/escape-html.js';
-import { renderCellValue, rendersAsList } from './ui-functions-table/render-cell-value.js';
+import { renderValue } from './ui-functions-render/render-value.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
 import { PAGINATION_SIZE } from '../constants.js';
 
@@ -26,24 +25,23 @@ import { PAGINATION_SIZE } from '../constants.js';
 const NOT_SHOWN = ['handle', 'show'];
 
 /**
- * One `<li>` for a property, drawn the way the table would draw it.
+ * One `<li>` for a property.
  *
  * `data-prop` is what the search highlighter finds, and `data-list` what the item marks are laid
  * on — the same two marks the table's cells carry, so both are found by the one pass in
- * list-highlight.js. Nothing may sit between the span and its text: the item ranges are measured
- * from the first child node.
+ * list-highlight.js. A value is a list when it is an array, which is the same question `renderValue`
+ * answers when it draws one. Nothing may sit between the span and its text: the item ranges are
+ * measured from the first child node.
  *
  * @param {string} name - The property key.
  * @param {object} file - The file object.
  * @returns {string} The HTML for that row of the list.
  */
 function renderProperty(name, file) {
-    const column = { name, type: propertyType(name) };
-    const mismatch = typeMismatch(file[name], column.type);
-    const list = rendersAsList(column, file, mismatch) ? ' data-list' : '';
+    const list = Array.isArray(file[name]) ? ' data-list' : '';
 
     return `<li><strong>${escapeHtml(name)}:</strong> ` +
-           `<span data-prop="${name}"${list}>${renderCellValue(column, file, mismatch, true)}</span></li>`;
+           `<span data-prop="${name}"${list}>${renderValue(file[name])}</span></li>`;
 }
 
 /**

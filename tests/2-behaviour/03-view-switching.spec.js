@@ -39,7 +39,7 @@ async function setupValueFiles(page) {
   });
 }
 
-test('list view draws a value the way the table does', async ({ page }) => {
+test('list view draws what the file holds, whatever the table is set to', async ({ page }) => {
   await setupValueFiles(page);
   await page.goto('/');
   await loadFolder(page);
@@ -65,4 +65,19 @@ test('list view draws a value the way the table does', async ({ page }) => {
   await expect(valueOf('internalId')).toHaveText('alpha.md');
   await expect(valueOf('internalId').locator('a')).toHaveCount(0);
   await expect(page.locator('.list-view [data-action="open-file-content-modal"]')).toHaveCount(1);
+
+  // **And a column's type cannot reach this view.** It is the table's fact, about how a column
+  // sorts and what its cells offer; this view asks the value what it is. Retyping the list column
+  // to text used to turn the line into `John Smith, Doe, Jane` and take its item marks away.
+  await page.selectOption('#view-select', 'table');
+  await page.click('[data-action="open-column-picker"]');
+  await page.locator('.info-modal-row[data-property="people"] .column-picker-type').click();
+  await page.locator('[data-action="column-type-set"][data-value="string"]').click();
+  await page.keyboard.press('Escape');
+  await page.click('[data-action="close-column-picker"]');
+
+  await page.selectOption('#view-select', 'list');
+  await page.locator('.list-view summary').first().click();
+  await expect(valueOf('people')).toHaveText('John Smith, "Doe, Jane"');
+  await expect(valueOf('people')).toHaveAttribute('data-list', '');
 });

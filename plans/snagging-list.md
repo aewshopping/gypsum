@@ -113,20 +113,33 @@ work than the snag implies. The previous list, all of it settled, is
   `moving-file-content-view` — the row in the table, never the link, and the span in list view —
   and it fails against the old code.
 
-- [x] **List view should render property values the way the table does.** It does: every value in
-  the list is drawn by `renderCellValue`, the table's own renderer, asked for its plain form. What
+- [x] **List view should render property values the way the table does.** What it shows now is what
+  the file object holds, drawn as it stands: tags as pills, a list as one comma-joined line with its
+  items banded, the app's own date with its time, and everything else as its own escaped text. What
   that fixed, all of it visible in one screenshot of two notes: a value holding `<b>` was being
   parsed as markup and put the rest of the list in bold, a list read `John Smith,Doe, Jane` with
   nothing to say where an item ended, `lastModified` was blank, and `color` and `errorOnLoad` said
-  the word "null". A mismatched value now shows its text the way the table shows it.
-  **`plain` is the one thing the renderer had to learn**, and it names the exceptions rather than
-  hiding them: the file column wears an open-file link and the filename is italic *in the table*,
-  because there the link is the only way to open a note. Neither is about the value, so list view —
-  which has its own open control — passes `plain` and gets the id as an id and the filename as text.
-  Everything that is about the value is shared, which is the point.
-  **The item marks are shared too.** `updateListHighlights()` now looks for `[data-list]` rather
-  than `.note-table-cell[data-list]`, so a value span that says it holds a list is banded wherever
-  it is drawn; `itemRangesIn()` is unchanged and still the one answer to where an item begins.
-  Nothing here is editable and nothing here reaches the cell machinery — it renders and stops.
-  `tests/2-behaviour/03-view-switching.spec.js` holds the five things that were wrong, and fails
-  against the old renderer.
+  the word "null".
+  **First attempt routed it through the table's `renderCellValue`**, with a `plain` flag to suppress
+  the two things that column draws rather than shows — the open-file link and the italic filename.
+  One renderer for both views, which sounded right and was not: `renderCellValue` switches on a
+  column's *type*, which is the user's choice stored in the layouts file. Measured rather than
+  argued: retyping the `people` column from list to text in the table turned this view's line from
+  `John Smith, "Doe, Jane"` into `John Smith, Doe, Jane` and took its item marks away. A table fact
+  was reaching a view that is about a file.
+  **So it asks the value instead.** `ui-functions-render/render-value.js` dispatches on what the
+  value *is* — a Map is the tag map, an array is a list, a Date is the app's own, everything else is
+  its text — and knows nothing about types, mismatches or layouts. The list renderer lost four
+  imports and got shorter; `renderCellValue` went back to the signature it had, `plain` and all, and
+  keeps its type switch, because a *column* really is typed and that is the table's model.
+  **"date and time" needs nothing there**, which is the neat part of dispatching on the value:
+  `lastModified` is the only real `Date` on a file object, and every date a *note* carries — a time
+  of day included — is text the parser never coerced, so it is shown exactly as the note wrote it.
+  `2026-03-01` and `2026-03-01T14:30` both read back as themselves. The type decides which picker a
+  cell opens; it was never about what a value looks like.
+  What is still shared is what genuinely is one question: `escapeHtml`, `renderTags`,
+  `joinFlowItems`, `itemRangesIn` for the item marks — `updateListHighlights()` now looks for any
+  `[data-list]` rather than the table's cells — and `formatDateTime()`, so the one value the app
+  owns reads the same in both views. Nothing here is editable and nothing reaches the cell
+  machinery. `tests/2-behaviour/03-view-switching.spec.js` holds the five things that were wrong,
+  and one more: that retyping a table column leaves this view alone.

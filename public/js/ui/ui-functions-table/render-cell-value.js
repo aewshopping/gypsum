@@ -4,6 +4,7 @@ import { renderFilename, renderOpenFileLink } from '../ui-functions-render/rende
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
 import { joinFlowItems } from '../../services/file-parsing/flow-list.js';
+import { formatDateTime } from '../ui-functions-render/render-value.js';
 
 /**
  * @file What goes inside one table cell, given its column's type.
@@ -81,24 +82,18 @@ export function rendersAsList(prop, file, mismatch) {
 }
 
 /**
- * The HTML for one cell's content.
+ * The HTML for one cell's content, given its column's type.
  *
- * **`plain` is what lets a view that only reads share this.** Two properties draw something other
- * than their value in the table: the file column wears an open-file link, because the link is the
- * only way to open a note from there, and the filename is set in italics. Neither is about the
- * value, and both are wrong outside the table — list view has its own open control, so there the id
- * should read as the id it is. Everything that *is* about the value — the type, the mismatch, the
- * escaping, a list as one comma-joined line — is the same in both, which is the point of asking
- * here rather than writing a second renderer.
+ * **A column's type is a table fact**, which is why this takes one and why the list view does not
+ * come through here: it says how a column sorts and what its cells offer, and a view that only
+ * shows what a file holds asks the value itself instead — see ui-functions-render/render-value.js.
  *
  * @param {object} prop - The column, carrying `name` and the `type` propertyType() gave it.
  * @param {object} file - The file object the row is for.
  * @param {'shape'|'unreadable'|null} mismatch - What typeMismatch() said about this value.
- * @param {boolean} [plain=false] - Draw every property as its own value, with no control and no
- *   styling of the table's.
  * @returns {string} The cell's inner HTML.
  */
-export function renderCellValue(prop, file, mismatch, plain = false) {
+export function renderCellValue(prop, file, mismatch) {
     const value = file[prop.name];
 
     // A cell whose value cannot be drawn as its column's type shows its text and says so, rather
@@ -107,9 +102,9 @@ export function renderCellValue(prop, file, mismatch, plain = false) {
 
     switch (prop.type) {
         case VALUE_TYPES.STRING.value:
-            if (!plain && prop.name === 'internalId') return renderOpenFileLink(file.internalId, file.color);
+            if (prop.name === 'internalId') return renderOpenFileLink(file.internalId, file.color);
             // the full path from the root, now that folders are loaded
-            if (!plain && prop.name === 'filename') return renderFilename(file.filepath || '');
+            if (prop.name === 'filename') return renderFilename(file.filepath || '');
             return escapeHtml(String(value ?? ''));
 
         case VALUE_TYPES.DATE.value:
@@ -154,7 +149,8 @@ export function renderCellValue(prop, file, mismatch, plain = false) {
  * last. A cell edit does bump the file's modified time — the write goes through the same verified
  * save as any other, and the refresh re-reads it off disk — but the date alone cannot show it: a
  * note edited twice in one afternoon read 9/16/2026 before and after, which looks exactly like a
- * write that never happened. Hours and minutes only; the seconds would be noise in a column.
+ * write that never happened. The formatting itself is formatDateTime(), shared with the list view,
+ * so the one value the app owns reads the same wherever it is shown.
  *
  * @param {string} name - The file property key.
  * @param {*} value
@@ -166,8 +162,7 @@ function renderDate(name, value) {
     if (isInfoColumn(name)) {
         const asDate = new Date(value);
         if (isNaN(asDate)) return escapeHtml(String(value));
-        const time = asDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        return escapeHtml(`${asDate.toLocaleDateString()} ${time}`);
+        return escapeHtml(formatDateTime(asDate));
     }
 
     return escapeHtml(String(value));
