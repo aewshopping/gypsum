@@ -740,8 +740,11 @@
   <div id="column-menu-anchor" aria-hidden="true"></div>
 
   <div id="column-menu" class="app-menu" popover>
-    <button type="button" class="app-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A-Z</button>
-    <button type="button" class="app-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z-A</button>
+    <!-- Named after the ends of the column's own sort when the menu opens — "sort old to new" on a
+         date, "sort few to many" on a list. See nameSortItems in column-menu.js; text's wording is
+         what is written here, being what a column reads as until its type says otherwise. -->
+    <button type="button" class="app-menu-item" data-action="column-sort-asc" data-tip="sort ascending">sort A to Z</button>
+    <button type="button" class="app-menu-item" data-action="column-sort-desc" data-tip="sort descending">sort Z to A</button>
     <button type="button" class="app-menu-item" data-action="column-search" data-tip="search within this column">search column</button>
     <button type="button" class="app-menu-item" data-action="column-resize" data-tip="drag the column edge to resize">resize column</button>
     <button type="button" class="app-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>

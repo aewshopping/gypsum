@@ -33,12 +33,18 @@ export const VIEWS = {
  *
  * This is the only place a type name is legal. It matters because a layout file is meant to be
  * hand-edited, so a typo in one must not be able to invent a phantom type.
+ *
+ * **`sortEnds` is what the two ends of a sort are called**, ascending first, from which the column
+ * menu writes "sort old to new" and its opposite. A pair per type rather than one wording for all,
+ * because "A-Z" describes a list column's sort least of all: `compareByProperty` orders a list by
+ * how many items it holds, so ascending really is the shortest list first. A type with no pair
+ * borrows text's, which is why `number` can wait for a decision without the menu breaking.
  */
 export const VALUE_TYPES = {
-    STRING: { value: "string", label: "text"   },
-    NUMBER: { value: "number", label: "number" },
-    DATE:   { value: "date",   label: "date"   },
-    ARRAY:  { value: "array",  label: "list"   }
+    STRING: { value: "string", label: "text",   sortEnds: ["A", "Z"]      },
+    NUMBER: { value: "number", label: "number"                            },
+    DATE:   { value: "date",   label: "date",   sortEnds: ["old", "new"]  },
+    ARRAY:  { value: "array",  label: "list",   sortEnds: ["few", "many"] }
 };
 
 /**

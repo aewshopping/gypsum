@@ -81,6 +81,28 @@ test('sorting from the menu also updates the sort dropdown and direction', async
   expect(await controls()).toEqual({ select: 'title', ascChecked: false });
 });
 
+test('the sort items are named after the ends of the column\'s own sort', async ({ page }) => {
+  await openTable(page);
+  const headerFor = prop => page.locator(`.note-table-cell-header[data-property="${prop}"]`);
+  const labels = () => page.evaluate(() => [
+    document.querySelector('[data-action="column-sort-asc"]').textContent,
+    document.querySelector('[data-action="column-sort-desc"]').textContent,
+  ]);
+
+  await openMenuFor(page, headerFor('title'));
+  expect(await labels()).toEqual(['sort A to Z', 'sort Z to A']);
+
+  // A date sorts old to new, and a list by how many items a row holds — neither has an A or a Z
+  // in it, which is what the wording used to claim.
+  await page.keyboard.press('Escape');
+  await openMenuFor(page, headerFor('lastModified'));
+  expect(await labels()).toEqual(['sort old to new', 'sort new to old']);
+
+  await page.keyboard.press('Escape');
+  await openMenuFor(page, headerFor('tags'));
+  expect(await labels()).toEqual(['sort few to many', 'sort many to few']);
+});
+
 test('the menu is dismissed by Escape, by clicking away, and by a re-render', async ({ page }) => {
   await openTable(page);
   const header = titleHeader(page);

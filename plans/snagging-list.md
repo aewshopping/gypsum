@@ -28,22 +28,23 @@ work than the snag implies. The previous list, all of it settled, is
   there and passes here, and the three cases already covered — the hold, the release into another
   row, and the searchbox click that is a write and a departure in one gesture — still pass.
 
-- [ ] **The column menu's sort labels should read in the column's own terms.** Double-clicking a
-  header offers "sort A-Z" and "sort Z-A" (`#column-menu` in `index.html`), which is the right
-  wording for text and wrong for everything else. Ascending should read **A to Z** for text,
-  **old to new** for a date, and **few to many** for a list; descending the reverse of each. The
-  list wording is what the comparator actually does — `compareByProperty`'s `array` case sorts by
-  the number of items (`file-object-sort.js`), so ascending genuinely is the shortest list first,
-  and "A-Z" has never described it. And in every case the hyphen becomes " to ", so the label reads
-  as a direction rather than a range.
-  The labels are static HTML today; the menu already rewrites itself per column —
-  `ui-functions-click/column-menu.js` disables the sort and search entries for a control column —
-  so this belongs beside that, asking `propertyType()` for the type rather than reading the
-  schema. The `data-tip` on each button ("sort ascending" / "sort descending") can stay as it is,
-  being about direction rather than about values.
-  **Open question: numbers.** "A to Z" is no better for a number column than for a date. Say if
-  you want a pair for it — "low to high" / "high to low" would match the others — and it goes in
-  with the rest; otherwise text's wording stands.
+- [x] **The column menu's sort labels should read in the column's own terms.** "sort A-Z" and
+  "sort Z-A" are right for text and wrong for everything else. They now read **A to Z** for text,
+  **old to new** for a date and **few to many** for a list, with the opposite pair on the
+  descending item, and the hyphen is a "to" in every case — a direction rather than a range.
+  **The pair of words belongs to the type**, as `sortEnds` beside each entry's label in
+  `VALUE_TYPES` (`constants.js`), not to a list of special cases kept in the menu. So a new type
+  names its own ends where all its other facts live, and the menu composes the sentence:
+  `nameSortItems()` in `ui-functions-click/column-menu.js` writes both items when the menu opens,
+  beside the code that already decides which items are inert for this column. It asks
+  `propertyType()` rather than the schema, so a column the user has retyped reads in its new terms.
+  `lastModified` comes out right for free — an info column is still a date, so it offers old to new.
+  The static labels in `index.html` are the text wording, which is what an unopened menu reads as.
+  **Numbers deliberately have no pair yet** — `NUMBER` carries no `sortEnds`, and a type without one
+  borrows text's, so a number column still says A to Z. That was the open question in this bullet
+  and it stays open: say the word and "low to high" / "high to low" is one line in `constants.js`.
+  Checked by screenshot on a date column and a list column, and by test in
+  `tests/2-behaviour/40-column-menu.spec.js`.
 
 - [ ] **A "date and time" type, now that last modified carries a time.** The info date renders hours
   and minutes beside the date, and the table sorts dates by `getTime()`, so the time of day is
