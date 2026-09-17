@@ -65,7 +65,8 @@ export function clearExpandedCells() {
  *
  * **And a row held back from its move is let go here**, after the cell that was left has been
  * collapsed — because collapsing is what writes the edit, and a move made before the write would be
- * sorting on a value the file does not have yet.
+ * sorting on a value the file does not have yet. Not the only door: focus can leave a row without
+ * arriving anywhere, which is why a click asks the same question — see pending-row-move.js.
  *
  * @param {FocusEvent} evt
  * @returns {void}
@@ -79,7 +80,7 @@ export function handleCellFocusIn(evt) {
 
     cell?.classList.add(SELECTED);
 
-    releaseRowMove(evt.target);
+    releaseRowMove();
 }
 
 // Whether the press landed on a cell the keyboard was already on. Read before the press moves focus,

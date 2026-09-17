@@ -5,22 +5,28 @@ note underneath says how; an unchecked box with a note means it needs a decision
 work than the snag implies. The previous list, all of it settled, is
 `plans/completed/snagging-list-1.md`.
 
-- [ ] **A held row move needs releasing when focus goes nowhere.** Editing a cell holds the row
+- [x] **A held row move needs releasing when focus goes nowhere.** Editing a cell holds the row
   where it is and moves it when focus leaves the row —
-  `ui-functions-table/pending-row-move.js`, working well. The path it misses is a click on the page
-  away from the table that lands on nothing focusable: focus leaves the row, the row stays put, and
-  it takes a second click into something that *can* take focus — the searchbox, say — before the
-  move happens. The release hangs on `focusin`, and a click on an unfocusable part of the page
-  fires no `focusin` at all, which is the whole of the bug: the question being asked is "has focus
-  arrived outside the row", where the one worth asking is "is focus still inside the row" —
-  `:not(:focus-within)` in pseudo-code.
-  Two things constrain the fix. `focusout` is the obvious second door and it is the one the cell
-  editor deliberately does not use — a handler that touches the DOM on the way out makes Chrome
-  abandon the focus move in flight (see CLAUDE.md, "Collapse on arrival, never on the way out"), so
-  a release that re-renders from `focusout` risks the same class of bug. And the hold is only taken
-  when focus is still in the row at the time of the write, because clicking the searchbox is the
-  departure and the write in one gesture — whatever door is added must not break that case, which
-  is covered by test already.
+  `ui-functions-table/pending-row-move.js`. The path it missed was a click on the page away from the
+  table that lands on nothing focusable: focus left the row, the row stayed put, and it took a
+  second click into something that *could* take focus before the move happened.
+  **The question was the wrong one, as you said.** `releaseRowMove` asked whether the focus that had
+  just arrived was outside the row, and a click on an unfocusable part of the page is focus arriving
+  nowhere — the cell is blurred to the body and no `focusin` fires at all. It now asks where focus
+  *is*: `rowFor(held).contains(document.activeElement)`, which is `:focus-within` from the other
+  side and needs no event to answer. The argument is gone with it, so nothing can ask the old
+  question by accident.
+  **Two doors, both arrivals.** The focusin handler still asks, and a click anywhere on the page now
+  asks as well — registered in `event-listeners-add.js` after the click delegate, so an edit that
+  the same click closes has already been handed to the write. `focusout` would have been one door
+  rather than two, and is exactly what CLAUDE.md says not to do: a handler that redraws the list on
+  the way out makes the browser abandon the focus move in flight. Unconditional on every click,
+  because a click that opens a cell and types nothing writes nothing and re-asks nothing — the ask
+  is cheap and returns immediately unless a row is actually waiting.
+  `tests/1-data/49-table-cell-writing.spec.js` covers it by clicking `#output-report`, the report
+  line above the table, which takes no focus. Checked against the old code first: the test fails
+  there and passes here, and the three cases already covered — the hold, the release into another
+  row, and the searchbox click that is a write and a departure in one gesture — still pass.
 
 - [ ] **The column menu's sort labels should read in the column's own terms.** Double-clicking a
   header offers "sort A-Z" and "sort Z-A" (`#column-menu` in `index.html`), which is the right

@@ -73,6 +73,7 @@ import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
 import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
 import { handleCellExpand, handleCellExpandClickOutside, finishOpenCell,
          handleCellFocusIn, handleCellPointerDown } from './ui-functions-cell/cell-expand.js';
+import { releaseRowMove } from './ui-functions-table/pending-row-move.js';
 import { handleCellEditorKeydown } from './ui-functions-cell/cell-editor.js';
 import { handleCellDatePick, handleCellDateSet } from './ui-functions-cell/cell-date-editor.js';
 import { handleListCellInput } from './ui-functions-highlight/list-highlight.js';
@@ -104,6 +105,12 @@ export function addActionHandlers() {
     // on a cell be told from a second — see cell-expand.js.
     document.addEventListener('focusin', handleCellFocusIn);
     document.addEventListener('pointerdown', handleCellPointerDown);
+
+    // A click is the second door onto "has focus left the row that is holding its move". The first
+    // is the focusin above, which never fires when a click lands on a part of the page that cannot
+    // take focus — the cell is blurred to the body and nothing arrives anywhere. Registered after
+    // the click delegate, so an edit this same click closes has already been handed to the write.
+    document.addEventListener('click', releaseRowMove);
     document.addEventListener('keydown', handleLayoutNameKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is

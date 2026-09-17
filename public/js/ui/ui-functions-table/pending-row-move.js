@@ -56,20 +56,25 @@ export function holdRowMove(internalId) {
 }
 
 /**
- * Lets a held move happen, if the focus that has just arrived is outside the row holding it.
+ * Lets a held move happen, unless focus is still inside the row holding it.
  *
- * Called from the one focusin handler that already decides which cell is selected — the same door
- * every other "you have left" answer goes through, so a click, Tab, the arrow keys and a focus put
- * back by a render all reach it the same way. Focus landing anywhere else on the page counts:
- * finishing with the row is finishing with it, whether what you moved to is a cell or not.
+ * **The question is where focus is now, not where it has just arrived.** Asking about an arrival
+ * answers nothing when focus arrives nowhere: clicking a part of the page that cannot take focus
+ * blurs the cell to the body and fires no focusin at all, so a row went on waiting until the next
+ * click landed on something focusable. `document.activeElement` is the same answer `:focus-within`
+ * would give, and it is available however focus left.
  *
- * @param {EventTarget} target - What has just taken focus.
+ * Asked from two doors, which between them cover every way of leaving: the focusin handler that
+ * already decides which cell is selected, and a click anywhere on the page. Both are arrivals —
+ * focusout is deliberately not used, because a handler that redraws the list on the way out makes
+ * the browser abandon the focus move in flight, which is the same trap cell-expand.js avoids.
+ *
  * @returns {void}
  */
-export function releaseRowMove(target) {
+export function releaseRowMove() {
     const held = appState.pendingRowMove;
     if (held === null) return;
-    if (target instanceof Element && target.closest('.note-table')?.dataset.vtId === held) return;
+    if (rowFor(held)?.contains(document.activeElement)) return;
 
     rowFor(held)?.classList.remove(PENDING);
     moveRows();
