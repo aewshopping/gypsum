@@ -83,6 +83,9 @@ test('sorting from the menu also updates the sort dropdown and direction', async
 
 test('the sort items are named after the ends of the column\'s own sort', async ({ page }) => {
   await openTable(page);
+  // wide enough to reach the last column without scrolling: the header is moved by a scroll-driven
+  // transform, so a click that has to scroll first lands where the header used to be
+  await page.setViewportSize({ width: 1700, height: 700 });
   const headerFor = prop => page.locator(`.note-table-cell-header[data-property="${prop}"]`);
   const labels = () => page.evaluate(() => [
     document.querySelector('[data-action="column-sort-asc"]').textContent,
@@ -95,12 +98,19 @@ test('the sort items are named after the ends of the column\'s own sort', async 
   // A date sorts old to new, and a list by how many items a row holds — neither has an A or a Z
   // in it, which is what the wording used to claim.
   await page.keyboard.press('Escape');
+  await expect(menu(page)).toBeHidden();
   await openMenuFor(page, headerFor('lastModified'));
   expect(await labels()).toEqual(['sort old to new', 'sort new to old']);
 
   await page.keyboard.press('Escape');
+  await expect(menu(page)).toBeHidden();
   await openMenuFor(page, headerFor('tags'));
   expect(await labels()).toEqual(['sort few to many', 'sort many to few']);
+
+  await page.keyboard.press('Escape');
+  await expect(menu(page)).toBeHidden();
+  await openMenuFor(page, headerFor('sizeInBytes'));
+  expect(await labels()).toEqual(['sort low to high', 'sort high to low']);
 });
 
 test('the menu is dismissed by Escape, by clicking away, and by a re-render', async ({ page }) => {

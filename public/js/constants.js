@@ -38,11 +38,11 @@ export const VIEWS = {
  * menu writes "sort old to new" and its opposite. A pair per type rather than one wording for all,
  * because "A-Z" describes a list column's sort least of all: `compareByProperty` orders a list by
  * how many items it holds, so ascending really is the shortest list first. A type with no pair
- * borrows text's, which is why `number` can wait for a decision without the menu breaking.
+ * borrows text's, so a type added without one reads as text until someone chooses its words.
  */
 export const VALUE_TYPES = {
     STRING:   { value: "string",   label: "text",          sortEnds: ["A", "Z"]      },
-    NUMBER:   { value: "number",   label: "number"                                   },
+    NUMBER:   { value: "number",   label: "number",        sortEnds: ["low", "high"] },
     DATE:     { value: "date",     label: "date",          sortEnds: ["old", "new"]  },
     DATETIME: { value: "datetime", label: "date and time", sortEnds: ["old", "new"]  },
     ARRAY:    { value: "array",    label: "list",          sortEnds: ["few", "many"] }

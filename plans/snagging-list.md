@@ -40,11 +40,11 @@ work than the snag implies. The previous list, all of it settled, is
   `propertyType()` rather than the schema, so a column the user has retyped reads in its new terms.
   `lastModified` comes out right for free — an info column still holds a date, so it offers old to new.
   The static labels in `index.html` are the text wording, which is what an unopened menu reads as.
-  **Numbers deliberately have no pair yet** — `NUMBER` carries no `sortEnds`, and a type without one
-  borrows text's, so a number column still says A to Z. That was the open question in this bullet
-  and it stays open: say the word and "low to high" / "high to low" is one line in `constants.js`.
+  **Numbers say low to high**, at your word — the open question this bullet carried, now closed, and
+  the one line in `constants.js` it was always going to be. Every type in the list names its own
+  ends now, so the fallback to text's pair is only what a type added without them would read as.
   Checked by screenshot on a date column and a list column, and by test in
-  `tests/2-behaviour/40-column-menu.spec.js`.
+  `tests/2-behaviour/40-column-menu.spec.js`, which reads all four pairs off the menu.
 
 - [x] **A "date and time" type, now that last modified carries a time.** `datetime`, labelled
   "date and time", sits beside `date` in `VALUE_TYPES` and appears in the type dialog and the column
