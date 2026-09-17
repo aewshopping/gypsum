@@ -46,7 +46,7 @@ function updateColHoverRule(prop) {
     sheet.insertRule(
         `.note-table-header .note-table-cell-header[data-property=${val}],` +
         `.list-table .note-table-cell[data-prop=${val}]` +
-        `{ background-color: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))); }`,
+        `{ background-color: if(style(--colours-suppress: true): var(--colour-neutral-alt); else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) var(--table-hover-mix), var(--color-mono-contr, var(--colour-contr)))); }`,
         index
     );
 }

@@ -55,6 +55,7 @@ export async function addFilterThenFindMatches(searchObject) {
  *   False for every filter a user adds, removes or toggles, where page 1 is where the new results
  *   start. True for a re-run over results that were already on screen — a save re-runs the filters
  *   so the counts stay right, and being sent back to page 1 by an edit on page 3 is startling.
+ * @returns {{updateCallbackDone: Promise<void>}} renderFiles' own, resolved once the rows are drawn.
  */
 export function processSeachResults(fullRender = true, keepPage = false) {
 
@@ -68,6 +69,8 @@ export function processSeachResults(fullRender = true, keepPage = false) {
 
     renderFilters();
 
-    renderFiles(fullRender, keepPage); // note that highlights applied within the renderFiles function
+    // Handed back as renderFiles gives it: a caller that means to mark the rows it drew has to wait
+    // for them — see renderFiles.
+    return renderFiles(fullRender, keepPage); // note that highlights applied within the renderFiles function
 
 }

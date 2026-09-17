@@ -4,6 +4,7 @@
 
 import { appState } from '../services/store.js';
 import { fileTransitionName } from './ui-functions-render/file-transition-name.js';
+import { escapeHtml } from './ui-functions-render/escape-html.js';
 
 /**
  * Renders the recent files list into the side panel.
@@ -23,12 +24,18 @@ export function renderSidebarRecent() {
         // The 'recent-' prefix keeps these names clear of the ones a-render-all-files.js puts on
         // the grid cards — two elements may not carry the same view-transition-name at once.
         // sidebar-recent.css turns the name on, but only while the panel is open.
-        .map(file => `
+        // The label is named in the tooltip as well as shown on the button: the panel is narrow,
+        // so a long title is cut off on the button and the tooltip is where it can be read whole.
+        // The main list needs no such thing — the title is in plain view beside the link.
+        .map(file => {
+            const label = escapeHtml(file.title || file.filename);
+            return `
             <button class="sidebar-recent-item color-dynamic" data-color="${file.color}"
                     data-file-id="${file.internalId}" data-action="open-recent-file"
                     data-vt-name="recent-${fileTransitionName(file.internalId)}"
                     ${file.internalId === openFileId ? 'data-current' : ''}
-                    data-tip="open file">${file.title || file.filename}</button>`)
+                    data-tip="open file | ${label}">${label}</button>`;
+        })
         .join('');
 
     document.getElementById('sidebar-recent-list').innerHTML =

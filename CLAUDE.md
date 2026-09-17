@@ -394,6 +394,9 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |
 | `public/css/` | Component-scoped CSS modules |
+| `tests/1-data/` | Tests of what reaches the disk — run on every change |
+| `tests/2-behaviour/` | Tests of what the app does on screen |
+| `tests/3-occasional/` | Appearance and slow end-to-end tests |
 | `inline-scripts-from-files.js` | Build-time bundler (do not run manually) |
 | `.github/workflows/bundle.yaml` | CI/CD pipeline — produces single-file HTML artefact |
 
@@ -427,20 +430,49 @@ This creates `node_modules/` and makes `@playwright/test` available locally. The
 themselves live at `/opt/pw-browsers` in this environment and are already installed — you
 do not need to run `npx playwright install`.
 
-**Step 2 — run tests:**
+**Step 2 — run the tests that matter to what you changed:**
 
 ```bash
-npm test
+npm test                                            # level 1 only — the default
+npm test tests/2-behaviour/43-table-layouts.spec.js # level 1 plus the spec you are working on
+npm run test:behaviour                              # levels 1 and 2
+npm run test:all                                    # everything, including level 3
 ```
 
-This runs `CODESPACE_NAME= PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test`.
+`npm test` runs level 1 and nothing else, and extra paths are appended to it — so the second
+line above is the normal way to work: the tests that guard the user's files, plus the one spec
+covering the thing you are changing.
 
 - `CODESPACE_NAME=` (empty) forces Playwright to use `http://localhost:8000` rather than
   a Codespaces public URL that requires authentication.
 - `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` points to the pre-installed Chromium binary.
 
-The `webServer` config in `playwright.config.js` starts `python -m http.server 8000`
-automatically — you do not need to start it manually.
+The `webServer` config in `playwright.config.js` starts a threaded Python http server on port
+8000 automatically — you do not need to start it manually.
+
+### The three levels, and how to pick one
+
+The suite is split by directory, one level per directory, and **a whole spec file sits at one
+level**. That is the point: one decision per file, visible in `ls`, with nothing to annotate and
+nothing to keep in step.
+
+| Level | Directory | What lives there | When it runs |
+|-------|-----------|------------------|--------------|
+| 1 | `tests/1-data/` | Anything that writes, deletes, renames or backs up a file, and the parsing and loading that decide what a file *says*. A failure here loses or corrupts someone's notes. | Every run |
+| 2 | `tests/2-behaviour/` | What the app does on screen: views, filters, the table's menus and editors, keyboard navigation, when a view transition runs. A failure here is annoying, not destructive. | When you touch that area |
+| 3 | `tests/3-occasional/` | Appearance, and the slow end-to-end paths — the service worker, anything measured in pixels. | Before a release, or on request |
+
+**Where a new test goes, decided in one step:** does it guard the user's files? Level 1. Is it
+about what the app does? Level 2. Is it about how it looks? Level 3. Put it in the spec that
+already covers that area — a new spec file is for a new area, not for a new test.
+
+**And most changes need no new test at all.** Add one when a bug could come back silently, when
+the behaviour touches a file, or when the rule is subtle enough that the next reader would
+break it. A test that would only restate what the code plainly says costs more to run, for
+ever, than it is worth.
+
+**Do not run the full suite to check a change.** Level 1 plus the relevant spec is the answer
+while iterating; `npm run test:all` is for the end of a piece of work, once.
 
 **Troubleshooting:**
 
@@ -448,11 +480,28 @@ automatically — you do not need to start it manually.
 |---------|-----|
 | `Cannot find module '@playwright/test'` | Run `npm install` — `node_modules/` is missing |
 | `browserType.launch: Executable doesn't exist` | Browsers missing; run `npx playwright install --with-deps chromium` |
-| All tests fail with auth/login errors | `CODESPACE_NAME` is set in the environment; the `npm test` script unsets it, so use `npm test` not `npx playwright test` directly |
+| All tests fail with auth/login errors | `CODESPACE_NAME` is set in the environment; the npm scripts unset it, so use them rather than `npx playwright test` directly |
 | Port 8000 already in use | `playwright.config.js` sets `reuseExistingServer: true`, so a running server on 8000 is fine and will be reused |
 
-Tests live in `tests/`. Mock files are defined in `tests/helpers.js` and injected via
+Mock files are defined in `tests/helpers.js` — one directory above the specs — and injected via
 `page.addInitScript()` to simulate the File System API without a real file picker.
+
+### Keeping the suite fast
+
+The suite is the thing that runs on every change, so its cost is paid over and over. Four
+things keep it down, and they are worth knowing before adding to it:
+
+- **Animation is off while tests run.** `loadFolder()` unchecks "animate view changes", because
+  a view transition holds the page still for the length of its animation and every click that
+  followed a re-render waited it out. `tests/2-behaviour/50-render-transitions.spec.js` turns it
+  back on, being the spec that is about animation.
+- **A test of a pure function does not need a browser.** `appModule()` in `tests/helpers.js`
+  imports one of the app's modules straight into node; `public/package.json` — which holds
+  `{"type": "module"}` and nothing else — is what lets node read the app's files as the ES
+  modules they are. The yaml specs run in milliseconds this way.
+- **The service worker is blocked** everywhere but the spec that is about it, so no test waits
+  for the whole app to be cached.
+- **Twelve workers, not one per core.** A test spends most of its life waiting on a page load.
 
 Note: `@playwright/test` is pinned to a specific version in `package.json`. Do not bump
 this version without also running `npx playwright install --with-deps chromium` to download
@@ -502,7 +551,7 @@ These are accepted trade-offs, not bugs:
   loses them. A cell hands back a flat list of strings, so an added, removed or reordered item
   cannot be matched to the items already in the file and the whole value is rewritten — and a
   comment *between* two items is inside the bytes that get replaced. Everywhere else in the block is
-  safe, and stays safe by test (`tests/49-table-cell-writing.spec.js`): above a key, between two
+  safe, and stays safe by test (`tests/1-data/49-table-cell-writing.spec.js`): above a key, between two
   keys, after a list's last item, and between two items when only one item's *text* was edited.
   Keeping it through a rewrite needs real alignment between the old items and the new ones, which is
   not worth it — the loss is a comment, not a value.

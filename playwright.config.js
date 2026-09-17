@@ -9,11 +9,16 @@ module.exports = defineConfig({
   // Spread tests within a file across workers too, not just whole files. Without this a
   // single long spec (13-autosave) pins one worker and sets the floor for the whole run.
   fullyParallel: true,
-  // The tests spend most of their time waiting on page loads and view transitions rather
-  // than on CPU, so running more of them than there are cores still pays off.
-  workers: 8,
+  // More workers than cores, because a test spends much of its life waiting on a page load
+  // rather than on CPU. Measured on a four-core machine at the suite's current size: 4 workers
+  // 69s, 8 workers 52s, 12 workers 45s on the same spec, with 16 no better than 12.
+  workers: 12,
   use: {
     baseURL,
+    // Every test gets a fresh context, and in each one the page registered the service worker and
+    // let it cache the whole app — a hundred-odd files — for tests that never go offline.
+    // tests/pwa.spec.js, which is about the worker, allows it again for itself.
+    serviceWorkers: 'block',
   },
   webServer: {
     command: 'python -m http.server 8000',

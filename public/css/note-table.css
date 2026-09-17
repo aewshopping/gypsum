@@ -1,5 +1,11 @@
 :root {
-    --table-hover-bg: color-mix(in oklch, var(--colour-neutral-alt) 80%, var(--color-mono-contr, var(--colour-contr)));
+    /* How much of its own colour a hovered row, column or file cell keeps: the rest of the mix is
+       the contrast colour, so a smaller number is a stronger highlight. One number, because the row
+       highlight and the column highlight cross on the cell under the pointer — any disagreement
+       between them shows up there as a third shade. The bases differ (a row mixes from its own
+       data-color, the file cell from its faded one), so what is shared is the proportion rather
+       than a finished colour. */
+    --table-hover-mix: 92%;
 
     /* The grid lines, between rows and between columns. Deliberately faint: they should separate
        the cells without ruling the table. */
@@ -36,6 +42,9 @@
     align-items: center;
     gap: 8px;
     padding-block: 4px;
+    /* Room above and below, or the row is pressed between the filtered-files count and the
+       table header and reads as part of one or the other. */
+    margin-block: 8px;
 }
 
 /* The top scrollbar and the header live here, OUTSIDE .list-table, so they can stick
@@ -93,7 +102,7 @@
     &:hover {
         background-color: if(
             style(--colours-suppress: true): var(--colour-neutral-alt);
-            else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))
+            else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) var(--table-hover-mix), var(--color-mono-contr, var(--colour-contr)))
         );
 
         .show-content-tag {
@@ -102,6 +111,20 @@
         }
     }
 
+}
+
+/* A row that has been written to and belongs somewhere else in the sort order, waiting for you to
+   finish with it — see ui-functions-table/pending-row-move.js.
+
+   Dashed, because the row is telling you it is not where it belongs yet: the app already draws a
+   dashed outline on a cell that will not do what a solid one promises, and this is the same kind of
+   statement about a row. Inside the row rather than around it (the negative offset), so the table's
+   own horizontal clip cannot cut the left and right edges off it.
+
+   The same mix the undo mark fills with, which is the app's colour for "this just changed". */
+.note-table.move-pending {
+    outline: 2px dashed color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt));
+    outline-offset: -2px;
 }
 
 /* Also used in list view */
@@ -136,8 +159,8 @@
 
 /* The file cell on a coloured row keeps a background of its own, which the row's hover would
    otherwise paint behind rather than over — leaving the first column conspicuously unlit.
-   It takes the same step the row takes, 20% towards the contrast colour, but from its own faded
-   base rather than the row's full-strength one. So the whole row lifts by the same amount and
+   It takes the same step the row takes — --table-hover-mix, as everything here does — but from
+   its own faded base rather than the row's full-strength one. So the whole row lifts by the same amount and
    the file cell stays the lighter of the two, which is what the link's legibility rests on.
 
    --colour-dynamic-fade is that base, declared by .color-dynamic-fade itself; --color-mono-contr
@@ -148,7 +171,7 @@
 .note-table:hover .note-table-cell.color-dynamic-fade {
     background-color: if(
         style(--colours-suppress: true): transparent;
-        else: color-mix(in oklch, var(--colour-dynamic-fade) 80%, var(--color-mono-contr, var(--colour-contr)))
+        else: color-mix(in oklch, var(--colour-dynamic-fade) var(--table-hover-mix), var(--color-mono-contr, var(--colour-contr)))
     );
 }
 
@@ -305,6 +328,6 @@
 .list-table .note-table-cell[data-prop=""] {
     background-color: if(
         style(--colours-suppress: true): var(--colour-neutral-alt);
-        else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) 80%, var(--color-mono-contr, var(--colour-contr)))
+        else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) var(--table-hover-mix), var(--color-mono-contr, var(--colour-contr)))
     );
 }

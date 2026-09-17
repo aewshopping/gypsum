@@ -68,7 +68,7 @@ export function renderTableControls() {
                 <button type="button" id="table-undo-btn" class="svg-wrapper-style" data-action="table-undo" data-tip="undo last cell edit | Ctrl+Z"${canReverse('undo') ? '' : ' disabled'}>
                     <svg viewBox="0 0 45 48"><use href="#icon-undo"></use></svg>
                 </button>
-                <button type="button" id="table-redo-btn" class="svg-wrapper-style" data-action="table-redo" data-tip="redo cell edit | Ctrl+Shift+Z"${canReverse('redo') ? '' : ' disabled'}>
+                <button type="button" id="table-redo-btn" class="svg-wrapper-style" data-action="table-redo" data-tip="redo cell edit | Ctrl+Y"${canReverse('redo') ? '' : ' disabled'}>
                     <svg viewBox="0 0 45 48"><use href="#icon-redo"></use></svg>
                 </button>
             </div>`;

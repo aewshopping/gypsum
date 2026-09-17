@@ -127,4 +127,10 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
     }
 
     dataArray.sort(compareByProperty(property, dataType, sortOrder));
+
+    // Whatever was waiting to move has moved: a row held back by ui-functions-table/pending-row-move.js
+    // is in its place now, whether this sort was the one that let it go, an undo's, or a column
+    // being sorted by hand. Cleared here rather than at each of those, since this is the one thing
+    // they all do.
+    appState.pendingRowMove = null;
 }

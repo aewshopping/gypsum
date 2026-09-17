@@ -1,4 +1,5 @@
 import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
+import { releaseRowMove } from '../ui-functions-table/pending-row-move.js';
 
 /**
  * @file Which cell is selected, which is open, and what opens one.
@@ -62,6 +63,10 @@ export function clearExpandedCells() {
  * Focus moving *within* a cell is not leaving it: a date cell's picker button and its input are both
  * in there, and the cell they belong to is the one this finds.
  *
+ * **And a row held back from its move is let go here**, after the cell that was left has been
+ * collapsed — because collapsing is what writes the edit, and a move made before the write would be
+ * sorting on a value the file does not have yet.
+ *
  * @param {FocusEvent} evt
  * @returns {void}
  */
@@ -73,6 +78,8 @@ export function handleCellFocusIn(evt) {
     }
 
     cell?.classList.add(SELECTED);
+
+    releaseRowMove(evt.target);
 }
 
 // Whether the press landed on a cell the keyboard was already on. Read before the press moves focus,

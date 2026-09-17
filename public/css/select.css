@@ -18,6 +18,9 @@ select {
   border-radius: 8px;
   padding: 4px;
   background-color: var(--colour-neutral-alt);
+  /* The list has no border, so nothing but this says it is in front of the page rather than
+     part of it. Mixed from the contrast colour so it holds up in every theme. */
+  box-shadow: 2px 2px 2px 2px color-mix(in srgb, var(--colour-contr) 10%, transparent);
 }
 
 option {

@@ -70,7 +70,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const increment = n * 100 / total;
     let pct = 0;
     fileCountEl.classList.add('loading');
-    fileCountEl.textContent = `files: ${total}`;
+    fileCountEl.textContent = `files loaded: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
     let unreadableCount = 0;
     for (let i = 0; i < total; i++) {

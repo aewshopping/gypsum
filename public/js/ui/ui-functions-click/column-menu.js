@@ -30,8 +30,8 @@ import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
-/** What a header cell's tooltip says before it is selected: one click highlights the column. */
-export const HEADER_TIP_IDLE = 'highlight column';
+/** What a header cell's tooltip says before it is selected: the menu is two clicks away. */
+export const HEADER_TIP_IDLE = 'double click for column options';
 
 /** And after, when a second click is what opens the menu. */
 export const HEADER_TIP_SELECTED = 'column options';
