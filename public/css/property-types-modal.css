@@ -1,26 +1,70 @@
 /* The types modal: which type each of the user's own properties is read as. Built from the same
-   .info-modal shell and .info-modal-row rows as the column picker, so only what differs is here —
-   which is the row layout, since these rows have no grip to line up down the left. */
+   .info-modal shell and .info-modal-row rows as the column picker, so only what differs is here.
+   What differs is the whole of the row: these rows hold a label and one glyph, and the row itself
+   is the button — the arrangement the layouts modal's "save as new" row already uses. */
 
-/* Capped the same way #modal-columns is, and for the same reason: a long property name would widen
-   the dialog to the edge of the screen before the label had any reason to give way. */
+/* Narrower than the picker, which is 460px to hold a grip, a label, a glyph and a toggle. With only
+   two things in a row, that width left the glyph stranded a long way right of the name it belongs
+   to. The viewport term is the picker's — see sidebar-push.css — and .info-modal's 320px min-width
+   is the floor underneath it. */
 #modal-property-types {
-    max-width: min(460px, calc(100vw - var(--sidebar-width) - 32px));
+    max-width: min(340px, calc(100vw - var(--sidebar-width) - 32px));
 }
 
-/* Two tracks rather than the picker's three. The glyph track holds its contents, which are the same
-   size on every row, so the buttons line up down the right whatever a property is called. */
-#property-types-list .info-modal-row {
+/* The grid is doing more than the gap here: a <button> shrinks to its contents whatever its display,
+   so one grid column is what makes every row stretch to the same width without any of them being
+   told in pixels what that width is. #layout-list is a grid for the same reason. */
+#property-types-list {
+    display: grid;
+    gap: 4px;
+}
+
+/* The row is the button. Two tracks: the label takes the space, the glyph takes what it needs.
+   The negative inline margin lets the hover fill reach the dialog's padding rather than stopping
+   short of it, which is the trick .layout-row uses. */
+.property-type-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 16px;
+    column-gap: 16px;
+
+    box-sizing: border-box;
+    margin-inline: -8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--colour-contr);
+    text-align: left;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+}
+
+/* Hover is a fill, not an underline: the row is a target end to end. */
+.property-type-row:hover {
+    background-color: var(--colour-neutral-alt);
+}
+
+/* The glyph follows the row's hover rather than having one of its own — inside a row that is itself
+   the button, it is drawn and not pressed, so pointing at the label has to bring it up just as
+   pointing at the glyph does. The same pair of weights .info-modal-row-btn rests and hovers at. */
+.property-type-row .info-modal-row-btn {
+    opacity: 0.45;
+}
+
+.property-type-row:hover .info-modal-row-btn {
+    opacity: 0.9;
 }
 
 /* minmax(0, ...) above and min-width here are the pair that let the track go narrower than the text
    in it — a grid track's own minimum is its content's, which is what lets a long name set the row's
    width and push the glyph out of line with the rows above it. */
-#property-types-list .info-modal-row-label {
+.property-type-row .info-modal-row-label {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

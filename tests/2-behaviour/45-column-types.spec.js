@@ -388,7 +388,8 @@ test('a type set from the types modal sticks and reaches the table', async ({ pa
   await loadFolder(page);
   await openTypesModal(page);
 
-  await typesRow(page, 'revisions').locator('.column-picker-type').click();
+  // The row is the button, so this is a click on the label end of it, not on the glyph.
+  await typesRow(page, 'revisions').click();
   await expect(typeDialog(page)).toBeVisible();
   await typeOption(page, 'number').click();
   await page.click('[data-action="close-column-type"]');

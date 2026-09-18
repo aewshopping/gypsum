@@ -49,6 +49,12 @@ export function userTypeProperties() {
  * No disabled branch and no locked glyph: userTypeProperties has already excluded every property
  * whose type is the app's.
  *
+ * **The row is the button**, the way the layouts modal's "save as new" row is — a row here does one
+ * thing, so the glyph is a poor target for it and a fine label. The glyph therefore sits in a span
+ * rather than a button: a button inside a button is invalid, and this one is drawn, not pressed.
+ * The tip moves onto the row with the press, so the whole target explains itself; tooltip.js finds
+ * it with closest() and reads it at hover time, so it stays true as the type is changed.
+ *
  * @returns {string} HTML string for #property-types-list's innerHTML.
  */
 export function renderPropertyTypesList() {
@@ -62,13 +68,13 @@ export function renderPropertyTypesList() {
             ? `${typeLabel}, ${labelFor(SEARCH_TYPES, searchType)}`
             : typeLabel;
 
-        return `<div class="info-modal-row" data-property="${escapeHtml(name)}"` +
-                 ` data-type="${type}" data-search-type="${searchType}">` +
+        return `<button type="button" class="info-modal-row property-type-row" data-action="column-type-open"` +
+                 ` data-property="${escapeHtml(name)}" data-type="${type}" data-search-type="${searchType}"` +
+                 ` data-tip="${tip}">` +
                  `<span class="info-modal-row-label">${escapeHtml(label)}</span>` +
-                 `<span class="column-picker-actions">` +
-                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${tip}">` +
-                     typeGlyph({ name, type }, 'info-modal-row-icon') + `</button>` +
+                 `<span class="info-modal-row-btn" aria-hidden="true">` +
+                   typeGlyph({ name, type }, 'info-modal-row-icon') +
                  `</span>` +
-               `</div>`;
+               `</button>`;
     }).join('');
 }
