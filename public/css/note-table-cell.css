@@ -28,9 +28,9 @@
    left/right pin it to its own column: it only grows downwards.
 
    The cursor is deliberately NOT text here. Not every expanded cell takes a caret — the app's own
-   columns, the properties that are not front matter, and any value that does not fit its column all
-   open to be read and nothing more — and a text cursor over one of those promised an editor that
-   never arrived. The rule below gives it back wherever a caret actually exists. */
+   columns, the properties that are not front matter, and any value whose *shape* its column cannot
+   hold all open to be read and nothing more — and a text cursor over one of those promised an
+   editor that never arrived. The rule below gives it back wherever a caret actually exists. */
 .note-table-cell.is-expanded {
     cursor: default;
     text-wrap: wrap;
@@ -79,9 +79,9 @@
    as the fade: saying it twice is cheap, and the second way survives being read by someone who does
    not see the first.
 
-   No sentence, because there is nothing to do about it — a mismatched cell explains itself in words
-   since something is wrong there, while a size or a filename cell is working exactly as intended and
-   the padlock on its column has already said so. */
+   No sentence, because there is nothing to do about it — a cell whose value does not fit its column
+   explains itself in words since something is wrong there, while a size or a filename cell is
+   working exactly as intended and the padlock on its column has already said so. */
 .note-table-cell.is-expanded.is-readonly {
     outline-style: dashed;
     color: color-mix(in srgb, var(--colour-contr) var(--cell-readonly-fade), transparent);
@@ -106,11 +106,24 @@
    tooltip needs a pointer. On its own line under the value, and small, so the value stays the thing
    being read.
 
+   **Drawn from data-tip rather than from an element, and that is load-bearing.** It was a span the
+   editor appended, which was safe only while every cell carrying one refused a caret. A value that
+   cannot be *read* as its type now takes one — see mismatchRefusesCaret() in property-type.js — and
+   contenteditable applies to descendants, so a span would be text the caret could land in, delete,
+   and have written back into the note: cell-edit-commit.js captures the cell's whole textContent.
+   A pseudo-element cannot be reached by the caret and contributes no text content at all, so
+   capture stays one expression for every kind of cell. It also leaves nothing for JS to insert or
+   remove, which is what makes "written once, by the renderer, onto data-tip" literally true.
+
+   Every opened cell carrying a tip, rather than only a mismatched one: a note whose front matter
+   did not read cleanly says its piece the same way, and one mechanism for one sentence is the point.
+
    It keeps the column's width like the rest of an opened cell, and wraps. Widening it was tried and
    put back: a cell grows rightward, so on the last column — which is exactly where a newly typed
    property sits — the explanation ran off the edge of the table. The sentences are short enough to
    wrap tolerably instead. */
-.cell-mismatch-note {
+.note-table-cell.is-expanded[data-tip]::after {
+    content: attr(data-tip);
     display: block;
     margin-top: 6px;
     padding-top: 6px;

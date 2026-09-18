@@ -233,6 +233,14 @@ the cell.
 
 ### 4.3 How the two controls share the cell
 
+> **Superseded in part, at manifest `1.259.0`.** "An unreadable date never reaches any of this"
+> below is no longer true: a value that cannot be *read* as its type now takes a caret, and only a
+> value of the wrong *shape* refuses one — see `mismatchRefusesCaret()` in `services/property-type.js`.
+> The seeding line needed no change to cope. It already falls back to an empty input when the text
+> will not parse, so `due: quite soon` opens as an editable span beside a blank picker, and the
+> calendar is the faster of the two ways to fix it.
+
+
 ```html
 <div class="note-table-cell is-expanded" data-prop="due">
   <span class="cell-date-text" contenteditable="plaintext-only">2026-03-01</span>
@@ -335,6 +343,11 @@ the cell, not the schema. Only the date branch flattens; a tags cell holds real 
 nothing — §3 leaves it holding plain text.
 
 ### 5.2 Two rules `cell-editor.js` owns
+
+> **Superseded in part, at manifest `1.259.0`.** The first reason below narrowed: it is the value's
+> *shape* not fitting its column that refuses a caret, not any mismatch at all. Committing a list
+> into a column of single values rewrites the note's structure; correcting unreadable text does not.
+
 
 **Which properties refuse a caret.** Three reasons, and they belong together rather than spread across
 two plans: the value does not fit its column, the column is one the app fills in, **and the property

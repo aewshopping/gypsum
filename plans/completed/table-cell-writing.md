@@ -343,6 +343,15 @@ captured array with the file's value would report a change on every list of numb
 
 ## 6. What already exists
 
+> **Superseded in part, at manifest `1.259.0`.** "A mismatched cell already refuses to be edited"
+> below — and §3's "does not fit its column is already refused outright" — now hold only for a
+> `'shape'` mismatch. An `'unreadable'` value is a scalar in a scalar column, so correcting it
+> splices exactly the span this plan's ordinary path splices, and the cell takes a caret. The
+> explanation moved with it: it is drawn by CSS from `data-tip` rather than inserted as a span,
+> because a span inside a cell that now takes a caret would be captured by §4.4's `cell.textContent`
+> and written into the note. That makes §4.4's "capture is one expression" *more* true, not less.
+
+
 Four of step 2's guards are built, three from the types plan and one from the editors plan — and so is
 capture, which was never listed as a risk and turned out to carry one (§4.4).
 

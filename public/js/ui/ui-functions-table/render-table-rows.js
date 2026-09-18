@@ -52,24 +52,32 @@ export function renderTableRows(current_props, renderEverything) {
                 // A note whose front matter did not read cleanly has the cells that come from it
                 // locked until it is fixed in the note — writing into a broken block writes into a
                 // key nobody created. Only the cells that would otherwise take a caret are marked,
-                // so a column that is locked anyway says nothing new about it. The sentence gives
-                // way to a mismatch's below, which is the more specific thing to say about this one
-                // cell — and both send you to the same note.
-                const brokenYaml = isPropertyEditable(prop.name) && hasYamlError(file)
-                    ? ` data-yaml-error${mismatch ? '' : ` data-tip="${YAML_ERROR_TIP}"`}`
-                    : '';
+                // so a column that is locked anyway says nothing new about it.
+                const brokenYaml = isPropertyEditable(prop.name) && hasYamlError(file);
 
                 // Marks the cells whose items list-highlight.js bands after the render. On the cell
                 // for the same reason data-info is: the renderer knows, and asking again later is
                 // how the mark and the text end up disagreeing.
                 const list = rendersAsList(prop, file, mismatch) ? ' data-list' : '';
 
-                // The tip carries the whole explanation, which is also what cell-editor.js shows
-                // inside the cell when it is opened. One sentence, written in one place.
-                const flag = mismatch
-                    ? ` data-mismatch="${mismatch}" data-tip="${mismatchMessage(mismatch, prop.type)}"`
-                    : '';
-                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${brokenYaml}${flag}>${cellContent}</div>`;
+                // One sentence per cell, and the one that wins is the one that explains why the
+                // cell is as it is. A broken block outranks anything said about a single value in
+                // it, because every value in it is a guess — including whether this one really is
+                // the wrong type. It used to be the other way round, which was right while every
+                // mismatch refused a caret too: an unreadable value now takes one, so the cell
+                // would have been explaining a refusal that came from somewhere else.
+                //
+                // The tip carries the whole explanation, and note-table-cell.css draws this same
+                // string inside the cell once it is opened. Written in one place, read back by
+                // nobody.
+                const tip = brokenYaml
+                    ? YAML_ERROR_TIP
+                    : mismatch ? mismatchMessage(mismatch, prop.type) : '';
+
+                const flag = (mismatch ? ` data-mismatch="${mismatch}"` : '')
+                    + (brokenYaml ? ' data-yaml-error' : '')
+                    + (tip ? ` data-tip="${tip}"` : '');
+                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

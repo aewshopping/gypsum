@@ -42,9 +42,14 @@ the clipboard format copy writes is the format paste has to read.
   warning that can already say "12 cells, 2 of them locked" is worth more than a bare "are you
   sure".
 - **Type mismatch on arrival.** `typeMismatch()` answers whether a value fits a column, but for a
-  pasted value the question comes *before* the write, not after. Decide whether a value that would
-  not fit is refused, or written anyway and left showing as a mismatched cell — and note that these
-  are different for `'shape'` (the column's type is wrong) and `'unreadable'` (the text is wrong).
+  pasted value the question comes *before* the write, not after. **Half of this is now answered**:
+  `mismatchRefusesCaret()` in `services/property-type.js` says which mismatches a single cell edit
+  refuses, and only `'shape'` does — an `'unreadable'` value is written like any other and left
+  showing as a marked cell, because it is a scalar replacing a scalar. Ask that function rather than
+  testing for `'shape'` here. What is still open is a `'shape'` arrival: a pasted list landing in a
+  column of single values would have to add or destroy the note's brackets, which a cell edit is not
+  allowed to do — so decide whether it is skipped in place with the other refusals below, or
+  written and left marked.
 - **Cells that take no caret.** A locked column, an info column, and a note whose front matter did
   not read cleanly all refuse an edit today. Decide whether they are skipped in place — keeping the
   rectangle's alignment, so the rest of the paste lands where it was aimed — or whether they shift

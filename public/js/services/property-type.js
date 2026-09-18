@@ -107,7 +107,9 @@ export function isPropertyEditable(name) {
  * - **'shape'** — a list in a column of single values, or a single value in a column of lists. The
  *   note is fine and the column's type is wrong; changing it back fixes every cell at once.
  * - **'unreadable'** — the right shape, but the text cannot be read as the type. "quite soon" in a
- *   date column. The column is fine and the note is wrong, so only opening the note fixes it.
+ *   date column. The column is fine and this one value is wrong — and the cell itself can fix it,
+ *   because a scalar replacing a scalar splices exactly the bytes any other edit does. See
+ *   mismatchRefusesCaret() below for which of the two turns a cell read-only.
  *
  * The question a renderer asks before drawing a cell, and the one the editing work asks before
  * deciding what a click on that cell does. Both must ask here rather than reading what ended up on
@@ -130,6 +132,28 @@ export function typeMismatch(value, type) {
     if (type === VALUE_TYPES.NUMBER.value && !readsAsNumber(value)) return 'unreadable';
 
     return null;
+}
+
+/**
+ * Whether a mismatch is a reason to refuse a caret.
+ *
+ * Only 'shape' is. Committing a list into a column of single values — or the reverse — rewrites the
+ * value in the other shape, so the `[ ]` or the block of `- ` lines the note was written with is
+ * added or destroyed by something that looked like typing over a word. 'unreadable' is a scalar in
+ * a scalar column: the same value span is spliced as for a value that fits, so `due: quite soon` is
+ * corrected to `due: 2026-03-01` in place — which is the fix the cell used to send you to the note
+ * to make by hand.
+ *
+ * Here rather than in cell-editor.js, beside isPropertyEditable() and the distinction it depends
+ * on, because a caller that knew 'shape' was the dangerous one would be a second copy of what
+ * typeMismatch() says above — and typeMismatch's own docblock already warns against working these
+ * answers out anywhere else.
+ *
+ * @param {'shape'|'unreadable'|null|undefined} mismatch - What typeMismatch() said, or nothing.
+ * @returns {boolean}
+ */
+export function mismatchRefusesCaret(mismatch) {
+    return mismatch === 'shape';
 }
 
 /**
