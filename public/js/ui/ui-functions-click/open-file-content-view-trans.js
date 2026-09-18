@@ -165,6 +165,12 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
  * @returns {ViewTransition|undefined}
  */
 export function handleOpenFileContent(event, target, postLoad = null) {
+  // The table's open control is an <a href="#">, and following the empty fragment scrolls the
+  // document to the top — so opening a note from a row below the fold snapped the page up before
+  // the modal appeared, transition or no transition. The href is there to make the anchor
+  // focusable, the same bargain internal-link-click.js strikes.
+  event?.preventDefault();
+
   return openFileContent(target.dataset.fileId, target.dataset.color, animationSource(target), postLoad);
 }
 

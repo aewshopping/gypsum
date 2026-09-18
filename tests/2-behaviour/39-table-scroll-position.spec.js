@@ -100,3 +100,37 @@ test('the table keeps its horizontal scroll position when it re-renders', async 
     await page.locator('[data-action="column-sort-asc"]').evaluate(el => el.click());
   });
 });
+
+
+// The vertical case, and a different mechanism: the table has no vertical scroll container of its
+// own — .list-table is overflow-x with no height, so the document scrolls — and the table's open
+// control is the app's only <a href="#"> outside a note's body. Following the empty fragment is
+// defined as scrolling to the top of the document, so opening a note from a row below the fold
+// snapped the whole page up, with or without a view transition.
+test('opening a note from a row below the fold keeps the page where it was', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 400 });
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  // Down to the last row, which is well past the fold at this height.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const before = await page.evaluate(() => window.scrollY);
+  expect(before).toBeGreaterThan(0);
+
+  // Clicked through the DOM: locator.click() scrolls the target into view first, which would
+  // move the very position under test.
+  await page.locator('.note-table').last()
+    .locator('a[data-action="open-file-content-modal"]')
+    .evaluate(el => el.click());
+
+  // The note really opened, so a click that missed fails here rather than passing on a no-op.
+  await expect(page.locator('#file-content-modal')).toHaveAttribute('open', '');
+
+  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+  // location.hash is '' either way — a bare '#' is an empty fragment — so the URL is what says
+  // whether the anchor was followed, and with it the dead step it used to add to the Back button.
+  expect(page.url()).not.toContain('#');
+});
