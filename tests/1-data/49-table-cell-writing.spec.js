@@ -558,6 +558,27 @@ test('a list of numbers is compared by value, so one edit is still one splice', 
   await expect.poll(() => fileText(page, 'alpha.md')).toBe(original.replace('- 2', '- 7'));
 });
 
+test('a padded list is compared by the text the parser kept, so one edit is still one splice', async ({ page }) => {
+  // The other half of the test above, for the values the parser now declines to coerce. `01` is
+  // kept as its own text, so the comparison has to ask readValue() rather than the spec's
+  // coerceValue() — which would read `01` back as `1`, call two untouched items changed and rewrite
+  // the whole list, taking the comment between them with it.
+  await openTable(page, {
+    'delta.md': '---\ncodes:\n- 01\n- 02\n  # between two items\n- 10\nstatus: draft\n---\n# Delta\n\nBody.\n',
+  });
+  await setType(page, 'codes', 'array');
+
+  await expect(cellFor(page, 'Delta', 'codes')).toHaveText('01, 02, 10');
+  await retype(page, cellFor(page, 'Delta', 'codes'), '01, 07, 10');
+
+  // The edited item comes back quoted and the untouched ones do not, which is both rules at once:
+  // the writer quotes `07` so that every *other* reader sees the text too, and the bytes it did not
+  // touch keep the note looking like the note it was.
+  await expect.poll(() => fileText(page, 'delta.md'))
+    .toBe('---\ncodes:\n- 01\n- "07"\n  # between two items\n- 10\nstatus: draft\n---\n# Delta\n\nBody.\n');
+  await expect(cellFor(page, 'Delta', 'codes')).toHaveText('01, 07, 10');
+});
+
 test('adding an item rewrites the list in the style the file already uses', async ({ page }) => {
   await openTable(page);
   await retype(page, cellFor(page, 'Alpha', 'people'), 'John Smith, "Doe, Jane", Rae Chen');
