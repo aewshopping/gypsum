@@ -165,7 +165,27 @@ export function openFileContent(file_to_open, color, animateFrom = null, postLoa
  * @returns {ViewTransition|undefined}
  */
 export function handleOpenFileContent(event, target, postLoad = null) {
-  return openFileContent(target.dataset.fileId, target.dataset.color, target, postLoad);
+  return openFileContent(target.dataset.fileId, target.dataset.color, animationSource(target), postLoad);
+}
+
+
+/**
+ * What the modal grows out of, given whatever carries the open action.
+ *
+ * **In the table that is the row, not the link inside it.** The row is what stands for the file
+ * there — the whole of what the user reads — while the link is a word in one narrow column, so the
+ * modal appeared to come out of the word rather than out of the note. Every other view puts the
+ * action on the element that stands for the file already, and finds nothing to climb to.
+ *
+ * The ids still come from the clicked element, which is where data-file-id and data-color live: only
+ * the element being animated changes. Asked here and in findFileCard below, so the close shrinks
+ * back into whatever the open came out of.
+ *
+ * @param {HTMLElement|null} element - The element carrying the open-file action.
+ * @returns {HTMLElement|null}
+ */
+function animationSource(element) {
+  return element?.closest('.note-table') ?? element;
 }
 
 
@@ -193,11 +213,15 @@ export function handeCloseModalOutside(event, target) {
  * Finds a file's card in the file list — the element the modal animates out of and back into.
  * Returns null when the file has no card, which the active filters or the current pagination
  * page can cause.
+ *
+ * Through animationSource, so a table row is what comes back rather than the link inside it: the
+ * close has to find the element the open animated from, or the modal shrinks into a different one.
  * @param {string} fileId
  * @returns {HTMLElement|null}
  */
 export function findFileCard(fileId) {
-    return document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(fileId)}"]`);
+    return animationSource(
+        document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(fileId)}"]`));
 }
 
 

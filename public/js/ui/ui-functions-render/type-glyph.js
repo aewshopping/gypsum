@@ -21,11 +21,12 @@ import { isInfoColumn, isPropertyEditable } from '../../services/property-type.j
  * **A new type needs an entry here** as well as its `#icon-type-<name>` symbol.
  */
 const LOCK_SHIFT = {
-    string: '-6 -4',
-    number: '-7 -5',
-    date:   '-6 -7',
-    array:  '-6 -7',
-    info:   '-6 -4',
+    string:   '-6 -4',
+    number:   '-7 -5',
+    date:     '-6 -7',
+    datetime: '-4 -6',
+    array:    '-6 -7',
+    info:     '-6 -4',
 };
 
 /**

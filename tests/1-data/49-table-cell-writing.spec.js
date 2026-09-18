@@ -340,6 +340,26 @@ test('the move happens when a cell in another row takes focus', async ({ page })
   await expect(cellFor(page, 'Gamma', 'title')).toHaveClass(/is-selected/);
 });
 
+test('the move happens when the click lands on nothing that can take focus', async ({ page }) => {
+  await openTable(page);
+  await sortByStatus(page);
+  await expect.poll(() => titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
+
+  await open(cellFor(page, 'Alpha', 'status'));
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type('zzz');
+  await page.keyboard.press('Enter');
+  await expect(heldRow(page)).toHaveCount(1);
+
+  // The report line above the table takes no focus, so this click blurs the cell to the body and
+  // fires no focusin at all. Focus has still left the row, which is the only question that matters.
+  await page.locator('#output-report').click();
+
+  await expect.poll(() => titles(page)).toEqual(['Beta', 'Alpha', 'Gamma']);
+  await expect(heldRow(page)).toHaveCount(0);
+});
+
 test('a cell left by clicking away moves at once, having nobody in it to protect', async ({ page }) => {
   await openTable(page);
   await sortByStatus(page);

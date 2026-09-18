@@ -210,6 +210,53 @@ test('a note that gains a front matter key gets the column drawn', async ({ page
 // ---------------------------------------------------------------- the settings toggle
 
 /** Turns "Animate view changes" off through the settings modal, the way a user would. */
+/**
+ * Watches which elements ever wear the class that names the modal's transition group, from now
+ * until it is asked. The class is put on before the transition starts and taken off inside it, so
+ * a look after the click would find it already gone.
+ */
+async function watchMovingElements(page) {
+  await page.evaluate(() => {
+    window.__moved = [];
+    new MutationObserver(records => {
+      for (const record of records) {
+        const el = record.target;
+        if (el.classList?.contains('moving-file-content-view')) {
+          window.__moved.push(el.tagName.toLowerCase() + '.' + [...el.classList].join('.'));
+        }
+      }
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  });
+}
+
+test('the table animates a note out of its row, not out of the link inside it', async ({ page }) => {
+  await openTable(page);
+  await watchMovingElements(page);
+
+  // The row stands for the file; the link is one word in one narrow column, and the modal used to
+  // come out of the word.
+  await page.locator('.note-table').first().locator('a[data-action="open-file-content-modal"]').click();
+
+  await expect.poll(() => page.evaluate(() => window.__moved.some(m => m.startsWith('div.note-table'))))
+    .toBe(true);
+  expect(await page.evaluate(() => window.__moved.some(m => m.startsWith('a.')))).toBe(false);
+});
+
+test('list view still animates out of its own open control', async ({ page }) => {
+  await openTable(page);
+  await page.selectOption('#view-select', 'list');
+  await expect(page.locator('.list-view')).toBeVisible();
+  await page.waitForTimeout(1500);   // the view change animates, and holds the page still while it does
+  await watchMovingElements(page);
+
+  // There is no row to climb to here, so the control the click landed on is what animates.
+  await page.locator('.list-view summary').first().click();
+  await page.locator('.list-view [data-action="open-file-content-modal"]').first().click();
+
+  await expect.poll(() => page.evaluate(() => window.__moved.some(m => m.startsWith('span.show-content-tag'))))
+    .toBe(true);
+});
+
 async function turnAnimationsOff(page) {
   await page.click('[data-action="open-settings-modal"]');
   await expect(page.locator('#view-transitions-enabled')).toBeVisible();

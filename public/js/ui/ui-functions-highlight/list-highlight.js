@@ -29,7 +29,7 @@ const NAME = 'list-item';
  * auto-sizing a list column measures the widest one — see table-col-auto-size.js. Both ask here, so
  * neither has its own idea of where an item begins.
  *
- * @param {HTMLElement} cell - A cell carrying data-list.
+ * @param {HTMLElement} cell - A cell, or a list view's value span, carrying data-list.
  * @returns {Range[]} Empty for a cell holding no text, which is an empty list.
  */
 export function itemRangesIn(cell) {
@@ -56,8 +56,11 @@ export function itemRangesIn(cell) {
  * @returns {void}
  */
 export function updateListHighlights() {
+    // Every element that says it holds a list, wherever it is drawn: the table's cells and list
+    // view's value spans both mark themselves, so a list reads the same in both without this
+    // having to know which view is on screen.
     const ranges = [];
-    for (const cell of document.querySelectorAll('.note-table-cell[data-list]')) {
+    for (const cell of document.querySelectorAll('[data-list]')) {
         ranges.push(...itemRangesIn(cell));
     }
 

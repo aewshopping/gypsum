@@ -33,13 +33,35 @@ export const VIEWS = {
  *
  * This is the only place a type name is legal. It matters because a layout file is meant to be
  * hand-edited, so a typo in one must not be able to invent a phantom type.
+ *
+ * **`sortEnds` is what the two ends of a sort are called**, ascending first, from which the column
+ * menu writes "sort old to new" and its opposite. A pair per type rather than one wording for all,
+ * because "A-Z" describes a list column's sort least of all: `compareByProperty` orders a list by
+ * how many items it holds, so ascending really is the shortest list first. A type with no pair
+ * borrows text's, so a type added without one reads as text until someone chooses its words.
  */
 export const VALUE_TYPES = {
-    STRING: { value: "string", label: "text"   },
-    NUMBER: { value: "number", label: "number" },
-    DATE:   { value: "date",   label: "date"   },
-    ARRAY:  { value: "array",  label: "list"   }
+    STRING:   { value: "string",   label: "text",          sortEnds: ["A", "Z"]      },
+    NUMBER:   { value: "number",   label: "number",        sortEnds: ["low", "high"] },
+    DATE:     { value: "date",     label: "date",          sortEnds: ["old", "new"]  },
+    DATETIME: { value: "datetime", label: "date and time", sortEnds: ["old", "new"]  },
+    ARRAY:    { value: "array",    label: "list",          sortEnds: ["few", "many"] }
 };
+
+/**
+ * Whether a type holds a moment in time, which `date` and `datetime` both do.
+ *
+ * Asked wherever the two behave alike — ordering, what counts as unreadable, which cell offers a
+ * picker — so that the difference between them stays in the two places it is real: the picker the
+ * cell opens, and the drawing the column wears. Without it the pair would be spelled out at each
+ * of those sites, and the next type of date would have to find them all.
+ *
+ * @param {string} type - One of VALUE_TYPES' values.
+ * @returns {boolean}
+ */
+export function isDateType(type) {
+    return type === VALUE_TYPES.DATE.value || type === VALUE_TYPES.DATETIME.value;
+}
 
 /**
  * The type the app gives a column it fills in itself — the file link, the size, the last modified

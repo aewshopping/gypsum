@@ -25,7 +25,8 @@
 import { applySortAndRender } from './sort-object.js';
 import { openColumnTypeDialog } from './column-type-set.js';
 import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
-import { isPropertyEditable, setPropertyType } from '../../services/property-type.js';
+import { isPropertyEditable, setPropertyType, propertyType } from '../../services/property-type.js';
+import { VALUE_TYPES } from '../../constants.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
@@ -158,8 +159,11 @@ export function handleColumnMenuOpen(evt, headerCell) {
         const item = menu.querySelector(`[data-action="${action}"]`);
         if (item) item.disabled = isControl;
     }
+
     const typeItem = menu.querySelector('[data-action="column-change-type"]');
     if (typeItem) typeItem.disabled = noType;
+
+    nameSortItems(menu, property);
 
     // Showing a popover does not move focus on its own. Putting it on the first item is what
     // makes the menu tabbable, and gives Escape something to return focus from.
@@ -234,6 +238,32 @@ function commitHeaderType(headerCell) {
 export function handleColumnHeaderClickOutside(evt) {
     if (evt.target.closest('.note-table-cell-header, #column-menu')) return;
     clearHeaderSelection();
+}
+
+/**
+ * Names the two sort items after the ends of this column's own sort.
+ *
+ * "sort A-Z" is the right sentence for text and wrong for everything else: a date column sorts old
+ * to new and a list column sorts by how many items a row holds, so neither has an A or a Z in it.
+ * The pair of words belongs to the type — see `sortEnds` in constants.js — so a new type names its
+ * own ends rather than being added to a list kept here, and a type with no pair reads as text does.
+ *
+ * Written on opening rather than baked into index.html, because the menu is one element reused by
+ * every column. The tooltips are untouched: "sort ascending" is about direction, which is the one
+ * thing that does not change with the type.
+ *
+ * @param {HTMLElement} menu - The column menu.
+ * @param {string} property - The column it has been opened on.
+ * @returns {void}
+ */
+function nameSortItems(menu, property) {
+    const type = Object.values(VALUE_TYPES).find(entry => entry.value === propertyType(property));
+    const [first, last] = type?.sortEnds ?? VALUE_TYPES.STRING.sortEnds;
+
+    const ascItem = menu.querySelector('[data-action="column-sort-asc"]');
+    const descItem = menu.querySelector('[data-action="column-sort-desc"]');
+    if (ascItem) ascItem.textContent = `sort ${first} to ${last}`;
+    if (descItem) descItem.textContent = `sort ${last} to ${first}`;
 }
 
 /**

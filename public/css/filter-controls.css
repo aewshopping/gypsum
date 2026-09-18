@@ -38,17 +38,11 @@
   --line-color: var(--colour-highlight);
   --g-color: color-mix(in srgb, var(--colour-contr) 100%, transparent 0%);
 
-  & g {
+  /* The pen is drawn in the sprite, and a selector cannot reach into the copy a <use> draws — so
+     its nib and its line read --nib-color, --nib-fill and --line-color there, and the colour of
+     the pen itself is inherited from here. All four still change in one place: the state below. */
+  & svg {
     color: var(--g-color);
-  }
-
-  & #highlight-nib {
-    color: var(--nib-color);
-    fill: var(--nib-fill);
-  }
-
-  & #highlight-line {
-    color: var(--line-color);
   }
 }
 

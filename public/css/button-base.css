@@ -57,10 +57,6 @@
        and against its neighbours. Fading the finished picture is the same multiplier everywhere. */
     opacity: 0.6;
     transition: opacity 0.2s;
-
-    g, path {
-        stroke: currentColor;
-    }
 }
 
 .svg-wrapper-style:hover > svg {
