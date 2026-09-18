@@ -361,7 +361,8 @@
 
       <div class="file-display-controls-panel" id="file-display-controls-panel">
         <div class="file-display-controls-panel-inner">
-          <button data-tip="show all tags" class="tag-taxonomy-btn" data-action="render-tag-taxonomy">show tags</button>
+          <button data-tip="show all tags" class="controls-panel-btn" data-action="render-tag-taxonomy">tags</button>
+          <button data-tip="set how your own properties are read" class="controls-panel-btn" data-action="open-property-types">types</button>
           <div class="sort-controls">
             sort:
             <label for="sort-select">
@@ -730,6 +731,33 @@
     </div>
 
     <div id="column-picker-list"></div>
+
+  </dialog>
+
+  <!-- The type of each property the user's own notes carry, opened from "types" in the file display
+       controls. The column picker answers "which columns, in what order"; this answers "what does
+       this property hold", which is a question about the property rather than about the table — it
+       governs sorting and searching in every view — so it is reachable without going to table view
+       first.
+
+       Its own dialog rather than a second mode of #modal-columns, because that dialog's close reads
+       every row back into the column layout: rows with no toggle would throw, and a list holding
+       only the user's properties would delete every other column from the layout. It borrows the
+       shell and the row classes, and its glyph button carries the same data-action, so a row here
+       and a row there open the same type dialog by the same path.
+
+       No button row: "show all" and "hide all" mean nothing for a type, and there is no layout for
+       "reset" to go back to — a type reaches the disk the moment it is set.
+
+       The note and the rows are filled on open, since both depend on the loaded folder. -->
+  <dialog id="modal-property-types" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="close-property-types" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title">Types</h2>
+
+    <p class="info-modal-note" id="property-types-note"></p>
+
+    <div id="property-types-list"></div>
 
   </dialog>
 

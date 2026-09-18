@@ -1,0 +1,28 @@
+/* The types modal: which type each of the user's own properties is read as. Built from the same
+   .info-modal shell and .info-modal-row rows as the column picker, so only what differs is here —
+   which is the row layout, since these rows have no grip to line up down the left. */
+
+/* Capped the same way #modal-columns is, and for the same reason: a long property name would widen
+   the dialog to the edge of the screen before the label had any reason to give way. */
+#modal-property-types {
+    max-width: min(460px, calc(100vw - var(--sidebar-width) - 32px));
+}
+
+/* Two tracks rather than the picker's three. The glyph track holds its contents, which are the same
+   size on every row, so the buttons line up down the right whatever a property is called. */
+#property-types-list .info-modal-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+}
+
+/* minmax(0, ...) above and min-width here are the pair that let the track go narrower than the text
+   in it — a grid track's own minimum is its content's, which is what lets a long name set the row's
+   width and push the glyph out of line with the rows above it. */
+#property-types-list .info-modal-row-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

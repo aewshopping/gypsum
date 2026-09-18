@@ -32,6 +32,15 @@
     cursor: not-allowed;
 }
 
+/* A sentence above a dialog's list saying what the list is for, or — when it is empty — what to do
+   about it. Faded, because it is read once and then ignored; wrapped rather than truncated, since
+   the empty-state version is the only thing in the dialog. */
+.info-modal-note {
+    margin: 0 0 14px;
+    opacity: 0.7;
+    max-width: 44ch;
+}
+
 /* Actions that apply to a dialog's list as a whole, on one line above it. Equal widths, because
    nothing about "show all" makes it a bigger decision than "hide all". */
 .info-modal-btn-row {
