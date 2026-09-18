@@ -226,16 +226,26 @@ test('typing the same text back again writes nothing', async ({ page }) => {
   expect(await page.evaluate(() => Object.keys(window.__saved).length)).toBe(0);
 });
 
+/** The sentence an opened cell shows, which note-table-cell.css draws from data-tip. */
+const shownSentence = cell => cell.evaluate(el => getComputedStyle(el, '::after').content);
+
+// The type is set first so the cell is *both* unreadable and yaml-broken, which is what pins the
+// order the two sentences come in: a block that did not read cleanly makes every value in it a
+// guess — including whether this one really is the wrong type — and it is the thing refusing the
+// caret, so it is the thing that gets to explain. An unreadable value would otherwise take a caret
+// here, and the cell would be explaining a refusal that came from somewhere else.
 test('a note whose front matter did not read cleanly has those cells locked', async ({ page }) => {
   await openTable(page);
+  await setType(page, 'status', 'number');
 
   const cell = cellFor(page, 'Beta', 'status');
   await expect(cell).toHaveAttribute('data-yaml-error', '');
+  await expect(cell).toHaveAttribute('data-mismatch', 'unreadable');
 
   await open(cell);
   await expect(cell).toHaveClass(/is-expanded/);                    // it still opens to be read
   await expect(cell).not.toHaveAttribute('contenteditable', /.*/);  // and takes no caret
-  await expect(cell.locator('.cell-mismatch-note')).toHaveText(/fix it in the note/);
+  expect(await shownSentence(cell)).toMatch(/fix it in the note/);  // the yaml sentence, not the type's
 
   await page.keyboard.press('Escape');
   expect(await fileText(page, 'beta.md')).toContain('status: live');
@@ -437,6 +447,45 @@ test('text in a number column is written as text, and says so afterwards', async
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('count: about five');
   await expect(cellFor(page, 'Alpha', 'count')).toHaveAttribute('data-mismatch', 'unreadable');
   await expect(cellFor(page, 'Alpha', 'count')).toHaveText('about five');
+});
+
+// The other half of the test above, and the reason the two reasons are told apart. A value that
+// cannot be *read* as its type is a scalar in a scalar column, so correcting it splices exactly the
+// bytes a matching cell splices — the whole file is compared rather than the one line, because that
+// is what would catch an explanation being captured out of the cell and written into the note.
+test('an unreadable value can be corrected in its own cell', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'count', 'number');
+  await retype(page, cellFor(page, 'Alpha', 'count'), 'about five');
+  await expect(cellFor(page, 'Alpha', 'count')).toHaveAttribute('data-mismatch', 'unreadable');
+
+  const before = await fileText(page, 'alpha.md');
+  await retype(page, cellFor(page, 'Alpha', 'count'), '5');
+
+  await expect.poll(() => fileText(page, 'alpha.md'))
+    .toBe(before.replace('count: about five', 'count: 5'));
+  await expect(cellFor(page, 'Alpha', 'count')).not.toHaveAttribute('data-mismatch', /.*/);
+});
+
+// And the half that must go on refusing. Committing `zzz` into a column of lists would rewrite the
+// value in the other shape, taking `[en, fr]`'s brackets with it — so the cell takes no caret and
+// nothing reaches the file.
+test('a cell whose shape its column cannot hold still writes nothing', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'langs', 'number');
+  const before = await fileText(page, 'alpha.md');
+
+  const cell = cellFor(page, 'Alpha', 'langs');
+  await expect(cell).toHaveAttribute('data-mismatch', 'shape');
+
+  await open(cell);
+  await page.keyboard.type('zzz');
+  await commit(page);
+
+  expect(await fileText(page, 'alpha.md')).toBe(before);
+  // table_layouts.gypsum is there — setting the column's type wrote it — but no version of the
+  // note was snapshotted, because nothing was written to the note to snapshot.
+  expect(await page.evaluate(() => Object.keys(window.__saved))).not.toContain('history.gypsum');
 });
 
 test('a date is written exactly as it was typed', async ({ page }) => {

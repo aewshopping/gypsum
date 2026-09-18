@@ -107,6 +107,28 @@ test('a date cell opens with a caret and a picker, and picking rewrites the text
   await expect(cell).toHaveText('2026-12-25');   // the button and input contribute no text
 });
 
+// An unreadable date reaches the date editor for the first time — until it took a caret, the
+// mismatch turned it away before this code ran. It needs nothing special: the seed already falls
+// back to an empty input when the text will not parse, so the caret can retype the value and the
+// calendar can replace it outright, which is the faster of the two fixes.
+test('an unreadable date opens with a caret and an empty picker', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'due', 'date');
+
+  const cell = cellFor(page, 'Beta', 'due');
+  await expect(cell).toHaveAttribute('data-mismatch', 'unreadable');
+  await open(cell);
+
+  await expect(cell.locator('.cell-date-text')).toHaveText('quite soon');   // the note's own words
+  await expect(cell.locator('.cell-date-input')).toHaveValue('');           // nothing to seed it with
+
+  await cell.locator('.cell-date-input').evaluate(el => {
+    el.value = '2026-12-25';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(cell.locator('.cell-date-text')).toHaveText('2026-12-25');
+});
+
 test('a date and time column opens the picker that has a clock in it', async ({ page }) => {
   await openTable(page);
   await setType(page, 'due', 'datetime');
@@ -169,7 +191,8 @@ test('a property that cannot be written back takes no caret', async ({ page }) =
   await open(title);
   await expect(title).toHaveClass(/is-expanded/);                    // it still opens to be read
   await expect(title).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
-  await expect(title.locator('.cell-mismatch-note')).toHaveCount(0); // and says nothing about it
+  // and says nothing about it: nothing is wrong, and there is nothing to do about it
+  expect(await title.evaluate(el => getComputedStyle(el, '::after').content)).toBe('none');
 });
 
 // ---------------------------------------------------------------- Enter

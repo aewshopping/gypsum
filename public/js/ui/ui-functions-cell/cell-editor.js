@@ -1,5 +1,5 @@
 import { isDateType } from '../../constants.js';
-import { propertyType, isPropertyEditable } from '../../services/property-type.js';
+import { propertyType, isPropertyEditable, mismatchRefusesCaret } from '../../services/property-type.js';
 import { openDateEditor, closeDateEditor, dateEditorText } from './cell-date-editor.js';
 import { updateListHighlights } from '../ui-functions-highlight/list-highlight.js';
 import { focusWithCaret } from './focus-with-caret.js';
@@ -15,20 +15,22 @@ import { commitCellEdit } from './cell-edit-commit.js';
  * See plans/completed/table-cell-editors.md §5.
  */
 
-const NOTE = 'cell-mismatch-note';
 const READONLY = 'is-readonly';
 
 /**
  * Whether a cell's value can be written back to its note at all.
  *
- * Four reasons a cell refuses a caret, and they are gathered here rather than spread about because
+ * Three reasons a cell refuses a caret, and they are gathered here rather than spread about because
  * they answer the same question:
  *
- * - **its value does not fit its column** — editing it risks writing back the wrong shape, so it
- *   opens to be read and says why, in the cell as well as in the tooltip
- * - **its value does not fit its column** — a fact about this one cell, which the renderer already
- *   worked out and left on it. Read off the cell rather than computed again, because a cell that
- *   disagreed with its own marker would be very hard to see
+ * - **its value is the wrong *shape* for its column** — a list where the column holds single
+ *   values, or the reverse. Committing would rewrite the value in the other shape, adding or
+ *   destroying the note's `[ ]` or its block of `- ` lines, so the cell opens to be read and says
+ *   why. A fact about this one cell, which the renderer already worked out and left on it: read off
+ *   the cell rather than computed again, because a cell that disagreed with its own marker would be
+ *   very hard to see. **Only the shape refuses.** Text that cannot be *read* as the type is a
+ *   scalar in a scalar column, and typing over it splices exactly the span a matching cell splices
+ *   — mismatchRefusesCaret() in property-type.js is the one answer to which is which
  * - **the note's front matter did not read cleanly** — every value in the block is then a guess,
  *   and splicing into it writes into a key nobody created. The whole note is the fix, so the cell
  *   opens to be read and says where to go. Left on the cell by the renderer for the same reason as
@@ -42,7 +44,7 @@ const READONLY = 'is-readonly';
  */
 function isEditable(cell) {
     // `in` rather than a truth test: the yaml marker is a bare attribute, so its value is ''.
-    return !cell.dataset.mismatch
+    return !mismatchRefusesCaret(cell.dataset.mismatch)
         && !('yamlError' in cell.dataset)
         && isPropertyEditable(cell.dataset.prop);
 }
@@ -55,13 +57,9 @@ function isEditable(cell) {
  * @returns {void}
  */
 export function openEditor(cell) {
-    // A cell refused for something that can be fixed says why in the cell itself. The sentence is
-    // the one already on its tooltip, so the pointer and the touch paths cannot say different
-    // things. An info column says nothing: nothing is wrong and there is nothing to do about it.
-    if (cell.dataset.mismatch || 'yamlError' in cell.dataset) {
-        cell.insertAdjacentHTML('beforeend', `<span class="${NOTE}">${cell.dataset.tip}</span>`);
-    }
-
+    // Nothing here shows the explanation. An opened cell carrying data-tip draws it from CSS — see
+    // note-table-cell.css — which is what lets a cell say what is wrong with its value *and* take a
+    // caret to fix it: a span would be text the caret could reach and the commit would write back.
     if (!isEditable(cell)) {
         // The dashed outline says "open, but not an editor" — see note-table-cell.css. A class
         // rather than a selector over contenteditable, because a date cell puts that on a child and
@@ -105,7 +103,6 @@ export function closeEditor(cell) {
     closeDateEditor(cell);
     cell.classList.remove(READONLY);
     cell.removeAttribute('contenteditable');
-    cell.querySelector(`.${NOTE}`)?.remove();
 }
 
 /**

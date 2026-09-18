@@ -22,12 +22,19 @@ import { formatDateTime } from '../ui-functions-render/render-value.js';
 /**
  * What to tell someone about a cell whose value does not fit its column.
  *
- * Says which of the two things is wrong and where to fix it, because they have different answers: a
- * shape that the column cannot hold is the column's type being wrong, and text that cannot be read
- * is the note being wrong.
+ * Says which of the two things is wrong, because they have different answers: a shape the column
+ * cannot hold is the column's type being wrong, and text that cannot be read is this one value
+ * being wrong.
  *
- * Written once, onto the cell's tooltip, and shown a second time inside the cell when it is opened
- * — a tooltip needs a pointer, and half the people using this have a finger.
+ * **Only the shape sentence names a fix.** There is exactly one way out of it, and it is not in
+ * this cell. An unreadable value has two — retype it, or change the column's type — and the caret
+ * is right there for the first, so the sentence states the fact and stops. It used to say "fix this
+ * in the note", which was the only truth available while such a cell refused a caret; see
+ * mismatchRefusesCaret() in services/property-type.js.
+ *
+ * Written once, onto the cell's tooltip, which is also what note-table-cell.css draws inside the
+ * cell once it is opened — a tooltip needs a pointer, and half the people using this have a finger.
+ * No JS reads it back, which is what keeps the two from ever saying different things.
  *
  * @param {'shape'|'unreadable'} mismatch
  * @param {string} type - The column's type.
@@ -37,7 +44,7 @@ export function mismatchMessage(mismatch, type) {
     const typeLabel = labelFor(VALUE_TYPES, type);
 
     if (mismatch === 'unreadable') {
-        return `not a ${typeLabel} — fix this in the note`;
+        return `not a ${typeLabel}`;
     }
     return type === VALUE_TYPES.ARRAY.value
         ? 'not a list — change this column\'s type'

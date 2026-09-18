@@ -141,12 +141,24 @@ point. These rules follow, and they are the ones to hold:
 - **A value that does not fit its column shows its text, and the cell is marked.** `typeMismatch()`
   says why, and there are two answers with two different fixes: `'shape'` is a list in a column of
   single values (or the reverse), which is the column's type being wrong; `'unreadable'` is text
-  that cannot be read as the type, which is the note being wrong. Ask that function — never work it
-  out from what is on screen, because a matching text cell and a mismatched one look the same.
-- **A mismatched cell cannot be edited.** It opens so the value can be read, but takes no caret:
-  writing back a value the column cannot describe risks writing the wrong shape. It says why in the
-  cell as well as in its tooltip, because a tooltip needs a pointer. The sentence is written once,
-  by the renderer, onto `data-tip`, and `cell-expand.js` shows that same string.
+  that cannot be read as the type, which is this one value being wrong — and which the cell itself
+  can fix. Ask that function — never work it out from what is on screen, because a matching text
+  cell and a mismatched one look the same.
+- **Only a *shape* mismatch refuses a caret, and `mismatchRefusesCaret()` is the one place that says
+  so.** Committing a list into a column of single values — or the reverse — rewrites the value in
+  the other shape, so the note's `[ ]` or its block of `- ` lines is added or destroyed by something
+  that looked like typing over a word. That cell opens to be read and no more. An `'unreadable'`
+  value is a scalar in a scalar column: correcting it splices exactly the span a matching cell
+  splices, so it takes a caret like any other — refusing it meant sending someone to the note to do
+  by hand the one thing the cell was already able to do. The predicate lives in `property-type.js`
+  beside `isPropertyEditable()`, so every caret-refusal answer stays in one module.
+- **The explanation is drawn by CSS, not inserted by anyone.** The renderer writes the sentence once
+  onto `data-tip`, and `note-table-cell.css` draws it inside any opened cell carrying one —
+  a tooltip needs a pointer, and half the people using this have a finger. It has to be a
+  pseudo-element rather than a span now that such a cell can take a caret: `contenteditable` applies
+  to descendants, so a span would be text the caret could reach and `cell-edit-commit.js` — which
+  captures the cell's whole `textContent` — would write the explanation into the note. Nothing in JS
+  reads the sentence back, which is what keeps the tooltip and the cell from ever disagreeing.
 - **`TABLE_VIEW_COLUMNS.info_columns` holds the columns the app fills in itself** — the file link,
   the size, the last modified date and the load error. They wear the info glyph under a padlock, in
   the header and the picker both, no type can be chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
@@ -187,9 +199,11 @@ column still let you set its type, which was the same lie from the other side.
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
 or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
-two per-cell questions: whether the value fits its column, and whether the note's front matter read
-cleanly at all. Both the header's lock and the caret ask the first one, which is what stops the table
-promising something the cell then refuses.
+two per-cell questions: whether the value's *shape* fits its column — not merely whether it fits —
+and whether the note's front matter read cleanly at all. The first of those is
+`mismatchRefusesCaret()`, in the same service as `isPropertyEditable()`, so one module owns every
+caret-refusal answer. Both the header's lock and the caret ask the column question, which is what
+stops the table promising something the cell then refuses.
 
 **Say it before the click, not after.** A locked column's glyph is its type drawing with a padlock
 laid over the corner — one element, so the header spends no more on a locked column than an open
@@ -332,7 +346,10 @@ Closing an edited cell writes it into the note's front matter. See
   against the file's: rendering a value and capturing it back is not a round trip.
 - **A note whose front matter did not read cleanly cannot be edited from the table**, and is locked
   twice over: the renderer marks those cells so the caret is refused with a sentence, and the write
-  re-parses the file's current bytes before touching them.
+  re-parses the file's current bytes before touching them. **Its sentence outranks a mismatch's** on
+  a cell that is both, because it is the one explaining the refusal — and because a block that did
+  not read cleanly makes every value in it a guess, including whether this one really is the wrong
+  type.
 - **A key the note does not have is appended to its block, and a note with no block gets one at byte
   0, with a blank line after it.** Byte 0 because `findFrontMatterIndices` takes a separator on the
   first line at its word, where one lower down has first to be told apart from a setext underline and

@@ -152,10 +152,49 @@ test('a value that cannot be drawn as its column type shows its text, marked', a
   await expect(cell('due')).toContainText('2026-03-01');      // not blank
 });
 
-// Editing a value the column cannot describe risks writing back the wrong shape, so a mismatched
-// cell opens but takes no caret. It says why in the cell as well as in its tooltip, because a
-// tooltip needs a pointer and half the people using this have a finger.
-test('a mismatched cell cannot be edited, and says why when opened', async ({ page }) => {
+/** The sentence an opened cell shows, which note-table-cell.css draws from data-tip. */
+const shownSentence = cell => cell.evaluate(el => getComputedStyle(el, '::after').content);
+
+/** Whether this cell, or anything in it, took a caret. */
+const hasCaret = cell => cell.evaluate(el =>
+  el.hasAttribute('contenteditable') || !!el.querySelector('[contenteditable]'));
+
+// Committing a list into a column of single values — or the reverse — rewrites the value in the
+// other shape, adding or destroying the note's brackets or its block of dashes from something that
+// looked like typing over a word. So a shape the column cannot hold opens to be read and no more,
+// and says why in the cell as well as in its tooltip: a tooltip needs a pointer and half the people
+// using this have a finger.
+test('a cell whose shape its column cannot hold takes no caret, and says why', async ({ page }) => {
+  await openTable(page);
+  await openPicker(page);
+  await pickerRow(page, 'people').locator('.column-picker-type').click();
+  await typeOption(page, 'date').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  const bad = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="people"]');
+  await bad.click();
+  await bad.click();
+
+  await expect(bad).toHaveClass(/is-expanded/);                    // it opens, so the value is readable
+  expect(await hasCaret(bad)).toBe(false);                         // but takes no caret
+  await expect(bad).toHaveClass(/is-readonly/);
+  expect(await shownSentence(bad)).toMatch(/change this column's type/);
+
+  // a front matter cell whose value does fit is still editable, and says nothing
+  await page.keyboard.press('Escape');
+  const ok = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="published"]');
+  await ok.click();
+  await ok.click();
+  await expect(ok).toHaveAttribute('contenteditable', 'plaintext-only');
+  expect(await shownSentence(ok)).toBe('none');
+});
+
+// The other half of the same distinction. "quite soon" in a date column is a scalar in a scalar
+// column: typing over it splices exactly the span a matching cell splices, so there is no shape to
+// get wrong and no reason to send someone to the note to do by hand what the cell can do. It still
+// says what is wrong with the value, and still wears the marker — it just takes a caret too.
+test('a value that cannot be read as its type takes a caret', async ({ page }) => {
   await openTable(page);
   await openPicker(page);
   await pickerRow(page, 'due').locator('.column-picker-type').click();
@@ -164,20 +203,15 @@ test('a mismatched cell cannot be edited, and says why when opened', async ({ pa
   await closePicker(page);
 
   const bad = rowFor(page, 'Beta').locator('.note-table-cell[data-prop="due"]');
+  await expect(bad).toHaveAttribute('data-mismatch', 'unreadable');
+
   await bad.click();
   await bad.click();
 
-  await expect(bad).toHaveClass(/is-expanded/);                    // it opens, so the value is readable
-  await expect(bad).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
-  await expect(bad.locator('.cell-mismatch-note')).toHaveText(/fix this in the note/);
-
-  // a front matter cell whose value does fit is still editable, and carries no note
-  await page.keyboard.press('Escape');
-  const ok = rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="published"]');
-  await ok.click();
-  await ok.click();
-  await expect(ok).toHaveAttribute('contenteditable', 'plaintext-only');
-  await expect(ok.locator('.cell-mismatch-note')).toHaveCount(0);
+  expect(await hasCaret(bad)).toBe(true);
+  await expect(bad).not.toHaveClass(/is-readonly/);
+  await expect(bad).toHaveAttribute('data-mismatch', 'unreadable');   // still marked
+  expect(await shownSentence(bad)).toMatch(/not a date/);             // and still says so
 });
 
 // Searching a list reads its items rather than running String() over the value. Set against people
