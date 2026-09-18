@@ -348,3 +348,79 @@ test('a list column is searched by part of its text', async ({ page }) => {
   await expect(page.locator('.note-table')).toHaveCount(1);
   await expect(page.locator('.note-table')).toContainText('Alpha');
 });
+
+// The types modal: the same type dialog, reached without going to table view first, and listing
+// only the properties whose type is the user's to set.
+
+const typesRow = (page, property) => page.locator(`#property-types-list .info-modal-row[data-property="${property}"]`);
+
+async function openTypesModal(page) {
+  await page.click('[data-action="toggle-file-controls"]');
+  await page.click('[data-action="open-property-types"]');
+  await expect(page.locator('#modal-property-types')).toBeVisible();
+}
+
+test('the types modal lists the user\'s own properties and nothing else', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await openTypesModal(page);
+
+  await expect(page.locator('#property-types-note'))
+    .toHaveText('types are used when sorting, searching, and when showing values in table view');
+
+  for (const property of ['published', 'revisions', 'due', 'people']) {
+    await expect(typesRow(page, property)).toHaveCount(1);
+  }
+  // Everything the app fills in itself, whether it is an info column or simply not front matter
+  for (const property of ['title', 'tags', 'filename', 'lastModified', 'sizeInBytes', 'internalId']) {
+    await expect(typesRow(page, property)).toHaveCount(0);
+  }
+});
+
+// The point of the modal: a type set from it is the same write as one set from the picker, so it
+// has to survive the modal closing and reach the table's cells.
+test('a type set from the types modal sticks and reaches the table', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await openTypesModal(page);
+
+  // The row is the button, so this is a click on the label end of it, not on the glyph.
+  await typesRow(page, 'revisions').click();
+  await expect(typeDialog(page)).toBeVisible();
+  await typeOption(page, 'number').click();
+  await page.click('[data-action="close-column-type"]');
+  await page.click('[data-action="close-property-types"]');
+  await expect(page.locator('#modal-property-types')).not.toBeVisible();
+
+  await openTypesModal(page);
+  await expect(typesRow(page, 'revisions')).toHaveAttribute('data-type', 'number');
+  await page.click('[data-action="close-property-types"]');
+
+  // The header is the other half of it: the column now reads as a number wherever it is drawn.
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+  await expect(header(page, 'revisions').locator('.header-type-glyph use'))
+    .toHaveAttribute('href', '#icon-type-number');
+});
+
+// An empty folder is the case the note exists for: nothing in the list, so the dialog has to say
+// something rather than open blank.
+test('the types modal explains itself when there are no user properties', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root', values: async function* () {},
+    });
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await openTypesModal(page);
+
+  await expect(page.locator('#property-types-list .info-modal-row')).toHaveCount(0);
+  await expect(page.locator('#property-types-note'))
+    .toHaveText("your files don't have any user properties, feel free to add some in frontmatter YAML format :-)");
+});

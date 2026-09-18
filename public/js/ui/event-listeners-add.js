@@ -21,6 +21,7 @@ import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResize
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
+import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose } from './ui-functions-click/property-types.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
@@ -131,6 +132,11 @@ export function addActionHandlers() {
     // picker, and all three have to apply what it was used to change. close is the one event they
     // all reach, which is why the dialog is read there rather than from a "done" button.
     document.getElementById('modal-columns').addEventListener('close', handleColumnPickerClose);
+
+    // The types modal finishes the same three ways, and for the same reason reads them all at
+    // close. Nothing of its own is saved there — a type is written when it is set — but the
+    // table has to be redrawn for it.
+    document.getElementById('modal-property-types').addEventListener('close', handlePropertyTypesClose);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"], [data-action="cell-date-pick"]')) {
             evt.preventDefault();
@@ -173,6 +179,8 @@ const clickActionHandlers = {
     'layout-delete': handleLayoutDelete,
     'layout-clear': handleLayoutClear,
     'open-column-picker': handleOpenColumnPicker,
+    'open-property-types': handleOpenPropertyTypes,
+    'close-property-types': handleClosePropertyTypes,
     'close-column-picker': handleCloseColumnPicker,
     'reset-columns': handleResetColumns,
     'show-all-columns': handleShowAllColumns,

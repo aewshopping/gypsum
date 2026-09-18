@@ -42,7 +42,7 @@
     padding:4px;
 }
 
-#view-select, #sort-select, .tag-taxonomy-btn {
+#view-select, #sort-select, .controls-panel-btn {
     border:none;
     cursor:pointer;
     min-width: 80px;
@@ -58,7 +58,9 @@
     background-color: transparent;
 }
 
-.tag-taxonomy-btn {
+/* The text buttons in the controls panel — "tags" and "types". One class rather than one
+   per button: they are the same control, and sit side by side. */
+.controls-panel-btn {
     padding-block: 4px;
     border-radius: 8px;
 }
