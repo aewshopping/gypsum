@@ -21,11 +21,17 @@ export const isQuoted = (value) => {
 };
 
 /**
- * Coerces a string value into its appropriate JavaScript type (null, boolean, number, or string).
- * Handles quoted strings to preserve them as strings.
+ * What YAML says a scalar means: null, a boolean, a number, or the text itself.
+ *
+ * **This is the spec's answer, not what the file object stores** — the two parted company when
+ * `01` turned out to be a number whose text nobody could get back. `readValue()` below is what
+ * the parser uses, and it is defined in terms of this one so there is still a single statement of
+ * the rules.
  *
  * Exported because yaml-value-write.js asks it what a value it is about to write would be read
- * back as. A second answer to that question would agree on the day it was written and drift after.
+ * back as — and that question is about *other* readers, Obsidian and PyYAML among them, so it has
+ * to keep asking the spec rather than asking what gypsum now chooses to keep. A second answer to
+ * it would agree on the day it was written and drift after.
  *
  * @param {string} value The string value to coerce.
  * @returns {null|boolean|number|string} The coerced value.
@@ -51,6 +57,37 @@ export const coerceValue = (value) => {
     }
 
     return trimmed;
+};
+
+/**
+ * A scalar as the file object stores it: `coerceValue()`'s answer, kept only when it can be turned
+ * back into the text the note actually holds.
+ *
+ * `01` resolves to the number 1 by the letter of the YAML spec, and nothing afterwards can recover
+ * the `0` — so a cell drew `1`, a search for `01` found nothing, and editing that cell wrote
+ * `"02"` back, leaving two notes in one column disagreeing about what kind of thing they held.
+ * The spec is no help here: it promises what a scalar *means*, and says outright that presentation
+ * detail does not survive a load. But gypsum edits notes rather than loading them, and
+ * `plans/completed/table-cell-editors.md` already promised that **a cell shows the note's own text**.
+ * Keeping a number only when `String(n)` is the text again is what makes that promise true for
+ * `01`, `1.50`, `+3`, `1e3` and an id too long for a double.
+ *
+ * So the app is deliberately not the core schema's resolution: it is that schema with the lossy
+ * numerics declined. Nothing but a number is affected: a boolean prints back as its own text, a
+ * quoted value was never coerced, and `null` is blank on purpose so that sorting and typeMismatch()
+ * can go on treating it as missing.
+ *
+ * Derived from `coerceValue()` rather than written out again, so the rules for what a number *is*
+ * live in one place and this only decides whether to keep the answer.
+ *
+ * @param {string} value The string value to read.
+ * @returns {null|boolean|number|string} The coerced value, or the trimmed text where coercing it
+ *   would lose what the note says.
+ */
+export const readValue = (value) => {
+    const coerced = coerceValue(value);
+    const trimmed = value.trim();
+    return typeof coerced === "number" && String(coerced) !== trimmed ? trimmed : coerced;
 };
 
 /**
@@ -224,7 +261,7 @@ export const parseYaml = (
             if (!itemQuoted && /:(\s|$)/.test(itemText)) {
                 errors.push(`list item holding a key is not supported: ${trimmed}`);
             }
-            list.push(coerceValue(itemText));
+            list.push(readValue(itemText));
 
             if (openSpan && context.span === openSpan) {
                 // Found rather than assumed: a non-breaking space counts as neither indentation
@@ -293,7 +330,7 @@ export const parseYaml = (
             const open = line.indexOf(OPEN_BRACKET, rawColon + 1);
             const close = line.lastIndexOf(CLOSE_BRACKET);
             const ranges = flowItemRanges(line, open + 1, close);
-            context.container[key] = ranges.map(range => coerceValue(line.slice(range.start, range.end)));
+            context.container[key] = ranges.map(range => readValue(line.slice(range.start, range.end)));
             if (span) {
                 span.form = "flow";
                 span.items = ranges.map(range => ({
@@ -310,7 +347,7 @@ export const parseYaml = (
         if (opensFlow && !valueText.includes(CLOSE_BRACKET)) {
             errors.push(`unclosed flow list: ${trimmed}`);
         }
-        context.container[key] = coerceValue(valueText);
+        context.container[key] = readValue(valueText);
     }
 
     pruneEmptyMaps(root);

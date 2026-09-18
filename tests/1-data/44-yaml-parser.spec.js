@@ -108,6 +108,46 @@ test('values keep their types, and Infinity stays text', async () => {
   });
 });
 
+test('a number is kept only when its own text comes back', async () => {
+  // `01` is the integer 1 by the letter of the YAML spec, and nothing afterwards can recover the
+  // `0` — so the cell drew `1`, a search for `01` found nothing, and editing that cell wrote back
+  // `"02"`. The app declines the lossy half of the core schema so that a cell can keep showing the
+  // note's own text. See DATA-STRUCTURES.md, "How a front matter value is read".
+  const { data } = await parse(block([
+    'padded: 01', 'zeros: 007', 'trailing: 1.50', 'signed: +3', 'exponent: 1e3',
+    'tiny: .5', 'negzero: -0', 'huge: 12345678901234567890',
+    'plain: 42', 'negative: -1.5', 'zero: 0', 'year: 2026',
+  ].join('\n')));
+
+  expect(data).toEqual({
+    padded: '01', zeros: '007', trailing: '1.50', signed: '+3', exponent: '1e3',
+    tiny: '.5', negzero: '-0', huge: '12345678901234567890',
+    // A text that is already exactly its own number is still a number, so a number column goes on
+    // sorting numerically without anyone having to say so.
+    plain: 42, negative: -1.5, zero: 0, year: 2026,
+  });
+});
+
+test('a list keeps the text of every item it holds', async () => {
+  // Both forms, because the items are read on two different paths through the parser.
+  const { data } = await parse(block('flow: [01, 02, 10]\nblock:\n  - 007\n  - 8'));
+  expect(data).toEqual({ flow: ['01', '02', 10], block: ['007', 8] });
+});
+
+test('what the writer quotes is still decided by the spec, not by what the parser keeps', async () => {
+  // needsQuoting() protects the text from *other* readers — Obsidian, PyYAML — so it has to go on
+  // asking what YAML says `02` means, even though gypsum itself now keeps the text either way.
+  // Were it to follow the parser, `02` would be written bare and every other reader would see 2.
+  const { needsQuoting } = await appModule('services/file-parsing/yaml-value-write.js');
+  for (const text of ['01', '007', '1.50', '+3', '1e3']) {
+    expect(needsQuoting(text), `${text} must still be quoted on the way out`).toBe(true);
+  }
+
+  // And the round trip the two halves add up to: written quoted, read back as the same text.
+  const { data } = await parse(block('note: "02"'));
+  expect(data.note).toBe('02');
+});
+
 // §6.1: the shape that used to have its first paragraphs eaten, and the shape that must not be.
 test('a setext heading no longer claims the front matter block', async () => {
   const setext = 'My Title\n---\n\nSome body text.\n\nAnother section\n---\n\nmore text';

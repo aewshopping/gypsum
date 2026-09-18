@@ -31,7 +31,8 @@ These are non-negotiable. Do not work against them.
   packaging step, not a development requirement.
 
 ### 3. Keep it small and readable
-- The entire JS codebase is ~900 lines across ~60 modules. Keep that spirit.
+- The JS codebase is ~16,000 lines across ~185 modules, averaging under 90 lines each. Keep that
+  spirit: the size comes from having many small files, not from any one file growing.
 - Prefer clarity over cleverness. Future-you (or a non-expert collaborator) should be able
   to read any file cold and understand what it does within a minute.
 - Do not introduce abstractions for hypothetical future needs. Premature abstraction makes the codebase harder to follow.
@@ -39,7 +40,7 @@ These are non-negotiable. Do not work against them.
 ### 4. One file, one responsibility
 - Each module handles a single logical concern.
 - `ui-functions-click/` has one file per user action. Follow this pattern for new actions.
-- CSS is split into 27 component-scoped files. Add a new file for a new component; do not
+- CSS is split into ~70 component-scoped files. Add a new file for a new component; do not
   bloat an existing one.
 
 ### 5. No frameworks
@@ -75,7 +76,7 @@ Key structures:
 - `appState.myFiles` — all loaded file objects
 - `appState.search.filters` — active filters (Map, keyed by unique filter ID)
 - `appState.search.results` — per-filter search results
-- `appState.search.matchingFiles` — inverted map: `fileId → Set<filterId>` (used for AND/OR)
+- `appState.search.matchingFiles` — inverted map: `fileId → Map<filterId, results>` (used for AND/OR)
 - `appState.viewState` — current view mode
 - `appState.sortState` — current sort column and direction
 - `appState.paginationState` — `{ currentPage, pageFileIds }`: current page number and the Set of file IDs visible on that page (recomputed on every render)
@@ -302,13 +303,19 @@ Closing an edited cell writes it into the note's front matter. See
   `file-parsing/yaml-value-write.js` makes the *writing* safe. The app guarantees the file stays
   readable; the user owns whether the values mean what they intended.
 - **The promise is the text, not the value**, and it is one rule for a value and for an item of a
-  list. A column's type lives in gypsum, not in the note, and the parser reads a file before any
-  type is applied — so `note: 42` comes back as the number forty-two whatever the column says, and
-  a cell draws `String(value)`, which is `42` either way. Quoting is therefore for the text that
-  comes back *different*: `007` reads as `7`, `1.50` as `1.5`, and `null` as nothing at all. Rather
-  than list the shapes that coerce, `needsQuoting()` asks the parser's own `coerceValue` what the
-  text would print as. Quoting more than that puts marks in a note that nobody typed, and quoting an
-  item by the stricter rule turned `[1, 2, 10]` into a list of strings.
+  list. A column's type lives in gypsum, not in the note, so `note: 42` is the number forty-two
+  whatever the column says, and a cell draws `String(value)`, which is `42` either way. Quoting is
+  for the text that would come back *different*: `007` as `7`, `1.50` as `1.5`, `null` as nothing at
+  all. Rather than list the shapes that coerce, `needsQuoting()` asks `coerceValue` what the text
+  would print as. Quoting more than that puts marks in a note that nobody typed, and quoting an item
+  by the stricter rule turned `[1, 2, 10]` into a list of strings.
+- **`needsQuoting()` asks `coerceValue`, and the parser asks `readValue`. That is not an oversight.**
+  Gypsum itself no longer loses `007` — `readValue()` keeps a number only when `String(n)` is the
+  text again, so the file object holds `"007"` and every view draws what the note says. But the
+  quoting rule exists to protect the text from **other** readers, Obsidian and PyYAML among them,
+  which do follow the spec. So it goes on asking the spec's answer, and `02` is still written
+  `"02"`. Point the writer at `readValue` and the value goes back to the file bare, for everyone
+  else to misread. See DATA-STRUCTURES.md, "How a front matter value is read".
 - **What the note already says at that key is kept, never restyled.** A quoted value stays quoted, a
   flow list stays a flow list, and a block list keeps its own indentation — `save-cell-edit.js`
   reads all three off the span and hands them to the writer, which is why `toYamlText` takes the
@@ -362,8 +369,9 @@ Closing an edited cell writes it into the note's front matter. See
 
 - Filters are stored as objects in `appState.search.filters` (Map keyed by unique ID).
 - Results are stored in `appState.search.results` (Map: `filterId → { fileId → result }`).
-- `matchingFiles` is the inversion: `fileId → Set<filterId>`. This is what AND/OR logic
-  operates on at render time.
+- `matchingFiles` is the inversion: `fileId → Map<filterId, results>`. This is what AND/OR logic
+  operates on at render time — OR is `.has(fileId)`, AND is `.get(fileId).size === activeFilterCount`.
+  Inactive filters are skipped during the inversion, so nothing rechecks them afterwards.
 - `a-search-orchestrator.js` coordinates the full flow. Do not duplicate this logic.
 
 ---
@@ -380,6 +388,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/table-layouts/` | Saved layouts and property types: `table_layouts.gypsum`, read and written |
+| `public/js/services/file-parsing/yaml-parse.js` | The front matter parser: `coerceValue` is YAML's answer, `readValue` is what the file object keeps |
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
 | `public/js/editing/save-cell-edit.js` | A cell edit into the note: convert, locate, splice, write, refresh |
@@ -397,6 +406,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `tests/1-data/` | Tests of what reaches the disk — run on every change |
 | `tests/2-behaviour/` | Tests of what the app does on screen |
 | `tests/3-occasional/` | Appearance and slow end-to-end tests |
+| `DATA-STRUCTURES.md` | What `appState` holds, and how a front matter value is read |
 | `inline-scripts-from-files.js` | Build-time bundler (do not run manually) |
 | `.github/workflows/bundle.yaml` | CI/CD pipeline — produces single-file HTML artefact |
 

@@ -1,7 +1,7 @@
 import { appState } from '../services/store.js';
 import { VALUE_TYPES } from '../constants.js';
 import { propertyType } from '../services/property-type.js';
-import { parseYaml, coerceValue, isQuoted } from '../services/file-parsing/yaml-parse.js';
+import { parseYaml, readValue, isQuoted } from '../services/file-parsing/yaml-parse.js';
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlText, toYamlItem } from '../services/file-parsing/yaml-value-write.js';
 import { splitFlowItems } from '../services/file-parsing/flow-list.js';
@@ -74,10 +74,13 @@ const SKIP = Symbol('no item changed');
  * two items survives an edit. Anything else — an item added, removed or reordered — is the whole
  * value rewritten, and the comment is the price of an editor that lets you rewrite the list at once.
  *
- * **What the file holds is compared through the parser's own coercion**, because capture is not the
+ * **What the file holds is compared through the parser's own reader**, because capture is not the
  * inverse of render: a list of numbers is drawn as `1, 2, 10` and read back as strings, and a padded
  * item comes back trimmed. Comparing the raw slices would call every list of numbers changed and
- * rewrite it.
+ * rewrite it. It has to be `readValue` rather than `coerceValue` for the same reason it has to be
+ * the parser's: the cell was drawn from what the parser kept, so `[01, 02, 10]` is three unchanged
+ * items here, where the spec's answer would call two of them edited and rewrite the whole list —
+ * losing any comment between the items.
  *
  * @param {string} text - The whole file.
  * @param {object} span - The key's span, as parseYaml filled it in.
@@ -91,7 +94,7 @@ function changedItem(text, span, items) {
     const changed = span.items
         .map((range, index) => ({ range, item: items[index] }))
         .filter(({ range, item }) =>
-            String(coerceValue(text.slice(range.valueStart, range.valueEnd))) !== item);
+            String(readValue(text.slice(range.valueStart, range.valueEnd))) !== item);
 
     if (changed.length === 0) return SKIP;
     if (changed.length > 1) return null;
