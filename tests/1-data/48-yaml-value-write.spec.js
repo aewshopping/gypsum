@@ -80,9 +80,9 @@ test('a comma, a bracket or a quote is quoted inside a flow list only', async ()
   expect(close.item).toBe(true);
 });
 
-test('an empty value is written as empty quotes rather than nothing', async () => {
-  // `note:` with nothing after it opens a nested map, which the parser prunes — the key would
-  // survive in the file and vanish from the table, taking its column with it.
+test('an empty text still quotes, because an item of a list can be one', async () => {
+  // needsQuoting is unchanged: a bare '' would open a nested map, which the parser prunes. What
+  // changed is that toYamlText never asks it about an empty value any more — see the test below.
   const [empty] = await roundTrip(['']);
   expect(empty.written).toBe('""');
   expect(empty.value).toBe('');
@@ -205,11 +205,19 @@ test('an item is quoted for the form it lands in, and for its own text', async (
   expect(padded).toBe(' ["007", x]');
 });
 
-test('a list with nothing left in it is written as an empty list', async () => {
-  const [emptied, emptiedBlock] = await writes(
-    [['', 'array', { form: 'flow' }], ['  ', 'array', { form: 'block', itemPrefix: '- ' }]]);
+test('a value emptied out writes nothing at all, which is what removes the key', async () => {
+  // '' is the one answer toYamlText can give that no ordinary value can, since every other carries
+  // the separating space — so it is how the writer is told to take the key and its line out. Every
+  // shape of empty says it: a scalar, a scalar the note had quoted, a flow list and a block list.
+  const [scalar, wasQuoted, emptiedFlow, emptiedBlock] = await writes([
+    ['', 'string', {}],
+    ['   ', 'string', { quoted: true }],
+    ['', 'array', { form: 'flow' }],
+    ['  ', 'array', { form: 'block', itemPrefix: '- ' }],
+  ]);
 
-  // a bare key would open a nested map, which the parser prunes — and the column would vanish
-  expect(emptied).toBe(' []');
-  expect(emptiedBlock).toBe(' []');
+  expect(scalar).toBe('');
+  expect(wasQuoted).toBe('');
+  expect(emptiedFlow).toBe('');
+  expect(emptiedBlock).toBe('');
 });

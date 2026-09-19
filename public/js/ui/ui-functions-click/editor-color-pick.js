@@ -35,7 +35,9 @@ function makeCircleButton(name) {
     const btn = document.createElement('button');
     btn.className = 'color-circle';
     btn.dataset.action = 'color-circle-pick';
-    btn.dataset.colorValue = name.startsWith('#') ? name.slice(1) : name;
+    // The '#' stays on: it was stripped only because a '#color/…' tag could not hold one, and both
+    // lists are already in the form a note should hold.
+    btn.dataset.colorValue = name;
     btn.dataset.tip = name;
     if (name !== 'nocolor') btn.style.backgroundColor = name;
     return btn;
@@ -95,15 +97,18 @@ export function handleEditorColorPick() {
 }
 
 /**
- * Applies the chosen colour, restores cursor, and saves the file.
+ * Paints the modal with the chosen colour, writes it into the note's front matter, and puts the
+ * cursor back. The paint is optimistic — nothing re-reads the file until the user saves.
+ *
  * @param {Event} _evt
- * @param {Element} actionEl
+ * @param {Element} actionEl - The swatch, carrying the colour as the note should hold it.
  */
 export function handleColorCirclePick(_evt, actionEl) {
     const colorName = actionEl.dataset.colorValue;
     document.getElementById('modal-color-picker').close();
-    const isHex = /^[0-9a-fA-F]{3,8}$/.test(colorName) && [3, 4, 6, 8].includes(colorName.length);
-    const colorValue = colorName === 'nocolor' ? '' : (isHex ? `#${colorName}` : colorName);
+
+    // The same string the note is about to hold, so the paint and the file cannot disagree.
+    const colorValue = colorName === 'nocolor' ? '' : colorName;
     document.getElementById('file-content-header').dataset.color = colorValue;
     document.getElementById('file-content-footer').dataset.color = colorValue;
     document.getElementById('modal-content').dataset.color = colorValue;

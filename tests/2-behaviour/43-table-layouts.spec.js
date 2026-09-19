@@ -372,6 +372,177 @@ test('a dead column keeps its place, and the picker locks it as the layout has i
   await expect(pickerRow(page, 'tags').locator('input.toggle')).toBeEnabled();
 });
 
+const headerFor = (page, prop) => page.locator(`.note-table-cell-header[data-property="${prop}"]`);
+const menuDelete = page => page.locator('#column-menu [data-action="column-delete-menu"]');
+
+/** Selects a header and clicks it again, which is what opens its options. */
+async function openColumnMenu(page, prop) {
+  await headerFor(page, prop).click();
+  await headerFor(page, prop).click();
+  await expect(page.locator('#column-menu')).toBeVisible();
+}
+
+test('an empty column says so in its heading, and a column with values does not', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+
+  // Drawn at a lighter weight rather than left out: the layout asked for the column, and a column
+  // that vanished when nothing filled it is exactly what this replaces.
+  await expect(headerFor(page, 'ghost')).toHaveAttribute('data-empty', '');
+  await expect(headerFor(page, 'title')).not.toHaveAttribute('data-empty', '');
+
+  const faded = await headerFor(page, 'ghost').locator('.header-label')
+    .evaluate(el => Number(getComputedStyle(el).opacity));
+  const full = await headerFor(page, 'title').locator('.header-label')
+    .evaluate(el => Number(getComputedStyle(el).opacity));
+  expect(faded).toBeLessThan(full);
+});
+
+test('the column menu offers delete only on an empty column', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+
+  await openColumnMenu(page, 'title');
+  await expect(menuDelete(page)).toBeHidden();
+  await page.keyboard.press('Escape');
+
+  await openColumnMenu(page, 'ghost');
+  await expect(menuDelete(page)).toBeVisible();
+});
+
+test('the app defaults offer no delete, because there is no layout to delete from', async ({ page }) => {
+  // Nothing is empty under the defaults either — every column there exists because a file has the
+  // key — so this is about the second half of the rule, and hiding tags first is what makes a
+  // column the defaults would not otherwise show.
+  await openTable(page);
+
+  await openColumnMenu(page, 'title');
+  await expect(menuDelete(page)).toBeHidden();
+  // hide column is still there, which is the answer under the defaults
+  await expect(page.locator('#column-menu [data-action="column-hide"]')).toBeVisible();
+});
+
+test('delete column in the menu removes it from the saved layout, the same as the bin', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+  await openColumnMenu(page, 'ghost');
+
+  await menuDelete(page).click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-cancel"]');
+  await expect(headerFor(page, 'ghost')).toHaveCount(1);
+
+  await openColumnMenu(page, 'ghost');
+  await menuDelete(page).click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-proceed"]');
+
+  // The same write the bin does: straight to disk, one column, the rest left where they were.
+  // (The tail is every other property the folder has, appended hidden — the defaults' own doing.)
+  await expect(headerFor(page, 'ghost')).toHaveCount(0);
+  await expect.poll(async () => (await layoutsFile(page)).layouts.review.columns.map(c => c.name))
+    .not.toContain('ghost');
+
+  const columns = (await layoutsFile(page)).layouts.review.columns;
+  expect(columns.slice(0, 3).map(c => c.name)).toEqual(['internalId', 'phantom', 'title']);
+  expect(columns.map(c => c.order)).toEqual(columns.map((_, i) => i));
+});
+
+/**
+ * A folder whose notes can be written to, with a layout already saved — setupMockDirectoryWithLayouts
+ * hands out read-only file handles, so a cell edit cannot reach a note in it.
+ */
+async function openWritableTableWithLayout(page, doc, files) {
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await page.addInitScript(([seed, notes]) => {
+    window.__layoutsFileContent = JSON.stringify(seed);
+    window.__files = { ...notes };
+    const store = { 'table_layouts.gypsum': JSON.stringify(seed) };
+
+    const makeFile = (name) => ({
+      kind: 'file', name,
+      getFile: async () => ({ name, size: window.__files[name].length, lastModified: Date.now(),
+        text: async () => window.__files[name] }),
+      createWritable: async () => ({
+        write: async (c) => { window.__files[name] = c; }, close: async () => {} }),
+    });
+    const gypsumDir = {
+      getFileHandle: async (name, options) => {
+        if (!(name in store)) {
+          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          store[name] = '';
+        }
+        return {
+          getFile: async () => ({ text: async () => store[name] }),
+          createWritable: async () => ({
+            write: async (c) => {
+              store[name] = c;
+              if (name === 'table_layouts.gypsum') window.__layoutsFileContent = c;
+            },
+            close: async () => {},
+          }),
+        };
+      },
+      removeEntry: async (name) => { delete store[name]; },
+    };
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { for (const name of Object.keys(window.__files)) yield makeFile(name); },
+      getDirectoryHandle: async (name) => {
+        if (name === '.gypsum') return gypsumDir;
+        throw new Error(`Unexpected getDirectoryHandle: ${name}`);
+      },
+    });
+  }, [doc, files]);
+
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+}
+
+test('a column emptied this session stays deleted, and does not come back on save', async ({ page }) => {
+  // The case the bin exists for, and the one that used to undo itself. myFilesProperties only ever
+  // grows, so clearing the last value of a key leaves it registered — resolveColumns then read it as
+  // a property the layout had never seen and appended it hidden, on the very next render. The column
+  // was back in the picker before the user could save, and the save wrote it to disk again.
+  await openWritableTableWithLayout(page, {
+    layoutVersion: 2, active: 'review', propertyTypes: {},
+    layouts: { review: { updated: '2026-01-01T00:00:00.000Z', columns: [
+      { order: 0, name: 'internalId', label: 'file', width: 90, visible: true },
+      { order: 1, name: 'title', label: 'title', width: 260, visible: true },
+      { order: 2, name: 'status', label: 'status', width: 160, visible: true },
+    ] } },
+  }, {
+    'alpha.md': '---\nstatus: draft\n---\n# Alpha\n\nBody.\n',
+    'beta.md': '---\n---\n\n# Beta\n\nBody.\n',
+  });
+
+  // alpha.md is the only note with the key, so clearing it empties the column.
+  const cell = page.locator('.note-table').filter({ hasText: 'Alpha' }).first()
+    .locator('.note-table-cell[data-prop="status"]');
+  await cell.click();
+  await cell.click();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.press('Delete');
+  await page.keyboard.press('Enter');
+
+  const header = page.locator('.note-table-cell-header[data-property="status"]');
+  await expect(header).toHaveAttribute('data-empty', '');
+
+  await openPicker(page);
+  await pickerRow(page, 'status').locator('[data-action="column-delete"]').click();
+  await page.click('[data-action="warning-proceed"]');
+
+  // Gone from the picker at once — not put back by the render the delete itself runs.
+  await expect(pickerRow(page, 'status')).toHaveCount(0);
+  await page.click('[data-action="close-column-picker"]');
+  await expect(header).toHaveCount(0);
+
+  // And it stays gone when the layout is saved on top.
+  await saveBtn(page).click();
+  await expect.poll(async () => (await layoutsFile(page)).layouts.review.columns.map(c => c.name))
+    .not.toContain('status');
+});
+
 test('the bin removes a dead column from the saved layout, without closing the picker', async ({ page }) => {
   await openTableWithLayout(page, deadLayout);
   await openPicker(page);

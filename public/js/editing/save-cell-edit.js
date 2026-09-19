@@ -5,6 +5,7 @@ import { parseYaml, readValue, isQuoted } from '../services/file-parsing/yaml-pa
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlText, toYamlItem } from '../services/file-parsing/yaml-value-write.js';
 import { splitFlowItems } from '../services/file-parsing/flow-list.js';
+import { newBlock, keySplice } from './front-matter-splice.js';
 import { saveFileCopy } from './save-file-copy.js';
 import { refreshFilesNow } from './refresh-file-state.js';
 import { pushUndoBatch } from './undo-cell-edits.js';
@@ -122,6 +123,12 @@ function changedItem(text, span, items) {
  * is given one. Not an edge case: a column exists because *some* file carries that key, so the empty
  * cells in every other row are exactly the ones someone wants to fill in.
  *
+ * **And the mirror of it: a key cleared to nothing is taken out, line and all.** `raw` of `''` is
+ * what says so — see toYamlText, which can say it and nothing else. The column does not go with the
+ * key: it stays because the layout asked for it, faded to say it now holds nothing, and the header
+ * menu is where it is finally removed. That is what makes deleting a key safe, and why the rule this
+ * replaced ("clearing writes an empty value and keeps the key") could not be dropped on its own.
+ *
  * **Every file is written and only then is the list rendered, once.** A batch reaching the refresh
  * one file at a time would be a sort, a filter pass and a view transition per file, interrupting
  * one another — and the caller could not mark the cells it changed, because the rows do not exist
@@ -166,26 +173,12 @@ export async function applyRawEdits(rawEdits, { resort = true } = {}) {
         // question asked of the bytes on disk, which is the only place the answer is current.
         if (errors.length > 0) continue;
 
-        // A note with no front matter at all is given a block at byte 0 — rather than anywhere
-        // cleverer, because findFrontMatterIndices takes a separator on the first line at its word
-        // however the rest of the file is written, where one lower down has first to be told apart
-        // from a setext underline and a thematic break. Empty, so that a key is appended to it the
-        // same way as to a block that was already there.
-        //
-        // **And a blank line after it**, which is not decoration: a markdown parser reading `# Title`
-        // on the line straight below the closing separator does not see a heading, so the note's own
-        // title would stop being one everywhere except here — gypsum matches a title anywhere in the
-        // file and would go on showing it, which is the kind of disagreement nobody notices until
-        // they open the note somewhere else. One line, not two: a note that already starts with a
-        // blank line keeps the one it has.
-        const blankLine = original.startsWith('\n') ? '' : '\n';
-        const text = indices ? original : `---\n---\n${blankLine}${original}`;
-
-        // Where a key the note does not have is written: the first character of the closing
-        // separator's line, which is where a key nobody has ordered belongs.
-        const blockEnd = indices
-            ? text.split('\n').slice(0, indices.end).reduce((offset, line) => offset + line.length + 1, 0)
-            : '---\n'.length;
+        // A note with no front matter at all is given an empty one, so that a key is appended to it
+        // the same way as to a block that was already there — front-matter-splice.js says where it
+        // goes and what it looks like. The block is made once per file rather than per edit, or two
+        // new keys would arrive in two blocks; the lines it occupies are then handed on below.
+        const text = indices ? original : newBlock(original) + original;
+        const blockIndices = indices ?? { start: 0, end: 1 };
 
         const splices = [];
         fileEdits.forEach((edit, order) => {
@@ -193,9 +186,6 @@ export async function applyRawEdits(rawEdits, { resort = true } = {}) {
             const before = span ? text.slice(span.valueStart, span.valueEnd) : '';
 
             if (edit.expect !== undefined && edit.expect !== before) return;
-
-            const item = span && edit.items ? changedItem(text, span, edit.items) : null;
-            if (item === SKIP) return;
 
             // What the note already looks like at this key, so the write keeps its style rather
             // than choosing one: the form of the value, the indentation of its list items, and
@@ -209,15 +199,24 @@ export async function applyRawEdits(rawEdits, { resort = true } = {}) {
             } : {};
             const raw = typeof edit.raw === 'function' ? edit.raw(shape) : edit.raw;
 
-            if (span && !item && raw === before) return;
+            // No text after the colon means no value, and no value means no key — toYamlText says so
+            // by returning '', which every other answer it can give rules out, since they all carry
+            // the separating space. Asked before the item path, because an emptied list is the whole
+            // key going rather than its items changing one by one.
+            const removing = raw === '';
+            if (removing && !span) return;
 
-            // Three shapes of splice: a key that is not there yet arrives as a whole line, one item
-            // of a list replaces that item alone, and everything else replaces the key's value.
+            const item = !removing && span && edit.items ? changedItem(text, span, edit.items) : null;
+            if (item === SKIP) return;
+
+            if (!removing && span && !item && raw === before) return;
+
+            // One item of a list replaces that item alone; everything else is an ordinary write to
+            // the key, and where those bytes go is front-matter-splice.js's answer — shared with the
+            // colour picker, which splices the open editor's text by the same rules.
             const target = item
                 ? { start: item.start, end: item.end, written: item.written }
-                : span
-                    ? { start: span.valueStart, end: span.valueEnd, written: raw }
-                    : { start: blockEnd, end: blockEnd, written: `${edit.property}:${raw}\n` };
+                : keySplice(text, edit.property, raw, blockIndices, span);
 
             splices.push({
                 property: edit.property,

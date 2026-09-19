@@ -56,8 +56,9 @@ export async function refreshFilesNow(snapshots, resort = true) {
     try {
         let fullRender = false;
         for (const snapshot of snapshots) {
-            // Or-assigned rather than assigned: one file gaining a key is a new column, and the
-            // render that draws it has to be a full one however many files were quiet.
+            // Or-assigned rather than assigned: one file gaining or losing a key can change the
+            // columns, and the render that draws them has to be a full one however many files were
+            // quiet.
             fullRender = await rereadFile(snapshot) || fullRender;
         }
         await renderRefreshed(fullRender, resort);
@@ -70,7 +71,7 @@ export async function refreshFilesNow(snapshots, resort = true) {
  * Re-parses one saved file from disk and updates appState. Renders nothing.
  *
  * @param {{ filepath: string, filename: string }} snapshot
- * @returns {Promise<boolean>} Whether the file gained a property, so the next render must be full.
+ * @returns {Promise<boolean>} Whether the file's key set changed, so the next render must be full.
  */
 async function rereadFile(snapshot) {
     const fileIndex = appState.myFiles.findIndex(f => f.filepath === snapshot.filepath);
@@ -78,14 +79,16 @@ async function rereadFile(snapshot) {
 
     const existingFile = appState.myFiles[fileIndex];
 
-    // Re-parsing registers any front matter key the file has gained, which is a new column. The
-    // rows can be replaced on their own only while the columns are the ones already drawn, so
-    // the count is taken either side of the re-parse. A cell edit can never add one — a column
-    // exists because the property is registered — but a note edited in the modal can.
-    const propertyCount = appState.myFilesProperties.size;
-
     const freshFile = await getFileDataAndMetadata(existingFile.handle, 0);
-    const gainedProperty = appState.myFilesProperties.size !== propertyCount;
+
+    // The rows can be replaced on their own only while the columns are the ones already drawn, so
+    // this asks whether the file's own key set changed — in either direction. A gained key is a
+    // column that may not exist yet; a lost one is a column that may now be empty, and an empty
+    // column's heading is drawn faded. Counting myFilesProperties instead answered only the first
+    // question, because nothing unregisters a property: clearing the last value of a key left the
+    // header saying the column still had values until the folder was reloaded.
+    const columnsMayHaveChanged =
+        Object.keys(existingFile).length !== Object.keys(freshFile).length;
 
     const tagsHaveChanged = !tagsEqual(existingFile.tags, freshFile.tags);
     const colorHasChanged = existingFile.color !== freshFile.color;
@@ -115,7 +118,7 @@ async function rereadFile(snapshot) {
         if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     }
 
-    return gainedProperty;
+    return columnsMayHaveChanged;
 }
 
 /**

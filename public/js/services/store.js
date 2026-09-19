@@ -151,12 +151,15 @@ export const FILE_PROPERTIES = new Map([
  *
  * Add to this when adding a property to that return literal.
  *
- * **It is also a promise about writing.** Nothing in this list comes from a note's front
- * matter, so a cell edit has nowhere to put it: isPropertyEditable() refuses the caret for every
- * property in here, and the table header draws the padlock from the same answer. Making one
- * editable later is an exception in isPropertyEditable(), never a deletion from this list — the
- * writer is the real work and differs per property, since a title is body text while a filename
- * and a filepath already have editing/rename-file.js.
+ * **It is also a promise about the type.** Nothing in here is a property the user may retype:
+ * isTypeSettable() refuses every one of them, and the table header draws the padlock from that
+ * answer, so `tags` is always a list and `lastModified` always a date whatever a layout file says.
+ *
+ * **Writing is the narrower question, and `title` is the exception.** isPropertyEditable() refuses
+ * the caret for everything in here *except* title, which a note can override from front matter —
+ * which is exactly where a cell edit splices. Making another one editable is an exception there,
+ * never a deletion from this list; the writer is the real work and differs per property, since a
+ * filename and a filepath already have editing/rename-file.js.
  * @type {string[]}
  */
 export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',

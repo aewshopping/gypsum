@@ -44,7 +44,7 @@ export function propertyType(name) {
     // The app owns the type of every property it fills in itself, so a hand-edited file cannot
     // change one. Without this, `type: "number"` on lastModified would silently stop it sorting as
     // a date, and `type: "date"` on tags would break a column that is always a list.
-    const chosen = isPropertyEditable(name) ? appState.propertyTypes.get(name)?.type : undefined;
+    const chosen = isTypeSettable(name) ? appState.propertyTypes.get(name)?.type : undefined;
     if (isLegal(LEGAL_TYPES, chosen)) return chosen;
 
     const schema = FILE_PROPERTIES.get(name)?.type;
@@ -58,8 +58,7 @@ export function propertyType(name) {
  *
  * It does not replace the column's type — `lastModified` is still a date and still sorts as one.
  * It decides one thing and no others: the glyph the column wears. Whether the type dialog is
- * offered and whether the cells take a caret are both isPropertyEditable(), which is the wider
- * question and already covers every info column.
+ * offered is isTypeSettable(), which is the wider question and already covers every info column.
  *
  * @param {string} name - The file property key.
  * @returns {boolean}
@@ -69,33 +68,72 @@ export function isInfoColumn(name) {
 }
 
 /**
- * Whether this column's cells can be typed into at all.
+ * Whether the user may choose this column's type — and so **whether it wears the padlock**.
  *
- * Two reasons they cannot, and both are facts about the column rather than about one value:
+ * Two reasons they may not, and both are facts about the column rather than about one value:
  *
  * - **the app fills the column in** — the size, the last modified date, the load error
  * - **the property does not come from a note's front matter** — everything in CORE_FILE_PROPERTIES,
  *   which is `title`, `filename`, `filepath`, `tags`, `color`, `internalLink` and the file-system
- *   columns. The writing path splices a value into a front matter block, and none of these live in
- *   one: a title is body text, and a filename or a filepath is the file itself.
+ *   columns. Their types are the app's: `tags` is always a list and `lastModified` is always a date,
+ *   whatever a hand-edited layout file says.
  *
- * **Here rather than beside any one caller**, because several ask: `cell-editor.js` decides whether
- * an opened cell gets a caret, the table header decides whether to draw the lock, the column menu
- * and the picker decide whether to offer the type dialog, and propertyType() decides whether to
- * read the user's choice at all. A header that promised something the cell then refused would be a
- * small lie told at scale — and a padlock over a column whose type you could still change was the
- * same lie from the other side.
+ * **Here rather than beside any one caller**, because four ask: type-glyph.js draws the padlock, the
+ * column menu and the picker decide whether to offer the type dialog, the types modal decides which
+ * properties to list, and propertyType() decides whether to read the user's choice at all. A padlock
+ * over a column whose type you could still change would be a small lie told at scale.
  *
- * To make one of these editable later, add the exception here — do not take it out of
- * CORE_FILE_PROPERTIES, which has a second job registering properties when a folder holds no files.
- * The writer is the real work, and it differs per property: `title` is body text, while `filename`
- * and `filepath` already have `editing/rename-file.js`.
+ * **This is no longer the same question as isPropertyEditable() below.** It was until `title` and
+ * `color` became editable, and the padlock stayed with the type because that is what it is drawn on.
+ *
+ * @param {string} name - The file property key.
+ * @returns {boolean}
+ */
+export function isTypeSettable(name) {
+    return !isInfoColumn(name) && !CORE_FILE_PROPERTIES.includes(name);
+}
+
+/**
+ * The properties the app fills in that a note may nonetheless override from its front matter — and
+ * so the ones whose cells take a caret despite their padlock.
+ *
+ * **What they have in common is the spread in file-info.js.** Both are written into the file object
+ * first, from the note's body, and then `...(yamlData)` puts front matter over the top. So the note
+ * already has a place for a typed value, and it is exactly the place a cell edit splices: the value
+ * lands at `title:` or `color:`, the re-read picks it up, and the cell shows what was typed.
+ *
+ * **Nothing else in CORE_FILE_PROPERTIES works that way.** `filename` and `filepath` are the file
+ * itself and have their own writer in `editing/rename-file.js`. `tags` is deleted from `yamlData`
+ * before the spread — it is merged into the TagMap instead — so front matter cannot override it and
+ * a spliced value would not be what the table then drew. The rest are in RESERVED_KEYS, which
+ * file-info.js strips outright.
+ *
+ * **Colour has a second writer, and front matter beats it.** The picker in the note editor writes a
+ * `#color/…` body tag (`editing/color-pick-apply.js`), which a front matter `color:` silently
+ * overrides — so a note coloured from the table has a picker that appears to do nothing. That was
+ * already true of any note with `color:` in its front matter; the table only makes it easy to reach.
+ * The way back is the way in: clearing the cell removes the key, and the body tag applies again.
+ */
+const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
+
+/**
+ * Whether this column's cells can be typed into at all.
+ *
+ * A column whose type the user may set always can: it comes from front matter, which is exactly
+ * where a cell edit splices. The question is only interesting for the ones the app fills in, and
+ * the list above is those of them that say yes.
+ *
+ * Put a new exception in that list, never by taking a property out of CORE_FILE_PROPERTIES, which
+ * has a second job registering properties when a folder holds no files.
+ *
+ * **Here rather than in cell-editor.js**, beside mismatchRefusesCaret(), so that one module owns
+ * every answer to "why will this cell not take a caret".
  *
  * @param {string} name - The file property key.
  * @returns {boolean}
  */
 export function isPropertyEditable(name) {
-    return !isInfoColumn(name) && !CORE_FILE_PROPERTIES.includes(name);
+    return isTypeSettable(name) || WRITABLE_CORE_PROPERTIES.includes(name);
 }
 
 /**
@@ -181,7 +219,7 @@ function readsAsNumber(value) {
 export function propertySearchType(name) {
     // Guarded the same way as the type above, and for the same reason: tags is searched by whole
     // items because the app says so, and a file on disk does not get to unpin that.
-    const chosen = isPropertyEditable(name) ? appState.propertyTypes.get(name)?.search_type : undefined;
+    const chosen = isTypeSettable(name) ? appState.propertyTypes.get(name)?.search_type : undefined;
     if (isLegal(LEGAL_SEARCH_TYPES, chosen)) return chosen;
 
     const schema = FILE_PROPERTIES.get(name)?.search_type;
@@ -210,7 +248,7 @@ export function propertySearchType(name) {
  * a hand-edited file name a search type without repeating a type the schema already gives.
  *
  * **A property the app fills in itself is refused outright.** Those types belong to the app, and
- * the same question — isPropertyEditable — is what stops the dialog being offered for them in the
+ * the same question — isTypeSettable — is what stops the dialog being offered for them in the
  * first place, so this is the boundary rather than a second opinion.
  *
  * @param {string} name - The file property key.
@@ -219,7 +257,7 @@ export function propertySearchType(name) {
  * @returns {void}
  */
 export function setPropertyType(name, type, searchType) {
-    if (!isPropertyEditable(name)) return;
+    if (!isTypeSettable(name)) return;
 
     const isList = (isLegal(LEGAL_TYPES, type) ? type : propertyType(name)) === VALUE_TYPES.ARRAY.value;
 

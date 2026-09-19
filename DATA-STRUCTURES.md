@@ -19,7 +19,7 @@ Each entry in `appState.myFiles` is a plain object. Most of it is written by `ge
 | `title` | `string` | First markdown H1, or first line (max 180 chars) |
 | `contentPeek` | `string` | Body preview, ~100 chars, front matter and title excluded |
 | `tags` | `Map<string, {count: number, parents: Set<string>}>` | See below |
-| `color` | `string \| null` | Value of the first `#color/<name>` tag, or `null` |
+| `color` | `string \| null` | The front matter `color:` value, used as a CSS colour verbatim, or `null` |
 | `internalLink` | `string[]` | Link targets found in the body, deduped. `[]` when there are none — never absent |
 | `lastModified` | `Date` | File modification date |
 | `errorOnLoad` | `string \| null` | Why the front matter did not read cleanly, or `null` when it did |
@@ -116,11 +116,20 @@ only the decision to keep the answer is new.
 key, saying where that key's value sits in the text:
 
 ```js
-{ valueStart, valueEnd, form: 'scalar'|'block'|'flow'|'map', items: [{ lineStart, valueStart, valueEnd }] }
+{ lineStart, valueStart, valueEnd, form: 'scalar'|'block'|'flow'|'map', items: [{ lineStart, valueStart, valueEnd }] }
 ```
 
 Spans are what let a cell edit replace the smallest number of bytes that does the job, and what let
-the writer keep the style the note already uses. Between them they recover the presentation detail
+the writer keep the style the note already uses.
+
+**`lineStart` with `valueEnd` is the whole key**, which is the pair a *deleted* key needs. The key
+always sits on the line `lineStart` begins and `valueStart` is always on that same line, so
+`slice(lineStart, valueStart)` is `'people:'` however many lines the value goes on to take — while
+`valueEnd` walks down the file with it, pushed forward by every list item and every nested key line.
+A blank or comment line never pushes it, so a comment after a list's last item is outside the key and
+survives its removal; one *between* two items is inside it and does not, which is the same cost list
+edits already carry. `save-cell-edit.js` takes `[lineStart, past the newline after valueEnd)` when
+`toYamlText()` hands back `''`, which is the one thing it can return that no value can mean. Between them they recover the presentation detail
 YAML throws away, and `save-cell-edit.js` assembles that into the `shape` it hands `toYamlText()` —
 `form` straight off the span, `itemPrefix` sliced from the first item's `lineStart`, and `quoted`
 derived by running `isQuoted()` over the bytes the span points at. So a quoted value stays quoted, a

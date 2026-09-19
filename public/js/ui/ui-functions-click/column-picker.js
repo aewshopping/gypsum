@@ -4,9 +4,9 @@ import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-render/render-layout-list.js';
 import { renderColumnPickerList } from '../ui-functions-table/column-picker-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
-import { markLayoutDirty, playLayoutSaved } from '../ui-functions-table/render-table-controls.js';
-import { applyActiveLayout, saveLayout } from '../../table-layouts/layout-file.js';
-import { showWarningModal } from './warning-modal.js';
+import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
+import { applyActiveLayout } from '../../table-layouts/layout-file.js';
+import { deleteColumnFromLayout } from './column-delete.js';
 
 const dialog = document.getElementById('modal-columns');
 
@@ -159,12 +159,13 @@ function readPickerIntoLayout() {
 }
 
 /**
- * Drops a dead column from the active layout for good, once the user has agreed to it.
+ * The bin on a dead column's row: drops it from the active layout for good.
  *
- * Unlike everything else in this dialog, this writes to disk straight away. The point of the bin
- * is to be rid of the column in the saved layout, so leaving it to a later "save layout" would be
- * leaving the job half done. The rows are read in first, so what is written is what is on screen:
- * a save that silently reverted a toggle flipped a moment earlier would be worse than either.
+ * **The rows are read in first**, which is this caller's own half of the job and why the shared
+ * function cannot do it: deleteColumnFromLayout writes the layout to disk there and then, so what
+ * is written has to be what is on screen — a save that silently reverted a toggle flipped a moment
+ * earlier would be worse than either. The header menu has nothing to read in, which is the whole
+ * difference between the two callers.
  *
  * The dialog stays open — only the row goes. Focus goes to the dialog because the button that had
  * it has just been rendered away.
@@ -174,21 +175,9 @@ function readPickerIntoLayout() {
  * @returns {Promise<void>}
  */
 export async function handleColumnDelete(evt, target) {
-    const { property } = target.dataset;
-    const active = appState.tableLayouts.active;
-
-    const confirmed = await showWarningModal(
-        `Remove the "${property}" column from the '${active}' layout? ` +
-        `The loaded folder no longer has this property.`,
-        'remove column', 'cancel');
-    if (!confirmed) return;
-
     readPickerIntoLayout();
-    TABLE_VIEW_COLUMNS.columnLayout.delete(property);
-    await saveLayout(active);
-    playLayoutSaved();
+    if (!await deleteColumnFromLayout(target.dataset.property)) return;
 
-    renderFiles();
     paintList();
     dialog.focus();
 }

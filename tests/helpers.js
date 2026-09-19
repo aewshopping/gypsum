@@ -9,7 +9,8 @@ const { pathToFileURL } = require('url');
  * The three test files cover the main scenarios:
  *   - meeting-notes.md: has a markdown title, a unique tag (project), unique filename text
  *   - shopping.txt:     plain text file (no markdown title), personal tag
- *   - big-ideas.md:     has a color tag, shares the personal tag with shopping.txt
+ *   - big-ideas.md:     carries a legacy '#color/coral' tag, which is an ordinary tag and colours
+ *                       nothing — colour is a front matter key now; shares personal with shopping.txt
  *
  * @param {import('@playwright/test').Page} page
  */
@@ -434,19 +435,19 @@ async function setupMockDirectoryWithDeleteSupport(page) {
 }
 
 /**
- * Directory with a file containing an existing #color/ tag, with full save support.
- * File: notes.md with content '# My Notes\n#color/{colourName}\nText below'
+ * Directory with a file that already carries a colour, with full save support.
+ * File: notes.md with content '---\ncolor: {colourName}\n---\n\n# My Notes\nText below'
  *
  * @param {import('@playwright/test').Page} page
- * @param {string} [colourName] - The colour tag to embed; defaults to 'coral'.
+ * @param {string} [colourName] - The colour, written verbatim after the colon, so pass it the way a
+ *   note would hold it: a named colour bare, a hex quoted and carrying its '#'.
  */
 async function setupMockDirectoryForColorExisting(page, colourName = 'coral') {
   await page.addInitScript((colour) => {
     window.__savedFiles = {};
     window.__originalFiles = {};
     window.__backupFileContent = '';
-    const bareColour = colour.startsWith('#') ? colour.slice(1) : colour;
-    const fileContent = `# My Notes\n#color/${bareColour}\nText below`;
+    const fileContent = `---\ncolor: ${colour}\n---\n\n# My Notes\nText below`;
     const makeFile = (name, content) => ({
       kind: 'file', name,
       getFile: async () => ({

@@ -174,6 +174,53 @@ point. These rules follow, and they are the ones to hold:
   one, because they refuse different things: an info column must stay sortable and searchable, since
   sorting by size or by last modified is the point of having it. `internalId` is in both.
 
+### An empty column
+
+**A column belongs to the layout, not to the files.** A column no loaded file has a key for is drawn
+anyway — faded, so that it reads as empty rather than as a column whose rows happen to be blank. That
+is `dead` on a resolved column, `data-empty` on the header cell, and one rule in `note-table.css`.
+It is what makes deleting a key from a cell safe: the value goes and the column stays, so nothing
+disappears out from under the person who cleared it.
+
+- **`dead` is asked of `appState.myFiles`, never of `myFilesProperties`.** That Map only ever grows —
+  nothing unregisters a property when its last value goes — so it would go on claiming the column had
+  values until the folder was reloaded, which is exactly the moment the answer has to change.
+  `CORE_FILE_PROPERTIES` is excluded rather than looked for: those are written into every file object,
+  so they are never absent, and in an empty folder they are the one thing a file-based answer would
+  get wrong. So **only a front matter column can read as empty.**
+- **`missing` asks the same question of the same source, and must keep doing so.** A property no file
+  carries is not a new column either. While it asked `myFilesProperties`, deleting an emptied column
+  undid itself: the key was gone from the note but still registered, so `resolveColumns()` read it as
+  a property the layout had never seen and appended it hidden — on the render the delete itself runs,
+  so it was back in the picker before the user could save, and the next save wrote it to disk again.
+- **"delete column" is offered on an empty column and nowhere else**, from the header's own menu and
+  from the bin in the column picker. Both go through `deleteColumnFromLayout()` in
+  `ui-functions-click/column-delete.js`, so removing a column means the same thing in both places:
+  it is dropped from the active layout and the layout is written to disk there and then, since the
+  point of it is to be rid of the column rather than to queue one more unsaved change.
+- **It touches the layout and never a file.** No note can lose anything by it, which is why neither
+  caller re-checks emptiness inside the shared function.
+- **It is hidden, not greyed out**, unlike every other item in the column menu, and only under a
+  saved layout. Under the app's defaults there is nothing to delete a column *from* —
+  `resolveColumns()` would put it straight back from the registered property — and "hide column",
+  in the same menu, is the answer there.
+
+### Front matter is data, not prose
+
+**Nothing inside the `---` block is scanned for `#tags`, `[[links]]` or a `# H1`.** The block joins
+the markup and code spans in `findProtectedSpans` — `file-info.js`'s `frontMatterSpan()` converts
+`findFrontMatterIndices`' line numbers to the character offsets a span is made of — so one mechanism
+answers "this is not prose" for all of them.
+
+- **The title branch of `extractMatches` had to opt in.** It was the one branch that never consulted
+  the spans, so a YAML comment at column 0 became the note's title whenever it came before the real
+  heading. The two title paths now agree: `getInitialTitle`'s fallback has always skipped the block.
+- **This is what makes a `#` safe in a value**, which is what a hex colour is. A `[[link]]` in a value
+  stops being collected too, which is a fix rather than a loss: a flow sequence `related: [[a, b]]`
+  was read as a link to `a, b` and then reported as broken.
+- The supported front matter tag path is untouched — `yamlData.tags` is merged into the TagMap
+  separately, before any of this.
+
 ### What a table cell may contain
 
 Two rules, and the second follows from the first. See `plans/completed/table-cell-editors.md`.
@@ -189,21 +236,69 @@ Two rules, and the second follows from the first. See `plans/completed/table-cel
   their markup — `renderFilename`, `renderOpenFileLink`, `renderTags` — all belong to columns that
   refuse a caret.
 
-**A locked column is locked, and `isPropertyEditable()` is the one question.** It answers whether a
-cell takes a caret, whether the header draws a padlock, whether the type dialog is offered, and
-whether `propertyType()` reads the user's choice at all. So the app owns the type of every property
-it fills in itself — `lastModified` and the other info columns, and `title`, `tags`, `filename`,
-`filepath`, `color` and `internalLink` besides — and no file can change one. Before, a padlocked
-column still let you set its type, which was the same lie from the other side.
+**A locked column's type is locked, and `isTypeSettable()` is that question.** It answers whether
+the header draws a padlock, whether the type dialog is offered, and whether `propertyType()` reads
+the user's choice at all. So the app owns the type of every property it fills in itself —
+`lastModified` and the other info columns, and `title`, `tags`, `filename`, `filepath`, `color` and
+`internalLink` besides — and no file can change one. A padlocked column that still let you set its
+type would be the same lie from the other side.
+
+**Whether a cell takes a caret is the narrower question, `isPropertyEditable()`.** It is
+`isTypeSettable()` plus `WRITABLE_CORE_PROPERTIES`, and the two came apart for those columns.
+**`title` and `color` are editable from the table.** What they have in common is the spread in
+`file-info.js`: both sit in the returned object *above* `...(yamlData)`, so front matter supplies
+them — `title` overriding the note's own `# H1`, `color` filling in a `null`. Either way the note
+already has a place for a typed value, and it is exactly the place a cell edit splices. Nothing else
+in `CORE_FILE_PROPERTIES` does: `filename` and `filepath` are the file itself and have
+`editing/rename-file.js`; `tags` is deleted from `yamlData` before the spread, being merged into the
+TagMap, so front matter cannot override it; the rest are in `RESERVED_KEYS` and stripped outright.
+
+**Colour is a front matter key and nothing else.** `#color/…` used to set it, which made every
+colour a tag as well and gave the value two writers — the editor's picker wrote the body tag, the
+table's colour cell wrote front matter, and front matter silently won. Now both write `color:`. A
+`#color/…` tag in an old note is an ordinary tag and colours nothing; there was no converter, so the
+`color` group in the tag taxonomy is the list of notes still to fix by hand.
+
+**The value is written the way CSS wants it, and nothing normalises it**: a named colour bare
+(`color: coral`), a hex carrying its `#` and therefore quoted (`color: "#ffffff"`, or `"#ffff"` for
+`#RGBA`). A bare hex is not a colour and silently does not paint, the same as a misspelt colour name —
+this is "quote defensively, do not validate strictly", and nothing here validates. **That format is
+only safe because of the rule above about front matter**: a `#` in a value used to be harvested as a
+tag.
+
+**So these columns wear a padlock and take a caret, and that is the accepted cost.** The padlock is
+drawn *on the type glyph*, so it stays with the type; dropping it instead would leave a column with
+no padlock whose type button is greyed out, which is the lie above again. The padlock therefore no
+longer promises that a cell will refuse — what says that, at the moment it matters, is the opened
+cell itself: dashed outline, faded text, no text cursor. The header's locked tooltip says "set by
+the app" for the same reason; it used to say "not editable from the table", which is now false for
+two columns.
+
+**A mismatch sentence names the fix that column actually has.** `title` and `color` are the two
+columns a note can hand a list to (`title: [draft]`) while their type stays the app's — so the shape
+message, which tells an ordinary column to change its type, would name a greyed-out button. It says
+"fix this in the note" for them instead. `mismatchMessage()` takes the whole column rather than its
+type, because the sentence now turns on which column it is.
+
+**The colour picker writes front matter through `execCommand`, and that is why it edits the editor
+rather than the file.** One Ctrl+Z in the note modal takes the colour back, which a write to disk
+could not offer. One `insertText` covers every shape the splice can be, `''` included — that deletes
+the selection, which is how clearing a key works.
+
+**A commit that reaches no file still redraws.** Clearing a title the note keeps as its `# H1` finds
+no `title:` key to remove, so nothing is written and the write's own refresh never runs — the cell
+would sit there blank while the note still says otherwise. `cell-edit-commit.js` reads what
+`applyCellEdits` returns and redraws the rows when it is empty. It is also what stops a list retyped
+to the same items keeping the whitespace that was typed.
 
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
-or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
-two per-cell questions: whether the value's *shape* fits its column — not merely whether it fits —
+or a `CORE_FILE_PROPERTIES` member other than `title`. Whether this one *cell* can is
+`cell-editor.js`, which adds the two per-cell questions: whether the value's *shape* fits its column — not merely whether it fits —
 and whether the note's front matter read cleanly at all. The first of those is
 `mismatchRefusesCaret()`, in the same service as `isPropertyEditable()`, so one module owns every
-caret-refusal answer. Both the header's lock and the caret ask the column question, which is what
-stops the table promising something the cell then refuses.
+caret-refusal answer. An *unlocked* column always takes a caret, which is what stops the table
+promising something the cell then refuses; the reverse no longer holds, because of `title`.
 
 **Say it before the click, not after.** A locked column's glyph is its type drawing with a padlock
 laid over the corner — one element, so the header spends no more on a locked column than an open
@@ -213,7 +308,7 @@ text cursor. An expanded cell also takes `--colour-contr`: it has swapped to the
 it cannot keep the colour a coloured row forced on it. To make a property
 editable later, add the exception in `isPropertyEditable` — do not take it out of
 `CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
-a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
+a filename and a filepath already have `editing/rename-file.js`.
 
 **Selection follows focus, and that is the whole rule.** The selected cell is the cell focus is in;
 one `focusin` handler in `cell-expand.js` marks it and lets every other cell go, and letting go
@@ -310,7 +405,9 @@ Closing an edited cell writes it into the note's front matter. See
   span and nothing else — so comments, key order, blank lines and anything the parser skipped
   survive. A list where one item's text changed splices that item alone; a list rewritten whole
   re-generates every item from the cell's text, which is where the comment limitation below comes
-  from. The spans live inside the parser because a second answer to
+  from. A span reaches back to its key as well as forward over its value — `lineStart` with
+  `valueEnd` is every byte the key occupies, which is what a *deleted* key needs. The spans live
+  inside the parser because a second answer to
   "where does this value end" would agree on the day it was written and drift after, and that drift
   writes into the wrong bytes of a note.
 - **Quote defensively, do not validate strictly.** Almost anything may be typed; `needsQuoting()` in
@@ -350,15 +447,24 @@ Closing an edited cell writes it into the note's front matter. See
   a cell that is both, because it is the one explaining the refusal — and because a block that did
   not read cleanly makes every value in it a guess, including whether this one really is the wrong
   type.
-- **A key the note does not have is appended to its block, and a note with no block gets one at byte
-  0, with a blank line after it.** Byte 0 because `findFrontMatterIndices` takes a separator on the
+- **Where a key's bytes go is `editing/front-matter-splice.js`, and it is shared.** The cell writer
+  splices a file; the colour picker splices the text of the open editor. A second copy of these rules
+  would agree on the day it was written and drift after, and drift here writes into the wrong bytes
+  of a note. **A key the note does not have is appended to its block, and a note with no block gets
+  one at byte 0, with a blank line after it.** Byte 0 because `findFrontMatterIndices` takes a separator on the
   first line at its word, where one lower down has first to be told apart from a setext underline and
   a thematic break. The blank line is not decoration: a markdown parser reading `# Title` on the line
   straight below the closing separator does not see a heading, and gypsum — which matches a title
   anywhere in the file — would go on showing one, which is the kind of disagreement nobody notices
   until they open the note somewhere else. One line, not two, if the note already starts with one.
-  Clearing a cell writes an empty value rather than deleting the key — a deleted key can unregister
-  the column, and a column vanishing as a side effect of clearing one cell is startling.
+- **Clearing a cell takes the key out, line and all** — the mirror of appending one, and the reason
+  the span reaches back to the key. `toYamlText()` says so by returning `''`, which is the one answer
+  it can give that no value can mean, since every other carries the separating space. A block list
+  goes key line, item lines and all, because `valueEnd` has walked down the file with it; a comment
+  after the list survives, one between two items does not, which is the cost list edits already
+  carry. This was the other way round until columns could outlive their values: a deleted key
+  unregisters the property, and a column vanishing as a side effect of clearing one cell is
+  startling. It no longer vanishes — see *An empty column* below.
 
 ### Adding a new file property
 
@@ -409,6 +515,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
 | `public/js/editing/save-cell-edit.js` | A cell edit into the note: convert, locate, splice, write, refresh |
+| `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |

@@ -35,9 +35,10 @@ const READONLY = 'is-readonly';
  *   and splicing into it writes into a key nobody created. The whole note is the fix, so the cell
  *   opens to be read and says where to go. Left on the cell by the renderer for the same reason as
  *   the mismatch above
- * - **the column cannot be typed into at all** — the app fills it in, or the property does not come
- *   from front matter. That is isPropertyEditable's question, and asking it here rather than
- *   answering it again is what keeps the caret and the header's lock the same decision
+ * - **the column cannot be typed into at all** — the app fills it in and the note has nowhere to put
+ *   a typed value. That is isPropertyEditable's question, asked here rather than answered again so
+ *   that property-type.js owns every caret-refusal answer. It is a narrower question than the
+ *   header's padlock, which is about the type: `title` wears one and still takes a caret
  *
  * @param {HTMLElement} cell
  * @returns {boolean}

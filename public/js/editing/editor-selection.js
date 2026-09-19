@@ -106,6 +106,12 @@ export function selectTextRange(editorEl, start, end) {
         }
         pos = childEnd;
     }
+    // Nothing matched: an empty editor, or a start past the end. An unset Range points at the
+    // document, so it has to be aimed here first — colouring a zero-byte note reaches this.
+    if (!startSet) {
+        range.selectNodeContents(editorEl);
+        range.collapse(false);
+    }
     window.getSelection().removeAllRanges();
     window.getSelection().addRange(range);
 }

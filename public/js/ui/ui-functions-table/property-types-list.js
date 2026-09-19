@@ -1,6 +1,6 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
-import { isPropertyEditable, propertyType, propertySearchType } from '../../services/property-type.js';
+import { isTypeSettable, propertyType, propertySearchType } from '../../services/property-type.js';
 import { typeGlyph } from '../ui-functions-render/type-glyph.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
 
@@ -24,7 +24,7 @@ import { escapeHtml } from '../ui-functions-render/escape-html.js';
  * folder no longer has, which the picker does offer: there the point is to be rid of the column,
  * and here it would be a row about a property the user's files do not have.
  *
- * isPropertyEditable is the same question the picker asks before offering its glyph button, so the
+ * isTypeSettable is the same question the picker asks before offering its glyph button, so the
  * two cannot disagree about which properties have a type the user owns.
  *
  * Map insertion order is the order properties were registered in, which is what the sort dropdown
@@ -33,7 +33,7 @@ import { escapeHtml } from '../ui-functions-render/escape-html.js';
  * @returns {string[]} The property keys, in registration order.
  */
 export function userTypeProperties() {
-    return [...appState.myFilesProperties.keys()].filter(isPropertyEditable);
+    return [...appState.myFilesProperties.keys()].filter(isTypeSettable);
 }
 
 /**

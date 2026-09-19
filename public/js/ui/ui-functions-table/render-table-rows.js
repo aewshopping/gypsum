@@ -72,7 +72,7 @@ export function renderTableRows(current_props, renderEverything) {
                 // nobody.
                 const tip = brokenYaml
                     ? YAML_ERROR_TIP
-                    : mismatch ? mismatchMessage(mismatch, prop.type) : '';
+                    : mismatch ? mismatchMessage(mismatch, prop) : '';
 
                 const flag = (mismatch ? ` data-mismatch="${mismatch}"` : '')
                     + (brokenYaml ? ' data-yaml-error' : '')

@@ -17,10 +17,10 @@ const ALL_COLOURS = constantsSrc
   .match(/["']([^"']+)["']/g)
   .map(s => s.slice(1, -1));
 
-// Two distinct colours used by tests 2 and 4. COLOUR_0 is pre-inserted in the mock
-// file; COLOUR_1 is the replacement chosen from the picker.
-const COLOUR_0 = ALL_COLOURS[0];
-const COLOUR_1 = ALL_COLOURS[1];
+// The first palette colour, used as the replacement. A hex, so it is written quoted and carrying
+// its '#' — which is what makes its length differ from the named colour the fixture starts with,
+// and so what makes the cursor adjustment visible.
+const HEX_COLOUR = ALL_COLOURS[0];
 
 async function openModal(page) {
   await loadFolder(page);
@@ -33,7 +33,7 @@ async function switchToTxt(page) {
     const t = document.getElementById('render_toggle');
     if (!t.checked) t.click();
   });
-  await expect(page.locator('#modal-content-text pre')).toBeVisible();
+  await expect(page.locator('#modal-content-text pre').first()).toBeVisible();
 }
 
 function getCursorOffset(page) {
@@ -50,67 +50,97 @@ function getCursorOffset(page) {
   });
 }
 
+/** The editor's text with <br> read as a newline, which textContent does not do. */
+const editorText = page => page.evaluate(() =>
+  document.querySelector('#modal-content-text pre').innerText);
+
+/** Puts the cursor at the very end of the note, so every splice above it has to move it. */
+async function cursorToEnd(page) {
+  await page.locator('#modal-content-text pre').first().click();
+  await page.evaluate(() => {
+    const el = document.querySelector('#modal-content-text .text-editor');
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  });
+}
+
+async function pick(page, colourValue) {
+  await page.click('[data-action="editor-color-pick"]');
+  await expect(page.locator('#modal-color-picker')).toBeVisible();
+  await page.click(`[data-action="color-circle-pick"][data-color-value="${colourValue}"]`);
+  await expect(page.locator('#modal-color-picker')).not.toBeVisible();
+}
+
+// The picker writes the note's `color:` front matter key, not a `#color/…` tag. It still goes
+// through execCommand, so the browser's own undo takes the colour back in one step — which is the
+// whole reason it edits the editor's text rather than the file.
 test.describe('colour picker modal', () => {
 
-  test('existing colour above cursor is replaced and cursor offset is adjusted', async ({ page }) => {
-    // File: '# My Notes\n#color/{COLOUR_0}\nText below'
-    // Cursor placed at end of file (after the tag), so the tag is "above" the cursor.
-    // Picking COLOUR_1 must replace COLOUR_0 and shift the cursor by the length delta.
-    await setupMockDirectoryForColorExisting(page, COLOUR_0);
+  test('an existing colour is replaced in place, and the cursor moves with it', async ({ page }) => {
+    // File: '---\ncolor: coral\n---\n\n# My Notes\nText below', cursor at the end, so the key
+    // being rewritten sits above it.
+    await setupMockDirectoryForColorExisting(page, 'coral');
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
-
-    // Place cursor at the end of the file (after the colour tag).
-    await page.locator('#modal-content-text pre').click();
-    await page.evaluate(() => {
-      const el = document.querySelector('#modal-content-text .text-editor');
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      window.getSelection().removeAllRanges();
-      window.getSelection().addRange(range);
-    });
+    await cursorToEnd(page);
 
     const savedOffset = await getCursorOffset(page);
+    await pick(page, HEX_COLOUR);
 
-    await page.click('[data-action="editor-color-pick"]');
-    await expect(page.locator('#modal-color-picker')).toBeVisible();
-    await page.click(`[data-action="color-circle-pick"][data-color-value="${COLOUR_1.replace(/^#/, '')}"]`);
-    await expect(page.locator('#modal-color-picker')).not.toBeVisible();
+    const text = await editorText(page);
+    expect(text).toContain(`color: "${HEX_COLOUR}"`);   // quoted, because of the '#'
+    expect(text).not.toContain('coral');
+    expect(text).toContain('# My Notes');               // and nothing else moved
 
-    const editorText = await page.locator('#modal-content-text pre').textContent();
-    expect(editorText).toContain(`#color/${COLOUR_1.replace(/^#/, '')}`);
-    expect(editorText).not.toContain(`#color/${COLOUR_0.replace(/^#/, '')}`);
-
-    const newOffset = await getCursorOffset(page);
-    const delta = COLOUR_1.length - COLOUR_0.length;
-    expect(newOffset).toBe(savedOffset + delta);
+    // The value went from ' coral' to ' "#xxxxxx"', and the cursor was below it.
+    const delta = ` "${HEX_COLOUR}"`.length - ' coral'.length;
+    expect(await getCursorOffset(page)).toBe(savedOffset + delta);
   });
 
-  test('when no colour exists, new colour is added on a new line at the end', async ({ page }) => {
-    // Picks whichever colour appears first in the modal rather than a hardcoded name.
-    await setupMockDirectoryWithSaveSupport(page);
+  test('a note with no front matter is given a block to hold the colour', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);   // '# My Notes\nSome content here'
     await page.goto('/');
     await openModal(page);
     await switchToTxt(page);
 
-    await page.click('[data-action="editor-color-pick"]');
-    await expect(page.locator('#modal-color-picker')).toBeVisible();
+    await pick(page, HEX_COLOUR);
 
-    const firstBtn = page.locator('[data-action="color-circle-pick"]').first();
-    await expect(firstBtn).toBeVisible();
-    const colourName = await firstBtn.getAttribute('data-color-value');
-    await firstBtn.click();
-    await expect(page.locator('#modal-color-picker')).not.toBeVisible();
+    // Byte 0, above the note's own content. The multi-line insert goes in as one execCommand, and
+    // the browser lays the new lines out as blocks, so innerText reads one more break after the
+    // closing separator than the spliced text carries.
+    expect(await editorText(page))
+      .toBe(`---\ncolor: "${HEX_COLOUR}"\n---\n\n\n# My Notes\nSome content here`);
+  });
 
-    // Use innerText (not textContent) so <br> elements appear as \n.
-    const editorText = await page.evaluate(() =>
-      document.querySelector('#modal-content-text pre').innerText
-    );
-    expect(editorText).toContain('# My Notes');
-    expect(editorText).toContain('Some content here');
-    expect(editorText).toMatch(new RegExp(`\n\n#color\\/${colourName}\\s*$`));
+  test('picking no colour removes the key, rather than writing one', async ({ page }) => {
+    // It used to write a literal '#color/nocolor' tag, so "remove colour" added one.
+    await setupMockDirectoryForColorExisting(page, 'coral');
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    await pick(page, 'nocolor');
+
+    expect(await editorText(page)).toBe('---\n---\n\n# My Notes\nText below');
+  });
+
+  test('the undo stack still owns the change', async ({ page }) => {
+    // execCommand is what buys this, and it is why the picker edits the editor and not the file.
+    await setupMockDirectoryForColorExisting(page, 'coral');
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+    const before = await editorText(page);
+
+    await pick(page, HEX_COLOUR);
+    expect(await editorText(page)).not.toBe(before);
+
+    await page.locator('#modal-content-text .text-editor').press('Control+z');
+    expect(await editorText(page)).toBe(before);
   });
 
 });

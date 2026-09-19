@@ -1,5 +1,5 @@
 import { VALUE_TYPES, labelFor } from '../../constants.js';
-import { isInfoColumn } from '../../services/property-type.js';
+import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
@@ -26,29 +26,40 @@ import { formatDateTime } from '../ui-functions-render/render-value.js';
  * cannot hold is the column's type being wrong, and text that cannot be read is this one value
  * being wrong.
  *
- * **Only the shape sentence names a fix.** There is exactly one way out of it, and it is not in
- * this cell. An unreadable value has two — retype it, or change the column's type — and the caret
- * is right there for the first, so the sentence states the fact and stops. It used to say "fix this
- * in the note", which was the only truth available while such a cell refused a caret; see
- * mismatchRefusesCaret() in services/property-type.js.
+ * **Only the shape sentence names a fix**, and which fix depends on the column. There is exactly one
+ * way out and it is never in this cell, because committing a list into a column of single values —
+ * or the reverse — is what mismatchRefusesCaret() refuses. For an ordinary column that way out is
+ * the type dialog. For one the app owns it is not: `title` and `color` can be given a list by a
+ * note's front matter, and their type is the app's, so "change this column's type" would name a
+ * button that is greyed out. There the note itself is the only fix — which is what this sentence
+ * said for every column back when a mismatch always refused a caret.
+ *
+ * An unreadable value has two ways out — retype it, or change the column's type — and the caret is
+ * right there for the first, so the sentence states the fact and stops. It cannot arise on a column
+ * the app owns anyway: those are text, a number the app computes, or a date it computes.
  *
  * Written once, onto the cell's tooltip, which is also what note-table-cell.css draws inside the
  * cell once it is opened — a tooltip needs a pointer, and half the people using this have a finger.
  * No JS reads it back, which is what keeps the two from ever saying different things.
  *
+ * Takes the column rather than its type, the way renderCellValue below does, because the sentence
+ * now turns on which column it is as well as what that column holds.
+ *
  * @param {'shape'|'unreadable'} mismatch
- * @param {string} type - The column's type.
+ * @param {object} prop - The column, carrying `name` and `type`.
  * @returns {string}
  */
-export function mismatchMessage(mismatch, type) {
-    const typeLabel = labelFor(VALUE_TYPES, type);
+export function mismatchMessage(mismatch, prop) {
+    const typeLabel = labelFor(VALUE_TYPES, prop.type);
 
     if (mismatch === 'unreadable') {
         return `not a ${typeLabel}`;
     }
-    return type === VALUE_TYPES.ARRAY.value
-        ? 'not a list — change this column\'s type'
-        : `a list, not a ${typeLabel} — change this column's type`;
+
+    const fix = isTypeSettable(prop.name) ? 'change this column\'s type' : 'fix this in the note';
+    return prop.type === VALUE_TYPES.ARRAY.value
+        ? `not a list — ${fix}`
+        : `a list, not a ${typeLabel} — ${fix}`;
 }
 
 /**
