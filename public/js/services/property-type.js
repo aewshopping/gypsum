@@ -83,8 +83,8 @@ export function isInfoColumn(name) {
  * properties to list, and propertyType() decides whether to read the user's choice at all. A padlock
  * over a column whose type you could still change would be a small lie told at scale.
  *
- * **This is no longer the same question as isPropertyEditable() below.** It was until `title` became
- * editable, and the padlock stayed with the type because that is what it is drawn on.
+ * **This is no longer the same question as isPropertyEditable() below.** It was until `title` and
+ * `color` became editable, and the padlock stayed with the type because that is what it is drawn on.
  *
  * @param {string} name - The file property key.
  * @returns {boolean}
@@ -94,23 +94,37 @@ export function isTypeSettable(name) {
 }
 
 /**
+ * The properties the app fills in that a note may nonetheless override from its front matter — and
+ * so the ones whose cells take a caret despite their padlock.
+ *
+ * **What they have in common is the spread in file-info.js.** Both are written into the file object
+ * first, from the note's body, and then `...(yamlData)` puts front matter over the top. So the note
+ * already has a place for a typed value, and it is exactly the place a cell edit splices: the value
+ * lands at `title:` or `color:`, the re-read picks it up, and the cell shows what was typed.
+ *
+ * **Nothing else in CORE_FILE_PROPERTIES works that way.** `filename` and `filepath` are the file
+ * itself and have their own writer in `editing/rename-file.js`. `tags` is deleted from `yamlData`
+ * before the spread — it is merged into the TagMap instead — so front matter cannot override it and
+ * a spliced value would not be what the table then drew. The rest are in RESERVED_KEYS, which
+ * file-info.js strips outright.
+ *
+ * **Colour has a second writer, and front matter beats it.** The picker in the note editor writes a
+ * `#color/…` body tag (`editing/color-pick-apply.js`), which a front matter `color:` silently
+ * overrides — so a note coloured from the table has a picker that appears to do nothing. That was
+ * already true of any note with `color:` in its front matter; the table only makes it easy to reach.
+ * The way back is the way in: clearing the cell removes the key, and the body tag applies again.
+ */
+const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
+
+/**
  * Whether this column's cells can be typed into at all.
  *
  * A column whose type the user may set always can: it comes from front matter, which is exactly
  * where a cell edit splices. The question is only interesting for the ones the app fills in, and
- * `title` is the one of those that says yes.
+ * the list above is those of them that say yes.
  *
- * **Why `title` is the exception.** The app fills it in — from `# H1`, or the first line of the note
- * — but a front matter `title:` overrides that, because file-info.js spreads the block over its own
- * answer. So the note already has a place for a typed title, and it is the place the writer writes:
- * the value lands at `title:`, the re-read picks it up, and the cell shows what was typed. Nothing
- * else in CORE_FILE_PROPERTIES works that way. `filename` and `filepath` are the file itself and
- * already have their own writer in `editing/rename-file.js`; `tags` and `color` are read out of the
- * body text, so a value spliced into front matter would not be what the table then drew.
- *
- * A direct comparison rather than a list, because there is one exception. Make it a list when there
- * is a second — and put the exception here either way, never by taking a property out of
- * CORE_FILE_PROPERTIES, which has a second job registering properties when a folder holds no files.
+ * Put a new exception in that list, never by taking a property out of CORE_FILE_PROPERTIES, which
+ * has a second job registering properties when a folder holds no files.
  *
  * **Here rather than in cell-editor.js**, beside mismatchRefusesCaret(), so that one module owns
  * every answer to "why will this cell not take a caret".
@@ -119,7 +133,7 @@ export function isTypeSettable(name) {
  * @returns {boolean}
  */
 export function isPropertyEditable(name) {
-    return isTypeSettable(name) || name === 'title';
+    return isTypeSettable(name) || WRITABLE_CORE_PROPERTIES.includes(name);
 }
 
 /**

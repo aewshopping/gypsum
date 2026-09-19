@@ -223,21 +223,34 @@ the user's choice at all. So the app owns the type of every property it fills in
 type would be the same lie from the other side.
 
 **Whether a cell takes a caret is the narrower question, `isPropertyEditable()`.** It is
-`isTypeSettable()` plus `title`, and the two came apart for that one column. **`title` is editable
-from the table**: the app fills it in from `# H1` or the note's first line, but a front matter
-`title:` overrides that — `file-info.js` spreads the block over its own answer — so the note already
-has a place for a typed title, and it is the place the writer writes. Nothing else in
-`CORE_FILE_PROPERTIES` works that way: `filename` and `filepath` are the file itself and have
-`editing/rename-file.js`, and `tags` and `color` are read out of body text, so a value spliced into
-front matter is not what the table would then draw.
+`isTypeSettable()` plus `WRITABLE_CORE_PROPERTIES`, and the two came apart for those columns.
+**`title` and `color` are editable from the table.** What they have in common is the spread in
+`file-info.js`: both are written into the file object from the note's *body* — the `# H1` or the
+first line, and the first `#color/…` tag — and then `...(yamlData)` puts front matter over the top.
+So the note already has a place for a typed value, and it is exactly the place a cell edit splices.
+Nothing else in `CORE_FILE_PROPERTIES` does: `filename` and `filepath` are the file itself and have
+`editing/rename-file.js`; `tags` is deleted from `yamlData` before the spread, being merged into the
+TagMap, so front matter cannot override it; the rest are in `RESERVED_KEYS` and stripped outright.
 
-**So `title` wears a padlock and takes a caret, and that is the accepted cost.** The padlock is drawn
-*on the type glyph*, so it stays with the type; dropping it instead would leave a column with no
-padlock whose type button is greyed out, which is the lie above again. The padlock therefore no
+**Colour has a second writer, and front matter beats it.** The picker in the note editor writes a
+`#color/…` body tag (`editing/color-pick-apply.js`), which a front matter `color:` silently
+overrides — so a note coloured from the table has a picker that appears to do nothing. That was
+already true of any note carrying `color:`; the table only makes it easy to reach. Accepted because
+the way back is the way in: clearing the cell removes the key, and the body tag applies again.
+
+**So these columns wear a padlock and take a caret, and that is the accepted cost.** The padlock is
+drawn *on the type glyph*, so it stays with the type; dropping it instead would leave a column with
+no padlock whose type button is greyed out, which is the lie above again. The padlock therefore no
 longer promises that a cell will refuse — what says that, at the moment it matters, is the opened
 cell itself: dashed outline, faded text, no text cursor. The header's locked tooltip says "set by
 the app" for the same reason; it used to say "not editable from the table", which is now false for
-one column.
+two columns.
+
+**A mismatch sentence names the fix that column actually has.** `title` and `color` are the two
+columns a note can hand a list to (`title: [draft]`) while their type stays the app's — so the shape
+message, which tells an ordinary column to change its type, would name a greyed-out button. It says
+"fix this in the note" for them instead. `mismatchMessage()` takes the whole column rather than its
+type, because the sentence now turns on which column it is.
 
 **A commit that reaches no file still redraws.** Clearing a title the note keeps as its `# H1` finds
 no `title:` key to remove, so nothing is written and the write's own refresh never runs — the cell
