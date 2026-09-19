@@ -188,6 +188,11 @@ disappears out from under the person who cleared it.
   `CORE_FILE_PROPERTIES` is excluded rather than looked for: those are written into every file object,
   so they are never absent, and in an empty folder they are the one thing a file-based answer would
   get wrong. So **only a front matter column can read as empty.**
+- **`missing` asks the same question of the same source, and must keep doing so.** A property no file
+  carries is not a new column either. While it asked `myFilesProperties`, deleting an emptied column
+  undid itself: the key was gone from the note but still registered, so `resolveColumns()` read it as
+  a property the layout had never seen and appended it hidden — on the render the delete itself runs,
+  so it was back in the picker before the user could save, and the next save wrote it to disk again.
 - **"delete column" is offered on an empty column and nowhere else**, from the header's own menu and
   from the bin in the column picker. Both go through `deleteColumnFromLayout()` in
   `ui-functions-click/column-delete.js`, so removing a column means the same thing in both places:

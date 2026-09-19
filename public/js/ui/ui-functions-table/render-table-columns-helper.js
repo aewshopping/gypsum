@@ -22,7 +22,10 @@ import { propertyType, propertySearchType } from '../../services/property-type.j
  * layout was saved should not appear in it uninvited. Either way it is kept, and so keeps its
  * place in the order for whenever it is switched on.
  *
- * `dead` marks a column no loaded file has a key for. It is still drawn if the layout says so, and
+ * `dead` marks a column no loaded file has a key for. Such a property is never *added* as a column
+ * either — see `missing` below, which asks the same question of the same source.
+ *
+ * It is still drawn if the layout says so, and
  * still written back to the file; its heading is faded to say it holds nothing, and it can be removed
  * from the layout for good — from the column picker's bin, or from "delete column" in its own header
  * menu.
@@ -55,8 +58,20 @@ export function resolveColumns() {
     const { columnLayout, hidden_always, shown_always } = TABLE_VIEW_COLUMNS;
 
     const excluded = new Set(hidden_always);
-    const missing = [...appState.myFilesProperties.keys()]
+    const candidates = [...appState.myFilesProperties.keys()]
         .filter(prop => !excluded.has(prop) && !columnLayout.has(prop));
+
+    const carried = propertiesInFiles([...columnLayout.keys(), ...candidates]
+        .filter(name => !CORE_FILE_PROPERTIES.includes(name)));
+
+    // **A property no file carries is not a new column**, and this asks the files for the same
+    // reason `dead` does: myFilesProperties only ever grows, so clearing the last value of a key
+    // leaves it registered for the rest of the session. Without this a column deleted from the
+    // layout came straight back as a hidden one — on the very next render, before the user could
+    // even save — and the next save wrote it to disk again. A core property is always a column,
+    // registered or not, which is what gives an empty folder its table.
+    const missing = candidates.filter(prop =>
+        CORE_FILE_PROPERTIES.includes(prop) || carried.has(prop));
 
     // A saved layout is a closed statement of which columns the user wants, so a property it has
     // never seen joins it hidden. The app's defaults make no such statement — there the schema's
@@ -72,9 +87,6 @@ export function resolveColumns() {
             const entry = defaultColumnEntry(prop);
             columnLayout.set(prop, underSavedLayout ? { ...entry, visible: false } : entry);
         });
-
-    const carried = propertiesInFiles(
-        [...columnLayout.keys()].filter(name => !CORE_FILE_PROPERTIES.includes(name)));
 
     // shown_always is enforced here rather than trusted from the layout, so the one function that
     // decides the column set is also the one place the rule cannot be got round.
