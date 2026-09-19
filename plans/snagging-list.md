@@ -143,3 +143,43 @@ work than the snag implies. The previous list, all of it settled, is
   owns reads the same in both views. Nothing here is editable and nothing reaches the cell
   machinery. `tests/2-behaviour/03-view-switching.spec.js` holds the five things that were wrong,
   and one more: that retyping a table column leaves this view alone.
+
+- [x] **A `false` in a date column drew nothing, and `true` drew its word.** Two falsy bugs in one
+  path, and neither of them was the missing boolean type they looked like. **`new Date()` coerces
+  what it is handed**: `new Date(false)` is the epoch and `new Date(true)` a millisecond after it,
+  both valid Dates, so `typeMismatch()`'s `isNaN(new Date(value))` called a boolean a *readable*
+  date. The cell was therefore never sent down the raw-text path a mismatch takes, and
+  `renderDate`'s `if (!value)` blanked the false one. `true` was truthy, fell through, and drew
+  itself — unmarked, in a column it does not belong to.
+  **`readsAsDate()` is the fix, beside `readsAsNumber()`**, whose docblock had already written the
+  argument down for the other type ("a boolean is neither: `Number(true)` is 1"). There was simply
+  no date half. It takes a `Date` object, because `lastModified` is one, and otherwise a non-empty
+  string — which is every date a *note* can carry, since `readValue` keeps a number only when
+  `String(n)` is the text again and `2026-03-01` is not. So `date: "2026"` is a date and
+  `date: 2026` is not, the same asymmetry `readsAsNumber` has in reverse.
+  **It is exported, and sorting asks it too**, which was the third symptom: `getTimestamp` trusted
+  `new Date()` as well, so `false`, `0` and `2026` all sorted *ahead* of every real date instead of
+  to the end with `due: quite soon`. One predicate, so a value the cell marks "not a date" can
+  never then be ordered as one.
+  **And `renderDate` got the strict test the rest of the file already uses.** `!value` is the trap
+  the two `??` comments in `render-cell-value.js` and `render-value.js` exist to warn about, and
+  `45-column-types.spec.js` opens with a test named for the last time it was found. With
+  `readsAsDate` in place a boolean no longer reaches that line, but the question was being asked
+  wrongly and the next reader would have copied it. Three tests, all checked against the old code
+  first: the boolean, the bare number, and the sort — that last one a plain comparator call with no
+  browser.
+
+- [x] **`tags: false` took the list and cards views down.** The same class of bug, found on the way.
+  The tags block merges front matter tags into the TagMap and then **deletes the key**, and that
+  delete is the only thing stopping `...(yamlData)` putting a plain value over the top of the Map.
+  Both sat behind `if (yamlData.tags)`, so a falsy value skipped the delete along with the merge and
+  `file.tags` came out a boolean. `render-table-rows.js` happened to be guarded
+  (`file.tags instanceof Map ? … : ""`); `render-file-list-list.js` and `render-file-list-grid.js`
+  call `file.tags.keys()` straight out and threw, losing two whole views over one word in one note.
+  **`'tags' in yamlData` now, so the delete always runs** — which is what the comment above it
+  already claimed. `null` is skipped inside the loop, because null is missing everywhere else in the
+  app; `false` becomes the tag `false`, the way `123` would become `123`, which keeps the rule to
+  one sentence rather than a list of shapes that do and do not count. A bare `tags:` was never able
+  to break it: the parser emits no key at all for one. Level 1, in `44-yaml-parser.spec.js`, with
+  its own mock folder rather than three more files in the shared one — and checked against the old
+  code, where it fails with the TypeError itself.

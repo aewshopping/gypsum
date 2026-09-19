@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFilesYamlShapes, loadFolder, appModule } = require('../helpers');
+const { setupMockFilesYamlShapes, setupMockFilesFalsyTags, loadFolder, appModule } = require('../helpers');
 
 /**
  * Parses a front matter block and returns the result, the recorded errors and, when asked, the
@@ -370,4 +370,42 @@ test('an item is not coerced to a number or a boolean on the way out', async () 
   // coerceValue would have: the editor deals in text, and what a value means is the parser's
   // business when the file is read back.
   expect(await split('12, true, null')).toEqual(['12', 'true', 'null']);
+});
+
+// The tags key is merged into the TagMap and then deleted, and the delete is what stops the
+// `...(yamlData)` spread putting front matter over the top of that Map. Both used to sit behind
+// `if (yamlData.tags)`, so a note saying `tags: false` skipped the delete along with the merge and
+// `file.tags` came out a boolean. The table happened to be guarded; render-file-list-list.js and
+// render-file-list-grid.js call file.tags.keys() straight out and threw, taking two whole views
+// down over one word in one note.
+test('a tags key holding false or null still leaves the TagMap in place', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+
+  await setupMockFilesFalsyTags(page);
+  await page.goto('/');
+  await loadFolder(page);
+
+  const kinds = await page.evaluate(() =>
+    window.appState.myFiles
+      .map(file => [file.filename, file.tags instanceof Map, [...file.tags.keys()].join(',')])
+      .sort((a, b) => a[0].localeCompare(b[0]))
+  );
+
+  expect(kinds).toEqual([
+    // `false` is a value, so it becomes the tag it spells, the way `123` would.
+    ['bare-tags.md', true, 'real'],
+    ['false-tags.md', true, 'false'],
+    // null is missing everywhere else in the app, so it is not a tag either.
+    ['null-tags.md', true, ''],
+  ]);
+
+  // The two views that read the Map without checking it is one. Both drew nothing and threw.
+  await page.selectOption('#view-select', 'list');
+  await expect(page.locator('.list-view > li')).toHaveCount(3);
+
+  await page.selectOption('#view-select', 'cards');
+  await expect(page.locator('.note-grid')).toHaveCount(3);
+
+  expect(errors).toEqual([]);
 });
