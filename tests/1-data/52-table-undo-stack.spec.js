@@ -98,6 +98,16 @@ async function retype(page, cell, text) {
   await page.keyboard.press('Enter');
 }
 
+/** The same, for emptying a cell — typing '' types nothing, so the selection has to be deleted. */
+async function clearCell(page, cell) {
+  await cell.click();
+  await cell.click();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.press('Delete');
+  await page.keyboard.press('Enter');
+}
+
 const undoBtn = (page) => page.locator('#table-undo-btn');
 const redoBtn = (page) => page.locator('#table-redo-btn');
 const report = (page) => page.locator('#output-report .output-report-undo');
@@ -283,8 +293,9 @@ test('a refused cell is marked differently from an undone one', async ({ page })
 
 // ---------------------------------------------------------------- a key the edit created
 
-test('undoing a created key empties it rather than removing it', async ({ page }) => {
+test('undoing a created key removes it, and redoing puts it back', async ({ page }) => {
   await openTable(page);
+  const original = await fileText(page, 'beta.md');
 
   // the column exists because alpha.md carries the key; beta.md does not, so typing in its cell
   // is the case where the write appends a key the note has never had
@@ -293,7 +304,28 @@ test('undoing a created key empties it rather than removing it', async ({ page }
 
   await undoBtn(page).click();
 
-  // the key stays, emptied — v1 removes no keys, so the column does not vanish under the user
-  await expect.poll(() => fileText(page, 'beta.md')).toContain('extra:');
-  expect(await fileText(page, 'beta.md')).not.toContain('made up');
+  // The record's `before` is '', which is what the writer reads as "take the key out" — so undo
+  // leaves the note exactly as it found it rather than with a key holding nothing. The column does
+  // not vanish with it: it belongs to the table, not to this note.
+  await expect.poll(() => fileText(page, 'beta.md')).toBe(original);
+  await expect(page.locator('.note-table-cell-header[data-property="extra"]')).toHaveCount(1);
+
+  await redoBtn(page).click();
+  await expect.poll(() => fileText(page, 'beta.md')).toContain('extra: made up');
+});
+
+test('undoing a cleared cell puts the key back, and redoing takes it away again', async ({ page }) => {
+  await openTable(page);
+
+  await clearCell(page, cellFor(page, 'Alpha', 'status'));
+  await expect.poll(() => fileText(page, 'alpha.md')).not.toContain('status:');
+
+  // Re-appended rather than put back on its old line — an undo restores the value, not the layout
+  // of the block.
+  await undoBtn(page).click();
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: draft');
+  await expect(cellFor(page, 'Alpha', 'status')).toHaveText('draft');
+
+  await redoBtn(page).click();
+  await expect.poll(() => fileText(page, 'alpha.md')).not.toContain('status:');
 });

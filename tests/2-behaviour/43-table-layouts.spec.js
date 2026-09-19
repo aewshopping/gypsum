@@ -372,6 +372,79 @@ test('a dead column keeps its place, and the picker locks it as the layout has i
   await expect(pickerRow(page, 'tags').locator('input.toggle')).toBeEnabled();
 });
 
+const headerFor = (page, prop) => page.locator(`.note-table-cell-header[data-property="${prop}"]`);
+const menuDelete = page => page.locator('#column-menu [data-action="column-delete-menu"]');
+
+/** Selects a header and clicks it again, which is what opens its options. */
+async function openColumnMenu(page, prop) {
+  await headerFor(page, prop).click();
+  await headerFor(page, prop).click();
+  await expect(page.locator('#column-menu')).toBeVisible();
+}
+
+test('an empty column says so in its heading, and a column with values does not', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+
+  // Drawn at a lighter weight rather than left out: the layout asked for the column, and a column
+  // that vanished when nothing filled it is exactly what this replaces.
+  await expect(headerFor(page, 'ghost')).toHaveAttribute('data-empty', '');
+  await expect(headerFor(page, 'title')).not.toHaveAttribute('data-empty', '');
+
+  const faded = await headerFor(page, 'ghost').locator('.header-label')
+    .evaluate(el => Number(getComputedStyle(el).opacity));
+  const full = await headerFor(page, 'title').locator('.header-label')
+    .evaluate(el => Number(getComputedStyle(el).opacity));
+  expect(faded).toBeLessThan(full);
+});
+
+test('the column menu offers delete only on an empty column', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+
+  await openColumnMenu(page, 'title');
+  await expect(menuDelete(page)).toBeHidden();
+  await page.keyboard.press('Escape');
+
+  await openColumnMenu(page, 'ghost');
+  await expect(menuDelete(page)).toBeVisible();
+});
+
+test('the app defaults offer no delete, because there is no layout to delete from', async ({ page }) => {
+  // Nothing is empty under the defaults either — every column there exists because a file has the
+  // key — so this is about the second half of the rule, and hiding tags first is what makes a
+  // column the defaults would not otherwise show.
+  await openTable(page);
+
+  await openColumnMenu(page, 'title');
+  await expect(menuDelete(page)).toBeHidden();
+  // hide column is still there, which is the answer under the defaults
+  await expect(page.locator('#column-menu [data-action="column-hide"]')).toBeVisible();
+});
+
+test('delete column in the menu removes it from the saved layout, the same as the bin', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+  await openColumnMenu(page, 'ghost');
+
+  await menuDelete(page).click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-cancel"]');
+  await expect(headerFor(page, 'ghost')).toHaveCount(1);
+
+  await openColumnMenu(page, 'ghost');
+  await menuDelete(page).click();
+  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.click('[data-action="warning-proceed"]');
+
+  // The same write the bin does: straight to disk, one column, the rest left where they were.
+  // (The tail is every other property the folder has, appended hidden — the defaults' own doing.)
+  await expect(headerFor(page, 'ghost')).toHaveCount(0);
+  await expect.poll(async () => (await layoutsFile(page)).layouts.review.columns.map(c => c.name))
+    .not.toContain('ghost');
+
+  const columns = (await layoutsFile(page)).layouts.review.columns;
+  expect(columns.slice(0, 3).map(c => c.name)).toEqual(['internalId', 'phantom', 'title']);
+  expect(columns.map(c => c.order)).toEqual(columns.map((_, i) => i));
+});
+
 test('the bin removes a dead column from the saved layout, without closing the picker', async ({ page }) => {
   await openTableWithLayout(page, deadLayout);
   await openPicker(page);

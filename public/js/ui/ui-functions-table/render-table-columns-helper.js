@@ -1,4 +1,4 @@
-import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, defaultColumnEntry } from '../../services/store.js';
+import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, CORE_FILE_PROPERTIES, defaultColumnEntry } from '../../services/store.js';
 import { propertyType, propertySearchType } from '../../services/property-type.js';
 
 /**
@@ -22,9 +22,17 @@ import { propertyType, propertySearchType } from '../../services/property-type.j
  * layout was saved should not appear in it uninvited. Either way it is kept, and so keeps its
  * place in the order for whenever it is switched on.
  *
- * `dead` marks a column the layout remembers but the folder no longer has. It is still drawn if
- * the layout says so, and still written back to the file; the column picker is where it can be
- * removed from the layout for good.
+ * `dead` marks a column no loaded file has a key for. It is still drawn if the layout says so, and
+ * still written back to the file; its heading is faded to say it holds nothing, and it can be removed
+ * from the layout for good — from the column picker's bin, or from "delete column" in its own header
+ * menu.
+ *
+ * **It is asked of the files, not of myFilesProperties**, which only ever grows. Nothing unregisters
+ * a property when its last value goes, so clearing the last cell of a column left it claiming to have
+ * values until the folder was reloaded — and clearing a cell now takes the key out of the note, which
+ * is exactly when the answer has to change. CORE_FILE_PROPERTIES is excluded rather than looked for:
+ * those are written into every file object, so they are never absent, and in an empty folder they
+ * would be the only thing a file-based answer got wrong.
  *
  * The layout's own values win over the schema's. A column is seeded with FILE_PROPERTIES' label
  * and width the first time it is seen, and read from the Map from then on — so a saved layout
@@ -65,6 +73,9 @@ export function resolveColumns() {
             columnLayout.set(prop, underSavedLayout ? { ...entry, visible: false } : entry);
         });
 
+    const carried = propertiesInFiles(
+        [...columnLayout.keys()].filter(name => !CORE_FILE_PROPERTIES.includes(name)));
+
     // shown_always is enforced here rather than trusted from the layout, so the one function that
     // decides the column set is also the one place the rule cannot be got round.
     return [...columnLayout].map(([name, entry]) => {
@@ -77,7 +88,34 @@ export function resolveColumns() {
             search_type: propertySearchType(name),
             visible: alwaysOn || entry.visible,
             alwaysOn,
-            dead: !appState.myFilesProperties.has(name),
+            dead: !CORE_FILE_PROPERTIES.includes(name) && !carried.has(name),
         };
     });
+}
+
+/**
+ * Which of these property names any loaded file actually carries a key for.
+ *
+ * Stops as soon as every name is accounted for, so a table of ordinary columns costs a file or two
+ * and only a genuinely empty column pays for a pass over the folder. `Object.hasOwn` rather than a
+ * truthiness test, because a key holding `''`, `0` or `false` is a key the file carries — the column
+ * is empty when nobody has the key at all, not when everybody left it blank.
+ *
+ * @param {string[]} names - The property names to ask about.
+ * @returns {Set<string>} Those of them some file has.
+ */
+function propertiesInFiles(names) {
+    const pending = new Set(names);
+    const carried = new Set();
+
+    for (const file of appState.myFiles) {
+        if (pending.size === 0) break;
+        for (const name of pending) {
+            if (Object.hasOwn(file, name)) {
+                carried.add(name);
+                pending.delete(name);
+            }
+        }
+    }
+    return carried;
 }

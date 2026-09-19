@@ -348,14 +348,21 @@ So each entry carries the form it was written in and, for a list, one span per i
 
 ```js
 {
+  lineStart,                 // the first character of the key's own line
   valueStart, valueEnd,      // the whole value, for replacing or clearing it outright
-  form: 'scalar' | 'block' | 'flow',
+  form: 'scalar' | 'block' | 'flow' | 'map',
   items: [ { lineStart, valueStart, valueEnd } ]   // lists only
 }
 ```
 
 An item's `valueStart` points **past the dash and the space**, so an item's span is the value
 alone. Editing one item is then a splice into that span and nothing else moves.
+
+`lineStart` was added later, for the other half of the same job: removing a key rather than its
+value. It names the near end of the key the way `valueEnd` names the far end of its value, so
+`slice(lineStart, valueStart)` is `'people:'` — indentation included, since a delete has to take that
+too — while `valueEnd` walks down the file with a multi-line value. The pair is therefore every byte
+the key occupies. See `editing/save-cell-edit.js`, which takes it when `toYamlText()` hands back `''`.
 
 ### 5.2 What this buys, on a real block
 

@@ -21,6 +21,7 @@ async function parse(doc, withSpans = false) {
     for (const [key, span] of spans) {
       resolved[key] = {
         form: span.form,
+        key: doc.slice(span.lineStart, span.valueStart),
         value: doc.slice(span.valueStart, span.valueEnd),
         items: span.items.map(item => ({
           value: doc.slice(item.valueStart, item.valueEnd),
@@ -213,6 +214,35 @@ test('spans point at each value, and at each item of a list', async () => {
   expect(spans.flush.items.map(item => item.prefix)).toEqual(['- ', '- ']);
   expect(spans.flow.form).toBe('flow');
   expect(spans.flow.items.map(item => item.value)).toEqual(['x', '"y z"']);
+});
+
+test('a span reaches back to its key, whatever the value does afterwards', async () => {
+  // lineStart with valueEnd is the whole key — the bytes a delete takes out. The key is always on
+  // the line lineStart begins and valueStart is always on that same line, so a multi-line value
+  // moves valueEnd down the file and leaves the near end exactly where it was.
+  const doc = '---\ntitle: Hello\ntags:\n  - web\n  - prod\nflow: [x, y]\n  spaced : 1\n---\n';
+  const { spans } = await parse(doc, true);
+
+  expect(spans.title.key).toBe('title:');
+  expect(spans.tags.key).toBe('tags:');
+  expect(spans.flow.key).toBe('flow:');
+  // indentation and a space before the colon are part of the key's line, so a delete takes them too
+  expect(spans.spaced.key).toBe('  spaced :');
+
+  // and the far end is the last line the value took, so key + value is every line of it
+  expect(spans.tags.key + spans.tags.value).toBe('tags:\n  - web\n  - prod');
+});
+
+test('a blank or comment line after a list is outside the key it follows', async () => {
+  // Which is what lets a comment survive its neighbour's key being removed: valueEnd is only ever
+  // pushed forward by a line the parser actually reads.
+  const doc = '---\ntags:\n  - web\n\n# a note about tail\ntail: yes\n---\n';
+  const { parseYaml } = await appModule('services/file-parsing/yaml-parse.js');
+  const spans = new Map();
+  parseYaml(doc, [], spans);
+
+  const tags = spans.get('tags');
+  expect(doc.slice(tags.lineStart, tags.valueEnd)).toBe('tags:\n  - web');
 });
 
 test('editing one list item leaves every other byte alone, comments included', async () => {

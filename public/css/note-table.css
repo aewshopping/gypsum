@@ -289,6 +289,15 @@
     text-overflow: ellipsis;
 }
 
+/* Says the column holds nothing: no file in the folder has a key for it. Faded rather than removed,
+   because the layout asked for the column — a column that vanished when its last value was deleted
+   is the thing this replaces. 0.45 is the weight the type glyph beside it and the modal rows already
+   rest at. The label alone: the glyph is at that weight already, and the cell's own borders still
+   have to line the column up with its neighbours. */
+.note-table-cell-header[data-empty] .header-label {
+    opacity: 0.45;
+}
+
 /* No longer a control: it marks the column driving the sort. Hidden everywhere else,
    including on hover, so the only chevron on screen is the one that means something.
 

@@ -16,7 +16,7 @@ import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
-import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType } from './ui-functions-click/column-menu.js';
+import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
@@ -188,6 +188,7 @@ const clickActionHandlers = {
     'column-delete': handleColumnDelete,
     'column-type-open': handleColumnTypeMenuOpen,
     'column-hide': handleColumnHide,
+    'column-delete-menu': handleColumnMenuDelete,
     'column-change-type': handleColumnChangeType,
     'close-column-type': handleCloseColumnType,
     'column-type-set': handleColumnTypeSet,

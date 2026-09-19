@@ -830,6 +830,10 @@
     <button type="button" class="app-menu-item" data-action="column-auto-size" data-tip="fit the column to its widest content">auto-size column</button>
     <button type="button" class="app-menu-item" data-action="column-change-type" data-tip="how this column's values are read">change type</button>
     <button type="button" class="app-menu-item" data-action="column-hide" data-tip="hide this column">hide column</button>
+    <!-- Hidden unless the column is empty and a saved layout is in force — see handleColumnMenuOpen.
+         The only item here that comes and goes rather than greying out: an inert bin on every column
+         reads as something being withheld, where a column with values simply has nothing to delete. -->
+    <button type="button" class="app-menu-item" data-action="column-delete-menu" data-tip="remove this empty column from the layout" hidden>delete column</button>
   </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the

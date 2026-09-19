@@ -174,6 +174,32 @@ point. These rules follow, and they are the ones to hold:
   one, because they refuse different things: an info column must stay sortable and searchable, since
   sorting by size or by last modified is the point of having it. `internalId` is in both.
 
+### An empty column
+
+**A column belongs to the layout, not to the files.** A column no loaded file has a key for is drawn
+anyway — faded, so that it reads as empty rather than as a column whose rows happen to be blank. That
+is `dead` on a resolved column, `data-empty` on the header cell, and one rule in `note-table.css`.
+It is what makes deleting a key from a cell safe: the value goes and the column stays, so nothing
+disappears out from under the person who cleared it.
+
+- **`dead` is asked of `appState.myFiles`, never of `myFilesProperties`.** That Map only ever grows —
+  nothing unregisters a property when its last value goes — so it would go on claiming the column had
+  values until the folder was reloaded, which is exactly the moment the answer has to change.
+  `CORE_FILE_PROPERTIES` is excluded rather than looked for: those are written into every file object,
+  so they are never absent, and in an empty folder they are the one thing a file-based answer would
+  get wrong. So **only a front matter column can read as empty.**
+- **"delete column" is offered on an empty column and nowhere else**, from the header's own menu and
+  from the bin in the column picker. Both go through `deleteColumnFromLayout()` in
+  `ui-functions-click/column-delete.js`, so removing a column means the same thing in both places:
+  it is dropped from the active layout and the layout is written to disk there and then, since the
+  point of it is to be rid of the column rather than to queue one more unsaved change.
+- **It touches the layout and never a file.** No note can lose anything by it, which is why neither
+  caller re-checks emptiness inside the shared function.
+- **It is hidden, not greyed out**, unlike every other item in the column menu, and only under a
+  saved layout. Under the app's defaults there is nothing to delete a column *from* —
+  `resolveColumns()` would put it straight back from the registered property — and "hide column",
+  in the same menu, is the answer there.
+
 ### What a table cell may contain
 
 Two rules, and the second follows from the first. See `plans/completed/table-cell-editors.md`.
@@ -310,7 +336,9 @@ Closing an edited cell writes it into the note's front matter. See
   span and nothing else — so comments, key order, blank lines and anything the parser skipped
   survive. A list where one item's text changed splices that item alone; a list rewritten whole
   re-generates every item from the cell's text, which is where the comment limitation below comes
-  from. The spans live inside the parser because a second answer to
+  from. A span reaches back to its key as well as forward over its value — `lineStart` with
+  `valueEnd` is every byte the key occupies, which is what a *deleted* key needs. The spans live
+  inside the parser because a second answer to
   "where does this value end" would agree on the day it was written and drift after, and that drift
   writes into the wrong bytes of a note.
 - **Quote defensively, do not validate strictly.** Almost anything may be typed; `needsQuoting()` in
@@ -357,8 +385,14 @@ Closing an edited cell writes it into the note's front matter. See
   straight below the closing separator does not see a heading, and gypsum — which matches a title
   anywhere in the file — would go on showing one, which is the kind of disagreement nobody notices
   until they open the note somewhere else. One line, not two, if the note already starts with one.
-  Clearing a cell writes an empty value rather than deleting the key — a deleted key can unregister
-  the column, and a column vanishing as a side effect of clearing one cell is startling.
+- **Clearing a cell takes the key out, line and all** — the mirror of appending one, and the reason
+  the span reaches back to the key. `toYamlText()` says so by returning `''`, which is the one answer
+  it can give that no value can mean, since every other carries the separating space. A block list
+  goes key line, item lines and all, because `valueEnd` has walked down the file with it; a comment
+  after the list survives, one between two items does not, which is the cost list edits already
+  carry. This was the other way round until columns could outlive their values: a deleted key
+  unregisters the property, and a column vanishing as a side effect of clearing one cell is
+  startling. It no longer vanishes — see *An empty column* below.
 
 ### Adding a new file property
 

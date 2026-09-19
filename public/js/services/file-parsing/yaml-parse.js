@@ -175,6 +175,14 @@ const pruneEmptyMaps = (target) => {
  *   describing where its value sits in `yamlString`, for editing a value in place. See
  *   §5 of plans/completed/yaml-parser.md for the shape and what each part is for. Spans describe the
  *   text, not the result: a key pruned from the returned object still has its span.
+ *
+ *   **`lineStart` with `valueEnd` is the whole key, not just its name.** The key always sits on the
+ *   line `lineStart` begins, and `valueStart` is always on that same line, so
+ *   `slice(lineStart, valueStart)` is `'people:'` however many lines the value goes on to take —
+ *   while `valueEnd` walks down the file with it. The pair is therefore the bytes to remove when a
+ *   key is deleted: one line for a scalar or a flow list, the key line plus every item line for a
+ *   block list. A blank or comment line never extends `valueEnd`, so a comment after a list's last
+ *   item is outside the key and survives.
  * @param {{start: number, end: number} | null} [indices] - Pre-computed block position, for
  *   callers that already have it. Defaults to finding it; pass null to say there is none.
  * @returns {object} The parsed JavaScript object.
@@ -307,6 +315,7 @@ export const parseYaml = (
         let span = null;
         if (spans && isTopLevel) {
             span = {
+                lineStart,
                 valueStart: lineStart + rawColon + 1,
                 valueEnd: lineEnd,
                 form: "scalar",

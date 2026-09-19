@@ -190,15 +190,46 @@ test('a key that is quoted in the note stays quoted', async ({ page }) => {
   await expect(cellFor(page, 'Alpha', 'ref')).toHaveText('0043');
 });
 
-test('clearing a cell writes an empty value and keeps the key', async ({ page }) => {
+test('clearing a cell removes the key and the line it was on', async ({ page }) => {
   await openTable(page);
   await retype(page, cellFor(page, 'Alpha', 'status'), '');
 
-  await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: ""');
+  // The key line goes whole: the block now opens on the comment that followed it, with no blank
+  // line left where the key was, and the key after it exactly where it was.
+  await expect.poll(() => fileText(page, 'alpha.md'))
+    .toContain('---\n  # a comment the parser skips\nnote: plain\n');
+  expect(await fileText(page, 'alpha.md')).not.toContain('status:');
 
-  // the column is still there, which is what a deleted key would have risked
+  // The column is still there. It is the layout's, not the file's — which is what makes removing
+  // the key safe, and is the whole of the other half of this change.
   await expect(cellFor(page, 'Alpha', 'status')).toHaveText('');
   await expect(page.locator('.note-table-cell-header[data-property="status"]')).toHaveCount(1);
+});
+
+test('the last note to carry a key losing it leaves the column, marked empty', async ({ page }) => {
+  // The interlock between the two halves of this change, and the one a later change is most likely
+  // to break quietly: removing the key is only safe because the column outlives it. `note` is
+  // alpha.md's alone, so clearing that one cell is the last value the column has.
+  await openTable(page);
+  await expect(page.locator('.note-table-cell-header[data-property="note"]')).not.toHaveAttribute('data-empty', '');
+
+  await retype(page, cellFor(page, 'Alpha', 'note'), '');
+  await expect.poll(() => fileText(page, 'alpha.md')).not.toContain('note:');
+
+  // Still a column, and now saying it holds nothing — without waiting for the folder to be reloaded.
+  const header = page.locator('.note-table-cell-header[data-property="note"]');
+  await expect(header).toHaveCount(1);
+  await expect(header).toHaveAttribute('data-empty', '');
+});
+
+test('a note with no block at all is untouched by clearing a cell it has no key for', async ({ page }) => {
+  await openTable(page);
+  const original = await fileText(page, 'gamma.md');
+
+  // Nothing to remove, so nothing is written — not a block added to hold an absence.
+  await retype(page, cellFor(page, 'Gamma', 'status'), '');
+  await page.waitForTimeout(200);
+  expect(await fileText(page, 'gamma.md')).toBe(original);
 });
 
 // ---------------------------------------------------------------- what is not written
@@ -680,15 +711,59 @@ test('an item holding a comma is quoted inside a flow list', async ({ page }) =>
   await expect(cellFor(page, 'Alpha', 'langs')).toHaveText('en, "Dutch, spoken"');
 });
 
-test('emptying a list writes an empty list rather than a bare key', async ({ page }) => {
+test('emptying a list removes the key and every one of its item lines', async ({ page }) => {
   await openTable(page);
   await retype(page, cellFor(page, 'Alpha', 'people'), '');
 
-  await expect.poll(() => fileText(page, 'alpha.md')).toContain('people: []');
+  // people: is flush with its key and runs to '- "Doe, Jane"'. All of it goes, and the key before
+  // it and the key after it close up with nothing between them.
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('ref: "0042"\nlangs: [en, fr]\n');
+  expect(await fileText(page, 'alpha.md')).not.toContain('John Smith');
 
-  // the column survives, which a key holding nothing would have risked
+  // the column survives the last note that carried the key losing it
   await expect(cellFor(page, 'Alpha', 'people')).toHaveText('');
   await expect(page.locator('.note-table-cell-header[data-property="people"]')).toHaveCount(1);
+});
+
+test('an indented block list goes the same way, and the block stays readable', async ({ page }) => {
+  await openTable(page);
+  await setType(page, 'scores', 'array');
+  await retype(page, cellFor(page, 'Alpha', 'scores'), '');
+
+  // scores is the last key in the block, so its removal has to stop at the closing separator.
+  await expect.poll(() => fileText(page, 'alpha.md')).toContain('langs: [en, fr]\n---\n# Alpha');
+  expect(await fileText(page, 'alpha.md')).not.toContain('scores');
+});
+
+test('a comment after a list survives its key being removed, one between two items does not', async ({ page }) => {
+  // The limitation CLAUDE.md already states for list edits, pinned here as a known cost: a comment
+  // between two items is inside the bytes the key occupies. One after the last item is not, and a
+  // blank or comment line never extends a key's span — which is what keeps the rest of the block safe.
+  await openTable(page, {
+    'delta.md': [
+      '---', 'keep: yes', 'people:', '  - Ann',
+      '  # between the items', '  - Bo',
+      '# after the list', 'tail: yes', '---', '# Delta', '',
+    ].join('\n'),
+  });
+
+  await retype(page, cellFor(page, 'Delta', 'people'), '');
+
+  await expect.poll(() => fileText(page, 'delta.md'))
+    .toBe('---\nkeep: yes\n# after the list\ntail: yes\n---\n# Delta\n');
+});
+
+test('a CRLF note keeps its line endings when a key is removed', async ({ page }) => {
+  // A span's valueEnd stops short of the '\r' on purpose, so the delete has to reach past it to the
+  // newline — or the note would be left with a stray carriage return on a line of its own.
+  await openTable(page, {
+    'epsilon.md': '---\r\nkeep: yes\r\nstatus: draft\r\ntail: yes\r\n---\r\n# Epsilon\r\n',
+  });
+
+  await retype(page, cellFor(page, 'Epsilon', 'status'), '');
+
+  await expect.poll(() => fileText(page, 'epsilon.md'))
+    .toBe('---\r\nkeep: yes\r\ntail: yes\r\n---\r\n# Epsilon\r\n');
 });
 
 test('the first item into a note with no such key is written in block form', async ({ page }) => {

@@ -68,6 +68,23 @@ export async function applyCellEdits(edits, options) {
 const SKIP = Symbol('no item changed');
 
 /**
+ * Just past the newline that ends the line `from` sits on, so removing a key takes the whole line
+ * with it rather than leaving a blank one behind.
+ *
+ * Needed because a span's `valueEnd` deliberately stops at the last non-whitespace character — that
+ * is what keeps a splice from swallowing a CRLF file's '\r'. Scanning forward to the newline picks
+ * the '\r' back up for a delete, where it is wanted.
+ *
+ * @param {string} text - The whole file.
+ * @param {number} from - An offset on the line to measure.
+ * @returns {number}
+ */
+function lineEndAfter(text, from) {
+    const newline = text.indexOf('\n', from);
+    return newline === -1 ? text.length : newline + 1;
+}
+
+/**
  * Where one item of a list has to be rewritten, when that is all that has happened to it.
  *
  * Splicing one item leaves every other byte alone, which is the only way a comment sitting between
@@ -121,6 +138,12 @@ function changedItem(text, span, items) {
  * A key the note does not have is appended to the end of its block, and a note with no block at all
  * is given one. Not an edge case: a column exists because *some* file carries that key, so the empty
  * cells in every other row are exactly the ones someone wants to fill in.
+ *
+ * **And the mirror of it: a key cleared to nothing is taken out, line and all.** `raw` of `''` is
+ * what says so — see toYamlText, which can say it and nothing else. The column does not go with the
+ * key: it stays because the layout asked for it, faded to say it now holds nothing, and the header
+ * menu is where it is finally removed. That is what makes deleting a key safe, and why the rule this
+ * replaced ("clearing writes an empty value and keeps the key") could not be dropped on its own.
  *
  * **Every file is written and only then is the list rendered, once.** A batch reaching the refresh
  * one file at a time would be a sort, a filter pass and a view transition per file, interrupting
@@ -194,9 +217,6 @@ export async function applyRawEdits(rawEdits, { resort = true } = {}) {
 
             if (edit.expect !== undefined && edit.expect !== before) return;
 
-            const item = span && edit.items ? changedItem(text, span, edit.items) : null;
-            if (item === SKIP) return;
-
             // What the note already looks like at this key, so the write keeps its style rather
             // than choosing one: the form of the value, the indentation of its list items, and
             // whether it is quoted. A key the note does not have yet has none of it.
@@ -209,14 +229,31 @@ export async function applyRawEdits(rawEdits, { resort = true } = {}) {
             } : {};
             const raw = typeof edit.raw === 'function' ? edit.raw(shape) : edit.raw;
 
-            if (span && !item && raw === before) return;
+            // No text after the colon means no value, and no value means no key — toYamlText says so
+            // by returning '', which every other answer it can give rules out, since they all carry
+            // the separating space. Asked before the item path, because an emptied list is the whole
+            // key going rather than its items changing one by one.
+            const removing = raw === '';
+            if (removing && !span) return;
 
-            // Three shapes of splice: a key that is not there yet arrives as a whole line, one item
-            // of a list replaces that item alone, and everything else replaces the key's value.
+            const item = !removing && span && edit.items ? changedItem(text, span, edit.items) : null;
+            if (item === SKIP) return;
+
+            if (!removing && span && !item && raw === before) return;
+
+            // Four shapes of splice: a key that is not there yet arrives as a whole line, one item
+            // of a list replaces that item alone, a cleared key takes its own line out, and
+            // everything else replaces the key's value.
+            //
+            // The delete runs from the key's own line to past the newline ending its value, and
+            // `valueEnd` has walked down the file with every line the value took — so a block list
+            // goes key line, item lines and all, and nothing around it moves.
             const target = item
                 ? { start: item.start, end: item.end, written: item.written }
                 : span
-                    ? { start: span.valueStart, end: span.valueEnd, written: raw }
+                    ? removing
+                        ? { start: span.lineStart, end: lineEndAfter(text, span.valueEnd), written: '' }
+                        : { start: span.valueStart, end: span.valueEnd, written: raw }
                     : { start: blockEnd, end: blockEnd, written: `${edit.property}:${raw}\n` };
 
             splices.push({

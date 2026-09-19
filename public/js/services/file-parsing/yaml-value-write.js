@@ -125,6 +125,13 @@ export function quoteYaml(text) {
  * file chose are passed in rather than decided here. The one place a style is chosen is a key that
  * has no list to copy one from.
  *
+ * **An empty value is no text after the colon, and that is how the key is told to go.** Every other
+ * answer here carries the separating space, so an empty string is a thing this function can say and
+ * nothing else can mean: save-cell-edit.js reads it as "take the key and its line out", which is the
+ * mirror of appending a key the note did not have. It is why nothing here has to know about deleting,
+ * and why an undo — which sends a record's `before` back as plain text — removes a key it created
+ * without a second path through the writer.
+ *
  * @param {string} text - What was captured from the cell.
  * @param {string} type - The column's type, one of VALUE_TYPES' values.
  * @param {object} [shape] - What the file already looks like at this key, or nothing for a key it
@@ -134,7 +141,8 @@ export function quoteYaml(text) {
  * @param {string} [shape.itemPrefix='  - '] - What it puts before an item of this list, the dash
  *   included — `'  - '`, `'- '`, a tab. Two spaces where there is nothing to copy.
  * @param {boolean} [shape.quoted] - Whether its value is quoted today.
- * @returns {string}
+ * @returns {string} The text after the colon, the separating space included — or '' for an empty
+ *   value, meaning the key itself should go.
  */
 export function toYamlText(text, type, shape = {}) {
     if (type === VALUE_TYPES.ARRAY.value) {
@@ -142,6 +150,11 @@ export function toYamlText(text, type, shape = {}) {
     }
 
     const trimmed = text.trim();
+
+    // Before the quoting rule, and before the file's own style: a value that was there and is not
+    // any more is not a value to write in a style. Ahead of shape.quoted in particular, or clearing
+    // a cell the note had quoted would write '""' back and keep the key alive.
+    if (trimmed === '') return '';
 
     if (shape.quoted) return ` ${quoteYaml(trimmed)}`;
 
@@ -170,9 +183,12 @@ export function toYamlItem(item, inFlow) {
 /**
  * A list as the text after its key's colon.
  *
- * **A list with nothing left in it is written `[]`**, whatever form it had. A block list with no
- * items has no lines to be written on, and a bare `people:` opens a nested map that the parser then
- * prunes — so the key would survive in the file and the column would vanish from the table.
+ * **A list with nothing left in it writes nothing at all**, whatever form it had — which is this
+ * file's way of saying the key goes with it. It used to write `[]`, because a block list with no
+ * items has no lines to be written on and a bare `people:` opens a nested map the parser then prunes,
+ * so an emptied list had to leave *something* or the key would outlive the column. Now the key does
+ * not outlive it: save-cell-edit.js takes the key and its line out, and the column stays because the
+ * layout asked for it rather than because a file still mentions it.
  *
  * @param {string[]} items - The items, in order.
  * @param {string} [form] - 'flow' keeps a flow list a flow list; anything else is block form.
@@ -180,7 +196,7 @@ export function toYamlItem(item, inFlow) {
  * @returns {string}
  */
 function listText(items, form, itemPrefix) {
-    if (items.length === 0) return ' []';
+    if (items.length === 0) return '';
     if (form === 'flow') return ` [${items.map(item => toYamlItem(item, true)).join(', ')}]`;
     return items.map(item => `\n${itemPrefix}${toYamlItem(item, false)}`).join('');
 }

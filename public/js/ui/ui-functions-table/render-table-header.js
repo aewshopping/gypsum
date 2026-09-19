@@ -35,6 +35,12 @@ import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
  * The cell carries the type and search type as data attributes for the same reason a picker row
  * does — it is what the type menu reads and writes when it is opened over this column.
  *
+ * data-empty says no file in the folder has a key for this column, which note-table.css draws as a
+ * faded heading: the layout asked for the column, so it stays, and the fade is what stops it reading
+ * like a column whose rows merely happen to be blank. The column menu reads the attribute back off
+ * the cell rather than working it out again, so "delete column" is offered on exactly the columns
+ * that look empty.
+ *
  * @param {Array<object>} current_props - The properties to render as column headers.
  * @returns {string} The HTML string for the table header strip.
  */
@@ -46,7 +52,7 @@ export function renderTableHeader(current_props) {
             const sorted = prop.name === appState.sortState.property
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
-            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}>` +
+            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}${prop.dead ? ' data-empty' : ''}>` +
                      `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
                      typeGlyph(prop, 'header-type-glyph', 'not editable from the table') +

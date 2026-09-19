@@ -24,7 +24,8 @@
 
 import { applySortAndRender } from './sort-object.js';
 import { openColumnTypeDialog } from './column-type-set.js';
-import { TABLE_VIEW_COLUMNS } from '../../services/store.js';
+import { deleteColumnFromLayout } from './column-delete.js';
+import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { isPropertyEditable, setPropertyType, propertyType } from '../../services/property-type.js';
 import { VALUE_TYPES } from '../../constants.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
@@ -163,11 +164,24 @@ export function handleColumnMenuOpen(evt, headerCell) {
     const typeItem = menu.querySelector('[data-action="column-change-type"]');
     if (typeItem) typeItem.disabled = noType;
 
+    // Hidden rather than greyed out, unlike every other item here. A column with values has nothing
+    // to delete, and a bin sitting inert on every column reads as something withheld.
+    //
+    // Both questions are answered elsewhere and only read back here. Whether the column is empty is
+    // the attribute the header drew itself with, so the menu and the heading cannot disagree; and a
+    // layout is what a column is deleted from, so under the app's defaults there is nothing to
+    // delete it from — "hide column", just above, is the answer there.
+    const deleteItem = menu.querySelector('[data-action="column-delete-menu"]');
+    if (deleteItem) {
+        deleteItem.hidden = !headerCell.hasAttribute('data-empty')
+                         || appState.tableLayouts.active === null;
+    }
+
     nameSortItems(menu, property);
 
     // Showing a popover does not move focus on its own. Putting it on the first item is what
     // makes the menu tabbable, and gives Escape something to return focus from.
-    menu.querySelector('.app-menu-item:not(:disabled)')?.focus();
+    menu.querySelector('.app-menu-item:not(:disabled):not([hidden])')?.focus();
 }
 
 /**
@@ -191,6 +205,25 @@ export function handleColumnHide() {
     clearHeaderSelection();
     markLayoutDirty();
     renderFiles();
+}
+
+/**
+ * Removes the menu's column from the saved layout — the same thing the column picker's bin does, and
+ * the same function.
+ *
+ * Offered only on a column nothing fills in, which is why it can be this short: no note is opened
+ * and no value is lost, so the column can come back from the picker the moment some file carries the
+ * key again. The menu is closed first because the header cell it hangs from is about to be rendered
+ * away.
+ * @returns {Promise<void>}
+ */
+export async function handleColumnMenuDelete() {
+    const property = menuElement()?.dataset.property;
+    if (!property) return;
+
+    closeColumnMenu();
+    clearHeaderSelection();
+    await deleteColumnFromLayout(property);
 }
 
 /**
