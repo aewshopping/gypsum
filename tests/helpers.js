@@ -506,6 +506,7 @@ async function setupMockDirectoryForColorExisting(page, colourName = 'coral') {
  *     hub.md              links out to everything
  *     shopping.txt        link target, also reachable as a bare filename
  *     my long note.md     filename with spaces, for the autocomplete trigger
+ *     front-matter-links.md  links declared in YAML values, not in the body
  *     subdir/
  *       nested.md         link target that must be reached path-qualified
  *
@@ -570,6 +571,26 @@ async function setupMockFilesWithLinks(page) {
           '# Both Faults',
           '',
           'A broken link to [[also-missing.md]] here.',
+        ].join('\n')),
+        // Every front matter shape a link can be written in, plus the two that must NOT be
+        // read as one. Appended, never prepended, for the same reason as both-faults.md.
+        makeFile('front-matter-links.md', [
+          '---',
+          '# a comment mentioning [[commented.md]]',
+          'related: "[[shopping.txt]]"',
+          'aliased: "[[ shopping.txt | the groceries ]]"',
+          'others:',
+          '  - "[[gone-from-front-matter.md]]"',
+          '  - [[subdir/nested.md]]',
+          'flow: [ "[[ambig.txt]]" ]',
+          'prose: see [[titled-link.md]] for more',
+          'bare: [[not-detected.md]]',
+          'color: "#ffffff"',
+          '---',
+          '',
+          '# Front Matter Links',
+          '',
+          'No links in the body.',
         ].join('\n')),
         makeDir('subdir', [
           makeFile('nested.md', '# Nested Note\n\nThe nested target. #personal'),

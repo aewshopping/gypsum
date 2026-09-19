@@ -135,12 +135,15 @@ export const FILE_PROPERTIES = new Map([
   ['date', { type: 'date', column_width: 150, display_order: 5 }],
   ['phone', { type: 'array', column_width: 200, display_order: 8 }],
   ['email', { type: 'array', column_width: 200, display_order: 7 }],
-  ['color', { type: 'string', column_width: 150, display_order: 11 }],
+  ['color', { type: 'string', column_width: 150, display_order: 12 }],
   ['people', { type: 'array', column_width: 250, display_order: 9 }],
   ['internalLink', {label: 'links', type: 'array', column_width: 250, display_order: 10 }],
-  ['filepath', { type: 'string', column_width: 300, display_order: 12 }],
-  ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 13 }],
-  ['errorOnLoad', { label: 'load error', type: 'string', column_width: 200, display_order: 14 }],
+  // Next to the links it labels, because the two are read together: index i of one is index i of
+  // the other. See addLink in file-parsing/file-info.js.
+  ['internalLinkText', {label: 'link text', type: 'array', column_width: 250, display_order: 11 }],
+  ['filepath', { type: 'string', column_width: 300, display_order: 13 }],
+  ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 14 }],
+  ['errorOnLoad', { label: 'load error', type: 'string', column_width: 200, display_order: 15 }],
 ]);
 
 /**
@@ -163,7 +166,8 @@ export const FILE_PROPERTIES = new Map([
  * @type {string[]}
  */
 export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',
-  'tags', 'color', 'internalLink', 'lastModified', 'errorOnLoad', 'filepath', 'internalId'];
+  'tags', 'color', 'internalLink', 'internalLinkText', 'lastModified', 'errorOnLoad', 'filepath',
+  'internalId'];
 
 /**
  * The table view's columns.
@@ -230,7 +234,7 @@ export const TABLE_VIEW_COLUMNS = {
   // filename and filepath are deliberately absent: renaming from the table is wanted later, and
   // editing a filepath would move the file, so both may become editable.
   info_columns: ['internalId', 'sizeInBytes', 'lastModified', 'errorOnLoad'],
-  hidden_by_default: ['color', 'filepath', 'internalLink', 'errorOnLoad'],
+  hidden_by_default: ['color', 'filepath', 'internalLink', 'internalLinkText', 'errorOnLoad'],
   current_props: [],
   columnLayout: new Map(),
 };

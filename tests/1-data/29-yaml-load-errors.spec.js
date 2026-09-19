@@ -99,7 +99,11 @@ test('a folder where every file is unreadable loads to empty without crashing', 
 
 /**
  * A folder whose front matter blocks hold text that looks like prose: a '#' inside a value, a
- * '[[link]]' inside a value, and a YAML comment at column 0. None of it is the note's.
+ * '[[link]]' inside a value, and a YAML comment at column 0.
+ *
+ * The block is not scanned as prose, so the '#' and the comment are not the note's tag or title.
+ * The link is the one thing read back out of it — from the parsed *value*, not from the text —
+ * which is why it is here and not with the other two.
  */
 async function setupMockFilesFrontMatterText(page) {
   await page.addInitScript(() => {
@@ -139,20 +143,22 @@ const fileFields = (page, filename) => page.evaluate(name => {
   return { title: file.title, tags: [...file.tags.keys()], links: file.internalLink, color: file.color };
 }, filename);
 
-test('a hash or a link inside front matter is part of a value, not a tag or a link', async ({ page }) => {
+test('a hash inside front matter is part of a value, not a tag — but a link is a link', async ({ page }) => {
   await setupMockFilesFrontMatterText(page);
 
   const scan = await fileFields(page, 'scan.md');
 
   // The body's own tag and link are collected as they always were...
   expect(scan.tags).toEqual(['realtag']);
-  expect(scan.links).toEqual(['shopping.txt']);
 
-  // ...and the block's are not. `status: "#notatag"` is a value that happens to start with a hash,
-  // which is exactly what a hex colour is; `related: "[[ghost.md]]"` is a value, not a link, and it
-  // is not counted as broken either.
+  // ...the block's hash is not a tag: `status: "#notatag"` is a value that happens to start with
+  // one, which is exactly what a hex colour is. That is what the protected span is for, and it
+  // stays.
   expect(scan.tags).not.toContain('notatag');
-  expect(scan.links).not.toContain('ghost.md');
+
+  // ...and `related: "[[ghost.md]]"` IS a link, read out of the parsed value rather than the
+  // block's text. Body first, front matter appended.
+  expect(scan.links).toEqual(['shopping.txt', 'ghost.md']);
 });
 
 test('a YAML comment is not the note title, wherever the real one is', async ({ page }) => {
