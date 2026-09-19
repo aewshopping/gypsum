@@ -11,50 +11,38 @@ import { VALUE_TYPES } from '../constants.js';
  * Types `written` over the editor's current selection, the way the browser would.
  *
  * **Newlines go in through `insertLineBreak`, never inside the inserted text.** `insertText` with a
- * '\n' in it builds `<div>` wrappers, and the editor is not made of those: `decodeModalHtml` reads
- * only `<br>` and literal newlines, so saving a note the picker had added a line to wrote the markup
- * into the file. That was live — the old picker appended '\n\n#color/…' this way, and a note with no
- * colour yet came out of the editor holding `<div>#color/coral</div>` as text.
+ * '\n' in it builds `<div>` wrappers, which `decodeModalHtml` does not read — and that is the text
+ * the save path writes. Measured, not theorised: the old picker appended '\n\n#color/…' this way, so
+ * colouring a note that had none saved `<div>#color/coral</div>` into it. Only that branch; replacing
+ * an existing tag inserted one word and was always clean.
  *
- * The runs coalesce into one undo entry, so Ctrl+Z still takes the whole colour back in one press —
- * which is the reason any of this goes through execCommand rather than a write to disk.
+ * The runs coalesce into one undo entry, so Ctrl+Z still takes the whole colour back in one press.
  *
- * An empty string is a deletion, and says so outright: `insertText` with '' is not a delete in every
- * engine, and there is nothing to type.
- *
- * @param {string} written
+ * @param {string} written - '' to delete the selection; insertText with '' is not a delete everywhere.
  * @returns {void}
  */
 function writeIntoEditor(written) {
-    if (written === '') {
-        document.execCommand('delete');
-        return;
-    }
+    if (written === '') return void document.execCommand('delete');
 
-    const lines = written.split('\n');
-    lines.forEach((line, index) => {
+    written.split('\n').forEach((line, index) => {
+        if (index) document.execCommand('insertLineBreak');
         if (line) document.execCommand('insertText', false, line);
-        if (index < lines.length - 1) document.execCommand('insertLineBreak');
     });
 }
 
 /**
  * Sets the note's `color:` front matter key to the chosen colour, in the text of the open editor.
  *
- * **It edits the editor rather than the file, and that is the whole point.** `execCommand` is what
- * puts the change on the browser's own undo stack, so one Ctrl+Z in the file-content modal takes the
- * colour back — which a write to disk could not offer. The cost is that nothing is saved until the
- * user saves, the same as any other typing.
+ * **It edits the editor rather than the file, and that is the whole point**: `execCommand` puts the
+ * change on the browser's own undo stack, which a write to disk could not offer. Nothing is saved
+ * until the user saves, the same as any other typing.
  *
- * It used to write a `#color/…` tag into the body, which made every colour a tag as well: a pastel
- * showed a pill reading `ffbdbd` beside the real tags, "no colour" wrote a literal `#color/nocolor`,
- * and the table's colour cell — which writes front matter — silently beat it. One key, one writer.
+ * It used to write a `#color/…` body tag, which made every colour a tag as well and left the table's
+ * colour cell — which writes front matter — silently beating it. One key, one writer. Where the bytes
+ * go is front-matter-splice.js's answer, shared with that cell.
  *
- * **Where the bytes go is front-matter-splice.js's answer**, shared with the cell writer, so the
- * picker creates a block, appends a key or clears one by exactly the rules a cell edit follows.
- *
- * @param {string} colorName - The chosen colour as it should appear in the note: a named colour
- *   bare, a hex with its '#'. The literal 'nocolor' removes the key.
+ * @param {string} colorName - The colour as the note should hold it: a named colour bare, a hex with
+ *   its '#'. The literal 'nocolor' removes the key.
  * @param {number} savedOffset - The cursor offset captured before the picker took focus.
  * @returns {number} That offset, moved by the edit when the edit was above it.
  */
@@ -62,14 +50,12 @@ export function applyColorToEditor(colorName, savedOffset) {
     const editorEl = getEditorElement();
     if (!editorEl) return savedOffset;
 
-    // Read through decodeModalHtml, the same as the save path, so offsets here are the offsets
-    // editor-selection.js counts — it treats a <br> as one character for exactly this reason.
+    // Read as the save path reads, so these offsets are the ones editor-selection.js counts.
     const text = decodeModalHtml(editorEl.innerHTML);
     const indices = findFrontMatterIndices(text);
 
-    // Errors are not collected: a block that did not read cleanly still gives usable spans for the
-    // keys it did read, and the alternative — refusing to colour a note over an unrelated bad line —
-    // helps nobody. The splice only ever touches this one key.
+    // Errors are not collected: a block with one bad line still gives usable spans for the keys that
+    // did read, and refusing to colour a note over an unrelated line helps nobody.
     const spans = new Map();
     parseYaml(text, [], spans, indices);
 

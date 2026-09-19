@@ -59,11 +59,9 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         title: tagData.titleFirst,
         contentPeek: tagData.contentPeek,
         tags: tagData.tagMap,
-        // Front matter's alone, the way `title` is: null here so the key is always present, and the
-        // spread below supplies it when a note says `color:`. The value is written the way CSS wants
-        // it — a named colour bare, a hex with its '#' and so quoted — and nothing normalises it on
-        // the way through. A `#color/…` tag no longer means anything; one still parses as an ordinary
-        // tag, which is what makes the taxonomy the list of notes left to fix by hand.
+        // Front matter's alone, the way `title` is: null here, and the spread below supplies it.
+        // The note holds the value CSS wants, so nothing normalises it. A `#color/…` tag no longer
+        // means anything — see CLAUDE.md, *What a table cell may contain*.
         color: null,
         // Always present, [] when the file has no links: properties are registered from
         // myFiles[0] alone, so omitting the key would unregister it for the whole session.
@@ -87,17 +85,12 @@ const PEEK_TARGET_CHARS = 100;
 const PEEK_MAX_CHARS = 130;
 
 /**
- * The front matter block as a character span, so tag, link and title matching can skip it the same
- * way they already skip markup and code.
+ * The front matter block as a character span, so tags, links and the title skip it the way they
+ * already skip markup and code. **Front matter is data, not prose** — see CLAUDE.md.
  *
- * **Front matter is data, not prose.** A `#` in a value is part of that value — a colour is written
- * `color: "#ffffff"` — and a `# ` at the start of a line inside the block is a YAML comment, not a
- * heading. Both were being harvested: the first as a tag, the second as the note's title.
- *
- * findFrontMatterIndices answers in line numbers and a protected span is a pair of character
- * offsets, so the lines are walked and measured. Split on "\n" rather than /\r?\n/ deliberately, so
- * a CRLF file's '\r' is counted inside line.length and the offsets stay aligned — the same reasoning
- * as yaml-parse.js, which measures its spans the same way.
+ * findFrontMatterIndices answers in line numbers, a span is character offsets, so the lines are
+ * measured. Split on "\n" rather than /\r?\n/ so a CRLF's '\r' counts inside line.length and the
+ * offsets stay aligned — the same reasoning as yaml-parse.js.
  *
  * @param {string} fileContent - The whole file.
  * @param {{start: number, end: number}} indices - The block's opening and closing line, inclusive.
@@ -105,14 +98,8 @@ const PEEK_MAX_CHARS = 130;
  */
 function frontMatterSpan(fileContent, indices) {
     const lines = fileContent.split("\n");
-
-    let start = 0;
-    for (let i = 0; i < indices.start; i++) start += lines[i].length + 1;
-
-    let end = start;
-    for (let i = indices.start; i <= indices.end; i++) end += lines[i].length + 1;
-
-    return [start, end];
+    const offsetOf = (line) => lines.slice(0, line).reduce((offset, l) => offset + l.length + 1, 0);
+    return [offsetOf(indices.start), offsetOf(indices.end + 1)];
 }
 
 /**
@@ -153,9 +140,8 @@ function parseFileContent(fileContent, frontMatterIndices) {
  * If the child tag already exists, the parent is added to its parents Set (multi-parent support).
  * If the child tag is new, a fresh entry is created.
  *
- * It used to pick a note's colour out of a `#color/…` tag here as well, which made every colour also
- * a tag — and, because the colour was read only in the new-tag branch, a note holding `#coral` before
- * `#color/coral` got no colour at all. Colour is a front matter key now.
+ * It used to pick a note's colour out of a `#color/…` tag here as well, which made every colour a
+ * tag — and, because that ran only in the new-tag branch, a note holding `#coral` first got none.
  *
  * @param {{childValue: string, parentValue: string | undefined}} tagInfo - The tag parts.
  * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>}} tagState - State object for accumulating tag data.
@@ -202,10 +188,8 @@ function extractMatches(fileContent, regex_all, tagState, protectedSpans) {
         const [, titleValue, parentValue, childValue, linkTarget] = match;
 
         // 1. Process Title. It checks the spans too, unlike before: a '# ' line inside front matter
-        // is a YAML comment, and one inside a code fence is a listing, and neither is this note's
-        // heading. Without this the two title paths disagreed — getInitialTitle's fallback has
-        // always skipped the block, so a note whose only '# ' line was a comment took it as a title
-        // while a note with no '# ' line at all did not.
+        // is a YAML comment and not this note's heading. getInitialTitle's fallback always skipped
+        // the block, so without this the two title paths disagreed.
         if (titleFirst === null && titleValue && !isProtected(match.index, protectedSpans)) {
             titleFirst = titleValue;
         }
@@ -305,10 +289,9 @@ function getContentPeek(fileContent, initialTitle, frontMatterIndices) {
     const yamlEnd = frontMatterIndices?.end ?? -1;
     const inBlock = (i) => yamlStart !== -1 && i >= yamlStart && i <= yamlEnd;
 
-    // The heading to skip past is the note's, so a '# ' line inside front matter — a YAML comment —
-    // is not it. Without the guard the peek began at the comment and then showed the real heading as
-    // if it were body text, which is the same "front matter is not prose" rule the tag and title
-    // scans follow. The loop below already skips the block; only finding the heading did not.
+    // The heading to skip past is the note's, so a '# ' line inside the block is not it. The loop
+    // below already skipped the block; finding the heading did not, so the peek began at the comment
+    // and then showed the real heading as body text.
     const h1LineIndex = initialTitle !== null
         ? lines.findIndex((line, i) => /^# /.test(line) && !inBlock(i))
         : -1;
