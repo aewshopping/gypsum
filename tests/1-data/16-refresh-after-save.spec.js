@@ -119,7 +119,7 @@ test.describe('a manual save refreshes appState and the UI', () => {
     await page.click('[data-action="render-tag-taxonomy"]');
     await openModal(page);
     await switchToTxt(page);
-    await editContent(page, '# Updated Title\nContent here #brandnewtag #color/coral');
+    await editContent(page, '---\ncolor: coral\n---\n\n# Updated Title\nContent here #brandnewtag');
     await clickSaveBtn(page);
 
     await expect.poll(() => page.evaluate(() =>

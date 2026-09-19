@@ -59,7 +59,12 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         title: tagData.titleFirst,
         contentPeek: tagData.contentPeek,
         tags: tagData.tagMap,
-        color: tagData.colorFirst,
+        // Front matter's alone, the way `title` is: null here so the key is always present, and the
+        // spread below supplies it when a note says `color:`. The value is written the way CSS wants
+        // it — a named colour bare, a hex with its '#' and so quoted — and nothing normalises it on
+        // the way through. A `#color/…` tag no longer means anything; one still parses as an ordinary
+        // tag, which is what makes the taxonomy the list of notes left to fix by hand.
+        color: null,
         // Always present, [] when the file has no links: properties are registered from
         // myFiles[0] alone, so omitting the key would unregister it for the whole session.
         internalLink: tagData.links,
@@ -82,19 +87,50 @@ const PEEK_TARGET_CHARS = 100;
 const PEEK_MAX_CHARS = 130;
 
 /**
- * MAIN FUNCTION: Parses file content to find title, unique tags (as a TagMap), and first color tag.
+ * The front matter block as a character span, so tag, link and title matching can skip it the same
+ * way they already skip markup and code.
+ *
+ * **Front matter is data, not prose.** A `#` in a value is part of that value — a colour is written
+ * `color: "#ffffff"` — and a `# ` at the start of a line inside the block is a YAML comment, not a
+ * heading. Both were being harvested: the first as a tag, the second as the note's title.
+ *
+ * findFrontMatterIndices answers in line numbers and a protected span is a pair of character
+ * offsets, so the lines are walked and measured. Split on "\n" rather than /\r?\n/ deliberately, so
+ * a CRLF file's '\r' is counted inside line.length and the offsets stay aligned — the same reasoning
+ * as yaml-parse.js, which measures its spans the same way.
+ *
+ * @param {string} fileContent - The whole file.
+ * @param {{start: number, end: number}} indices - The block's opening and closing line, inclusive.
+ * @returns {[number, number]} The span as [start, end), covering both separator lines.
+ */
+function frontMatterSpan(fileContent, indices) {
+    const lines = fileContent.split("\n");
+
+    let start = 0;
+    for (let i = 0; i < indices.start; i++) start += lines[i].length + 1;
+
+    let end = start;
+    for (let i = indices.start; i <= indices.end; i++) end += lines[i].length + 1;
+
+    return [start, end];
+}
+
+/**
+ * MAIN FUNCTION: Parses file content to find title and unique tags (as a TagMap).
  *
  * @param {string} fileContent - The text content of the file.
  * @param {{start: number, end: number} | null} frontMatterIndices - Pre-computed YAML block line indices, or null if absent.
- * @returns {{titleFirst: string, tagMap: Map<string, {count: number, parents: Set<string>}>, colorFirst: string | null}} - Extracted data.
+ * @returns {{titleFirst: string, contentPeek: string, tagMap: Map<string, {count: number, parents: Set<string>}>, links: string[]}} - Extracted data.
  */
 function parseFileContent(fileContent, frontMatterIndices) {
     let tagState = {
         tagMap: new Map(),  // Map<childTagName, {count: number, parents: Set<string>}>
-        colorFirst: null,
         links: new Set(),   // deduped: a note linking twice to the same file lists it once
     };
+
+    // The front matter block joins the markup and code spans, so nothing inside it is read as prose.
     const protectedSpans = findProtectedSpans(fileContent);
+    if (frontMatterIndices) protectedSpans.push(frontMatterSpan(fileContent, frontMatterIndices));
 
     // 1. Extract Matches and get Initial Title
     const { titleFirst: initialTitle } = extractMatches(fileContent, regex_all, tagState, protectedSpans);
@@ -108,7 +144,6 @@ function parseFileContent(fileContent, frontMatterIndices) {
         titleFirst: titleFirst.trim(),
         contentPeek,
         tagMap: tagState.tagMap,
-        colorFirst: tagState.colorFirst,
         links: [...tagState.links],
     };
 }
@@ -118,8 +153,12 @@ function parseFileContent(fileContent, frontMatterIndices) {
  * If the child tag already exists, the parent is added to its parents Set (multi-parent support).
  * If the child tag is new, a fresh entry is created.
  *
+ * It used to pick a note's colour out of a `#color/…` tag here as well, which made every colour also
+ * a tag — and, because the colour was read only in the new-tag branch, a note holding `#coral` before
+ * `#color/coral` got no colour at all. Colour is a front matter key now.
+ *
  * @param {{childValue: string, parentValue: string | undefined}} tagInfo - The tag parts.
- * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>, colorFirst: string | null}} tagState - State object for accumulating tag data.
+ * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>}} tagState - State object for accumulating tag data.
  */
 function processTag({ childValue, parentValue }, tagState) {
     if (!childValue) return;
@@ -140,12 +179,6 @@ function processTag({ childValue, parentValue }, tagState) {
             parents.add(lowerParent);
         }
         tagState.tagMap.set(lowerChild, { count: 1, parents });
-
-        // Handle color tag extraction
-        if ((lowerParent === "color" || lowerParent === "colour") && tagState.colorFirst === null) {
-            const isHex = /^[0-9a-fA-F]{3,8}$/.test(childValue) && [3, 4, 6, 8].includes(childValue.length);
-            tagState.colorFirst = isHex ? `#${childValue}` : childValue;
-        }
     }
 }
 
@@ -155,7 +188,7 @@ function processTag({ childValue, parentValue }, tagState) {
  *
  * @param {string} fileContent - The text to parse.
  * @param {RegExp} regex_all - Combined regex for title and tags.
- * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>, colorFirst: string | null}} tagState - State object to pass to processTag.
+ * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>}} tagState - State object to pass to processTag.
  * @param {Array<[number, number]>} protectedSpans - HTML markup spans to skip; see protected-spans.js.
  * @returns {{titleFirst: string | null}} - The first encountered title.
  */
@@ -168,8 +201,12 @@ function extractMatches(fileContent, regex_all, tagState, protectedSpans) {
     for (const match of matches) {
         const [, titleValue, parentValue, childValue, linkTarget] = match;
 
-        // 1. Process Title
-        if (titleFirst === null && titleValue) {
+        // 1. Process Title. It checks the spans too, unlike before: a '# ' line inside front matter
+        // is a YAML comment, and one inside a code fence is a listing, and neither is this note's
+        // heading. Without this the two title paths disagreed — getInitialTitle's fallback has
+        // always skipped the block, so a note whose only '# ' line was a comment took it as a title
+        // while a note with no '# ' line at all did not.
+        if (titleFirst === null && titleValue && !isProtected(match.index, protectedSpans)) {
             titleFirst = titleValue;
         }
 
@@ -213,7 +250,7 @@ function findFirstContentLine(lines, startIndex, frontMatterIndices) {
  * @param {string} fileContent - The full text.
  * @param {string | null} initialTitle - The first title found by extractMatches.
  * @param {RegExp} regex_tag_match - Regex specifically for tags.
- * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>, colorFirst: string | null}} tagState - State object to pass to processTag.
+ * @param {{tagMap: Map<string, {count: number, parents: Set<string>}>}} tagState - State object to pass to processTag.
  * @param {{start: number, end: number} | null} frontMatterIndices - Pre-computed YAML block line indices, or null if absent.
  * @returns {string} The final title.
  */
@@ -264,21 +301,26 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
  */
 function getContentPeek(fileContent, initialTitle, frontMatterIndices) {
     const lines = fileContent.split(/\r?\n/);
+    const yamlStart = frontMatterIndices?.start ?? -1;
+    const yamlEnd = frontMatterIndices?.end ?? -1;
+    const inBlock = (i) => yamlStart !== -1 && i >= yamlStart && i <= yamlEnd;
 
+    // The heading to skip past is the note's, so a '# ' line inside front matter — a YAML comment —
+    // is not it. Without the guard the peek began at the comment and then showed the real heading as
+    // if it were body text, which is the same "front matter is not prose" rule the tag and title
+    // scans follow. The loop below already skips the block; only finding the heading did not.
     const h1LineIndex = initialTitle !== null
-        ? lines.findIndex(line => /^# /.test(line))
+        ? lines.findIndex((line, i) => /^# /.test(line) && !inBlock(i))
         : -1;
     const startIndex = h1LineIndex !== -1 ? h1LineIndex + 1 : 1;
 
     const firstLine = findFirstContentLine(lines, startIndex, frontMatterIndices);
     if (!firstLine) return '';
 
-    const yamlStart = frontMatterIndices?.start ?? -1;
-    const yamlEnd = frontMatterIndices?.end ?? -1;
     let text = '';
 
     for (let i = firstLine.lineIndex; i < lines.length; i++) {
-        if (yamlStart !== -1 && i >= yamlStart && i <= yamlEnd) continue;
+        if (inBlock(i)) continue;
         const line = lines[i].trim();
         if (line !== '') {
             text += (text ? '\n' : '') + line;

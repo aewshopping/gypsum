@@ -200,6 +200,22 @@ disappears out from under the person who cleared it.
   `resolveColumns()` would put it straight back from the registered property — and "hide column",
   in the same menu, is the answer there.
 
+### Front matter is data, not prose
+
+**Nothing inside the `---` block is scanned for `#tags`, `[[links]]` or a `# H1`.** The block joins
+the markup and code spans in `findProtectedSpans` — `file-info.js`'s `frontMatterSpan()` converts
+`findFrontMatterIndices`' line numbers to the character offsets a span is made of — so one mechanism
+answers "this is not prose" for all of them.
+
+- **The title branch of `extractMatches` had to opt in.** It was the one branch that never consulted
+  the spans, so a YAML comment at column 0 became the note's title whenever it came before the real
+  heading. The two title paths now agree: `getInitialTitle`'s fallback has always skipped the block.
+- **This is what makes a `#` safe in a value**, which is what a hex colour is. A `[[link]]` in a value
+  stops being collected too, which is a fix rather than a loss: a flow sequence `related: [[a, b]]`
+  was read as a link to `a, b` and then reported as broken.
+- The supported front matter tag path is untouched — `yamlData.tags` is merged into the TagMap
+  separately, before any of this.
+
 ### What a table cell may contain
 
 Two rules, and the second follows from the first. See `plans/completed/table-cell-editors.md`.
@@ -225,18 +241,25 @@ type would be the same lie from the other side.
 **Whether a cell takes a caret is the narrower question, `isPropertyEditable()`.** It is
 `isTypeSettable()` plus `WRITABLE_CORE_PROPERTIES`, and the two came apart for those columns.
 **`title` and `color` are editable from the table.** What they have in common is the spread in
-`file-info.js`: both are written into the file object from the note's *body* — the `# H1` or the
-first line, and the first `#color/…` tag — and then `...(yamlData)` puts front matter over the top.
-So the note already has a place for a typed value, and it is exactly the place a cell edit splices.
-Nothing else in `CORE_FILE_PROPERTIES` does: `filename` and `filepath` are the file itself and have
+`file-info.js`: both sit in the returned object *above* `...(yamlData)`, so front matter supplies
+them — `title` overriding the note's own `# H1`, `color` filling in a `null`. Either way the note
+already has a place for a typed value, and it is exactly the place a cell edit splices. Nothing else
+in `CORE_FILE_PROPERTIES` does: `filename` and `filepath` are the file itself and have
 `editing/rename-file.js`; `tags` is deleted from `yamlData` before the spread, being merged into the
 TagMap, so front matter cannot override it; the rest are in `RESERVED_KEYS` and stripped outright.
 
-**Colour has a second writer, and front matter beats it.** The picker in the note editor writes a
-`#color/…` body tag (`editing/color-pick-apply.js`), which a front matter `color:` silently
-overrides — so a note coloured from the table has a picker that appears to do nothing. That was
-already true of any note carrying `color:`; the table only makes it easy to reach. Accepted because
-the way back is the way in: clearing the cell removes the key, and the body tag applies again.
+**Colour is a front matter key and nothing else.** `#color/…` used to set it, which made every
+colour a tag as well and gave the value two writers — the editor's picker wrote the body tag, the
+table's colour cell wrote front matter, and front matter silently won. Now both write `color:`. A
+`#color/…` tag in an old note is an ordinary tag and colours nothing; there was no converter, so the
+`color` group in the tag taxonomy is the list of notes still to fix by hand.
+
+**The value is written the way CSS wants it, and nothing normalises it**: a named colour bare
+(`color: coral`), a hex carrying its `#` and therefore quoted (`color: "#ffffff"`, or `"#ffff"` for
+`#RGBA`). A bare hex is not a colour and silently does not paint, the same as a misspelt colour name —
+this is "quote defensively, do not validate strictly", and nothing here validates. **That format is
+only safe because of the rule above about front matter**: a `#` in a value used to be harvested as a
+tag.
 
 **So these columns wear a padlock and take a caret, and that is the accepted cost.** The padlock is
 drawn *on the type glyph*, so it stays with the type; dropping it instead would leave a column with
@@ -251,6 +274,14 @@ columns a note can hand a list to (`title: [draft]`) while their type stays the 
 message, which tells an ordinary column to change its type, would name a greyed-out button. It says
 "fix this in the note" for them instead. `mismatchMessage()` takes the whole column rather than its
 type, because the sentence now turns on which column it is.
+
+**The colour picker writes front matter through `execCommand`, and that is why it edits the editor
+rather than the file.** One Ctrl+Z in the note modal takes the colour back, which a write to disk
+could not offer. **Its newlines go in as `insertLineBreak`, never inside the inserted text**:
+`insertText` with a `\n` in it builds `<div>` wrappers, and `decodeModalHtml` reads only `<br>` and
+literal newlines — so the old picker, which appended `\n\n#color/…`, put `<div>#color/coral</div>`
+into the saved note. Consecutive `execCommand`s coalesce into one undo entry, so the single press
+still works.
 
 **A commit that reaches no file still redraws.** Clearing a title the note keeps as its `# H1` finds
 no `title:` key to remove, so nothing is written and the write's own refresh never runs — the cell
@@ -414,8 +445,11 @@ Closing an edited cell writes it into the note's front matter. See
   a cell that is both, because it is the one explaining the refusal — and because a block that did
   not read cleanly makes every value in it a guess, including whether this one really is the wrong
   type.
-- **A key the note does not have is appended to its block, and a note with no block gets one at byte
-  0, with a blank line after it.** Byte 0 because `findFrontMatterIndices` takes a separator on the
+- **Where a key's bytes go is `editing/front-matter-splice.js`, and it is shared.** The cell writer
+  splices a file; the colour picker splices the text of the open editor. A second copy of these rules
+  would agree on the day it was written and drift after, and drift here writes into the wrong bytes
+  of a note. **A key the note does not have is appended to its block, and a note with no block gets
+  one at byte 0, with a blank line after it.** Byte 0 because `findFrontMatterIndices` takes a separator on the
   first line at its word, where one lower down has first to be told apart from a setext underline and
   a thematic break. The blank line is not decoration: a markdown parser reading `# Title` on the line
   straight below the closing separator does not see a heading, and gypsum — which matches a title
@@ -479,6 +513,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
 | `public/js/editing/save-cell-edit.js` | A cell edit into the note: convert, locate, splice, write, refresh |
+| `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |

@@ -152,7 +152,3 @@ export const HTML_COLOR_NAMES = [
     'mediumvioletred','hotpink','lavenderblush','deeppink',
 ];
 
-// Matches #color/name or #colour/name in plain text file content.
-// Lookbehind requires a space or newline before the tag.
-// Lookahead requires a space, newline, or end of string after.
-export const regex_color = /(?<= |\n)#(?:color|colour)\/(\w+)(?= |\n|$)/;

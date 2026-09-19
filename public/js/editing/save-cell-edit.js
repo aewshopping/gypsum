@@ -5,6 +5,7 @@ import { parseYaml, readValue, isQuoted } from '../services/file-parsing/yaml-pa
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlText, toYamlItem } from '../services/file-parsing/yaml-value-write.js';
 import { splitFlowItems } from '../services/file-parsing/flow-list.js';
+import { newBlock, keySplice } from './front-matter-splice.js';
 import { saveFileCopy } from './save-file-copy.js';
 import { refreshFilesNow } from './refresh-file-state.js';
 import { pushUndoBatch } from './undo-cell-edits.js';
@@ -66,23 +67,6 @@ export async function applyCellEdits(edits, options) {
 // changedItem() saying the list is exactly as the file already has it, which is not the same answer
 // as "rewrite the whole value": nothing is written at all.
 const SKIP = Symbol('no item changed');
-
-/**
- * Just past the newline that ends the line `from` sits on, so removing a key takes the whole line
- * with it rather than leaving a blank one behind.
- *
- * Needed because a span's `valueEnd` deliberately stops at the last non-whitespace character — that
- * is what keeps a splice from swallowing a CRLF file's '\r'. Scanning forward to the newline picks
- * the '\r' back up for a delete, where it is wanted.
- *
- * @param {string} text - The whole file.
- * @param {number} from - An offset on the line to measure.
- * @returns {number}
- */
-function lineEndAfter(text, from) {
-    const newline = text.indexOf('\n', from);
-    return newline === -1 ? text.length : newline + 1;
-}
 
 /**
  * Where one item of a list has to be rewritten, when that is all that has happened to it.
@@ -189,26 +173,12 @@ export async function applyRawEdits(rawEdits, { resort = true } = {}) {
         // question asked of the bytes on disk, which is the only place the answer is current.
         if (errors.length > 0) continue;
 
-        // A note with no front matter at all is given a block at byte 0 — rather than anywhere
-        // cleverer, because findFrontMatterIndices takes a separator on the first line at its word
-        // however the rest of the file is written, where one lower down has first to be told apart
-        // from a setext underline and a thematic break. Empty, so that a key is appended to it the
-        // same way as to a block that was already there.
-        //
-        // **And a blank line after it**, which is not decoration: a markdown parser reading `# Title`
-        // on the line straight below the closing separator does not see a heading, so the note's own
-        // title would stop being one everywhere except here — gypsum matches a title anywhere in the
-        // file and would go on showing it, which is the kind of disagreement nobody notices until
-        // they open the note somewhere else. One line, not two: a note that already starts with a
-        // blank line keeps the one it has.
-        const blankLine = original.startsWith('\n') ? '' : '\n';
-        const text = indices ? original : `---\n---\n${blankLine}${original}`;
-
-        // Where a key the note does not have is written: the first character of the closing
-        // separator's line, which is where a key nobody has ordered belongs.
-        const blockEnd = indices
-            ? text.split('\n').slice(0, indices.end).reduce((offset, line) => offset + line.length + 1, 0)
-            : '---\n'.length;
+        // A note with no front matter at all is given an empty one, so that a key is appended to it
+        // the same way as to a block that was already there — front-matter-splice.js says where it
+        // goes and what it looks like. The block is made once per file rather than per edit, or two
+        // new keys would arrive in two blocks; the lines it occupies are then handed on below.
+        const text = indices ? original : newBlock(original) + original;
+        const blockIndices = indices ?? { start: 0, end: 1 };
 
         const splices = [];
         fileEdits.forEach((edit, order) => {
@@ -241,20 +211,12 @@ export async function applyRawEdits(rawEdits, { resort = true } = {}) {
 
             if (!removing && span && !item && raw === before) return;
 
-            // Four shapes of splice: a key that is not there yet arrives as a whole line, one item
-            // of a list replaces that item alone, a cleared key takes its own line out, and
-            // everything else replaces the key's value.
-            //
-            // The delete runs from the key's own line to past the newline ending its value, and
-            // `valueEnd` has walked down the file with every line the value took — so a block list
-            // goes key line, item lines and all, and nothing around it moves.
+            // One item of a list replaces that item alone; everything else is an ordinary write to
+            // the key, and where those bytes go is front-matter-splice.js's answer — shared with the
+            // colour picker, which splices the open editor's text by the same rules.
             const target = item
                 ? { start: item.start, end: item.end, written: item.written }
-                : span
-                    ? removing
-                        ? { start: span.lineStart, end: lineEndAfter(text, span.valueEnd), written: '' }
-                        : { start: span.valueStart, end: span.valueEnd, written: raw }
-                    : { start: blockEnd, end: blockEnd, written: `${edit.property}:${raw}\n` };
+                : keySplice(text, edit.property, raw, blockIndices, span);
 
             splices.push({
                 property: edit.property,

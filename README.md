@@ -27,7 +27,7 @@ This is built for my personal use so I don't make any guarantees about how well 
 3. Html rendered from markdown - syntax is rendered using `marked.js`.
 4. You use tags like `#this` to easily associate text files.
 5. You can filter notes based on selected tags, either with an `and` filter or an `or` filter.
-6. Add a tag of the format `#color/red` (ie `#color/[color]`) and it will use this colour in the file viewer for that file, assuming it is a valid html color name.
+6. Give a file a colour with a `color:` property in its front matter, and the file viewer will use it. A named HTML colour goes in bare (`color: coral`); a hex needs its `#`, and therefore quotes (`color: "#ffffff"` or `color: "#ffff"`). Pick one from the palette button while editing a note, or type it into the colour column in table view. The old `#color/red` tag syntax no longer sets a colour — it is just an ordinary tag now, so the `color` group in the tag sidebar lists any notes still using it.
 7. You can add simple YAML properties to the files, in front matter (ie key value pairs below one `---`and above another `---`). These are visible as columns in the table view.
 8. Links between files, using the `[[myfile]]` format.
 9. Given it such a simple app it is simple for coding agents to fork, adjust or add features that other users may want.

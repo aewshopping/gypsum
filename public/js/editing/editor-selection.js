@@ -106,6 +106,13 @@ export function selectTextRange(editorEl, start, end) {
         }
         pos = childEnd;
     }
+    // Nothing matched: the editor is empty, or the range starts past its end. An unset Range still
+    // points at the document, so it has to be aimed at the editor before it is used — colouring an
+    // empty note splices at offset 0 and is the case that reaches this.
+    if (!startSet) {
+        range.selectNodeContents(editorEl);
+        range.collapse(false);
+    }
     window.getSelection().removeAllRanges();
     window.getSelection().addRange(range);
 }

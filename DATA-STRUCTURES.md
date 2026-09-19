@@ -19,7 +19,7 @@ Each entry in `appState.myFiles` is a plain object. Most of it is written by `ge
 | `title` | `string` | First markdown H1, or first line (max 180 chars) |
 | `contentPeek` | `string` | Body preview, ~100 chars, front matter and title excluded |
 | `tags` | `Map<string, {count: number, parents: Set<string>}>` | See below |
-| `color` | `string \| null` | Value of the first `#color/<name>` tag, or `null` |
+| `color` | `string \| null` | The front matter `color:` value, used as a CSS colour verbatim, or `null` |
 | `internalLink` | `string[]` | Link targets found in the body, deduped. `[]` when there are none — never absent |
 | `lastModified` | `Date` | File modification date |
 | `errorOnLoad` | `string \| null` | Why the front matter did not read cleanly, or `null` when it did |
