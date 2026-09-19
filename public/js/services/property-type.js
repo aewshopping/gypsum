@@ -74,9 +74,9 @@ export function isInfoColumn(name) {
  *
  * - **the app fills the column in** — the size, the last modified date, the load error
  * - **the property does not come from a note's front matter** — everything in CORE_FILE_PROPERTIES,
- *   which is `title`, `filename`, `filepath`, `tags`, `color`, `internalLink` and the file-system
- *   columns. Their types are the app's: `tags` is always a list and `lastModified` is always a date,
- *   whatever a hand-edited layout file says.
+ *   which is `title`, `filename`, `filepath`, `tags`, `color`, `internalLink`, `internalLinkText`
+ *   and the file-system columns. Their types are the app's: `tags` is always a list and
+ *   `lastModified` is always a date, whatever a hand-edited layout file says.
  *
  * **Here rather than beside any one caller**, because four ask: type-glyph.js draws the padlock, the
  * column menu and the picker decide whether to offer the type dialog, the types modal decides which

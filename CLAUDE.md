@@ -207,7 +207,7 @@ disappears out from under the person who cleared it.
 
 ### Front matter is data, not prose
 
-**Nothing inside the `---` block is scanned for `#tags`, `[[links]]` or a `# H1`.** The block joins
+**No text inside the `---` block is scanned for `#tags`, `[[links]]` or a `# H1`.** The block joins
 the markup and code spans in `findProtectedSpans` — `file-info.js`'s `frontMatterSpan()` converts
 `findFrontMatterIndices`' line numbers to the character offsets a span is made of — so one mechanism
 answers "this is not prose" for all of them.
@@ -215,11 +215,45 @@ answers "this is not prose" for all of them.
 - **The title branch of `extractMatches` had to opt in.** It was the one branch that never consulted
   the spans, so a YAML comment at column 0 became the note's title whenever it came before the real
   heading. The two title paths now agree: `getInitialTitle`'s fallback has always skipped the block.
-- **This is what makes a `#` safe in a value**, which is what a hex colour is. A `[[link]]` in a value
-  stops being collected too, which is a fix rather than a loss: a flow sequence `related: [[a, b]]`
-  was read as a link to `a, b` and then reported as broken.
+- **This is what makes a `#` safe in a value**, which is what a hex colour is.
 - The supported front matter tag path is untouched — `yamlData.tags` is merged into the TagMap
   separately, before any of this.
+
+**A `[[link]]` in front matter is collected, and it is the one thing read back out of the block.**
+Not from its text, though — from the *parsed values*, in `front-matter-links.js`, merged in
+`getFileDataAndMetadata` beside the `tags` merge. The protection above is untouched and the two
+never meet, which is the point: reading text would make `related: [[a, b]]` a broken link to
+`a, b`, where the parser has already read that as the two-item list it is.
+
+- **Write it quoted — `related: "[[a.md]]"`.** A bare `related: [[a.md]]` is a YAML list holding a
+  list, so the parser strips a bracket off each end and there is nothing left to find. That it
+  cannot be told apart from `related: [[a, b]]` is exactly why it is not supported.
+- **A block list item is lenient, and the docs still say quote it.** `- [[a.md]]` is found, because
+  a list item's text goes whole to `readValue`, which has no flow branch — only `key: [...]` does.
+  But in spec YAML that item *is* a nested sequence, so Obsidian and PyYAML read it as `[["a.md"]]`:
+  gypsum would find the link and another reader would not. Same reasoning as `needsQuoting()` under
+  *Writing a cell edit back to the note* — the quoting rule protects the text from other readers.
+- **A value the file object does not keep holds no links.** The scan runs after the `RESERVED_KEYS`
+  strip and after `tags` is deleted, so a shadowing `internalLink:` contributes nothing and a
+  `[[link]]` inside a `tags:` value is not a link.
+- Nothing else is needed: `checkFileErrors` loops `internalLink` through `resolveNoteName`, so a
+  front matter link is broken-link-checked, counted in the nudge and drawn in the flowchart for
+  free.
+
+**`internalLink` and `internalLinkText` are one Map read twice, and that is what aligns them.**
+`tagState.links` is a `Map<target, text>`; the file object takes its `keys()` and its `values()`, so
+index *i* of each array is the same link and no code path has to keep them in step. `addLink()` in
+`file-info.js` is the only writer, called from all three places links are found — the body scan, the
+H1 re-scan and the front matter merge.
+
+- **A target linked twice keeps its first position, and the first non-empty text fills the slot.**
+  `[[shopping.txt]]` and later `[[shopping.txt|groceries]]` is one link, labelled; text already
+  given is never overwritten.
+- **No `|` means `''`, never the target** — even though the target is what such a link renders as.
+  `''` is falsy, which is what `render-file-list-flowchart.js` tests to decide whether an edge is
+  labelled.
+- Both are trimmed, unlike `linkReplacer` in `internal-link-parser.js`, which must not trim: it is
+  reproducing the note's text on screen, where these are values.
 
 ### What a table cell may contain
 
@@ -508,6 +542,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/services/store.js` | All application state + property schema |
 | `public/js/services/file-handler.js` | File loading orchestration (File System API) |
 | `public/js/services/file-parsing/` | Metadata extraction: title, tags, YAML |
+| `public/js/services/file-parsing/front-matter-links.js` | The `[[links]]` written into front matter values |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/table-layouts/` | Saved layouts and property types: `table_layouts.gypsum`, read and written |

@@ -4,6 +4,7 @@ import { findFrontMatterIndices } from './yaml-find.js';
 import { updateMyFilesProperties } from '../file-props.js';
 import { findProtectedSpans, isProtected } from './protected-spans.js';
 import { yamlSegment } from './file-errors.js';
+import { frontMatterLinks } from './front-matter-links.js';
 
 /**
  * @file Extracts metadata from file content, including title, tags, and YAML front matter.
@@ -13,7 +14,8 @@ import { yamlSegment } from './file-errors.js';
 // app-owned data — a bogus `handle` alone breaks save, rename, delete and content search. `tags`
 // is handled separately below, merged into the TagMap rather than dropped.
 const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'internalId',
-                       'contentPeek', 'internalLink', 'errorOnLoad', 'lastModified'];
+                       'contentPeek', 'internalLink', 'internalLinkText', 'errorOnLoad',
+                       'lastModified'];
 
 
 /**
@@ -52,6 +54,12 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         delete yamlData.tags;
     }
 
+    // Front matter is protected from the prose scan, so a [[link]] in a value is collected from
+    // the parsed values instead — see CLAUDE.md, *Front matter is data, not prose*. Running it
+    // here, after the strips above, gives one rule: a link counts when it sits in a value the
+    // file object keeps.
+    for (const { target, text } of frontMatterLinks(yamlData)) addLink(tagData.links, target, text);
+
     return {
         handle: handle,
         filename: file.name,
@@ -65,7 +73,9 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         color: null,
         // Always present, [] when the file has no links: properties are registered from
         // myFiles[0] alone, so omitting the key would unregister it for the whole session.
-        internalLink: tagData.links,
+        // One Map read twice, so index i of each array is the same link — see addLink.
+        internalLink: [...tagData.links.keys()],
+        internalLinkText: [...tagData.links.values()],
         lastModified: new Date(file.lastModified),
         ...(yamlData),
         // Null rather than absent when the front matter read cleanly, for the same reason as above.
@@ -107,12 +117,12 @@ function frontMatterSpan(fileContent, indices) {
  *
  * @param {string} fileContent - The text content of the file.
  * @param {{start: number, end: number} | null} frontMatterIndices - Pre-computed YAML block line indices, or null if absent.
- * @returns {{titleFirst: string, contentPeek: string, tagMap: Map<string, {count: number, parents: Set<string>}>, links: string[]}} - Extracted data.
+ * @returns {{titleFirst: string, contentPeek: string, tagMap: Map<string, {count: number, parents: Set<string>}>, links: Map<string, string>}} - Extracted data.
  */
 function parseFileContent(fileContent, frontMatterIndices) {
     let tagState = {
         tagMap: new Map(),  // Map<childTagName, {count: number, parents: Set<string>}>
-        links: new Set(),   // deduped: a note linking twice to the same file lists it once
+        links: new Map(),   // target -> display text; see addLink
     };
 
     // The front matter block joins the markup and code spans, so nothing inside it is read as prose.
@@ -131,8 +141,33 @@ function parseFileContent(fileContent, frontMatterIndices) {
         titleFirst: titleFirst.trim(),
         contentPeek,
         tagMap: tagState.tagMap,
-        links: [...tagState.links],
+        links: tagState.links,
     };
+}
+
+/**
+ * Records one internal link.
+ *
+ * The Map's key order is the order links are met and its values are those same links' display
+ * text, so internalLink and internalLinkText are aligned by construction rather than by two code
+ * paths agreeing to stay in step. It is also the dedupe a note linking twice to the same file
+ * needs: one entry, in the position of the first mention.
+ *
+ * **The first non-empty text fills the slot.** A note saying [[shopping.txt]] and later
+ * [[shopping.txt|groceries]] means one link, labelled — a later mention can fill an empty slot but
+ * never overwrite text already given. A link with no '|' has the text '', never its own target,
+ * even though the target is what such a link renders as.
+ *
+ * @param {Map<string, string>} links - The link Map being filled.
+ * @param {string} target - The text inside [[...]], before any '|'.
+ * @param {string} text - The display text after '|', already trimmed, or ''.
+ */
+function addLink(links, target, text) {
+    const key = target.trim();
+    if (!key) return; // '[[ ]]' is a link to nothing, not a broken link to ''
+
+    const existing = links.get(key);
+    if (existing === undefined || (existing === '' && text)) links.set(key, text);
 }
 
 /**
@@ -182,10 +217,10 @@ function extractMatches(fileContent, regex_all, tagState, protectedSpans) {
     let titleFirst = null;
     const matches = fileContent.matchAll(regex_all);
 
-    // regex_all groups: 1 = title, 2 = tag parent, 3 = tag child, 4 = internal link target
-    // (group 5, a link's display text, is deliberately unused — we store what it points at)
+    // regex_all groups: 1 = title, 2 = tag parent, 3 = tag child, 4 = internal link target,
+    // 5 = that link's display text
     for (const match of matches) {
-        const [, titleValue, parentValue, childValue, linkTarget] = match;
+        const [, titleValue, parentValue, childValue, linkTarget, linkText] = match;
 
         // 1. Process Title. It checks the spans too, unlike before: a '# ' line inside front matter
         // is a YAML comment and not this note's heading. getInitialTitle's fallback always skipped
@@ -201,7 +236,7 @@ function extractMatches(fileContent, regex_all, tagState, protectedSpans) {
 
         // 3. Process internal link — same protection check, so links inside code are ignored
         if (linkTarget && !isProtected(match.index, protectedSpans)) {
-            tagState.links.add(linkTarget.trim());
+            addLink(tagState.links, linkTarget, (linkText ?? '').trim());
         }
     }
     return { titleFirst };
@@ -263,9 +298,9 @@ function getInitialTitle(fileContent, initialTitle, regex_tag_match, tagState, f
         // Links in the title need the same treatment: regex_title matches '(.*$)' after '# ',
         // so the H1 line is consumed whole and the combined regex never sees a '[[link]]' in it.
         for (const match of finalTitle.matchAll(regex_link_match)) {
-            const [, linkTarget] = match;
+            const [, linkTarget, linkText] = match;
             if (!isProtected(match.index, titleProtectedSpans)) {
-                tagState.links.add(linkTarget.trim());
+                addLink(tagState.links, linkTarget, (linkText ?? '').trim());
             }
         }
     }

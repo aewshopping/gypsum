@@ -48,8 +48,6 @@ export function renderFileList_flowchart(renderEverything) {
         const label = file.title || file.filename;
         lines.push(`  ${number}("${mermaidLabel(label)}")`);
 
-        const linkTexts = Array.isArray(file.internalLinkText) ? file.internalLinkText : [];
-
         file.internalLink.forEach((target, index) => {
             const targetId = resolveNoteName(target);
             let targetNode = fileNumbers.get(targetId);
@@ -65,7 +63,7 @@ export function renderFileList_flowchart(renderEverything) {
                 }
             }
 
-            const linkText = linkTexts[index];
+            const linkText = file.internalLinkText[index];
             const arrow = linkText ? `-->|"${mermaidLabel(linkText)}"|` : '-->';
             lines.push(`  ${number} ${arrow} ${targetNode}`);
         });

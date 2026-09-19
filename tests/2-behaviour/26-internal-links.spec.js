@@ -164,6 +164,7 @@ test.describe('internal links — internalLink property', () => {
 
     const collected = await page.evaluate(() => {
       const linksFor = (id) => window.appState.myFiles.find(f => f.internalId === id)?.internalLink;
+      const textFor = (id) => window.appState.myFiles.find(f => f.internalId === id)?.internalLinkText;
       const hub = window.appState.myFiles.find(f => f.internalId === 'hub.md');
       const nested = window.appState.myFiles.find(f => f.internalId === 'subdir/nested.md');
       return {
@@ -173,6 +174,14 @@ test.describe('internal links — internalLink property', () => {
         titled: linksFor('titled-link.md'),
         // Properties are registered from myFiles[0] only, so the key must never be omitted.
         noLinks: linksFor('shopping.txt'),
+        hubText: textFor('hub.md'),
+        noLinksText: textFor('shopping.txt'),
+        frontMatter: linksFor('front-matter-links.md'),
+        frontMatterText: textFor('front-matter-links.md'),
+        frontMatterTitle: window.appState.myFiles
+          .find(f => f.internalId === 'front-matter-links.md').title,
+        frontMatterTags: [...window.appState.myFiles
+          .find(f => f.internalId === 'front-matter-links.md').tags.keys()],
         hubTitle: hub.title,
         nestedTitle: nested.title,
         nestedTags: [...nested.tags.keys()],
@@ -188,10 +197,62 @@ test.describe('internal links — internalLink property', () => {
     expect(collected.titled).toEqual(['shopping.txt']);
     expect(collected.noLinks).toEqual([]);
 
+    // internalLinkText is the same Map read again, so it is aligned by construction: index 0 is
+    // shopping.txt, linked plain on one line and aliased two lines later. The first *non-empty*
+    // text fills the slot, so the alias survives the dedupe. The other three carry '' — never
+    // their own target, even though that is what such a link renders as.
+    expect(collected.hubText).toHaveLength(collected.hub.length);
+    expect(collected.hubText).toEqual(['groceries', '', '', '']);
+    expect(collected.noLinksText).toEqual([]);
+
     // Guards the appended capture group: inserting it would shift the destructuring.
     expect(collected.hubTitle).toBe('Hub');
     expect(collected.nestedTitle).toBe('Nested Note');
     expect(collected.nestedTags).toContain('personal');
+  });
+
+  // The block is protected from the prose scan, so these come out of the *parsed values* —
+  // see CLAUDE.md, *Front matter is data, not prose*.
+  test('links declared in front matter values are collected too', async ({ page }) => {
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await expect(page.locator('.note-grid').first()).toBeVisible();
+
+    const collected = await page.evaluate(() => {
+      const file = window.appState.myFiles.find(f => f.internalId === 'front-matter-links.md');
+      return {
+        links: file.internalLink,
+        text: file.internalLinkText,
+        title: file.title,
+        tags: [...file.tags.keys()],
+      };
+    });
+
+    // A quoted scalar, a quoted and an unquoted block list item, a flow list's item, and one
+    // buried in prose. shopping.txt is written twice — plain, then aliased — so it appears once,
+    // carrying the alias. The body of this note holds no links at all.
+    expect(collected.links).toEqual([
+      'shopping.txt',
+      'gone-from-front-matter.md',
+      'subdir/nested.md',
+      'ambig.txt',
+      'titled-link.md',
+    ]);
+    expect(collected.text).toEqual(['the groceries', '', '', '', '']);
+
+    // A bare `key: [[a.md]]` is a YAML list holding a list, so the parser strips a bracket off
+    // each end and there is nothing left to find. Quote it, or write it as a list item.
+    expect(collected.links).not.toContain('not-detected.md');
+    // A '#' line inside the block is a YAML comment, not prose, so nothing in it is read.
+    expect(collected.links).not.toContain('commented.md');
+    // The alias is what the link is called, never what it points at.
+    expect(collected.links).not.toContain('the groceries');
+
+    // The block is still not read as prose, which is what the whole value-shaped scan is for:
+    // the '#' in a hex colour is not a tag, and the comment line is not this note's title.
+    expect(collected.title).toBe('Front Matter Links');
+    expect(collected.tags).toEqual([]);
   });
 
 });
