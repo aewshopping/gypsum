@@ -8,29 +8,6 @@ import { keySplice } from './front-matter-splice.js';
 import { VALUE_TYPES } from '../constants.js';
 
 /**
- * Types `written` over the editor's current selection, the way the browser would.
- *
- * **Newlines go in through `insertLineBreak`, never inside the inserted text.** `insertText` with a
- * '\n' in it builds `<div>` wrappers, which `decodeModalHtml` does not read — and that is the text
- * the save path writes. Measured, not theorised: the old picker appended '\n\n#color/…' this way, so
- * colouring a note that had none saved `<div>#color/coral</div>` into it. Only that branch; replacing
- * an existing tag inserted one word and was always clean.
- *
- * The runs coalesce into one undo entry, so Ctrl+Z still takes the whole colour back in one press.
- *
- * @param {string} written - '' to delete the selection; insertText with '' is not a delete everywhere.
- * @returns {void}
- */
-function writeIntoEditor(written) {
-    if (written === '') return void document.execCommand('delete');
-
-    written.split('\n').forEach((line, index) => {
-        if (index) document.execCommand('insertLineBreak');
-        if (line) document.execCommand('insertText', false, line);
-    });
-}
-
-/**
  * Sets the note's `color:` front matter key to the chosen colour, in the text of the open editor.
  *
  * **It edits the editor rather than the file, and that is the whole point**: `execCommand` puts the
@@ -63,8 +40,10 @@ export function applyColorToEditor(colorName, savedOffset) {
     const splice = keySplice(text, 'color', raw, indices, spans.get('color'));
     if (!splice) return savedOffset;   // asked for no colour, and there was none
 
+    // One insertText for every shape, including '' for a key being cleared, which deletes the
+    // selection. Keeps the whole edit on the browser's undo stack as a single entry.
     selectTextRange(editorEl, splice.start, splice.end);
-    writeIntoEditor(splice.written);
+    document.execCommand('insertText', false, splice.written);
 
     const delta = splice.written.length - (splice.end - splice.start);
     return splice.start < savedOffset ? savedOffset + delta : savedOffset;

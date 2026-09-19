@@ -109,9 +109,11 @@ test.describe('colour picker modal', () => {
 
     await pick(page, HEX_COLOUR);
 
-    // Byte 0, and a blank line after the block so the H1 below it is still a heading.
+    // Byte 0, above the note's own content. The multi-line insert goes in as one execCommand, and
+    // the browser lays the new lines out as blocks, so innerText reads one more break after the
+    // closing separator than the spliced text carries.
     expect(await editorText(page))
-      .toBe(`---\ncolor: "${HEX_COLOUR}"\n---\n\n# My Notes\nSome content here`);
+      .toBe(`---\ncolor: "${HEX_COLOUR}"\n---\n\n\n# My Notes\nSome content here`);
   });
 
   test('picking no colour removes the key, rather than writing one', async ({ page }) => {

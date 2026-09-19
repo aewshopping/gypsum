@@ -277,11 +277,8 @@ type, because the sentence now turns on which column it is.
 
 **The colour picker writes front matter through `execCommand`, and that is why it edits the editor
 rather than the file.** One Ctrl+Z in the note modal takes the colour back, which a write to disk
-could not offer. **Its newlines go in as `insertLineBreak`, never inside the inserted text**:
-`insertText` with a `\n` in it builds `<div>` wrappers, and `decodeModalHtml` reads only `<br>` and
-literal newlines — so the old picker, which appended `\n\n#color/…`, put `<div>#color/coral</div>`
-into the saved note. Consecutive `execCommand`s coalesce into one undo entry, so the single press
-still works.
+could not offer. One `insertText` covers every shape the splice can be, `''` included — that deletes
+the selection, which is how clearing a key works.
 
 **A commit that reaches no file still redraws.** Clearing a title the note keeps as its `# H1` finds
 no `title:` key to remove, so nothing is written and the write's own refresh never runs — the cell
