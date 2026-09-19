@@ -175,7 +175,11 @@ export function renderCellValue(prop, file, mismatch) {
  * @returns {string}
  */
 function renderDate(name, value) {
-    if (!value) return '';
+    // The same strict test typeMismatch() uses, not `!value`: a front matter key holding `false`
+    // or `0` is a value, and `!` threw both away as empty — `date: false` drew an empty cell while
+    // `date: true` drew its word. The `??` in renderCellValue above and in render-value.js are the
+    // other two sites of that trap; all three ask the question the same way now.
+    if (value === null || value === undefined || value === '') return '';
 
     if (isInfoColumn(name)) {
         const asDate = new Date(value);
