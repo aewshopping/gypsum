@@ -27,7 +27,10 @@ import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
  * the hover highlight and the resize bar all key on it.
  *
  * The type glyph is the same drawing the column picker puts on its rows, so a column says what it
- * is in both places. It sits hard against the right edge on every column, with the sort chevron
+ * is in both places. Its locked tooltip is about the type and nothing else — it used to say "not
+ * editable from the table", which stopped being true of every locked column when `title` gained a
+ * caret while keeping its padlock. "set by the app" is the wording the picker already uses for the
+ * same fact. It sits hard against the right edge on every column, with the sort chevron
  * inside it — the glyph is on every header and the chevron on one, so the glyph is the mark that
  * lines up down the table and the chevron is the one that moves. Here it is a mark rather than a control: the cell is already a button, and a
  * button may not contain another one. "change type" in the column menu is how it is set from here.
@@ -55,7 +58,7 @@ export function renderTableHeader(current_props) {
             return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}${prop.dead ? ' data-empty' : ''}>` +
                      `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
-                     typeGlyph(prop, 'header-type-glyph', 'not editable from the table') +
+                     typeGlyph(prop, 'header-type-glyph', 'set by the app') +
                    `</button>`;
         })
         .join('');

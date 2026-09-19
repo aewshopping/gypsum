@@ -215,21 +215,44 @@ Two rules, and the second follows from the first. See `plans/completed/table-cel
   their markup — `renderFilename`, `renderOpenFileLink`, `renderTags` — all belong to columns that
   refuse a caret.
 
-**A locked column is locked, and `isPropertyEditable()` is the one question.** It answers whether a
-cell takes a caret, whether the header draws a padlock, whether the type dialog is offered, and
-whether `propertyType()` reads the user's choice at all. So the app owns the type of every property
-it fills in itself — `lastModified` and the other info columns, and `title`, `tags`, `filename`,
-`filepath`, `color` and `internalLink` besides — and no file can change one. Before, a padlocked
-column still let you set its type, which was the same lie from the other side.
+**A locked column's type is locked, and `isTypeSettable()` is that question.** It answers whether
+the header draws a padlock, whether the type dialog is offered, and whether `propertyType()` reads
+the user's choice at all. So the app owns the type of every property it fills in itself —
+`lastModified` and the other info columns, and `title`, `tags`, `filename`, `filepath`, `color` and
+`internalLink` besides — and no file can change one. A padlocked column that still let you set its
+type would be the same lie from the other side.
+
+**Whether a cell takes a caret is the narrower question, `isPropertyEditable()`.** It is
+`isTypeSettable()` plus `title`, and the two came apart for that one column. **`title` is editable
+from the table**: the app fills it in from `# H1` or the note's first line, but a front matter
+`title:` overrides that — `file-info.js` spreads the block over its own answer — so the note already
+has a place for a typed title, and it is the place the writer writes. Nothing else in
+`CORE_FILE_PROPERTIES` works that way: `filename` and `filepath` are the file itself and have
+`editing/rename-file.js`, and `tags` and `color` are read out of body text, so a value spliced into
+front matter is not what the table would then draw.
+
+**So `title` wears a padlock and takes a caret, and that is the accepted cost.** The padlock is drawn
+*on the type glyph*, so it stays with the type; dropping it instead would leave a column with no
+padlock whose type button is greyed out, which is the lie above again. The padlock therefore no
+longer promises that a cell will refuse — what says that, at the moment it matters, is the opened
+cell itself: dashed outline, faded text, no text cursor. The header's locked tooltip says "set by
+the app" for the same reason; it used to say "not editable from the table", which is now false for
+one column.
+
+**A commit that reaches no file still redraws.** Clearing a title the note keeps as its `# H1` finds
+no `title:` key to remove, so nothing is written and the write's own refresh never runs — the cell
+would sit there blank while the note still says otherwise. `cell-edit-commit.js` reads what
+`applyCellEdits` returns and redraws the rows when it is empty. It is also what stops a list retyped
+to the same items keeping the whitespace that was typed.
 
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
-or a `CORE_FILE_PROPERTIES` member. Whether this one *cell* can is `cell-editor.js`, which adds the
-two per-cell questions: whether the value's *shape* fits its column — not merely whether it fits —
+or a `CORE_FILE_PROPERTIES` member other than `title`. Whether this one *cell* can is
+`cell-editor.js`, which adds the two per-cell questions: whether the value's *shape* fits its column — not merely whether it fits —
 and whether the note's front matter read cleanly at all. The first of those is
 `mismatchRefusesCaret()`, in the same service as `isPropertyEditable()`, so one module owns every
-caret-refusal answer. Both the header's lock and the caret ask the column question, which is what
-stops the table promising something the cell then refuses.
+caret-refusal answer. An *unlocked* column always takes a caret, which is what stops the table
+promising something the cell then refuses; the reverse no longer holds, because of `title`.
 
 **Say it before the click, not after.** A locked column's glyph is its type drawing with a padlock
 laid over the corner — one element, so the header spends no more on a locked column than an open
@@ -239,7 +262,7 @@ text cursor. An expanded cell also takes `--colour-contr`: it has swapped to the
 it cannot keep the colour a coloured row forced on it. To make a property
 editable later, add the exception in `isPropertyEditable` — do not take it out of
 `CORE_FILE_PROPERTIES`, which has a second job. The writer is the real work and differs per property:
-a title is body text, while a filename and a filepath already have `editing/rename-file.js`.
+a filename and a filepath already have `editing/rename-file.js`.
 
 **Selection follows focus, and that is the whole rule.** The selected cell is the cell focus is in;
 one `focusin` handler in `cell-expand.js` marks it and lets every other cell go, and letting go

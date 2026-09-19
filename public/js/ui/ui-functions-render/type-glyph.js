@@ -1,5 +1,5 @@
 import { INFO_TYPE } from '../../constants.js';
-import { isInfoColumn, isPropertyEditable } from '../../services/property-type.js';
+import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 
 /**
  * @file The mark a column wears to say what it holds, and whether the app owns it.
@@ -44,9 +44,13 @@ const LOCK_SHIFT = {
  * widen 20px to hold them. The type drawing is never scaled, so the mark measures the same on a
  * locked column as on an open one.
  *
- * The locked question is `isPropertyEditable()`, the same one cell-editor.js asks before giving a
- * caret and the same one the picker asks before offering the type dialog, so the mark and the
- * behaviour cannot drift apart.
+ * The locked question is `isTypeSettable()`, the same one the picker and the column menu ask before
+ * offering the type dialog, so the mark and what it is about cannot drift apart.
+ *
+ * **It is not the same question as the caret.** It was until `title` became editable from the table:
+ * the padlock stayed with the type, because the type is what it is drawn on, so `title` wears one and
+ * still takes a caret. What warns you about a caret is the cell itself on opening — a dashed outline,
+ * faded text and no text cursor.
  *
  * The type `<use>` comes first because column-type-set.js redraws the glyph with
  * `querySelector('.type-glyph use')` — the drawing is what changes, and the padlock never does. It
@@ -67,7 +71,7 @@ export function typeGlyph(column, className, lockedTip = '') {
     const glyph = isInfoColumn(column.name) ? INFO_TYPE.value : column.type;
     const open = `<svg class="type-glyph ${className}" viewBox="0 0 50 50" aria-hidden="true"`;
 
-    if (isPropertyEditable(column.name)) {
+    if (isTypeSettable(column.name)) {
         return `${open}><use href="#icon-type-${glyph}"></use></svg>`;
     }
 

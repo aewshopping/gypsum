@@ -832,8 +832,9 @@ test('the selection follows the arrow keys, and Enter opens where you are', asyn
 test('arrowing away from an open cell closes it', async ({ page }) => {
   await openTable(page);
 
-  // a locked cell opens to be read and keeps the arrow keys, having no caret to give them to
-  const locked = cellFor(page, 'Alpha', 'title');
+  // a read-only cell opens to be read and keeps the arrow keys, having no caret to give them to.
+  // filename rather than title, which now takes a caret: the file itself is not editable from here.
+  const locked = cellFor(page, 'Alpha', 'filename');
   await open(locked);
   await expect(locked).toHaveClass(/is-expanded/);
 

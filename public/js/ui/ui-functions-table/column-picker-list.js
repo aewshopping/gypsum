@@ -1,6 +1,6 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
-import { isInfoColumn, isPropertyEditable } from '../../services/property-type.js';
+import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 import { typeGlyph } from '../ui-functions-render/type-glyph.js';
 import { resolveColumns } from './render-table-columns-helper.js';
 
@@ -78,7 +78,7 @@ export function renderColumnPickerList() {
         // two keep their type in the tooltip, because it is still what the column sorts by.
         const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(column.name);
         const isInfo = isInfoColumn(column.name);
-        const noType = !isPropertyEditable(column.name);
+        const noType = !isTypeSettable(column.name);
         const typeLabel = labelFor(VALUE_TYPES, column.type);
         const spelledOut = column.type === VALUE_TYPES.ARRAY.value
             ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`

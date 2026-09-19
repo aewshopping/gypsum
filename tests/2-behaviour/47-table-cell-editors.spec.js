@@ -184,15 +184,32 @@ test('a list cell is one comma-joined line, open and closed', async ({ page }) =
 
 // ---------------------------------------------------------------- what refuses a caret
 
+// filename rather than title: title used to be the exemplar here and is now editable, since a note
+// can override it from front matter and that is where a cell edit writes. A filename is the file
+// itself, so the table has nowhere to put a typed one — renaming is editing/rename-file.js's job.
 test('a property that cannot be written back takes no caret', async ({ page }) => {
   await openTable(page);
 
-  const title = cellFor(page, 'Alpha', 'title');
-  await open(title);
-  await expect(title).toHaveClass(/is-expanded/);                    // it still opens to be read
-  await expect(title).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
+  const filename = cellFor(page, 'Alpha', 'filename');
+  await open(filename);
+  await expect(filename).toHaveClass(/is-expanded/);                    // it still opens to be read
+  await expect(filename).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
   // and says nothing about it: nothing is wrong, and there is nothing to do about it
-  expect(await title.evaluate(el => getComputedStyle(el, '::after').content)).toBe('none');
+  expect(await filename.evaluate(el => getComputedStyle(el, '::after').content)).toBe('none');
+});
+
+test('the title takes a caret, although its column is locked', async ({ page }) => {
+  await openTable(page);
+
+  // The one column where the padlock and the caret part company. The padlock is drawn on the type
+  // glyph and says the type is the app's, which it still is; the caret is a separate question, and
+  // for title the answer is yes because a front matter `title:` overrides the note's own `# H1`.
+  const title = cellFor(page, 'Alpha', 'title');
+  await expect(page.locator('.note-table-cell-header[data-property="title"] .type-glyph use[href="#icon-lock-badge"]'))
+    .toHaveCount(1);
+
+  await open(title);
+  await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
 });
 
 // ---------------------------------------------------------------- Enter
@@ -221,10 +238,13 @@ test('Enter finishes with a cell, whatever the column holds', async ({ page }) =
 
 // ---------------------------------------------------------------- the lock
 
-// Asserted as a rule rather than against a list of columns, so it keeps its meaning when one of
-// these becomes editable: the header's lock and the cell's caret are one decision in one place
-// (isPropertyEditable), and this is what catches them drifting apart.
-test('a column wears a lock exactly when its cells take no caret', async ({ page }) => {
+// One direction only, and deliberately so. The lock and the caret were one decision until `title`
+// became editable; now the padlock is about the type (isTypeSettable) and the caret is its own
+// question (isPropertyEditable), so a locked column may or may not take one — title does, every
+// other locked column does not. What must never happen is the table promising more than the cell
+// gives, so what is asserted is that an *open* column always takes a caret. The title's own case is
+// covered by name above, being the single exception.
+test('a column with no lock always takes a caret', async ({ page }) => {
   await openTable(page);
 
   // internalId is left out because its cell is an open-file link rather than a value at all, so
@@ -243,7 +263,7 @@ test('a column wears a lock exactly when its cells take no caret', async ({ page
 
     const caret = await cell.evaluate(el =>
       el.hasAttribute('contenteditable') || !!el.querySelector('[contenteditable]'));
-    expect(caret, `${property}: lock says ${locked}, caret says ${caret}`).toBe(!locked);
+    if (!locked) expect(caret, `${property}: no lock, but the cell refused a caret`).toBe(true);
 
     await page.keyboard.press('Escape');
   }

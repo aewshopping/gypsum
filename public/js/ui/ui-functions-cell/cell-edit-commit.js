@@ -1,6 +1,7 @@
 import { applyCellEdits } from '../../editing/save-cell-edit.js';
 import { markUndoState } from '../ui-functions-table/render-table-controls.js';
 import { holdRowMove } from '../ui-functions-table/pending-row-move.js';
+import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /**
  * @file Someone has finished editing a cell.
@@ -26,6 +27,13 @@ import { holdRowMove } from '../ui-functions-table/pending-row-move.js';
  * Nothing waits for the write. The table is redrawn from the file when it lands, which is the
  * existing display path; a failure past this point is the File System API's, so it is reported.
  *
+ * **A commit that reached no file still has to redraw.** The text changed, so the screen now says
+ * something the note does not, and the write's own refresh only runs when a file was written. The
+ * case that brought this up is clearing a title the note keeps as its `# H1`: there is no `title:`
+ * key to remove, so nothing is written and the cell would sit there blank. A list retyped to the
+ * same items does the same thing more quietly. Rows only, and the page is kept — the pair
+ * refreshFilesNow uses, and the columns cannot have changed when nothing was written.
+ *
  * **The undo button is lit from here**, once the write has landed and pushed its batch. It is a
  * question about the DOM, so it belongs on this side of the layer rather than in the write — and the
  * write's own re-render replaces the rows only, so nothing else would have redrawn the control row.
@@ -49,7 +57,12 @@ export function commitCellEdit(cell) {
         property: cell.dataset.prop,
         text: cell.textContent,
     }], { resort: false })
-        .then(() => {
+        .then(records => {
+            // Neither of the two below applies to a write that did not happen: there is no undo
+            // batch to light the button for, and the file's modified time has not moved, so the row
+            // is not waiting to go anywhere.
+            if (records.length === 0) return renderFiles(false, true);
+
             markUndoState();
             holdRowMove(internalId);
         })

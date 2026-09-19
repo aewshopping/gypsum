@@ -26,7 +26,7 @@ import { applySortAndRender } from './sort-object.js';
 import { openColumnTypeDialog } from './column-type-set.js';
 import { deleteColumnFromLayout } from './column-delete.js';
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
-import { isPropertyEditable, setPropertyType, propertyType } from '../../services/property-type.js';
+import { isTypeSettable, setPropertyType, propertyType } from '../../services/property-type.js';
 import { VALUE_TYPES } from '../../constants.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
@@ -151,10 +151,11 @@ export function handleColumnMenuOpen(evt, headerCell) {
     //
     // A column the app fills in itself loses only its type — sorting by size or by last modified is
     // the whole point of having them, so those two items stay live. That is every locked column,
-    // not only the info ones: isPropertyEditable is the same question the header's padlock asks, so
-    // a column drawn as locked is a column with no type to set.
+    // not only the info ones: isTypeSettable is the same question the header's padlock asks, so
+    // a column drawn as locked is a column with no type to set. It says nothing about the caret,
+    // which `title` takes despite its padlock.
     const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(property);
-    const noType = !isPropertyEditable(property);
+    const noType = !isTypeSettable(property);
 
     for (const action of ['column-sort-asc', 'column-sort-desc', 'column-search']) {
         const item = menu.querySelector(`[data-action="${action}"]`);
