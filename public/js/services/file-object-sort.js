@@ -1,19 +1,25 @@
 // javascript
 import { appState } from './store.js';
 import { isDateType } from '../constants.js';
+import { readsAsDate } from './property-type.js';
 
 /**
  * Converts a date string into a numerical timestamp.
+ *
+ * **What counts as a date is readsAsDate()'s answer, not this function's.** It used to guard only
+ * null, undefined and '' and then trust `new Date()`, which coerces — so `date: false` sorted as
+ * the epoch and `date: 2026` as two seconds after it, both of them ahead of every real date in an
+ * ascending sort. Asking the same predicate the cell asks is what keeps a value the table marks
+ * "not a date" from being ordered as one.
+ *
+ * NaN is what isMissing() already tests for on a date type, so an unreadable value goes to the end
+ * beside `due: quite soon`, which always did.
+ *
  * @param {string | Date} dateValue The date string or Date object to convert.
  * @returns {number} The numerical timestamp (milliseconds since epoch) or NaN if invalid.
  */
 function getTimestamp(dateValue) {
-    if (dateValue === null || dateValue === undefined || dateValue === '') {
-        // Treat empty string ('') as missing data for dates
-        return NaN;
-    }
-    // Date constructor handles the parsing; getTime() returns milliseconds or NaN if invalid.
-    return new Date(dateValue).getTime();
+    return readsAsDate(dateValue) ? new Date(dateValue).getTime() : NaN;
 }
 
 /**
