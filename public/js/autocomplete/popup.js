@@ -40,7 +40,7 @@ function _buildItems(popup, items, query, onSelect) {
  * Creates the autocomplete popup, appends it to parentEl, and anchors it via CSS.
  * @param {string[]} items - Strings to display: tags, note names, or a note to create.
  * @param {HTMLElement} parentEl - Dialog element (editor) or document.body (searchbox).
- * @param {string} anchorName - CSS anchor name, e.g. '--ac-picker-editor'.
+ * @param {string} anchorName - CSS anchor name, e.g. '--ac-picker-caret'.
  * @param {function(string): void} onSelect - Called with the chosen item on click.
  * @param {string} query - The active search query, used to bold the matching substring.
  * @returns {HTMLElement}

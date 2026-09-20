@@ -986,3 +986,32 @@ test('an edit beside a link leaves the link as the note wrote it', async ({ page
   expect(after).toContain('"[[alpha.md]]"');
   expect(after).toContain('"[[gamma.md]]"');
 });
+
+// A link completed from the picker is inserted by execCommand and a backward Selection.modify, so
+// the characters that reach the note depend on an extend count being exactly right. An off-by-one
+// there eats a bracket or a letter of the value beside it, and only the bytes on disk show it.
+test('a link completed from the picker reaches the note intact', async ({ page }) => {
+  await openTable(page, { 'linked.md': '---\nref: see\n---\n# Linked\n\n' });
+
+  const cell = cellFor(page, 'Linked', 'ref');
+  await openFromKeyboard(page, cell);
+  await page.keyboard.press('End');
+  await page.keyboard.type(' [[alph');
+
+  await expect(page.locator('.ac-picker-popup')).toBeVisible();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await expect(cell).toHaveText('see [[alpha.md]]');
+
+  await commit(page);
+  // Quoted because the value holds a '[' — needsQuoting's breaksBlock rule. The point of the test
+  // is the characters between the quotes.
+  // Bare, and rightly: breaksBlock quotes a value that *starts* with '[', and this one starts with
+  // 's'. A plain scalar is what YAML reads it back as, which is what makes the link survive.
+  await expect.poll(() => fileText(page, 'linked.md')).toContain('ref: see [[alpha.md]]');
+
+  // And the round trip that matters: the re-read found a real link, not just the right characters.
+  await expect.poll(() => page.evaluate(() =>
+    window.appState.myFiles.find(f => f.internalId === 'linked.md')?.internalLink ?? []
+  )).toContain('alpha.md');
+});

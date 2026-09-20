@@ -118,3 +118,28 @@ test.describe('creating a note from an unresolved internal link', () => {
   });
 
 });
+
+// A keystroke in a table cell must never reach the filesystem. It cannot today, because
+// detectCreateOffer is gated on appState.editState and on the caret being inside the editor's own
+// element, and a cell satisfies neither — so this costs no code and is guarded only by this test.
+test('Enter after an unresolved link in a table cell creates nothing', async ({ page }) => {
+  await setupMockDirectoryWithNoteCreation(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  const before = await createdFiles(page);
+
+  const cell = page.locator('.list-table .note-table-cell[data-prop="title"]').first();
+  await cell.focus();
+  await page.keyboard.press('Enter');
+  await expect(cell).toHaveClass(/is-expanded/);
+  await page.keyboard.press('End');
+  await page.keyboard.type(' [[brand new]]');
+
+  // The Enter that offers to create a note in the editor. Here it just finishes with the cell.
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.ac-picker-popup')).not.toBeVisible();
+  expect(await createdFiles(page)).toEqual(before);
+});

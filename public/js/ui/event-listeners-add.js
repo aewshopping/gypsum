@@ -63,7 +63,7 @@ import {
 } from './ui-functions-click/font-settings.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
 import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
-import { handleSearchboxAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
+import { handleSearchboxAutocomplete, handleCellAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, handleLayoutSave,
          handleLayoutPickerOpen,
@@ -280,6 +280,9 @@ const keyUpActionHandlers = {
 const inputActionHandlers = {
     'file-content-edit': handleFileContentInput,
     'search-files': handleSearchboxAutocomplete,
+    // The cell is the element carrying data-action, so its input events land here — the same
+    // arrangement 'search-files' has, which is in this map and in keyUpActionHandlers.
+    'expand-cell': handleCellAutocomplete,
 };
 
 /**

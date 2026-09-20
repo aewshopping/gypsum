@@ -314,6 +314,40 @@ matter the first time anyone opened that cell and clicked away.
   the cell around it cannot disagree about which press this is. A press the app made itself carries
   `detail === 0` and follows at once. Links in a rendered note are untouched: no cell, one click.
 
+**The note picker works in a cell, and `[[` is what opens it.** `handleCellAutocomplete` in
+`autocomplete/autocomplete.js` is a sibling of the editor's and the searchbox's, sharing the one
+popup session those two already share — the module's variables are private to it, so there is no
+core left to extract and no third concept to learn. A cell completes when its column is text or
+list (`cellOffersPicker`); a date cell has its own picker and a note name means nothing in a number
+column.
+
+- **The popup lives in `document.body`, never in the cell.** The commit writes the cell's whole
+  `textContent`, and `openEditor` flattens every element out of an editable cell — so a popup
+  inside one would be written into the note or destroyed, depending on which happened first.
+  `.table-wrapper`'s `container-type: inline-size` rules out the table as well: it makes the
+  wrapper a containing block for the popup's `position: fixed`.
+- **`#ac-proxy` moved to the body with it**, and had to. It used to sit inside `#file-content-modal`,
+  and a closed `<dialog>` is `display: none` — an element generating no box cannot anchor anything,
+  so with the table showing every `anchor()` and every `@position-try` fallback would have failed
+  silently. The editor's popup still lives *inside* the dialog, because `showModal()` makes
+  everything outside inert; shared anchor, different parents, and that asymmetry is deliberate.
+- **Nothing here can create a note.** `detectCreateOffer` is gated on `appState.editState` and on
+  the caret being inside the editor's own element, so the Enter that offers to create one is
+  unreachable from a cell — at no cost, and guarded by a test in `tests/1-data/33-create-linked-note.spec.js`
+  because it holds by accident rather than by intent.
+- **The keys need no arrangement of their own.** `keyDownDelegate` already runs
+  `handleAutocompleteKeydown` first, so an open popup takes Escape, Enter, Tab and Up/Down before
+  the cell's handlers see them — which is "Escape steps back one level at a time", already general.
+  One thing did have to change: Enter with a popup open and no item active used to fall through, and
+  a cell's Enter is `preventDefault`ed, so no `input` event followed to clean up and the popup was
+  left anchored to a cell that had just collapsed.
+- **A different column wanting a different picker is two lines, not a mechanism.** The seam is not
+  "which picker" but *what is being completed at the caret* — for a link that is the `[[` token, and
+  for a tags cell it would be the item the caret is in, since a column where every item is a tag has
+  no non-tag text to protect. Those two lines (the detector and the list) sit adjacent in
+  `handleCellAutocomplete`. `itemRangesIn()` already knows where an item begins. Do not build a
+  registry for it.
+
 **A locked column's type is locked, and `isTypeSettable()` is that question.** It answers whether
 the header draws a padlock, whether the type dialog is offered, and whether `propertyType()` reads
 the user's choice at all. So the app owns the type of every property it fills in itself —
@@ -604,6 +638,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
+| `public/js/autocomplete/` | The completion popup: one session, three hosts — the editor, a table cell, the searchbox |
 | `public/js/ui/ui-functions-render/render-internal-link.js` | A `[[link]]` as HTML: the anchor, and the scan that finds them in a value |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
