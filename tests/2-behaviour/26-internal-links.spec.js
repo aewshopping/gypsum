@@ -341,3 +341,73 @@ test.describe('internal links — in table cells', () => {
     await expect(cell.locator('.internal-link[data-unresolved="true"]')).toHaveText('does-not-exist.md');
   });
 });
+
+// Opening a cell takes its anchors down — see cell-editor.js — and the render that follows closing
+// it is what puts them back. A cell that was opened and not typed in writes nothing, so for a while
+// no render followed and the links simply stopped being links until something else redrew the table.
+test.describe('internal links — a cell opened and left alone', () => {
+
+  async function openTable(page) {
+    await page.setViewportSize({ width: 1500, height: 800 });
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await page.selectOption('#view-select', 'table');
+    await expect(page.locator('.note-table-header')).toBeVisible();
+  }
+
+  const rowFor = (page, title) => page.locator('.note-table').filter({ hasText: title }).first();
+  const cellFor = (page, title, prop) => rowFor(page, title).locator(`.note-table-cell[data-prop="${prop}"]`);
+  const linkCell = (page) => cellFor(page, 'Front Matter Links', 'related');
+
+  /** Opens a cell from the keyboard: a link can cover every pixel of its cell's text. */
+  async function openUntouched(page, cell) {
+    await cell.focus();
+    await page.keyboard.press('Enter');
+    await expect(cell).toHaveClass(/is-expanded/);
+    await expect(cell.locator('a.internal-link')).toHaveCount(0);   // flattened, as it must be
+  }
+
+  test('Enter on an untouched cell leaves its link a link', async ({ page }) => {
+    await openTable(page);
+    const cell = linkCell(page);
+    await openUntouched(page, cell);
+
+    await page.keyboard.press('Enter');
+    await expect(cell).not.toHaveClass(/is-expanded/);
+    await expect(cell.locator('a.internal-link')).toHaveText('[[shopping.txt]]');
+
+    // and the cell is still the one a press would reopen
+    await expect(cell).toHaveClass(/is-selected/);
+    await expect(cell).toBeFocused();
+  });
+
+  test('Escape on an untouched cell leaves its link a link', async ({ page }) => {
+    await openTable(page);
+    const cell = linkCell(page);
+    await openUntouched(page, cell);
+
+    await page.keyboard.press('Escape');
+    await expect(cell).not.toHaveClass(/is-expanded/);
+    await expect(cell.locator('a.internal-link')).toHaveText('[[shopping.txt]]');
+    await expect(cell).toHaveClass(/is-selected/);
+    await expect(cell).toBeFocused();
+  });
+
+  test('clicking another cell leaves the link a link, and marks the cell clicked', async ({ page }) => {
+    await openTable(page);
+    const cell = linkCell(page);
+    await openUntouched(page, cell);
+
+    const other = cellFor(page, 'Front Matter Links', 'title');
+    await other.click();
+
+    await expect(cell).not.toHaveClass(/is-expanded/);
+    await expect(cell.locator('a.internal-link')).toHaveText('[[shopping.txt]]');
+
+    // the render happens while handleCellFocusIn is still running — the cell that was clicked must
+    // still end up the selected one
+    await expect(other).toHaveClass(/is-selected/);
+    await expect(cell).not.toHaveClass(/is-selected/);
+  });
+});

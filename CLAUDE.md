@@ -292,6 +292,14 @@ matter the first time anyone opened that cell and clicked away.
   for — `plaintext-only`, `itemRangesIn`'s marks, `handleListCellInput`'s search for this cell's
   ranges, and the commit. A cell that refuses a caret keeps its anchors: a link in a locked or
   mismatched cell is still worth clicking.
+- **What puts them back is the render that follows every close, and that is why closing a cell
+  always redraws.** `commitCellEdit` runs `renderFiles(false, true)` when the cell was opened and
+  not typed in, as well as when an edit reached no file — see *Writing a cell edit back to the
+  note*. Without it a cell opened and left alone stayed flattened, and its links were dead text
+  until a sort, a filter or a view switch happened to redraw the table. The flatten therefore has
+  no inverse and needs none, which is what makes it general: it is asked of any element rather than
+  of `.internal-link`, so **a column whose cells draw markup and take a caret is covered without
+  doing anything of its own** — `tags`, if its pills ever become editable.
 - **`itemRangesIn()` can no longer assume one text node**, because an anchor splits the line. It
   gathers the text nodes, joins them, and maps each end of an item back to the node it fell in.
 - **The `internalLink` column draws anchors with no brackets**, and may: it holds targets the app
@@ -355,11 +363,15 @@ rather than the file.** One Ctrl+Z in the note modal takes the colour back, whic
 could not offer. One `insertText` covers every shape the splice can be, `''` included — that deletes
 the selection, which is how clearing a key works.
 
-**A commit that reaches no file still redraws.** Clearing a title the note keeps as its `# H1` finds
-no `title:` key to remove, so nothing is written and the write's own refresh never runs — the cell
-would sit there blank while the note still says otherwise. `cell-edit-commit.js` reads what
+**Closing a cell always redraws, whether or not anything was written.** The write's own refresh only
+runs when a file was written, and there are two ways a close reaches no file. Clearing a title the
+note keeps as its `# H1` finds no `title:` key to remove, so nothing is written and the cell would
+sit there blank while the note still says otherwise — `cell-edit-commit.js` reads what
 `applyCellEdits` returns and redraws the rows when it is empty. It is also what stops a list retyped
-to the same items keeping the whitespace that was typed.
+to the same items keeping the whitespace that was typed. And a cell that was *opened and not typed
+in* redraws for a different reason: opening one takes down whatever markup its renderer drew, so
+without the redraw a cell holding `[[links]]` came back as dead text — see *What a table cell may
+contain*. The redraw belongs to closing rather than to writing, which is what makes it cover both.
 
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column

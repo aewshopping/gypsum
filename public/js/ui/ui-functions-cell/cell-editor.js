@@ -70,17 +70,24 @@ export function openEditor(cell) {
         return;
     }
 
-    // A closed cell draws its [[links]] as anchors around the note's own characters — see
-    // render-internal-link.js. Assigning textContent back to itself collapses them into the one
-    // text node the cell had before they existed, which is not a trick so much as the whole reason
-    // the anchors wrap the brackets: the characters are identical either side of this line, so
-    // nothing below it can tell that the cell was ever anchored. Everything that reaches into an
-    // open cell gets the shape it was written for — the caret, plaintext-only, itemRangesIn's marks
-    // and handleListCellInput's search for the ranges belonging to this cell.
+    // An editable cell holds nothing but escaped text once it is open, and this is the line that
+    // makes that true. A closed one may hold markup its renderer drew — today the anchors
+    // render-internal-link.js wraps round a value's [[links]] — and assigning textContent back to
+    // itself collapses all of it into the one text node the cell had before. The characters are
+    // identical either side of this line, which for the anchors is not luck but the whole reason
+    // they wrap the brackets rather than replace them. Everything reaching into an open cell then
+    // gets the shape it was written for: the caret, plaintext-only, itemRangesIn's marks, and
+    // handleListCellInput's search for the ranges belonging to this cell.
     //
-    // A cell that refuses a caret has already returned above, and keeps its anchors: a link in a
-    // locked or mismatched cell is still worth being able to click.
-    if (cell.querySelector('.internal-link')) cell.textContent = cell.textContent;
+    // **What puts the markup back is the render that follows every close**, which
+    // cell-edit-commit.js runs whether or not anything was written. So this takes down markup it
+    // has no inverse for, and a column that draws markup in an editable cell needs nothing of its
+    // own — tags, if their pills ever take a caret.
+    //
+    // Asked of any element rather than of `.internal-link` for that same reason: the rule is about
+    // what a caret may land in, not about links. A cell that refuses a caret has already returned
+    // above and keeps its markup — a link in a locked or mismatched cell is still worth clicking.
+    if (cell.firstElementChild) cell.textContent = cell.textContent;
 
     // What the cell opened with, for the commit to compare against. On the cell because that is
     // where a fact about that cell lives, and beside the decision this function already makes about
