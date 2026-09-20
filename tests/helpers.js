@@ -673,6 +673,43 @@ async function setupMockFilesBrokenYaml(page) {
  *
  * @param {import('@playwright/test').Page} page
  */
+/**
+ * Injects a mock picker whose notes carry a `tags` key holding something that is not a tag.
+ *
+ * Its own helper rather than three more files in setupMockFilesYamlShapes, whose contents existing
+ * tests count and assert on.
+ *
+ * `tags: false` and `tags: null` are the cases a truthiness guard skipped: the guard wrapped the
+ * `delete yamlData.tags` as well as the merge, so the key survived into the spread and `file.tags`
+ * held a boolean where every view expects the TagMap. A bare `tags:` is the control — the parser
+ * emits no key at all for it, so it was never able to break.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockFilesFalsyTags(page) {
+  await page.addInitScript(() => {
+    window.showDirectoryPicker = async () => {
+      const makeFile = (name, content) => ({
+        kind: 'file', name,
+        getFile: async () => ({
+          name,
+          size: content.length,
+          lastModified: Date.now(),
+          text: async () => content,
+        }),
+      });
+      return {
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield makeFile('false-tags.md', '---\ntags: false\n---\n\n# False\n\nBody text.');
+          yield makeFile('null-tags.md', '---\ntags: null\n---\n\n# Null\n\nBody text.');
+          yield makeFile('bare-tags.md', '---\ntags:\n---\n\n# Bare\n\nBody #real');
+        },
+      };
+    };
+  });
+}
+
 async function setupMockFilesYamlShapes(page) {
   await page.addInitScript(() => {
     window.showDirectoryPicker = async () => {
@@ -1042,4 +1079,4 @@ async function setupMockDirectoryWithLayouts(page, { longProp = false } = {}) {
   }, longProp);
 }
 
-module.exports = { loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };
+module.exports = { loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };

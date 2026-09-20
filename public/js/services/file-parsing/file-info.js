@@ -43,9 +43,19 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
 
     // Merge YAML tags into the TagMap as orphan tags, then remove from yamlData
     // to prevent the spread from overwriting the TagMap with a plain array.
-    if (yamlData.tags) {
+    //
+    // **`in` rather than truthiness, and the delete below is why.** `tags: false`, `tags: 0` and
+    // `tags: null` are keys the note carries, and a falsy guard skipped the delete along with the
+    // merge — so the spread put a boolean over the TagMap and every view that calls
+    // `file.tags.keys()` threw. The table row builder happened to be guarded; the list and the
+    // grid were not. A bare `tags:` is safe either way: the parser emits no key at all for it.
+    if ('tags' in yamlData) {
         const yamlTags = Array.isArray(yamlData.tags) ? yamlData.tags : [yamlData.tags];
         for (const yamlTag of yamlTags) {
+            // null is missing everywhere else in the app, so it is not a tag either. `false` is a
+            // value, and becomes the tag "false" the same way `123` becomes "123" — one sentence
+            // for the rule rather than a list of shapes that do and do not count.
+            if (yamlTag === null || yamlTag === undefined) continue;
             const lowerTag = String(yamlTag).toLowerCase().trim();
             if (lowerTag && !tagData.tagMap.has(lowerTag)) {
                 tagData.tagMap.set(lowerTag, { count: 1, parents: new Set() });

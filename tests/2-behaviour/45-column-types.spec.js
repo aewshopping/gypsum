@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, appModule } = require('../helpers');
 
 // Four front matter keys the app knows nothing about, chosen for what they catch:
 // `published` and `revisions` hold false and 0, which the cell renderer used to throw away;
@@ -62,6 +62,70 @@ test('a front matter key holding false or 0 reaches its cell', async ({ page }) 
   await expect(rowFor(page, 'Alpha')).toContainText('0');
   await expect(rowFor(page, 'Beta')).toContainText('true');
   await expect(rowFor(page, 'Beta')).toContainText('12');
+});
+
+// The same trap, one branch along. `new Date()` coerces what it is handed, so `new Date(false)` is
+// the epoch and `new Date(true)` is a millisecond after it — both valid Dates. typeMismatch()
+// therefore called a boolean a readable date, the cell skipped the raw-text path a mismatch takes,
+// and renderDate's `if (!value)` blanked the false one while the true one drew its word. A column
+// cannot be allowed to hide a value and give no reason for it.
+test('a boolean in a date column shows its text, marked as not a date', async ({ page }) => {
+  await openTable(page);
+
+  await openPicker(page);
+  await pickerRow(page, 'published').locator('.column-picker-type').click();
+  await typeOption(page, 'date').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  const cell = title => rowFor(page, title).locator('.note-table-cell[data-prop="published"]');
+
+  await expect(cell('Alpha')).toHaveText('false');
+  await expect(cell('Alpha')).toHaveAttribute('data-mismatch', 'unreadable');
+  await expect(cell('Alpha')).toHaveAttribute('data-tip', 'not a date');
+
+  await expect(cell('Beta')).toHaveText('true');
+  await expect(cell('Beta')).toHaveAttribute('data-mismatch', 'unreadable');
+});
+
+// A bare number is the same coercion from the other side: `new Date(2026)` is two seconds past the
+// epoch. Quoting is still the way to mean the year, because `new Date("2026")` is a date — the same
+// asymmetry readsAsNumber already has in reverse.
+test('a bare number in a date column is not a date', async ({ page }) => {
+  await openTable(page);
+
+  await openPicker(page);
+  await pickerRow(page, 'revisions').locator('.column-picker-type').click();
+  await typeOption(page, 'date').click();
+  await page.keyboard.press('Escape');
+  await closePicker(page);
+
+  const cell = title => rowFor(page, title).locator('.note-table-cell[data-prop="revisions"]');
+  await expect(cell('Alpha')).toHaveText('0');
+  await expect(cell('Alpha')).toHaveAttribute('data-mismatch', 'unreadable');
+  await expect(cell('Beta')).toHaveAttribute('data-mismatch', 'unreadable');
+});
+
+// The other half of the same predicate, and the reason it is exported rather than private to
+// property-type.js: a value the cell marks "not a date" must not then be ordered as one. These
+// sorted to the front of an ascending column because getTimestamp trusted `new Date()` too —
+// `false` and `0` as the epoch, `2026` two seconds after it, all of them before any real date.
+// No browser: a comparator is a pure function.
+test('an unreadable date sorts to the end, not to 1970', async () => {
+  const { compareByProperty } = await appModule('services/file-object-sort.js');
+
+  const rows = [
+    { d: false }, { d: '2026-03-01' }, { d: 2026 }, { d: '2020-01-01' }, { d: 'quite soon' },
+  ];
+  const order = list => list.map(row => JSON.stringify(row.d)).join(' ');
+
+  expect(order([...rows].sort(compareByProperty('d', 'date', 'asc'))))
+    .toBe('"2020-01-01" "2026-03-01" false 2026 "quite soon"');
+
+  // Reversing the column reverses the readable dates and leaves the unreadable ones at the end,
+  // which is what the comparator already promises for a missing value.
+  expect(order([...rows].sort(compareByProperty('d', 'date', 'desc'))))
+    .toBe('"2026-03-01" "2020-01-01" false 2026 "quite soon"');
 });
 
 // A dialog rather than a menu, so that it can be reached from a header cell that opens one menu

@@ -166,7 +166,7 @@ export function typeMismatch(value, type) {
     const isList = value instanceof Map || Array.isArray(value);
     if (isList !== (type === VALUE_TYPES.ARRAY.value)) return 'shape';
 
-    if (isDateType(type) && isNaN(new Date(value))) return 'unreadable';
+    if (isDateType(type) && !readsAsDate(value)) return 'unreadable';
     if (type === VALUE_TYPES.NUMBER.value && !readsAsNumber(value)) return 'unreadable';
 
     return null;
@@ -203,6 +203,29 @@ export function mismatchRefusesCaret(mismatch) {
 function readsAsNumber(value) {
     if (typeof value === 'number') return !isNaN(value);
     return typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value));
+}
+
+/**
+ * Whether a value is a moment in time, or text that is one. The date half of readsAsNumber above,
+ * and it exists for the same reason: `new Date()` coerces what it is handed, so `new Date(false)`
+ * is the epoch and `new Date(2026)` is two seconds after it. Both are valid Dates, so asking
+ * `isNaN(new Date(value))` called a boolean and a bare number readable dates — and a date column
+ * holding one was neither drawn as a date nor marked as wrong.
+ *
+ * A Date object is accepted because `lastModified` is one, and it is the only date the app owns.
+ * Every date that came from a note is a string: `readValue` keeps a number only when `String(n)`
+ * is the text again, and `2026-03-01` is not. So `date: "2026"` reads as a date and `date: 2026`
+ * does not, which is the same asymmetry readsAsNumber already has in the other direction.
+ *
+ * Exported because file-object-sort.js asks it too — a value the cell calls unreadable must not
+ * then sort as though it were the epoch.
+ *
+ * @param {*} value
+ * @returns {boolean}
+ */
+export function readsAsDate(value) {
+    if (value instanceof Date) return !isNaN(value);
+    return typeof value === 'string' && value.trim() !== '' && !isNaN(new Date(value));
 }
 
 /**
