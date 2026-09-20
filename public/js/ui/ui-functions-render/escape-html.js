@@ -14,6 +14,12 @@
  * quoted attribute value. The quote is escaped as well as the angle brackets, so one function
  * serves both positions and no caller has to work out which one it is in.
  *
+ * **"'" is deliberately left alone**, and must stay that way: `&#39;` contains a '#', and tagParser
+ * runs over the output of everything that reaches a note's body — render-internal-link.js among
+ * them — and would read that entity as a tag. See the note in parse-content.js. A bare "'" is
+ * harmless both in text and inside a double-quoted attribute, which is the only position this
+ * function is used in.
+ *
  * @param {string} value - The raw string to escape.
  * @returns {string} The escaped string.
  */

@@ -99,6 +99,25 @@ export function handleCellPointerDown(evt) {
 }
 
 /**
+ * Whether the press that led to this click landed on a cell that was already selected.
+ *
+ * **The same answer the cell itself opens on, asked by the links inside it.** A cell's content is
+ * live on the second press, not the first, which is the rule this file exists to keep — and a
+ * [[link]] in a front matter cell has to obey it or there is no way left to edit that cell. A cell
+ * holding one link is the link, end to end: a first press that followed it would put the note on
+ * screen every time someone meant to correct a typo, with no part of the cell left to aim at.
+ *
+ * Exported rather than re-derived in internal-link-click.js because the answer stops existing once
+ * the press has moved focus — by the time the click arrives, the first press of the cycle looks
+ * exactly like the second.
+ *
+ * @returns {boolean}
+ */
+export function pressWasOnSelectedCell() {
+    return pressedFocusedCell;
+}
+
+/**
  * Finishes with the cell that is open, leaving it selected and focused.
  *
  * **That is the state one click puts a cell in**, which is what makes the way out match the way in:

@@ -23,24 +23,56 @@ import { flowItemRanges } from '../../services/file-parsing/flow-list.js';
 const NAME = 'list-item';
 
 /**
+ * Every text node under an element, in document order.
+ *
+ * @param {HTMLElement} element
+ * @returns {Text[]}
+ */
+function textNodesIn(element) {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node);
+    return nodes;
+}
+
+/**
  * One Range per item in a cell.
  *
  * Exported because marking the items is not the only thing that needs to know where they are:
  * auto-sizing a list column measures the widest one — see table-col-auto-size.js. Both ask here, so
  * neither has its own idea of where an item begins.
  *
+ * **A closed cell is no longer one text node.** It was until a `[[link]]` in a value started
+ * wearing an anchor, which splits the line into a run of text nodes and elements — and reading
+ * `cell.firstChild.nodeValue` off one of those gives null, not the line. So the text nodes are
+ * gathered and joined, an item is found in the joined text exactly as before, and each end is
+ * mapped back to the node it fell in. A Range spanning several nodes marks and measures the same as
+ * one inside a single node, so neither caller has to know which kind it was handed.
+ *
  * @param {HTMLElement} cell - A cell, or a list view's value span, carrying data-list.
  * @returns {Range[]} Empty for a cell holding no text, which is an empty list.
  */
 export function itemRangesIn(cell) {
-    const node = cell.firstChild;
-    if (!node) return [];
+    const nodes = textNodesIn(cell);
+    if (nodes.length === 0) return [];
 
-    const text = node.nodeValue;
+    const text = nodes.map(node => node.nodeValue).join('');
+
+    // An offset into the joined text, as the node it lands in and the offset within that node. It
+    // always finds one: the offsets come from flowItemRanges reading the very text that was joined,
+    // so the last node's own length is the furthest either end can reach.
+    const at = (offset) => {
+        let remaining = offset;
+        for (const node of nodes) {
+            if (remaining <= node.nodeValue.length) return [node, remaining];
+            remaining -= node.nodeValue.length;
+        }
+    };
+
     return flowItemRanges(text, 0, text.length).map(({ start, end }) => {
         const range = new Range();
-        range.setStart(node, start);
-        range.setEnd(node, end);
+        range.setStart(...at(start));
+        range.setEnd(...at(end));
         return range;
     });
 }

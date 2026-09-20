@@ -3,6 +3,7 @@ import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
+import { linkifyText, renderInternalLink } from '../ui-functions-render/render-internal-link.js';
 import { joinFlowItems } from '../../services/file-parsing/flow-list.js';
 import { formatDateTime } from '../ui-functions-render/render-value.js';
 
@@ -15,8 +16,15 @@ import { formatDateTime } from '../ui-functions-render/render-value.js';
  * plans/completed/table-cell-editors.md §3.4 and §4.2.
  *
  * **Everything from a file is escaped on the way out**, because a cell is what an edit is read back
- * out of. The three renderers that mean their markup — renderFilename, renderOpenFileLink,
- * renderTags — belong to columns that refuse a caret, so nothing editable ever holds HTML.
+ * out of. Three of the renderers that mean their markup — renderFilename, renderOpenFileLink,
+ * renderTags — belong to columns that refuse a caret.
+ *
+ * **linkifyText is the one that does not, and it is safe for a different reason.** An anchor it
+ * writes wraps the note's own `[[...]]` characters rather than replacing them, so the cell's
+ * textContent — which is what the commit writes back — is exactly what escapeHtml alone would have
+ * left. cell-editor.js flattens those anchors away before the caret arrives, so the invariant the
+ * caret rules depend on still holds where it matters: *an editable cell, once opened, contains
+ * nothing but escaped text.*
  */
 
 /**
@@ -116,14 +124,21 @@ export function renderCellValue(prop, file, mismatch) {
 
     // A cell whose value cannot be drawn as its column's type shows its text and says so, rather
     // than being blanked or drawn wrongly. The caller marks the cell; this just draws the text.
-    if (mismatch) return escapeHtml(renderMismatch(value));
+    //
+    // **Its links still work**, and that matters more here than anywhere: a front matter property
+    // the app has no schema for is a text column until someone sets its type, so a list of links is
+    // a shape mismatch the first time it is ever seen. Drawing those as dead text would make the
+    // feature look broken in exactly the case it was built for. Nothing is risked by it — a shape
+    // mismatch refuses a caret outright, and an unreadable one is a scalar whose text linkifyText
+    // leaves byte-for-byte as escapeHtml would have.
+    if (mismatch) return linkifyText(renderMismatch(value));
 
     switch (prop.type) {
         case VALUE_TYPES.STRING.value:
             if (prop.name === 'internalId') return renderOpenFileLink(file.internalId, file.color);
             // the full path from the root, now that folders are loaded
             if (prop.name === 'filename') return renderFilename(file.filepath || '');
-            return escapeHtml(String(value ?? ''));
+            return linkifyText(String(value ?? ''));
 
         case VALUE_TYPES.DATE.value:
         case VALUE_TYPES.DATETIME.value:
@@ -136,10 +151,19 @@ export function renderCellValue(prop, file, mismatch) {
             if (value instanceof Map) {
                 return [...value.keys()].map(tag => renderTags(tag)).join('');
             }
+            // The links column holds targets the app collected — 'shopping.txt', never
+            // '[[shopping.txt]]' — so there is nothing here to scan for. It renders as anchors
+            // without the brackets a front matter cell keeps, and it may: the brackets are there so
+            // a cell's text survives being edited, and this column is in CORE_FILE_PROPERTIES, so
+            // no cell of it ever takes a caret. The same licence lastModified has to show a
+            // formatted date.
+            if (prop.name === 'internalLink' && Array.isArray(value)) {
+                return value.map(target => renderInternalLink(target, target)).join(', ');
+            }
             // One comma-joined line rather than a <ul>, so a cell shows the same text it is edited
             // as — and a clipped one-line cell shows three items where bullets showed one. See
             // plans/completed/table-cell-editors.md §3.
-            return Array.isArray(value) ? escapeHtml(joinFlowItems(value)) : '';
+            return Array.isArray(value) ? linkifyText(joinFlowItems(value)) : '';
 
         case VALUE_TYPES.NUMBER.value:
             return escapeHtml(value?.toString() ?? '');

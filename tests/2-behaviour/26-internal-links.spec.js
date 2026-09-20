@@ -256,3 +256,88 @@ test.describe('internal links — internalLink property', () => {
   });
 
 });
+
+// front-matter-links.md declares links in YAML values: `related` holds one, `others` a list of
+// two, one of which points at nothing. The table draws all of them.
+test.describe('internal links — in table cells', () => {
+
+  async function openTable(page) {
+    await page.setViewportSize({ width: 1500, height: 800 });
+    await setupMockFilesWithLinks(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await page.selectOption('#view-select', 'table');
+    await expect(page.locator('.note-table-header')).toBeVisible();
+  }
+
+  const rowFor = (page, title) => page.locator('.note-table').filter({ hasText: title }).first();
+  const cellFor = (page, title, prop) => rowFor(page, title).locator(`.note-table-cell[data-prop="${prop}"]`);
+
+  test('a link in a front matter cell keeps its brackets and becomes an anchor', async ({ page }) => {
+    await openTable(page);
+    const cell = cellFor(page, 'Front Matter Links', 'related');
+
+    // The anchor wraps the note's own text rather than replacing it with a label, which is what
+    // keeps the cell's text the thing a commit writes back. See render-internal-link.js.
+    await expect(cell.locator('a.internal-link')).toHaveText('[[shopping.txt]]');
+    await expect(cell.locator('a.internal-link')).toHaveAttribute('data-link-target', 'shopping.txt');
+    await expect(cell).toHaveText('[[shopping.txt]]');
+  });
+
+  test('a list cell marks each of its links, and an unresolved one is inert', async ({ page }) => {
+    await openTable(page);
+    const cell = cellFor(page, 'Front Matter Links', 'others');
+
+    // `others` is a list in a column nobody has typed, so it is a shape mismatch — and its links
+    // still work, because that is the state every list of links starts life in.
+    await expect(cell.locator('a.internal-link')).toHaveText(['[[subdir/nested.md]]']);
+    await expect(cell.locator('.internal-link[data-unresolved="true"]'))
+      .toHaveText('[[gone-from-front-matter.md]]');
+    await expect(cell).toHaveText('[[gone-from-front-matter.md]], [[subdir/nested.md]]');
+  });
+
+  test('opening a cell puts its links back to plain text', async ({ page }) => {
+    await openTable(page);
+    const cell = cellFor(page, 'Front Matter Links', 'related');
+
+    await cell.focus();
+    await page.keyboard.press('Enter');
+    await expect(cell).toHaveClass(/is-expanded/);
+
+    // One text node and no anchors: the caret, plaintext-only and the commit all get the cell they
+    // were written for, and the characters are the same either side of the change.
+    await expect(cell.locator('a.internal-link')).toHaveCount(0);
+    await expect(cell).toHaveText('[[shopping.txt]]');
+    expect(await cell.evaluate(el => el.childNodes.length)).toBe(1);
+  });
+
+  test('a link in a cell follows on the second press, not the first', async ({ page }) => {
+    await openTable(page);
+    const cell = cellFor(page, 'Front Matter Links', 'related');
+    const link = cell.locator('a.internal-link');
+
+    // The first press selects the cell, exactly as a press anywhere else in it does. Without this
+    // a cell whose link covers its whole width could never be opened for editing.
+    await link.click();
+    await expect(cell).toHaveClass(/is-selected/);
+    await expect(page.locator('#file-content-modal')).not.toBeVisible();
+
+    await link.click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'shopping.txt');
+  });
+
+  test('the links column draws the app\'s own targets as anchors', async ({ page }) => {
+    await openTable(page);
+    await page.click('[data-action="open-column-picker"]');
+    await page.locator('#column-picker-list .info-modal-row').filter({ hasText: 'links' }).first()
+      .locator('input.toggle').check();
+    await page.keyboard.press('Escape');
+
+    // No brackets here: this column is the app's own collection of targets, and none of its cells
+    // takes a caret, so there is no text for a bracket to protect.
+    const cell = cellFor(page, 'Hub', 'internalLink');
+    await expect(cell.locator('a.internal-link').first()).toHaveText('shopping.txt');
+    await expect(cell.locator('.internal-link[data-unresolved="true"]')).toHaveText('does-not-exist.md');
+  });
+});
