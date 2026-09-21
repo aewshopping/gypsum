@@ -543,3 +543,35 @@ test('the bin forgets an abandoned type, on screen and in the file', async ({ pa
     () => JSON.parse(window.__layoutsFileContent || '{}').propertyTypes
   )).toEqual({ people: { type: 'array' } });
 });
+
+// The other way a type is abandoned: the key was there when the folder loaded and the last note
+// carrying it was cleared afterwards. myFilesProperties still holds the name — nothing unregisters
+// a property — so listing that Map left the row standing after its type had gone, un-typed and
+// un-binnable, which read as a delete that had not worked. The files are asked instead.
+test('forgetting a type takes the row with it when the key left the notes this session', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await setupMockDirectoryWithLayouts(page);
+  await page.addInitScript(() => {
+    window.__layoutsFileContent = JSON.stringify({
+      layoutVersion: 2, active: null, layouts: {},
+      propertyTypes: { people: { type: 'array' } },
+    });
+  });
+  await page.goto('/');
+  await loadFolder(page);
+
+  // What clearing the last `people:` cell leaves behind: no file has the key, and the property is
+  // still registered. The mock's notes are read-only, so the file objects are emptied directly.
+  await page.evaluate(() => window.appState.myFiles.forEach(file => delete file.people));
+
+  await openTypesModal(page);
+  await expect(typesRow(page, 'people')).toHaveAttribute('data-dead', '');
+
+  await typesRow(page, 'people').locator('[data-action="property-type-delete"]').click();
+  await page.click('[data-action="warning-proceed"]');
+
+  await expect(typesRow(page, 'people')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(
+    () => JSON.parse(window.__layoutsFileContent || '{}').propertyTypes
+  )).toEqual({});
+});

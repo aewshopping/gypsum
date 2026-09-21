@@ -140,8 +140,11 @@ point. These rules follow, and they are the ones to hold:
   of a layout, so deleting the column it was drawn as leaves it in the file — and "delete column" is
   not offered at all under the app's defaults. Left alone it was read back on every load and written
   out on every save with nothing on screen to say so. `property-types-list.js` asks
-  `propertiesInFiles()` — the same question, of the same source, as a column's `dead` — and offers the
-  bin only where `appState.propertyTypes` actually holds something to forget. `setPropertyType(name)`
+  `propertiesInFiles()` — the same question, of the same source, as a column's `dead`. **A row
+  survives on one of two grounds: a file carries the key, or a type is saved for it** — never because
+  `myFilesProperties` still remembers it, since that Map only grows. So every dead row has a bin, and
+  pressing it removes the last thing holding the row up: the row goes on the repaint rather than
+  lingering, un-typed and un-binnable, until the folder is reloaded. `setPropertyType(name)`
   with no type is the forget path, so the one writer stays the one writer. **Deleting a column never
   forgets a type**, and must not start to: the property may be a column in another layout, and it
   comes back with its type intact the moment a note carries the key again.
