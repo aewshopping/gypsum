@@ -313,6 +313,11 @@ matter the first time anyone opened that cell and clicked away.
   all. `pressWasOnSelectedCell()` in `cell-expand.js` is the one answer, shared so that a link and
   the cell around it cannot disagree about which press this is. A press the app made itself carries
   `detail === 0` and follows at once. Links in a rendered note are untouched: no cell, one click.
+  **A tag pill in the same table follows on the first press, and that asymmetry is deliberate** —
+  two reasons, both real. A pill never fills its cell, so there is always cell left to press; and
+  editing one of these cells is the common act while following the link is the occasional one, so
+  the rule spends the cheap press on the frequent job. Do not tidy it into consistency: that would
+  trade a rare convenience for a frequent detour.
 
 **The selected cell gives its right edge back**, which is what stops a link locking you out of its
 own cell. An anchor takes every press that lands on it, and a cell holding one link is that link end
@@ -528,6 +533,16 @@ worth asking before starting one — `ui-functions-render/view-transition.js` is
   animation. The CSS in `view-transitions-off.css` does the second thing and stays as a backstop;
   `viewTransitionsWanted()` does the first, which is the one that saves the snapshots. Both read the
   checkbox rather than a copy of it.
+- **A close with nothing open starts no transition.** `runClose()` in
+  `ui-functions-click/open-file-content-view-trans.js` returns at once when `dialog.open` is false.
+  `handleInternalLinkClick` awaits `handleCloseModal()` before opening the linked note, and from the
+  table there is no modal — so without that guard the whole close choreography ran against a closed
+  dialog: a transition capturing the page twice, the sidebar prepended to the body, the modal's
+  content cleared, both named highlights dropped. Measured at 1997ms from press to note, against
+  342ms with the guard. **The suite could not see it**, because `loadFolder()` turns animation off
+  and `withViewTransition` then returns its immediate stand-in — so the test in
+  `26-internal-links.spec.js` turns animation back on and counts `startViewTransition` calls rather
+  than timing anything.
 - **`withViewTransition(update)` is for a caller that needs the transition object.** Its stand-in
   offers `finished`, resolved once the update has run, so nothing needs a branch of its own: cleanup
   that belongs after an animation simply happens straight away.
