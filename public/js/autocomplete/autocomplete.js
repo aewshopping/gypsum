@@ -16,9 +16,11 @@ import { textBeforeCaret } from './caret-text.js';
 import { detectCreateOffer } from './create-note-offer.js';
 import { handleSearchBoxClick } from '../ui/ui-functions-click/searchbox-search-click.js';
 import { createNoteFromLink } from '../ui/ui-functions-click/create-linked-note.js';
+import { propertyType } from '../services/property-type.js';
+import { VALUE_TYPES } from '../constants.js';
 
 let _popup = null;          // HTMLElement|null
-let _context = null;        // 'editor'|'searchbox'|null
+let _context = null;        // 'editor'|'cell'|'searchbox'|null
 let _kind = null;           // 'tag'|'link'|'create-link'|null — what the editor popup is completing
 let _triggerStart = null;   // number
 let _query = null;          // string
@@ -58,7 +60,7 @@ export function handleEditorAutocomplete(evt) {
     if (!_popup || _context !== 'editor' || _kind === 'create-link') {
         destroyPopup(_popup);
         const dialog = document.getElementById('file-content-modal');
-        _popup = createPopup(items, dialog, '--ac-picker-editor', onSelect, trigger.query);
+        _popup = createPopup(items, dialog, '--ac-picker-caret', onSelect, trigger.query);
         _context = 'editor';
     } else {
         repopulatePopup(_popup, items, onSelect, trigger.query);
@@ -68,6 +70,81 @@ export function handleEditorAutocomplete(evt) {
     _triggerStart = trigger.triggerStart;
     _anchorEl = evt.target;
     _kind = kind;
+}
+
+/**
+ * Whether an open cell offers the note picker.
+ *
+ * Text and list only: a date cell has its own picker, and there is nothing a note name could mean
+ * in a number column. Naming the two types that complete, rather than the three that do not, is
+ * what makes giving another column a picker a change to this function and to nothing else.
+ *
+ * @param {HTMLElement} cell - An expanded, editable cell.
+ * @returns {boolean}
+ */
+function cellOffersPicker(cell) {
+    const type = propertyType(cell.dataset.prop);
+    return type === VALUE_TYPES.STRING.value || type === VALUE_TYPES.ARRAY.value;
+}
+
+/**
+ * Handles input events from an open table cell, offering the note picker on '[['.
+ *
+ * The same picker the editor gets, in the other place a note name is likely to be wanted: a front
+ * matter value. A sibling of the two above rather than a branch inside either, which is the shape
+ * this file already has — the session variables are shared by being module-private, so there is no
+ * core left to extract, and folding a cell's guard into the editor's would put two unrelated
+ * questions at the top of one function.
+ *
+ * **Nothing here can create a note.** detectCreateOffer is gated on the editor twice over, so the
+ * Enter that offers to create one is unreachable from a cell without changing that file.
+ *
+ * **The popup goes in document.body**, and must: the cell is contenteditable and the commit writes
+ * its whole textContent, opening a cell flattens every element out of it, and .table-wrapper's
+ * container-type makes it a containing block for the popup's position: fixed. See popup-anchor.js.
+ *
+ * @param {Event} evt
+ * @returns {void}
+ */
+export function handleCellAutocomplete(evt) {
+    // No _dismiss on the way out: this runs for every input event in the page, including the ones
+    // the searchbox popup is open for, and dismissing there would close somebody else's popup.
+    const cell = evt.target.closest?.('.note-table-cell.is-expanded[contenteditable]');
+    if (!cell || !cellOffersPicker(cell)) return;
+
+    const sel = window.getSelection();
+    if (!sel.rangeCount) { _dismiss(); return; }
+
+    const caret = sel.getRangeAt(0);
+
+    // Which completion this cell offers, and the list it completes from. One picker today; a tags
+    // column would answer these two lines differently and change nothing else here — though not
+    // quite as cheaply as it looks, since a tag completed with no '#' to type would also need its
+    // own writer: replaceEditorTag extends backwards over the '#' it prepends.
+    const trigger = detectEditorLinkTrigger(textBeforeCaret(cell, caret));
+    const source = getNoteNameArray();
+
+    if (!trigger) { _dismiss(); return; }
+
+    const items = filterItems(source, trigger.query);
+    if (!items.length) { _dismiss(); return; }
+
+    movePopupAnchor(caret);
+
+    const onSelect = (item) => { _applySelection(item); };
+
+    if (!_popup || _context !== 'cell') {
+        destroyPopup(_popup);
+        _popup = createPopup(items, document.body, '--ac-picker-caret', onSelect, trigger.query);
+        _context = 'cell';
+    } else {
+        repopulatePopup(_popup, items, onSelect, trigger.query);
+    }
+
+    _query = trigger.query;
+    _triggerStart = trigger.triggerStart;
+    _anchorEl = cell;
+    _kind = 'link';
 }
 
 /**
@@ -109,8 +186,12 @@ export function handleAutocompleteKeydown(evt) {
     const cmd = handlePopupKeydown(evt, _popup);
 
     if (cmd.action === 'none') {
-        // Let Enter propagate for the searchbox search handler, but close the popup first
-        if (_context === 'searchbox' && evt.key === 'Enter') { _dismiss(); }
+        // Enter goes on to mean what it meant — run the search, finish with the cell — but the
+        // popup is closed first. Only the editor's Enter cleans up after itself, by typing the
+        // newline that breaks the trigger and fires the input event this file listens to. A cell's
+        // Enter is preventDefaulted, so no input event ever arrives and the popup would be left
+        // on screen anchored to a cell that has just collapsed.
+        if (evt.key === 'Enter' && _context !== 'editor') { _dismiss(); }
         return false;
     }
     if (cmd.action === 'dismiss') {
@@ -145,12 +226,13 @@ export function handleAutocompleteClickOutside(evt) {
  * @param {string} item - The chosen tag or note name.
  */
 function _applySelection(item) {
-    if (_context === 'editor') {
-        if (_kind === 'link') replaceEditorLink(_query, item);
-        else replaceEditorTag(_query, item);
-    } else {
-        replaceSearchboxTag(_anchorEl, item, _triggerStart);
-    }
+    // What is being completed, not where it is being completed. A note name goes in the same way
+    // whether the caret is in the editor or in a table cell, because replace.js works on the
+    // selection rather than on an element — so the two editing hosts share, and the searchbox,
+    // which is an <input> with no selection API of that kind, is the exception.
+    if (_context === 'searchbox') replaceSearchboxTag(_anchorEl, item, _triggerStart);
+    else if (_kind === 'link') replaceEditorLink(_query, item);
+    else replaceEditorTag(_query, item);
     const anchor = _anchorEl;
     const wasSearchbox = _context === 'searchbox';
     _dismiss();
@@ -188,7 +270,7 @@ function _maybeOpenCreatePopup(evt) {
     movePopupAnchor(offer.caret);
 
     const dialog = document.getElementById('file-content-modal');
-    _popup = createPopup([offer.pending.filepath], dialog, '--ac-picker-editor', _createPendingNote, '');
+    _popup = createPopup([offer.pending.filepath], dialog, '--ac-picker-caret', _createPendingNote, '');
     _popup.dataset.kind = 'create'; // styles the popup as an offer to create, not to complete
     moveActiveItem(_popup, 'next');
     _context = 'editor';

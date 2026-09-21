@@ -266,9 +266,87 @@ Two rules, and the second follows from the first. See `plans/completed/table-cel
   because the app owns that value and its cell takes no caret.
 - **Escape everything that came from a file**, with `ui-functions-render/escape-html.js`. That is
   what makes the first rule safe, and together with the caret rules it gives the invariant worth
-  keeping: *a cell that takes a caret contains nothing but escaped text.* The renderers that mean
-  their markup — `renderFilename`, `renderOpenFileLink`, `renderTags` — all belong to columns that
-  refuse a caret.
+  keeping: *a cell that takes a caret contains nothing but escaped text* — **once it is open**.
+  Three of the renderers that mean their markup — `renderFilename`, `renderOpenFileLink`,
+  `renderTags` — belong to columns that refuse a caret. `linkifyText` is the one that does not, and
+  the qualification above is what it costs.
+
+**A `[[link]]` in a cell is an anchor around the note's own text, never in place of it.** See
+`ui-functions-render/render-internal-link.js`. `linkifyText` wraps the whole `[[a.md|label]]`,
+brackets and pipe included, so the cell's `textContent` — which is what `cell-edit-commit.js` writes
+back — is byte-for-byte what `escapeHtml` alone would have left. That is also the first rule above
+arriving at the same place from the other direction: a cell shows the note's own text, and
+`[[a.md|label]]` is what the note says. An anchor labelled `label` would have rewritten the front
+matter the first time anyone opened that cell and clicked away.
+
+- **Detected, never declared.** There is no `links` value type and there should not be one: a type
+  says how a column sorts, what editor it opens and how it draws, and link-ness answers none of the
+  three — `related` is still a list, still sorts by item count, still edits as text. The app already
+  finds these links everywhere else (`front-matter-links.js`, the flowchart, the broken-link nudge),
+  so the table asking permission would be the inconsistency. It applies to the `string` and `array`
+  branches of `renderCellValue` **and to a mismatched cell**, which is where it matters most: a
+  property the app has no schema for is a text column until someone types it, so a list of links is
+  a shape mismatch the first time it is ever seen.
+- **`cell-editor.js` flattens the anchors before the caret arrives**, with one assignment of
+  `textContent` to itself. Everything reaching into an open cell then gets the shape it was written
+  for — `plaintext-only`, `itemRangesIn`'s marks, `handleListCellInput`'s search for this cell's
+  ranges, and the commit. A cell that refuses a caret keeps its anchors: a link in a locked or
+  mismatched cell is still worth clicking.
+- **What puts them back is the render that follows every close, and that is why closing a cell
+  always redraws.** `commitCellEdit` runs `renderFiles(false, true)` when the cell was opened and
+  not typed in, as well as when an edit reached no file — see *Writing a cell edit back to the
+  note*. Without it a cell opened and left alone stayed flattened, and its links were dead text
+  until a sort, a filter or a view switch happened to redraw the table. The flatten therefore has
+  no inverse and needs none, which is what makes it general: it is asked of any element rather than
+  of `.internal-link`, so **a column whose cells draw markup and take a caret is covered without
+  doing anything of its own** — `tags`, if its pills ever become editable.
+- **`itemRangesIn()` can no longer assume one text node**, because an anchor splits the line. It
+  gathers the text nodes, joins them, and maps each end of an item back to the node it fell in.
+- **The `internalLink` column draws anchors with no brackets**, and may: it holds targets the app
+  collected rather than a note's text, and being in `CORE_FILE_PROPERTIES` none of its cells ever
+  takes a caret. The same licence `lastModified` has to show a formatted date. **Do not change what
+  it stores** — `file-errors.js` resolves those targets for the broken-link check, the flowchart
+  uses them as edges, and it is index-aligned with `internalLinkText` by construction.
+- **A link in a table cell follows on the second press, like everything else in a cell.** The first
+  selects the cell. It has to: a cell holding one link is that link end to end — the anchor is often
+  wider than its column — so a first press that followed would leave no way to open the editor at
+  all. `pressWasOnSelectedCell()` in `cell-expand.js` is the one answer, shared so that a link and
+  the cell around it cannot disagree about which press this is. A press the app made itself carries
+  `detail === 0` and follows at once. Links in a rendered note are untouched: no cell, one click.
+
+**The note picker works in a cell, and `[[` is what opens it.** `handleCellAutocomplete` in
+`autocomplete/autocomplete.js` is a sibling of the editor's and the searchbox's, sharing the one
+popup session those two already share — the module's variables are private to it, so there is no
+core left to extract and no third concept to learn. A cell completes when its column is text or
+list (`cellOffersPicker`); a date cell has its own picker and a note name means nothing in a number
+column.
+
+- **The popup lives in `document.body`, never in the cell.** The commit writes the cell's whole
+  `textContent`, and `openEditor` flattens every element out of an editable cell — so a popup
+  inside one would be written into the note or destroyed, depending on which happened first.
+  `.table-wrapper`'s `container-type: inline-size` rules out the table as well: it makes the
+  wrapper a containing block for the popup's `position: fixed`.
+- **`#ac-proxy` moved to the body with it**, and had to. It used to sit inside `#file-content-modal`,
+  and a closed `<dialog>` is `display: none` — an element generating no box cannot anchor anything,
+  so with the table showing every `anchor()` and every `@position-try` fallback would have failed
+  silently. The editor's popup still lives *inside* the dialog, because `showModal()` makes
+  everything outside inert; shared anchor, different parents, and that asymmetry is deliberate.
+- **Nothing here can create a note.** `detectCreateOffer` is gated on `appState.editState` and on
+  the caret being inside the editor's own element, so the Enter that offers to create one is
+  unreachable from a cell — at no cost, and guarded by a test in `tests/1-data/33-create-linked-note.spec.js`
+  because it holds by accident rather than by intent.
+- **The keys need no arrangement of their own.** `keyDownDelegate` already runs
+  `handleAutocompleteKeydown` first, so an open popup takes Escape, Enter, Tab and Up/Down before
+  the cell's handlers see them — which is "Escape steps back one level at a time", already general.
+  One thing did have to change: Enter with a popup open and no item active used to fall through, and
+  a cell's Enter is `preventDefault`ed, so no `input` event followed to clean up and the popup was
+  left anchored to a cell that had just collapsed.
+- **A different column wanting a different picker is two lines, not a mechanism.** The seam is not
+  "which picker" but *what is being completed at the caret* — for a link that is the `[[` token, and
+  for a tags cell it would be the item the caret is in, since a column where every item is a tag has
+  no non-tag text to protect. Those two lines (the detector and the list) sit adjacent in
+  `handleCellAutocomplete`. `itemRangesIn()` already knows where an item begins. Do not build a
+  registry for it.
 
 **A locked column's type is locked, and `isTypeSettable()` is that question.** It answers whether
 the header draws a padlock, whether the type dialog is offered, and whether `propertyType()` reads
@@ -319,11 +397,15 @@ rather than the file.** One Ctrl+Z in the note modal takes the colour back, whic
 could not offer. One `insertText` covers every shape the splice can be, `''` included — that deletes
 the selection, which is how clearing a key works.
 
-**A commit that reaches no file still redraws.** Clearing a title the note keeps as its `# H1` finds
-no `title:` key to remove, so nothing is written and the write's own refresh never runs — the cell
-would sit there blank while the note still says otherwise. `cell-edit-commit.js` reads what
+**Closing a cell always redraws, whether or not anything was written.** The write's own refresh only
+runs when a file was written, and there are two ways a close reaches no file. Clearing a title the
+note keeps as its `# H1` finds no `title:` key to remove, so nothing is written and the cell would
+sit there blank while the note still says otherwise — `cell-edit-commit.js` reads what
 `applyCellEdits` returns and redraws the rows when it is empty. It is also what stops a list retyped
-to the same items keeping the whitespace that was typed.
+to the same items keeping the whitespace that was typed. And a cell that was *opened and not typed
+in* redraws for a different reason: opening one takes down whatever markup its renderer drew, so
+without the redraw a cell holding `[[links]]` came back as dead text — see *What a table cell may
+contain*. The redraw belongs to closing rather than to writing, which is what makes it cover both.
 
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
@@ -556,6 +638,8 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
+| `public/js/autocomplete/` | The completion popup: one session, three hosts — the editor, a table cell, the searchbox |
+| `public/js/ui/ui-functions-render/render-internal-link.js` | A `[[link]]` as HTML: the anchor, and the scan that finds them in a value |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

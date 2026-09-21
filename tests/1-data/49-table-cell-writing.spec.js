@@ -927,3 +927,91 @@ test('Tab out of an open cell writes it and leaves one cell marked', async ({ pa
   await page.keyboard.press('F2');
   await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(1);
 });
+
+// ---------------------------------------------------------------- a value holding a [[link]]
+
+// A closed cell draws the [[links]] in its value as anchors. The anchor wraps the note's own
+// characters, brackets and all, so the cell's text — which is what the commit writes back — is
+// exactly what it was before the links became clickable. An anchor labelled with the alias instead
+// would rewrite `related: "[[alpha.md|the alpha note]]"` to `the alpha note` the first time anyone
+// opened that cell and clicked away. That is the fault these two guard.
+const LINKED = [
+  '---',
+  'related: "[[alpha.md|the alpha note]]"',
+  'others:',
+  '  - "[[alpha.md]]"',
+  '  - "[[gamma.md]]"',
+  '---',
+  '# Linked',
+  '',
+].join('\n');
+
+/**
+ * Opens a cell from the keyboard. A link can cover every pixel of its cell's text, and a press on
+ * one selects the cell rather than opening it — so a click is the wrong way in here, where what is
+ * being tested is the writing rather than the pointing.
+ */
+async function openFromKeyboard(page, cell) {
+  await cell.focus();
+  await page.keyboard.press('Enter');
+  await expect(cell).toHaveClass(/is-expanded/);
+}
+
+test('opening a cell holding a [[link]] and leaving it writes nothing', async ({ page }) => {
+  await openTable(page, { 'linked.md': LINKED });
+  const before = await fileText(page, 'linked.md');
+
+  const cell = cellFor(page, 'Linked', 'related');
+  // the anchor's text is the note's own, brackets and pipe included
+  await expect(cell.locator('a.internal-link')).toHaveText('[[alpha.md|the alpha note]]');
+
+  await openFromKeyboard(page, cell);
+  await commit(page);
+
+  expect(await fileText(page, 'linked.md')).toBe(before);
+});
+
+test('an edit beside a link leaves the link as the note wrote it', async ({ page }) => {
+  await openTable(page, { 'linked.md': LINKED });
+  await setType(page, 'others', 'array');
+
+  const cell = cellFor(page, 'Linked', 'others');
+  await openFromKeyboard(page, cell);
+  await page.keyboard.press('End');
+  await page.keyboard.type(', [[beta.md]]');
+  await commit(page);
+
+  await expect.poll(() => fileText(page, 'linked.md')).toContain('"[[beta.md]]"');
+  const after = await fileText(page, 'linked.md');
+  expect(after).toContain('"[[alpha.md]]"');
+  expect(after).toContain('"[[gamma.md]]"');
+});
+
+// A link completed from the picker is inserted by execCommand and a backward Selection.modify, so
+// the characters that reach the note depend on an extend count being exactly right. An off-by-one
+// there eats a bracket or a letter of the value beside it, and only the bytes on disk show it.
+test('a link completed from the picker reaches the note intact', async ({ page }) => {
+  await openTable(page, { 'linked.md': '---\nref: see\n---\n# Linked\n\n' });
+
+  const cell = cellFor(page, 'Linked', 'ref');
+  await openFromKeyboard(page, cell);
+  await page.keyboard.press('End');
+  await page.keyboard.type(' [[alph');
+
+  await expect(page.locator('.ac-picker-popup')).toBeVisible();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await expect(cell).toHaveText('see [[alpha.md]]');
+
+  await commit(page);
+  // Quoted because the value holds a '[' — needsQuoting's breaksBlock rule. The point of the test
+  // is the characters between the quotes.
+  // Bare, and rightly: breaksBlock quotes a value that *starts* with '[', and this one starts with
+  // 's'. A plain scalar is what YAML reads it back as, which is what makes the link survive.
+  await expect.poll(() => fileText(page, 'linked.md')).toContain('ref: see [[alpha.md]]');
+
+  // And the round trip that matters: the re-read found a real link, not just the right characters.
+  await expect.poll(() => page.evaluate(() =>
+    window.appState.myFiles.find(f => f.internalId === 'linked.md')?.internalLink ?? []
+  )).toContain('alpha.md');
+});

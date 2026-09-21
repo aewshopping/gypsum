@@ -27,12 +27,24 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
  * Nothing waits for the write. The table is redrawn from the file when it lands, which is the
  * existing display path; a failure past this point is the File System API's, so it is reported.
  *
- * **A commit that reached no file still has to redraw.** The text changed, so the screen now says
- * something the note does not, and the write's own refresh only runs when a file was written. The
- * case that brought this up is clearing a title the note keeps as its `# H1`: there is no `title:`
- * key to remove, so nothing is written and the cell would sit there blank. A list retyped to the
- * same items does the same thing more quietly. Rows only, and the page is kept — the pair
- * refreshFilesNow uses, and the columns cannot have changed when nothing was written.
+ * **Closing a cell always leaves the table drawn from state**, whether or not anything was written.
+ * Two ways a close reaches no file, and both have to redraw for the same reason — the screen would
+ * otherwise keep saying something the file does not, and the write's own refresh only runs when a
+ * file was written:
+ *
+ * - **the text changed but no byte did.** Clearing a title the note keeps as its `# H1` finds no
+ *   `title:` key to remove, so nothing is written and the cell would sit there blank. A list
+ *   retyped to the same items does it more quietly.
+ * - **the cell was opened and not typed in.** Nothing to write, and for a while nothing was drawn
+ *   either — but *opening* a cell takes down whatever markup its renderer put in it, so that the
+ *   caret gets the plain text node it was written for (see cell-editor.js). The render after a
+ *   write is what normally puts that markup back. With no write and no render, a cell holding
+ *   `[[links]]` came back as dead text until something else redrew the table.
+ *
+ * So the redraw belongs to closing rather than to writing, and **any column whose cells draw
+ * markup is covered by that without doing anything of its own** — the links today, tags if their
+ * pills ever take a caret. Rows only, and the page is kept — the pair refreshFilesNow uses, and
+ * the columns cannot have changed when nothing was written.
  *
  * **The undo button is lit from here**, once the write has landed and pushed its batch. It is a
  * question about the DOM, so it belongs on this side of the layer rather than in the write — and the
@@ -48,7 +60,12 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
  */
 export function commitCellEdit(cell) {
     const opened = cell.dataset.openedText;
-    if (opened === undefined || cell.textContent === opened) return;
+
+    // Never took a caret, so nothing was ever taken down and nothing is owed.
+    if (opened === undefined) return;
+
+    // Opened and left alone: nothing to write, and the redraw is what puts the cell's markup back.
+    if (cell.textContent === opened) return renderFiles(false, true);
 
     const internalId = cell.closest('.note-table').dataset.vtId;
 

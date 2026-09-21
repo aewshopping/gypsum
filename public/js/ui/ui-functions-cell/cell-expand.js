@@ -99,6 +99,25 @@ export function handleCellPointerDown(evt) {
 }
 
 /**
+ * Whether the press that led to this click landed on a cell that was already selected.
+ *
+ * **The same answer the cell itself opens on, asked by the links inside it.** A cell's content is
+ * live on the second press, not the first, which is the rule this file exists to keep — and a
+ * [[link]] in a front matter cell has to obey it or there is no way left to edit that cell. A cell
+ * holding one link is the link, end to end: a first press that followed it would put the note on
+ * screen every time someone meant to correct a typo, with no part of the cell left to aim at.
+ *
+ * Exported rather than re-derived in internal-link-click.js because the answer stops existing once
+ * the press has moved focus — by the time the click arrives, the first press of the cycle looks
+ * exactly like the second.
+ *
+ * @returns {boolean}
+ */
+export function pressWasOnSelectedCell() {
+    return pressedFocusedCell;
+}
+
+/**
  * Finishes with the cell that is open, leaving it selected and focused.
  *
  * **That is the state one click puts a cell in**, which is what makes the way out match the way in:
@@ -169,7 +188,15 @@ export function handleCellExpand(evt, cell) {
  * @returns {void}
  */
 export function handleCellExpandClickOutside(evt) {
-    if (!evt.target.closest('.note-table-cell')) {
+    // The completion popup counts as inside. It cannot be a descendant of the cell — the commit
+    // writes the cell's whole textContent, and opening a cell flattens every element out of it —
+    // so without this a press on a suggestion reads as a press outside and closes the cell.
+    //
+    // Not that it would lose the text: the popup selects on mousedown and this runs on click, so
+    // the completion is already in and would be committed correctly. What the exemption buys is
+    // the cell staying open for a second one. Cancelling the press instead would not work, because
+    // cancelling a press suppresses focus, not the click that follows it.
+    if (!evt.target.closest('.note-table-cell, .ac-picker-popup')) {
         clearExpandedCells();
     }
 }

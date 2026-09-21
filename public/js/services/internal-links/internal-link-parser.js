@@ -3,29 +3,13 @@
  */
 import { regex_internal_link } from '../../constants.js';
 import { findProtectedSpans, isProtected } from '../file-parsing/protected-spans.js';
-import { resolveNoteName } from './note-name-index.js';
+import { renderInternalLink } from '../../ui/ui-functions-render/render-internal-link.js';
 
 // Same source as the file-load scanner uses, so rendered links and the internalLink
 // property can never drift apart. See constants.js for the group numbering.
 const LINK_REGEX = new RegExp(regex_internal_link.source, 'g');
 
 let protectedSpans = [];
-
-/**
- * Escapes text for use in HTML body content and double-quoted attributes.
- * Deliberately does not escape "'" as "&#39;": that entity contains a '#', and tagParser
- * runs over this output and would parse it as a tag - see the note in parse-content.js.
- * "'" is harmless both in text and inside a double-quoted attribute.
- * @param {string} text
- * @returns {string}
- */
-function escapeHtml(text) {
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
 
 /**
  * Replaces [[note.md]] and [[note.md|label]] with an anchor carrying the resolved file id.
@@ -45,6 +29,12 @@ export function internalLinkParser(text) {
 
 /**
  * A replacer function for `String.prototype.replace()` to transform a matched link into HTML.
+ *
+ * The anchor itself is render-internal-link.js's, shared with the table's cells so that a link
+ * resolves, opens and reads as broken identically wherever it is drawn. What stays here is what is
+ * true of a note's body and of nothing else: a link inside a code span is text, and a link is
+ * labelled with its alias because the reader is reading prose.
+ *
  * @param {string} match The entire matched string, e.g. "[[notes.md|see this]]".
  * @param {string} target The link target, e.g. "notes.md".
  * @param {string|undefined} alias The display text after '|', if one was given.
@@ -55,14 +45,5 @@ function linkReplacer(match, target, alias, offset) {
 
     if (isProtected(offset, protectedSpans)) return match;
 
-    const label = escapeHtml(alias || target);
-    const fileId = resolveNoteName(target);
-
-    if (fileId === null) {
-        return `<span class="internal-link" data-unresolved="true">${label}</span>`;
-    }
-
-    // target="_self" overrides the document's <base target="_blank">; the click handler
-    // also preventDefault()s, so the href="#" is never followed.
-    return `<a class="internal-link" href="#" target="_self" data-action="open-internal-link" data-link-target="${escapeHtml(fileId)}">${label}</a>`;
+    return renderInternalLink(target, alias || target);
 }
