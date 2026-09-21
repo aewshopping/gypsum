@@ -29,7 +29,7 @@ import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { isTypeSettable, setPropertyType, propertyType } from '../../services/property-type.js';
 import { VALUE_TYPES } from '../../constants.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
-import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
+import { markLayoutDirty } from '../layout-save-state.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /** What a header cell's tooltip says before it is selected: the menu is two clicks away. */

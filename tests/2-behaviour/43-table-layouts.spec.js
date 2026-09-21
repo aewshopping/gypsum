@@ -14,16 +14,26 @@ async function openTable(page) {
 const layoutsFile = page => page.evaluate(() => JSON.parse(window.__layoutsFileContent || '{}'));
 
 const layoutName = page => page.locator('#layout-name');
-const editBtn = page => page.locator('#layout-edit-btn');
 const saveBtn = page => page.locator('#layout-save-btn');
-const isDirty = page => page.locator('.table-controls').evaluate(el => !el.classList.contains('saved'));
+const isDirty = page => page.evaluate(async () => {
+  const m = await import('/public/js/services/store.js');
+  return m.appState.tableLayouts.isDirty;
+});
 const modal = page => page.locator('#modal-layouts');
 const layoutRows = page => page.locator('#layout-list .layout-row');
 const pickerRows = page => page.locator('#column-picker-list .info-modal-row');
 
 async function openLayouts(page) {
-  await editBtn(page).click();
+  await layoutName(page).click();
   await expect(modal(page)).toBeVisible();
+}
+
+/** Saves over the active layout, from its own row in the layouts modal. */
+async function saveActiveLayout(page) {
+  await openLayouts(page);
+  await saveBtn(page).click();
+  await page.locator('[data-action="close-layouts-modal"]').click();
+  await expect(modal(page)).not.toBeVisible();
 }
 
 /** Renames the row currently in edit mode by typing over it and committing with Enter. */
@@ -111,12 +121,31 @@ test('save layout writes the current columns over the active layout', async ({ p
   expect((await layoutsFile(page)).layouts.review.columns.find(c => c.name === 'tags').visible).toBe(true);
 
   await hideTags(page);
-  await saveBtn(page).click();
+  await saveActiveLayout(page);
   await page.waitForTimeout(150);
 
   const doc = await layoutsFile(page);
   expect(Object.keys(doc.layouts)).toEqual(['review']);   // saved over, not saved as another
   expect(doc.layouts.review.columns.find(c => c.name === 'tags').visible).toBe(false);
+});
+
+test('save sits on the active layout\'s row, and nowhere else', async ({ page }) => {
+  await openTable(page);
+  await saveAsNew(page, 'review');
+  await saveAsNew(page, 'planning');
+
+  await openLayouts(page);
+
+  // One save button in the list, on the row of the layout in use: you can only save what is on
+  // screen, and what is on screen belongs to the active layout.
+  await expect(modal(page).locator('#layout-save-btn')).toHaveCount(1);
+  await expect(modal(page).locator('.layout-row[data-layout="planning"] #layout-save-btn')).toHaveCount(1);
+
+  // The app's defaults are nothing to write over — "save as new" is the answer there — so
+  // selecting them takes the button away rather than offering a save that cannot happen.
+  await modal(page).locator('button.layout-row-name[data-layout=""]').click();
+  await expect(layoutName(page)).toContainText('default');
+  await expect(modal(page).locator('#layout-save-btn')).toHaveCount(0);
 });
 
 test('unsaved column changes are discarded when the layout is reloaded', async ({ page }) => {
@@ -343,7 +372,7 @@ test('a property the layout has never seen stays out of it, and is offered untic
   await expect(page.locator('.note-table-cell-header[data-property="people"]')).toHaveCount(1);
 
   // Saving records the answer both ways: the one switched on, and the ones left alone.
-  await saveBtn(page).click();
+  await saveActiveLayout(page);
   await page.waitForTimeout(150);
 
   const columns = (await layoutsFile(page)).layouts.review.columns;
@@ -538,7 +567,7 @@ test('a column emptied this session stays deleted, and does not come back on sav
   await expect(header).toHaveCount(0);
 
   // And it stays gone when the layout is saved on top.
-  await saveBtn(page).click();
+  await saveActiveLayout(page);
   await expect.poll(async () => (await layoutsFile(page)).layouts.review.columns.map(c => c.name))
     .not.toContain('status');
 });

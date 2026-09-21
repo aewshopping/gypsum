@@ -238,7 +238,7 @@ test('the report line counts what was undone', async ({ page }) => {
   await expect(report(page)).not.toHaveClass(/has-failures/);
 
   // the count the line opens with is the render's, not the undo's, and is there either way
-  await expect(reportLine(page)).toHaveText('files filtered: 2 | undo: 1 values');
+  await expect(reportLine(page)).toHaveText('count: 2 | undo: 1 values');
 
   await redoBtn(page).click();
   await expect(report(page)).toHaveText('redo: 1 values');

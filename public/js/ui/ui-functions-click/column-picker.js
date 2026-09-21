@@ -4,7 +4,7 @@ import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-render/render-layout-list.js';
 import { renderColumnPickerList } from '../ui-functions-table/column-picker-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
-import { markLayoutDirty } from '../ui-functions-table/render-table-controls.js';
+import { markLayoutDirty } from '../layout-save-state.js';
 import { applyActiveLayout } from '../../table-layouts/layout-file.js';
 import { deleteColumnFromLayout } from './column-delete.js';
 

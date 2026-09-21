@@ -2,7 +2,7 @@
 
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { saveLayout } from '../../table-layouts/layout-file.js';
-import { playLayoutSaved } from '../ui-functions-table/render-table-controls.js';
+import { playLayoutSaved } from '../layout-save-state.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { showWarningModal } from './warning-modal.js';
 

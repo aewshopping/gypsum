@@ -31,7 +31,7 @@ import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/col
 import { applyColumnWidths } from './apply-column-widths.js';
 import { syncScrollbarThumb } from './table-scrollbar-sync.js';
 import { reparkColumnResizer } from './table-col-resize.js';
-import { markLayoutDirty } from './render-table-controls.js';
+import { markLayoutDirty } from '../layout-save-state.js';
 import { itemRangesIn } from '../ui-functions-highlight/list-highlight.js';
 
 /**

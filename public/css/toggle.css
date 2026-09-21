@@ -9,6 +9,11 @@
   /* Remove default browser styling */
   appearance: none;
   background-image: none !important;
+
+  /* The "on"/"off" text in the pseudo-elements below is drawn at the element's own size, and at
+     the page's it read as oversized against a 20px track. Set on the input rather than on the
+     two pseudo-elements, so the track and its label are sized by one number. */
+  font-size: 0.8em;
   
   /* Toggle Track Dimensions & Styling */
   width: var(--t-width) !important;

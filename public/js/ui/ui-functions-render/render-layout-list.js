@@ -10,9 +10,21 @@ export const DEFAULT_LAYOUT_LABEL = 'default';
  * The layout in use is marked twice over — a filled row and an arrow in the gutter — because the
  * list is also how you switch, and which one you are on has to survive a glance.
  *
- * Each saved layout carries an edit and a delete icon, the same `.info-modal-row-btn` treatment
- * the history modal's row actions use. **The defaults row has neither**: there is nothing behind
- * it to rename or remove, and their absence says so better than a disabled pair would.
+ * Each saved layout carries a save, an edit and a delete icon, the same `.info-modal-row-btn`
+ * treatment the history modal's row actions use. **The defaults row has none**: there is nothing
+ * behind it to rename or remove, and nothing to save over either — the way to keep the columns
+ * showing under the defaults is "save as new". Their absence says so better than a disabled set
+ * would.
+ *
+ * **Save is drawn only on the active row**, which is what makes it mean "save *this* layout": the
+ * columns on screen belong to the layout in use, so saving any other row would be writing them
+ * somewhere they never came from. The other rows keep an empty cell in its place so that the edit
+ * and delete icons stay in line down the list.
+ *
+ * It carries the same three glyphs the control row's save button used to — waiting to be saved,
+ * saving, and saved — and table-layouts.css shows one of them, off a class on #layout-list that
+ * paintList sets from `isDirty`. The row rather than the button holds that class for the same
+ * reason the control row used to: a re-render of the list has to keep it.
  *
  * The last row is a row rather than a button above the list because it does the same kind of thing
  * the rows do — it names a layout — and pressing anywhere along it acts, so the save icon on the
@@ -41,8 +53,17 @@ export function renderLayoutList() {
                `</div>`;
     };
 
+    // Three glyphs, one shown, in the order the CSS counts them: pending, saving, saved.
+    const saveButton =
+        `<button type="button" id="layout-save-btn" class="info-modal-row-btn" ` +
+          `data-action="layout-save" data-tip="save these columns to this layout">` +
+          `<svg class="info-modal-row-icon"><use href="#icon-save-pending"></use></svg>` +
+          `<svg class="info-modal-row-icon"><use href="#icon-save"></use></svg>` +
+          `<svg class="info-modal-row-icon"><use href="#icon-save-done"></use></svg></button>`;
+
     const actions = name =>
         `<span class="layout-row-name layout-row-rename" data-layout="${name}" hidden>${name}</span>` +
+        (name === active ? saveButton : `<span class="info-modal-row-btn" aria-hidden="true"></span>`) +
         `<button type="button" class="info-modal-row-btn" data-action="layout-edit-name" ` +
           `data-layout="${name}" data-tip="rename this layout">` +
           `<svg class="info-modal-row-icon"><use href="#icon-edit"></use></svg></button>` +
@@ -50,37 +71,18 @@ export function renderLayoutList() {
           `data-layout="${name}" data-tip="delete this layout">` +
           `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>`;
 
-    // The whole row is the button, so the icon inside it is drawn rather than pressed. The empty
-    // span takes the edit column, which is what puts the save icon in the same column as the
-    // delete icons above it rather than in the one next to them.
+    // The whole row is the button, so the icon inside it is drawn rather than pressed. The two
+    // empty spans take the rename and save columns, which is what puts the save icon in the same
+    // column as the delete icons above it rather than in one of the ones next to them.
     const saveAsRow =
         `<button type="button" class="info-modal-row layout-row layout-row-new" ` +
           `data-action="layout-save-as" data-tip="save these columns as a new layout">` +
           `<span class="layout-row-name">save as new…</span>` +
+          `<span aria-hidden="true"></span>` +
           `<span aria-hidden="true"></span>` +
           `<span class="info-modal-row-btn" aria-hidden="true">` +
             `<svg class="info-modal-row-icon"><use href="#icon-save-pending"></use></svg></span>` +
         `</button>`;
 
     return [row(null, ''), ...names.map(name => row(name, actions(name))), saveAsRow].join('');
-}
-
-/**
- * Renders the layout picker's rows: one per layout, the app's defaults first.
- *
- * Just the names — switching is all this popover does, which is why it exists beside the modal
- * rather than instead of it. It shares .app-menu with the column options menu, so the two menus
- * in the table's chrome are one thing wearing two anchors.
- *
- * @returns {string} HTML string for the picker's innerHTML.
- */
-export function renderLayoutPicker() {
-    const { names, active } = appState.tableLayouts;
-
-    const item = name =>
-        `<button type="button" class="app-menu-item" data-action="layout-select" ` +
-          `data-layout="${name ?? ''}" aria-current="${(name ?? null) === active}">` +
-          `${name ?? DEFAULT_LAYOUT_LABEL}</button>`;
-
-    return [item(null), ...names.map(item)].join('');
 }
