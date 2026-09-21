@@ -331,6 +331,18 @@ export function handleCloseModal() {
  */
 async function runClose() {
 
+  // Nothing open, nothing to close — and saying so here is what keeps every caller honest.
+  // internal-link-click awaits this before opening the linked note, and from the table there is no
+  // modal: without this the whole choreography below ran against a closed dialog, which is a view
+  // transition capturing the page twice and holding it still, plus a string of things that make no
+  // sense with nothing on screen — the sidebar prepended to the body, the modal's content cleared,
+  // both named highlights dropped. It cost a visible beat before the linked note appeared.
+  //
+  // True is the honest answer to this function's contract: the modal has closed. A real close in
+  // flight still has dialog.open set until doClose finishes, so handleCloseModal's dedupe is
+  // untouched — a second click still joins the first rather than skipping past it.
+  if (!dialog.open) return true;
+
   await flushAutosave();
 
   if (hasUnsavedChanges()) {

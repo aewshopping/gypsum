@@ -8,6 +8,11 @@
     overflow: hidden;
     text-wrap: nowrap;
 
+    /* For the selected cell's edge band below. It changes no layout, and it does not change where
+       an expanded cell positions itself: .is-expanded sets position: absolute on this same element,
+       which resolves against .note-table, not against itself. */
+    position: relative;
+
     /* Open or closed, because it is one element either way — the expanded rule below adds a class to
        this same div, so this declaration serves both states and there is no second one to drift
        from. The row's height is computed from this same token, so a line always has room. */
@@ -22,6 +27,65 @@
 .note-table-cell.is-selected {
     outline: 2px solid var(--colour-contr);
     outline-offset: -2px;
+}
+
+/* The selected cell gives its right edge back, so there is always somewhere to press to open it.
+
+   A [[link]] in a cell is an anchor, and an anchor takes every press that lands on it — a cell whose
+   one value is a link is that link end to end, the anchor being routinely wider than its column. The
+   first press selects the cell wherever it lands, but the second had nowhere to go except the 6px of
+   left padding.
+
+   **It costs no column width**, which is the whole point: it appears on the one selected cell and
+   nowhere else, so nothing is reserved on the other several hundred. This table has paid the other
+   bill once already — see the sort chevron's note in note-table.css, where reserving 28px a column
+   is what pushed "file" into reading as "f…".
+
+   **It clears the strip with padding and an ellipsis, not with a fade.** A fade was tried first, as
+   a mask on the cell's own content — attractive because a row's background is attr(data-color)
+   through color-mix, with separate hover and --colours-suppress branches and rows that go fully
+   transparent, so a gradient painted on top would have to reproduce all four and would drift the
+   moment one changed. A mask sidesteps every branch. But a mask applies to the whole of an
+   element's rendering, and that includes its outline: the selection ring lost its right-hand stroke
+   and its top and bottom faded out. outline-offset: 0 was worse, not better. The ellipsis keeps the
+   ring intact, needs to know nothing about the background either, and says something the fade did
+   not — that there is more text than fits.
+
+   Padding rather than width, because box-sizing is border-box: the cell's outer size is untouched,
+   so no neighbour moves and no column changes. The text simply clips earlier, in this one cell.
+
+   Nothing in here fixes the row's height: the band below is inset 0 top and bottom so it spans
+   whatever the cell is, and the padding is horizontal. --table-line-height and --table-cell-padding
+   stay as free to change as they were. */
+.note-table-cell.is-selected:not(.is-expanded) {
+    padding-right: calc(var(--table-cell-padding) + 1em);
+    text-overflow: ellipsis;
+}
+
+/* The press target, and it is deliberately wider than the strip: the strip is what you see, so it
+   is kept to 1em and takes only a few characters with it, while the part that takes the press is
+   1.5em — the extra overlapping the text, invisible, and still pressable.
+
+   It is needed even though the strip looks empty: text-overflow only stops the text being *painted*, and the anchor is still laid out
+   at its full width underneath, so without this the link would go on taking presses over a gap it
+   is not even drawn in.
+
+   A pseudo-element's box belongs to the element that owns it, so a press here arrives with the cell
+   as its target and finds the cell's own data-action. Nothing in JS needs to know this exists. */
+.note-table-cell.is-selected:not(.is-expanded)::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 1.5em;
+}
+
+/* A finger needs more than a pointer does, and the extra is invisible either way — so only the
+   target grows, never the strip. The same allowance the column resizer makes for a coarse
+   pointer. */
+@media (pointer: coarse) {
+    .note-table-cell.is-selected:not(.is-expanded)::after {
+        width: 2.5em;
+    }
 }
 
 /* Out of flow, so the row keeps its height and the other columns keep their widths.

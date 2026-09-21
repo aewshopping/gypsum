@@ -313,6 +313,37 @@ matter the first time anyone opened that cell and clicked away.
   all. `pressWasOnSelectedCell()` in `cell-expand.js` is the one answer, shared so that a link and
   the cell around it cannot disagree about which press this is. A press the app made itself carries
   `detail === 0` and follows at once. Links in a rendered note are untouched: no cell, one click.
+  **A tag pill in the same table follows on the first press, and that asymmetry is deliberate** —
+  two reasons, both real. A pill never fills its cell, so there is always cell left to press; and
+  editing one of these cells is the common act while following the link is the occasional one, so
+  the rule spends the cheap press on the frequent job. Do not tidy it into consistency: that would
+  trade a rare convenience for a frequent detour.
+
+**The selected cell gives its right edge back**, which is what stops a link locking you out of its
+own cell. An anchor takes every press that lands on it, and a cell holding one link is that link end
+to end — so the first press selected the cell and the second had nowhere to go but the 6px of left
+padding. While a cell is selected it clears about 1em at its right, and a transparent `::after`
+there takes the press and finds the cell's own `data-action`. No JS knows it exists.
+
+- **It costs no column width.** It is on the selected cell and nowhere else, so nothing is reserved
+  on the several hundred others. The other bill has been paid here once already — see the sort
+  chevron in `note-table.css`, where reserving 28px a column is what pushed "file" into "f…".
+- **Padding and an ellipsis, not a fade — and a fade was tried first.** As a mask it was attractive,
+  because a row's background is `attr(data-color)` through `color-mix` with hover, suppressed and
+  fully-transparent branches, and a mask sidesteps all four. But a mask applies to an element's
+  whole rendering, outline included: the selection ring lost its right stroke and its top and bottom
+  faded out, and `outline-offset: 0` was worse. The ellipsis keeps the ring, needs to know nothing
+  about the background either, and says the one thing the fade did not — that there is more text.
+- **Padding rather than width**, because `box-sizing` is border-box: the cell's outer size never
+  changes, so no neighbour moves. Only where its text stops moves, in that one cell.
+- **The strip and the press target are different sizes on purpose.** The strip is what you see, so
+  it stays at 1em; the target is 1.5em, and 2.5em under `@media (pointer: coarse)`. The extra
+  overlaps the text, invisibly. It is needed at all because `text-overflow` only stops the text
+  being *painted* — the anchor is still laid out full width underneath and would go on taking
+  presses over a gap it is not drawn in.
+- **Nothing here constrains row height, and nothing may.** The target is `inset: 0 0 0 auto` so it
+  spans whatever the cell is, and the padding is horizontal. `--table-line-height` and
+  `--table-cell-padding` stay as free to change as they were, and a test holds that.
 
 **The note picker works in a cell, and `[[` is what opens it.** `handleCellAutocomplete` in
 `autocomplete/autocomplete.js` is a sibling of the editor's and the searchbox's, sharing the one
@@ -502,6 +533,16 @@ worth asking before starting one — `ui-functions-render/view-transition.js` is
   animation. The CSS in `view-transitions-off.css` does the second thing and stays as a backstop;
   `viewTransitionsWanted()` does the first, which is the one that saves the snapshots. Both read the
   checkbox rather than a copy of it.
+- **A close with nothing open starts no transition.** `runClose()` in
+  `ui-functions-click/open-file-content-view-trans.js` returns at once when `dialog.open` is false.
+  `handleInternalLinkClick` awaits `handleCloseModal()` before opening the linked note, and from the
+  table there is no modal — so without that guard the whole close choreography ran against a closed
+  dialog: a transition capturing the page twice, the sidebar prepended to the body, the modal's
+  content cleared, both named highlights dropped. Measured at 1997ms from press to note, against
+  342ms with the guard. **The suite could not see it**, because `loadFolder()` turns animation off
+  and `withViewTransition` then returns its immediate stand-in — so the test in
+  `26-internal-links.spec.js` turns animation back on and counts `startViewTransition` calls rather
+  than timing anything.
 - **`withViewTransition(update)` is for a caller that needs the transition object.** Its stand-in
   offers `finished`, resolved once the update has run, so nothing needs a branch of its own: cleanup
   that belongs after an animation simply happens straight away.

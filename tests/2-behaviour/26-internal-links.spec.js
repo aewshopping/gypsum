@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFilesWithLinks, loadFolder } = require('../helpers');
+const { setupMockFilesWithLinks, loadFolder, setViewTransitions } = require('../helpers');
 
 // setupMockFilesWithLinks: hub.md links to shopping.txt, subdir/nested.md, a missing
 // file, and an extensionless name; plus fenced/inline-code links that must stay literal.
@@ -409,5 +409,59 @@ test.describe('internal links — a cell opened and left alone', () => {
     // still end up the selected one
     await expect(other).toHaveClass(/is-selected/);
     await expect(cell).not.toHaveClass(/is-selected/);
+  });
+});
+
+// Following a link from a table cell used to await the whole close choreography first, against a
+// modal that was never open — a full view transition, the sidebar prepended to the body, the
+// highlights dropped. It cost a beat before the note appeared and did a handful of things that made
+// no sense with nothing on screen.
+//
+// The count is the test, not the clock. loadFolder turns animation off for the suite's sake, and
+// with it off withViewTransition returns its immediate stand-in — so a timing assertion would have
+// passed the whole time the bug was there.
+test.describe('internal links — opening one from a table cell', () => {
+
+  async function openTableCounting(page) {
+    await page.setViewportSize({ width: 1500, height: 800 });
+    await setupMockFilesWithLinks(page);
+    await page.addInitScript(() => {
+      window.__transitions = 0;
+      const real = document.startViewTransition?.bind(document);
+      if (real) document.startViewTransition = (update) => { window.__transitions++; return real(update); };
+    });
+    await page.goto('/');
+    await loadFolder(page);
+    await setViewTransitions(page, true);   // the default outside tests, and what the bug needed
+    await page.selectOption('#view-select', 'table');
+    await expect(page.locator('.note-table-header')).toBeVisible();
+  }
+
+  test('no close transition runs when there is no note open', async ({ page }) => {
+    await openTableCounting(page);
+
+    const link = page.locator('.note-table').filter({ hasText: 'Front Matter Links' }).first()
+      .locator('.note-table-cell[data-prop="related"] a.internal-link');
+    await link.click();                       // first press selects the cell
+    await page.evaluate(() => { window.__transitions = 0; });
+
+    await link.click();                       // second follows
+    await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'shopping.txt');
+
+    // One transition: the note opening. Two means the close ran against a closed dialog.
+    expect(await page.evaluate(() => window.__transitions)).toBe(1);
+  });
+
+  test('following a link from inside an open note still closes it', async ({ page }) => {
+    await openTableCounting(page);
+
+    // Open a note first, so the close is real and must still happen.
+    await page.locator('.note-table').filter({ hasText: 'Hub' }).first()
+      .locator('[data-action="open-file-content-modal"]').click();
+    await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'hub.md');
+
+    await page.locator('#modal-content-text a.internal-link[data-link-target="shopping.txt"]').first().click();
+    await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'shopping.txt');
+    await expect(page.locator('#modal-content-text')).toContainText('Milk, eggs, bread');
   });
 });
