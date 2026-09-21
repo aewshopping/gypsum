@@ -130,6 +130,10 @@ function liveRow(name, label, type, searchType, tip) {
  * the modals must not disagree about it — but a bin over nothing would be a control that does
  * nothing.
  *
+ * **It sits to the left of the glyph**, which is what keeps every type glyph in the list on one
+ * vertical line: the glyph is the last thing in every row, live or dead, and a bin appearing after
+ * it would shunt the one row that has it out of step with the rest.
+ *
  * @param {string} name - The file property key.
  * @param {string} label - What the column is called.
  * @param {string} type - The resolved value type.
@@ -147,10 +151,10 @@ function deadRow(name, label, type, tip) {
              ` data-property="${escapeHtml(name)}" data-tip="this property is not in the loaded folder">` +
              `<span class="info-modal-row-label">${escapeHtml(label)}</span>` +
              `<span class="property-type-actions">` +
+               bin +
                `<button type="button" class="info-modal-row-btn" disabled aria-hidden="true" data-tip="${tip}">` +
                  typeGlyph({ name, type }, 'info-modal-row-icon') +
                `</button>` +
-               bin +
              `</span>` +
            `</div>`;
 }
