@@ -23,6 +23,30 @@ test('searching filters the list, and the table view renders headers', async ({ 
   await expect(page.locator('.note-grid')).toHaveCount(0);
 });
 
+// The view's control row is drawn into #output-controls, on .output-header beside the file count,
+// rather than into #output. That element outlives the render, so something has to empty it — and a
+// partial render, which replaces the table's rows and nothing else, has to leave it alone or a
+// press on undo would lose the button under it.
+test('the control row shares the count line, survives a partial render, and leaves with its view', async ({ page }) => {
+  await setupMockFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await expect(page.locator('.output-header .output-controls')).toHaveCount(0);
+
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+  await expect(page.locator('.output-header .output-controls')).toHaveCount(1);
+  await expect(page.locator('#output .output-controls')).toHaveCount(0);
+
+  // The sort dropdown renders the rows only — the row above them must still be there afterwards.
+  await page.selectOption('#sort-select', 'title');
+  await expect(page.locator('.output-header .output-controls')).toHaveCount(1);
+
+  await page.selectOption('#view-select', 'cards');
+  await expect(page.locator('.note-grid').first()).toBeVisible();
+  await expect(page.locator('.output-header .output-controls')).toHaveCount(0);
+});
+
 /**
  * A folder whose front matter has one of everything the list view used to get wrong: markup in a
  * value, a list, a value that does not fit its column, and a key holding nothing.

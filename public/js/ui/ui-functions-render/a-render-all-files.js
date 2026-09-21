@@ -78,6 +78,15 @@ export function renderFiles(fullRender = true, keepPage = false) {
         // Remove stale pagination nav (required for the table fullRender=false path)
         document.querySelector('.pagination')?.remove();
 
+        // The control row on .output-header belongs to whichever view is about to draw, so it is
+        // emptied here rather than by the four renderers that have none — and by the two empty
+        // states below, which draw no view at all.
+        //
+        // **Only on a full render.** A partial one replaces the table's rows and nothing else, and
+        // taking the row apart under it would drop focus off a button mid-press — which is the same
+        // reason markUndoState() moves those two buttons by hand rather than waiting for a render.
+        if (fullRender) document.getElementById('output-controls').innerHTML = '';
+
         // A folder is open and finished loading, but holds no notes. Not an error: creating the
         // first note from here is a supported way to start. Gated on isLoading because every
         // load clears myFiles and re-renders before reading the folder.

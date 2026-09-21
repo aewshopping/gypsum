@@ -708,10 +708,26 @@ layouts, and adding them would be a new plan rather than a new key.
 ### A view's own control row
 
 **`.output-controls` is the row a view draws above its output**, shared by the table and the
-flowchart. It is part of each view's rendered HTML rather than something shown and hidden, which is
+flowchart. It is drawn by each view's renderer rather than shown and hidden by the page, which is
 what keeps view-conditional logic out of the app entirely: the row exists while its view is
 rendered, and so does every dialog reachable from it. Add a view's own class beside it for anything
-genuinely its own — `.flowchart-controls` sets one padding, and nothing else.
+genuinely its own; neither row needs one today.
+
+**It shares a line with `#output-report`, in `.output-header`.** The file count and the undo
+message sit at the left of that line and the view's row at the right, past a `.flexgrow` — which
+is the spacer that used to sit *inside* the table's row, holding undo and redo apart from the
+layout buttons. One gap on that line means something now, and it is the one between the sentence
+and the controls. The group wraps, so a viewport too narrow for both puts the row on its own line.
+
+- **The row goes into `#output-controls`, never into `#output`.** `#output-report` has to outlive
+  the renders that replace the file list — `reportFileCount()` writes it *before* the view draws —
+  so it cannot live inside `#output`, and the two can only share a line by the row coming out to
+  meet it. The slot is a bare wrapper in `index.html`; a view with no control row leaves it empty.
+- **`renderFiles` empties the slot, and only on a full render.** Emptying it there is what saves the
+  four renderers that have no row, and the two empty states that draw no view at all, from each
+  having to know. The guard is the other half: a partial render replaces the table's rows and
+  nothing else, and taking the row apart under one would drop focus off a button mid-press — the
+  same reason `markUndoState()` moves undo and redo by hand rather than waiting for a render.
 
 ### Search / filter architecture
 

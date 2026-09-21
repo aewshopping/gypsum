@@ -31,8 +31,9 @@
     container-type: inline-size;
 }
 
-/* The row of controls above the table is .output-controls, in output-controls.css —
-   the shape is shared with the flowchart view's row. */
+/* The row of controls above the table is .output-controls, in output-controls.css — it is drawn
+   into .output-header, on the line the file count is on, and its shape is shared with the flowchart
+   view's row. */
 
 /* The top scrollbar and the header live here, OUTSIDE .list-table, so they can stick
    to the viewport: position: sticky resolves against the nearest scroll container, so

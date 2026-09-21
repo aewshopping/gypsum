@@ -389,7 +389,14 @@
 
     <div id="tag-taxonomy-container"></div>
 
-    <div id="output-report" role="status"></div>
+    <!-- One line above the file list: what is showing on the left, what the showing view offers on
+         the right. The view's own control row is drawn into #output-controls and is empty in the
+         views that have none. -->
+    <div class="output-header">
+      <div id="output-report" role="status"></div>
+      <div class="flexgrow"></div>
+      <div id="output-controls"></div>
+    </div>
 
     <div id="output">
       <div class="empty-state">
