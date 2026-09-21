@@ -765,3 +765,81 @@ test('delete all layouts asks first, and is offered only when there is something
   await expect(layoutRows(page).filter({ hasText: 'review' })).toHaveCount(1);
   expect((await layoutsFile(page)).layouts.review).toBeTruthy();
 });
+
+// readLayouts() rebuilds the document rather than spreading what it parsed, so any top-level key it
+// does not name is dropped — and the next writer, which reads through it first, then writes a file
+// without it. Saving a layout is the writer most likely to be reached after a flowchart option is
+// set, so it is the one that would have silently thrown the choice away.
+test('a flowchart choice and a property type survive each other, and survive saving a layout', async ({ page }) => {
+  await openTable(page);
+  await setTypeFromPicker(page, 'date', 'string');
+
+  await page.evaluate(async () => {
+    const options = await import('/public/js/services/flowchart-options.js');
+    const file = await import('/public/js/table-layouts/layout-file.js');
+    options.setFlowchartOption('subgraph', 'date');
+    await file.saveFlowchartOptions();
+  });
+
+  let doc = await layoutsFile(page);
+  expect(doc.flowchart).toEqual({ subgraph: 'date' });
+  expect(doc.propertyTypes.date).toEqual({ type: 'string' });
+
+  await saveAsNew(page, 'review');
+
+  doc = await layoutsFile(page);
+  expect(doc.flowchart).toEqual({ subgraph: 'date' });
+  expect(doc.propertyTypes.date).toEqual({ type: 'string' });
+  expect(doc.layouts.review).toBeTruthy();
+});
+
+test('a flowchart choice comes back when the folder is reloaded, and an unknown role is dropped', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 900 });
+  await setupMockDirectoryWithLayouts(page);
+  await page.addInitScript(() => {
+    window.__layoutsFileContent = JSON.stringify({
+      layoutVersion: 2, active: null, layouts: {}, propertyTypes: {},
+      flowchart: { subgraph: 'date', nodeText: 'filename', nonsenseRole: 'date' },
+    });
+  });
+  await page.goto('/');
+  await loadFolder(page);
+
+  const resolved = await page.evaluate(async () => {
+    const m = await import('/public/js/services/flowchart-options.js');
+    const store = await import('/public/js/services/store.js');
+    return {
+      subgraph: m.flowchartProperty('subgraph'),
+      nodeText: m.flowchartProperty('nodeText'),
+      // untouched by the file, so still the role's own default
+      connectors: m.flowchartProperty('connectors'),
+      stored: [...store.appState.flowchartOptions.keys()],
+    };
+  });
+
+  expect(resolved.subgraph).toBe('date');
+  expect(resolved.nodeText).toBe('filename');
+  expect(resolved.connectors).toBe('internalLink');
+  expect(resolved.stored).toEqual(['subgraph', 'nodeText']);
+});
+
+test('delete all layouts forgets the flowchart choices too', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(async () => {
+    const options = await import('/public/js/services/flowchart-options.js');
+    const file = await import('/public/js/table-layouts/layout-file.js');
+    options.setFlowchartOption('subgraph', 'date');
+    await file.saveFlowchartOptions();
+  });
+  await saveAsNew(page, 'review');
+
+  await openLayouts(page);
+  await page.locator('[data-action="layout-clear"]').click();
+  await page.click('[data-action="warning-proceed"]');
+
+  await expect.poll(() => page.evaluate(() => window.__layoutsFileContent)).toBe('');
+  expect(await page.evaluate(async () => {
+    const m = await import('/public/js/services/flowchart-options.js');
+    return m.flowchartProperty('subgraph');
+  })).toBeNull();
+});

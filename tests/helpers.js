@@ -1079,4 +1079,118 @@ async function setupMockDirectoryWithLayouts(page, { longProp = false } = {}) {
   }, longProp);
 }
 
-module.exports = { loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts };
+
+/**
+ * Injects a mock directory shaped for the flowchart view: notes that link to each other through
+ * front matter, and the extra keys the options dialog can be pointed at.
+ *
+ * Neither existing mock would do. setupMockDirectoryWithLayouts has the .gypsum write support that
+ * table_layouts.gypsum needs but its notes carry no links, and setupMockFilesWithLinks has the
+ * links and no .gypsum handle — so this is the first with both. The layouts file is exposed as
+ * window.__layoutsFileContent, exactly as in setupMockDirectoryWithLayouts, and can be seeded
+ * before loadFolder().
+ *
+ * **Every file carries a fixed lastModified**, descending in the order written below, because the
+ * default sort is by that field and the tests pin the generated source line for line. With one
+ * timestamp shared between them the node numbers shuffled between runs.
+ *
+ * What each note is for:
+ * - crossroads: a list `chapter`, so the first-item rule has something to be wrong about; two
+ *   links, with `why` holding their labels for the custom-connectors case
+ * - cave: the symbol spelling of a shape, and a link onward
+ * - road: a link naming no file, for the unresolved-node branch
+ * - deeper: a shape name that is not one, and no links — a leaf inside a subgraph that another
+ *   subgraph links to, which is the node that used to get swallowed
+ * - loose: no chapter at all, so the ungrouped bucket is never empty
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function setupMockDirectoryWithFlowchart(page) {
+  await page.addInitScript(() => {
+    window.__layoutsFileContent = '';
+    window.__backupFileContent = '';
+
+    const makeFile = (name, content, lastModified) => ({
+      kind: 'file', name,
+      getFile: async () => ({ name, size: content.length, lastModified, text: async () => content }),
+    });
+
+    const stringHandle = (key) => ({
+      getFile: async () => ({ text: async () => window[key] }),
+      createWritable: async () => ({
+        write: async (c) => { window[key] = c; },
+        close: async () => {},
+      }),
+    });
+
+    const gypsumDirHandle = {
+      getFileHandle: async (name, _options) => {
+        if (name === 'table_layouts.gypsum') return stringHandle('__layoutsFileContent');
+        if (name === 'history.gypsum') return stringHandle('__backupFileContent');
+        throw new Error(`Unexpected getFileHandle call for: ${name}`);
+      },
+      removeEntry: async (name) => {
+        if (name === 'table_layouts.gypsum') { window.__layoutsFileContent = ''; return; }
+        throw new Error(`Unexpected removeEntry call for: ${name}`);
+      },
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () {
+        yield makeFile('crossroads.md', [
+          '---',
+          'chapter: [one, draft]',
+          'shape: diamond',
+          'related:',
+          '  - "[[cave.md]]"',
+          '  - "[[road.md]]"',
+          'why:',
+          '  - push the heavy door',
+          '  - walk on down the road',
+          '---',
+          '# The crossroads',
+          '',
+          'Tagged #story/start here.',
+        ].join('\n'), 5000),
+        yield makeFile('cave.md', [
+          '---',
+          'chapter: one',
+          'shape: "{}"',
+          'related: "[[deeper.md]]"',
+          '---',
+          '# The cave',
+          '',
+          'Tagged #story/middle here.',
+        ].join('\n'), 4000),
+        yield makeFile('road.md', [
+          '---',
+          'chapter: two',
+          'shape: "{ }"',
+          'related: "[[missing.md]]"',
+          '---',
+          '# The long road',
+        ].join('\n'), 3000),
+        yield makeFile('deeper.md', [
+          '---',
+          'chapter: two',
+          'shape: nonsense',
+          '---',
+          '# Deeper still',
+        ].join('\n'), 2000),
+        yield makeFile('loose.md', [
+          '---',
+          'shape: circle',
+          '---',
+          '# A note with no chapter',
+        ].join('\n'), 1000);
+      },
+      getDirectoryHandle: async (name, _options) => {
+        if (name === '.gypsum') return gypsumDirHandle;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  });
+}
+
+module.exports = { loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };

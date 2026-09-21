@@ -404,8 +404,7 @@ DOM; the SVG renderer produces nodes and reads `appState`; the click and drag fi
   crossings, placement — as a throwaway outside the repo, feed it a real graph of 40-60 nodes with
   the convergences and the loops back that §1 describes, and *look at it*. §11 is the standard it has
   to meet. Nothing else here is worth building until this has been seen.
-- **Step 3 — the UI frame.** Config block, code/chart toggle, the four pickers; the pickers change
-  what step 1 emits. Independent of step 2, so it can proceed in parallel.
+- **Step 3 — the UI frame.** *Pickers built; config block and code/chart toggle unbuilt.* §16.
 - **Step 4 — identity comments and the parser.** The `%%` lines and `parse-mermaid.js`. The test is
   that parsing the app's own output reproduces the graph it came from.
 - **Step 5 — first chart.** The engine moves into the repo, plus routing, merging, labels and the SVG.
@@ -445,7 +444,8 @@ spike is a decision rather than a surprise.
 
 ## 12. What v1 knowingly does not do
 
-- No sub-graphs, chapters, or grouping by folder or tag.
+- ~~No sub-graphs, chapters, or grouping by folder or tag.~~ **Built** — the subgraph role groups
+  nodes by any property, a tag included. See §16.
 - No saved chart: the pickers and config are session state (§14.4), the mermaid text is scratch.
 - No node dragging to reposition — the engine owns placement, and a hand-placed node would be lost at
   the next layout with nowhere to persist it.
@@ -509,8 +509,10 @@ about to write it anyway and can rename from the table.
   unknown value falling back to `()`.
 - **`title` is read-only**, being derived from the `# heading`, so node text cannot be edited from the
   map. Correct, and worth knowing before someone tries.
-- **Nowhere to persist the pickers or the config.** `table_layouts.gypsum` is named for the table and
-  holds column layouts and property types; these belong to neither.
+- ~~**Nowhere to persist the pickers or the config.**~~ **Settled the other way** — the pickers live
+  in `table_layouts.gypsum` beside `propertyTypes`, which was already a thing in that file belonging
+  to the folder rather than to a layout. The config block of §5.4 is still unbuilt and still has
+  nowhere. See §16.
 
 ---
 
@@ -537,9 +539,15 @@ large enough to be slow is not one graph, and filtering is the honest answer.
 
 ### 14.4 Session state, and revisit it
 
-Pickers and config live in `appState.flowchartState`, lost on reload, exactly as `viewState` is.
+*Superseded for the pickers by §16.* They are `appState.flowchartOptions`, and they are written to
+`table_layouts.gypsum` the moment they are set. The argument below was that retyping them every
+session would be the evidence they wanted a file; the counter-argument, which won, is that the file
+already held `propertyTypes` — a fact about the folder rather than about a layout — so there was a
+place for them and a validated writer to reach it with.
+
+~~Pickers and config live in `appState.flowchartState`, lost on reload, exactly as `viewState` is.
 Retyping the same options every session is the evidence that they want a file — and by then the view
-will have said what else belongs in it.
+will have said what else belongs in it.~~
 
 ---
 
@@ -557,3 +565,39 @@ will have said what else belongs in it.
 4. **Should §8's checks be available outside this view?** They are a walk over the link graph and have
    no dependency on the SVG — "which notes does nothing link to" is a question worth answering in the
    table too. If so, `graph-checks.js` belongs in `services/` proper rather than under `flowchart/`.
+
+---
+
+## 16. What step 3 actually built
+
+The pickers, a fifth role the plan did not have, and a home for the choices. Not the config block
+and not the code/chart toggle — those still wait on the engine.
+
+**Five roles, not four.** §2's table, plus **subgraph**: the property whose value groups nodes into
+`subgraph … end` blocks. A list value uses its first item, because mermaid puts a node in one
+subgraph and no more, and `tags` works like any other property — it is a Map, and its keys are the
+tag names.
+
+**Node shape landed as a fixed vocabulary**, which §13.6 asked for and did not choose. `NODE_SHAPES`
+in `constants.js` is the only place a shape is legal, and a note names one by word (`diamond`), by
+both marks (`"{}"`) or by the opening mark (`"{"`) — three spellings derived from the two
+delimiters, so a shape added later brings its symbol forms with it. Anything else draws round, which
+is §2's rule that a badly-pointed picker makes an odd chart rather than an error.
+
+**The generator is two passes, and that is the subgraph tax.** Mermaid puts a node in the first
+subgraph it is *mentioned* in, so an edge written inside a block drags its target in. Every node is
+therefore declared before any edge — `services/flowchart/mermaid-source.js`, one code path whether
+or not anything is grouped.
+
+**A connector item is read through `linksInText()`.** `internalLink` holds stripped targets, but a
+property the user points the role at holds `"[[cave.md]]"` as the note wrote it; without reading the
+brackets the whole chart drew as unresolved nodes. The link's own `|label` is ignored — labels come
+from the connector text role and nowhere else, so there is one labelling story. §13.2's alignment
+risk is unchanged and is now wider: two unrelated properties need not even be the same length.
+
+**§13.6's view-transition opt-out is built**, because the options dialog made it felt — every close
+re-renders, and the flowchart emits no `data-vt-id`, so every close crossfaded the whole page for a
+second. One condition in `a-render-all-files.js`.
+
+Still open from §13.6: node shapes needed a mapping and now have one; `title` is still read-only;
+re-layout on keystroke is not a question yet.

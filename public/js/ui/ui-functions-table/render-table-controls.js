@@ -50,7 +50,7 @@ export function renderTableControls() {
     const { active } = appState.tableLayouts;
 
     return `
-            <div class="table-controls">
+            <div class="output-controls">
                 <button type="button" id="layout-name" class="btn-menu" data-action="open-layouts-modal" data-tip="switch, save and edit table layouts">${active ?? DEFAULT_LAYOUT_LABEL}</button>
                 <button type="button" class="svg-wrapper-style" data-action="open-column-picker" data-tip="show and hide columns">
                     <svg viewBox="0 0 50 50"><use href="#icon-columns"></use></svg>

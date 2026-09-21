@@ -1,18 +1,21 @@
 /**
  * @file Converts between what the layouts file holds and what the app holds in memory: the columns
- * array on one side, and the propertyTypes object on the other.
+ * array, the propertyTypes object, and the flowchart object.
  *
  * No File System API, no DOM — just the two directions of each fact, kept in one place so they
  * cannot drift apart. layout-file.js does the reading and writing around it.
  *
- * Two facts rather than one, because they belong to different things. A column entry says how this
- * arrangement draws a property; a propertyTypes entry says what the property is. That is why a type
- * is not on the column any more — see plans/completed/table-value-types.md and the plan that undid
- * its §3.1.
+ * Three facts rather than one, because they belong to different things. A column entry says how
+ * this arrangement draws a property; a propertyTypes entry says what the property is; a flowchart
+ * entry says which property a part of the chart reads. That is why a type is not on the column any
+ * more — see plans/completed/table-value-types.md and the plan that undid its §3.1 — and why the
+ * flowchart's choices are not inside a layout either: there is one chart, not one per arrangement
+ * of columns.
  */
 
 import { appState, TABLE_VIEW_COLUMNS, defaultColumnEntry } from '../services/store.js';
 import { setPropertyType } from '../services/property-type.js';
+import { setFlowchartOption } from '../services/flowchart-options.js';
 
 /**
  * The current layout as the array a file holds: one object per column, carrying its position.
@@ -127,5 +130,40 @@ export function applyPropertyTypesFromFile(raw) {
 
     for (const [name, entry] of Object.entries(raw)) {
         setPropertyType(name, entry?.type, entry?.search_type);
+    }
+}
+
+/**
+ * The flowchart's chosen properties as the object a file holds: one entry per role.
+ *
+ * Only roles someone has pointed somewhere appear, for propertyTypesFromState's reason — an absent
+ * role is the answer "use the default", so writing all five out every time would turn one choice
+ * into a block of settings that say nothing.
+ *
+ * @returns {Object<string, string>}
+ */
+export function flowchartOptionsFromState() {
+    return Object.fromEntries(appState.flowchartOptions);
+}
+
+/**
+ * Fills appState.flowchartOptions from a file's flowchart object, replacing whatever was there.
+ *
+ * Every entry goes through setFlowchartOption, so a hand-edited file and a change in the options
+ * dialog are validated by the same function: a role name FLOWCHART_ROLES does not carry is dropped
+ * rather than corrected.
+ *
+ * The clear is what both folder loaders rely on — neither has to know this state exists, the same
+ * way neither clears propertyTypes for itself once applyActiveLayout has run.
+ *
+ * @param {*} raw - The `flowchart` object as parsed from the file, or anything at all.
+ * @returns {void}
+ */
+export function applyFlowchartOptionsFromFile(raw) {
+    appState.flowchartOptions.clear();
+    if (!raw || typeof raw !== 'object') return;
+
+    for (const [role, property] of Object.entries(raw)) {
+        setFlowchartOption(role, property);
     }
 }

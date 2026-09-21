@@ -201,6 +201,16 @@
     <!-- Which columns the table shows. Drawn by render-table-controls.js rather than written in
          this page, which is no reason for a second copy of a drawing. -->
     <symbol id="icon-columns" viewBox="0 0 50 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M11.474 18.79c.03 4.09.16 20.45.19 24.54m-.19-24.54c.03 4.09.16 20.45.19 24.54M26.415 18.347c.01 4.1.03 20.5.03 24.6m-.03-24.6c.01 4.1.03 20.5.03 24.6M39.254 18.078v25.96m0-25.96v25.96M10 10.17c.71.01 3.53.04 4.23.05M10 10.17c.71.01 3.53.04 4.23.05M23.879 10.17c.6-.03 2.98-.14 3.58-.17m-3.58.17c.6-.03 2.98-.14 3.58-.17M36.665 10.17c.69-.03 3.43-.14 4.12-.17m-4.12.17c.69-.03 3.43-.14 4.12-.17"/></symbol>
+    <!-- The flowchart's options. Three boxes and the lines between them: the one drawing in the
+         sprite that is a picture of what the view makes. Drawn by render-flowchart-controls.js. -->
+    <symbol id="icon-flowchart" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+        <rect x="18" y="6" width="14" height="10" rx="3"/>
+        <rect x="5" y="34" width="14" height="10" rx="3"/>
+        <rect x="31" y="34" width="14" height="10" rx="3"/>
+        <path d="M25 16v6M25 22H12v12M25 22h13v12"/>
+      </g>
+    </symbol>
     <!-- Reset a setting to its default: an arrow going back round. -->
       <symbol id="icon-reset" viewBox="0 0 50 45">
         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6" d="M18.474 10.552c-.83.41-3.58.51-4.99 2.44-1.42 1.94-3.47 5.96-3.48 9.16s1.36 7.8 3.42 10.04c2.06 2.25 5.73 3.11 8.95 3.43s7.67-.14 10.37-1.49c2.69-1.35 4.92-4.08 5.78-6.62s.33-6.12-.63-8.64c-.95-2.52-4.24-5.4-5.09-6.48m-14.33-1.84c-.83.41-3.58.51-4.99 2.44-1.42 1.94-3.47 5.96-3.48 9.16s1.36 7.8 3.42 10.04c2.06 2.25 5.73 3.11 8.95 3.43s7.67-.14 10.37-1.49c2.69-1.35 4.92-4.08 5.78-6.62s.33-6.12-.63-8.64c-.95-2.52-4.24-5.4-5.09-6.48"/>
@@ -785,7 +795,28 @@
          version of the file format. Same escape hatch, same place, as the history modal's
          "clear all history". -->
     <button id="layout-clear-btn" class="layout-clear-btn" data-action="layout-clear"
-            data-tip="delete every saved layout and every column type you have set">delete all layouts</button>
+            data-tip="delete every saved layout, every column type and every flowchart option you have set">delete all layouts</button>
+  </dialog>
+
+  <!-- Which property fills each part of the flowchart. Opened from the flowchart view's own
+       control row, which only exists in that view — so a dialog reachable from nowhere else needs
+       no view-conditional logic of its own, exactly as the column picker does not.
+
+       Static markup, and outside #output, so the re-render that closing it triggers cannot destroy
+       it mid-interaction. The rows are filled on open rather than at startup: the options are the
+       properties of the loaded folder, which is not known until a folder has been loaded.
+
+       One set of choices per folder, overwritten — there are no named flowcharts the way there are
+       named table layouts, so there is no list here and nothing to save. -->
+  <dialog id="modal-flowchart-options" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="close-flowchart-options" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title">Flowchart options</h2>
+
+    <p class="info-modal-note" id="flowchart-options-note"></p>
+
+    <div id="flowchart-options-list"></div>
+
   </dialog>
 
   <dialog id="modal-color-picker" data-action="close-color-picker-outside">

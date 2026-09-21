@@ -114,16 +114,8 @@
 
 /* --- the control row --------------------------------------------------------------------- */
 
-/* Runs the width of the table, because it has something at each end: the layout in use and the
-   column picker on the left, undo and redo on the right, with a spacer between them. It was fit-content while it was
-   a faint plate holding the layout and what can be done to it — a shape it stopped being once the
-   two ends stopped being the same kind of thing. It draws no background and no border either way,
-   so nothing is visibly plated; the controls simply stop huddling. */
-.table-controls {
-    padding-inline: 8px;
-    border-radius: 6px;
-    border:none;
-}
+/* The row itself is .output-controls, in output-controls.css. What is left here is what is the
+   table's alone: the layout name and the two buttons that say when there is nothing to press. */
 
 /* Undo and redo say when there is nothing to press, because otherwise a dead button and a live one
    look identical — the glyph *is* the button here, as it is on a column picker row, so the fade is

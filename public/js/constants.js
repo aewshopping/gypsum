@@ -101,6 +101,59 @@ export function labelFor(group, value) {
     return Object.values(group).find(entry => entry.value === value)?.label ?? value;
 }
 
+/**
+ * The parts of a flowchart a property can fill, each with the word the options dialog shows for it
+ * and the property the app uses when the user has not chosen one.
+ *
+ * Same shape as VIEWS and VALUE_TYPES above, and used the same way: **this is the only place a role
+ * name is legal**, so a hand-edited table_layouts.gypsum cannot invent a sixth role.
+ *
+ * `defaultProperty` is null where the role is off to begin with — no grouping, and every node
+ * round. `defaultLabel` is the word the "(default: ...)" option shows, and is carried rather than
+ * derived because node shape's is not a property name at all.
+ *
+ * **The defaults are bare string literals on purpose.** constants.js is a leaf — store.js imports
+ * VIEWS from it — so it cannot reach for FILE_PROPERTIES to look a label up, and tidying these
+ * into an import would make the cycle.
+ */
+export const FLOWCHART_ROLES = {
+    NODE_TEXT:      { value: "nodeText",      label: "node text",      defaultProperty: "title",            defaultLabel: "title"     },
+    CONNECTORS:     { value: "connectors",    label: "connectors",     defaultProperty: "internalLink",     defaultLabel: "links"     },
+    CONNECTOR_TEXT: { value: "connectorText", label: "connector text", defaultProperty: "internalLinkText", defaultLabel: "link text" },
+    SUBGRAPH:       { value: "subgraph",      label: "subgraph",       defaultProperty: null,               defaultLabel: "none"      },
+    NODE_SHAPE:     { value: "nodeShape",     label: "node shape",     defaultProperty: null,               defaultLabel: "round"     }
+};
+
+/**
+ * The shapes a node can be drawn in, as the pair of marks mermaid wraps a label in.
+ *
+ * Two fields rather than one because the pair is not symmetrical — a flag is `>` ... `]` and a
+ * slant is `[/` ... `/]` — so nothing here may collapse to a single token.
+ *
+ * A note names one of these in whichever property the node shape role points at, and
+ * nodeShapeFor() in services/flowchart-options.js is what reads it: by name, by both marks written
+ * together (`{}`), or by the opening mark alone (`{`). Those spellings are derived there from the
+ * two fields below, so adding a shape here gives it its symbol forms for free — keep a new one's
+ * marks distinct from every existing spelling.
+ *
+ * **Write the symbol form quoted — `shape: "{}"`.** Bare `{}` is an empty YAML map, bare `[]` an
+ * empty list and bare `>` a folded block: the first two degrade to the default shape, and a bare
+ * `[` or `{` can make the whole front matter block unreadable. The same rule a hex colour follows.
+ */
+export const NODE_SHAPES = {
+    ROUND:   { value: "round",   open: "(",  close: ")"  },
+    BOX:     { value: "box",     open: "[",  close: "]"  },
+    STADIUM: { value: "stadium", open: "([", close: "])" },
+    CIRCLE:  { value: "circle",  open: "((", close: "))" },
+    DIAMOND: { value: "diamond", open: "{",  close: "}"  },
+    HEXAGON: { value: "hexagon", open: "{{", close: "}}" },
+    FLAG:    { value: "flag",    open: ">",  close: "]"  },
+    SLANT:   { value: "slant",   open: "[/", close: "/]" }
+};
+
+/** What a node is drawn as when its value names no shape, or there is no value. */
+export const DEFAULT_NODE_SHAPE = NODE_SHAPES.ROUND;
+
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 export const LAYOUTS_FILENAME = 'table_layouts.gypsum';

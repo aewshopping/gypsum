@@ -23,6 +23,8 @@ import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.j
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
+import { handleOpenFlowchartOptions, handleCloseFlowchartOptions, handleFlowchartOptionChange,
+         handleFlowchartOptionsClose } from './ui-functions-click/flowchart-options.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
@@ -137,6 +139,10 @@ export function addActionHandlers() {
     // close. Nothing of its own is saved there — a type is written when it is set — but the
     // table has to be redrawn for it.
     document.getElementById('modal-property-types').addEventListener('close', handlePropertyTypesClose);
+
+    // And the flowchart options modal, which is the same arrangement again: a choice is written the
+    // moment it is made, and the close is what redraws the chart it changed.
+    document.getElementById('modal-flowchart-options').addEventListener('close', handleFlowchartOptionsClose);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"], [data-action="cell-date-pick"]')) {
             evt.preventDefault();
@@ -180,6 +186,8 @@ const clickActionHandlers = {
     'open-column-picker': handleOpenColumnPicker,
     'open-property-types': handleOpenPropertyTypes,
     'close-property-types': handleClosePropertyTypes,
+    'open-flowchart-options': handleOpenFlowchartOptions,
+    'close-flowchart-options': handleCloseFlowchartOptions,
     'close-column-picker': handleCloseColumnPicker,
     'reset-columns': handleResetColumns,
     'show-all-columns': handleShowAllColumns,
@@ -249,6 +257,7 @@ const changeActionHandlers = {
     'history-select-change': handleHistorySelectChange,
     'history-sort': handleHistorySort,
     'sort-select': handleSortSelectChange,
+    'flowchart-option-select': handleFlowchartOptionChange,
     'sort-direction-toggle': handleSortDirectionChange,
     'font-style-app-label-change': handleFontStyleAppLabelChange,
     'font-style-app-input-change': handleFontStyleAppInputChange,

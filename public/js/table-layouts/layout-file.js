@@ -1,6 +1,7 @@
 /**
  * @file Reads and writes .gypsum/table_layouts.gypsum — every saved layout for the folder, which
- * one is in use, and the type the user has chosen for each property.
+ * one is in use, the type the user has chosen for each property, and which property fills each
+ * part of the flowchart.
  *
  * One file rather than one per layout: a layout's name is a JSON key, so nothing has to be
  * sanitised into a filename, renaming is a key change rather than the write-then-delete the File
@@ -14,7 +15,8 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { SAVE_FOLDER, LAYOUTS_FILENAME } from '../constants.js';
 import { layoutFromColumnLayout, applyLayoutToColumnLayout,
-         propertyTypesFromState, applyPropertyTypesFromFile } from './layout-apply.js';
+         propertyTypesFromState, applyPropertyTypesFromFile,
+         flowchartOptionsFromState, applyFlowchartOptionsFromFile } from './layout-apply.js';
 
 /**
  * 2 since propertyTypes moved out of the layouts and up to the top of the document.
@@ -23,6 +25,11 @@ import { layoutFromColumnLayout, applyLayoutToColumnLayout,
  * way past a version 1 file. A version 1 file left in place is read as a document with no
  * propertyTypes, and the types it kept on its columns are simply not read — so it loses its types
  * rather than breaking. The number is here so a later shape change has something to branch on.
+ *
+ * **It tracks breaking changes only, which is why `flowchart` arriving did not move it.** Adding a
+ * top-level key costs nothing either way: readLayouts already defaults one that is missing, and a
+ * reader of this version ignores one it does not know. Bumping for it would spend the number on a
+ * change no branch will ever be written for, and leave the next real break with no clean signal.
  */
 const LAYOUT_VERSION = 2;
 
@@ -45,11 +52,16 @@ function enqueue(task) {
 }
 
 /**
- * No layouts, no chosen types, and the app's built-in defaults in use.
- * @returns {{layoutVersion: number, propertyTypes: object, active: string|null, layouts: object}}
+ * No layouts, no chosen types, no flowchart choices, and the app's built-in defaults in use.
+ *
+ * Every key readLayouts answers with appears here too. It has to: this is what readLayouts returns
+ * for a folder with no file, and a key missing from it would be absent from doc, then absent from
+ * the first thing written.
+ *
+ * @returns {{layoutVersion: number, propertyTypes: object, flowchart: object, active: string|null, layouts: object}}
  */
 function emptyDocument() {
-    return { layoutVersion: LAYOUT_VERSION, propertyTypes: {}, active: null, layouts: {} };
+    return { layoutVersion: LAYOUT_VERSION, propertyTypes: {}, flowchart: {}, active: null, layouts: {} };
 }
 
 /**
@@ -59,8 +71,13 @@ function emptyDocument() {
  * unparseable JSON — so no caller has to tell "this folder has no layouts" apart from "the
  * layouts could not be read". The distinction would not change what any of them do.
  *
+ * **Every key the document carries has to be named here**, because this rebuilds the object rather
+ * than spreading what was parsed — a key it does not mention is dropped, and the next writer, which
+ * reads through here first, then writes a file without it. That is how a flowchart choice would
+ * silently vanish the next time a layout was saved.
+ *
  * @async
- * @returns {Promise<{layoutVersion: number, propertyTypes: object, active: string|null, layouts: object}>}
+ * @returns {Promise<{layoutVersion: number, propertyTypes: object, flowchart: object, active: string|null, layouts: object}>}
  */
 export async function readLayouts() {
     if (!appState.dirHandle) return emptyDocument();
@@ -72,6 +89,8 @@ export async function readLayouts() {
             layoutVersion: parsed.layoutVersion ?? LAYOUT_VERSION,
             propertyTypes: (parsed.propertyTypes && typeof parsed.propertyTypes === 'object')
                 ? parsed.propertyTypes : {},
+            flowchart: (parsed.flowchart && typeof parsed.flowchart === 'object')
+                ? parsed.flowchart : {},
             active: typeof parsed.active === 'string' ? parsed.active : null,
             layouts: (parsed.layouts && typeof parsed.layouts === 'object') ? parsed.layouts : {},
         };
@@ -144,9 +163,10 @@ export function nextLayoutName(names) {
  * the defaults on the next render exactly as it always has — an empty Map already means
  * "use the defaults", so a folder that has never saved a layout needs no special case.
  *
- * The types are applied either way, before the layout and outside the `if`. They are not part of a
- * layout, so a folder using the app's defaults has them too — which is the whole point of their
- * having been moved out.
+ * The types and the flowchart's choices are applied either way, before the layout and outside the
+ * `if`. Neither is part of a layout, so a folder using the app's defaults has them too — which is
+ * the whole point of their being where they are. Their own clear is inside each apply function, so
+ * the folder loaders need know nothing about either.
  *
  * Queued alongside the writes, unlike the other readers, because the picker's reset calls this: a
  * reset that overtook a type still being written would repaint the list from the file as it was
@@ -160,6 +180,7 @@ export function applyActiveLayout() {
         const doc = await readLayouts();
         refreshState(doc);
         applyPropertyTypesFromFile(doc.propertyTypes);
+        applyFlowchartOptionsFromFile(doc.flowchart);
 
         const { active } = appState.tableLayouts;
         if (active) applyLayoutToColumnLayout(doc.layouts[active].columns ?? []);
@@ -194,7 +215,32 @@ export function savePropertyTypes() {
 }
 
 /**
- * Deletes the whole file: every layout, the active pointer and every chosen type.
+ * Writes the flowchart's chosen properties, leaving everything else in the document as it is.
+ *
+ * Its own write for savePropertyTypes' reasons, which apply unchanged: these are not part of a
+ * layout, so there is no "save" for the user to forget, and they work with the app's default
+ * columns in use. It will create the file in a folder that has never saved a layout, and creates
+ * no layout — `layouts` stays empty and `active` stays null.
+ *
+ * It does **not** call refreshState, for savePropertyTypes' reason too: that clears isDirty, and a
+ * column reorder waiting to be saved must not start looking saved because a flowchart option was
+ * changed beside it.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export function saveFlowchartOptions() {
+    const flowchart = flowchartOptionsFromState();
+    return enqueue(async () => {
+        const doc = await readLayouts();
+        doc.flowchart = flowchart;
+        await writeLayouts(doc);
+    });
+}
+
+/**
+ * Deletes the whole file: every layout, the active pointer, every chosen type and the flowchart's
+ * chosen properties.
  *
  * The file is removed rather than overwritten with an empty document, which is what clearAllHistory
  * does to history.gypsum. Nothing downstream can tell the difference — readLayouts already answers
@@ -221,6 +267,7 @@ export function deleteAllLayouts() {
 
         TABLE_VIEW_COLUMNS.columnLayout.clear();
         appState.propertyTypes.clear();
+        appState.flowchartOptions.clear();
         refreshState(emptyDocument());
     });
 }
