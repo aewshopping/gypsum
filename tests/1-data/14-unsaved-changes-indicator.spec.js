@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithHistory, loadFolder } = require('../helpers');
+const { setupMockDirectoryWithHistory, setupMockDirectoryWithSaveSupport, loadFolder } = require('../helpers');
 
 async function waitForHistoryOptions(page, count) {
   await page.waitForFunction((n) => {
@@ -76,6 +76,74 @@ test.describe('unsaved changes indicator in history select button', () => {
     // Return to current version — edits are still unsaved
     await page.selectOption('#file-content-history-select', { value: 'current' });
     await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+  });
+
+  // The two tests below are one bug from both ends. The dirty check trims the note's end
+  // before comparing, because innerText's trailing newline is a DOM artefact rather than an
+  // edit — so every measurement either side of that comparison has to be trimmed too. Two were
+  // not, and on a note left ending in a space the save indicator stuck lit for ever: the file
+  // was written correctly on every autosave and every Ctrl+S, while the app went on insisting
+  // it was unsaved, warned on close, and offered to discard changes that were already on disk.
+  // Anyone taking that offer would think they had lost the lot.
+
+  test('a note left ending in a space is saved, and stops saying otherwise', async ({ page }) => {
+    await setupMockDirectoryWithSaveSupport(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await waitForHistoryOptions(page, 1);
+    await switchToTxt(page);
+
+    // Typed at the end and stopped mid-sentence, on the space. The file now ends in one.
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('Control+End');
+    await page.keyboard.type(' and a bit more ');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+
+    await page.evaluate(() => document.getElementById('save-btn').click());
+
+    // The write reaches disk with the trailing space intact...
+    await expect.poll(() => page.evaluate(() => window.__originalFiles['notes.md']))
+      .toBe('# My Notes\nSome content here and a bit more ');
+    // ...and the indicator says so.
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
+  });
+
+  test('undoing back to the saved text clears the indicator, on a note ending in a space', async ({ page }) => {
+    // No save support, so nothing can rescue a wrong answer here by writing the file: the
+    // indicator has to be right on the strength of the dirty check alone.
+    await page.addInitScript(() => {
+      const content = '# My Notes\nSome content here ';
+      window.showDirectoryPicker = async () => ({
+        kind: 'directory', name: 'root',
+        values: async function* () {
+          yield {
+            kind: 'file', name: 'notes.md',
+            getFile: async () => ({
+              name: 'notes.md', size: content.length, lastModified: Date.now(),
+              text: async () => content,
+            }),
+          };
+        },
+        getFileHandle: async () => { throw new Error('no backup'); },
+      });
+    });
+    await page.goto('/');
+    await loadFolder(page);
+    await page.locator('.note-grid').first().click();
+    await expect(page.locator('#file-content-modal')).toBeVisible();
+    await waitForHistoryOptions(page, 1);
+    await switchToTxt(page);
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
+
+    await page.locator('#modal-content-text pre').click();
+    await page.keyboard.press('Control+Home');
+    await page.keyboard.type('Z');
+    await expect(page.locator('#modal-content')).not.toHaveClass(/\bsaved\b/);
+
+    await page.keyboard.press('Backspace');
+    await expect(page.locator('#modal-content')).toHaveClass(/\bsaved\b/);
   });
 
 });
