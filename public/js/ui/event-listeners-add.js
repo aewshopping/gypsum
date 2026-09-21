@@ -21,7 +21,8 @@ import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResize
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
-import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose } from './ui-functions-click/property-types.js';
+import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
+         handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
@@ -184,6 +185,7 @@ const clickActionHandlers = {
     'show-all-columns': handleShowAllColumns,
     'hide-all-columns': handleHideAllColumns,
     'column-delete': handleColumnDelete,
+    'property-type-delete': handlePropertyTypeDelete,
     'column-type-open': handleColumnTypeMenuOpen,
     'column-hide': handleColumnHide,
     'column-delete-menu': handleColumnMenuDelete,

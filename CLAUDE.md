@@ -135,9 +135,21 @@ point. These rules follow, and they are the ones to hold:
   defaults. There is no migration code for an older file: the app is still in development, so a
   version 1 file loses its types and is deleted rather than upgraded. `layoutVersion` is stamped on
   write so a later shape change has something to branch on.
+- **The way out for one type is the bin in the types modal**, which is the whole reason that modal
+  lists a property the folder no longer has. A type outlives the values it was set on: it is not part
+  of a layout, so deleting the column it was drawn as leaves it in the file — and "delete column" is
+  not offered at all under the app's defaults. Left alone it was read back on every load and written
+  out on every save with nothing on screen to say so. `property-types-list.js` asks
+  `propertiesInFiles()` — the same question, of the same source, as a column's `dead` — and offers the
+  bin only where `appState.propertyTypes` actually holds something to forget. `setPropertyType(name)`
+  with no type is the forget path, so the one writer stays the one writer. **Deleting a column never
+  forgets a type**, and must not start to: the property may be a column in another layout, and it
+  comes back with its type intact the moment a note carries the key again.
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
   nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
-  so no confirmation is needed anywhere. See `plans/completed/table-value-types.md` §1.2.
+  so no confirmation is needed anywhere — except forgetting one from the types modal, which asks,
+  because it is the same press as the column picker's bin and a bin that asks in one dialog and not
+  the other is worse than an unnecessary question. See `plans/completed/table-value-types.md` §1.2.
 - **A value that does not fit its column shows its text, and the cell is marked.** `typeMismatch()`
   says why, and there are two answers with two different fixes: `'shape'` is a list in a column of
   single values (or the reverse), which is the column's type being wrong; `'unreadable'` is text
