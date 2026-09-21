@@ -314,6 +314,32 @@ matter the first time anyone opened that cell and clicked away.
   the cell around it cannot disagree about which press this is. A press the app made itself carries
   `detail === 0` and follows at once. Links in a rendered note are untouched: no cell, one click.
 
+**The selected cell gives its right edge back**, which is what stops a link locking you out of its
+own cell. An anchor takes every press that lands on it, and a cell holding one link is that link end
+to end — so the first press selected the cell and the second had nowhere to go but the 6px of left
+padding. While a cell is selected it clears about 1em at its right, and a transparent `::after`
+there takes the press and finds the cell's own `data-action`. No JS knows it exists.
+
+- **It costs no column width.** It is on the selected cell and nowhere else, so nothing is reserved
+  on the several hundred others. The other bill has been paid here once already — see the sort
+  chevron in `note-table.css`, where reserving 28px a column is what pushed "file" into "f…".
+- **Padding and an ellipsis, not a fade — and a fade was tried first.** As a mask it was attractive,
+  because a row's background is `attr(data-color)` through `color-mix` with hover, suppressed and
+  fully-transparent branches, and a mask sidesteps all four. But a mask applies to an element's
+  whole rendering, outline included: the selection ring lost its right stroke and its top and bottom
+  faded out, and `outline-offset: 0` was worse. The ellipsis keeps the ring, needs to know nothing
+  about the background either, and says the one thing the fade did not — that there is more text.
+- **Padding rather than width**, because `box-sizing` is border-box: the cell's outer size never
+  changes, so no neighbour moves. Only where its text stops moves, in that one cell.
+- **The strip and the press target are different sizes on purpose.** The strip is what you see, so
+  it stays at 1em; the target is 1.5em, and 2.5em under `@media (pointer: coarse)`. The extra
+  overlaps the text, invisibly. It is needed at all because `text-overflow` only stops the text
+  being *painted* — the anchor is still laid out full width underneath and would go on taking
+  presses over a gap it is not drawn in.
+- **Nothing here constrains row height, and nothing may.** The target is `inset: 0 0 0 auto` so it
+  spans whatever the cell is, and the padding is horizontal. `--table-line-height` and
+  `--table-cell-padding` stay as free to change as they were, and a test holds that.
+
 **The note picker works in a cell, and `[[` is what opens it.** `handleCellAutocomplete` in
 `autocomplete/autocomplete.js` is a sibling of the editor's and the searchbox's, sharing the one
 popup session those two already share — the module's variables are private to it, so there is no
