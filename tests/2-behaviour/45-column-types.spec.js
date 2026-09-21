@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule } = require('../helpers');
+const { loadFolder, appModule, setupMockDirectoryWithLayouts } = require('../helpers');
 
 // Four front matter keys the app knows nothing about, chosen for what they catch:
 // `published` and `revisions` hold false and 0, which the cell renderer used to throw away;
@@ -487,4 +487,59 @@ test('the types modal explains itself when there are no user properties', async 
   await expect(page.locator('#property-types-list .info-modal-row')).toHaveCount(0);
   await expect(page.locator('#property-types-note'))
     .toHaveText("your files don't have any user properties, feel free to add some in frontmatter YAML format :-)");
+});
+
+// An abandoned type: one the layouts file still holds for a property no loaded file carries. It
+// used to be unreachable — not listed here, not a column anywhere, read back on every load and
+// written out on every save with nothing on screen to say so.
+
+/** The layouts mock, seeded with a type for a property its notes do not have. */
+async function setupAbandonedType(page) {
+  await setupMockDirectoryWithLayouts(page);
+  // A second init script, so it runs after the mock has set __layoutsFileContent to ''. `people`
+  // is a key beta.md carries; `food` is one no note has.
+  await page.addInitScript(() => {
+    window.__layoutsFileContent = JSON.stringify({
+      layoutVersion: 2, active: null, layouts: {},
+      propertyTypes: { people: { type: 'array' }, food: { type: 'number' } },
+    });
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await openTypesModal(page);
+}
+
+test('an abandoned type is listed as dead, and only it is offered a bin', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await setupAbandonedType(page);
+
+  const dead = typesRow(page, 'food');
+  await expect(dead).toHaveCount(1);
+  await expect(dead).toHaveAttribute('data-dead', '');
+  await expect(dead.locator('[data-action="property-type-delete"]')).toHaveCount(1);
+  // The glyph still draws the type it holds, but says it cannot be changed from here.
+  await expect(dead.locator('.info-modal-row-btn[disabled]')).toBeDisabled();
+  await expect(dead.locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-number');
+
+  // A property the folder still has is untouched: no fade, no bin, and it still opens the dialog.
+  const live = typesRow(page, 'people');
+  await expect(live).not.toHaveAttribute('data-dead', '');
+  await expect(live.locator('[data-action="property-type-delete"]')).toHaveCount(0);
+  await expect(live).toHaveAttribute('data-action', 'column-type-open');
+});
+
+test('the bin forgets an abandoned type, on screen and in the file', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await setupAbandonedType(page);
+
+  await typesRow(page, 'food').locator('[data-action="property-type-delete"]').click();
+  await page.click('[data-action="warning-proceed"]');
+
+  await expect(typesRow(page, 'food')).toHaveCount(0);
+  await expect(typesRow(page, 'people')).toHaveCount(1);
+
+  // The write is fire-and-forget through the layouts file's own queue, so poll for it.
+  await expect.poll(() => page.evaluate(
+    () => JSON.parse(window.__layoutsFileContent || '{}').propertyTypes
+  )).toEqual({ people: { type: 'array' } });
 });

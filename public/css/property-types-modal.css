@@ -21,7 +21,10 @@
 
 /* The row is the button. Two tracks: the label takes the space, the glyph takes what it needs.
    The negative inline margin lets the hover fill reach the dialog's padding rather than stopping
-   short of it, which is the trick .layout-row uses. */
+   short of it, which is the trick .layout-row uses.
+
+   The tracks, the padding and the fill are shared with a dead row, which is a div — the same shape
+   in the list, differing only in what presses. */
 .property-type-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -38,27 +41,53 @@
     font: inherit;
     color: var(--colour-contr);
     text-align: left;
-    cursor: pointer;
 
     &:focus-visible {
         outline: 2px solid var(--colour-contr);
     }
 }
 
-/* Hover is a fill, not an underline: the row is a target end to end. */
-.property-type-row:hover {
+/* Hover is a fill, not an underline: the row is a target end to end. Both this and the cursor are
+   about the row *being* the button, so neither applies to a dead one — there the row presses
+   nowhere and its own children are the controls. */
+.property-type-row:not([data-dead]) {
+    cursor: pointer;
+}
+
+.property-type-row:not([data-dead]):hover {
     background-color: var(--colour-neutral-alt);
 }
 
 /* The glyph follows the row's hover rather than having one of its own — inside a row that is itself
    the button, it is drawn and not pressed, so pointing at the label has to bring it up just as
-   pointing at the glyph does. The same pair of weights .info-modal-row-btn rests and hovers at. */
-.property-type-row .info-modal-row-btn {
+   pointing at the glyph does. The same pair of weights .info-modal-row-btn rests and hovers at.
+
+   Withdrawn from a dead row rather than worked around on one: there the glyph is a disabled button
+   and the bin is a live one, so modal-info.css's own three weights — .45 at rest, .9 on hover, .25
+   when disabled — are already the right answer for each of them. Left unscoped, the .45 here would
+   beat that .25 on a specificity tie plus import order, and the faded glyph would not be faded. */
+.property-type-row:not([data-dead]) .info-modal-row-btn {
     opacity: 0.45;
 }
 
-.property-type-row:hover .info-modal-row-btn {
+.property-type-row:not([data-dead]):hover .info-modal-row-btn {
     opacity: 0.9;
+}
+
+/* The glyph and the bin share the row's last track, so a dead row without a bin gives up no space
+   to it — the arrangement .column-picker-actions makes for the same reason, written out here rather
+   than borrowed, since that class belongs to the picker's own file. */
+.property-type-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* A property the folder no longer has, faded at the weight an empty column's header already uses
+   (.note-table-cell-header[data-empty]). The disabled glyph says the type cannot be changed; this
+   says why. */
+.property-type-row[data-dead] .info-modal-row-label {
+    opacity: 0.45;
 }
 
 /* minmax(0, ...) above and min-width here are the pair that let the track go narrower than the text

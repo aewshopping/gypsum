@@ -113,10 +113,14 @@ export function resolveColumns() {
  * truthiness test, because a key holding `''`, `0` or `false` is a key the file carries — the column
  * is empty when nobody has the key at all, not when everybody left it blank.
  *
+ * Exported because the types modal asks it too — an abandoned type is dead for exactly the reason
+ * a column is, and a second answer to "does the folder still have this property" would be a second
+ * thing to keep in step.
+ *
  * @param {string[]} names - The property names to ask about.
  * @returns {Set<string>} Those of them some file has.
  */
-function propertiesInFiles(names) {
+export function propertiesInFiles(names) {
     const pending = new Set(names);
     const carried = new Set();
 
