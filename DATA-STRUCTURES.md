@@ -286,6 +286,26 @@ in and is not on offer in the type dialog.
 
 ---
 
+## Flowchart options (`appState.flowchartOptions`)
+
+```js
+Map<string, string>   // role -> property name; an absent role means "use the role's default"
+```
+
+Which property fills each part of the flowchart: `nodeText`, `connectors`, `connectorText`,
+`subgraph` and `nodeShape`. Like a column type it belongs to the folder rather than to a layout, so
+it lives at the top of the same file and works with the app's default columns in use. Unlike a
+layout there is only ever one set, overwritten — there are no named flowcharts.
+
+**Never read this directly.** Ask `flowchartProperty(role)` in `services/flowchart-options.js`,
+which knows the order — the user's choice, then the role's default from `FLOWCHART_ROLES` in
+`constants.js`. It can answer `null`, which is a real answer: it is what `subgraph` and `nodeShape`
+mean before anyone has pointed them anywhere. `setFlowchartOption()` is the one writer, so a
+hand-edited file and a change in the dialog are validated identically: an unknown role is dropped,
+and an empty property deletes the entry rather than storing `''`.
+
+---
+
 ## Saved layouts (`appState.tableLayouts` and `TABLE_VIEW_COLUMNS.columnLayout`)
 
 ```js
@@ -317,20 +337,27 @@ otherwise have nowhere to put it.
 {
   "layoutVersion": 2,
   "propertyTypes": { "due": { "type": "date" } },   // keyed by property, not by layout
+  "flowchart": { "subgraph": "chapter" },           // keyed by role, not by layout either
   "active": "wide",
   "layouts": {
     "wide": {
       "updated": "2026-03-01T10:00:00.000Z",
-      "columns": [ ["title", { "label": "title", "width": 350, "visible": true }], … ]
+      "columns": [ { "order": 0, "name": "title", "label": "title", "width": 350, "visible": true }, … ]
     }
   }
 }
 ```
 
-It is hand-editable, which is why it is treated as a genuine boundary: an unknown type name is
-dropped rather than honoured. There is no migration code for an older file — a version 1 file loses
-its types and is deleted rather than upgraded. `layoutVersion` is stamped on write so a later shape
-change has something to branch on.
+**Every key has to be named in `readLayouts()`**, which rebuilds this object rather than spreading
+what it parsed — a key it does not mention is dropped, and the next write, which reads through it
+first, then leaves it out of the file.
+
+It is hand-editable, which is why it is treated as a genuine boundary: an unknown type name, or an
+unknown flowchart role, is dropped rather than honoured. There is no migration code for an older
+file — a version 1 file loses its types and is deleted rather than upgraded. `layoutVersion` is
+stamped on write so a later shape change has something to branch on, and it tracks **breaking**
+changes only: `flowchart` was added without moving it, because a reader of version 2 ignores a key
+it does not know and `readLayouts` defaults one that is missing.
 
 ---
 

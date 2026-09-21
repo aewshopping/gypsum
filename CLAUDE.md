@@ -131,8 +131,8 @@ point. These rules follow, and they are the ones to hold:
   deliberately does not clear `isDirty` — a column reorder waiting to be saved must not look saved
   because a type was set beside it.
 - **The way out is "delete all layouts"**, at the bottom of the layouts modal. It removes the whole
-  file — every layout, the active pointer and every type — and puts the columns back to the app's
-  defaults. There is no migration code for an older file: the app is still in development, so a
+  file — every layout, the active pointer, every type and every flowchart option — and puts the
+  columns back to the app's defaults. There is no migration code for an older file: the app is still in development, so a
   version 1 file loses its types and is deleted rather than upgraded. `layoutVersion` is stamped on
   write so a later shape change has something to branch on.
 - **The way out for one type is the bin in the types modal**, which is the whole reason that modal
@@ -657,6 +657,59 @@ Closing an edited cell writes it into the note's front matter. See
    that is the app's answer and cannot be changed. Ask `propertySearchType()` rather than reading
    the schema.
 
+### The flowchart's options
+
+**Which property fills each part of the chart is the user's choice, and it lives beside the property
+types.** Five roles — node text, connectors, connector text, subgraph, node shape — named in
+`FLOWCHART_ROLES` in `constants.js`, which is the only place a role name is legal. They are written
+to the `flowchart` object at the top of `.gypsum/table_layouts.gypsum`, for exactly the reason
+`propertyTypes` is there: it is a fact about the folder rather than about one arrangement of
+columns, so it works with the app's default columns in use and there is nothing for the user to
+remember to save. **One object, overwritten.** There are no named flowcharts the way there are named
+layouts, and adding them would be a new plan rather than a new key.
+
+- **Nothing asks `appState.flowchartOptions` directly, and nothing writes it except
+  `setFlowchartOption()`.** `services/flowchart-options.js` owns the order — the user's choice, then
+  the role's default — the same shape and the same argument as `property-type.js`. **`null` is a
+  real answer**: it is what `subgraph` and `nodeShape` mean before anyone points them anywhere.
+- **Adding a top-level key to the layouts file means adding it to `readLayouts()`.** That function
+  rebuilds the document rather than spreading what it parsed, so a key it does not name is dropped —
+  and the next writer, which reads through it first, then writes a file without it. It goes in
+  `emptyDocument()` too, which is what a folder with no file gets. `LAYOUT_VERSION` did **not** move
+  for it: the number tracks breaking shape changes, and spending it on an additive key would leave
+  the next real break with no clean signal.
+- **A shape is named by word or by marks, and the spellings are derived.** `NODE_SHAPES` holds a
+  name and the pair of mermaid delimiters; `nodeShapeFor()` accepts the name (`diamond`), both marks
+  (`"{}"`) and the opening mark (`"{"`), matching after whitespace is stripped so `"{ }"` works too.
+  A shape added to that list arrives with its symbol forms already working. **Write the marks
+  quoted** — bare `{}` is an empty YAML map and bare `[` can make the block unreadable, the same
+  rule a hex colour follows. Anything unrecognised draws round.
+- **A role pointed at the wrong sort of property is the user's business**, exactly as a column type
+  is. Every read goes through one `toList()` in `mermaid-source.js`, which turns a Map into **its
+  keys** — `tags` is `Map<tagName, {count, parents}>`, so the values are counting metadata and the
+  table already answers this with `.keys()`. That branch is also what stops `Map.forEach` yielding
+  `(value, key)` where the code wants `(item, index)`.
+- **The mermaid source is built in two passes, and the order is the point.** Mermaid puts a node in
+  the first subgraph it is *mentioned* in, so an edge written inside a block drags its target into
+  that block. Every node is declared before any edge — one code path, whether or not anything is
+  grouped, because a chart with no subgraphs is then one fewer arrangement to reason about.
+- **A connector item may be `cave.md` or `"[[cave.md]]"`.** `internalLink` holds targets the app has
+  already stripped; a property the user chooses holds what the note says. `linksInText()` in
+  `file-parsing/front-matter-links.js` is the one reader of `[[…]]` and is exported for this. A
+  link's own `|label` is deliberately ignored: labels come from the connector text role and nowhere
+  else, so there is one labelling story rather than two.
+- **Index alignment is no longer guaranteed by construction.** `internalLink` and `internalLinkText`
+  are one Map read twice; two properties the user picks are not, and need not even be the same
+  length. Read the text by index and treat `undefined` as an unlabelled edge.
+
+### A view's own control row
+
+**`.output-controls` is the row a view draws above its output**, shared by the table and the
+flowchart. It is part of each view's rendered HTML rather than something shown and hidden, which is
+what keeps view-conditional logic out of the app entirely: the row exists while its view is
+rendered, and so does every dialog reachable from it. Add a view's own class beside it for anything
+genuinely its own — `.flowchart-controls` sets one padding, and nothing else.
+
 ### Search / filter architecture
 
 - Filters are stored as objects in `appState.search.filters` (Map keyed by unique ID).
@@ -680,6 +733,8 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/services/file-parsing/front-matter-links.js` | The `[[links]]` written into front matter values |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
+| `public/js/services/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
+| `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
 | `public/js/table-layouts/` | Saved layouts and property types: `table_layouts.gypsum`, read and written |
 | `public/js/services/file-parsing/yaml-parse.js` | The front matter parser: `coerceValue` is YAML's answer, `readValue` is what the file object keeps |
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
@@ -689,6 +744,7 @@ Closing an edited cell writes it into the note's front matter. See
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |
+| `public/js/ui/ui-functions-flowchart/` | The flowchart's control row and its options modal's rows |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/autocomplete/` | The completion popup: one session, three hosts — the editor, a table cell, the searchbox |

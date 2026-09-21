@@ -95,6 +95,18 @@ export const appState = {
   // property-type.js rather than reading this directly — the schema is the other half of the answer.
   propertyTypes: new Map(),
 
+  // Which property fills each part of the flowchart, read from the same file's `flowchart` object.
+  // Map<roleName, propertyName> — an absent role means "ask FLOWCHART_ROLES for its default".
+  //
+  // A Map rather than a plain object, like propertyTypes above and for its reason: the loading path
+  // clears and refills in place, so no module holding a reference is left reading a dead object.
+  //
+  // One object per folder, overwritten — there are no named flowcharts the way there are named
+  // layouts. Session-scoped, cleared and refilled on folder load. Ask flowchartProperty() in
+  // services/flowchart-options.js rather than reading this directly; the role's default is the
+  // other half of the answer.
+  flowchartOptions: new Map(),
+
   // Table cell edits that can be put back, newest last. One entry is one batch — a single cell edit
   // is a batch of one — and each holds the records applyRawEdits returned for it: the key's whole
   // value span before and after the splice. See plans/table-undo-stack.md §4 and §5.

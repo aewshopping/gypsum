@@ -19,10 +19,14 @@ const LINK_MATCH = new RegExp(regex_internal_link.source, 'g');
 /**
  * Every link in one string, in the order written.
  *
+ * Exported because the flowchart reads it too. A connectors property the user has pointed the chart
+ * at may hold `"[[cave.md]]"` where internalLink holds the bare `cave.md`, and a second reader of
+ * `[[...]]` would agree with this one on the day it was written and drift after.
+ *
  * @param {string} text - A front matter value.
  * @returns {Array<{target: string, text: string}>} The links found, each trimmed.
  */
-function linksInText(text) {
+export function linksInText(text) {
     const found = [];
     for (const match of text.matchAll(LINK_MATCH)) {
         found.push({ target: match[1].trim(), text: (match[2] ?? '').trim() });

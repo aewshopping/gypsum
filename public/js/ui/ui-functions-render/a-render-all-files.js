@@ -161,7 +161,14 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // whenever a card transition fires while the modal is open.
     const modalOpen = ['file-content-modal', 'modal-settings', 'modal-layouts', 'modal-columns']
         .some(id => document.getElementById(id)?.open);
-    if (viewTransitionsWanted() && !modalOpen && !nothingMoved) {
+    // The flowchart draws one block of text rather than a row or card per note, so there is nothing
+    // for a transition to morph: it captures the whole page twice and then crossfades one <pre> onto
+    // another for a second. It reads as "everything moved" only because that renderer emits no
+    // data-vt-id — and this is the opt-out plans/flowchart-view.md §13.6 asks for. Felt most on the
+    // options dialog, every close of which re-renders the view.
+    const flowchartView = appState.viewState === VIEWS.FLOWCHART.value;
+
+    if (viewTransitionsWanted() && !modalOpen && !nothingMoved && !flowchartView) {
         const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
             el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
         );

@@ -1,0 +1,27 @@
+/* The flowchart options modal: which property fills each part of the chart. Built from the same
+   .info-modal shell and .info-modal-row rows as the types modal, so only what differs is here.
+   What differs is what a row holds: a label and a <select>, where the types modal's row holds a
+   label and a glyph and is itself the button. */
+
+/* Wider than the types modal's 340px, because the thing on the right of a row is a dropdown
+   holding a property name rather than a single glyph. The viewport term and the 320px floor
+   underneath it are the picker's — see sidebar-push.css and .info-modal. */
+#modal-flowchart-options {
+    max-width: min(420px, calc(100vw - var(--sidebar-width) - 32px));
+}
+
+/* A grid rather than the rows' own block flow, for #property-types-list's reason: one column is
+   what makes every row the same width without any of them being told that width in pixels. */
+#flowchart-options-list {
+    display: grid;
+    gap: 4px;
+}
+
+/* .info-modal-row-label is flex: 1, which would let a long property name in the select squeeze the
+   role's name to nothing. The label keeps what it needs and the select takes the rest, down to a
+   floor — a dropdown narrower than this shows none of what it has been set to. */
+.flowchart-option-row > select {
+    flex: 1;
+    min-width: 11ch;
+    max-width: 60%;
+}
