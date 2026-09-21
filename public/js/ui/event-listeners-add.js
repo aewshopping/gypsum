@@ -66,7 +66,6 @@ import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-func
 import { handleSearchboxAutocomplete, handleCellAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, handleLayoutSave,
-         handleLayoutPickerOpen,
          handleLayoutSaveAs, handleLayoutEditName, handleLayoutDelete, handleLayoutClear,
          handleLayoutNameBlur,
          handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
@@ -169,7 +168,6 @@ const clickActionHandlers = {
     'column-auto-size': handleColumnAutoSize,
     'open-layouts-modal': handleOpenLayoutsModal,
     'close-layouts-modal': handleCloseLayoutsModal,
-    'layout-picker-open': handleLayoutPickerOpen,
     'layout-select': handleLayoutSelect,
     'layout-save': handleLayoutSave,
     'table-undo': handleTableUndo,

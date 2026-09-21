@@ -59,9 +59,10 @@
 }
 
 /* The text buttons in the controls panel — "tags" and "types". One class rather than one
-   per button: they are the same control, and sit side by side. */
+   per button: they are the same control, and sit side by side. The block padding is what lands
+   them on the same height as the select beside them. */
 .controls-panel-btn {
-    padding-block: 4px;
+    padding-block: 3px;
     border-radius: 8px;
 }
 

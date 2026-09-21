@@ -135,7 +135,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const filesWithMetadata = [];
     let pct = 0;
     fileCountEl.classList.add('loading');
-    fileCountEl.textContent = `files loaded: ${total}`;
+    fileCountEl.textContent = `files: ${total}`;
     fileCountEl.style.setProperty('--load-pct', 0);
     let unreadableCount = 0;
     for (let i = 0; i < total; i++) {

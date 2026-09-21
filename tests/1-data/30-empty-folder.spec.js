@@ -12,7 +12,7 @@ test('an empty folder loads without crashing, and its controls stay usable', asy
   expect(pageErrors).toEqual([]);
   expect(await page.evaluate(() => window.appState.myFiles.length)).toBe(0);
   await expect(page.locator('#output .empty-state')).toContainText('No notes in this folder yet');
-  await expect(page.locator('#fileCountElement')).toContainText('files loaded: 0');
+  await expect(page.locator('#fileCountElement')).toContainText('files: 0');
 
   await expect(page.locator('#btn-new-note')).toBeEnabled();
   // an empty select is a dead control — the default sort property must survive

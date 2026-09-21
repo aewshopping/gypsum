@@ -27,7 +27,7 @@ import { closeColumnMenu, clearHeaderSelection } from '../ui-functions-click/col
 import { showTooltipFor, hideTooltip } from '../tooltip.js';
 import { applyColumnWidths, columnWidthPx } from './apply-column-widths.js';
 import { syncScrollbarThumb } from './table-scrollbar-sync.js';
-import { markLayoutDirty } from './render-table-controls.js';
+import { markLayoutDirty } from '../layout-save-state.js';
 
 /**
  * Re-parks the bar when the page is re-laid-out under it. #output is watched rather than the

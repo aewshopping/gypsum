@@ -76,7 +76,7 @@ function paint() {
     const line = document.getElementById('output-report');
     if (!line) return;
 
-    line.textContent = `files filtered: ${fileCount}`;
+    line.textContent = `count: ${fileCount}`;
     if (!undoText) return;
 
     // The undo half alone takes the warning colour when something was refused. The count beside it

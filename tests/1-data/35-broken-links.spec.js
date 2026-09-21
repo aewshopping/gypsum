@@ -66,6 +66,6 @@ test('no broken-link nudge appears when every link resolves', async ({ page }) =
   await page.goto('/');
   await loadFolder(page);
 
-  await expect(page.locator('#fileCountElement')).toContainText('files loaded: 3');
+  await expect(page.locator('#fileCountElement')).toContainText('files: 3');
   await expect(page.locator('#fileCountElement [data-value="links"]')).toHaveCount(0);
 });

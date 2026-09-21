@@ -12,8 +12,8 @@
 
 import { appState } from '../../services/store.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
-import { renderLayoutList, renderLayoutPicker } from '../ui-functions-render/render-layout-list.js';
-import { playLayoutSaved } from '../ui-functions-table/render-table-controls.js';
+import { renderLayoutList } from '../ui-functions-render/render-layout-list.js';
+import { playLayoutSaved } from '../layout-save-state.js';
 import { saveLayout, renameLayout, deleteLayout, deleteAllLayouts, setActiveLayout, nextLayoutName }
     from '../../table-layouts/layout-file.js';
 import { showWarningModal } from './warning-modal.js';
@@ -36,14 +36,18 @@ function listElement() {
 }
 
 /**
- * Redraws the list, and settles whether there is anything left to delete.
+ * Redraws the list, says whether the columns match the layout they came from, and settles whether
+ * there is anything left to delete.
  *
- * The clear button lives outside the list in the markup, so it is set here rather than rendered
- * with the rows — this is the one place every change to the layouts passes through.
+ * The `saved` class drives the save button's glyph, and sits on the list rather than on the button
+ * so that a repaint — which replaces the button — cannot lose it. The clear button lives outside
+ * the list in the markup, so it is set here rather than rendered with the rows. This is the one
+ * place every change to the layouts passes through.
  * @returns {void}
  */
 function paintList() {
     listElement().innerHTML = renderLayoutList();
+    listElement().classList.toggle('saved', !appState.tableLayouts.isDirty);
 
     const clear = document.getElementById('layout-clear-btn');
     if (clear) clear.disabled = appState.tableLayouts.names.length === 0
@@ -107,7 +111,8 @@ async function commitEdit(el) {
 }
 
 /**
- * Builds the list and opens the modal.
+ * Builds the list and opens the modal. The one way in to the layouts — the name in the table's
+ * control row, which used to hang a popover of the same layouts under itself as well.
  * @returns {void}
  */
 export function handleOpenLayoutsModal() {
@@ -129,57 +134,42 @@ export function handleCloseLayoutsModal() {
  * @returns {Promise<void>}
  */
 export async function handleLayoutSelect(evt, target) {
-    // The picker is a menu and is done once something is picked; the modal is a place you are
-    // working in, so choosing a layout there moves the marker and leaves you where you were.
-    document.getElementById('layout-picker')?.hidePopover();
-
+    // The modal is a place you are working in, so choosing a layout moves the marker — and the save
+    // button, which is drawn on the active row — and leaves you where you were.
     await setActiveLayout(target.dataset.layout || null);
     renderFiles();
     if (dialog().open) paintList();
 }
 
 /**
- * Fills the layout picker before the browser shows it. The button carries popovertarget, so
- * opening is the browser's job — this only has to make the contents right first.
- * @returns {void}
- */
-export function handleLayoutPickerOpen() {
-    document.getElementById('layout-picker').innerHTML = renderLayoutPicker();
-}
-
-/**
  * Saves the current columns to a new layout, names it for the user, and hands the name straight
- * back for editing. Opens the modal if it is not already up, which is how the control row's save
- * button behaves on the app defaults.
+ * back for editing.
+ *
+ * The repaint comes before the flash, not after: the new layout is now the active one, so the
+ * repaint is what puts a save button on its row at all — and a flash played first would be
+ * decorating a button the repaint then threw away.
  * @returns {Promise<void>}
  */
 async function createLayout() {
     const name = nextLayoutName(appState.tableLayouts.names);
     await saveLayout(name);
     renderFiles();
-    playLayoutSaved();
 
     paintList();
-    if (!dialog().open) dialog().showModal();
+    playLayoutSaved();
     startEditing(name);
 }
 
 /**
- * Save, from either the control row or the modal.
+ * Save, from the active layout's row.
  *
- * On a saved layout it writes over that layout and says nothing. On the app defaults there is no
- * layout to write over, so it makes one — which is the same thing "save as new" does, and the
- * reason the button can stay labelled "save" in both states.
+ * It is only ever drawn on a saved layout — the app's defaults are nothing to write over, and
+ * "save as new" is the answer there — so this writes over that layout and says nothing more.
  * @returns {Promise<void>}
  */
 export async function handleLayoutSave() {
-    const { active } = appState.tableLayouts;
-    if (active) {
-        await saveLayout(active);
-        playLayoutSaved();
-        return;
-    }
-    await createLayout();
+    await saveLayout(appState.tableLayouts.active);
+    playLayoutSaved();
 }
 
 /**

@@ -1,6 +1,6 @@
 /* The line above the file list: how many files are showing, and what the last undo did.
 
-   "files filtered: 42 | undo: 3 values, 1 fail", the second half gone again a few seconds later. It
+   "count: 42 | undo: 3 values, 1 fail", the second half gone again a few seconds later. It
    counts rather than names, because it has to fit one line at phone width — and because the cells
    themselves say which values moved, leaving this to be the only thing that speaks when the rows in
    question are filtered out or on another page. See plans/table-undo-stack.md §10.6.
