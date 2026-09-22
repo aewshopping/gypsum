@@ -3,7 +3,7 @@
 Status: **built.** §0 below is the state it was written in, when the picker existed and reached
 nothing; everything it lists as missing has since landed.
 Branch: `claude/column-hide-show-modal-y1bhj4`
-Related: `plans/completed/table-column-resize.md`, `plans/table-json-export.md`, `plans/table-formula-columns.md`
+Related: `plans/completed/table-column-resize.md`, `plans/table-json-export.md`, `plans/table-linked-properties.md`
 
 ---
 
@@ -52,7 +52,7 @@ on content, keyboard reordering (§7).
 | `table-column-resize.md` | how wide | `columnLayout` entries' `width` — **moves here from `widthOverrides`** |
 | **this plan** | **which columns, in what order, shown or not** | **`columnLayout`, one ordered Map** |
 | saved layouts | persistence | writes `columnLayout` out and reads it back |
-| `table-formula-columns.md` | computed columns | needs layouts first |
+| `table-linked-properties.md` | computed columns | needs layouts first |
 
 **Order has moved forward into this plan**, from the "not doing" list it sat on. The picker is
 already where the user sees every candidate column in one list, the drag already works, and the

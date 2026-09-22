@@ -2,7 +2,7 @@
 
 Status: **built**
 Related: `plans/completed/table-column-visibility.md` (built), `plans/completed/table-column-resize.md` (built),
-`plans/table-json-export.md`, `plans/table-formula-columns.md`
+`plans/table-json-export.md`, `plans/table-linked-properties.md`
 
 ---
 
@@ -185,7 +185,7 @@ renames one today, so nothing diverges today — and the ambiguity is accepted i
 source of truth for what a column is called.
 
 **`type` is deliberately not saved.** An earlier draft wrote it for the benefit of
-`plans/table-formula-columns.md`. Three reasons not to, this version:
+`plans/table-linked-properties.md`. Three reasons not to, this version:
 
 - Nothing reads it. `render-table-rows.js` switches on `prop.type` and has a `default` case, so a
   column without one renders its raw value.
@@ -851,7 +851,7 @@ work, no DOM. `layout-menu.js` is the only piece that touches the DOM, and it is
   than something assembled on the way out. The cost is that the Map now carries values that used to
   be derived at render time; the benefit is that "every metric is written out" is true by
   construction.
-- **`type` is not saved** (§3.2). `plans/table-formula-columns.md` will want it. `layoutVersion` is
+- **`type` is not saved** (§3.2). `plans/table-linked-properties.md` will want it. `layoutVersion` is
   the insurance; adding a key to a version-2 shape is cheap, and saving one that sorting ignores is
   not.
 - **`order` is in the file but not in the Map** (§3.2), regenerated on every write and treated as
