@@ -105,16 +105,29 @@ It goes here, and not on a layout's column entry, for the reasons `propertyTypes
   exist. The old plan listed "what happens with no layout saved" as open; this answers it.
 - **The + creates it, and it reaches the disk at once.** There is no "save" to forget. Its writer,
   like `savePropertyTypes()`, leaves `isDirty` alone.
-- **Once defined, it is one more column.** `resolveColumns()` treats it as a candidate, so it is
-  shown under the defaults and joins a saved layout hidden, the same as a front matter key added
-  after that layout was saved. **It is switched on and off, and reordered, in the column picker
-  like any other column**, and a layout records its `visible`, `order` and `width` in its
-  `columns` array as usual. Creating one therefore never changes a saved layout by itself: under
-  a saved layout the new column arrives hidden, and the user turns it on in the picker and saves.
-  *Whether to switch it on automatically when it is created from the + is a small open question.*
-  The user plainly wants to see it, but doing that marks the layout dirty through an act that was
-  not a layout edit. The recommendation is to leave it hidden and have the dialog say
-  "added: switch it on in the column picker" when a saved layout is in force.
+- **Once defined, it is one more column.** `resolveColumns()` treats it as a candidate. **It is
+  switched on and off, and reordered, in the column picker like any other column**, and a layout
+  records its `visible`, `order` and `width` in its `columns` array as usual.
+- **A new linked column shows at once, in whichever layout is in use.** Adding one means wanting to
+  see it, so it must never take a trip to the column picker. It joins the table as the rightmost
+  column:
+  - *Under the app's defaults* nothing extra is needed: `resolveColumns()` shows a new candidate
+    there anyway.
+  - *Under a saved layout* the ordinary rule would add it hidden, as it does a front matter key
+    that turns up after the layout was saved. So creating it also **appends a visible entry for it
+    to the active layout's `columns` in the file**, in the same queued write as the definition,
+    and sets it visible in `columnLayout`. Only the active layout gets it. The others meet it
+    through the ordinary rule, hidden, which is what a layout means: it shows the columns its user
+    chose, and choosing it in one layout is not choosing it in all of them.
+  - **It is spliced into the stored layout, not saved from the screen.** Writing
+    `layoutFromColumnLayout()` would also save any reorder or resize waiting to be saved beside it,
+    making them look saved when nobody asked for that. So the write adds one entry to the stored
+    `columns` array and leaves the rest as they are, and `isDirty` stays as it was. This is the
+    same restraint `savePropertyTypes()` shows, and the same "written there and then" as deleting
+    a column from a layout.
+  - Otherwise the column showed now and would come back hidden on the next load, because the
+    stored layout had never heard of it. A column that disappears after a reload is worse than one
+    that took a click to show.
 
 Deleting one therefore removes it from `linkedProperties` **and** from every layout's `columns`
 array in the same write, so no layout goes on naming a column that no longer exists. This is the
@@ -249,7 +262,8 @@ that follows a change cannot destroy the dialog mid-interaction. Its list is fil
 - **The add row is last** and is focused when the dialog opens from the + button: that press means
   "add one". **add** is disabled until both selects hold a value. A blank name defaults to
   `<via label> → <read label>`. Adding closes nothing: the new row joins the list above, the add
-  row clears, and the column appears in the table behind the dialog on the redraw.
+  row clears, and the column appears in the table behind the dialog on the redraw, as the rightmost
+  column, in whichever layout is in use (§3.1). No trip to the column picker.
 - **"via" offers** every front matter property plus `internalLink`, listed first. Info columns,
   control columns and linked properties are excluded. It does not check which properties actually
   hold links: a property pointed at the wrong thing gives an empty column, which is the user's
@@ -303,7 +317,10 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
   third pair.
 - `layout-file.js`: add `linkedProperties` to `readLayouts()` and `emptyDocument()` (see the warning
   on `readLayouts`: a key it does not name is dropped); `saveLinkedProperties()`, which does not
-  touch `isDirty`; `deleteLinkedProperty(key)`, which removes the key from `linkedProperties` and
+  touch `isDirty`; `addLinkedProperty(key, definition)`, which in one queued write stores the
+  definition and, when a layout is active, appends `{ name: key, visible: true, order: <after the
+  last>, … }` to that layout's stored `columns`, then sets it visible and last in `columnLayout`,
+  leaving `isDirty` alone (§3.1); `deleteLinkedProperty(key)`, which removes the key from `linkedProperties` and
   from every layout's `columns` in one queued write, and from `columnLayout` in memory;
   `applyActiveLayout()` and `deleteAllLayouts()` load and clear the new state.
   `LAYOUT_VERSION` stays the same: the key is additive.
@@ -381,16 +398,20 @@ manifest.json, CLAUDE.md                               MOD
 
 - **Level 1** (`tests/1-data/`, in the layouts spec's level-1 counterpart if there is one,
   otherwise next to the property-types writes): adding, renaming and deleting a linked property
-  writes the expected `linkedProperties` object; a delete also removes the key from every layout's
-  `columns`; a malformed hand-edited definition is dropped; setting one leaves `isDirty` as it was;
+  writes the expected `linkedProperties` object; an add under a saved layout appends one visible entry
+  to that layout's `columns` and changes nothing else in it; a delete also removes the key from
+  every layout's `columns`; a malformed hand-edited definition is dropped; setting one leaves `isDirty` as it was;
   no note is written by any of it.
 - **Level 2** (`tests/2-behaviour/43-table-layouts.spec.js` or a new
   `linked-properties.spec.js`, since this is a new area): the + opens the dialog; a defined column
   shows the linked note's value; several links give an aligned list with empty slots; a broken link
   gives an empty cell with no warning; the cell takes no caret; the header has no sort chevron.
   **In the column picker** it can be toggled off and on and dragged to a new place, and a saved
-  layout keeps that; a new one arrives hidden under a saved layout and shown under the defaults;
-  an empty one still has its toggle and no bin.
+  layout keeps that; an empty one still has its toggle and no bin.
+  **A new one is shown at once**, rightmost, under the defaults and under a saved layout alike,
+  and is still shown after a reload. Under a saved layout with an unsaved reorder pending, adding
+  one leaves the reorder unsaved (`isDirty` still set, and the file's order unchanged apart from
+  the appended column). Other saved layouts get it hidden.
 - **`linkedValue` in node**, via `appModule()`: single, many, broken, missing property, list read
   value, Map read value.
 
