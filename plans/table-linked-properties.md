@@ -28,6 +28,13 @@ note. It is defined by two choices and a name:
 
 *"Take this note's `project` link, find that note, show its `status`."*
 
+**Once defined, it is a column like any other.** It appears in the column picker with a toggle and
+a drag handle, and each layout shows it or hides it, and places it, the same way it does
+`status` or `due`. It can also be hidden from its own header menu. The dialog in §5 owns what the
+column *is* (its name and its two properties) and the column picker owns *whether and where it
+shows*, just as the picker already does for front matter columns. Deleting it is the one thing the
+picker does not do (§3.1).
+
 **In scope:** defining, renaming, re-pointing and deleting linked properties from one dialog
 (§5); drawing them as table columns; following a property that holds one link or many (§3.3).
 
@@ -98,10 +105,16 @@ It goes here, and not on a layout's column entry, for the reasons `propertyTypes
   exist. The old plan listed "what happens with no layout saved" as open; this answers it.
 - **The + creates it, and it reaches the disk at once.** There is no "save" to forget. Its writer,
   like `savePropertyTypes()`, leaves `isDirty` alone.
-- **Once defined, it behaves like any property.** `resolveColumns()` treats it as a candidate, so
-  it is shown under the defaults and joins a saved layout hidden, the same as a front matter key
-  added after that layout was saved. Each layout then decides whether and where to show it,
-  through the column picker, as usual.
+- **Once defined, it is one more column.** `resolveColumns()` treats it as a candidate, so it is
+  shown under the defaults and joins a saved layout hidden, the same as a front matter key added
+  after that layout was saved. **It is switched on and off, and reordered, in the column picker
+  like any other column**, and a layout records its `visible`, `order` and `width` in its
+  `columns` array as usual. Creating one therefore never changes a saved layout by itself: under
+  a saved layout the new column arrives hidden, and the user turns it on in the picker and saves.
+  *Whether to switch it on automatically when it is created from the + is a small open question.*
+  The user plainly wants to see it, but doing that marks the layout dirty through an act that was
+  not a layout edit. The recommendation is to leave it hidden and have the dialog say
+  "added: switch it on in the column picker" when a saved layout is in force.
 
 Deleting one therefore removes it from `linkedProperties` **and** from every layout's `columns`
 array in the same write, so no layout goes on naming a column that no longer exists. This is the
@@ -178,7 +191,11 @@ entry, following the rule in CLAUDE.md. `LINKED_TYPE` goes in `constants.js`, *o
 If "via" or "read" names a property that no loaded file has, the column is empty. It is not an
 error. The dialog still lists it and still allows re-pointing it: its current value stays in the
 menu, marked as not in any file, the same way the types modal keeps a dead type binnable. The
-column reads as `dead` if every one of its cells is empty, so the existing fade applies. A
+column is **never `dead`**, even when every cell is empty. `dead` does more than fade a header:
+the column picker locks a dead column's toggle and offers its bin instead, and that bin deletes the
+column from the layout. For a linked column that would take away the toggle (it could no longer be
+switched on and off like any other column) and add a second way to delete it that bypasses the
+dialog. An empty linked column is fixed by re-pointing it, not by deleting it from one layout. A
 hand-edited definition that is malformed (not an object, a missing or non-string `via` or `read`)
 is dropped on read, via the single writer, like an unknown type name.
 
@@ -295,7 +312,10 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 
 - `resolveColumns()` includes `linkedPropertyKeys()` among its candidates, is exempt from the
   `missing` file check (no file carries a `linked:` key), overrides `label` from the definition
-  (§3.2), and computes `dead` by evaluating (§3.8) instead of by `propertiesInFiles`.
+  (§3.2), and returns `dead: false` for it (§3.8). `propertiesInFiles` is not asked about it.
+- `column-picker-list.js`: no change is expected. A linked column is an ordinary row there, with its
+  toggle, drag handle and §3.7 glyph, because it is never `dead`, so it never gets the bin. Check
+  that this holds, and do not add a linked-specific branch.
 - `property-type.js`: `propertyType()` returns the read property's type for a linked key, and
   `isTypeSettable()` and `isPropertyEditable()` both return false for it.
 - `render-table-rows.js`: a linked column's value comes from `linkedValue()`, not `file[name]`, and
@@ -339,7 +359,7 @@ public/js/services/store.js                            MOD  appState.linkedPrope
 public/js/services/property-type.js                    MOD  read property's type; not settable/editable
 public/js/table-layouts/layout-apply.js                MOD  from-state / apply-from-file pair
 public/js/table-layouts/layout-file.js                 MOD  read, save, delete, clear
-public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  linked keys as columns
+public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  linked keys as columns, never dead
 public/js/ui/ui-functions-table/render-table-rows.js   MOD  linkedValue for linked columns
 public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger; the glyph
 public/js/ui/ui-functions-table/render-table-controls.js MOD the + button
@@ -368,6 +388,9 @@ manifest.json, CLAUDE.md                               MOD
   `linked-properties.spec.js`, since this is a new area): the + opens the dialog; a defined column
   shows the linked note's value; several links give an aligned list with empty slots; a broken link
   gives an empty cell with no warning; the cell takes no caret; the header has no sort chevron.
+  **In the column picker** it can be toggled off and on and dragged to a new place, and a saved
+  layout keeps that; a new one arrives hidden under a saved layout and shown under the defaults;
+  an empty one still has its toggle and no bin.
 - **`linkedValue` in node**, via `appModule()`: single, many, broken, missing property, list read
   value, Map read value.
 
