@@ -1,520 +1,392 @@
-# Plan: formula columns in table view — a property read through a file's links
+# Plan: linked property columns in table view
 
-Status: **not started.** Its blocker is gone: saved layouts are built, so §1.1's "layouts first" is
-satisfied and this is now buildable.
-Branch: `claude/table-range-select-copy-paste-iq6tcf`
-Related: `plans/completed/table-saved-layouts.md` and `plans/completed/property-type-store.md`, both
-**built**; `plans/table-json-export.md`, which shares the value-shape problem
-Later: writing a computed value back into the note — §10, a separate plan, not this one
+Status: **not started.** Nothing blocks it: saved layouts, the `propertyTypes` object and the
+flowchart's options are all built, and this copies their shape.
+Related: `plans/completed/table-saved-layouts.md` and `plans/completed/property-type-store.md`,
+both **built**; `plans/flowchart-view.md`, whose connector role already follows a property's links
+Later: writing a linked value back into the note (§9), a separate plan
+
+This plan used to be about **formula columns**: a small expression language
+(`link(internalLink).status`), with a parser, an evaluator, multi-hop chains and a free-text
+editor. Its scope is now one hop, picked from two menus. The user never sees syntax, so there is
+no grammar, no parser, no parse errors and no `eval` question. The formula plan's own §5g had
+already noticed this: *"if the editor is two pickers, the formula string is an implementation
+detail."*
 
 ---
 
 ## 1. What this delivers
 
-A column whose value is computed per file from a short expression, rather than read from a
-single property. The headline capability is following a note's internal links and reading a
-property from the file — or files — they point at:
+A table column that shows a property **of the note a link points at**, not of the row's own
+note. It is defined by two choices and a name:
 
-```
-link(internalLink).status
-```
+- **via**: the row's property that holds the link, e.g. `project` or `internalLink`;
+- **read**: the property to read from the linked note, e.g. `status`;
+- **name**: the column heading, e.g. "Project status".
 
-*"Take this file's links, find the notes they name, show each of those notes' status."*
+*"Take this note's `project` link, find that note, show its `status`."*
 
-**In scope:** a small navigation language — property access, array indexing, link following —
-evaluated per visible row, rendered as a table column; **mapping over a whole array of links**
-(§1.3); a way to add such a column from the UI (§5g); an editor that makes the reference easy to
-write.
+**In scope:** defining, renaming, re-pointing and deleting linked properties from one dialog
+(§5); drawing them as table columns; following a property that holds one link or many (§3.2).
 
-**Explicitly out of scope:** arithmetic, comparisons, conditionals, aggregation across files,
-sorting or filtering by a formula column, and writing the computed value into the note (§10).
-
-### 1.1 A formula belongs to the layout, not to the property
-
-Column definitions live in the saved-layout file. A formula column has no underlying file property
-— it *is* a definition — so the formula is one more field on a layout's column entry:
-
-```js
-{ order: 3, name: "linkedStatus", label: "Project status", width: 200, visible: true,
-  formula: "link(project).status" }
-```
-
-`name` becomes just its key and `label` its heading.
-
-**This is deliberately not a property type.** Types now live in the `propertyTypes` object at the
-top of the layouts file, keyed by property name, precisely so that two layouts cannot disagree
-about what `due` holds — and a formula column has no property name to key off. An earlier draft of
-this plan predated that split and is superseded here; `related` must not join `VALUE_TYPES`.
-
-Two wrinkles in `layout-apply.js` that this has to deal with, both consequences of a layout file
-being hand-editable:
-
-- **`applyLayoutToColumnLayout()` builds a strict whitelist** — `label`, `width`, `visible` and
-  nothing else, which is how a stale `type` left by a version 1 file is ignored rather than
-  honoured. `formula` has to be added to it explicitly, and validated there like the others.
-- **`defaultColumnEntry(name)` reads the schema for a fallback label and width**, and an invented
-  column has no schema entry to fall back to. Decide what a formula column with an unusable width
-  gets instead.
-
-### 1.2 The reference property may hold one link or many
-
-Two shapes, one rule. A single value whose text is a link yields a single value; an array of links
-yields a list with one value per link, in the links' own order. That the result is a list when the
-source is a list is what makes the column read naturally — four linked projects, four statuses,
-lined up with each other.
-
-### 1.3 Mapping is in, and `link()` should do it without new syntax
-
-An earlier draft of this plan ruled out mapping over a whole link array, leaving `internalLink[0]`
-as the only way to follow one. That was the wrong call, and the strongest argument against it is in
-the app already: **`internalLink` is always an array** — `[]` when the file has no links, by
-deliberate choice at `file-info.js:61`. So `link(internalLink[0]).title` was never "follow the
-link", it was "follow the first of them and silently ignore the rest", which is a footgun dressed
-as the headline example.
-
-**The recommendation is to map implicitly rather than to add `[*]`:** when `link()` is handed an
-array, it resolves each element and the rest of the chain runs against each result. The grammar
-does not grow at all — `[n]` is already optional in §3.2 — so `link(internalLink)` follows all of
-them and `link(internalLink[0])` still narrows to one. A new `[*]` token would buy the same
-behaviour and cost a fourth grammar rule.
-
-What it does cost, and each is a decision in §4.8:
-
-- a list of lists when two hops both fan out, so a flattening rule is needed;
-- an answer for a hole — a broken link at position 2 of 4, where dropping it silently misaligns the
-  result from the links that produced it;
-- the nullish short-circuit of §3.4 becomes "this slot is empty" rather than "this cell is empty".
+**Out of scope:** chains longer than one hop, a linked property that reads another linked
+property, sorting, searching or filtering by one, editing its cells, and writing the value into
+the note (§9).
 
 ---
 
-## 2. Current state — what already exists
+## 2. What already exists
 
-### 2.1 Link resolution is already built, cached and correct
+### 2.1 Link resolution is built, cached and correct
 
-`services/internal-links/note-name-index.js` exports `resolveNoteName(name)`, which turns raw
-link text into a file's `internalId`. It handles everything the formula language would
-otherwise have to:
+`resolveNoteName(name)` in `services/internal-links/note-name-index.js` turns link text into an
+`internalId`. It already handles path-qualified and bare names, case, whitespace, missing
+extensions, and two files with the same filename. Its index is invalidated by the loaders and by
+rename, delete and create. **Do not write a second resolver.**
 
-- path-qualified links (`work/notes.md`) and bare filenames (`notes.md`)
-- case-insensitive matching and surrounding whitespace
-- extension-less links (`bob` → tries `bob.txt`, then `bob.md`)
-- two files sharing a filename — shortest path wins, ties alphabetical, so resolution is stable
+### 2.2 Reading a link out of a property is solved, but the code is private
 
-It is backed by a lazily-built cache invalidated by `invalidateNoteNameIndex()`, which the
-loaders, rename, delete and create paths already call.
+The flowchart's connector role does exactly the "via" half of this. `mermaid-source.js` has two
+private helpers:
 
-**`link()` is a thin wrapper over this function.** Do not write a second resolver.
+- `toList(value)` turns a Map into its keys, keeps an array as it is, and wraps a scalar (empty
+  gives `[]`);
+- `linkTarget(item)` returns `linksInText(text)[0]?.target ?? text`, so both `cave.md` (what
+  `internalLink` holds) and `"[[cave.md]]"` (what a front matter property holds) resolve.
 
-### 2.2 `internalLink` holds raw link text, not resolved ids
+That answers the old plan's open "bracket text" question. **Now that two modules need these
+helpers, move them into a shared module (§6a) instead of copying them.** A second reader of
+`[[…]]` would agree with the first on the day it was written and drift after, which is the
+reason `linksInText` was exported to begin with.
 
-`file-info.js:64` sets `internalLink: tagData.links`, built from `linkTarget.trim()` — the text
-inside `[[...]]` exactly as written. So an element of `internalLink` yields something like
-`"notes.md"` or `"bob"`, which is precisely what `resolveNoteName` expects. The two halves already
-fit.
+### 2.3 There is no `internalId → file` lookup
 
-It is always an array, `[]` when the file has no links — deliberately, per the comment at
-`file-info.js:61`, and the reason §1.3 exists.
+Nine call sites do `appState.myFiles.find(f => f.internalId === id)`. That is fine for a click and
+wasteful for every cell of a column on every render. `note-name-index.js`'s `build()` already walks
+every file and is already invalidated in the right places, so give it a `byId` map. A second cache
+would be a second thing to invalidate, and a stale one reads a deleted file's properties.
 
-A front-matter property holding a link is the other source, and it may be either shape: `project:
-"[[alpha]]"` or a list of them. Whether the formula reads the raw `[[...]]` text or something that
-strips the brackets is a decision in §4.8.
+### 2.4 The layouts file already holds folder-wide facts
 
-### 2.3 There is no `internalId → file object` lookup
-
-Nine call sites do `appState.myFiles.find(f => f.internalId === fileId)` — fine for a click
-handler, wasteful for something that runs per cell per render, and more so now that one cell may
-follow several links.
-
-`note-name-index.js`'s `build()` already iterates `appState.myFiles` and is already invalidated
-in all the right places. **Add a `byId` map to that existing index** rather than introducing a
-second cache with its own staleness bugs (§4.5).
-
-### 2.4 There is no Content-Security-Policy
-
-No CSP meta tag in `index.html`, so `new Function` would technically run. That is not a reason
-to use it — see §4.2, which rejects it on stronger grounds.
-
-### 2.5 Values are not all JSON-simple
-
-The same trap the export plan documents (`plans/table-json-export.md` §2.2) applies here:
-`tags` is a `Map`, `lastModified` is a `Date`, YAML values may be arrays or nested objects. A
-formula that lands on one of these must render sensibly rather than as `[object Object]`.
+`.gypsum/table_layouts.gypsum` has `propertyTypes` and `flowchart` at its top level, beside
+`layouts`. Each has a from-state/apply-from-file pair in `layout-apply.js`, a writer of its own in
+`layout-file.js` that never clears `isDirty`, a named entry in `readLayouts()` and in
+`emptyDocument()`, and a service that is the one writer. A linked property is the third such fact
+(§3.1).
 
 ---
 
-## 3. The language
+## 3. Design decisions
 
-### 3.1 Syntax
+### 3.1 A linked property belongs to the folder, not to a layout
 
-Deliberately close to Obsidian Bases, minus the ceremony. Where Bases writes:
+It is stored at the top of the layouts file, next to `propertyTypes` and `flowchart`:
 
-```
-link(file.name).asFile().properties.status
-```
-
-this writes:
-
-```
-link(internalLink).status
+```json
+"linkedProperties": {
+  "linked:1": { "label": "Project status", "via": "project", "read": "status" },
+  "linked:2": { "label": "Linked titles", "via": "internalLink", "read": "title" }
+}
 ```
 
-`.asFile().properties` exists in Bases because its type system distinguishes a Link from a File
-from that File's property bag. With one kind of file object and one property bag, those two
-steps carry no information and are dropped.
+It goes here, and not on a layout's column entry, for the reasons `propertyTypes` did:
 
-### 3.2 Grammar — the whole of it
+- **It works under the app's defaults.** Under the defaults `columnLayout` is rebuilt rather than
+  saved, so a definition living on a column entry would need a layout saved before one could
+  exist. The old plan listed "what happens with no layout saved" as open; this answers it.
+- **The + creates it, and it reaches the disk at once.** There is no "save" to forget. Its writer,
+  like `savePropertyTypes()`, leaves `isDirty` alone.
+- **Once defined, it behaves like any property.** `resolveColumns()` treats it as a candidate, so
+  it is shown under the defaults and joins a saved layout hidden, the same as a front matter key
+  added after that layout was saved. Each layout then decides whether and where to show it,
+  through the column picker, as usual.
 
-```
-formula  := step ( '.' step )*
-step     := NAME index?            property access, optionally indexed
-          | 'link' '(' formula ')' follow a link, or every link in an array
-index    := '[' INTEGER ']'
-NAME     := [A-Za-z_][A-Za-z0-9_]*
-```
+Deleting one therefore removes it from `linkedProperties` **and** from every layout's `columns`
+array in the same write, so no layout goes on naming a column that no longer exists. This is the
+"delete from the layouts file" the dialog offers. "Delete all layouts" removes these too, since it
+removes the file; its tooltip should say so.
 
-That is the entire language. No operators, no literals, no comparisons, no function library
-beyond `link`, and — per §1.3 — no `[*]`. Everything it can express is navigation through data
-that already exists.
+### 3.2 The key is generated and stable; the name is only a label
 
-Examples:
+A column is keyed by `linked:<n>`, the first number not in use, the same scheme as
+`nextLayoutName()`. **It cannot collide with a front matter property**, because `yaml-parse.js`
+splits a key at its first colon, so no note can have a key containing one. Keys are never shown
+and never reused while the file exists.
 
-| Formula | Meaning |
-|---|---|
-| `title` | the file's own title — a formula column can be a plain alias |
-| `internalLink` | the raw text of every link |
-| `internalLink[0]` | the raw text of the first link |
-| `link(internalLink).title` | the title of **every** linked file, as a list |
-| `link(internalLink[0]).title` | the title of the first linked file only |
-| `link(project).status` | a front-matter link followed to a front-matter property |
-| `link(link(internalLink).internalLink).title` | two hops, fanning out at both (§4.8) |
+Renaming changes `label` only. The key stays the same, so every layout that places the column keeps
+it. The heading is read from the definition, not from the layout's column entry: `resolveColumns()`
+spreads the definition's `label` over the entry's. Otherwise a rename would show in one layout and
+not the others. A layout still writes a `label` for the column; it is harmless and ignored.
 
-### 3.3 Parsing it
+### 3.3 One link or many
 
-Two functions, roughly eighty lines together:
+- **"via" holds one link:** the cell shows one value.
+- **"via" holds several (`internalLink` always does):** the cell shows a list with one value per
+  link, in link order, and draws as a list cell (one comma-joined line with `itemRangesIn()`
+  marks). Four linked projects give four statuses, in the same order as the links.
+- **A slot that finds nothing stays in the list, as an empty item.** A slot can be empty because
+  the link is broken or because the linked note has no such property. Dropping it would leave
+  `alpha, delta` misaligned with the links that produced it, and alignment is what lets two linked
+  columns be read against each other. *This is the one decision here to check against real notes
+  during §8; the old plan held it open for the same reason.*
+- **Duplicates are kept.** Two links to one note give its value twice, because deduplicating was
+  not requested.
+- **A "read" value that is itself a list is flattened into the cell's list.** A cell draws one
+  line, so a nested list could only appear as `a,b, c`.
 
-1. **A parens-aware split on `.`** — walk the characters tracking bracket depth, split only at
-   depth zero. Fifteen lines. This is what lets `link(a.b).c` work while a naive
-   `String.split('.')` would not.
-2. **A per-step matcher** — each piece is either `NAME`, `NAME[n]`, or `link(...)`. Three
-   regexes and a recursive call for the `link` argument.
+A cell where every slot is empty (no links, or none that resolve) is an empty cell with no warning.
+Leaving a property unset is the common case, and a warning on every row that lacks it would hide
+the rows that actually need attention.
 
-Parsing produces a small array of step objects. It does not need a tokeniser, a Pratt parser,
-or an AST beyond that array. If the implementation starts growing an expression-precedence
-table, the grammar has been widened past §3.2 and should be pulled back.
+### 3.4 No chaining, and it is impossible by construction
 
-**This has been prototyped.** A throwaway implementation of the splitter, the step matcher and
-the evaluator came to about 35 lines before JSDoc and error handling, and produced:
+Neither menu offers a linked property. "via" and "read" name stored properties, and the file object
+the evaluation reads is the stored one, which carries no linked values. So A's column cannot depend
+on B's column, and two notes that link to each other, which is the normal case, need no cycle
+check. Document this as intentional so that nobody passes computed values in later to "improve" it.
 
-```
-title                                              → "Note A"
-internalLink[0]                                    → "b.md"
-link(internalLink[0]).title                        → "Note B"
-link(internalLink[0]).status                       → "active"
-link(internalLink[0]).missing                      → null      (property absent)
-link(link(internalLink[0]).internalLink[0]).title  → "Note C"   (two hops)
-link(internalLink[5]).title                        → null      (index out of range)
-link(internalLink[0]).                             → parse error
-```
+### 3.5 Evaluated per visible row, at render time
 
-So the size estimate is safe, the nullish short-circuit does cover broken links, missing
-properties and bad indexes without special cases, and multi-hop chains work without extra
-machinery. **The prototype predates §1.3 and did not fan out**, so it says nothing about the cost
-of mapping — treat it as a sanity check on the grammar, not as code to copy.
+The table draws one page at a time, so this is about 50 lookups per linked column per render.
+Nothing is cached or precomputed, so nothing needs invalidating. The lookups are `resolveNoteName`
+then `byId`, both already cached.
 
-### 3.4 Evaluating it
+### 3.6 Display-only: no caret, no sort, no search
 
-Walk the steps left to right carrying a current value, starting from the file object:
+- **No caret.** The value lives in another note, so there is nothing in this note to splice into.
+  `isPropertyEditable()` returns false for a `linked:` key, and nothing else is needed.
+- **No sort chevron** on its header, and no search type. That is a scope decision, not a cost one:
+  sorting means teaching `file-object-sort.js` about a value with no stored property behind it, and
+  search means passing computed values through `ui-functions-search/`. **This is the decision most
+  likely to be regretted**, because sorting by a linked project's status is an obvious thing to
+  want. It is a follow-up and is not needed here.
+- **No type.** `propertyType()` gives the **read** property's type, and so does the cell. A linked
+  `due` draws like `due`, and a change to `due`'s type changes both columns. The type dialog is not
+  offered for the column; to change its type, change the property it reads.
 
-- `NAME` → `current[name]`
-- `NAME[n]` → `current[name]?.[n]`
-- `link(inner)` → evaluate `inner` against the *current* value; if the result is an array, resolve
-  each element and continue against each (§1.3); otherwise resolve the single value. Resolution is
-  `resolveNoteName` then the `byId` lookup (§2.3).
+### 3.7 Its glyph
 
-Any step that lands on `undefined` or `null` short-circuits: the rest of the chain is skipped and
-that slot is empty. A broken link, a missing property and an out-of-range index all take this path,
-which is why none of them need special cases. When the walk has fanned out, a short-circuit empties
-one slot rather than the whole cell — §4.8 decides what becomes of it.
+The header and the column picker both draw a column's mark via `type-glyph.js`. A linked column
+gets a **link glyph under the padlock**, the way info columns do (`INFO_TYPE`): the app fills it in,
+and it takes no type of its own. That means one new `#icon-type-linked` symbol and one `LOCK_SHIFT`
+entry, following the rule in CLAUDE.md. `LINKED_TYPE` goes in `constants.js`, *outside*
+`VALUE_TYPES`, for `INFO_TYPE`'s reason: it is not a name a user can choose.
+
+### 3.8 A definition whose property has gone
+
+If "via" or "read" names a property that no loaded file has, the column is empty. It is not an
+error. The dialog still lists it and still allows re-pointing it: its current value stays in the
+menu, marked as not in any file, the same way the types modal keeps a dead type binnable. The
+column reads as `dead` if every one of its cells is empty, so the existing fade applies. A
+hand-edited definition that is malformed (not an object, a missing or non-string `via` or `read`)
+is dropped on read, via the single writer, like an unknown type name.
 
 ---
 
-## 4. Design decisions
+## 4. Evaluation
 
-### 4.1 Formulas read stored properties only — never other formula columns
+One pure function, `linkedValue(definition, file)`:
 
-**This is the rule that removes an entire class of problem.** If a formula could reference
-another formula column, file A's column could depend on file B's, which could depend back on
-A's, and evaluation would need cycle detection, memoisation and a depth limit. Two notes that link
-to each other are not a rare case; they are the normal case.
+1. `toList(file[via])`, then `linkTarget` on each item;
+2. for each target, `getFileById(resolveNoteName(target))`, which may be `undefined`;
+3. from each linked file, `linked?.[read]`, where `null`/`undefined` becomes an empty slot, a Map
+   becomes its keys and an array is flattened in (§3.3);
+4. if "via" held one scalar, return a single value; otherwise return the list.
 
-Forbidding it makes cycles impossible by construction: every step reads static data that was
-computed at load time. Multi-hop chains stay safe because a formula's length bounds its own
-depth — there is no recursion to run away.
-
-Enforce it where the formula is evaluated: the file object a formula sees is the stored one,
-which has no computed columns on it. Nothing extra is needed; the constraint is structural, and
-should be documented as intentional so nobody later "improves" it by passing computed values in.
-
-### 4.2 No `eval`, no `new Function`
-
-Not for the usual reasons. The decisive one is specific to this app:
-
-**Layout files are shareable data.** A `.gypsum` layout holding formula columns is exactly the
-sort of thing a user would send to someone else, or copy from a forum post. If formulas are
-evaluated as JavaScript, opening a shared layout file executes a stranger's code with full page
-privileges — `fetch`, `localStorage`, the File System Access handles in `appState`, all of it.
-That would quietly invert the app's central promise that your files stay on your computer.
-
-An interpreter over §3.2's grammar cannot do any of that. It has no way to name a global, and no
-construct that loops, so a formula also cannot hang the tab. Implicit mapping (§1.3) does not
-change that: the fan-out is bounded by how many links the files actually have.
-
-The grammar is small enough that this costs about a hundred lines. That is the whole price.
-
-### 4.3 Evaluate per visible row, at render time
-
-The table renders one page at a time (`checkFileOnPage`, `PAGINATION_SIZE` default 50), so a
-formula column costs ~50 evaluations per render, each a handful of map lookups — times the number
-of links a row follows, which is small. Nothing needs caching, precomputing or invalidating.
-
-Do **not** evaluate at load time. That would spend the work on files nobody looks at, and would
-need invalidating whenever any file changed.
-
-### 4.4 Display-only for the first version
-
-A formula column is not sortable and not searchable.
-
-The reason is scope, not cost — sorting 2000 files by a formula would take a millisecond. But
-sorting means teaching `file-object-sort.js` about a value that has no `FILE_PROPERTIES.type`,
-and searching means threading computed values through the whole filter pipeline in
-`ui-functions-search/`. Both are real features with their own edges, and neither is needed to
-answer *"show me the status of the projects this note links to"*.
-
-Say so in the UI — a formula column header should not offer the sort chevron that
-`render-table-header.js:12` puts on every other column. This is the decision most likely to be
-regretted: a status pulled from a linked project is a thing people will want to sort by.
-
-### 4.5 Extend the existing index rather than adding a cache
-
-Add `byId: Map<internalId, fileObject>` to the object `build()` returns in
-`note-name-index.js`, and export a `getFileById(id)` alongside `resolveNoteName`.
-
-That function already walks every file, is already cached, and is already invalidated by
-`invalidateNoteNameIndex()` from the loaders, rename, delete and create paths. A separate map
-would be a second thing to remember to invalidate — and the failure mode of a stale one is a
-formula silently reading a deleted file's properties.
-
-While there, consider whether the nine `myFiles.find(...)` call sites (§2.3) should use it too.
-That is a tidy-up, not part of this feature — do it separately or not at all.
-
-### 4.6 Rendering a computed value
-
-A formula can land on any of the value shapes §2.5 lists, and after §1.3 it can land on a list of
-them. Render by inspecting the value, since a formula column has no declared `type`:
-
-| Value | Rendered as |
-|---|---|
-| string, number | as-is |
-| `Date` | locale date, matching the `date` branch in `render-table-rows.js:40` |
-| `Map` (i.e. `tags`) | the keys, joined — same reduction the export uses |
-| array | the existing list-cell treatment: one comma-joined line, per the cell rules in CLAUDE.md |
-| `null` / `undefined` | empty cell |
-
-A fanned-out result is an array and takes that row, which is what makes the list-cell machinery —
-`itemRangesIn()`, auto-sizing to the widest item — apply for free.
-
-This is the third place in the codebase to switch on a value's shape, after the row renderer and
-the exporter. Resist merging them: each produces a different output for a different consumer,
-and the export plan (§3.5) already records why that duplication is the right call.
-
-### 4.7 Errors: separate "your formula is wrong" from "this file has nothing there"
-
-Two failures that look alike and should not be reported alike:
-
-- **A formula that does not parse** — a typo, an unclosed paren. This is wrong for every row.
-  Report it once, where the formula is being edited, and do not add the column.
-- **A formula that parses but finds nothing** — a broken link, a file without that front-matter
-  key, an index past the end of the array. This is normal and per-file. Render an empty cell.
-
-Only the first is an error. Making the second one visible would put a warning icon on every row
-of a folder where only some notes have the property, which is the common case.
-
-### 4.8 Decisions the fan-out opens, still to settle
-
-- **Flattening.** `link(link(internalLink).internalLink).title` yields a list per link. Flatten one
-  level (almost certainly), flatten fully, or refuse a second fan-out.
-- **Holes, and whether alignment is promised.** Four links, two of which resolve to notes with the
-  property. Dropping the empties gives a tidy two-item list that no longer lines up with the links
-  that produced it; keeping them gives `alpha, , , delta`. Alignment matters more the moment a
-  second formula column sits beside the first.
-- **Deduplication.** Two links to the same note give the same value twice. Probably keep both —
-  dropping them is a judgement the formula did not ask for.
-- **Bracket text.** A front-matter `project: "[[alpha]]"` reaches the formula with its brackets on.
-  Decide whether `link()` strips them or `resolveNoteName` is taught to, and note that
-  `internalLink` arrives already stripped (§2.2) — so the two sources do not currently agree.
-
-### 4.9 A formula cell takes no caret
-
-A computed value is not in the note, so there is nothing to splice an edit into. That is the
-existing lock machinery: `isPropertyEditable()` is the one question, and it must answer false here.
-
-What the header should *draw* is open: the padlock says "the app owns this", which is true of
-`lastModified` in a way it is not of a column the user themselves invented. A mark of its own may
-be worth it. Whatever is chosen has to exist in the column picker too, since `type-glyph.js` draws
-both from one place.
+No DOM and no `appState` beyond the index. It sits in `services/`, next to the index it reads.
 
 ---
 
-## 5. Steps
+## 5. The dialog
 
-### 5a. `public/js/services/internal-links/note-name-index.js`
+### 5.1 Getting there
 
-Add `byId` to `build()`'s returned object and export `getFileById(id)`. Update the JSDoc on
-`build()` to say what the third map is for.
+A **+ button** in the table's control row (`render-table-controls.js`), to the **left of the layout
+name**, tooltip "add a column from linked notes". It opens `#modal-linked-properties`. It is in the
+table's own row, so it exists only while the table is drawn, and needs no view-conditional logic,
+the same as the column picker.
 
-### 5b. `public/js/services/formula/parse-formula.js` (new)
+The + is the only way in. A second entry point (a "linked property…" item in the column menu, or
+in the column picker) can be added later if it is missed. **Every path goes through the same
+module**, so a second one is a button, not a second code path.
 
-The parens-aware splitter and the step matcher (§3.3). Exports `parseFormula(source)` returning
-either the step array or a parse error. Pure — no `appState`, no DOM. This is the piece that
-most benefits from being independently readable, so keep it free of everything else.
+### 5.2 What is in it
 
-### 5c. `public/js/services/formula/evaluate-formula.js` (new)
-
-Exports `evaluateFormula(steps, file)` — the left-to-right walk in §3.4, with the short-circuit
-on nullish and the fan-out of §1.3. Imports `resolveNoteName` and `getFileById`. No DOM.
-
-A new `services/formula/` directory rather than loose files: two modules with one shared
-concern, matching how `file-parsing/` and `internal-links/` are organised.
-
-### 5d. Layout schema
-
-Allow `formula` on a layout's column entry (§1.1) — adding it to the whitelist in
-`applyLayoutToColumnLayout()`, and answering what `defaultColumnEntry` gives a column the schema
-has never heard of. Parse each formula once when the layout is applied, not once per row per
-render — store the step array alongside the column definition. A column whose formula fails to
-parse is dropped with a message (§4.7).
-
-### 5e. `public/js/ui/ui-functions-table/render-table-rows.js`
-
-For a column carrying a formula, call the evaluator and render by value shape (§4.6) instead of
-reading `file[prop.name]` and switching on `prop.type`.
-
-### 5f. `public/js/ui/ui-functions-table/render-table-header.js`
-
-Omit the sort trigger for formula columns (§4.4), and draw whatever §4.9 settles on.
-
-### 5g. Adding a formula column, and editing its formula
-
-**This is the step with the most unanswered questions, and it is worth answering them before 5a.**
-Every column today comes from a property some file has; this is the first one a user invents, so
-"add column" is a new verb for the app.
-
-- **Where it is added from.** The layouts modal already lists columns and is the natural home; the
-  column menu (`ui-functions-click/column-menu.js`) is where a user is already thinking about one
-  column, so a shortcut there is worth having. Both were asked for — decide which one *owns*
-  creation, so there is one code path and not two.
-- **What happens with no layout saved.** A formula column only exists in a layout. Decide whether
-  adding one forces a layout into existence, or whether it lives in `columnLayout` unsaved and
-  marks it dirty like any other change.
-- **What the editor actually is.** If it is two pickers — a reference property, then a property
-  name to read off the far end — then the formula string is an implementation detail, and could
-  just as well be two fields on the column entry. A free-text formula is only worth its parser if
-  chains longer than one hop are wanted. **Decide this before 5b**, because it decides whether
-  §3.3's parser is needed at all.
-- **Where the parse error appears**, if there is free text to get wrong (§4.7).
-- **Removing one.** A formula column with no property behind it cannot be recovered by unhiding, so
-  deleting it is a real deletion rather than a visibility toggle.
-
-The `autocomplete/` machinery could later offer property names, but that is a separate feature —
-do not build it here.
-
-Bump `manifest.json` minor version.
-
----
-
-## 6. Files touched
+Static markup in `index.html`, outside `#output`, like `#modal-flowchart-options`, so the render
+that follows a change cannot destroy the dialog mid-interaction. Its list is filled when it opens.
 
 ```
-public/js/services/formula/parse-formula.js      NEW  grammar → step array
-public/js/services/formula/evaluate-formula.js   NEW  step array + file → value
-public/js/services/internal-links/note-name-index.js   MOD  byId map + getFileById
-public/js/table-layouts/layout-apply.js          MOD  formula on the column whitelist
-public/js/ui/ui-functions-table/render-table-rows.js   MOD  evaluate formula columns
-public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger; the header mark
-public/js/services/property-type.js              MOD  a formula column is not editable (§4.9)
-(layouts modal / column menu)                    MOD  add a column, edit its formula (§5g)
-manifest.json                                    MOD  minor bump
+ Linked properties                                         ×
+
+ Project status   [project      ▾] → [status  ▾]       🗑
+ Linked titles    [links        ▾] → [title   ▾]       🗑
+
+ ─────────────────────────────────────────────
+ name [            ]  [via ▾] → [read ▾]     [add]
 ```
 
-Nothing outside table view and the layout feature. No service gains DOM access; both new
-modules are pure functions over data.
+- **One row per existing linked property.** The name is an inline text input, committed on
+  `change`, like renaming a layout. The two selects are committed on `change`. The bin deletes the
+  property. Each change goes through the one writer and reaches the disk at once (§3.1).
+- **The add row is last** and is focused when the dialog opens from the + button: that press means
+  "add one". **add** is disabled until both selects hold a value. A blank name defaults to
+  `<via label> → <read label>`. Adding closes nothing: the new row joins the list above, the add
+  row clears, and the column appears in the table behind the dialog on the redraw.
+- **"via" offers** every front matter property plus `internalLink`, listed first. Info columns,
+  control columns and linked properties are excluded. It does not check which properties actually
+  hold links: a property pointed at the wrong thing gives an empty column, which is the user's
+  business in the same way a column's type is.
+- **"read" offers** every property that could be a column, `title`, `filename` and `lastModified`
+  included, minus control columns and linked properties.
+- **Both menus show labels**, like the flowchart options' selects, and are built by the same helper
+  (`flowchart-options-list.js`'s option-building could be shared or copied. It is about ten lines;
+  **copy it unless a third list appears**).
+
+### 5.3 Deleting asks
+
+The bin opens a confirm first. Deleting removes the column from every saved layout (§3.1), which
+cannot be undone from the table, and it is the same sort of bin that asks in the types modal.
+
+### 5.4 Nothing here writes a note
+
+Adding, renaming, re-pointing and deleting a linked property only touch the layouts file. A mistake
+gives an odd column, never a changed note. The delete confirm protects the layouts, not the notes.
 
 ---
 
-## 7. Verification
+## 6. Steps
 
-Run the existing suite to confirm nothing regressed: `npm install` once, then `npm test`.
+### 6a. Shared link helpers
 
-Screenshots per `CLAUDE.md`: a formula column resolving a link, and the same column on a file
-whose link is broken (empty cell, no error decoration).
+Move `toList` and `linkTarget` out of `flowchart/mermaid-source.js` into
+`services/internal-links/link-targets.js` (exported, with JSDoc), and import them back. Nothing in
+the flowchart's behaviour changes, and its tests should pass unchanged.
 
-Worth checking by hand, because they are the cases the design is built around:
+### 6b. `note-name-index.js`
 
-- a folder where some notes link to a note that has the property and some link to one that does
-  not — populated for the first group, blank for the second, nothing alarming shown for either;
-- **a note with four links where only some resolve**, which is what §4.8's alignment decision has
-  to be judged against — it is not obvious on paper which reading is right.
+Add `byId` to `build()` and export `getFileById(id)`. Moving the nine `myFiles.find` call sites
+over is a separate tidy-up; do it separately or not at all.
+
+### 6c. `services/linked-properties.js` (new)
+
+The service, shaped like `property-type.js` and `flowchart-options.js`:
+
+- `linkedProperty(key)` and `linkedPropertyKeys()` are the readers;
+- `setLinkedProperty(key, { label, via, read })` is **the one writer**, validating a hand-edited
+  file and a dialog change the same way; `setLinkedProperty(key)` with no definition forgets it;
+- `nextLinkedKey()`;
+- `linkedValue(definition, file)` from §4, or a sibling module if the file grows past a screen.
+
+State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
+
+### 6d. Layouts file
+
+- `layout-apply.js`: `linkedPropertiesFromState()` and `applyLinkedPropertiesFromFile(raw)`, the
+  third pair.
+- `layout-file.js`: add `linkedProperties` to `readLayouts()` and `emptyDocument()` (see the warning
+  on `readLayouts`: a key it does not name is dropped); `saveLinkedProperties()`, which does not
+  touch `isDirty`; `deleteLinkedProperty(key)`, which removes the key from `linkedProperties` and
+  from every layout's `columns` in one queued write, and from `columnLayout` in memory;
+  `applyActiveLayout()` and `deleteAllLayouts()` load and clear the new state.
+  `LAYOUT_VERSION` stays the same: the key is additive.
+
+### 6e. Columns
+
+- `resolveColumns()` includes `linkedPropertyKeys()` among its candidates, is exempt from the
+  `missing` file check (no file carries a `linked:` key), overrides `label` from the definition
+  (§3.2), and computes `dead` by evaluating (§3.8) instead of by `propertiesInFiles`.
+- `property-type.js`: `propertyType()` returns the read property's type for a linked key, and
+  `isTypeSettable()` and `isPropertyEditable()` both return false for it.
+- `render-table-rows.js`: a linked column's value comes from `linkedValue()`, not `file[name]`, and
+  is then drawn by the existing branch for its type. A list result goes through the array branch,
+  which is where `linkifyText` and the list marks already live.
+- `render-table-header.js`: no sort trigger for a linked column. The glyph comes from §3.7.
+- `column-menu.js`: "change type" and "sort" are not offered. "Hide column" is unchanged.
+  "Delete column" is **not** offered: deleting a linked property is the dialog's job, since it
+  removes the column from every layout and not only from one.
+
+### 6f. The dialog
+
+- `index.html`: `#modal-linked-properties`, and `#icon-type-linked` in the sprite.
+- `ui-functions-table/render-table-controls.js`: the + button, `data-action="open-linked-properties"`.
+- `ui-functions-table/linked-properties-list.js` (new): renders the rows and the add row.
+- `ui-functions-click/linked-properties.js` (new): open, close, add, rename, re-point and delete,
+  registered in `event-listeners-add.js`. Each change calls the service, saves, and runs a full
+  `renderFiles`.
+- a CSS file for the dialog's rows, if `info-modal`'s existing row classes are not enough.
+
+### 6g. Housekeeping
+
+- `constants.js`: `LINKED_TYPE`. `type-glyph.js`: its `LOCK_SHIFT` entry.
+- The "delete all layouts" tooltip mentions linked properties.
+- CLAUDE.md: a short *Linked properties* section: stored at the top of the layouts file, one
+  writer, a `linked:` key cannot collide, no chaining by construction, display-only. Add the new
+  files to the file map.
+- Bump `manifest.json` minor version.
 
 ---
 
-## 8. Deliberately not doing
+## 7. Files touched
 
-| Not doing | Why |
-|---|---|
-| Arithmetic, comparisons, conditionals | Turns a navigation path into an expression language, which needs a real parser and precedence rules. The named use case does not want it |
-| `eval` / `new Function` | Layout files are shareable; evaluating them as JS makes a shared layout executable code (§4.2) |
-| Formulas referencing other formula columns | Removes cycles by construction, and two notes linking to each other is the normal case (§4.1) |
-| A `related` entry in `VALUE_TYPES` | A formula column has no property name to key a type against; it is a layout column, not a type (§1.1) |
-| An `[*]` token for mapping | Mapping is in, but `link()` doing it implicitly gets the same behaviour without a fourth grammar rule (§1.3) |
-| Sorting or filtering by a formula column | Scope, not cost (§4.4) |
-| Aggregation across files (count, sum of linked notes) | A different feature with different performance characteristics — it cannot be evaluated per visible row |
-| Writing the value into the note | A different feature with a different risk profile — §10, and a plan of its own |
-| Autocomplete in the formula editor | Nice, separate, and dependent on the editing UI existing first |
-| Merging the value-shape switch with the row renderer and exporter | Three consumers, three outputs (§4.6) |
+```
+public/js/services/internal-links/link-targets.js      NEW  toList + linkTarget, shared
+public/js/services/flowchart/mermaid-source.js         MOD  imports them
+public/js/services/internal-links/note-name-index.js    MOD  byId + getFileById
+public/js/services/linked-properties.js                NEW  state, one writer, linkedValue
+public/js/services/store.js                            MOD  appState.linkedProperties
+public/js/services/property-type.js                    MOD  read property's type; not settable/editable
+public/js/table-layouts/layout-apply.js                MOD  from-state / apply-from-file pair
+public/js/table-layouts/layout-file.js                 MOD  read, save, delete, clear
+public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  linked keys as columns
+public/js/ui/ui-functions-table/render-table-rows.js   MOD  linkedValue for linked columns
+public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger
+public/js/ui/ui-functions-table/render-table-controls.js MOD the + button
+public/js/ui/ui-functions-table/linked-properties-list.js NEW the dialog's rows
+public/js/ui/ui-functions-click/linked-properties.js   NEW  the dialog's actions
+public/js/ui/ui-functions-click/column-menu.js         MOD  no type/sort/delete on a linked column
+public/js/ui/ui-functions-render/type-glyph.js         MOD  LOCK_SHIFT entry
+public/js/ui/event-listeners-add.js                    MOD  register the actions
+public/js/constants.js                                 MOD  LINKED_TYPE
+index.html                                             MOD  dialog + icon
+manifest.json, CLAUDE.md                               MOD
+```
 
 ---
 
-## 9. Conventions checklist
+## 8. Verification
 
-- ES modules; JSDoc with `@param`/`@returns` on every export.
-- Kebab-case filenames, camelCase identifiers.
-- Services do not touch the DOM — both new modules are pure.
-- No runtime dependencies, no network fetches, no build step.
-- All state in `store.js`; formulas add none of their own beyond the layout definition.
-- Bump `manifest.json`'s minor version per commit.
+`npm test` plus the specs that apply. New tests:
+
+- **Level 1** (`tests/1-data/`, in the layouts spec's level-1 counterpart if there is one,
+  otherwise next to the property-types writes): adding, renaming and deleting a linked property
+  writes the expected `linkedProperties` object; a delete also removes the key from every layout's
+  `columns`; a malformed hand-edited definition is dropped; setting one leaves `isDirty` as it was;
+  no note is written by any of it.
+- **Level 2** (`tests/2-behaviour/43-table-layouts.spec.js` or a new
+  `linked-properties.spec.js`, since this is a new area): the + opens the dialog; a defined column
+  shows the linked note's value; several links give an aligned list with empty slots; a broken link
+  gives an empty cell with no warning; the cell takes no caret; the header has no sort chevron.
+- **`linkedValue` in node**, via `appModule()`: single, many, broken, missing property, list read
+  value, Map read value.
+
+Screenshots per CLAUDE.md: the dialog with two definitions, and the table showing a linked column
+next to its "via" column, including one row whose link is broken.
+
+Check by hand, against a real folder: **four links, only some of which resolve**, which is where
+§3.3's decision to keep empty slots is either right or wrong.
 
 ---
 
-## 10. A later plan: writing the computed value back
+## 9. Later: writing the linked value back
 
-Not part of this. Recorded here so the thinking is not lost, and because one of the questions
-below decides what this plan's evaluator has to return.
+Not part of this plan. It is recorded so the thinking is not lost. A column that computes this
+value and *writes* it into each note's front matter, so that other tools and gypsum's own search
+can read it. Open questions:
 
-A second kind of column that computes the same value and *writes* it into each note's front
-matter, so it becomes real data another tool — or another gypsum search — could read. The open
-questions:
-
-- **When does it write?** Not on render: that would rewrite a note every time the table is drawn,
-  including for files nobody looked at. A deliberate "update files" button is the right shape — it
-  gives the write a moment, which is what lets it be confirmed and counted.
-- **Stored or live?** Once written, the note holds a copy that goes stale the moment the linked
-  note changes. Show the stored value (honest about the file, wrong) or the computed one (right,
-  but then the file's copy is invisible and nobody knows it drifted)? And can a row show that it is
-  out of date?
-- **What does it write through?** `applyCellEdits`/`applyRawEdits` already splice front matter and
-  already take a list of edits per file, which is exactly what a bulk write wants.
-- **Does it depend on undo?** A button that rewrites two hundred notes is the strongest case yet
-  for `plans/table-undo-stack.md` existing first. Probably yes.
-- **One column or two?** A computed column with a "write these down" action against it keeps one
-  mechanism; a separate stored-and-refreshable type makes the stale/live question explicit in the
-  type itself.
+- **When does it write?** Not on render. A deliberate "update files" button, which can be
+  confirmed and counted.
+- **Stored or live?** A written copy goes stale when the linked note changes, so decide which one
+  the row shows and whether it can say it is out of date.
+- **What does it write through?** `applyCellEdits`/`applyRawEdits` already take a list of edits per
+  file.
+- **Undo.** A button that rewrites two hundred notes needs the table's undo stack to cover it.
