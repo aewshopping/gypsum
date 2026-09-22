@@ -74,9 +74,10 @@
     opacity: 0.9;
 }
 
-/* The glyph and the bin share the row's last track, so a dead row without a bin gives up no space
-   to it — the arrangement .column-picker-actions makes for the same reason, written out here rather
-   than borrowed, since that class belongs to the picker's own file. */
+/* The bin and the glyph share the row's last track, in that order — the glyph goes last so that a
+   dead row's type mark lines up with every live row's. The arrangement .column-picker-actions makes
+   for the same reason, written out here rather than borrowed, since that class belongs to the
+   picker's own file. */
 .property-type-actions {
     display: flex;
     align-items: center;

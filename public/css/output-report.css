@@ -1,4 +1,5 @@
-/* The line above the file list: how many files are showing, and what the last undo did.
+/* The left-hand half of .output-header: how many files are showing, and what the last undo did.
+   The view's own control row is the right-hand half — see output-header.css.
 
    "count: 42 | undo: 3 values, 1 fail", the second half gone again a few seconds later. It
    counts rather than names, because it has to fit one line at phone width — and because the cells
@@ -17,9 +18,8 @@
 
     padding-inline: 8px;   /* lines up with the list below it */
 
-    /* Room to breathe. This sits between the tag taxonomy and the file list, both of which crowd it
-       — margin rather than padding so it collapses against neither. */
-    margin-block: 8px;
+    /* The room around it belongs to .output-header now, which is the element that has both this and
+       the view's control row inside it. */
 
     /* It keeps its space when it has nothing to say. A block that grows and shrinks moves the whole
        list down and back up — twice per press, and a run of Ctrl+Z would have it hopping. So the

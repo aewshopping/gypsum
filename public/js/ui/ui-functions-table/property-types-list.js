@@ -24,12 +24,20 @@ import { propertiesInFiles } from './render-table-columns-helper.js';
  * note, which after a reload is the only place it still exists. Nothing else in the app would ever
  * mention it again — it was read back on load and written out on every save, invisibly.
  *
- * **`dead` is asked of the files, never of myFilesProperties.** That Map only grows, so clearing
- * the last value of a key leaves it registered for the rest of the session — the same trap
- * resolveColumns() documents, and the reason this calls the same propertiesInFiles(). resolveColumns
- * itself is not an option: it *seeds* columns into the layout as a side effect, so reading `dead`
- * off it would rewrite the layout every time this dialog opened, and it would still not see a type
- * whose property is not a column at all.
+ * **The files are asked, never myFilesProperties.** That Map only grows, so clearing the last value
+ * of a key leaves it registered for the rest of the session — the same trap resolveColumns()
+ * documents, and the reason this calls the same propertiesInFiles(). resolveColumns itself is not
+ * an option: it *seeds* columns into the layout as a side effect, so reading the answer off it
+ * would rewrite the layout every time this dialog opened, and it would still not see a type whose
+ * property is not a column at all.
+ *
+ * **So a row survives on one of two grounds: a file carries the key, or a type is saved for it.**
+ * That second ground is the whole reason this list is not just the registered properties, and it
+ * is also what makes the bin finish the job: forgetting the type of a property no file carries
+ * removes the last thing holding its row up, and the row goes on the repaint rather than lingering
+ * until the folder is reloaded. Asking myFilesProperties left it sitting there, un-typed and
+ * un-binnable, looking exactly like a delete that had not worked — and a reload then disagreed
+ * with what the dialog had just shown.
  *
  * isTypeSettable filters the union before anything else, which is what keeps a hand-edited file
  * naming `lastModified` or `tags` from growing rows here. It is the same question the picker asks
@@ -49,7 +57,9 @@ function userTypeProperties() {
     ])].filter(isTypeSettable);
 
     const carried = propertiesInFiles(names);
-    return names.map(name => ({ name, dead: !carried.has(name) }));
+    return names
+        .filter(name => carried.has(name) || appState.propertyTypes.has(name))
+        .map(name => ({ name, dead: !carried.has(name) }));
 }
 
 /**
@@ -125,10 +135,14 @@ function liveRow(name, label, type, searchType, tip) {
  * on the glyph: a disabled control dispatches no mouse events, so tooltip.js would never see it.
  * The bin's own tip still wins when the pointer is on the bin, because closest() starts there.
  *
- * **The bin only appears when there is a type to forget.** A property that merely emptied and never
- * had a type set reads as dead — that is the same answer the picker and the table header give, and
- * the modals must not disagree about it — but a bin over nothing would be a control that does
- * nothing.
+ * **Every dead row has a bin**, because a saved type is the only thing that can keep such a row in
+ * the list at all — userTypeProperties drops a property that neither a file nor appState.propertyTypes
+ * still mentions. So the bin is never a control over nothing, and pressing it is always the end of
+ * the row.
+ *
+ * **It sits to the left of the glyph**, which is what keeps every type glyph in the list on one
+ * vertical line: the glyph is the last thing in every row, live or dead, and a bin appearing after
+ * it would shunt the one row that has it out of step with the rest.
  *
  * @param {string} name - The file property key.
  * @param {string} label - What the column is called.
@@ -137,20 +151,18 @@ function liveRow(name, label, type, searchType, tip) {
  * @returns {string}
  */
 function deadRow(name, label, type, tip) {
-    const bin = appState.propertyTypes.has(name)
-        ? `<button type="button" class="info-modal-row-btn" data-action="property-type-delete"` +
-            ` data-property="${escapeHtml(name)}" data-tip="forget the type saved for this property">` +
-            `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>`
-        : '';
+    const bin = `<button type="button" class="info-modal-row-btn" data-action="property-type-delete"` +
+        ` data-property="${escapeHtml(name)}" data-tip="forget the type saved for this property">` +
+        `<svg class="info-modal-row-icon"><use href="#icon-delete"></use></svg></button>`;
 
     return `<div class="info-modal-row property-type-row" data-dead` +
              ` data-property="${escapeHtml(name)}" data-tip="this property is not in the loaded folder">` +
              `<span class="info-modal-row-label">${escapeHtml(label)}</span>` +
              `<span class="property-type-actions">` +
+               bin +
                `<button type="button" class="info-modal-row-btn" disabled aria-hidden="true" data-tip="${tip}">` +
                  typeGlyph({ name, type }, 'info-modal-row-icon') +
                `</button>` +
-               bin +
              `</span>` +
            `</div>`;
 }

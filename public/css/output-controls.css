@@ -1,31 +1,29 @@
-/* The row of controls a view puts above its own output, in #output.
+/* The row of controls a view puts at the right-hand end of .output-header, above its own output.
 
    Shared rather than per-view: the table row and the flowchart row are the same shape doing the
-   same job, and a second copy of these rules would drift. Each view's renderer adds its own class
-   on top for anything that really is its own — see .flowchart-controls in flowchart.css.
+   same job, and a second copy of these rules would drift. A view's renderer may add its own class
+   on top for anything that really is its own; neither of them needs one today.
 
-   Named for #output rather than for a view, because that is what it sits in. `.view-controls` was
-   taken by the view <select> in the page itself, and `.list-controls` would read as belonging to
+   Named for #output rather than for a view, because that is the output it belongs to. `.view-controls`
+   was taken by the view <select> in the page itself, and `.list-controls` would read as belonging to
    list view.
 
-   Deliberately NOT sticky, and in the table's case deliberately outside .table-chrome: these are
-   set-up controls reached once, not something wanted underfoot for the length of a long file list.
-   The chrome slides over the row on the way down, which is why the row carries no background of
-   its own — it sits on the page.
+   Deliberately NOT sticky, and deliberately outside the table's .table-chrome: these are set-up
+   controls reached once, not something wanted underfoot for the length of a long file list. The
+   chrome slides over the row on the way down, which is why the row carries no background of its
+   own — it sits on the page.
 
-   It runs the full width rather than being fit-content, because a row can have something at each
-   end: the table's has the layout and the column picker on the left and undo and redo on the
-   right, with a spacer between. It draws no background and no border, so nothing is visibly
-   plated; the controls simply stop huddling. */
+   It is fit-content rather than full width, and its own flex is now only about the controls in it.
+   The gap that used to hold the layout buttons apart from undo and redo is .output-header's, and it
+   holds the whole row apart from the file count instead — the two ends of the line are the sentence
+   and the controls, not two kinds of control. It draws no background and no border, so nothing is
+   visibly plated; the controls simply stop huddling. */
 .output-controls {
     display: flex;
     align-items: center;
     gap: 8px;
     padding-block: 4px;
     padding-inline: 8px;
-    /* Room above and below, or the row is pressed between the filtered-files count and whatever
-       the view draws first, and reads as part of one or the other. */
-    margin-block: 8px;
     border-radius: 6px;
     border: none;
 }

@@ -18,9 +18,10 @@ import { escapeHtml } from './ui-functions-render/escape-html.js';
 /**
  * Renders the visible files as mermaid flowchart source, under the view's own control row.
  *
- * The control row is part of this output rather than something toggled on and off, which is how
- * the table's row has always worked too: a view's controls exist while the view is rendered and
- * not otherwise, so nothing needs to know which view is showing.
+ * The control row is drawn by this renderer rather than toggled on and off, which is how the
+ * table's row works too: a view's controls exist while the view is rendered and not otherwise, so
+ * nothing needs to know which view is showing. It goes into #output-controls, on the line the file
+ * count is on, which renderFiles empties before any view draws.
  *
  * `renderEverything` is unused, as it is in the grid and list renderers — it is the uniform
  * signature the switch in ui-functions-render/a-render-all-files.js calls every view with.
@@ -33,7 +34,10 @@ export function renderFileList_flowchart(renderEverything) {
     const drawnFiles = appState.myFiles.filter(file => checkFileOnPage(file.internalId));
     const source = buildMermaidSource(drawnFiles);
 
+    // The control row goes up onto .output-header, beside the file count, exactly as the table's
+    // does — one line above the output instead of two.
+    document.getElementById('output-controls').innerHTML = renderFlowchartControls();
+
     document.getElementById('output').innerHTML =
-        renderFlowchartControls() +
         `<pre class="flowchart-code" contenteditable="true" spellcheck="false">${escapeHtml(source)}</pre>`;
 }

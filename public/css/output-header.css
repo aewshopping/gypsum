@@ -1,0 +1,28 @@
+/* The one line above the file list: how many files are showing on the left, and whatever the
+   showing view offers on the right.
+
+   Two things that used to be two rows. The count line sat in the page and the view's control row
+   sat inside #output below it, so a table spent two lines on a handful of controls and a six-word
+   sentence — and the controls were a long way from the list they act on. They are siblings here
+   instead, with the spacer between them doing what the spacer inside the table's row used to do.
+
+   The report keeps its own height and the controls keep their own flex layout; this only decides
+   where the two sit relative to each other.
+
+   It wraps, so a narrow viewport puts the controls on their own line rather than crushing the
+   count against them. Nothing below it moves when that happens — the header grows and the list
+   follows it down. */
+.output-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    /* Room to breathe, inherited from the count line, which carried it for both of them: this sits
+       between the tag taxonomy and the file list, and both crowd it. Margin rather than padding so
+       it collapses against neither. */
+    margin-block: 8px;
+}
+
+/* #output-controls is a bare wrapper: the view's renderer puts .output-controls inside it, or
+   leaves it empty. It draws nothing of its own, so a view with no control row costs nothing but an
+   empty flex item of zero width. */

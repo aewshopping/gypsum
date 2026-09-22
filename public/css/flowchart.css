@@ -8,10 +8,7 @@
     font-family: var(--fontfam-mkdwn);
 }
 
-/* The flowchart view's control row. Everything about its shape comes from .output-controls; what
-   is here is the one thing that is this view's own — the button lines up with the code block's
-   text rather than with the page, because the block below it is padded and the table below the
-   other row is not. */
-.flowchart-controls {
-    padding-inline: 16px;
-}
+/* The flowchart view's control row has nothing of its own: .output-controls is the whole of it.
+   It used to be padded to line its button up with the code block's text below, which stopped
+   meaning anything once the row moved to the right-hand end of .output-header — the left edge it
+   was aligning with is no longer the edge the button sits at. */
