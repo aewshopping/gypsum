@@ -123,8 +123,9 @@ It goes here, and not on a layout's column entry, for the reasons `propertyTypes
     `layoutFromColumnLayout()` would also save any reorder or resize waiting to be saved beside it,
     making them look saved when nobody asked for that. So the write adds one entry to the stored
     `columns` array and leaves the rest as they are, and `isDirty` stays as it was. This is the
-    same restraint `savePropertyTypes()` shows, and the same "written there and then" as deleting
-    a column from a layout.
+    same restraint `savePropertyTypes()` shows. *Do not copy `deleteColumnFromLayout()` here:* it
+    calls `saveLayout()`, which saves the whole arrangement from the screen, and that is exactly
+    what this must avoid.
   - Otherwise the column showed now and would come back hidden on the next load, because the
     stored layout had never heard of it. A column that disappears after a reload is worse than one
     that took a click to show.
