@@ -4,7 +4,8 @@ Status: **not started.** Nothing blocks it: saved layouts, the `propertyTypes` o
 flowchart's options are all built, and this copies their shape.
 Related: `plans/completed/table-saved-layouts.md` and `plans/completed/property-type-store.md`,
 both **built**; `plans/flowchart-view.md`, whose connector role already follows a property's links
-Later: writing a linked value back into the note (§9), a separate plan
+Later: searching by a linked property (§10), and writing a linked value back into the note (§9),
+each a separate plan
 
 This plan used to be about **formula columns**: a small expression language
 (`link(internalLink).status`), with a parser, an evaluator, multi-hop chains and a free-text
@@ -27,11 +28,12 @@ note. It is defined by two choices and a name:
 *"Take this note's `project` link, find that note, show its `status`."*
 
 **In scope:** defining, renaming, re-pointing and deleting linked properties from one dialog
-(§5); drawing them as table columns; following a property that holds one link or many (§3.2).
+(§5); drawing them as table columns; following a property that holds one link or many (§3.3);
+**sorting by one** (§3.7).
 
 **Out of scope:** chains longer than one hop, a linked property that reads another linked
-property, sorting, searching or filtering by one, editing its cells, and writing the value into
-the note (§9).
+property, searching or filtering by one (§10 records what it would take), editing its cells, and
+writing the value into the note (§9).
 
 ---
 
@@ -145,26 +147,63 @@ the evaluation reads is the stored one, which carries no linked values. So A's c
 on B's column, and two notes that link to each other, which is the normal case, need no cycle
 check. Document this as intentional so that nobody passes computed values in later to "improve" it.
 
-### 3.5 Evaluated per visible row, at render time
+### 3.5 Evaluated when asked, never stored
 
-The table draws one page at a time, so this is about 50 lookups per linked column per render.
-Nothing is cached or precomputed, so nothing needs invalidating. The lookups are `resolveNoteName`
-then `byId`, both already cached.
+Drawing evaluates per visible row: the table draws one page at a time, so that is about 50 lookups
+per linked column per render. Sorting evaluates every file once per sort (§3.7). Nothing is kept
+between the two, so nothing needs invalidating. The lookups are `resolveNoteName` then `byId`, both
+already cached.
 
-### 3.6 Display-only: no caret, no sort, no search
+### 3.6 No caret, no type of its own
 
 - **No caret.** The value lives in another note, so there is nothing in this note to splice into.
   `isPropertyEditable()` returns false for a `linked:` key, and nothing else is needed.
-- **No sort chevron** on its header, and no search type. That is a scope decision, not a cost one:
-  sorting means teaching `file-object-sort.js` about a value with no stored property behind it, and
-  search means passing computed values through `ui-functions-search/`. **This is the decision most
-  likely to be regretted**, because sorting by a linked project's status is an obvious thing to
-  want. It is a follow-up and is not needed here.
 - **No type.** `propertyType()` gives the **read** property's type, and so does the cell. A linked
   `due` draws like `due`, and a change to `due`'s type changes both columns. The type dialog is not
   offered for the column; to change its type, change the property it reads.
 
-### 3.7 Its glyph
+### 3.7 Sorting
+
+A linked column sorts like any other: from its header's chevron, from the sort select, and on every
+path that re-sorts (a load, a save, an undo, a held row's release). Sorting by a linked project's
+status is the first thing anyone will want from a "Project status" column.
+
+- **One place, in `compareByProperty()`.** Six callers pass `(property, propertyType(property),
+  direction)` into `sortAppStateFiles()` or `compareByProperty()`, and `pending-row-move.js` sorts
+  a copy with the comparator directly. So the comparator is where a linked key is recognised. It
+  reads each file's sort value through a small getter: `file[property]` for an ordinary property,
+  and `linkedSortValue()` for a `linked:` key. That value is **computed once per file per
+  comparator** and memoised in the comparator's own closure, so a sort costs one evaluation per
+  file, not one per comparison. Nothing outlives the sort, so nothing can go stale. The history
+  overview's rows never carry a `linked:` key, so they are unaffected.
+- **The sort type is the read property's type**, which `propertyType()` already answers (§3.6).
+  Sorting a linked `due` sorts by date.
+- **A list is sorted by its first non-empty item, not by its length.** The existing `array` branch
+  orders a list by item count, which is meaningless for "Project status". Worse, a note written
+  `project: ["[[alpha]]"]` makes the value a list of one where `project: "[[alpha]]"` makes it a
+  scalar, and two spellings of the same link should not sort differently. `linkedSortValue()`
+  therefore reduces a list to its first non-empty slot and sorts that under the read type. A row
+  whose every slot is empty goes to the end, like any missing value. *If the read property is itself
+  a list type (e.g. `tags`), sort by item count as usual; the reduction applies only to the list
+  that "via" produced.*
+- **The sort select offers linked properties**, labelled with their name, after the ordinary
+  properties. `populateSortSelect()` reads `myFilesProperties`, so it needs the linked keys added
+  explicitly. Offering them in every view is free, because the sort is global, not the table's.
+- **Whatever `sortState` names must exist.** When the definition being sorted by is deleted, or
+  when a folder without it is loaded, `sortState` falls back to the default (`lastModified`,
+  descending) and the select is re-synced. Without this, every row sorts as missing, which leaves
+  the table in whatever order it happened to be in, with nothing on screen to explain why.
+
+**An edit can move rows other than the one edited.** Today an edit can only move its own row, and
+`holdRowMove(internalId)` asks only about that row. Under a linked sort, changing `status` in
+project note B moves every row that links to B, and changing A's `project` moves A. Those rows are
+not the one focus is in, so holding them has no meaning. **Recommendation:** when the sort is a
+linked key, `holdRowMove` compares the whole order instead of one index. If any row other than the
+focused one would move, it re-sorts at once, unless the focused row is itself among the movers, in
+which case the whole move is held as it is today. This is the part of sorting most likely to need a
+second look once it can be tried, so it gets its own test (§8).
+
+### 3.8 Its glyph
 
 The header and the column picker both draw a column's mark via `type-glyph.js`. A linked column
 gets a **link glyph under the padlock**, the way info columns do (`INFO_TYPE`): the app fills it in,
@@ -172,7 +211,7 @@ and it takes no type of its own. That means one new `#icon-type-linked` symbol a
 entry, following the rule in CLAUDE.md. `LINKED_TYPE` goes in `constants.js`, *outside*
 `VALUE_TYPES`, for `INFO_TYPE`'s reason: it is not a name a user can choose.
 
-### 3.8 A definition whose property has gone
+### 3.9 A definition whose property has gone
 
 If "via" or "read" names a property that no loaded file has, the column is empty. It is not an
 error. The dialog still lists it and still allows re-pointing it: its current value stays in the
@@ -294,18 +333,31 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 
 - `resolveColumns()` includes `linkedPropertyKeys()` among its candidates, is exempt from the
   `missing` file check (no file carries a `linked:` key), overrides `label` from the definition
-  (§3.2), and computes `dead` by evaluating (§3.8) instead of by `propertiesInFiles`.
+  (§3.2), and computes `dead` by evaluating (§3.9) instead of by `propertiesInFiles`.
 - `property-type.js`: `propertyType()` returns the read property's type for a linked key, and
   `isTypeSettable()` and `isPropertyEditable()` both return false for it.
 - `render-table-rows.js`: a linked column's value comes from `linkedValue()`, not `file[name]`, and
   is then drawn by the existing branch for its type. A list result goes through the array branch,
   which is where `linkifyText` and the list marks already live.
-- `render-table-header.js`: no sort trigger for a linked column. The glyph comes from §3.7.
-- `column-menu.js`: "change type" and "sort" are not offered. "Hide column" is unchanged.
+- `render-table-header.js`: the sort trigger stays. The glyph comes from §3.8.
+- `column-menu.js`: "change type" is not offered. "Sort" and "hide column" are unchanged.
   "Delete column" is **not** offered: deleting a linked property is the dialog's job, since it
   removes the column from every layout and not only from one.
 
-### 6f. The dialog
+### 6f. Sorting (§3.7)
+
+- `file-object-sort.js`: `compareByProperty()` reads values through a getter that recognises a
+  `linked:` key and memoises `linkedSortValue()` per file for the life of the comparator. Every
+  caller is untouched.
+- `services/linked-properties.js`: `linkedSortValue(definition, file)`, which is `linkedValue()`
+  with a "via" list reduced to its first non-empty slot.
+- `sort-select-load.js`: `populateSortSelect()` adds the linked keys, labelled by name.
+- The sort falls back to the default when its linked key is deleted (in the dialog's delete action)
+  or absent after a folder load (next to `applyActiveLayout()` in the loaders), then
+  `syncSortControls()`.
+- `pending-row-move.js`: under a linked sort, `holdRowMove()` compares the whole order (§3.7).
+
+### 6g. The dialog
 
 - `index.html`: `#modal-linked-properties`, and `#icon-type-linked` in the sprite.
 - `ui-functions-table/render-table-controls.js`: the + button, `data-action="open-linked-properties"`.
@@ -315,12 +367,13 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
   `renderFiles`.
 - a CSS file for the dialog's rows, if `info-modal`'s existing row classes are not enough.
 
-### 6g. Housekeeping
+### 6h. Housekeeping
 
 - `constants.js`: `LINKED_TYPE`. `type-glyph.js`: its `LOCK_SHIFT` entry.
 - The "delete all layouts" tooltip mentions linked properties.
 - CLAUDE.md: a short *Linked properties* section: stored at the top of the layouts file, one
-  writer, a `linked:` key cannot collide, no chaining by construction, display-only. Add the new
+  writer, a `linked:` key cannot collide, no chaining by construction, no caret, sorted by the
+  first non-empty slot, not searchable. Add the new
   files to the file map.
 - Bump `manifest.json` minor version.
 
@@ -332,18 +385,21 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 public/js/services/internal-links/link-targets.js      NEW  toList + linkTarget, shared
 public/js/services/flowchart/mermaid-source.js         MOD  imports them
 public/js/services/internal-links/note-name-index.js    MOD  byId + getFileById
-public/js/services/linked-properties.js                NEW  state, one writer, linkedValue
+public/js/services/linked-properties.js                NEW  state, one writer, linkedValue, linkedSortValue
+public/js/services/file-object-sort.js                 MOD  a linked key's value, memoised per sort
 public/js/services/store.js                            MOD  appState.linkedProperties
 public/js/services/property-type.js                    MOD  read property's type; not settable/editable
 public/js/table-layouts/layout-apply.js                MOD  from-state / apply-from-file pair
 public/js/table-layouts/layout-file.js                 MOD  read, save, delete, clear
 public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  linked keys as columns
 public/js/ui/ui-functions-table/render-table-rows.js   MOD  linkedValue for linked columns
-public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger
+public/js/ui/ui-functions-table/pending-row-move.js    MOD  whole-order check under a linked sort
+public/js/ui/ui-elements-load/sort-select-load.js      MOD  linked properties in the sort select
+public/js/ui/ui-functions-table/render-table-header.js MOD  the glyph
 public/js/ui/ui-functions-table/render-table-controls.js MOD the + button
 public/js/ui/ui-functions-table/linked-properties-list.js NEW the dialog's rows
 public/js/ui/ui-functions-click/linked-properties.js   NEW  the dialog's actions
-public/js/ui/ui-functions-click/column-menu.js         MOD  no type/sort/delete on a linked column
+public/js/ui/ui-functions-click/column-menu.js         MOD  no change type / delete on a linked column
 public/js/ui/ui-functions-render/type-glyph.js         MOD  LOCK_SHIFT entry
 public/js/ui/event-listeners-add.js                    MOD  register the actions
 public/js/constants.js                                 MOD  LINKED_TYPE
@@ -365,9 +421,15 @@ manifest.json, CLAUDE.md                               MOD
 - **Level 2** (`tests/2-behaviour/43-table-layouts.spec.js` or a new
   `linked-properties.spec.js`, since this is a new area): the + opens the dialog; a defined column
   shows the linked note's value; several links give an aligned list with empty slots; a broken link
-  gives an empty cell with no warning; the cell takes no caret; the header has no sort chevron.
-- **`linkedValue` in node**, via `appModule()`: single, many, broken, missing property, list read
-  value, Map read value.
+  gives an empty cell with no warning; the cell takes no caret.
+- **Sorting, level 2:** sorting by a linked column orders rows by the linked value under the read
+  type (a linked date sorts as a date); `project: "[[a]]"` and `project: ["[[a]]"]` sort together;
+  rows with nothing to show go to the end in both directions; the sort select offers the column;
+  deleting the definition while sorted by it falls back to the default. **And the §3.7 case:**
+  editing `status` in a project note while sorted by "Project status" moves the rows that link to
+  it.
+- **`linkedValue` and `linkedSortValue` in node**, via `appModule()`: single, many, broken, missing
+  property, list read value, Map read value, first-non-empty reduction.
 
 Screenshots per CLAUDE.md: the dialog with two definitions, and the table showing a linked column
 next to its "via" column, including one row whose link is broken.
@@ -390,3 +452,50 @@ can read it. Open questions:
 - **What does it write through?** `applyCellEdits`/`applyRawEdits` already take a list of edits per
   file.
 - **Undo.** A button that rewrites two hundred notes needs the table's undo stack to cover it.
+
+---
+
+## 10. Later, perhaps never: searching by a linked property
+
+Not in this plan, and possibly not worth doing at all. Sorting was cheap to bring in because
+`compareByProperty()` is one function that every sort goes through. Search is a pipeline, and
+nearly every stage of it assumes that a property is a key on the file object with a name the user
+can type. These are the problems to solve, most basic first:
+
+1. **There is no name to type.** A filter is written `property:value`, and
+   `parseSearchString()` splits at the first `:` or `=`. The key `linked:1` itself contains a
+   colon, so `linked:1:active` parses as the property `linked`. The label is no better: it can hold
+   spaces and colons, is not unique, and can be renamed, which would leave a filter written against
+   the old name matching nothing. A linked search therefore needs either a typed alias with its own
+   character rules (one more thing to learn, which is what this plan set out to remove) or an entry
+   point that is not typed, such as "filter by this value" on a linked cell or a column menu item.
+   Nothing like that exists for ordinary columns today, so that would be a new feature, not a
+   linked-property one.
+2. **Every stage reads `file[property]`.** `searchArrayProperty()` and `searchStringProperty()`
+   both do, and so does the property lookup that fixes a filter name's case against
+   `myFilesProperties`. Each needs the same getter the comparator gets. Unlike sorting it is several
+   places, not one. Cost is not the problem, since a filter already walks every file.
+3. **"Search everything" would start matching through links.** A bare search runs over
+   `myFilesProperties` minus the excluded ones. If linked keys joined that set, searching `active`
+   would return every note that links to an active project, and credit the match to a property the
+   note does not contain. They should be excluded from it, which is a decision that has to be made
+   explicitly.
+4. **What does a match mean in a list?** A "via" list with empty slots (§3.3) has to be searched as
+   its non-empty items. Whether "exact match" applies depends on the read property's search type,
+   while the result's shape comes from "via": another pairing of two properties that nothing
+   currently has to reason about.
+5. **Staleness is actually fine**, and worth recording so nobody solves it twice: every save re-runs
+   every filter (`renderRefreshed` in `refresh-file-state.js`), so a filter on a linked value is
+   re-evaluated whenever any note changes, including the linked one.
+6. **Highlighting.** A matched ordinary cell is highlighted from the search results. A linked cell
+   would need the same, against a value that is not in the row's note. The note modal's props
+   highlight would then have nothing to point at, because the match is in another note.
+7. **Filters can outlive their definition.** A filter on a linked key whose definition is then
+   deleted or re-pointed silently matches nothing, or something else. The dialog's delete would
+   have to remove the filters that use the key, and re-pointing would have to ask whether to keep
+   them.
+
+**The cheaper answer to the need** is probably to filter on the linked note, not on the linking one:
+filter `status:active` to get the active projects, then read their backlinks. That is a backlinks
+feature, useful on its own, and needs none of the above. Revisit this section if, after using
+linked columns, the table sorted by a linked column still is not enough.
