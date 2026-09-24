@@ -1,6 +1,6 @@
 import { appState } from '../../services/store.js';
 import { VIEWS } from '../../constants.js';
-import { reverseLastBatch } from '../../editing/undo-cell-edits.js';
+import { reverseLastBatch } from '../../table-undo/undo-stacks.js';
 import { flashUndoneCells } from '../ui-functions-table/undo-cell-flash.js';
 import { reportUndo } from '../ui-functions-render/output-report.js';
 import { markUndoState } from '../ui-functions-table/render-table-controls.js';

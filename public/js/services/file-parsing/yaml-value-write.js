@@ -127,7 +127,7 @@ export function quoteYaml(text) {
  *
  * **An empty value is no text after the colon, and that is how the key is told to go.** Every other
  * answer here carries the separating space, so an empty string is a thing this function can say and
- * nothing else can mean: save-cell-edit.js reads it as "take the key and its line out", which is the
+ * nothing else can mean: apply-raw-edits.js reads it as "take the key and its line out", which is the
  * mirror of appending a key the note did not have. It is why nothing here has to know about deleting,
  * and why an undo — which sends a record's `before` back as plain text — removes a key it created
  * without a second path through the writer.
@@ -187,7 +187,7 @@ export function toYamlItem(item, inFlow) {
  * file's way of saying the key goes with it. It used to write `[]`, because a block list with no
  * items has no lines to be written on and a bare `people:` opens a nested map the parser then prunes,
  * so an emptied list had to leave *something* or the key would outlive the column. Now the key does
- * not outlive it: save-cell-edit.js takes the key and its line out, and the column stays because the
+ * not outlive it: apply-raw-edits.js takes the key and its line out, and the column stays because the
  * layout asked for it rather than because a file still mentions it.
  *
  * @param {string[]} items - The items, in order.

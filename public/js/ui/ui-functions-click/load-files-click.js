@@ -12,7 +12,7 @@ import { propertyType } from '../../services/property-type.js';
 import { populateSortSelect } from '../ui-elements-load/sort-select-load.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from '../event-listeners-add.js';
-import { clearUndoStacks } from '../../editing/undo-cell-edits.js';
+import { clearUndoStacks } from '../../table-undo/undo-stacks.js';
 
 /**
  * Opens the folder picker and loads the chosen directory.
