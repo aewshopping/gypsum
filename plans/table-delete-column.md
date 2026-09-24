@@ -409,7 +409,7 @@ on its own terms. Ctrl+Z still takes the newest, and only within this visit to t
 
 ### 10.3 What it looks like
 
-- **A small chevron button right beside undo** in the table's control row, `data-action="undo-list"`,
+- **A small chevron button joined to undo** in the table's control row (§17.2), `data-action="undo-list"`,
   opening a popover. It works like the column menu: top layer, light dismiss and Escape from the
   browser. It is disabled when the undo stack is empty, and inert while a write is in flight (§11).
 - **One row per batch, newest first**: its name from `describeBatch` and a relative time
@@ -422,7 +422,9 @@ on its own terms. Ctrl+Z still takes the newest, and only within this visit to t
 - **No redo list.** Redo stays newest-first through its button and keys. A redo list would add a
   second list for a gesture that is nearly always "put back what I just undid".
 
-**Screenshots, not expectations**: the popover at phone width, a long property name truncating in a
+The full layout of the list, the divider and the clear row is §17.6.
+
+**Screenshots, not expectations**: the popover at phone width, a long property name wrapping in a
 row, and the chevron beside the undo glyph in both themes.
 
 ### 10.4 Ctrl+Z reaches only this visit to the table
@@ -582,7 +584,11 @@ known limitation about comments between list items.
 | What Ctrl+Z and the buttons reach | **only this visit to the table**; a view change or a load resets them, the list keeps everything. §10.4. |
 | Where a refusal is recorded | **a `undo:` segment on the file's issues property**, from `appState.undoRefusals`, replaced by each undo; filterable, and the report line's count links to it. §10.5. |
 | `errorOnLoad` | **renamed `fileIssues`**, column label "issues". §10.5. |
-| While running | **progress on the report line, table inert, no cancel.** §11. |
+| While running | **progress on the report line, table inert and faded, no cancel.** §11, §17.5. |
+| "delete column" in the menu | **last, below a rule, warning colour.** §17.3. |
+| After pressing a list row | **the list closes**, then the undo runs. §17.6. |
+| Where Ctrl+Z's reach ends | **an "earlier" divider in the list.** §17.6. |
+| The issues column on a nudge | **stays hidden**; the nudge only filters. §17.7. |
 | Where a re-created key goes | **back after the key it followed.** §12. |
 | An emptied block | stays as `---`/`---`, as clearing the last key by hand does today; undo writes back into it. |
 
@@ -628,6 +634,8 @@ Each step ships on its own and leaves the app working.
    DATA-STRUCTURES.md: `undoStack`'s batch shape, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`. `table-undo-stack.md`:
    a line at the top pointing here for §9's two superseded rows.
 
+**Check each UI step against §17**, the one list of what appears on screen.
+
 **Screenshots** at steps 4, 6, 7 and 9: the tooltip naming an undo; the warning at phone width with a
 long property name; the progress line mid-delete; the undo list in both themes; the clickable fail count and the
 "issues" column showing an `undo:` segment.
@@ -642,7 +650,10 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 | `public/js/editing/describe-batch.js` | **new** | a batch's name, §7.2 |
 | `public/js/editing/undo-file.js` | **new** | `undo.gypsum` read, validate, write; `renameInUndoStacks` — §8 |
 | `public/js/ui/ui-functions-click/undo-list.js` | **new** | the popover: open, draw rows, a row's press, clear history — §10 |
-| `public/css/undo-list.css` | **new** | the popover's rows. A new component gets its own file |
+| `public/css/undo-list.css` | **new** | the popover's rows, time column, divider and scroll — §17.6. A new component gets its own file |
+| `public/css/column-menu.css` | edit | the delete item's rule and warning colour — §17.3 |
+| `public/css/output-controls.css` | edit | the chevron joined to undo; the faded inert table — §17.2, §17.5 |
+| `public/css/modal-unsaved-warning.css` | edit | `white-space: pre-line` on its text — §17.4 |
 | `public/js/editing/save-cell-edit.js` | edit | pool, `write: false`, `onProgress`, missing-file skip, `anchor` through to the splice; `applyCellEdits` passes `kind` |
 | `public/js/editing/front-matter-splice.js` | edit | `keySplice` takes an anchor — §12 |
 | `public/js/editing/save-file-copy.js` | edit | take the `.gypsum` handle rather than fetching it each call |
@@ -663,7 +674,7 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 | `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the chevron; `markUndoState` sets `data-tip` |
 | `public/js/ui/ui-functions-render/output-report.js` | edit | the progress text and the delete's result line |
 | `public/js/ui/event-listeners-add.js` | edit | `column-delete-property`, `undo-list`, `undo-list-item`, `undo-list-clear` |
-| `index.html` | edit | the new menu item, the renamed one, the undo list popover |
+| `index.html` | edit | the new menu item, the renamed one, the undo list popover, `#icon-chevron-down` in the sprite |
 | `public/style.css` | edit | import `undo-list.css` |
 | `tests/1-data/…` | edit / new | the file-level checks of steps 2, 3, 5, 6 — in the existing undo and cell-writing specs where they fit |
 | `tests/2-behaviour/40-column-menu.spec.js`, `tests/1-data/52-table-undo-stack.spec.js` | edit | the menu checks of step 6; the list checks of step 7 sit with the rest of undo |
@@ -681,3 +692,175 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 - **Bring back a comment that sat above a deleted key.** §12.
 - **Stop a sidebar-opened note from re-adding the key during the write.** §11. The undo refuses that
   file, which is the right answer.
+
+---
+
+## 17. The interface, in one place
+
+The sections above decide each piece where its reasoning lives. This section is the whole of what
+appears on screen, gathered so that a build step can be checked against one list, with the details
+those sections left open. **Where this section and an earlier one disagree, this one holds.**
+
+### 17.1 Inventory
+
+| surface | new or changed | where it is decided |
+|---|---|---|
+| column menu: "delete column" | **new**, last item, set apart, warning colour | §4.1, §17.3 |
+| column menu: "remove from layout" | **renamed** from "delete column" | §4.1 |
+| column picker bin | tooltip says "remove from layout" | §4.1 |
+| warning dialog | existing dialog, new text, now multi-line | §5, §17.4 |
+| report line (`#output-report`) | progress text; delete result; named undo result; clickable counts | §5.1, §7.2, §10.5, §11 |
+| table while deleting | inert and faded | §11, §17.5 |
+| undo and redo buttons | tooltip names the batch; dark outside this visit | §7.2, §10.4 |
+| undo list button | **new**, chevron beside undo | §10.3, §17.2 |
+| undo list popover | **new** | §10.3, §17.6 |
+| "clear undo history" confirmation | existing dialog, new text | §8.5, §17.6 |
+| "issues" column (renamed "load error") | new `undo:` segment; still hidden by default | §10.5 |
+
+### 17.2 The control row
+
+Today the row is the layout name, the column picker, undo and redo. The list button goes
+**directly after undo, joined to it**, a narrow chevron sharing undo's height with no gap between.
+It reads as undo's own drop-down, not as a fifth control:
+
+```
+ files filtered: 42                      [ my layout ] [▥]  [↶|▾] [↷]
+```
+
+- **A new `#icon-chevron-down` symbol** in the shared sprite, drawn in the same hand-drawn stroke as
+  its neighbours (`stroke-width="4"`, round caps). It is about half the width of the undo glyph, so
+  the pair takes one and a half buttons.
+- **It is lit whenever the undo stack holds anything**, including when undo itself is dark after a
+  view change (§10.4). That pairing is the point: dark undo beside a lit chevron says "nothing from
+  this visit, but there is history".
+- `data-tip="undo history"`.
+- **At phone width** the row already wraps onto its own line under the file count (§ *A view's own
+  control row* in CLAUDE.md). The half-width chevron keeps it to one line at 360px. That needs a
+  screenshot to confirm.
+
+### 17.3 The column menu
+
+```
+  sort A to Z
+  sort Z to A
+  search column
+  resize column
+  auto-size column
+  change type
+  hide column
+  ───────────────
+  delete column          ← warning colour
+```
+
+- **Last, below a thin rule, in the warning colour.** The colour is
+  `color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%)`, which is
+  `.load-error-nudge`'s. It is the one item that changes notes, so it looks like it.
+- **The rule belongs to the item**, a `border-top` on it, not a separate element. That way it hides
+  and shows with the item and never leaves a stray line on a column that cannot be deleted.
+- **"remove from layout" takes the same slot and the rule, in the ordinary colour.** It only ever
+  touches the layout. The two items never show together (§4.1), so the bottom of the menu always
+  holds at most one of them.
+- `data-tip="remove this property from every note"` and `data-tip="remove this empty column from the
+  layout"`.
+
+### 17.4 The warning dialog
+
+It is the existing `#modal-unsaved-warning`, and it needs one CSS change:
+**`white-space: pre-line` on `#modal-unsaved-warning-text`.** The text is set with `textContent`,
+which is right because property names and filenames come from notes and must not be HTML. But line
+breaks collapse without that rule, and the dialog's text becomes one run-on paragraph. `pre-line`
+keeps the newlines and still wraps long lines, so the existing single-line callers are unaffected.
+
+```
+┌──────────────────────────────────────────────┐
+│ Delete "people" from 35 files?               │
+│                                              │
+│ The key and its value are removed from each  │
+│ note — a list, every item of it.             │
+│ meeting-notes.md, bob.md, project-x.md and   │
+│ 32 more.                                     │
+│ 2 files will be skipped: their front matter  │
+│ could not be read.                           │
+│ You can undo this.                           │
+│                                              │
+│      [ delete from 35 files ]   [ cancel ]   │
+└──────────────────────────────────────────────┘
+```
+
+- **Cancel has focus when it opens**, not delete, so an Enter pressed too soon does nothing
+  destructive. The existing dialog focuses itself, so this is one `focus()` on the cancel button
+  for this caller.
+- The skipped line is left out when nothing will be skipped, and so is "and N more" when there are
+  three files or fewer.
+
+### 17.5 While a delete runs
+
+```
+ deleting people: 340 / 1000             [ my layout ] [▥]  [↶|▾] [↷]    ← all dark
+ ┌───────────────────────────────────────────────────────────────┐
+ │  (table, faded)                                               │
+```
+
+- **The report line sits outside `#output`**, so it stays readable while the table is inert. It
+  counts up as each file finishes.
+- **The table fades to about half opacity**, one CSS rule on `[inert]` inside `#output`. `inert` on
+  its own is invisible, and a table that looks usable but ignores every click reads as a hang.
+- **The control row goes dark with it**: `inert` on `#output-controls`, with the buttons' existing
+  disabled fade.
+- **At the end** the fade lifts, and the line reads `deleted people from 33 files, 2 skipped` for
+  the same five seconds as an undo's line. `2 skipped` is a nudge (§5.1).
+- **No progress bar.** The load's progress bar belongs to the file count element and is tied to
+  its fade timings. A count in words is enough for a few seconds' wait, and it needs no new
+  component.
+
+### 17.6 The undo list
+
+```
+                                          [↶|▾]
+                              ┌──────────────────────────────────┐
+                              │ status edit in 1 file     just now│
+                              │ people column delete in 35  2 min │
+                              │ files                             │
+                              │ ─ earlier ──────────────────────  │
+                              │ title edit in 1 file    yesterday │
+                              │ tags edit in 3 files       3 Sep  │
+                              │ ⋮                                 │
+                              │ ───────────────────────────────── │
+                              │ clear undo history                │
+                              └──────────────────────────────────┘
+```
+
+- **A popover anchored under the chevron**, placed by the same CSS anchor positioning as the column
+  menu and styled from `menu.css`'s `.app-menu`, so it matches the column menu. It is
+  `max-width: min(22rem, 100vw - 32px)` so it fits a phone with a 16px margin either side.
+- **Rows newest first.** Each row is one `<button class="app-menu-item">`: the batch's name on the
+  left, wrapping when long, and its time on the right, never wrapping, in the muted colour. Times
+  read `just now`, `N min`, `N h`, `yesterday`, then a date.
+- **The "earlier" divider** is a thin rule with a small muted label, drawn between the last batch of
+  this visit and the first batch before it (§10.4). It is not drawn when every entry is from this
+  visit, or when none is. That makes it the only place the app says why undo is dark.
+- **The list scrolls inside itself** past about twelve rows (`max-height` and `overflow-y: auto`).
+  The "clear undo history" row sits outside the scrolling part, so it is always visible.
+- **Pressing a row closes the list**, then undoes that batch. The cells flash and the report line
+  says what happened, exactly as for Ctrl+Z. To undo another entry, open the list again. The list
+  closes first so it is not covering the rows that are about to flash.
+- **Keyboard**: Tab and Shift+Tab move between rows and Escape closes, as in the column menu. No
+  menu in the app handles arrow keys today, and this one does not start. Focus goes to the first
+  row when the list opens, and back to the chevron when it closes.
+- **A row does not show what happened last time.** A partial undo leaves its applied half on the
+  redo stack and the refused files marked in the issues column (§10.5). The list is what can be
+  undone, not a log.
+- **"clear undo history"**: the last row, below a rule, in the ordinary colour. It opens the warning
+  dialog with: *Clear all undo history for this folder? The 23 changes in the list can no longer
+  be undone, including any column delete.* [ clear history ] [ cancel ], with cancel focused. The
+  button reads `clear history`, not `delete`, because nothing in a note changes.
+- **Empty**: the chevron is dark, so the list cannot be opened empty. No empty state is needed.
+
+### 17.7 The issues column stays hidden
+
+**Decided: clicking a `2 fail` or `2 skipped` count filters the rows and does nothing else.** The
+"issues" column stays hidden by default, as "load error" is today, and the load message's nudges
+behave the same way. The count's tooltip names the reason (`show the 2 notes the undo left alone`),
+and anyone who wants the reason on each row shows the column from the picker. Revealing a column
+as a side effect of a filter would be a layout change nobody asked for, and the layout would then
+have to say whether it was saved.
