@@ -733,7 +733,7 @@ Each step ships on its own and leaves the app working.
    matter is not written by a cell edit's path or an undo, and every other note in the batch is.
    Then the concurrency pool, the refresh taking the written text, the handles fixed
    at the start of the batch (§6.2a), the id `Map`, the missing-file skip (§8.4), and `onProgress`.
-   No new behaviour, so the existing level-1 and undo specs hold it, plus §6.3's call-count test.
+   The speed-ups add no behaviour, so the existing level-1 and undo specs hold it, plus §6.3's call-count test.
 3. **Keys put back in place.** `anchor` on removal records, `keySplice` honouring it (§12). Level-1
    tests: clear a middle key and undo it; clear the first key; clear a block list; anchor gone; two
    neighbouring keys cleared in one batch and undone together; a bare key (`people:`) removed and
