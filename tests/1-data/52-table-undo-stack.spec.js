@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, appModule } = require('../helpers');
 
 /**
  * plans/table-undo-stack.md, end to end: edit a cell, put it back, watch the note on disk go with it.
@@ -234,14 +234,23 @@ test('the report line counts what was undone', async ({ page }) => {
   await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
 
   await undoBtn(page).click();
-  await expect(report(page)).toHaveText('undo: 1 values');
+  await expect(report(page)).toHaveText('undo: status edit in 1 file — 1 values');
   await expect(report(page)).not.toHaveClass(/has-failures/);
 
   // the count the line opens with is the render's, not the undo's, and is there either way
-  await expect(reportLine(page)).toHaveText('count: 2 | undo: 1 values');
+  await expect(reportLine(page)).toHaveText('count: 2 | undo: status edit in 1 file — 1 values');
 
   await redoBtn(page).click();
-  await expect(report(page)).toHaveText('redo: 1 values');
+  await expect(report(page)).toHaveText('redo: status edit in 1 file — 1 values');
+});
+
+test('the undo and redo buttons name what they will do', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
+  await expect(undoBtn(page)).toHaveAttribute('data-tip', 'undo status edit in 1 file | Ctrl+Z');
+
+  await undoBtn(page).click();
+  await expect(redoBtn(page)).toHaveAttribute('data-tip', 'redo status edit in 1 file | Ctrl+Y');
 });
 
 test('the undone cell is marked', async ({ page }) => {
@@ -267,7 +276,7 @@ test('an entry the file has moved past is refused, and says so', async ({ page }
   await undoBtn(page).click();
 
   // nothing written, and the hand-typed value still there
-  await expect(report(page)).toHaveText('undo: 0 values, 1 fail');
+  await expect(report(page)).toHaveText('undo: status edit in 1 file — 0 values, 1 fail');
   await expect(report(page)).toHaveClass(/has-failures/);
 
   // the warning colour is the undo half's alone — the count beside it did not fail
@@ -328,4 +337,24 @@ test('undoing a cleared cell puts the key back, and redoing takes it away again'
 
   await redoBtn(page).click();
   await expect.poll(() => fileText(page, 'alpha.md')).not.toContain('status:');
+});
+
+// ---------------------------------------------------------------- names, plans/table-delete-column.md §7
+
+test('describeBatch names every kind of batch, and counts only the edits it holds', async () => {
+  const { describeBatch } = await appModule('table-undo/describe-batch.js');
+  const edit = (internalId, property = 'status') => ({ internalId, property });
+  expect(describeBatch({ kind: 'edit', property: 'title', edits: [edit('a.md', 'title')] }))
+    .toBe('title edit in 1 file');
+  expect(describeBatch({ kind: 'edit', property: 'status', edits: ['a', 'b', 'c', 'd'].map(n => edit(n)) }))
+    .toBe('status edit in 4 files');
+  expect(describeBatch({ kind: 'edit', property: null,
+    edits: [edit('a', 'x'), edit('a', 'y'), edit('b', 'x'), edit('b', 'y'), edit('c', 'x'), edit('c', 'y')] }))
+    .toBe('edit of 6 values in 3 files');
+  const people = Array.from({ length: 35 }, (_, i) => edit(`${i}.md`, 'people'));
+  expect(describeBatch({ kind: 'delete-property', property: 'people', edits: people }))
+    .toBe('people column delete in 35 files');
+  // a redo holding only the half of an undo that was applied
+  expect(describeBatch({ kind: 'delete-property', property: 'people', edits: people.slice(0, 33) }))
+    .toBe('people column delete in 33 files');
 });

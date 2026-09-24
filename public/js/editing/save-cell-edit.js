@@ -55,6 +55,7 @@ export async function applyCellEdits(edits, options) {
     });
 
     const records = await applyRawEdits(rawEdits, options);
-    pushUndoBatch(records);
+    const properties = new Set(edits.map(edit => edit.property));
+    pushUndoBatch(records, { kind: 'edit', property: properties.size === 1 ? edits[0].property : null });
     return records;
 }

@@ -42,14 +42,15 @@ export function reportFileCount(count) {
  * looking, and the line has to fit one line at phone width. §13.3.
  *
  * @param {'undo'|'redo'} direction - Which word this half opens with.
+ * @param {string} name - What the batch was, from describeBatch — the same name its button showed.
  * @param {number} applied - How many cells were put back.
  * @param {number} failed - How many the check refused because the file had moved on.
  * @returns {void}
  */
-export function reportUndo(direction, applied, failed) {
+export function reportUndo(direction, name, applied, failed) {
     undoText = failed > 0
-        ? `${direction}: ${applied} values, ${failed} fail`
-        : `${direction}: ${applied} values`;
+        ? `${direction}: ${name} — ${applied} values, ${failed} fail`
+        : `${direction}: ${name} — ${applied} values`;
     undoFailed = failed > 0;
     paint();
 

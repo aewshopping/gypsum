@@ -107,23 +107,43 @@ export const appState = {
   // other half of the answer.
   flowchartOptions: new Map(),
 
-  // Table cell edits that can be put back, newest last. One entry is one batch — a single cell edit
-  // is a batch of one — and each holds the records applyRawEdits returned for it: the key's whole
-  // value span before and after the splice. See plans/table-undo-stack.md §4 and §5.
+  // Table writes that can be put back, newest last. One entry is one batch — a single cell edit is
+  // a batch of one, a column delete is one batch across every note it touched — shaped
+  // `{ timestamp, kind, property, edits }`: `kind` is 'edit' or 'delete-property', `property` the
+  // column when every edit shares one, else null, and `edits` the records applyRawEdits returned.
+  // describeBatch() in table-undo/describe-batch.js turns the facts into a name. See
+  // plans/table-undo-stack.md §4 and §5, and plans/table-delete-column.md §7.
   //
-  // In memory only. A stack that outlived the session would be mostly stale entries, and the check
-  // at undo time would drop them one at a time; not offering it is the honest version. Cleared on
-  // folder load and nowhere else: the ids mean nothing against a different folder, and a view change
-  // needs no clearing because the check is a fact about the file rather than a guess about the app.
+  // Saved to the folder's .gypsum/undo.gypsum after every change and read back when the folder
+  // loads, because after a column delete the entry is the only copy of what was removed. A stale
+  // entry is safe to keep: the check at undo time refuses an edit whose note has moved on rather than
+  // forcing it. plans/table-delete-column.md §8.
   //
   // Capped at UNDO_DEPTH. Undo pushes onto redoStack and redo pushes back, so an entry is never in
   // both; a fresh edit empties redoStack, which is the ordinary rule.
   undoStack: [],
   redoStack: [],
+
+  // Set while a batch the user is waiting on is being written — a column delete, an undo or a redo.
+  // The table is inert for it, a second undo is refused, a folder load is refused and closing the
+  // tab asks first. One fact, read by everything that must not start while it is true. §11.
+  bulkWriteInFlight: false,
+
+  // When this visit to the table began. Ctrl+Z and the undo button reach only batches made since;
+  // the undo list reaches all of them. Set on a view change and on a folder load. §10.4.
+  undoHorizon: 0,
+
+  // The files the most recent undo or redo refused, as Map<internalId, {count, name}>. Drawn as an
+  // `undo:` segment of the file's issues, and replaced by every reversal. Never saved. §10.5.
+  undoRefusals: new Map(),
 }
 
-/** How many batches the undo and redo stacks hold. Free (§2 of the plan), so chosen for feel. */
-export const UNDO_DEPTH = 20;
+/**
+ * How many batches the undo and redo stacks hold. Kept on disk, a deep stack is cheap, and twenty
+ * quick cell edits after a column delete must not push the delete off it. The file is rewritten
+ * whole on each push, which is small in any realistic use — see plans/table-delete-column.md §9.
+ */
+export const UNDO_DEPTH = 100;
 
 /**
  * Defines metadata for known - or potential - file object properties.

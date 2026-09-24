@@ -24,10 +24,12 @@ import { applyRawEdits } from '../editing/apply-raw-edits.js';
  * an empty entry would give the user a live undo button that does nothing when pressed.
  *
  * @param {Array<object>} records - What applyRawEdits reported it changed.
+ * @param {{kind?: string, property?: string|null}} [facts] - What the batch was, for its name:
+ *   'edit' or 'delete-property', and the column when there is one. See describe-batch.js.
  * @returns {void}
  */
-export function pushUndoBatch(records) {
-    push(appState.undoStack, records);
+export function pushUndoBatch(records, { kind = 'edit', property = null } = {}) {
+    push(appState.undoStack, records, { kind, property });
 
     // The ordinary rule: a new edit makes every redo a claim about a file that has moved on. The
     // check would refuse them one at a time anyway; clearing says so at once.
@@ -53,15 +55,16 @@ export function pushUndoBatch(records) {
  * see plans/table-delete-column.md §12.
  *
  * @param {'undo'|'redo'} direction - Which stack to take from.
- * @returns {Promise<{applied: Array<object>, refused: Array<object>}>} The edits that were written,
- *   and the edits the check turned down. Both are needed: each gets its own mark on the cell.
+ * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined}>} The
+ *   edits that were written, the edits the check turned down — each gets its own mark on the cell —
+ *   and the batch they came from, for its name.
  */
 export async function reverseLastBatch(direction) {
     const from = direction === 'undo' ? appState.undoStack : appState.redoStack;
     const to = direction === 'undo' ? appState.redoStack : appState.undoStack;
 
     const batch = from.pop();
-    if (!batch) return { applied: [], refused: [] };
+    if (!batch) return { applied: [], refused: [], batch };
 
     const applied = await applyRawEdits(batch.edits.map(edit => ({
         internalId: edit.internalId,
@@ -78,7 +81,8 @@ export async function reverseLastBatch(direction) {
         keepKey: edit.before === '' && edit.existed,
     })));
 
-    push(to, applied);
+    // The same facts, so a redo has the same name as the undo it reverses.
+    push(to, applied, { kind: batch.kind ?? 'edit', property: batch.property ?? null });
 
     // What the write left out. Addressed by file and property rather than by position, because the
     // write groups its edits by file and hands back only the ones that changed something — so the
@@ -86,7 +90,7 @@ export async function reverseLastBatch(direction) {
     const done = new Set(applied.map(edit => `${edit.internalId}\u0000${edit.property}`));
     const refused = batch.edits.filter(edit => !done.has(`${edit.internalId}\u0000${edit.property}`));
 
-    return { applied, refused };
+    return { applied, refused, batch };
 }
 
 /**
@@ -102,11 +106,12 @@ export function clearUndoStacks() {
 /**
  * @param {Array<object>} stack
  * @param {Array<object>} records
+ * @param {{kind: string, property: string|null}} facts
  * @returns {void}
  */
-function push(stack, records) {
+function push(stack, records, { kind, property }) {
     if (records.length === 0) return;
 
-    stack.push({ timestamp: Date.now(), edits: records });
+    stack.push({ timestamp: Date.now(), kind, property, edits: records });
     if (stack.length > UNDO_DEPTH) stack.shift();
 }

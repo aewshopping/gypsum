@@ -3,6 +3,7 @@ import { VIEWS } from '../../constants.js';
 import { reverseLastBatch } from '../../table-undo/undo-stacks.js';
 import { flashUndoneCells } from '../ui-functions-table/undo-cell-flash.js';
 import { reportUndo } from '../ui-functions-render/output-report.js';
+import { describeBatch } from '../../table-undo/describe-batch.js';
 import { markUndoState } from '../ui-functions-table/render-table-controls.js';
 
 /**
@@ -45,12 +46,12 @@ export async function reverseCellEdits(direction) {
     inFlight = true;
     markUndoState();
     try {
-        const { applied, refused } = await reverseLastBatch(direction);
+        const { applied, refused, batch } = await reverseLastBatch(direction);
 
         // After the write, which awaited its own render — so these are the rows on screen now, and
         // the cells the marks are about actually exist. §10.2.
         flashUndoneCells(applied, refused);
-        reportUndo(direction, applied.length, refused.length);
+        reportUndo(direction, describeBatch(batch), applied.length, refused.length);
     } finally {
         inFlight = false;
         markUndoState();
