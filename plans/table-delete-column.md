@@ -175,12 +175,30 @@ choice inside the warning, not a second menu item.
 The counts in the dialog are a forecast. The write reads each file fresh and works from what is
 actually there:
 
-- **A file whose front matter no longer reads** is skipped by the existing check.
+- **A file whose front matter no longer reads** is skipped by the existing check, widened below.
 - **A file that no longer has the key** is not written. `removing && !span` already returns.
 - **A file that gained the key outside the app** since load is not touched. It was not counted, and
   the user agreed to the count.
 - **A file removed from disk since load** is skipped. `applyRawEdits` currently assumes
   `appState.myFiles.find(...)` succeeds. §8 makes that unsafe, so it is hardened there.
+
+**The write refuses exactly the notes the table shows as locked.** Today they differ. The dialog
+forecasts with `hasYamlError()`, which is also what locks a note's cells: a skipped line *or* a
+reserved key (`filename:`, say) that was dropped and flagged. The write refuses only the first —
+`errors.length > 0` after `parseYaml` — so a note whose only fault is a shadowed reserved key would be
+forecast as skipped and then written anyway. So the write's check gains the second half:
+
+```js
+if (errors.length > 0 || RESERVED_KEYS.some(key => key in parsed)) continue;
+```
+
+`parsed` is what `parseYaml` already returns there, and `RESERVED_KEYS` is exported from
+`file-info.js` so the two cannot drift. It is asked of the bytes on disk, like the rest of the check,
+so a note fixed by hand since load is written. **The rule it gives is "the table never writes into a
+note it shows as locked"**, and it holds for every caller of `applyRawEdits` — a cell edit and an
+undo as well as a delete. A cell edit never meets it in practice, since those cells refuse a caret;
+an undo can, if a note gained a reserved key since the edit, and is then refused and counted like
+any other refusal.
 
 The report line says what actually happened: `deleted people from 35 files, 2 skipped`. The two
 skipped ones already carry a `yaml:` segment, so `2 skipped` is the same kind of nudge as the load
@@ -677,6 +695,7 @@ known limitation about comments between list items.
 | Also forgets the type | **No.** §3. |
 | Reach | **every file in the folder**, whatever the filter. §4.2. |
 | Confirmation | **counts and three filenames**, no type-to-confirm. §5. |
+| Which notes are skipped | **exactly the ones the table locks**: a skipped line or a shadowed reserved key. The write's check widens to match `hasYamlError()`, for every caller. §5.1. |
 | Counted from | `appState`; the write re-checks against disk. The dialog counts files that will change, not files that carry the key. §5, §5.1. |
 | A bare `people:` with no value | **deleted too**: the plan pass reads every loaded file; undo puts it back bare (`keepKey`). §5.2. |
 | A folder loaded mid-delete | **refused** while the write runs; every handle is fixed when the batch starts; `beforeunload` prompts. §6.2a. |
@@ -709,7 +728,10 @@ Each step ships on its own and leaves the app working.
 1. **Measure.** A scratch page, not committed, that writes 1,000 small notes to a real folder and
    times `applyRawEdits` removing one key from all of them, as it is today. Record the number here.
    It decides the pool size and whether §6.2 items 3 and 4 are worth doing.
-2. **Faster batches.** The concurrency pool, the refresh taking the written text, the handles fixed
+2. **Faster batches, and the lock the table shows.** The write refuses a note with a shadowed reserved
+   key as well as one with a skipped line (§5.1); level 1: a note with `filename:` in its front
+   matter is not written by a cell edit's path or an undo, and every other note in the batch is.
+   Then the concurrency pool, the refresh taking the written text, the handles fixed
    at the start of the batch (§6.2a), the id `Map`, the missing-file skip (§8.4), and `onProgress`.
    No new behaviour, so the existing level-1 and undo specs hold it, plus §6.3's call-count test.
 3. **Keys put back in place.** `anchor` on removal records, `keySplice` honouring it (§12). Level-1
@@ -769,7 +791,7 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 | `public/css/column-menu.css` | edit | the delete item's rule and warning colour — §17.3 |
 | `public/css/output-controls.css` | edit | the history button's coarse-pointer target; the faded inert table — §17.2, §17.5 |
 | `public/css/modal-unsaved-warning.css` | edit | `white-space: pre-line` on its text — §17.4 |
-| `public/js/editing/save-cell-edit.js` | edit | pool, `write: false`, `onProgress`, missing-file skip, handles fixed per batch, `anchor` and `keepKey` through to the splice; `applyCellEdits` passes `kind` |
+| `public/js/editing/save-cell-edit.js` | edit | refuse a shadowed reserved key as well (§5.1); pool, `write: false`, `onProgress`, missing-file skip, handles fixed per batch, `anchor` and `keepKey` through to the splice; `applyCellEdits` passes `kind` |
 | `public/js/editing/front-matter-splice.js` | edit | `keySplice` takes an anchor, a re-created anchor, and `keepKey` — §12, §5.2 |
 | `public/js/editing/save-file-copy.js` | edit | take the `.gypsum` handle and the file's own handle rather than looking either up — §6.2a |
 | `public/js/editing/refresh-file-state.js` | edit | take the written text instead of re-reading — §6.2 |
@@ -778,7 +800,7 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 | `public/js/services/property-type.js` | edit | `isPropertyDeletable` |
 | `public/js/services/store.js` | edit | `UNDO_DEPTH = 100`, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`; `errorOnLoad` → `fileIssues` |
 | `public/js/services/file-parsing/file-errors.js` | edit | the `undo:` segment from `appState.undoRefusals`; the rename |
-| `public/js/services/file-parsing/file-info.js` | edit | the rename, in the builder and `RESERVED_KEYS` |
+| `public/js/services/file-parsing/file-info.js` | edit | export `RESERVED_KEYS`; the rename, in the builder and `RESERVED_KEYS` |
 | `public/js/ui/load-progress-finish.js`, `services/directory-handler.js`, `backup/opfs-import.js` | edit | the rename; counts by segment prefix |
 | `public/js/ui/ui-functions-click/view-change.js` | edit | set `undoHorizon` |
 | `public/js/constants.js` | edit | the `undo.gypsum` filename beside the other two |
