@@ -369,7 +369,15 @@ refusals counted and named undo entries, the app says honestly what happened.
   to that folder: the `internalId`s are filepaths from that folder's root, so the file travels with
   the folder and means nothing anywhere else.
 - **Read in `postLoad`**, where `clearUndoStacks()` is called today, which all three load paths run.
-  A folder with no file gets empty stacks, as now.
+  A folder with no file gets empty stacks, as now. `postLoad` is synchronous today, so it becomes
+  `async` and its three callers `await` it — less code than a read in each loader, and one small
+  file read is nothing beside the load that precedes it.
+- **A backup carries it, and an import restores it.** A "full" backup already includes every file in
+  `.gypsum`, and importing one clears OPFS before unpacking, so `undo.gypsum` arrives with the notes
+  it describes and is read by the same `postLoad` — no code of its own. That is deliberate: the stack
+  is part of the folder's state at that moment, and as an emergency copy of what a delete removed it
+  is worth most exactly when someone is restoring a backup. A "content" backup has no `.gypsum`, so
+  it loads with empty stacks.
 - **Validated at the boundary, because it is hand-editable.** Unparseable JSON, an unknown
   `undoVersion`, or a batch without an `edits` array → start empty and warn to the console. No
   migration code, the same rule `table_layouts.gypsum` follows. `undoVersion` is stamped so a later
@@ -409,7 +417,10 @@ So a delete runs in **two passes, both through `applyRawEdits`**:
    batch is pushed and **`undo.gypsum` is written before any note is touched.**
 2. **Write.** The same edits go through `applyRawEdits` for real, now each carrying
    `expect: record.before`. When it returns, the batch's `edits` are replaced by the records that
-   were actually applied, and `undo.gypsum` is written again.
+   were actually applied, and `undo.gypsum` is written again. **If none were applied, the batch is
+   taken off the stack** rather than left holding nothing: it was pushed before anything was known,
+   so `push()`'s guard against an empty batch never saw it, and the list would otherwise offer a
+   "people column delete in 35 files" that does nothing when pressed.
 
 **If the second pass dies part-way, the journal is still correct.** The saved batch lists some edits
 that never happened. Undoing one of those finds the key still present, not the `''` the record
