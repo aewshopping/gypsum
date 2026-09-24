@@ -30,6 +30,10 @@ Because that action is serious, the undo stack changes too:
 - **An undo list** shows recent batches by name, and any one of them can be undone on its own, not
   only the latest (§10).
 - **One cap of 100 batches** replaces 20 (§9).
+- **Ctrl+Z reaches only this visit to the table.** Leaving the view resets it, and older entries are
+  reached through the list (§10.4).
+- **A refused undo marks the note** in the file-issues column (renamed from `errorOnLoad`), so the
+  refused notes are one filter away (§10.5).
 
 **In scope:** the menu item, the rules for which columns get it, the confirmation, a write that
 stays usable at 1,000 files, and the four undo changes above.
@@ -169,7 +173,9 @@ actually there:
 - **A file removed from disk since load** is skipped. `applyRawEdits` currently assumes
   `appState.myFiles.find(...)` succeeds. §8 makes that unsafe, so it is hardened there.
 
-The report line says what actually happened: `deleted people from 33 files, 2 skipped`.
+The report line says what actually happened: `deleted people from 33 files, 2 skipped`. The two
+skipped ones already carry a `yaml:` segment, so `2 skipped` is the same kind of nudge as the load
+message's and filters to them.
 
 ---
 
@@ -269,7 +275,8 @@ pop and clear, so it sets `data-tip` there as well as `disabled`, and the toolti
 date. With nothing to undo, the tooltip falls back to today's `undo last cell edit | Ctrl+Z`. A
 disabled button shows no tooltip anyway (`table-undo-stack.md` §10.1).
 
-The report line after an undo uses the same name: `undo: people column delete — 33 values, 2 fail`.
+The report line after an undo uses the same name: `undo: people column delete — 33 values, 2 fail`,
+where `2 fail` is a clickable filter to the refused notes (§10.5).
 
 ---
 
@@ -398,7 +405,7 @@ after a list undo redoes exactly that. "A new edit clears the redo stack" is unc
 
 **What changes is the meaning of the undo stack, and that is accepted:** it is no longer strictly a
 timeline of what can be peeled back in order. It is a list of changes, each of which can be reversed
-on its own terms. Ctrl+Z still takes the newest.
+on its own terms. Ctrl+Z still takes the newest, and only within this visit to the table (§10.4).
 
 ### 10.3 What it looks like
 
@@ -417,6 +424,91 @@ on its own terms. Ctrl+Z still takes the newest.
 
 **Screenshots, not expectations**: the popover at phone width, a long property name truncating in a
 row, and the chevron beside the undo glyph in both themes.
+
+### 10.4 Ctrl+Z reaches only this visit to the table
+
+**Decided: the key and the button reach only what was done since the table was last entered.**
+Leaving for another view resets them. The history stays, and every entry is still in the list.
+
+Keyboard undo is a reflex that means "the thing I just did". Once the stack outlives the session,
+a bare Ctrl+Z after a reload, or after a spell in grid view, would rewrite a note to how it was
+before something you no longer have in mind. Scoping it to the visit keeps the reflex safe. The
+list is where an older change is chosen deliberately, with its name and its time on screen.
+
+- **One timestamp, `appState.undoHorizon`**, set whenever the view changes and when a folder loads.
+  The load case is the same rule: a folder just opened is a visit that has not done anything yet.
+- **`canReverse(direction)` gains one clause**: the top batch's `timestamp` must be at or after the
+  horizon. Only the top needs checking. Every push goes on top with a fresh timestamp, including a
+  redo pushed back and an undo taken from the list, so timestamps only ever rise up the stack.
+- **The button follows the key.** They are one action (`table-undo-stack.md` §12), and a button live
+  while its own key is dead would be two answers to one question. Both go dark on returning to the
+  table and light up at the first edit. The chevron stays live whenever the stack has anything,
+  which is how older entries stay reachable.
+- **Redo is scoped the same way.** A list undo pushes its reversal with a fresh timestamp, so
+  Ctrl+Shift+Z straight after one redoes it, as §10.2 says.
+- **Opening a note is not a view change.** The note modal already blocks the keys (an open dialog),
+  and closing it returns to the same visit of the table.
+
+**The tooltip on a dark button says nothing**, since a disabled button fires no pointer events. That
+is acceptable: the chevron beside it is lit and names every entry.
+
+### 10.5 A refused undo marks the file, and the mark is filterable
+
+**Decided: a refusal is recorded on the file object, in the property that already reports what is
+wrong with a file, so the refused files are one filter away.** This matters more with list undo:
+refusals are rare with Ctrl+Z, but expected when reaching back past later edits, and a count on the
+report line cannot say which notes to look at.
+
+**That property is `errorOnLoad`**, the info column labelled "load error". Its design already fits:
+one text segment per check, joined with ` | `, each led by a word the property search filters on
+(`errorOnLoad:yaml`, `errorOnLoad:links`). The load message's nudges are clickable filters built
+on exactly that. A refusal becomes a third segment:
+
+```
+undo: 2 refused (people column delete)
+```
+
+It is found with the ordinary property filter, `fileIssues:undo` (after the rename below).
+
+**It is a third kind of check, and `file-errors.js` has to know that.** Today there are two kinds:
+parse-time (`yaml`, rebuilt by `file-info.js` on every re-read) and collection-time (`links`,
+recomputed by `checkFileErrors`). `checkFileErrors` keeps only `yaml:` segments and rebuilds the
+rest, so an `undo:` segment written onto the file object would be wiped by the next refresh of that
+file. The refusal is neither: it is a fact about the session, not about the file's text. So:
+
+- **It lives in `appState.undoRefusals`**, a `Map<internalId, {count, name}>`, which is the state.
+  The segment is drawn from it. `checkFileErrors` appends an `undo:` segment for any file in that
+  Map, so the segment survives every re-read.
+- **Each undo or redo replaces the Map**, so it always describes the most recent reversal. Two
+  refusal sets from different undos, both marked, would mislead: the older one may have been dealt
+  with. The Map is emptied when a folder loads and is never saved. Refusals are a result, not a
+  history, and `undo.gypsum` still holds the batch if you want to try again.
+- **The report line's `2 fail` becomes a nudge**, the same clickable span as the load message's
+  `3 yaml errors`: `data-action="property-filter"` with `data-value="undo"`. Pressing it shows
+  exactly the refused notes. That is the answer `table-undo-stack.md` §13.3 said should grow here.
+
+#### The rename: `errorOnLoad` → `fileIssues`
+
+**Decided: rename it, since it no longer only reports the load.** A refused undo happens long after
+loading, and a column headed "load error" listing one reads as a bug. The new label is **"issues"**.
+
+- **The new name must be one no note would plausibly use**, because it goes into `RESERVED_KEYS`.
+  A note whose front matter has that key sees it dropped and flagged as shadowed. That is why a
+  plain word like `issues`, `problems` or `warnings` is not the property name, only the column
+  label. `fileIssues` is as unlikely as `errorOnLoad` was.
+- **What moves with it**: `store.js` (the schema entry, `CORE_FILE_PROPERTIES`, `info_columns`,
+  `hidden_by_default`, `excludedProperties`), `RESERVED_KEYS` and the builder in `file-info.js`,
+  `file-errors.js`, the nudges in `load-progress-finish.js`, the two counts in
+  `directory-handler.js` and `opfs-import.js`, and the specs and docs that name it. It is a
+  mechanical rename, done as its own step so nothing else hides in that diff.
+- **The two counts get fixed on the way.** `directory-handler.js` and `opfs-import.js` count with
+  `errorOnLoad?.includes('yaml')`, a substring test that a later segment's text could match.
+  They switch to the segment-prefix test `hasYamlError()` already uses, which a third segment
+  kind now makes necessary.
+- **A saved layout naming `errorOnLoad` loses it.** No migration code, by the rule
+  `table_layouts.gypsum` already follows. The old entry resolves to nothing and drops out, and
+  `fileIssues` joins as a hidden column, as any new core property does. For a column hidden by
+  default, that is barely visible.
 
 ---
 
@@ -487,6 +579,9 @@ known limitation about comments between list items.
 | Rename | ids rewritten in both stacks. §8.4. |
 | Depth | **100 batches**, one cap. §9. Supersedes `UNDO_DEPTH = 20`. |
 | Undo list | **any single entry**; no redo list; clear history at the bottom. §10. |
+| What Ctrl+Z and the buttons reach | **only this visit to the table**; a view change or a load resets them, the list keeps everything. §10.4. |
+| Where a refusal is recorded | **a `undo:` segment on the file's issues property**, from `appState.undoRefusals`, replaced by each undo; filterable, and the report line's count links to it. §10.5. |
+| `errorOnLoad` | **renamed `fileIssues`**, column label "issues". §10.5. |
 | While running | **progress on the report line, table inert, no cancel.** §11. |
 | Where a re-created key goes | **back after the key it followed.** §12. |
 | An emptied block | stays as `---`/`---`, as clearing the last key by hand does today; undo writes back into it. |
@@ -518,15 +613,24 @@ Each step ships on its own and leaves the app working.
    and a journal whose second pass was cut short undoes cleanly. Level 2: the item is absent on
    `title`, `color`, an empty column and every core column; the counts in the dialog.
 7. **The undo list.** `reverseBatch(direction, index)`, the chevron and popover, the rows, clear
-   history (§10). Level 2: undo an older batch with a newer one on another property left intact;
-   the §10.1 case with one file refused.
-8. **Docs.** CLAUDE.md: *An empty column* and its "delete column" bullets become "remove from
-   layout"; a new short section for deleting a property, the saved stack and the undo list.
-   DATA-STRUCTURES.md: `undoStack`'s batch shape and `bulkWriteInFlight`. `table-undo-stack.md`:
+   history, and `undoHorizon` (§10.1–§10.4). Level 2: undo an older batch with a newer one on
+   another property left intact; Ctrl+Z dark after a view change and after a reload, with the list
+   still offering the entry.
+8. **Rename `errorOnLoad` to `fileIssues`.** Nothing but the rename and the two prefix-test counts
+   (§10.5). The existing load-error specs hold it.
+9. **Refusals on the file.** `appState.undoRefusals`, the `undo:` segment in `checkFileErrors`,
+   the clickable fail count (§10.5). Level 2: the §10.1 case, then the nudge filters to exactly
+   the refused note; a later undo that refuses nothing clears the mark; the mark survives an edit
+   to another cell of that note.
+10. **Docs.** CLAUDE.md: *An empty column* and its "delete column" bullets become "remove from
+   layout"; a new short section for deleting a property, the saved stack, the undo list and the
+   visit-scoped keys; `errorOnLoad` renamed wherever it is named.
+   DATA-STRUCTURES.md: `undoStack`'s batch shape, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`. `table-undo-stack.md`:
    a line at the top pointing here for §9's two superseded rows.
 
-**Screenshots** at steps 4, 6 and 7: the tooltip naming an undo; the warning at phone width with a
-long property name; the progress line mid-delete; the undo list in both themes.
+**Screenshots** at steps 4, 6, 7 and 9: the tooltip naming an undo; the warning at phone width with a
+long property name; the progress line mid-delete; the undo list in both themes; the clickable fail count and the
+"issues" column showing an `undo:` segment.
 
 ---
 
@@ -546,11 +650,15 @@ long property name; the progress line mid-delete; the undo list in both themes.
 | `public/js/editing/undo-cell-edits.js` | edit | `reverseBatch(direction, index)`, `kind`/`property` on push, save after each change |
 | `public/js/editing/rename-file.js` | edit | call `renameInUndoStacks` |
 | `public/js/services/property-type.js` | edit | `isPropertyDeletable` |
-| `public/js/services/store.js` | edit | `UNDO_DEPTH = 100`, `bulkWriteInFlight` |
+| `public/js/services/store.js` | edit | `UNDO_DEPTH = 100`, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`; `errorOnLoad` → `fileIssues` |
+| `public/js/services/file-parsing/file-errors.js` | edit | the `undo:` segment from `appState.undoRefusals`; the rename |
+| `public/js/services/file-parsing/file-info.js` | edit | the rename, in the builder and `RESERVED_KEYS` |
+| `public/js/ui/load-progress-finish.js`, `services/directory-handler.js`, `backup/opfs-import.js` | edit | the rename; counts by segment prefix |
+| `public/js/ui/ui-functions-click/view-change.js` | edit | set `undoHorizon` |
 | `public/js/constants.js` | edit | the `undo.gypsum` filename beside the other two |
 | `public/js/ui/ui-functions-click/column-menu.js` | edit | show one of the two items; the new handler |
 | `public/js/ui/ui-functions-click/column-delete.js` | edit | "remove" wording in the confirm |
-| `public/js/ui/ui-functions-click/undo-cell-edit.js` | edit | in-flight flag moves to `appState` |
+| `public/js/ui/ui-functions-click/undo-cell-edit.js` | edit | in-flight flag moves to `appState`; `canReverse` checks the horizon; each reversal replaces `undoRefusals` |
 | `public/js/ui/ui-functions-click/load-files-click.js` | edit | load the stacks instead of clearing them |
 | `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the chevron; `markUndoState` sets `data-tip` |
 | `public/js/ui/ui-functions-render/output-report.js` | edit | the progress text and the delete's result line |
@@ -567,7 +675,9 @@ long property name; the progress line mid-delete; the undo list in both themes.
 - **Delete from only the filtered files.** §4.2.
 - **Cancel a delete once started.** §11.
 - **Offer a redo list.** §10.3.
-- **Say before a list undo what it will refuse.** §10.3.
+- **Say before a list undo what it will refuse.** §10.3. It says afterwards, on the files (§10.5).
+- **Keep refusals from more than the latest undo.** §10.5.
+- **Carry `errorOnLoad` over in a saved layout.** §10.5.
 - **Bring back a comment that sat above a deleted key.** §12.
 - **Stop a sidebar-opened note from re-adding the key during the write.** §11. The undo refuses that
   file, which is the right answer.
