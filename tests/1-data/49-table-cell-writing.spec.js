@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, appModule } = require('../helpers');
 
 /**
  * plans/completed/table-cell-writing.md, end to end: type in a cell, watch the note on disk change, watch
@@ -1107,4 +1107,113 @@ test('a batch across many files renders once and reads each written file once', 
   expect(counts.progress).toBe(60);
   expect(counts.last).toEqual([60, 60]);
   expect(counts.renders).toBe(1);
+});
+
+// ---------------------------------------------------------------- a key put back where it was
+// plans/table-delete-column.md §12 and §5.2.
+
+
+/** Every top-level key's span in a note. */
+async function spansOf(text) {
+  const { parseYaml } = await appModule('services/file-parsing/yaml-parse.js');
+  const spans = new Map();
+  parseYaml(text, [], spans);
+  return spans;
+}
+
+test('the anchor recorded for a removal is the key on the line above, or null for the first', async () => {
+  const { keyAbove } = await appModule('editing/front-matter-splice.js');
+  const text = '---\nfirst: 1\nlist:\n  - a\n  - b\n# a comment\n\nafter: 2\nlast: 3\n---\n';
+  const spans = await spansOf(text);
+  expect(keyAbove(spans, 'first')).toBe(null);
+  expect(keyAbove(spans, 'list')).toBe('first');
+  expect(keyAbove(spans, 'after')).toBe('list');    // past the comment and the blank line
+  expect(keyAbove(spans, 'last')).toBe('after');
+});
+
+test('keySplice puts a key back after its anchor, under the separator, or at the end', async () => {
+  const { keySplice } = await appModule('editing/front-matter-splice.js');
+  const text = '---\nfirst: 1\nlist:\n  - a\n  - b\nlast: 3\n---\nbody\n';
+  const spans = await spansOf(text);
+  const indices = { start: 0, end: 6 };
+  const put = (placement) => {
+    const s = keySplice(text, 'x', ' 9', indices, undefined, placement);
+    return text.slice(0, s.start) + s.written + text.slice(s.end);
+  };
+  expect(put({ anchor: 'first', anchorSpan: spans.get('first') }))
+    .toBe('---\nfirst: 1\nx: 9\nlist:\n  - a\n  - b\nlast: 3\n---\nbody\n');
+  expect(put({ anchor: 'list', anchorSpan: spans.get('list') }))
+    .toBe('---\nfirst: 1\nlist:\n  - a\n  - b\nx: 9\nlast: 3\n---\nbody\n');
+  expect(put({ anchor: null }))
+    .toBe('---\nx: 9\nfirst: 1\nlist:\n  - a\n  - b\nlast: 3\n---\nbody\n');
+  expect(put({ anchor: 'gone' }))
+    .toBe('---\nfirst: 1\nlist:\n  - a\n  - b\nlast: 3\nx: 9\n---\nbody\n');
+});
+
+test('keySplice with keepKey writes a bare key', async () => {
+  const { keySplice } = await appModule('editing/front-matter-splice.js');
+  const text = '---\na: 1\n---\n';
+  const s = keySplice(text, 'people', '', { start: 0, end: 2 }, undefined, { keepKey: true });
+  expect(text.slice(0, s.start) + s.written + text.slice(s.end)).toBe('---\na: 1\npeople:\n---\n');
+});
+
+/** Takes keys out of notes through the writer, then undoes that batch, returning every stage. */
+async function removeAndUndo(page, edits) {
+  return page.evaluate(async (edits) => {
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+    const { pushUndoBatch, reverseLastBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    const names = [...new Set(edits.map(edit => edit.internalId))];
+    const snap = () => Object.fromEntries(names.map(name => [name, window.__files[name]]));
+    const before = snap();
+    const records = await applyRawEdits(edits.map(edit => ({ ...edit, raw: '' })));
+    pushUndoBatch(records);
+    const removed = snap();
+    await reverseLastBatch('undo');
+    return { before, removed, undone: snap(), records };
+  }, edits);
+}
+
+test('a cleared key comes back on its own line, first, middle, block list or CRLF', async ({ page }) => {
+  await openTable(page, {
+    'keys.md': '---\nfirst: 1\nmiddle: 2\nlist:\n    - a\n    - b\n# after the list\nlast: 3\n---\n# Keys\n',
+    'crlf.md': '---\r\nfirst: 1\r\nlist:\r\n  - a\r\n  - b\r\nlast: 3\r\n---\r\n# Crlf\r\n',
+  });
+  for (const [name, property] of [['keys.md', 'first'], ['keys.md', 'middle'], ['keys.md', 'list'],
+                                  ['crlf.md', 'list'], ['crlf.md', 'first']]) {
+    const { before, removed, undone } = await removeAndUndo(page, [{ internalId: name, property }]);
+    expect(removed[name]).not.toBe(before[name]);
+    expect(undone[name]).toBe(before[name]);
+  }
+});
+
+test('a key whose anchor has gone comes back at the end of the block', async ({ page }) => {
+  await openTable(page, { 'keys.md': '---\nfirst: 1\nmiddle: 2\nlast: 3\n---\n# Keys\n' });
+  const result = await page.evaluate(async () => {
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+    const { pushUndoBatch, reverseLastBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    pushUndoBatch(await applyRawEdits([{ internalId: 'keys.md', property: 'middle', raw: '' }]));
+    await applyRawEdits([{ internalId: 'keys.md', property: 'first', raw: '' }]);
+    await reverseLastBatch('undo');
+    return window.__files['keys.md'];
+  });
+  expect(result).toBe('---\nlast: 3\nmiddle: 2\n---\n# Keys\n');
+});
+
+test('two neighbouring keys cleared in one batch are put back together, in order', async ({ page }) => {
+  await openTable(page, { 'keys.md': '---\nfirst: 1\na: x\nb: y\nlast: 3\n---\n# Keys\n' });
+  const { before, removed, undone, records } = await removeAndUndo(page, [
+    { internalId: 'keys.md', property: 'a' },
+    { internalId: 'keys.md', property: 'b' },
+  ]);
+  expect(removed['keys.md']).toBe('---\nfirst: 1\nlast: 3\n---\n# Keys\n');
+  expect(records.find(record => record.property === 'b').anchor).toBe('a');
+  expect(undone['keys.md']).toBe(before['keys.md']);
+});
+
+test('a bare key is removed, and put back bare', async ({ page }) => {
+  await openTable(page, { 'bare.md': '---\nfirst: 1\npeople:\nlast: 3\n---\n# Bare\n' });
+  const { before, removed, undone, records } = await removeAndUndo(page, [{ internalId: 'bare.md', property: 'people' }]);
+  expect(removed['bare.md']).toBe('---\nfirst: 1\nlast: 3\n---\n# Bare\n');
+  expect(records[0]).toMatchObject({ before: '', after: '', existed: true, anchor: 'first' });
+  expect(undone['bare.md']).toBe(before['bare.md']);
 });

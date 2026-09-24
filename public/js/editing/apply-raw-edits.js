@@ -4,7 +4,7 @@ import { RESERVED_KEYS } from '../services/file-parsing/file-info.js';
 import { parseYaml, readValue, isQuoted } from '../services/file-parsing/yaml-parse.js';
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlItem } from '../services/file-parsing/yaml-value-write.js';
-import { newBlock, keySplice } from './front-matter-splice.js';
+import { newBlock, keySplice, keyAbove } from './front-matter-splice.js';
 import { saveFileCopy } from './save-file-copy.js';
 import { refreshFilesNow } from './refresh-file-state.js';
 
@@ -109,8 +109,11 @@ function changedItem(text, span, items) {
  * twice, or a key the app reserves. Asked of the bytes on disk, like the rest of the check, so a note
  * fixed by hand since load is written. §5.1, §5.3.
  *
+ * `anchor`, on an undo re-creating a removed key, is the key it sat under — see keySplice — and
+ * `keepKey` says '' means a bare key rather than no key. A removal's record carries its `anchor`.
+ *
  * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
- *   expect?: string}>} rawEdits
+ *   expect?: string, anchor?: string|null, keepKey?: boolean}>} rawEdits
  * @param {{resort?: boolean, write?: boolean, onProgress?: Function}} [options] - `resort` false
  *   leaves the list in the order it is in. `write` false does everything but the write and the
  *   refresh — the plan pass a journal is made from (§8.3). `onProgress(done, total)` is called as
@@ -219,7 +222,7 @@ async function editFile(file, fileEdits, gypsumDir, write, written) {
     const text = indices ? original : newBlock(original) + original;
     const blockIndices = indices ?? { start: 0, end: 1 };
 
-    const splices = [];
+    const planned = [];
     fileEdits.forEach((edit, order) => {
         const span = spans.get(edit.property);
         const before = span ? text.slice(span.valueStart, span.valueEnd) : '';
@@ -241,8 +244,9 @@ async function editFile(file, fileEdits, gypsumDir, write, written) {
         // No text after the colon means no value, and no value means no key — toYamlText says so
         // by returning '', which every other answer it can give rules out, since they all carry
         // the separating space. Asked before the item path, because an emptied list is the whole
-        // key going rather than its items changing one by one.
-        const removing = raw === '';
+        // key going rather than its items changing one by one. `keepKey` is the one exception: an
+        // undo putting back a bare `people:`, whose value was '' to begin with. §5.2.
+        const removing = raw === '' && !edit.keepKey;
         if (removing && !span) return;
 
         const item = !removing && span && edit.items ? changedItem(text, span, edit.items) : null;
@@ -250,16 +254,44 @@ async function editFile(file, fileEdits, gypsumDir, write, written) {
 
         if (!removing && span && !item && raw === before) return;
 
+        planned.push({ edit, order, span, before, raw, removing, item });
+    });
+
+    // A key coming back whose anchor is coming back in this same pass: the anchor is not in the
+    // text yet, so it cannot be found there, and would fall back to the end of the block. Its line
+    // goes straight after the anchor's instead, in the same insertion. §12.
+    const recreated = new Map(planned
+        .filter(plan => !plan.span && !plan.removing)
+        .map(plan => [plan.edit.property, plan]));
+
+    const placeOf = (plan, seen = new Set()) => {
+        const { anchor } = plan.edit;
+        if (anchor === undefined || anchor === null || spans.has(anchor)) {
+            return { placement: { anchor, anchorSpan: anchor ? spans.get(anchor) : undefined }, rank: 0 };
+        }
+        const host = recreated.get(anchor);
+        if (!host || seen.has(anchor)) return { placement: {}, rank: 0 };
+        seen.add(plan.edit.property);
+        const hostPlace = placeOf(host, seen);
+        return { placement: hostPlace.placement, rank: hostPlace.rank + 1 };
+    };
+
+    const splices = planned.map(({ edit, order, span, before, raw, removing, item }) => {
         // One item of a list replaces that item alone; everything else is an ordinary write to
         // the key, and where those bytes go is front-matter-splice.js's answer — shared with the
         // colour picker, which splices the open editor's text by the same rules.
+        const { placement, rank } = !span && !removing
+            ? placeOf(recreated.get(edit.property))
+            : { placement: {}, rank: 0 };
         const target = item
             ? { start: item.start, end: item.end, written: item.written }
-            : keySplice(text, edit.property, raw, blockIndices, span);
+            : keySplice(text, edit.property, raw, blockIndices, span,
+                { ...placement, keepKey: edit.keepKey });
 
-        splices.push({
+        return {
             property: edit.property,
             order,
+            rank,
             ...target,
             before,
             // The record is the key's whole value span whichever splice it was. An item splice
@@ -270,15 +302,17 @@ async function editFile(file, fileEdits, gypsumDir, write, written) {
                     + before.slice(target.end - span.valueStart)
                 : raw,
             existed: Boolean(span),
-        });
+            // Where a removed key sat, so that undoing this puts it back there. §12.
+            ...(removing && { anchor: keyAbove(spans, edit.property) }),
+        };
     });
     if (splices.length === 0) return null;
 
     // Back to front. Splice the first key and every later span is off by the length delta;
     // working backwards keeps every span valid without recomputing anything. Two new keys share
     // the one insertion point, so they are applied back to front as well and end up in the
-    // order they were asked for.
-    splices.sort((a, b) => b.start - a.start || b.order - a.order);
+    // order they were asked for — a key placed after another re-created key (its rank) after it.
+    splices.sort((a, b) => b.start - a.start || b.rank - a.rank || b.order - a.order);
 
     let updated = text;
     for (const splice of splices) {
@@ -291,6 +325,7 @@ async function editFile(file, fileEdits, gypsumDir, write, written) {
         before: splice.before,
         after: splice.after,
         existed: splice.existed,
+        ...(splice.anchor !== undefined && { anchor: splice.anchor }),
     }));
     if (!write) return records;
 

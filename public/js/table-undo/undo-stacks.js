@@ -49,8 +49,8 @@ export function pushUndoBatch(records) {
  * **Undoing a key the edit created removes it**, and that needs no special case either: the record's
  * `before` is `''`, which is what the writer reads as "take the key out". So the two directions stay
  * one operation — a cleared cell's undo puts the key back, and a created key's undo takes it away.
- * The one thing an undo cannot restore is *where* the key sat: a re-created key is appended to the
- * end of the block rather than to its old line. §7, and §13.1 for what that costs.
+ * A re-created key goes back after the key it sat under, which the removal recorded as `anchor` —
+ * see plans/table-delete-column.md §12.
  *
  * @param {'undo'|'redo'} direction - Which stack to take from.
  * @returns {Promise<{applied: Array<object>, refused: Array<object>}>} The edits that were written,
@@ -72,6 +72,10 @@ export async function reverseLastBatch(direction) {
         // had. §6.2.
         raw: edit.before,
         expect: edit.after,
+        // Where a removed key sat, so it comes back on its own line rather than at the end of the
+        // block; and a bare key comes back bare, where '' would otherwise mean "no key". §12, §5.2.
+        anchor: edit.anchor,
+        keepKey: edit.before === '' && edit.existed,
     })));
 
     push(to, applied);
