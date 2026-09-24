@@ -1033,6 +1033,8 @@ module directly. The comments that name `save-cell-edit.js` as the place a key i
 | `tests/1-data/52-table-undo-stack.spec.js` | the saved stack, one-at-a-time writes, reload, rename, the cap, clear history, a list undo's writes; the node tests of `undo-file.js` and `describeBatch` — steps 4, 5, 7 |
 | `tests/1-data/54-delete-property.spec.js` | **new**: the delete itself, against the §14.1 fixture — byte-exact results, notes left unwritten, the journal, a cut-short pass, the race between passes — step 6 |
 | `tests/1-data/25-tar-backup.spec.js` | a full backup's `undo.gypsum` survives an import — step 5 |
+| `tests/1-data/44-yaml-parser.spec.js` | duplicate keys: the error, the per-mapping rule, the segment's wording — step 2 |
+| `tests/1-data/29-yaml-load-errors.spec.js` | a duplicated key counts in the load message's yaml errors — step 2 |
 | `tests/2-behaviour/40-column-menu.spec.js` | the menu and dialog checks of step 6 |
 | `tests/2-behaviour/19-undo-redo-buttons.spec.js` | the list checks of step 7, and the refusal marks of step 9 |
 
