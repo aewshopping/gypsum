@@ -409,7 +409,7 @@ on its own terms. Ctrl+Z still takes the newest, and only within this visit to t
 
 ### 10.3 What it looks like
 
-- **A small chevron button joined to undo** in the table's control row (§17.2), `data-action="undo-list"`,
+- **A full-size history button after redo** in the table's control row (§17.2), `data-action="undo-list"`,
   opening a popover. It works like the column menu: top layer, light dismiss and Escape from the
   browser. It is disabled when the undo stack is empty, and inert while a write is in flight (§11).
 - **One row per batch, newest first**: its name from `describeBatch` and a relative time
@@ -425,7 +425,7 @@ on its own terms. Ctrl+Z still takes the newest, and only within this visit to t
 The full layout of the list, the divider and the clear row is §17.6.
 
 **Screenshots, not expectations**: the popover at phone width, a long property name wrapping in a
-row, and the chevron beside the undo glyph in both themes.
+row, and the history button beside redo in both themes.
 
 ### 10.4 Ctrl+Z reaches only this visit to the table
 
@@ -444,7 +444,7 @@ list is where an older change is chosen deliberately, with its name and its time
   redo pushed back and an undo taken from the list, so timestamps only ever rise up the stack.
 - **The button follows the key.** They are one action (`table-undo-stack.md` §12), and a button live
   while its own key is dead would be two answers to one question. Both go dark on returning to the
-  table and light up at the first edit. The chevron stays live whenever the stack has anything,
+  table and light up at the first edit. The history button stays live whenever the stack has anything,
   which is how older entries stay reachable.
 - **Redo is scoped the same way.** A list undo pushes its reversal with a fresh timestamp, so
   Ctrl+Shift+Z straight after one redoes it, as §10.2 says.
@@ -452,7 +452,7 @@ list is where an older change is chosen deliberately, with its name and its time
   and closing it returns to the same visit of the table.
 
 **The tooltip on a dark button says nothing**, since a disabled button fires no pointer events. That
-is acceptable: the chevron beside it is lit and names every entry.
+is acceptable: the history button two along is lit and names every entry.
 
 ### 10.5 A refused undo marks the file, and the mark is filterable
 
@@ -618,7 +618,7 @@ Each step ships on its own and leaves the app working.
    unreadable yaml is untouched, undo restores every note byte for byte (which §12 makes possible),
    and a journal whose second pass was cut short undoes cleanly. Level 2: the item is absent on
    `title`, `color`, an empty column and every core column; the counts in the dialog.
-7. **The undo list.** `reverseBatch(direction, index)`, the chevron and popover, the rows, clear
+7. **The undo list.** `reverseBatch(direction, index)`, the history button and popover, the rows, clear
    history, and `undoHorizon` (§10.1–§10.4). Level 2: undo an older batch with a newer one on
    another property left intact; Ctrl+Z dark after a view change and after a reload, with the list
    still offering the entry.
@@ -652,7 +652,7 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 | `public/js/ui/ui-functions-click/undo-list.js` | **new** | the popover: open, draw rows, a row's press, clear history — §10 |
 | `public/css/undo-list.css` | **new** | the popover's rows, time column, divider and scroll — §17.6. A new component gets its own file |
 | `public/css/column-menu.css` | edit | the delete item's rule and warning colour — §17.3 |
-| `public/css/output-controls.css` | edit | the chevron joined to undo; the faded inert table — §17.2, §17.5 |
+| `public/css/output-controls.css` | edit | the history button's coarse-pointer target; the faded inert table — §17.2, §17.5 |
 | `public/css/modal-unsaved-warning.css` | edit | `white-space: pre-line` on its text — §17.4 |
 | `public/js/editing/save-cell-edit.js` | edit | pool, `write: false`, `onProgress`, missing-file skip, `anchor` through to the splice; `applyCellEdits` passes `kind` |
 | `public/js/editing/front-matter-splice.js` | edit | `keySplice` takes an anchor — §12 |
@@ -671,10 +671,10 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 | `public/js/ui/ui-functions-click/column-delete.js` | edit | "remove" wording in the confirm |
 | `public/js/ui/ui-functions-click/undo-cell-edit.js` | edit | in-flight flag moves to `appState`; `canReverse` checks the horizon; each reversal replaces `undoRefusals` |
 | `public/js/ui/ui-functions-click/load-files-click.js` | edit | load the stacks instead of clearing them |
-| `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the chevron; `markUndoState` sets `data-tip` |
+| `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the history button; `markUndoState` sets `data-tip` and lights it |
 | `public/js/ui/ui-functions-render/output-report.js` | edit | the progress text and the delete's result line |
 | `public/js/ui/event-listeners-add.js` | edit | `column-delete-property`, `undo-list`, `undo-list-item`, `undo-list-clear` |
-| `index.html` | edit | the new menu item, the renamed one, the undo list popover, `#icon-chevron-down` in the sprite |
+| `index.html` | edit | the new menu item, the renamed one, the undo list popover, `#icon-undo-history` in the sprite |
 | `public/style.css` | edit | import `undo-list.css` |
 | `tests/1-data/…` | edit / new | the file-level checks of steps 2, 3, 5, 6 — in the existing undo and cell-writing specs where they fit |
 | `tests/2-behaviour/40-column-menu.spec.js`, `tests/1-data/52-table-undo-stack.spec.js` | edit | the menu checks of step 6; the list checks of step 7 sit with the rest of undo |
@@ -712,31 +712,48 @@ those sections left open. **Where this section and an earlier one disagree, this
 | report line (`#output-report`) | progress text; delete result; named undo result; clickable counts | §5.1, §7.2, §10.5, §11 |
 | table while deleting | inert and faded | §11, §17.5 |
 | undo and redo buttons | tooltip names the batch; dark outside this visit | §7.2, §10.4 |
-| undo list button | **new**, chevron beside undo | §10.3, §17.2 |
+| undo list button | **new**, full-size history button after redo | §10.3, §17.2 |
 | undo list popover | **new** | §10.3, §17.6 |
 | "clear undo history" confirmation | existing dialog, new text | §8.5, §17.6 |
 | "issues" column (renamed "load error") | new `undo:` segment; still hidden by default | §10.5 |
 
 ### 17.2 The control row
 
-Today the row is the layout name, the column picker, undo and redo. The list button goes
-**directly after undo, joined to it**, a narrow chevron sharing undo's height with no gap between.
-It reads as undo's own drop-down, not as a fifth control:
+Today the row is the layout name, the column picker, undo and redo. The list button goes **after
+redo, as a full-size button of its own**:
 
 ```
- files filtered: 42                      [ my layout ] [▥]  [↶|▾] [↷]
+ files filtered: 42                      [ my layout ] [▥]  [↶] [↷] [≡]
 ```
 
-- **A new `#icon-chevron-down` symbol** in the shared sprite, drawn in the same hand-drawn stroke as
-  its neighbours (`stroke-width="4"`, round caps). It is about half the width of the undo glyph, so
-  the pair takes one and a half buttons.
+**A first draft joined a half-width chevron to undo, and that fails on a phone twice over.** Every
+icon button is `--btn-size`, 30px by default, so a half-width chevron is a 15px target, well below
+anything a thumb can hit reliably (WCAG 2.5.8 asks for 24px). And the button it would have been
+joined to is **undo, which asks no question before it writes**. A thumb aiming for the list and
+landing a few pixels left would undo a change without warning. Near a control that writes files, a
+miss has to land on something harmless.
+
+- **Full `--btn-size`, like its neighbours**, so it follows the user's button-size setting as they
+  do. The app does not get a second size of icon button.
+- **After redo, at the end of the row.** A miss to the left lands on redo, which is dark unless
+  something was just undone. A miss to the right lands on empty space. The row's 8px `gap` separates
+  it from redo as it separates every other button.
+- **A bigger invisible target under `@media (pointer: coarse)`**: a transparent `::after` reaching
+  about 7px past the button on each side, taking it to 44px without moving anything. This is the
+  same trick the selected cell's press strip and the column resizer already use. It must not
+  extend over redo, so it grows mainly upward, downward and to the right. The 8px gap on the left
+  caps it there.
+- **A new `#icon-undo-history` symbol**, not a chevron. A chevron only reads as "belongs to the
+  button beside it", and this button now stands alone. The glyph is the undo arrow over three short
+  lines, a list of undos. It is drawn in the same hand-drawn stroke as its neighbours
+  (`stroke-width="4"`, round caps).
 - **It is lit whenever the undo stack holds anything**, including when undo itself is dark after a
-  view change (§10.4). That pairing is the point: dark undo beside a lit chevron says "nothing from
-  this visit, but there is history".
+  view change (§10.4). A dark undo beside a lit history button means "nothing from this visit, but
+  there is history".
 - `data-tip="undo history"`.
 - **At phone width** the row already wraps onto its own line under the file count (§ *A view's own
-  control row* in CLAUDE.md). The half-width chevron keeps it to one line at 360px. That needs a
-  screenshot to confirm.
+  control row* in CLAUDE.md), and one more 30px button fits a 360px screen easily. Screenshot it to
+  confirm.
 
 ### 17.3 The column menu
 
@@ -796,7 +813,7 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
 ### 17.5 While a delete runs
 
 ```
- deleting people: 340 / 1000             [ my layout ] [▥]  [↶|▾] [↷]    ← all dark
+ deleting people: 340 / 1000             [ my layout ] [▥]  [↶] [↷] [≡]  ← all dark
  ┌───────────────────────────────────────────────────────────────┐
  │  (table, faded)                                               │
 ```
@@ -816,7 +833,7 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
 ### 17.6 The undo list
 
 ```
-                                          [↶|▾]
+                                            [≡]
                               ┌──────────────────────────────────┐
                               │ status edit in 1 file     just now│
                               │ people column delete in 35  2 min │
@@ -830,9 +847,15 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
                               └──────────────────────────────────┘
 ```
 
-- **A popover anchored under the chevron**, placed by the same CSS anchor positioning as the column
-  menu and styled from `menu.css`'s `.app-menu`, so it matches the column menu. It is
-  `max-width: min(22rem, 100vw - 32px)` so it fits a phone with a 16px margin either side.
+- **A popover anchored under the history button**, placed by the same CSS anchor positioning as
+  the column menu and styled from `menu.css`'s `.app-menu`, so it matches the column menu. On a
+  wide screen it is `max-width: 22rem`.
+- **On a phone it is a bottom sheet, with nothing new to build.** Under 600px `menu.css` already
+  turns every `.app-menu` into a sheet across the bottom of the screen, where a thumb rests, and
+  gives each item 12px padding. That makes a row about 44px tall. The list's own anchoring must be
+  guarded by `(min-width: 601px)`, as `menu.css` requires of every menu, or its id-level rule would
+  outrank the sheet and leave it hanging off a 30px button. On the sheet, `max-height` is `70vh`,
+  so the table stays visible above it and a thumb can dismiss it by tapping the backdrop.
 - **Rows newest first.** Each row is one `<button class="app-menu-item">`: the batch's name on the
   left, wrapping when long, and its time on the right, never wrapping, in the muted colour. Times
   read `just now`, `N min`, `N h`, `yesterday`, then a date.
@@ -846,7 +869,7 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
   closes first so it is not covering the rows that are about to flash.
 - **Keyboard**: Tab and Shift+Tab move between rows and Escape closes, as in the column menu. No
   menu in the app handles arrow keys today, and this one does not start. Focus goes to the first
-  row when the list opens, and back to the chevron when it closes.
+  row when the list opens, and back to the history button when it closes.
 - **A row does not show what happened last time.** A partial undo leaves its applied half on the
   redo stack and the refused files marked in the issues column (§10.5). The list is what can be
   undone, not a log.
@@ -854,7 +877,7 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
   dialog with: *Clear all undo history for this folder? The 23 changes in the list can no longer
   be undone, including any column delete.* [ clear history ] [ cancel ], with cancel focused. The
   button reads `clear history`, not `delete`, because nothing in a note changes.
-- **Empty**: the chevron is dark, so the list cannot be opened empty. No empty state is needed.
+- **Empty**: the history button is dark, so the list cannot be opened empty. No empty state is needed.
 
 ### 17.7 The issues column stays hidden
 
