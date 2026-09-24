@@ -1,10 +1,15 @@
 import { appState } from '../services/store.js';
+import { SAVE_FOLDER } from '../constants.js';
+import { RESERVED_KEYS } from '../services/file-parsing/file-info.js';
 import { parseYaml, readValue, isQuoted } from '../services/file-parsing/yaml-parse.js';
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
 import { toYamlItem } from '../services/file-parsing/yaml-value-write.js';
 import { newBlock, keySplice } from './front-matter-splice.js';
 import { saveFileCopy } from './save-file-copy.js';
 import { refreshFilesNow } from './refresh-file-state.js';
+
+/** How many files are in flight at once. Measured, not guessed — §6.2 of plans/table-delete-column.md. */
+const POOL_SIZE = 16;
 
 /**
  * @file The one writer every table batch goes through: bytes into front matter, a file at a time.
@@ -67,7 +72,7 @@ function changedItem(text, span, items) {
  * sitting between two items included. `expect`, when given, is what the value span must currently
  * say for the edit to happen at all — the check an undo needs, stated as data so that it happens
  * inside the read this write already does rather than in a read of its own with a window between the
- * two. Nothing passes it yet.
+ * two. Undo passes it, and so does a column delete's second pass.
  *
  * A key the note does not have is appended to the end of its block, and a note with no block at all
  * is given one. Not an edge case: a column exists because *some* file carries that key, so the empty
@@ -90,139 +95,209 @@ function changedItem(text, span, items) {
  * held until focus leaves the row, which is ui-functions-table/pending-row-move.js's business, not
  * this module's.
  *
+ * **A few files at a time, not one after another.** The files are independent, and a verified write
+ * is two `createWritable()` cycles, so a folder-wide batch is dominated by waiting on the file
+ * system — measured at 13.3s for 1,000 files one at a time. Each file's own edits still go back to
+ * front, and the verified two-write save is kept: concurrency is the saving, not dropping the
+ * safety. plans/table-delete-column.md §6.
+ *
+ * **The folder is fixed when the batch starts.** The directory handle and every file's own handle
+ * are taken once, here, so a folder loaded while a long batch runs cannot receive the rest of its
+ * writes. §6.2a.
+ *
+ * **The table never writes into a note it shows as locked**: a line the parser skipped, a key written
+ * twice, or a key the app reserves. Asked of the bytes on disk, like the rest of the check, so a note
+ * fixed by hand since load is written. §5.1, §5.3.
+ *
  * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
  *   expect?: string}>} rawEdits
- * @param {{resort?: boolean}} [options] - `resort` false leaves the list in the order it is in.
+ * @param {{resort?: boolean, write?: boolean, onProgress?: Function}} [options] - `resort` false
+ *   leaves the list in the order it is in. `write` false does everything but the write and the
+ *   refresh — the plan pass a journal is made from (§8.3). `onProgress(done, total)` is called as
+ *   each file finishes, written or not.
  * @returns {Promise<Array<{internalId: string, property: string, before: string, after: string,
  *   existed: boolean}>>} One record per edit that changed a file, holding the key's whole value
  *   span before and after. This is what an undo entry is made of, and what a partly-applied undo
  *   hands to the redo stack — so an edit the check refused is simply absent from it.
  */
-export async function applyRawEdits(rawEdits, { resort = true } = {}) {
+export async function applyRawEdits(rawEdits, { resort = true, write = true, onProgress } = {}) {
     const byFile = new Map();
     for (const edit of rawEdits) {
         if (!byFile.has(edit.internalId)) byFile.set(edit.internalId, []);
         byFile.get(edit.internalId).push(edit);
     }
 
-    const records = [];
+    const dirHandle = appState.dirHandle;
+    const filesById = new Map(appState.myFiles.map(file => [file.internalId, file]));
+    const gypsumDir = write && byFile.size > 0
+        ? await dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true })
+        : null;
+
+    const jobs = [...byFile];
+    const results = new Array(jobs.length);
     const written = [];
+    let next = 0;
+    let done = 0;
+    let failed = null;
 
-    for (const [internalId, fileEdits] of byFile) {
-        const file = appState.myFiles.find(candidate => candidate.internalId === internalId);
-        const original = await (await file.handle.getFile()).text();
-        const indices = findFrontMatterIndices(original);
-
-        const errors = [];
-        const spans = new Map();
-        parseYaml(original, errors, spans, indices);
-
-        // §7: a file whose front matter did not read cleanly is not written into. A broken block
-        // parses into something meaningless — '- apple: red' into a key nobody created — and
-        // splicing into that makes it worse. The table locks those cells too; this is the same
-        // question asked of the bytes on disk, which is the only place the answer is current.
-        if (errors.length > 0) continue;
-
-        // A note with no front matter at all is given an empty one, so that a key is appended to it
-        // the same way as to a block that was already there — front-matter-splice.js says where it
-        // goes and what it looks like. The block is made once per file rather than per edit, or two
-        // new keys would arrive in two blocks; the lines it occupies are then handed on below.
-        const text = indices ? original : newBlock(original) + original;
-        const blockIndices = indices ?? { start: 0, end: 1 };
-
-        const splices = [];
-        fileEdits.forEach((edit, order) => {
-            const span = spans.get(edit.property);
-            const before = span ? text.slice(span.valueStart, span.valueEnd) : '';
-
-            if (edit.expect !== undefined && edit.expect !== before) return;
-
-            // What the note already looks like at this key, so the write keeps its style rather
-            // than choosing one: the form of the value, the indentation of its list items, and
-            // whether it is quoted. A key the note does not have yet has none of it.
-            const shape = span ? {
-                form: span.form,
-                itemPrefix: span.items.length
-                    ? text.slice(span.items[0].lineStart, span.items[0].valueStart)
-                    : undefined,
-                quoted: isQuoted(before.trim()),
-            } : {};
-            const raw = typeof edit.raw === 'function' ? edit.raw(shape) : edit.raw;
-
-            // No text after the colon means no value, and no value means no key — toYamlText says so
-            // by returning '', which every other answer it can give rules out, since they all carry
-            // the separating space. Asked before the item path, because an emptied list is the whole
-            // key going rather than its items changing one by one.
-            const removing = raw === '';
-            if (removing && !span) return;
-
-            const item = !removing && span && edit.items ? changedItem(text, span, edit.items) : null;
-            if (item === SKIP) return;
-
-            if (!removing && span && !item && raw === before) return;
-
-            // One item of a list replaces that item alone; everything else is an ordinary write to
-            // the key, and where those bytes go is front-matter-splice.js's answer — shared with the
-            // colour picker, which splices the open editor's text by the same rules.
-            const target = item
-                ? { start: item.start, end: item.end, written: item.written }
-                : keySplice(text, edit.property, raw, blockIndices, span);
-
-            splices.push({
-                property: edit.property,
-                order,
-                ...target,
-                before,
-                // The record is the key's whole value span whichever splice it was. An item splice
-                // happens inside that span, so the span afterwards is the same replacement applied
-                // at the same offset — no re-parse needed.
-                after: item
-                    ? before.slice(0, target.start - span.valueStart) + target.written
-                        + before.slice(target.end - span.valueStart)
-                    : raw,
-                existed: Boolean(span),
-            });
-        });
-        if (splices.length === 0) continue;
-
-        // Back to front. Splice the first key and every later span is off by the length delta;
-        // working backwards keeps every span valid without recomputing anything. Two new keys share
-        // the one insertion point, so they are applied back to front as well and end up in the
-        // order they were asked for.
-        splices.sort((a, b) => b.start - a.start || b.order - a.order);
-
-        let updated = text;
-        for (const splice of splices) {
-            updated = updated.slice(0, splice.start) + splice.written + updated.slice(splice.end);
+    const worker = async () => {
+        while (next < jobs.length && failed === null) {
+            const index = next++;
+            const [internalId, fileEdits] = jobs[index];
+            try {
+                results[index] = await editFile(filesById.get(internalId), fileEdits, gypsumDir, write, written);
+            } catch (error) {
+                // A write that throws is the batch dying, not a file being skipped: the ones not yet
+                // started are left alone, and the error goes to the caller once the files already
+                // written have been refreshed. A journal written before this began still holds every
+                // edit, and undo refuses the ones that never happened. §8.3.
+                failed ??= error;
+            }
+            onProgress?.(++done, jobs.length);
         }
+    };
 
-        const snapshot = { filepath: file.filepath, filename: file.filename, content: original };
-        if (!await saveFileCopy(snapshot, updated)) continue;
-
-        written.push(snapshot);
-
-        for (const splice of splices) {
-            records.push({
-                internalId,
-                property: splice.property,
-                before: splice.before,
-                after: splice.after,
-                existed: splice.existed,
-            });
-        }
+    try {
+        await Promise.all(Array.from({ length: Math.min(POOL_SIZE, jobs.length) }, worker));
+        if (failed !== null) throw failed;
+    } finally {
+        // Now rather than at the next idle moment: the user has just pressed a key to finish with this
+        // cell and is watching the table. Autosave's deferral is for a save nobody asked for.
+        //
+        // **Re-sorted unless the caller says otherwise.** Every write moves the file's last modified
+        // time, which is what the table is sorted by until someone says otherwise — so a list that kept
+        // its old order was saying the file had not been touched. An undo takes the sort at once, being
+        // nowhere near the rows; a cell being finished with holds it until focus leaves the row.
+        //
+        // Awaited, so that by the time this returns the rows the caller may want to mark are the ones
+        // on screen.
+        if (written.length > 0) await refreshFilesNow(written, resort);
     }
 
-    // Now rather than at the next idle moment: the user has just pressed a key to finish with this
-    // cell and is watching the table. Autosave's deferral is for a save nobody asked for.
-    //
-    // **Re-sorted unless the caller says otherwise.** Every write moves the file's last modified
-    // time, which is what the table is sorted by until someone says otherwise — so a list that kept
-    // its old order was saying the file had not been touched. An undo takes the sort at once, being
-    // nowhere near the rows; a cell being finished with holds it until focus leaves the row.
-    //
-    // Awaited, so that by the time this returns the rows the caller may want to mark are the ones
-    // on screen.
-    if (written.length > 0) await refreshFilesNow(written, resort);
+    return results.flat().filter(Boolean);
+}
 
+/**
+ * Reads one file, works out its splices, and writes it — or, with `write` false, stops short of
+ * the write.
+ *
+ * @param {object|undefined} file - The file object, or undefined if it is no longer loaded.
+ * @param {Array<object>} fileEdits - This file's edits, in the order they were asked for.
+ * @param {FileSystemDirectoryHandle|null} gypsumDir - Where the verified save's copy goes.
+ * @param {boolean} write - False for a plan pass.
+ * @param {Array<object>} written - Collects a snapshot per file written, for the refresh.
+ * @returns {Promise<Array<object>|null>} This file's records, or null if nothing changed.
+ */
+async function editFile(file, fileEdits, gypsumDir, write, written) {
+    // A file gone since the entry was made — deleted, or a saved undo entry from before a rename
+    // outside the app — is refused, like any edit that cannot be checked. §8.4.
+    if (!file?.handle) return null;
+
+    let original;
+    try {
+        original = await (await file.handle.getFile()).text();
+    } catch {
+        return null;
+    }
+    const indices = findFrontMatterIndices(original);
+
+    const errors = [];
+    const spans = new Map();
+    const parsed = parseYaml(original, errors, spans, indices);
+
+    // §7: a file whose front matter did not read cleanly is not written into. A broken block
+    // parses into something meaningless — '- apple: red' into a key nobody created — and
+    // splicing into that makes it worse. The table locks those cells too, and for the same three
+    // reasons hasYamlError() reports; this is the same question asked of the bytes on disk, which is
+    // the only place the answer is current.
+    if (errors.length > 0 || RESERVED_KEYS.some(key => key in parsed)) return null;
+
+    // A note with no front matter at all is given an empty one, so that a key is appended to it
+    // the same way as to a block that was already there — front-matter-splice.js says where it
+    // goes and what it looks like. The block is made once per file rather than per edit, or two
+    // new keys would arrive in two blocks; the lines it occupies are then handed on below.
+    const text = indices ? original : newBlock(original) + original;
+    const blockIndices = indices ?? { start: 0, end: 1 };
+
+    const splices = [];
+    fileEdits.forEach((edit, order) => {
+        const span = spans.get(edit.property);
+        const before = span ? text.slice(span.valueStart, span.valueEnd) : '';
+
+        if (edit.expect !== undefined && edit.expect !== before) return;
+
+        // What the note already looks like at this key, so the write keeps its style rather
+        // than choosing one: the form of the value, the indentation of its list items, and
+        // whether it is quoted. A key the note does not have yet has none of it.
+        const shape = span ? {
+            form: span.form,
+            itemPrefix: span.items.length
+                ? text.slice(span.items[0].lineStart, span.items[0].valueStart)
+                : undefined,
+            quoted: isQuoted(before.trim()),
+        } : {};
+        const raw = typeof edit.raw === 'function' ? edit.raw(shape) : edit.raw;
+
+        // No text after the colon means no value, and no value means no key — toYamlText says so
+        // by returning '', which every other answer it can give rules out, since they all carry
+        // the separating space. Asked before the item path, because an emptied list is the whole
+        // key going rather than its items changing one by one.
+        const removing = raw === '';
+        if (removing && !span) return;
+
+        const item = !removing && span && edit.items ? changedItem(text, span, edit.items) : null;
+        if (item === SKIP) return;
+
+        if (!removing && span && !item && raw === before) return;
+
+        // One item of a list replaces that item alone; everything else is an ordinary write to
+        // the key, and where those bytes go is front-matter-splice.js's answer — shared with the
+        // colour picker, which splices the open editor's text by the same rules.
+        const target = item
+            ? { start: item.start, end: item.end, written: item.written }
+            : keySplice(text, edit.property, raw, blockIndices, span);
+
+        splices.push({
+            property: edit.property,
+            order,
+            ...target,
+            before,
+            // The record is the key's whole value span whichever splice it was. An item splice
+            // happens inside that span, so the span afterwards is the same replacement applied
+            // at the same offset — no re-parse needed.
+            after: item
+                ? before.slice(0, target.start - span.valueStart) + target.written
+                    + before.slice(target.end - span.valueStart)
+                : raw,
+            existed: Boolean(span),
+        });
+    });
+    if (splices.length === 0) return null;
+
+    // Back to front. Splice the first key and every later span is off by the length delta;
+    // working backwards keeps every span valid without recomputing anything. Two new keys share
+    // the one insertion point, so they are applied back to front as well and end up in the
+    // order they were asked for.
+    splices.sort((a, b) => b.start - a.start || b.order - a.order);
+
+    let updated = text;
+    for (const splice of splices) {
+        updated = updated.slice(0, splice.start) + splice.written + updated.slice(splice.end);
+    }
+
+    const records = splices.map(splice => ({
+        internalId: file.internalId,
+        property: splice.property,
+        before: splice.before,
+        after: splice.after,
+        existed: splice.existed,
+    }));
+    if (!write) return records;
+
+    const snapshot = { filepath: file.filepath, filename: file.filename, content: original };
+    if (!await saveFileCopy(snapshot, updated, { gypsumDir, handle: file.handle })) return null;
+
+    // The verified text travels to the refresh, which parses it rather than reading it back again.
+    written.push({ ...snapshot, written: updated });
     return records;
 }

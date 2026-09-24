@@ -20,17 +20,32 @@ import { resolveNoteName } from '../internal-links/note-name-index.js';
  * follow from that word; nothing else needs wiring.
  */
 
+/** The prefix parseYaml gives a repeated key's error, which is counted apart from skipped lines. */
+const DUPLICATE_PREFIX = 'duplicate key: ';
+
 /**
  * Summarises what the YAML front matter got wrong. Parse-time: the detail it reports is gone
  * by the time the file object exists, so file-info.js calls this while it still has it.
- * @param {string[]} skippedLines - reasons collected by parseYaml, one per unreadable line.
+ *
+ * A duplicated key is worded apart from a skipped line, because nothing was skipped: the parser
+ * read it and says so. Both still lead with `yaml:`, so hasYamlError and the load nudge need no
+ * change to find either.
+ *
+ * @param {string[]} parseErrors - reasons collected by parseYaml, one per problem it met.
  * @param {string[]} shadowedKeys - reserved keys that were dropped from the front matter.
  * @returns {string|null} A short summary, or null when the front matter read cleanly.
  */
-export function yamlSegment(skippedLines, shadowedKeys) {
+export function yamlSegment(parseErrors, shadowedKeys) {
+    const duplicates = parseErrors.filter(reason => reason.startsWith(DUPLICATE_PREFIX));
+    const skipped = parseErrors.length - duplicates.length;
+
     const parts = [];
-    if (skippedLines.length > 0) {
-        parts.push(`${skippedLines.length} line${skippedLines.length === 1 ? '' : 's'} skipped`);
+    if (skipped > 0) {
+        parts.push(`${skipped} line${skipped === 1 ? '' : 's'} skipped`);
+    }
+    if (duplicates.length > 0) {
+        const names = [...new Set(duplicates.map(reason => `"${reason.slice(DUPLICATE_PREFIX.length)}"`))];
+        parts.push(`${duplicates.length} duplicate key${duplicates.length === 1 ? '' : 's'} ${names.join(', ')}`);
     }
     if (shadowedKeys.length > 0) {
         const names = shadowedKeys.map(key => `"${key}"`).join(', ');
@@ -40,8 +55,8 @@ export function yamlSegment(skippedLines, shadowedKeys) {
 }
 
 /**
- * Whether a file's front matter did not read cleanly — a line the parser skipped, or a key the app
- * reserves that was dropped.
+ * Whether a file's front matter did not read cleanly — a line the parser skipped, a key written
+ * twice, or a key the app reserves that was dropped.
  *
  * Here rather than beside the table, because the leading word is this file's convention: every
  * segment the yaml check writes starts with 'yaml', which is what makes this a lookup rather than a

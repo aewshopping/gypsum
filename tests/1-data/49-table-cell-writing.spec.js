@@ -1015,3 +1015,96 @@ test('a link completed from the picker reaches the note intact', async ({ page }
     window.appState.myFiles.find(f => f.internalId === 'linked.md')?.internalLink ?? []
   )).toContain('alpha.md');
 });
+
+// ---------------------------------------------------------------- the lock the table shows
+// plans/table-delete-column.md §5.1 and §5.3: the write refuses exactly the notes the table locks.
+
+test('a shadowed reserved key or a duplicated key keeps a note from being written, and nothing else in the batch', async ({ page }) => {
+  await openTable(page, {
+    'shadow.md': '---\nstatus: draft\nfilename: fake.md\n---\n# Shadow\n',
+    'dup.md': '---\nstatus: draft\nnote: x\nstatus: live\n---\n# Dup\n',
+  });
+  const before = { shadow: await fileText(page, 'shadow.md'), dup: await fileText(page, 'dup.md') };
+
+  const cellEdit = await page.evaluate(async () => {
+    const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
+    const records = await applyCellEdits(['alpha.md', 'shadow.md', 'dup.md']
+      .map(internalId => ({ internalId, property: 'status', text: 'done' })));
+    return records.map(record => record.internalId);
+  });
+  expect(cellEdit).toEqual(['alpha.md']);
+  expect(await fileText(page, 'alpha.md')).toContain('status: done');
+
+  // An undo is a raw write with `expect`, which is the path that could meet a note locked since.
+  const undo = await page.evaluate(async () => {
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+    const records = await applyRawEdits([
+      { internalId: 'alpha.md', property: 'status', raw: ' draft', expect: ' done' },
+      { internalId: 'shadow.md', property: 'status', raw: ' gone', expect: ' draft' },
+      { internalId: 'dup.md', property: 'status', raw: ' gone', expect: ' live' },
+    ]);
+    return records.map(record => record.internalId);
+  });
+  expect(undo).toEqual(['alpha.md']);
+  expect(await fileText(page, 'shadow.md')).toBe(before.shadow);
+  expect(await fileText(page, 'dup.md')).toBe(before.dup);
+});
+
+test('an edit for a note that is no longer loaded is refused rather than thrown on', async ({ page }) => {
+  await openTable(page);
+  const records = await page.evaluate(async () => {
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+    return applyRawEdits([
+      { internalId: 'gone.md', property: 'status', raw: ' x' },
+      { internalId: 'alpha.md', property: 'status', raw: ' done' },
+    ]);
+  });
+  expect(records.map(record => record.internalId)).toEqual(['alpha.md']);
+});
+
+// §6.3: the shape, not the time. A folder-wide batch renders once and reads each file once.
+test('a batch across many files renders once and reads each written file once', async ({ page }) => {
+  const extra = {};
+  for (let i = 0; i < 60; i++) extra[`n${i}.md`] = `---\nstatus: draft\nnote: ${i}\n---\n# N${i}\n`;
+  await openTable(page, extra);
+
+  const counts = await page.evaluate(async () => {
+    const { appState } = await import('/public/js/services/store.js');
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+
+    const reads = new Map();
+    for (const file of appState.myFiles) {
+      const getFile = file.handle.getFile;
+      file.handle.getFile = async () => {
+        const got = await getFile();
+        const text = got.text;
+        return { ...got, text: async () => { reads.set(file.filename, (reads.get(file.filename) ?? 0) + 1); return text(); } };
+      };
+    }
+    // One callback per burst of synchronous DOM work, so two renders separated by an await are two.
+    let renders = 0;
+    const counter = new MutationObserver(records => { if (records.some(r => r.addedNodes.length)) renders++; });
+    counter.observe(document.getElementById('output'), { childList: true, subtree: true });
+
+    const edits = appState.myFiles.filter(file => file.filename.startsWith('n'))
+      .map(file => ({ internalId: file.internalId, property: 'note', raw: '' }));
+    const progress = [];
+    const records = await applyRawEdits(edits, { onProgress: (done, total) => progress.push([done, total]) });
+    counter.disconnect();
+    return {
+      records: records.length,
+      maxReads: Math.max(...reads.values()),
+      filesRead: reads.size,
+      progress: progress.length,
+      last: progress.at(-1),
+      renders,
+    };
+  });
+  expect(counts.records).toBe(60);
+  expect(counts.filesRead).toBe(60);
+  // The write's own read and the verified save's read-back; the refresh parses the written text.
+  expect(counts.maxReads).toBe(2);
+  expect(counts.progress).toBe(60);
+  expect(counts.last).toEqual([60, 60]);
+  expect(counts.renders).toBe(1);
+});

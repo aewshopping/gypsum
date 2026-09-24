@@ -197,7 +197,10 @@ export const parseYaml = (
 
     const lines = yamlString.split("\n");
     const root = {};
-    const stack = [{ container: root, indent: -1, key: null, parent: null, span: null }];
+    // `seen` is per mapping, never asked of the object: a bare `people:` never enters it, so
+    // `people:` then `people: bob` would slip past `key in container`. The same key under two
+    // parents is two mappings and not a duplicate. See plans/table-delete-column.md §5.3.
+    const stack = [{ container: root, indent: -1, key: null, parent: null, span: null, seen: new Set() }];
 
     // Character offset of the line being read, carried forward rather than recomputed, so a
     // span can point into the original text without the parser holding a second copy of it.
@@ -258,7 +261,7 @@ export const parseYaml = (
             if (itemText === "") {
                 const item = {};
                 list.push(item);
-                stack.push({ container: item, indent, key: null, parent: null, span: null });
+                stack.push({ container: item, indent, key: null, parent: null, span: null, seen: new Set() });
                 continue;
             }
 
@@ -301,6 +304,13 @@ export const parseYaml = (
         }
 
         const key = trimmed.slice(0, colon).trim();
+
+        // YAML forbids it, and editing such a note would change one occurrence and leave the other
+        // saying something else. Reported rather than skipped: the last occurrence is still read,
+        // as before, and the error is what locks the note.
+        if (context.seen.has(key)) errors.push(`duplicate key: ${key}`);
+        context.seen.add(key);
+
         const valueText = trimmed.slice(colon + 1).trim();
         const isTopLevel = stack.length === 1;
         // The key cannot itself contain a colon, so the first one at or after the indentation
@@ -330,7 +340,7 @@ export const parseYaml = (
         if (valueText === "") {
             const nested = {};
             context.container[key] = nested;
-            stack.push({ container: nested, indent, key, parent: context.container, span });
+            stack.push({ container: nested, indent, key, parent: context.container, span, seen: new Set() });
             continue;
         }
 

@@ -765,6 +765,11 @@ Each step ships on its own and leaves the app working.
 1. **Measure.** A scratch page, not committed, that writes 1,000 small notes to a real folder and
    times `applyRawEdits` removing one key from all of them, as it is today. Record the number here.
    It decides the pool size and whether §6.2 items 3 and 4 are worth doing.
+   **Measured** in headless Chromium against its origin private file system (a real
+   `createWritable()` swap-file write, which the mock cannot show), 1,000 notes, one key each:
+   **13.3s** one file at a time, as built. With §6.2 items 2–4: 5.6s at a pool of 4, 4.0s at 8,
+   3.7s at 16, 3.4s at 32. **The pool is 16**: past it the gain is a few percent, and a real folder
+   on a real disk is the slower of the two. The plan pass alone — reads, no writes — is 0.3s.
 2. **Faster batches, and the lock the table shows.** The write refuses a note with a shadowed reserved
    key as well as one with a skipped line (§5.1), and the parser reports a duplicated key (§5.3);
    level 1: a note with `filename:` in its front matter, and one with `people` twice, are not written
