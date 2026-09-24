@@ -151,9 +151,18 @@ choice inside the warning, not a second menu item.
 > [ delete from 35 files ]  [ cancel ]
 
 - **The counts come from `appState`, not from disk.** The files carrying the key are
-  `appState.myFiles.filter(file => Object.hasOwn(file, property))`. Of those, the ones that will be
-  skipped are `hasYamlError(file)`. Nothing is read before the user says yes, so the dialog opens
-  instantly at 1,000 files. The write re-checks both against the bytes on disk anyway (§5.1).
+  `appState.myFiles.filter(file => Object.hasOwn(file, property))`, the same question
+  `propertiesInFiles()` asks for `dead`. Of those, the ones that will be skipped are
+  `hasYamlError(file)`. Nothing is read before the user says yes, so the dialog opens instantly at
+  1,000 files. The write re-checks both against the bytes on disk anyway (§5.1).
+- **The headline and the proceed button count the files that will change**, not the files that carry
+  the key: 37 carry `people`, 2 of them cannot be read, so the dialog says 35 and the skipped line
+  says 2. A button reading "delete from 37 files" beside "2 will be skipped" would promise two writes
+  it will not make. The report line afterwards counts the same way (§5.1).
+- **When every carrying file will be skipped, the item is shown but the dialog does not offer a
+  delete.** It says `"people" cannot be deleted: every note that has it has front matter that could
+  not be read.` with a single [ close ] button. Hiding the item would leave the user wondering why a
+  column with values has no delete; a "delete from 0 files" button would be a press that does nothing.
 - **The proceed button repeats the count.** "delete from 35 files" says what a press does, where
   "delete" alone would not.
 - **Three filenames, then "and N more".** That's enough to recognise the right column. A full list is
@@ -166,16 +175,97 @@ choice inside the warning, not a second menu item.
 The counts in the dialog are a forecast. The write reads each file fresh and works from what is
 actually there:
 
-- **A file whose front matter no longer reads** is skipped by the existing check.
+- **A file whose front matter no longer reads** is skipped by the existing check, widened below.
 - **A file that no longer has the key** is not written. `removing && !span` already returns.
 - **A file that gained the key outside the app** since load is not touched. It was not counted, and
   the user agreed to the count.
 - **A file removed from disk since load** is skipped. `applyRawEdits` currently assumes
   `appState.myFiles.find(...)` succeeds. §8 makes that unsafe, so it is hardened there.
 
-The report line says what actually happened: `deleted people from 33 files, 2 skipped`. The two
+**The write refuses exactly the notes the table shows as locked.** Today they differ. The dialog
+forecasts with `hasYamlError()`, which is also what locks a note's cells: a skipped line *or* a
+reserved key (`filename:`, say) that was dropped and flagged. The write refuses only the first —
+`errors.length > 0` after `parseYaml` — so a note whose only fault is a shadowed reserved key would be
+forecast as skipped and then written anyway. So the write's check gains the second half:
+
+```js
+if (errors.length > 0 || RESERVED_KEYS.some(key => key in parsed)) continue;
+```
+
+`parsed` is what `parseYaml` already returns there, and `RESERVED_KEYS` is exported from
+`file-info.js` so the two cannot drift. It is asked of the bytes on disk, like the rest of the check,
+so a note fixed by hand since load is written. **The rule it gives is "the table never writes into a
+note it shows as locked"**, and it holds for every caller of `applyRawEdits` — a cell edit and an
+undo as well as a delete. A cell edit never meets it in practice, since those cells refuse a caret;
+an undo can, if a note gained a reserved key since the edit, and is then refused and counted like
+any other refusal.
+
+The report line says what actually happened: `deleted people from 35 files, 2 skipped`. The two
 skipped ones already carry a `yaml:` segment, so `2 skipped` is the same kind of nudge as the load
 message's and filters to them.
+
+### 5.2 A bare `people:` is deleted too
+
+**A key with nothing after its colon is not in the file object**, and so is invisible to every count
+above. The parser gives it a span but no value: `people:` on its own line parses to an object without
+`people`, so `Object.hasOwn` is false and the batch built from `appState` would never send that file.
+The delete would report success and leave `people:` in those notes — which other readers (Obsidian
+reads it as `null`) still see as the property, and which puts the column straight back the moment
+anything reads it as one.
+
+So **the plan pass (§8.3) is sent every loaded file whose front matter reads, not only the ones
+carrying a value.** A file with no `people` span produces no record, as today (`removing && !span`
+returns); a file with a bare key produces one, with `before: ''` and `existed: true`. That costs one
+read per loaded file rather than per carrying file, concurrent and read-only, which step 1 measures
+alongside the writes. The writes are still only the files that have the key.
+
+- **The dialog still counts from `appState`**, so it opens instantly, and counts values. A bare key
+  holds no value, so nothing the user would miss is uncounted. The report line counts the files
+  actually written, bare keys included, so it can read higher than the dialog: `deleted people from
+  37 files, 2 skipped`.
+- **Undo has to put a bare key back as a bare key**, and today it cannot: `raw: ''` means "take the
+  key out", and a bare key's `before` is also `''`. The record's `existed` already tells the two
+  apart, so undo sends `{ raw: '', keepKey: true }` for a record with `before === ''` and
+  `existed: true`. `keySplice` then writes `people:` with nothing after it, at its anchor (§12).
+  Nothing else passes `keepKey`, so the rule "clearing a cell takes the key out" is unchanged.
+- **Redo needs nothing new.** Re-deleting finds the bare key's span and removes it through the
+  ordinary `removing` path.
+
+### 5.3 A duplicated key is a front matter error
+
+**Decided: `parseYaml` reports a key that appears twice in the same mapping as an error**, so the
+note is locked like any other note whose front matter did not read cleanly, and the delete skips it.
+
+Today a duplicate is silent: the parser keeps the **last** occurrence as the value and as the span,
+and says nothing. So deleting `people` from
+
+```
+people: ann
+status: draft
+people: bob
+```
+
+removes `people: bob` and leaves `people: ann` — the note still carries the key, the column comes
+back with a value, and the delete has not done what it said. Removing every occurrence would need
+the parser to keep more than one span per key, for a shape YAML itself forbids. Refusing it is one
+check, and it lands on the rule §5.1 already settled: **the table never writes into a note it shows
+as locked.**
+
+- **The check is a set of keys seen, per mapping**, not `key in container`. A bare `people:` never
+  enters the parsed object (§5.2), so asking the object would miss `people:` followed by
+  `people: bob`. Per mapping, because the same key under two different parents is not a duplicate.
+- **Parsing otherwise goes on as now**: the last occurrence is still the value and the span. The error
+  locks the note, so nothing writes into it and it does not matter which one the table draws — and
+  skipping the later occurrence instead would strand any block list items under it with no key to
+  belong to, which is a second problem to solve for no gain.
+- **The error is `duplicate key: people`**, one per repeat. `yamlSegment` counts these apart from
+  skipped lines, because nothing was skipped: `yaml: 1 duplicate key "people"`, beside `2 lines
+  skipped` when both happen. The segment still leads with `yaml:`, so `hasYamlError()`, the load
+  nudge and the `fileIssues:yaml` filter all find it with no change.
+- **What it changes for everyone**: a note with a duplicate key now shows in the load message's yaml
+  count, its front matter cells are locked, and cell edits and undo refuse it — everywhere, not only
+  in the delete. That is intended: it was being edited at the wrong occurrence before, silently.
+- Built in step 2, beside the widened lock, since both are the same rule.
 
 ---
 
@@ -196,7 +286,8 @@ Per file, `applyRawEdits` then the refresh do this:
 4. remove the temporary copy;
 5. in the refresh, read the note **again** and re-parse it.
 
-That is two `createWritable()` cycles, three reads and a delete, **one file after another**. Chrome's
+That is two `createWritable()` cycles, four reads (the note, the temporary copy's read-back, the
+original's read-back and the refresh) and a delete, **one file after another**. Chrome's
 `createWritable()` writes through a swap file, so it is the expensive step, typically a few
 milliseconds. So a sequential 1,000-file delete costs somewhere between several seconds and tens of
 seconds. Measuring it is step 1.
@@ -205,8 +296,10 @@ seconds. Measuring it is step 1.
 
 In order of how much each is expected to save. Step 1 decides how far down the list to go.
 
-1. **Only files that have the key are sent.** A 1,000-file folder where 35 notes have `people` does
-   35 files of work, not 1,000. This is free: the batch is built from the `appState` filter in §5.
+1. **Only files that have the key are written.** A 1,000-file folder where 35 notes have `people`
+   does 35 files of writing, not 1,000. The plan pass reads every loaded file, because a bare
+   `people:` is invisible to `appState` (§5.2), but a read is cheap next to a verified write and the
+   reads run concurrently.
 2. **Files are written a few at a time, not one at a time.** `applyRawEdits`'s per-file loop body
    (read, splice, `saveFileCopy`) runs through a small concurrency pool, starting at 8 and tuned by
    step 1. The files are independent, and each file's edits stay in their existing back-to-front
@@ -214,12 +307,35 @@ In order of how much each is expected to save. Step 1 decides how far down the l
    Concurrency is the saving; dropping the safety is not.
 3. **The refresh does not re-read what was just written.** `rereadFile` calls
    `getFileDataAndMetadata(handle)`, which reads the file from disk. The write already holds the
-   exact verified text, so it is passed in and parsed directly. That saves one read per file.
+   exact verified text, so it is passed in and parsed directly. That saves one read of the text per
+   file. `getFile()` is still called, for `lastModified` and the size, which only the file system
+   knows after a write; it is reading the contents that is skipped.
 4. **Small fixes found on the way**: the `.gypsum` directory handle is looked up once per batch, not
-   once per file in `saveFileCopy`; and `appState.myFiles.find()` inside the loops becomes one
-   `Map` built per batch. Neither matters at 35 files. At 1,000, the second is a million comparisons.
+   once per file in `saveFileCopy`; and the three linear searches of `appState.myFiles` made per
+   file — `find` in `applyRawEdits`, `find` by filepath in `saveFileCopy`, `findIndex` in
+   `rereadFile` — become lookups in one `Map` built per batch. Neither matters at 35 files. At
+   1,000, the searches are three million comparisons.
 5. **One render at the end**, which is already the case, and **one `undo.gypsum` write per batch**,
    not per file (§8).
+
+### 6.2a The folder is fixed when the batch starts
+
+**Every handle a batch writes through is taken once, at the start, and never looked up again.**
+Today `saveFileCopy` asks `appState.dirHandle` for the `.gypsum` folder and finds the file object in
+`appState.myFiles` by filepath, on every call. If a different folder is loaded while a 1,000-file
+delete is running, every write still to come goes to *whichever file in the new folder has the same
+path*, with the old folder's text — and the final `undo.gypsum` write lands in the new folder's
+`.gypsum`, describing files it does not have. For a single cell edit the window is milliseconds; for
+a delete it is seconds, and the sidebar's load buttons are outside the inert table (§11).
+
+- **`applyRawEdits` captures `appState.dirHandle` and builds its id `Map` of file objects once**, and
+  passes the directory handle and each file's own handle down to `saveFileCopy` (which already
+  changes to take the `.gypsum` handle, item 4). No write in a batch reads `appState` for a handle.
+- **The undo file writer takes the directory handle it is given**, captured by the same batch, never
+  `appState.dirHandle` at the moment of writing.
+- **Loading a folder is refused while `appState.bulkWriteInFlight` is set** — the three load
+  handlers return at once — and **a `beforeunload` prompt is raised while it is set**, the same guard
+  `rename-file.js` already has. The journal (§8.3) makes a closed tab safe; the prompt makes it rare.
 
 **No worker thread, no chunked rendering, no second write path.** A delete, a paste and an undo all
 go through the same `applyRawEdits`, so all three get faster together.
@@ -275,7 +391,7 @@ pop and clear, so it sets `data-tip` there as well as `disabled`, and the toolti
 date. With nothing to undo, the tooltip falls back to today's `undo last cell edit | Ctrl+Z`. A
 disabled button shows no tooltip anyway (`table-undo-stack.md` §10.1).
 
-The report line after an undo uses the same name: `undo: people column delete — 33 values, 2 fail`,
+The report line after an undo uses the same name: `undo: people column delete — 35 values, 2 fail`,
 where `2 fail` is a clickable filter to the refused notes (§10.5).
 
 ---
@@ -307,7 +423,15 @@ refusals counted and named undo entries, the app says honestly what happened.
   to that folder: the `internalId`s are filepaths from that folder's root, so the file travels with
   the folder and means nothing anywhere else.
 - **Read in `postLoad`**, where `clearUndoStacks()` is called today, which all three load paths run.
-  A folder with no file gets empty stacks, as now.
+  A folder with no file gets empty stacks, as now. `postLoad` is synchronous today, so it becomes
+  `async` and its three callers `await` it — less code than a read in each loader, and one small
+  file read is nothing beside the load that precedes it.
+- **A backup carries it, and an import restores it.** A "full" backup already includes every file in
+  `.gypsum`, and importing one clears OPFS before unpacking, so `undo.gypsum` arrives with the notes
+  it describes and is read by the same `postLoad` — no code of its own. That is deliberate: the stack
+  is part of the folder's state at that moment, and as an emergency copy of what a delete removed it
+  is worth most exactly when someone is restoring a backup. A "content" backup has no `.gypsum`, so
+  it loads with empty stacks.
 - **Validated at the boundary, because it is hand-editable.** Unparseable JSON, an unknown
   `undoVersion`, or a batch without an `edits` array → start empty and warn to the console. No
   migration code, the same rule `table_layouts.gypsum` follows. `undoVersion` is stamped so a later
@@ -315,6 +439,20 @@ refusals counted and named undo entries, the app says honestly what happened.
 - **Written whole after every push, pop and clear**, through the existing verified `writeAndVerify`.
   That is one small extra write per cell edit, which a cell edit does not wait for. A delete does
   wait for it, which is the point of §8.3.
+- **One write at a time, and always the latest state.** Because a cell edit does not wait, two quick
+  edits would otherwise have two `createWritable()`s open on the same file. Whichever closes last
+  wins, and that can be the *older* stack; the verify step can also read back the other write's
+  bytes and report a failure that did not happen. So `undo-file.js` keeps one write in flight: a
+  save asked for while one is running only marks the file dirty, and when the running write
+  finishes, one more write takes whatever the stacks hold by then. Ten edits in a burst are at most
+  two writes, and the last one on disk is always the newest. A caller that waits (the journal) waits
+  for the write that includes its batch.
+- **It is a copy of what was deleted, kept in plain text.** Someone may delete a property precisely
+  because its values should not be in the notes — a phone number, a password. Those values then sit
+  in `.gypsum/undo.gypsum` for up to 100 batches, and go wherever the folder goes. `history.gypsum`
+  already does the same for whole notes, so this is not a new kind of risk, but it is a deliberate
+  choice and the app says so where it matters: "clear undo history" (§8.5) is the way to get rid of
+  them, and its confirmation says that it removes the saved copies.
 - **Never written into from a view, and never read except at load.** `appState.undoStack` and
   `redoStack` are still the single source of truth in memory. The file is their copy on disk, the
   same relationship `propertyTypes` has with its file.
@@ -333,7 +471,10 @@ So a delete runs in **two passes, both through `applyRawEdits`**:
    batch is pushed and **`undo.gypsum` is written before any note is touched.**
 2. **Write.** The same edits go through `applyRawEdits` for real, now each carrying
    `expect: record.before`. When it returns, the batch's `edits` are replaced by the records that
-   were actually applied, and `undo.gypsum` is written again.
+   were actually applied, and `undo.gypsum` is written again. **If none were applied, the batch is
+   taken off the stack** rather than left holding nothing: it was pushed before anything was known,
+   so `push()`'s guard against an empty batch never saw it, and the list would otherwise offer a
+   "people column delete in 35 files" that does nothing when pressed.
 
 **If the second pass dies part-way, the journal is still correct.** The saved batch lists some edits
 that never happened. Undoing one of those finds the key still present, not the `''` the record
@@ -352,7 +493,8 @@ and paste and the linked write later.
 
 **Renamed:** `rename-file.js` gives the file a new `internalId` (its new filepath), which would
 orphan every saved entry for it. The rename calls `renameInUndoStacks(oldId, newId)`, which rewrites
-the ids in both stacks and saves, just as `rename-backups.js` keeps `history.gypsum` in step.
+the ids in both stacks and saves, just as `rename-backups.js` keeps `history.gypsum` in step. It
+rewrites the key in `appState.undoRefusals` (§10.5) too, or a renamed note would lose its mark.
 
 **Deleted, or gone since the entry was written:** `applyRawEdits` skips an `internalId` it cannot
 find, and the edit counts as refused. Today it would throw on `file.handle`. It never mattered while
@@ -485,6 +627,14 @@ file. The refusal is neither: it is a fact about the session, not about the file
   refusal sets from different undos, both marked, would mislead: the older one may have been dealt
   with. The Map is emptied when a folder loads and is never saved. Refusals are a result, not a
   history, and `undo.gypsum` still holds the batch if you want to try again.
+- **The undo re-checks the refused files itself**, because nothing else will. The refresh after an
+  undo re-reads only the files it *wrote*, and a refused file was by definition not written — so
+  `checkFileErrors` would never run on it, and its new mark would wait for some unrelated refresh to
+  appear. The same is true of a file marked by the *previous* undo whose mark is now being cleared.
+  So after replacing the Map, the undo calls `checkFileErrors` on the union of the old Map's keys and
+  the new one's, then renders once. That render is the one the undo already does: the refusals are
+  known before `refreshFilesNow` is called, so the Map is replaced first and the checks run inside
+  that refresh, rather than as a second render.
 - **The report line's `2 fail` becomes a nudge**, the same clickable span as the load message's
   `3 yaml errors`: `data-action="property-filter"` with `data-value="undo"`. Pressing it shows
   exactly the refused notes. That is the answer `table-undo-stack.md` §13.3 said should grow here.
@@ -526,7 +676,8 @@ loading, and a column headed "load error" listing one reads as a bug. The new la
   click, focus and caret there with one attribute, so there are no per-control checks. The keys are
   guarded by a single in-flight flag. Undo already has one (`inFlight` in `undo-cell-edit.js`), and
   it moves into `appState` as `appState.bulkWriteInFlight` so the delete, undo, redo and the list
-  all read the same fact.
+  all read the same fact. The same flag refuses a folder load and raises a `beforeunload` prompt,
+  because those are outside the inert table (§6.2a).
 - **No cancel.** A delete that stopped half-way would leave the folder half-changed, needing an undo
   of its own to tidy up. The two-pass journal (§8.3) already covers the case where the delete is
   stopped involuntarily, by a closed tab.
@@ -544,7 +695,8 @@ one key is tolerable. A column delete undone across 1,000 notes reorders every o
 a diff in every file for an operation that is supposed to be a no-op.
 
 - **A removal records the key that came before it**: `anchor`, the property whose span has the
-  largest `lineStart` below the removed key's, or `null` when the removed key was the first in the
+  largest `lineStart` less than the removed key's (the key on the line above it, ignoring comments
+  and blank lines), or `null` when the removed key was the first in the
   block. `undefined` stays "no position known", which old saved entries and ordinary edits have.
 - **A re-creation honours it.** `keySplice` takes an optional anchor. When that key is still present
   in the note, the new line goes straight after its value (after `valueEnd`, so after a block list's
@@ -552,6 +704,13 @@ a diff in every file for an operation that is supposed to be a no-op.
   has gone as well, the line goes at the end of the block, exactly as today.
 - **Undo passes it through.** `reverseBatch` hands `edit.anchor` to `applyRawEdits` beside `raw` and
   `expect`. Nothing else learns about it.
+- **An anchor that is itself being put back in the same batch is honoured.** A delete removes one key
+  per file, so it never meets this, but a later batch can: a paste that clears two neighbouring keys
+  `a` and `b` gives `b` the anchor `a`. Undoing it, every splice is worked out against the file as
+  it is now, where `a` is still missing, so `b` would fall back to the end of the block. So when a
+  file's re-creations are gathered, one whose anchor is re-created in the same pass goes directly
+  after that re-creation's text, in the same insertion. Built with §12, since the multi-key batches
+  that need it (paste, the linked write) will arrive without anyone re-reading this section.
 - **It fixes a single cleared cell too**, since that is the same removal. The colour picker shares
   `keySplice` but never passes an anchor, so it is unchanged.
 
@@ -572,13 +731,18 @@ known limitation about comments between list items.
 | Also forgets the type | **No.** §3. |
 | Reach | **every file in the folder**, whatever the filter. §4.2. |
 | Confirmation | **counts and three filenames**, no type-to-confirm. §5. |
-| Counted from | `appState`; the write re-checks against disk. §5, §5.1. |
+| A key appearing twice in one note | **a front matter error**: the note is locked and skipped. §5.3. |
+| Which notes are skipped | **exactly the ones the table locks**: a skipped line, a duplicated key or a shadowed reserved key. The write's check widens to match `hasYamlError()`, for every caller. §5.1. |
+| Counted from | `appState`; the write re-checks against disk. The dialog counts files that will change, not files that carry the key. §5, §5.1. |
+| A bare `people:` with no value | **deleted too**: the plan pass reads every loaded file; undo puts it back bare (`keepKey`). §5.2. |
+| A folder loaded mid-delete | **refused** while the write runs; every handle is fixed when the batch starts; `beforeunload` prompts. §6.2a. |
+| Writes of `undo.gypsum` | **one at a time**, the last one always the newest state. §8.2. |
 | Speed | measured first; concurrency pool, no re-read in the refresh, one render. §6. |
 | Undo of a delete | **one batch**, through the existing stack. §2. |
 | Names | stored as `kind` + `property`, worded by `describeBatch`. §7. |
 | Saved stack | **yes**, `.gypsum/undo.gypsum`, both stacks, after every change. §8. Supersedes `table-undo-stack.md` §9. |
 | Crash during a delete | journal first, write with `expect`; no recovery code. §8.3. |
-| Rename | ids rewritten in both stacks. §8.4. |
+| Rename | ids rewritten in both stacks and in `undoRefusals`. §8.4. |
 | Depth | **100 batches**, one cap. §9. Supersedes `UNDO_DEPTH = 20`. |
 | Undo list | **any single entry**; no redo list; clear history at the bottom. §10. |
 | What Ctrl+Z and the buttons reach | **only this visit to the table**; a view change or a load resets them, the list keeps everything. §10.4. |
@@ -601,38 +765,161 @@ Each step ships on its own and leaves the app working.
 1. **Measure.** A scratch page, not committed, that writes 1,000 small notes to a real folder and
    times `applyRawEdits` removing one key from all of them, as it is today. Record the number here.
    It decides the pool size and whether §6.2 items 3 and 4 are worth doing.
-2. **Faster batches.** The concurrency pool, the refresh taking the written text, the hoisted
-   directory handle, the id `Map`, the missing-file skip (§8.4), and `onProgress`. No new
-   behaviour, so the existing level-1 and undo specs hold it, plus §6.3's call-count test.
+2. **Faster batches, and the lock the table shows.** The write refuses a note with a shadowed reserved
+   key as well as one with a skipped line (§5.1), and the parser reports a duplicated key (§5.3);
+   level 1: a note with `filename:` in its front matter, and one with `people` twice, are not written
+   by a cell edit's path or an undo, and every other note in the batch is.
+   It opens with one commit of moves and nothing else — `undo-cell-edits.js` into `table-undo/`, and
+   `applyRawEdits` into `editing/apply-raw-edits.js` (§15.1). Then the concurrency pool, the refresh taking the written text, the handles fixed
+   at the start of the batch (§6.2a), the id `Map`, the missing-file skip (§8.4), and `onProgress`.
+   The speed-ups add no behaviour, so the existing level-1 and undo specs hold it, plus §6.3's call-count test.
 3. **Keys put back in place.** `anchor` on removal records, `keySplice` honouring it (§12). Level-1
-   tests: clear a middle key and undo it; clear the first key; clear a block list; anchor gone.
+   tests: clear a middle key and undo it; clear the first key; clear a block list; anchor gone; two
+   neighbouring keys cleared in one batch and undone together; a bare key (`people:`) removed and
+   put back bare (`keepKey`, §5.2).
 4. **Named batches.** `kind` and `property` on a batch, `describeBatch`, the tooltips via
    `markUndoState`, the report line (§7). Depth to 100 (§9).
 5. **The saved stack.** `undo.gypsum` read in `postLoad`, written after each change, validated at
-   the boundary, ids rewritten on rename (§8.1, §8.2, §8.4). Level 1: an edit, a reload with the
-   same mock folder, an undo that reaches the file; a corrupt file loads as empty; a rename, then
-   an undo that still finds the note.
+   the boundary, written one at a time (§8.2), ids rewritten on rename (§8.1, §8.2, §8.4). Level 1:
+   an edit, a reload with the same mock folder, an undo that reaches the file; a corrupt file loads
+   as empty; a rename, then an undo that still finds the note; several edits in quick succession
+   leave the newest stack on disk.
 6. **Delete column.** `isPropertyDeletable`, the menu item and the rename of the old one (§3, §4),
-   the confirmation (§5), the two-pass journal (§8.3), `bulkWriteInFlight` and `inert` (§11).
-   Level 1: the key and a block list's items go, other keys and comments stay, a note with
+   the confirmation (§5), the two-pass journal (§8.3), `bulkWriteInFlight`, `inert`, the refused
+   folder load and the `beforeunload` guard (§6.2a, §11). Level 1: the key and a block list's items
+   go, other keys and comments stay, a bare `people:` in a note with no value goes too, a note with
    unreadable yaml is untouched, undo restores every note byte for byte (which §12 makes possible),
    and a journal whose second pass was cut short undoes cleanly. Level 2: the item is absent on
-   `title`, `color`, an empty column and every core column; the counts in the dialog.
+   `title`, `color`, an empty column and every core column; the counts in the dialog, including the
+   no-delete dialog when every carrying file is unreadable.
 7. **The undo list.** `reverseBatch(direction, index)`, the history button and popover, the rows, clear
-   history, and `undoHorizon` (§10.1–§10.4). Level 2: undo an older batch with a newer one on
-   another property left intact; Ctrl+Z dark after a view change and after a reload, with the list
-   still offering the entry.
+   history, and `undoHorizon` (§10.1–§10.4). Level 2, in `tests/2-behaviour/19-undo-redo-buttons.spec.js`
+   (what the list does on screen, not what reaches the disk): undo an older batch with a newer one
+   on another property left intact; Ctrl+Z dark after a view change and after a reload, with the
+   list still offering the entry.
 8. **Rename `errorOnLoad` to `fileIssues`.** Nothing but the rename and the two prefix-test counts
    (§10.5). The existing load-error specs hold it.
 9. **Refusals on the file.** `appState.undoRefusals`, the `undo:` segment in `checkFileErrors`,
-   the clickable fail count (§10.5). Level 2: the §10.1 case, then the nudge filters to exactly
-   the refused note; a later undo that refuses nothing clears the mark; the mark survives an edit
-   to another cell of that note.
+   the undo re-checking the refused files itself, the clickable fail count (§10.5). Level 2: the
+   §10.1 case, then the mark is on the refused note straight away and the nudge filters to exactly
+   it; a later undo that refuses nothing clears the mark at once; the mark survives an edit to
+   another cell of that note and a rename of it.
 10. **Docs.** CLAUDE.md: *An empty column* and its "delete column" bullets become "remove from
    layout"; a new short section for deleting a property, the saved stack, the undo list and the
    visit-scoped keys; `errorOnLoad` renamed wherever it is named.
    DATA-STRUCTURES.md: `undoStack`'s batch shape, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`. `table-undo-stack.md`:
    a line at the top pointing here for §9's two superseded rows.
+
+### 14.1 The tests, in one place
+
+The steps above name their tests in a line each. This is the full list, and **where the two
+disagree, this one holds.** It is weighted the way the risk is: a delete across a folder is the most
+destructive thing the app does, so most of what follows is level 1, and level 2 is kept to what the
+screen does.
+
+**Shared fixture.** One mock folder for the delete spec, where every note is there for a reason and
+says so in the spec's header comment, the way `52-table-undo-stack.spec.js` does. The mock records
+every write and every read per file (`window.__writes`, `window.__reads`), can be told to fail the
+write of a named file, and can run a hook between the two passes. The notes:
+
+| note | why it is there |
+|---|---|
+| `flow.md` | `people: [ann, bob]` between two other keys |
+| `block.md` | a block list with 4-space item indentation, and a comment after its last item |
+| `quoted.md` | `people: "ann, bob"` as the **first** key of the block |
+| `last.md` | `people` as the **last** key |
+| `only.md` | `people` as the **only** key, so the block empties to `---`/`---` |
+| `bare.md` | `people:` with nothing after it (§5.2) |
+| `crlf.md` | the whole note in CRLF line endings |
+| `lookalike.md` | `peoples:`, `People:` and `people2:` but no `people`, and a body line reading `people: x` below the block |
+| `none.md` | no front matter at all |
+| `broken.md` | `people` plus a skipped line |
+| `shadow.md` | `people` plus `filename:` in its front matter |
+| `dup.md` | `people` twice, the second a block list, with another key between them (§5.3) |
+| `nokey.md` | front matter without `people` |
+
+**Level 1 — node, no browser** (`appModule()`, milliseconds; the pure functions)
+
+- `keySplice` with an anchor: after a present key, after a block list's last item, `null` under the
+  opening `---`, a missing anchor falling back to the end, and an anchor re-created in the same pass
+  (§12).
+- `keySplice` with `keepKey` writes `people:` and nothing after it (§5.2).
+- The anchor recorded for a removal: first key, middle key, key after a comment, key after a block
+  list.
+- `undo-file.js` validation: good file, unparseable JSON, unknown `undoVersion`, a batch with no
+  `edits` array — the last three load as empty stacks.
+- `describeBatch`: every row of the §7.2 table, and a partial redo counting only its own edits.
+- `parseYaml` and duplicates (`44-yaml-parser.spec.js`): a repeated key gives one error per repeat;
+  `people:` then `people: bob` is a duplicate; the same key under two parents is not; the last
+  occurrence is still the value and the span. `yamlSegment` words it `1 duplicate key "people"`,
+  alone and beside skipped lines.
+
+**Level 1 — the delete** (a new spec, `tests/1-data/54-delete-property.spec.js`: a new area)
+
+- **Every note that has the key loses it, and nothing else in it changes.** Asserted as the exact
+  expected bytes of each fixture note, not as "does not contain `people`" — a splice that took one
+  byte too many passes the weaker test.
+- **Every note without it is not written at all**: `lookalike.md`, `none.md` and `nokey.md` have no
+  entry in `window.__writes`. Unchanged bytes are not enough; a rewrite with the same bytes still
+  moves the modified time.
+- `bare.md` loses its bare key (§5.2).
+- `broken.md`, `shadow.md` and `dup.md` are byte-identical afterwards, and counted as skipped.
+- **Undo restores every note byte for byte**, `crlf.md` and `only.md` included, and redo takes them
+  out again byte for byte. Then undo once more: the cycle is stable.
+- **After the delete the column is empty**: no file object carries `people`, and it reads as `dead`
+  (so the refresh that no longer re-reads, §6.2, still reports what the disk holds).
+- **The journal is on disk before the first note is written**: the hook between the passes reads
+  `undo.gypsum` and finds the batch with every file's `before`.
+- **A second pass cut short undoes cleanly**: fail the write of the third file and throw from the
+  fourth onward; undo restores the two that were written and refuses the rest, whose bytes are
+  unchanged.
+- **A note changed between the passes is refused, not overwritten**: the hook edits `flow.md`; it
+  keeps the edit, and the report counts it.
+- **A pass that writes nothing leaves no entry** (§8.3): every carrying file changed between the
+  passes; the undo stack is as it was.
+- **A failed verify is not recorded**: a file whose write fails is absent from the batch, so a later
+  undo does not try to "restore" a note that was never changed.
+- **A folder load is refused mid-delete**, and every write of the batch still lands in the first
+  folder (§6.2a).
+
+**Level 1 — the saved stack and the list's writes** (`52-table-undo-stack.spec.js`)
+
+- An edit, a reload of the same mock folder, an undo that reaches the file.
+- A delete, a reload, the delete undone from the list, byte for byte.
+- A corrupt `undo.gypsum` loads as empty, and the next edit writes a valid one.
+- Ten edits in quick succession leave the newest stack on disk (§8.2).
+- A rename, then an undo that still finds the note; a note deleted from disk, then an undo that
+  refuses it without throwing (§8.4).
+- **The §10.1 case, on disk**: delete `people`, edit another key in `flow.md`, undo the delete from
+  the list — `people` is back and the later edit is kept. And the other half: a note that has had
+  `people` re-added is refused and left alone.
+- The 101st batch drops the **oldest**, never the newest.
+- "Clear undo history" writes empty stacks.
+- A full backup's `undo.gypsum` survives an import, and an undo from it reaches the imported note
+  (in `25-tar-backup.spec.js`, beside the other backup tests).
+
+**Level 1 — the widened lock** (`49-table-cell-writing.spec.js`)
+
+- A note with a shadowed reserved key, and a note with a duplicated key, are not written by a cell
+  edit's path or by an undo; every other note in the same batch is (§5.1, §5.3).
+- A note with a duplicated key is counted in the load message's yaml errors
+  (`29-yaml-load-errors.spec.js`).
+
+**Level 2 — what the screen does**
+
+- `40-column-menu.spec.js`: "delete column" absent on `title`, `color`, every core column and an
+  empty column; never beside "remove from layout"; the dialog's counts, sample names and skipped
+  line; the no-delete dialog when every carrying note is unreadable; cancel has focus, and Enter
+  on open deletes nothing.
+- `19-undo-redo-buttons.spec.js`: the tooltip names the batch; undo dark after a view change and
+  after a reload while the history button stays lit; the list's rows, divider and keyboard; a row
+  press closes the list; the refusal mark appears at once, the nudge filters to exactly the refused
+  notes, a clean undo clears it, and it survives a rename.
+- While a delete runs: the table and control row are inert, the report line counts up, and it ends
+  on the result line with a clickable skipped count.
+- The call-count test of §6.3: one render, and one read per file in the refresh.
+
+**Level 3** — the screenshots listed below, at phone width and in both themes.
 
 **Check each UI step against §17**, the one list of what appears on screen.
 
@@ -644,40 +931,112 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 
 ## 15. Where the code goes
 
-| file | new? | why |
-|---|---|---|
-| `public/js/ui/ui-functions-click/column-delete-property.js` | **new** | the action: count, confirm, two passes, report. One file per user action |
-| `public/js/editing/describe-batch.js` | **new** | a batch's name, §7.2 |
-| `public/js/editing/undo-file.js` | **new** | `undo.gypsum` read, validate, write; `renameInUndoStacks` — §8 |
-| `public/js/ui/ui-functions-click/undo-list.js` | **new** | the popover: open, draw rows, a row's press, clear history — §10 |
-| `public/css/undo-list.css` | **new** | the popover's rows, time column, divider and scroll — §17.6. A new component gets its own file |
-| `public/css/column-menu.css` | edit | the delete item's rule and warning colour — §17.3 |
-| `public/css/output-controls.css` | edit | the history button's coarse-pointer target; the faded inert table — §17.2, §17.5 |
-| `public/css/modal-unsaved-warning.css` | edit | `white-space: pre-line` on its text — §17.4 |
-| `public/js/editing/save-cell-edit.js` | edit | pool, `write: false`, `onProgress`, missing-file skip, `anchor` through to the splice; `applyCellEdits` passes `kind` |
-| `public/js/editing/front-matter-splice.js` | edit | `keySplice` takes an anchor — §12 |
-| `public/js/editing/save-file-copy.js` | edit | take the `.gypsum` handle rather than fetching it each call |
-| `public/js/editing/refresh-file-state.js` | edit | take the written text instead of re-reading — §6.2 |
-| `public/js/editing/undo-cell-edits.js` | edit | `reverseBatch(direction, index)`, `kind`/`property` on push, save after each change |
-| `public/js/editing/rename-file.js` | edit | call `renameInUndoStacks` |
-| `public/js/services/property-type.js` | edit | `isPropertyDeletable` |
-| `public/js/services/store.js` | edit | `UNDO_DEPTH = 100`, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`; `errorOnLoad` → `fileIssues` |
-| `public/js/services/file-parsing/file-errors.js` | edit | the `undo:` segment from `appState.undoRefusals`; the rename |
-| `public/js/services/file-parsing/file-info.js` | edit | the rename, in the builder and `RESERVED_KEYS` |
-| `public/js/ui/load-progress-finish.js`, `services/directory-handler.js`, `backup/opfs-import.js` | edit | the rename; counts by segment prefix |
-| `public/js/ui/ui-functions-click/view-change.js` | edit | set `undoHorizon` |
-| `public/js/constants.js` | edit | the `undo.gypsum` filename beside the other two |
-| `public/js/ui/ui-functions-click/column-menu.js` | edit | show one of the two items; the new handler |
-| `public/js/ui/ui-functions-click/column-delete.js` | edit | "remove" wording in the confirm |
-| `public/js/ui/ui-functions-click/undo-cell-edit.js` | edit | in-flight flag moves to `appState`; `canReverse` checks the horizon; each reversal replaces `undoRefusals` |
-| `public/js/ui/ui-functions-click/load-files-click.js` | edit | load the stacks instead of clearing them |
-| `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the history button; `markUndoState` sets `data-tip` and lights it |
-| `public/js/ui/ui-functions-render/output-report.js` | edit | the progress text and the delete's result line |
-| `public/js/ui/event-listeners-add.js` | edit | `column-delete-property`, `undo-list`, `undo-list-item`, `undo-list-clear` |
-| `index.html` | edit | the new menu item, the renamed one, the undo list popover, `#icon-undo-history` in the sprite |
-| `public/style.css` | edit | import `undo-list.css` |
-| `tests/1-data/…` | edit / new | the file-level checks of steps 2, 3, 5, 6 — in the existing undo and cell-writing specs where they fit |
-| `tests/2-behaviour/40-column-menu.spec.js`, `tests/1-data/52-table-undo-stack.spec.js` | edit | the menu checks of step 6; the list checks of step 7 sit with the rest of undo |
+### 15.1 The shape: a `table-undo/` folder, and a service under every new action
+
+**Undo gets a folder of its own, `public/js/table-undo/`, beside `history/` and `table-layouts/`.**
+Those two are the precedent: each owns one `.gypsum` file and the logic around it, and neither is
+buried in `editing/` or `services/`. Undo is now the same kind of thing — a file on disk, two stacks,
+a writer, a name for each entry, the refusals — and it grows from one module to five. Left in
+`editing/`, it would be five files that only make sense together scattered among sixteen that do not
+concern them. Named `table-undo/` rather than `undo/` because the note editor has an undo of its own
+(`editor-undo.js`) that this has nothing to do with.
+
+**`undo-cell-edits.js` moves into it, renamed `undo-stacks.js`.** It no longer holds only cell edits,
+and "the stacks" is what it is. The move is its own commit at the start of step 2, with nothing else
+in it, so the diff is paths only.
+
+**Every new action is a thin handler over a service**, as CLAUDE.md's three layers require. The
+plan first had the delete's count, confirm, two passes and report all in one click file; the passes
+and the count are business logic and do not touch the DOM, so they go to `editing/`, and the click
+file is left with the dialog, the inert table and the report. The same split applies to the undo
+list: the click file opens and presses, a renderer draws the rows.
+
+**`applyRawEdits` moves out of `save-cell-edit.js` into `editing/apply-raw-edits.js`.** It is the
+one writer every table batch goes through — cell edits, undo, the delete, later paste and the linked
+write — and this plan adds a pool, `write: false`, `onProgress`, fixed handles, the widened lock,
+`anchor` and `keepKey` to it. At 278 lines the file already holds two layers (CLAUDE.md: "the split is
+load-bearing"); giving each layer its own file makes that split visible in `ls`. `changedItem`
+travels with it, being only its concern. `save-cell-edit.js` keeps `applyCellEdits`: types and
+format. Same commit as the move above.
+
+**No new helpers for one caller.** The concurrency pool is a dozen lines inside
+`apply-raw-edits.js`; the relative time (`2 min`, `yesterday`) is inside the undo list's renderer.
+Each moves out on the day a second caller needs it, not before.
+
+### 15.2 The files
+
+**New**
+
+| file | what it holds |
+|---|---|
+| `public/js/table-undo/undo-stacks.js` | moved from `editing/undo-cell-edits.js`: `pushUndoBatch(records, {kind, property})`, `reverseBatch(direction, index)`, `clearUndoStacks`, the depth cap. Asks `undo-file.js` to save after each change |
+| `public/js/table-undo/undo-file.js` | `undo.gypsum`: read and validate at load, write one at a time with the latest state (§8.2). Knows the file's shape and nothing about what an entry means |
+| `public/js/table-undo/describe-batch.js` | a batch's name from its `kind`, `property` and edits (§7.2) |
+| `public/js/table-undo/undo-refusals.js` | replace `appState.undoRefusals` after a reversal, rekey it on rename, and the set of files whose marks must be re-checked (§10.5). The segment's *text* stays in `file-errors.js`, which owns the issues string |
+| `public/js/table-undo/undo-rename.js` | `renameInUndoStacks(oldId, newId)`: both stacks and the refusals, then save (§8.4). Its own file, as `rename-backups.js` is for `history.gypsum` |
+| `public/js/editing/apply-raw-edits.js` | moved from `save-cell-edit.js`: `applyRawEdits` and `changedItem`, plus everything §5.1, §5.2, §6.2 and §6.2a add to them |
+| `public/js/editing/delete-property.js` | the delete as a service, no DOM: `deletionForecast(property)` (carrying, skipped, three sample names, from `appState`) and `deleteProperty(property, handles, onProgress)` (plan pass, journal, write pass, drop an empty batch — §5, §8.3) |
+| `public/js/ui/ui-functions-click/column-delete-property.js` | the action: forecast → dialog → `bulkWriteInFlight` and `inert` → `deleteProperty` → report. Thin |
+| `public/js/ui/ui-functions-click/undo-list.js` | open and close the popover, a row's press, "clear undo history" and its confirmation (§10) |
+| `public/js/ui/ui-functions-table/render-undo-list.js` | the rows as HTML: names, relative times, the "earlier" divider (§17.6). Beside `render-table-controls.js`, which draws the button that opens it |
+| `public/css/undo-list.css` | the popover's rows, time column, divider and scroll — §17.6. A new component gets its own file |
+
+**Moved, then edited**
+
+| from | to |
+|---|---|
+| `public/js/editing/undo-cell-edits.js` | `public/js/table-undo/undo-stacks.js` |
+| `applyRawEdits`, `changedItem` in `public/js/editing/save-cell-edit.js` | `public/js/editing/apply-raw-edits.js` |
+
+Every importer follows the move in the same commit: `undo-cell-edit.js` and `load-files-click.js`
+import the stacks; `save-cell-edit.js` and `undo-stacks.js` import the writer. No spec imports either
+module directly. The comments that name `save-cell-edit.js` as the place a key is taken out —
+`front-matter-splice.js` and `yaml-value-write.js` (twice) — are pointed at `apply-raw-edits.js`.
+
+**Edited**
+
+| file | why |
+|---|---|
+| `public/js/editing/save-cell-edit.js` | `applyCellEdits` only; passes `kind` and `property` to the push |
+| `public/js/editing/front-matter-splice.js` | `keySplice` takes an anchor, a re-created anchor, and `keepKey`; the anchor is computed here too, beside the rest of "where a key's bytes are" — §12, §5.2 |
+| `public/js/editing/save-file-copy.js` | take the `.gypsum` handle and the file's own handle rather than looking either up — §6.2a |
+| `public/js/editing/refresh-file-state.js` | take the written text instead of re-reading — §6.2 |
+| `public/js/editing/rename-file.js` | call `renameInUndoStacks` |
+| `public/js/services/property-type.js` | `isPropertyDeletable`, beside the other per-column answers |
+| `public/js/services/store.js` | `UNDO_DEPTH = 100`, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`; `errorOnLoad` → `fileIssues` |
+| `public/js/services/file-parsing/file-errors.js` | `yamlSegment` words duplicate keys apart from skipped lines (§5.3); the `undo:` segment, read from `appState.undoRefusals`; the rename |
+| `public/js/services/file-parsing/file-info.js` | export `RESERVED_KEYS`; the rename |
+| `public/js/services/file-parsing/yaml-parse.js` | a key seen twice in one mapping is an error — §5.3 |
+| `public/js/ui/load-progress-finish.js`, `services/directory-handler.js`, `backup/opfs-import.js` | the rename; counts by segment prefix |
+| `public/js/ui/ui-functions-click/view-change.js` | set `undoHorizon` |
+| `public/js/constants.js` | the `undo.gypsum` filename beside the other two |
+| `public/js/ui/ui-functions-click/column-menu.js` | show one of the two items |
+| `public/js/ui/ui-functions-click/column-delete.js` | "remove" wording in the confirm |
+| `public/js/ui/ui-functions-click/undo-cell-edit.js` | in-flight flag moves to `appState`; `canReverse` checks the horizon; hands the refusals to `undo-refusals.js` |
+| `public/js/ui/ui-functions-click/load-files-click.js` | `postLoad` async, reads the stacks and sets the horizon; refuse a load while `bulkWriteInFlight`; the `beforeunload` guard |
+| `public/js/ui/ui-functions-click/warning-modal.js` | an optional argument naming which button takes focus — §17.4 |
+| `public/js/ui/ui-functions-table/render-table-controls.js` | the history button; `markUndoState` sets `data-tip` and lights it |
+| `public/js/ui/ui-functions-render/output-report.js` | the progress text and the delete's result line |
+| `public/js/ui/event-listeners-add.js` | `column-delete-property`, `undo-list`, `undo-list-item`, `undo-list-clear` |
+| `public/css/column-menu.css` | the delete item's rule and warning colour — §17.3 |
+| `public/css/output-controls.css` | the history button's coarse-pointer target; the faded inert table — §17.2, §17.5 |
+| `public/css/modal-unsaved-warning.css` | `white-space: pre-line` on its text — §17.4 |
+| `public/style.css` | import `undo-list.css` |
+| `index.html` | the new menu item, the renamed one, the undo list popover, `#icon-undo-history` in the sprite |
+| `CLAUDE.md` | the file map gains `table-undo/`, `apply-raw-edits.js` and `delete-property.js`; `save-cell-edit.js`'s line narrows to "types and format" — step 10 |
+
+**Tests**
+
+| file | what |
+|---|---|
+| `tests/1-data/49-table-cell-writing.spec.js` | the widened lock; anchors and `keepKey` through a real write; the node tests of `keySplice` and the anchor — steps 2, 3 |
+| `tests/1-data/52-table-undo-stack.spec.js` | the saved stack, one-at-a-time writes, reload, rename, the cap, clear history, a list undo's writes; the node tests of `undo-file.js` and `describeBatch` — steps 4, 5, 7 |
+| `tests/1-data/54-delete-property.spec.js` | **new**: the delete itself, against the §14.1 fixture — byte-exact results, notes left unwritten, the journal, a cut-short pass, the race between passes — step 6 |
+| `tests/1-data/25-tar-backup.spec.js` | a full backup's `undo.gypsum` survives an import — step 5 |
+| `tests/1-data/44-yaml-parser.spec.js` | duplicate keys: the error, the per-mapping rule, the segment's wording — step 2 |
+| `tests/1-data/29-yaml-load-errors.spec.js` | a duplicated key counts in the load message's yaml errors — step 2 |
+| `tests/2-behaviour/40-column-menu.spec.js` | the menu and dialog checks of step 6 |
+| `tests/2-behaviour/19-undo-redo-buttons.spec.js` | the list checks of step 7, and the refusal marks of step 9 |
 
 ---
 
@@ -805,8 +1164,11 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
 ```
 
 - **Cancel has focus when it opens**, not delete, so an Enter pressed too soon does nothing
-  destructive. The existing dialog focuses itself, so this is one `focus()` on the cancel button
-  for this caller.
+  destructive. `showWarningModal` calls `warningDialog.focus()` for every caller today, so it gains
+  an optional fourth argument, `{ focus: 'cancel' }`, and focuses that button in place of the
+  dialog. Leaving it out keeps today's behaviour, so no existing caller changes. An argument rather
+  than the caller focusing after the call, because the focus happens inside the function and a
+  second `focus()` from outside would depend on running after it.
 - The skipped line is left out when nothing will be skipped, and so is "and N more" when there are
   three files or fewer.
 
@@ -824,7 +1186,7 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
   its own is invisible, and a table that looks usable but ignores every click reads as a hang.
 - **The control row goes dark with it**: `inert` on `#output-controls`, with the buttons' existing
   disabled fade.
-- **At the end** the fade lifts, and the line reads `deleted people from 33 files, 2 skipped` for
+- **At the end** the fade lifts, and the line reads `deleted people from 35 files, 2 skipped` for
   the same five seconds as an undo's line. `2 skipped` is a nudge (§5.1).
 - **No progress bar.** The load's progress bar belongs to the file count element and is tied to
   its fade timings. A count in words is enough for a few seconds' wait, and it needs no new
@@ -875,7 +1237,8 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
   undone, not a log.
 - **"clear undo history"**: the last row, below a rule, in the ordinary colour. It opens the warning
   dialog with: *Clear all undo history for this folder? The 23 changes in the list can no longer
-  be undone, including any column delete.* [ clear history ] [ cancel ], with cancel focused. The
+  be undone, including any column delete. The copies of deleted values kept in the folder's
+  `.gypsum` folder are removed.* [ clear history ] [ cancel ], with cancel focused. The
   button reads `clear history`, not `delete`, because nothing in a note changes.
 - **Empty**: the history button is dark, so the list cannot be opened empty. No empty state is needed.
 
