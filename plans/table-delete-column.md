@@ -231,6 +231,42 @@ alongside the writes. The writes are still only the files that have the key.
 - **Redo needs nothing new.** Re-deleting finds the bare key's span and removes it through the
   ordinary `removing` path.
 
+### 5.3 A duplicated key is a front matter error
+
+**Decided: `parseYaml` reports a key that appears twice in the same mapping as an error**, so the
+note is locked like any other note whose front matter did not read cleanly, and the delete skips it.
+
+Today a duplicate is silent: the parser keeps the **last** occurrence as the value and as the span,
+and says nothing. So deleting `people` from
+
+```
+people: ann
+status: draft
+people: bob
+```
+
+removes `people: bob` and leaves `people: ann` — the note still carries the key, the column comes
+back with a value, and the delete has not done what it said. Removing every occurrence would need
+the parser to keep more than one span per key, for a shape YAML itself forbids. Refusing it is one
+check, and it lands on the rule §5.1 already settled: **the table never writes into a note it shows
+as locked.**
+
+- **The check is a set of keys seen, per mapping**, not `key in container`. A bare `people:` never
+  enters the parsed object (§5.2), so asking the object would miss `people:` followed by
+  `people: bob`. Per mapping, because the same key under two different parents is not a duplicate.
+- **Parsing otherwise goes on as now**: the last occurrence is still the value and the span. The error
+  locks the note, so nothing writes into it and it does not matter which one the table draws — and
+  skipping the later occurrence instead would strand any block list items under it with no key to
+  belong to, which is a second problem to solve for no gain.
+- **The error is `duplicate key: people`**, one per repeat. `yamlSegment` counts these apart from
+  skipped lines, because nothing was skipped: `yaml: 1 duplicate key "people"`, beside `2 lines
+  skipped` when both happen. The segment still leads with `yaml:`, so `hasYamlError()`, the load
+  nudge and the `fileIssues:yaml` filter all find it with no change.
+- **What it changes for everyone**: a note with a duplicate key now shows in the load message's yaml
+  count, its front matter cells are locked, and cell edits and undo refuse it — everywhere, not only
+  in the delete. That is intended: it was being edited at the wrong occurrence before, silently.
+- Built in step 2, beside the widened lock, since both are the same rule.
+
 ---
 
 ## 6. Speed at 1,000 files
@@ -695,7 +731,8 @@ known limitation about comments between list items.
 | Also forgets the type | **No.** §3. |
 | Reach | **every file in the folder**, whatever the filter. §4.2. |
 | Confirmation | **counts and three filenames**, no type-to-confirm. §5. |
-| Which notes are skipped | **exactly the ones the table locks**: a skipped line or a shadowed reserved key. The write's check widens to match `hasYamlError()`, for every caller. §5.1. |
+| A key appearing twice in one note | **a front matter error**: the note is locked and skipped. §5.3. |
+| Which notes are skipped | **exactly the ones the table locks**: a skipped line, a duplicated key or a shadowed reserved key. The write's check widens to match `hasYamlError()`, for every caller. §5.1. |
 | Counted from | `appState`; the write re-checks against disk. The dialog counts files that will change, not files that carry the key. §5, §5.1. |
 | A bare `people:` with no value | **deleted too**: the plan pass reads every loaded file; undo puts it back bare (`keepKey`). §5.2. |
 | A folder loaded mid-delete | **refused** while the write runs; every handle is fixed when the batch starts; `beforeunload` prompts. §6.2a. |
@@ -729,8 +766,9 @@ Each step ships on its own and leaves the app working.
    times `applyRawEdits` removing one key from all of them, as it is today. Record the number here.
    It decides the pool size and whether §6.2 items 3 and 4 are worth doing.
 2. **Faster batches, and the lock the table shows.** The write refuses a note with a shadowed reserved
-   key as well as one with a skipped line (§5.1); level 1: a note with `filename:` in its front
-   matter is not written by a cell edit's path or an undo, and every other note in the batch is.
+   key as well as one with a skipped line (§5.1), and the parser reports a duplicated key (§5.3);
+   level 1: a note with `filename:` in its front matter, and one with `people` twice, are not written
+   by a cell edit's path or an undo, and every other note in the batch is.
    It opens with one commit of moves and nothing else — `undo-cell-edits.js` into `table-undo/`, and
    `applyRawEdits` into `editing/apply-raw-edits.js` (§15.1). Then the concurrency pool, the refresh taking the written text, the handles fixed
    at the start of the batch (§6.2a), the id `Map`, the missing-file skip (§8.4), and `onProgress`.
@@ -797,6 +835,7 @@ write of a named file, and can run a hook between the two passes. The notes:
 | `none.md` | no front matter at all |
 | `broken.md` | `people` plus a skipped line |
 | `shadow.md` | `people` plus `filename:` in its front matter |
+| `dup.md` | `people` twice, the second a block list, with another key between them (§5.3) |
 | `nokey.md` | front matter without `people` |
 
 **Level 1 — node, no browser** (`appModule()`, milliseconds; the pure functions)
@@ -810,6 +849,10 @@ write of a named file, and can run a hook between the two passes. The notes:
 - `undo-file.js` validation: good file, unparseable JSON, unknown `undoVersion`, a batch with no
   `edits` array — the last three load as empty stacks.
 - `describeBatch`: every row of the §7.2 table, and a partial redo counting only its own edits.
+- `parseYaml` and duplicates (`44-yaml-parser.spec.js`): a repeated key gives one error per repeat;
+  `people:` then `people: bob` is a duplicate; the same key under two parents is not; the last
+  occurrence is still the value and the span. `yamlSegment` words it `1 duplicate key "people"`,
+  alone and beside skipped lines.
 
 **Level 1 — the delete** (a new spec, `tests/1-data/54-delete-property.spec.js`: a new area)
 
@@ -820,7 +863,7 @@ write of a named file, and can run a hook between the two passes. The notes:
   entry in `window.__writes`. Unchanged bytes are not enough; a rewrite with the same bytes still
   moves the modified time.
 - `bare.md` loses its bare key (§5.2).
-- `broken.md` and `shadow.md` are byte-identical afterwards, and counted as skipped.
+- `broken.md`, `shadow.md` and `dup.md` are byte-identical afterwards, and counted as skipped.
 - **Undo restores every note byte for byte**, `crlf.md` and `only.md` included, and redo takes them
   out again byte for byte. Then undo once more: the cycle is stable.
 - **After the delete the column is empty**: no file object carries `people`, and it reads as `dead`
@@ -857,8 +900,10 @@ write of a named file, and can run a hook between the two passes. The notes:
 
 **Level 1 — the widened lock** (`49-table-cell-writing.spec.js`)
 
-- A note with a shadowed reserved key is not written by a cell edit's path or by an undo; every
-  other note in the same batch is (§5.1).
+- A note with a shadowed reserved key, and a note with a duplicated key, are not written by a cell
+  edit's path or by an undo; every other note in the same batch is (§5.1, §5.3).
+- A note with a duplicated key is counted in the load message's yaml errors
+  (`29-yaml-load-errors.spec.js`).
 
 **Level 2 — what the screen does**
 
@@ -959,8 +1004,9 @@ module directly. The comments that name `save-cell-edit.js` as the place a key i
 | `public/js/editing/rename-file.js` | call `renameInUndoStacks` |
 | `public/js/services/property-type.js` | `isPropertyDeletable`, beside the other per-column answers |
 | `public/js/services/store.js` | `UNDO_DEPTH = 100`, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`; `errorOnLoad` → `fileIssues` |
-| `public/js/services/file-parsing/file-errors.js` | the `undo:` segment, read from `appState.undoRefusals`; the rename |
+| `public/js/services/file-parsing/file-errors.js` | `yamlSegment` words duplicate keys apart from skipped lines (§5.3); the `undo:` segment, read from `appState.undoRefusals`; the rename |
 | `public/js/services/file-parsing/file-info.js` | export `RESERVED_KEYS`; the rename |
+| `public/js/services/file-parsing/yaml-parse.js` | a key seen twice in one mapping is an error — §5.3 |
 | `public/js/ui/load-progress-finish.js`, `services/directory-handler.js`, `backup/opfs-import.js` | the rename; counts by segment prefix |
 | `public/js/ui/ui-functions-click/view-change.js` | set `undoHorizon` |
 | `public/js/constants.js` | the `undo.gypsum` filename beside the other two |
