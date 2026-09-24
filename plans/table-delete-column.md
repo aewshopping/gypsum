@@ -1,6 +1,8 @@
 # Plan: deleting a property from every note, and the undo it needs
 
-Status: **not started.** Every question below is answered; §13 is the list.
+Status: **built**, steps 1–10. §14 step 1 records the measurement. Covered by
+`tests/1-data/54-delete-property.spec.js`, and by additions to the undo, cell-writing, parser,
+load-error, backup, column-menu and undo-button specs.
 Depends on: `plans/table-undo-stack.md` step 11a, **built** — the stacks, the `expect` check, the
 batch-shaped write and key removal are all in the tree. This plan **supersedes two of its
 decisions**: the stack is no longer kept in memory only (§8), and 20 batches is no longer the depth
