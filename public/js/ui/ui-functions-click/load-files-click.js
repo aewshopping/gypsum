@@ -36,6 +36,9 @@ export async function handleLoadFolder() {
         await loadDirectoryFileHandles(() => {
             btn.classList.add('loading');
             appState.myFiles = [];
+            // The last undo's refusals name notes in the folder being left. Emptied before the new
+            // files are checked, or a note sharing a path would be marked for them.
+            appState.undoRefusals = new Map();
             appState.isLoading = true;
             renderFiles();
             minDuration = new Promise(r => setTimeout(r, 2000));
@@ -66,6 +69,7 @@ export async function handleImportOPFS() {
     const btn = document.getElementById('btn-import-opfs');
     btn.classList.add('loading');
     appState.myFiles = [];
+    appState.undoRefusals = new Map();
     appState.isLoading = true;
     renderFiles();
     document.getElementById('fileCountElement').textContent = 'file: unpacking';
@@ -122,6 +126,7 @@ async function loadAndProcess(loaderFn, btnId) {
     const btn = document.getElementById(btnId);
     btn.classList.add('loading');
     appState.myFiles = [];
+    appState.undoRefusals = new Map();
     appState.isLoading = true;
     renderFiles();
     const minDuration = new Promise(r => setTimeout(r, 1000));

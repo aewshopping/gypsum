@@ -55,9 +55,11 @@ export function refreshFileAfterSave(snapshot, resort = true) {
  * @param {Array<{ filepath: string, filename: string, written?: string }>} snapshots - One per
  *   file written.
  * @param {boolean} [resort=true] - Whether to put the files back in sort order afterwards.
+ * @param {Iterable<string>} [recheck] - Ids of files not written whose issues must be redrawn all
+ *   the same, in this one render — the notes an undo left alone.
  * @returns {Promise<void>}
  */
-export async function refreshFilesNow(snapshots, resort = true) {
+export async function refreshFilesNow(snapshots, resort = true, recheck = []) {
     try {
         // One lookup table per refresh, rather than a search of every file per file written.
         const indexByPath = new Map(appState.myFiles.map((file, index) => [file.filepath, index]));
@@ -68,6 +70,10 @@ export async function refreshFilesNow(snapshots, resort = true) {
             // columns, and the render that draws them has to be a full one however many files were
             // quiet.
             fullRender = await rereadFile(snapshot, indexByPath.get(snapshot.filepath)) || fullRender;
+        }
+        const ids = new Set(recheck);
+        for (const file of appState.myFiles) {
+            if (ids.has(file.internalId)) checkFileErrors(file);
         }
         await renderRefreshed(fullRender, resort);
     } catch (err) {

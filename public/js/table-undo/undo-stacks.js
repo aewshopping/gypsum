@@ -1,6 +1,8 @@
 import { appState, UNDO_DEPTH } from '../services/store.js';
 import { applyRawEdits } from '../editing/apply-raw-edits.js';
 import { readUndoFile, saveUndoFile } from './undo-file.js';
+import { replaceRefusals } from './undo-refusals.js';
+import { describeAction } from './describe-batch.js';
 
 /**
  * @file The two stacks, and putting a batch of cell edits back.
@@ -95,6 +97,17 @@ export async function reverseBatch(direction, index) {
     const [batch] = from.splice(index ?? from.length - 1, 1);
     if (!batch) return { applied: [], refused: [], batch };
 
+    // What the write left out. Addressed by file and property rather than by position, because the
+    // write groups its edits by file and hands back only the ones that changed something — so the
+    // returned order is its own, not the batch's. Worked out before the render, so the refused notes'
+    // marks are drawn by the render the undo already does. §10.5.
+    let refused = [];
+    const markRefused = (applied) => {
+        const done = new Set(applied.map(edit => `${edit.internalId}\u0000${edit.property}`));
+        refused = batch.edits.filter(edit => !done.has(`${edit.internalId}\u0000${edit.property}`));
+        return replaceRefusals(refused, describeAction(batch));
+    };
+
     const applied = await applyRawEdits(batch.edits.map(edit => ({
         internalId: edit.internalId,
         property: edit.property,
@@ -108,17 +121,11 @@ export async function reverseBatch(direction, index) {
         // block; and a bare key comes back bare, where '' would otherwise mean "no key". §12, §5.2.
         anchor: edit.anchor,
         keepKey: edit.before === '' && edit.existed,
-    })));
+    })), { beforeRefresh: markRefused });
 
     // The same facts, so a redo has the same name as the undo it reverses.
     push(to, applied, { kind: batch.kind ?? 'edit', property: batch.property ?? null });
     saveUndoFile();
-
-    // What the write left out. Addressed by file and property rather than by position, because the
-    // write groups its edits by file and hands back only the ones that changed something — so the
-    // returned order is its own, not the batch's.
-    const done = new Set(applied.map(edit => `${edit.internalId}\u0000${edit.property}`));
-    const refused = batch.edits.filter(edit => !done.has(`${edit.internalId}\u0000${edit.property}`));
 
     return { applied, refused, batch };
 }

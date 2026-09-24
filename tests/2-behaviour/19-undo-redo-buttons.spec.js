@@ -153,3 +153,59 @@ test('the list shows newest first, divides this visit from earlier, and a row pr
   await page.locator('#table-redo-btn').click();
   await expect(page.locator('#output-report')).toContainText('redo: status edit in 1 file');
 });
+
+// ---------------------------------------------------------------- a refusal marks the note, §10.5
+
+const issuesOf = (page, name) => page.evaluate(name =>
+  window.appState.myFiles.find(file => file.filename === name).fileIssues, name);
+
+test('a refused undo marks the note at once, the fail count filters to it, and a clean undo clears it', async ({ page }) => {
+  await openTable(page);
+  await edit(page, 'alpha.md', 'status', 'done');
+  await edit(page, 'beta.md', 'status', 'done');
+  // alpha moves on behind the app's back, so undoing its edit will be refused
+  await page.evaluate(() => {
+    window.__files['alpha.md'] = window.__files['alpha.md'].replace('status: done', 'status: elsewhere');
+  });
+
+  await undoBtn(page).click();   // beta's edit: applied
+  await undoBtn(page).click();   // alpha's: refused
+  await expect(page.locator('#output-report')).toContainText('undo: status edit in 1 file — 0 values, 1 fail');
+  expect(await issuesOf(page, 'alpha.md')).toBe('undo: 1 refused (status edit)');
+  expect(await issuesOf(page, 'beta.md')).toBe(null);
+
+  // The count is a nudge to exactly the refused notes.
+  await page.locator('#output-report .load-error-nudge').click();
+  await expect(page.locator('.note-table')).toHaveCount(1);
+  await expect(page.locator('.note-table')).toContainText('Alpha');
+  await page.evaluate(async () => {
+    const { handleClearFilters } = await import('/public/js/ui/ui-functions-click/clear-filters.js');
+    handleClearFilters();
+  });
+  await expect(page.locator('.note-table')).toHaveCount(2);
+
+  // The mark survives an edit to another cell of that note, which re-reads it.
+  await edit(page, 'alpha.md', 'note', 'again');
+  expect(await issuesOf(page, 'alpha.md')).toBe('undo: 1 refused (status edit)');
+
+  // A later undo that refuses nothing clears the mark straight away.
+  await undoBtn(page).click();   // the note edit, applied cleanly
+  await expect.poll(() => issuesOf(page, 'alpha.md')).toBe(null);
+});
+
+test('a refusal mark follows the note through a rename', async ({ page }) => {
+  await openTable(page);
+  await edit(page, 'alpha.md', 'status', 'done');
+  await page.evaluate(() => {
+    window.__files['alpha.md'] = window.__files['alpha.md'].replace('status: done', 'status: elsewhere');
+  });
+  await undoBtn(page).click();
+  expect(await issuesOf(page, 'alpha.md')).toBe('undo: 1 refused (status edit)');
+
+  const marks = await page.evaluate(async () => {
+    const { renameInUndoStacks } = await import('/public/js/table-undo/undo-rename.js');
+    renameInUndoStacks('alpha.md', 'renamed.md');
+    return [...window.appState.undoRefusals.keys()];
+  });
+  expect(marks).toEqual(['renamed.md']);
+});

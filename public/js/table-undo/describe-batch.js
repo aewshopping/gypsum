@@ -16,11 +16,21 @@
 export function describeBatch(batch) {
     // A Set, because one file can hold several edits.
     const files = new Set(batch.edits.map(edit => edit.internalId)).size;
-    const inFiles = `in ${files} file${files === 1 ? '' : 's'}`;
+    return `${describeAction(batch)} in ${files} file${files === 1 ? '' : 's'}`;
+}
 
-    if (batch.kind === 'delete-property') return `${batch.property} column delete ${inFiles}`;
-    if (batch.property) return `${batch.property} edit ${inFiles}`;
+/**
+ * What a batch did, without where: `people column delete`, `status edit`, `edit of 6 values`. The
+ * name a refused note's issues give the undo that left it alone, where a file count would be about
+ * other notes. plans/table-delete-column.md §10.5.
+ *
+ * @param {{kind?: string, property?: string|null, edits: Array<object>}} batch
+ * @returns {string}
+ */
+export function describeAction(batch) {
+    if (batch.kind === 'delete-property') return `${batch.property} column delete`;
+    if (batch.property) return `${batch.property} edit`;
 
     const values = batch.edits.length;
-    return `edit of ${values} value${values === 1 ? '' : 's'} ${inFiles}`;
+    return `edit of ${values} value${values === 1 ? '' : 's'}`;
 }

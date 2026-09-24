@@ -114,16 +114,17 @@ function changedItem(text, span, items) {
  *
  * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
  *   expect?: string, anchor?: string|null, keepKey?: boolean}>} rawEdits
- * @param {{resort?: boolean, write?: boolean, onProgress?: Function}} [options] - `resort` false
+ * @param {{resort?: boolean, write?: boolean, onProgress?: Function, beforeRefresh?: Function}} [options] - `resort` false
  *   leaves the list in the order it is in. `write` false does everything but the write and the
  *   refresh — the plan pass a journal is made from (§8.3). `onProgress(done, total)` is called as
- *   each file finishes, written or not.
+ *   each file finishes, written or not. `beforeRefresh(records)` runs once the writes are done and
+ *   before the render, and returns the ids of files to re-check in it (§10.5).
  * @returns {Promise<Array<{internalId: string, property: string, before: string, after: string,
  *   existed: boolean}>>} One record per edit that changed a file, holding the key's whole value
  *   span before and after. This is what an undo entry is made of, and what a partly-applied undo
  *   hands to the redo stack — so an edit the check refused is simply absent from it.
  */
-export async function applyRawEdits(rawEdits, { resort = true, write = true, onProgress } = {}) {
+export async function applyRawEdits(rawEdits, { resort = true, write = true, onProgress, beforeRefresh } = {}) {
     const byFile = new Map();
     for (const edit of rawEdits) {
         if (!byFile.has(edit.internalId)) byFile.set(edit.internalId, []);
@@ -174,7 +175,12 @@ export async function applyRawEdits(rawEdits, { resort = true, write = true, onP
         //
         // Awaited, so that by the time this returns the rows the caller may want to mark are the ones
         // on screen.
-        if (written.length > 0) await refreshFilesNow(written, resort);
+        //
+        // `beforeRefresh` hears what was applied before the one render, and names files whose issues
+        // must be re-checked in it though nothing was written to them — an undo's refused notes.
+        const records = results.flat().filter(Boolean);
+        const recheck = failed === null && beforeRefresh ? beforeRefresh(records) : new Set();
+        if (written.length > 0 || recheck.size > 0) await refreshFilesNow(written, resort, recheck);
     }
 
     return results.flat().filter(Boolean);
