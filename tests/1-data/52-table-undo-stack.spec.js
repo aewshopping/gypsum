@@ -29,33 +29,46 @@ async function setupFiles(page) {
     };
     window.__saved = {};
 
+    // The folder outlives a page reload, as a real one does: the saved undo history is read back
+    // from it on the next load.
+    const stored = sessionStorage.getItem('mock-folder');
+    if (stored) ({ files: window.__files, saved: window.__saved } = JSON.parse(stored));
+    const persist = () => sessionStorage.setItem('mock-folder',
+      JSON.stringify({ files: window.__files, saved: window.__saved }));
+
+    const notFound = (name) => Object.assign(new Error(`NotFoundError: ${name}`), { name: 'NotFoundError' });
+
     const mk = (name) => ({
       kind: 'file', name,
-      getFile: async () => ({
-        name, size: window.__files[name].length, lastModified: Date.now(),
-        text: async () => window.__files[name],
-      }),
+      getFile: async () => {
+        if (!(name in window.__files)) throw notFound(name);
+        return {
+          name, size: window.__files[name].length, lastModified: Date.now(),
+          text: async () => window.__files[name],
+        };
+      },
       createWritable: async () => ({
-        write: async (content) => { window.__files[name] = content; },
+        write: async (content) => { window.__files[name] = content; persist(); },
         close: async () => {},
       }),
+      isSameEntry: async (other) => other.name === name,
     });
 
     const gypsumDir = {
       getFileHandle: async (name, options) => {
         if (!(name in window.__saved)) {
-          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          if (!options?.create) throw notFound(name);
           window.__saved[name] = '';
         }
         return {
           getFile: async () => ({ text: async () => window.__saved[name] }),
           createWritable: async () => ({
-            write: async (content) => { window.__saved[name] = content; },
+            write: async (content) => { window.__saved[name] = content; persist(); },
             close: async () => {},
           }),
         };
       },
-      removeEntry: async (name) => { delete window.__saved[name]; },
+      removeEntry: async (name) => { delete window.__saved[name]; persist(); },
     };
 
     window.showDirectoryPicker = async () => ({
@@ -65,6 +78,14 @@ async function setupFiles(page) {
         if (name === '.gypsum') return gypsumDir;
         throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
       },
+      getFileHandle: async (name, options) => {
+        if (!(name in window.__files)) {
+          if (!options?.create) throw notFound(name);
+          window.__files[name] = '';
+        }
+        return mk(name);
+      },
+      removeEntry: async (name) => { delete window.__files[name]; persist(); },
     });
   });
 }
@@ -73,6 +94,11 @@ async function openTable(page) {
   await page.setViewportSize({ width: 1400, height: 900 });
   await setupFiles(page);
   await page.goto('/');
+  await showTable(page);
+}
+
+/** Loads the mock folder and shows the table — again after a reload, which keeps the folder. */
+async function showTable(page) {
   await loadFolder(page);
   await page.selectOption('#view-select', 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
@@ -357,4 +383,104 @@ test('describeBatch names every kind of batch, and counts only the edits it hold
   // a redo holding only the half of an undo that was applied
   expect(describeBatch({ kind: 'delete-property', property: 'people', edits: people.slice(0, 33) }))
     .toBe('people column delete in 33 files');
+});
+
+// ---------------------------------------------------------------- the saved stack, §8
+
+const undoFile = (page) => page.evaluate(() => window.__saved['undo.gypsum']);
+
+test('an edit is undone after the page is reloaded', async ({ page }) => {
+  await openTable(page);
+  const original = await fileText(page, 'alpha.md');
+  await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
+  await expect.poll(() => undoFile(page)).toContain('"kind":"edit"');
+
+  await page.reload();
+  await showTable(page);
+  // Ctrl+Z reaches only this visit, so the saved entry is reached through the stack itself.
+  await page.evaluate(async () => {
+    const { reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    await reverseBatch('undo');
+  });
+  expect(await fileText(page, 'alpha.md')).toBe(original);
+});
+
+test('an unreadable undo.gypsum loads as empty, and the next edit writes a good one', async ({ page }) => {
+  await setupFiles(page);
+  await page.addInitScript(() => { window.__saved['undo.gypsum'] = '{ not json'; });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/');
+  await showTable(page);
+
+  expect(await page.evaluate(() => window.appState.undoStack.length)).toBe(0);
+  await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
+  await expect.poll(async () => JSON.parse(await undoFile(page)).undo.length).toBe(1);
+  expect(JSON.parse(await undoFile(page)).undoVersion).toBe(1);
+});
+
+test('edits in quick succession leave the newest stack on disk', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(async () => {
+    const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
+    // Not awaited one by one: ten saves asked for while earlier ones are still writing.
+    await Promise.all(Array.from({ length: 10 }, (_, i) =>
+      applyCellEdits([{ internalId: 'beta.md', property: 'note', text: `n${i}` }])));
+  });
+  await expect.poll(async () => {
+    const saved = JSON.parse(await undoFile(page));
+    return saved.undo.length;
+  }).toBe(await page.evaluate(() => window.appState.undoStack.length));
+  const onDisk = JSON.parse(await undoFile(page));
+  const inMemory = await page.evaluate(() => JSON.parse(JSON.stringify(window.appState.undoStack)));
+  expect(onDisk.undo).toEqual(inMemory);
+});
+
+test('a renamed note is still found by its undo, and a deleted one is refused without throwing', async ({ page }) => {
+  await openTable(page);
+  await retype(page, cellFor(page, 'Alpha', 'status'), 'published');
+  await retype(page, cellFor(page, 'Beta', 'status'), 'gone');
+  await expect.poll(() => fileText(page, 'beta.md')).toContain('status: gone');
+
+  const result = await page.evaluate(async () => {
+    const { renameFile } = await import('/public/js/editing/rename-file.js');
+    const { reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    const alpha = window.appState.myFiles.find(file => file.filename === 'alpha.md');
+    await renameFile({ file: alpha, newFolder: '', newName: 'renamed.md' });
+
+    // beta.md goes from disk behind the app's back
+    delete window.__files['beta.md'];
+    const beta = await reverseBatch('undo');
+    const renamed = await reverseBatch('undo');
+    return { beta: beta.refused.length, renamed: renamed.applied.length };
+  });
+  expect(result).toEqual({ beta: 1, renamed: 1 });
+  expect(await fileText(page, 'renamed.md')).toContain('status: draft');
+  expect(await undoFile(page)).not.toContain('"alpha.md"');
+});
+
+test('the 101st batch drops the oldest, never the newest', async ({ page }) => {
+  await openTable(page);
+  const kept = await page.evaluate(async () => {
+    const { pushUndoBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    for (let i = 0; i < 101; i++) {
+      pushUndoBatch([{ internalId: 'alpha.md', property: `p${i}`, before: '', after: ' x', existed: false }],
+        { property: `p${i}` });
+    }
+    const stack = window.appState.undoStack;
+    return { length: stack.length, first: stack[0].property, last: stack.at(-1).property };
+  });
+  expect(kept).toEqual({ length: 100, first: 'p1', last: 'p100' });
+});
+
+test('the undo file is validated at the boundary', async () => {
+  const { parseUndoFile } = await appModule('table-undo/undo-file.js');
+  const batch = { timestamp: 1, kind: 'edit', property: 'a',
+    edits: [{ internalId: 'a.md', property: 'a', before: '', after: ' x', existed: false }] };
+  const good = JSON.stringify({ undoVersion: 1, undo: [batch], redo: [] });
+  expect(parseUndoFile(good)).toEqual({ undo: [batch], redo: [] });
+  expect(parseUndoFile(null)).toEqual({ undo: [], redo: [] });
+  expect(parseUndoFile('{ nope')).toEqual({ undo: [], redo: [] });
+  expect(parseUndoFile(JSON.stringify({ undoVersion: 2, undo: [batch], redo: [] }))).toEqual({ undo: [], redo: [] });
+  expect(parseUndoFile(JSON.stringify({ undoVersion: 1, undo: [{ timestamp: 1 }], redo: [] })))
+    .toEqual({ undo: [], redo: [] });
 });

@@ -157,6 +157,7 @@ export const DEFAULT_NODE_SHAPE = NODE_SHAPES.ROUND;
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 export const LAYOUTS_FILENAME = 'table_layouts.gypsum';
+export const UNDO_FILENAME = 'undo.gypsum';
 
 export let PAGINATION_SIZE = 50;
 export function setPaginationSize(n) { PAGINATION_SIZE = n; }

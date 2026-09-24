@@ -12,7 +12,7 @@ import { propertyType } from '../../services/property-type.js';
 import { populateSortSelect } from '../ui-elements-load/sort-select-load.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from '../event-listeners-add.js';
-import { clearUndoStacks } from '../../table-undo/undo-stacks.js';
+import { loadUndoStacks } from '../../table-undo/undo-stacks.js';
 
 /**
  * Opens the folder picker and loads the chosen directory.
@@ -31,7 +31,7 @@ export async function handleLoadFolder() {
             renderFiles();
             minDuration = new Promise(r => setTimeout(r, 2000));
         });
-        postLoad();
+        await postLoad();
         await minDuration;
     } finally {
         btn.classList.remove('loading');
@@ -65,7 +65,7 @@ export async function handleImportOPFS() {
     };
     try {
         await importTarGzipToOPFS(async () => {
-            postLoad();
+            await postLoad();
             await minDuration;
             removeLoading();
         });
@@ -78,18 +78,19 @@ export async function handleImportOPFS() {
 }
 
 /**
- * Shared post-load steps: tag taxonomy, sort, UI refresh.
+ * Shared post-load steps: the folder's undo history, tag taxonomy, sort, UI refresh.
  * All loading paths run this after populating appState.
+ * @returns {Promise<void>}
  */
-function postLoad() {
+async function postLoad() {
     // Cleared before renderFiles below, or the empty-folder message is suppressed on the very
     // render that should show it.
     appState.isLoading = false;
 
-    // An entry names a file by an id that means nothing against a different folder. This is the
-    // only thing that clears them — a view change needs no clearing, because the check at undo time
-    // is a fact about the file rather than a guess about the app. See plans/table-undo-stack.md §9.
-    clearUndoStacks();
+    // An entry names a file by an id that means nothing against a different folder, so the stacks
+    // are replaced by this folder's own, read from its .gypsum. Here rather than in each loader,
+    // because all three run this. See plans/table-delete-column.md §8.2.
+    await loadUndoStacks();
     if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     const sortProp = appState.sortState.property;
     sortAppStateFiles(sortProp, propertyType(sortProp), appState.sortState.direction);
@@ -113,7 +114,7 @@ async function loadAndProcess(loaderFn, btnId) {
     const minDuration = new Promise(r => setTimeout(r, 1000));
     try {
         await loaderFn();
-        postLoad();
+        await postLoad();
         await minDuration;
     } catch (err) {
         // postLoad never ran, so isLoading is still set — and the empty-folder message in

@@ -368,4 +368,70 @@ test.describe('tar backup buttons', () => {
         expect(outcome.lastModified).toBeCloseTo(FIXED_MTIME, -3);
     });
 
+    // plans/table-delete-column.md §8.2: the undo history is part of the folder's state, and as the
+    // copy of what a column delete removed it is worth most exactly when a backup is restored.
+    test("a full backup's undo.gypsum survives an import, and an undo from it reaches the note", async ({ page }) => {
+        await interceptDownload(page);
+        await page.addInitScript(() => {
+            const makeFile = (name, content) => {
+                const bytes = new TextEncoder().encode(content);
+                return {
+                    kind: 'file', name,
+                    getFile: async () => ({
+                        name, size: bytes.length, lastModified: Date.now(),
+                        text: async () => content, arrayBuffer: async () => bytes.buffer,
+                    }),
+                };
+            };
+            const undo = JSON.stringify({
+                undoVersion: 1,
+                undo: [{ timestamp: 1, kind: 'edit', property: 'status', edits: [
+                    { internalId: 'alpha.md', property: 'status', before: ' draft', after: ' published', existed: true },
+                ] }],
+                redo: [],
+            });
+            const gypsumDir = {
+                kind: 'directory', name: '.gypsum',
+                values: async function* () { yield makeFile('undo.gypsum', undo); },
+                getFileHandle: async (name) => {
+                    if (name === 'undo.gypsum') return makeFile('undo.gypsum', undo);
+                    throw new DOMException(`${name} not found`, 'NotFoundError');
+                },
+            };
+            window.showDirectoryPicker = async () => ({
+                kind: 'directory', name: 'root',
+                values: async function* () {
+                    yield makeFile('alpha.md', '---\nstatus: published\n---\n# Alpha\n');
+                },
+                getDirectoryHandle: async (name) => {
+                    if (name === '.gypsum') return gypsumDir;
+                    throw new DOMException(`${name} not found`, 'NotFoundError');
+                },
+            });
+        });
+
+        await page.goto('/');
+        await loadFolder(page);
+        await page.click('[data-action="open-settings-modal"]');
+        await page.click('#modal-settings [data-action="backup-full"]');
+        await page.waitForFunction(() => window.__capturedDownload?.filename != null);
+
+        await page.evaluate(() => {
+            window.showOpenFilePicker = async () => [{
+                getFile: async () => ({ arrayBuffer: async () => window.__capturedDownload.blob.arrayBuffer() }),
+            }];
+        });
+        await page.click('#modal-settings [data-action="import-opfs"]');
+        await page.waitForFunction(() => window.appState.dirHandle?.kind === 'directory'
+            && window.appState.myFiles.length === 1 && window.appState.undoStack.length === 1);
+
+        const text = await page.evaluate(async () => {
+            const { reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
+            await reverseBatch('undo');
+            const root = await navigator.storage.getDirectory();
+            return (await (await root.getFileHandle('alpha.md')).getFile()).text();
+        });
+        expect(text).toBe('---\nstatus: draft\n---\n# Alpha\n');
+    });
+
 });

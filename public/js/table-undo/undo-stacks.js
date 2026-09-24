@@ -1,5 +1,6 @@
 import { appState, UNDO_DEPTH } from '../services/store.js';
 import { applyRawEdits } from '../editing/apply-raw-edits.js';
+import { readUndoFile, saveUndoFile } from './undo-file.js';
 
 /**
  * @file The two stacks, and putting a batch of cell edits back.
@@ -24,16 +25,40 @@ import { applyRawEdits } from '../editing/apply-raw-edits.js';
  * an empty entry would give the user a live undo button that does nothing when pressed.
  *
  * @param {Array<object>} records - What applyRawEdits reported it changed.
- * @param {{kind?: string, property?: string|null}} [facts] - What the batch was, for its name:
- *   'edit' or 'delete-property', and the column when there is one. See describe-batch.js.
- * @returns {void}
+ * **Saved to undo.gypsum straight after**, and the promise of that write is handed back for the
+ * one caller that has to wait for it: a column delete, which records its batch before touching a
+ * note. A cell edit does not wait.
+ *
+ * @param {Array<object>} records - What applyRawEdits reported it changed.
+ * @param {{kind?: string, property?: string|null, dirHandle?: FileSystemDirectoryHandle}} [facts] -
+ *   What the batch was, for its name: 'edit' or 'delete-property', and the column when there is
+ *   one (see describe-batch.js). `dirHandle` is the folder to save into, for a batch that fixed its
+ *   folder when it began.
+ * @returns {{batch: object|null, saved: Promise<boolean>}} The entry pushed — null for a batch of
+ *   nothing — and its save.
  */
-export function pushUndoBatch(records, { kind = 'edit', property = null } = {}) {
-    push(appState.undoStack, records, { kind, property });
+export function pushUndoBatch(records, { kind = 'edit', property = null, dirHandle } = {}) {
+    const batch = push(appState.undoStack, records, { kind, property });
 
     // The ordinary rule: a new edit makes every redo a claim about a file that has moved on. The
     // check would refuse them one at a time anyway; clearing says so at once.
     appState.redoStack.length = 0;
+
+    return { batch, saved: saveUndoFile(dirHandle) };
+}
+
+/**
+ * Takes a batch off the undo stack without reversing anything, and saves. For a journal whose
+ * write pass applied nothing: it was pushed before anything was known, so push()'s guard against
+ * an empty batch never saw it, and the list would otherwise offer a change that does nothing.
+ * @param {object} batch - The entry pushUndoBatch returned.
+ * @param {FileSystemDirectoryHandle} [dirHandle]
+ * @returns {Promise<boolean>}
+ */
+export function dropUndoBatch(batch, dirHandle) {
+    const index = appState.undoStack.indexOf(batch);
+    if (index !== -1) appState.undoStack.splice(index, 1);
+    return saveUndoFile(dirHandle);
 }
 
 /**
@@ -55,15 +80,19 @@ export function pushUndoBatch(records, { kind = 'edit', property = null } = {}) 
  * see plans/table-delete-column.md §12.
  *
  * @param {'undo'|'redo'} direction - Which stack to take from.
+ * @param {number} [index] - Which entry, counted from the bottom; the top when left out.
  * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined}>} The
  *   edits that were written, the edits the check turned down — each gets its own mark on the cell —
  *   and the batch they came from, for its name.
  */
-export async function reverseLastBatch(direction) {
+export async function reverseBatch(direction, index) {
     const from = direction === 'undo' ? appState.undoStack : appState.redoStack;
     const to = direction === 'undo' ? appState.redoStack : appState.undoStack;
 
-    const batch = from.pop();
+    // Any entry, not only the top: the undo list reverses one batch on its own terms, and the check
+    // below is what makes that safe — each edit is reversed only where the note still says what it
+    // left. plans/table-delete-column.md §10.
+    const [batch] = from.splice(index ?? from.length - 1, 1);
     if (!batch) return { applied: [], refused: [], batch };
 
     const applied = await applyRawEdits(batch.edits.map(edit => ({
@@ -83,6 +112,7 @@ export async function reverseLastBatch(direction) {
 
     // The same facts, so a redo has the same name as the undo it reverses.
     push(to, applied, { kind: batch.kind ?? 'edit', property: batch.property ?? null });
+    saveUndoFile();
 
     // What the write left out. Addressed by file and property rather than by position, because the
     // write groups its edits by file and hands back only the ones that changed something — so the
@@ -94,24 +124,42 @@ export async function reverseLastBatch(direction) {
 }
 
 /**
- * Forgets everything on both stacks. Called when a folder is loaded: the ids mean nothing against a
- * different folder, and §3's check makes clearing on anything less than that unnecessary.
- * @returns {void}
+ * Replaces both stacks with the loaded folder's saved ones. Called when a folder loads: the ids in
+ * the old stacks mean nothing against a different folder, and the new folder's own history is in
+ * its .gypsum. A folder with none starts empty, as every folder did before the stack was saved.
+ * @returns {Promise<void>}
+ */
+export async function loadUndoStacks() {
+    const { undo, redo } = await readUndoFile();
+    appState.undoStack.length = 0;
+    appState.redoStack.length = 0;
+    appState.undoStack.push(...undo);
+    appState.redoStack.push(...redo);
+}
+
+/**
+ * Forgets everything on both stacks and writes the empty file — "clear undo history". It removes the
+ * only saved copy of what a column delete took out, which is why its button asks first. §8.5.
+ * @returns {Promise<boolean>}
  */
 export function clearUndoStacks() {
     appState.undoStack.length = 0;
     appState.redoStack.length = 0;
+    return saveUndoFile();
 }
 
 /**
  * @param {Array<object>} stack
  * @param {Array<object>} records
  * @param {{kind: string, property: string|null}} facts
- * @returns {void}
+ * @returns {object|null} The entry pushed, or null when there was nothing to push.
  */
 function push(stack, records, { kind, property }) {
-    if (records.length === 0) return;
+    if (records.length === 0) return null;
 
-    stack.push({ timestamp: Date.now(), kind, property, edits: records });
+    const batch = { timestamp: Date.now(), kind, property, edits: records };
+    stack.push(batch);
+    // The oldest goes, never the newest — the newest is what was just done.
     if (stack.length > UNDO_DEPTH) stack.shift();
+    return batch;
 }

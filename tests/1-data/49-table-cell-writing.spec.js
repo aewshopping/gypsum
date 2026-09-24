@@ -1161,14 +1161,14 @@ test('keySplice with keepKey writes a bare key', async () => {
 async function removeAndUndo(page, edits) {
   return page.evaluate(async (edits) => {
     const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
-    const { pushUndoBatch, reverseLastBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    const { pushUndoBatch, reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
     const names = [...new Set(edits.map(edit => edit.internalId))];
     const snap = () => Object.fromEntries(names.map(name => [name, window.__files[name]]));
     const before = snap();
     const records = await applyRawEdits(edits.map(edit => ({ ...edit, raw: '' })));
     pushUndoBatch(records);
     const removed = snap();
-    await reverseLastBatch('undo');
+    await reverseBatch('undo');
     return { before, removed, undone: snap(), records };
   }, edits);
 }
@@ -1190,10 +1190,10 @@ test('a key whose anchor has gone comes back at the end of the block', async ({ 
   await openTable(page, { 'keys.md': '---\nfirst: 1\nmiddle: 2\nlast: 3\n---\n# Keys\n' });
   const result = await page.evaluate(async () => {
     const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
-    const { pushUndoBatch, reverseLastBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    const { pushUndoBatch, reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
     pushUndoBatch(await applyRawEdits([{ internalId: 'keys.md', property: 'middle', raw: '' }]));
     await applyRawEdits([{ internalId: 'keys.md', property: 'first', raw: '' }]);
-    await reverseLastBatch('undo');
+    await reverseBatch('undo');
     return window.__files['keys.md'];
   });
   expect(result).toBe('---\nlast: 3\nmiddle: 2\n---\n# Keys\n');
