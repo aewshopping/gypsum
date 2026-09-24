@@ -102,6 +102,8 @@ async function postLoad() {
     // are replaced by this folder's own, read from its .gypsum. Here rather than in each loader,
     // because all three run this. See plans/table-delete-column.md §8.2.
     await loadUndoStacks();
+    // A folder just opened is a visit that has not done anything yet. §10.4.
+    appState.undoHorizon = Date.now();
     if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     const sortProp = appState.sortState.property;
     sortAppStateFiles(sortProp, propertyType(sortProp), appState.sortState.direction);

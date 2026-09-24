@@ -5,8 +5,8 @@ import { describeBatch } from '../../table-undo/describe-batch.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
 
 /**
- * Renders the table's control row: the layout in use, the column picker, and undo and redo at the
- * far end.
+ * Renders the table's control row: the layout in use, the column picker, and undo, redo and the
+ * undo history at the far end.
  *
  * Reading left to right it says what the table is showing and then offers to change it — the name,
  * which opens the layouts modal, and the column picker. **The name is the way in to the layouts,
@@ -65,11 +65,14 @@ export function renderTableControls() {
                 <button type="button" id="table-redo-btn" class="svg-wrapper-style" data-action="table-redo" data-tip="${escapeHtml(undoTip('redo'))}"${canReverse('redo') ? '' : ' disabled'}>
                     <svg viewBox="0 0 45 48"><use href="#icon-redo"></use></svg>
                 </button>
+                <button type="button" id="table-undo-list-btn" class="svg-wrapper-style" data-action="undo-list" data-tip="undo history"${canOpenList() ? '' : ' disabled'}>
+                    <svg viewBox="0 0 45 48"><use href="#icon-undo-history"></use></svg>
+                </button>
             </div>`;
 }
 
 /**
- * Lights the undo and redo buttons, or puts them out.
+ * Lights the undo, redo and history buttons, or puts them out.
  *
  * Called after every push, pop and clear, and either side of a reversal — the write is asynchronous,
  * so a button left live during it would take a second press against bytes the first has not written.
@@ -89,6 +92,19 @@ export function markUndoState() {
         redo.disabled = !canReverse('redo');
         redo.dataset.tip = undoTip('redo');
     }
+
+    const list = document.getElementById('table-undo-list-btn');
+    if (list) list.disabled = !canOpenList();
+}
+
+/**
+ * The history button is lit whenever the undo stack holds anything, including when undo itself is
+ * dark after a view change: that pairing is how the table says "nothing from this visit, but there
+ * is history". plans/table-delete-column.md §17.2.
+ * @returns {boolean}
+ */
+function canOpenList() {
+    return appState.undoStack.length > 0 && !appState.bulkWriteInFlight;
 }
 
 /** The fallback tooltips, for a stack with nothing on it — a disabled button shows none anyway. */

@@ -21,6 +21,7 @@ import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResize
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleColumnDeleteProperty } from './ui-functions-click/column-delete-property.js';
+import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
@@ -199,6 +200,9 @@ const clickActionHandlers = {
     'column-hide': handleColumnHide,
     'column-delete-menu': handleColumnMenuDelete,
     'column-delete-property': handleColumnDeleteProperty,
+    'undo-list': handleUndoListOpen,
+    'undo-list-item': handleUndoListItem,
+    'undo-list-clear': handleUndoListClear,
     'column-change-type': handleColumnChangeType,
     'close-column-type': handleCloseColumnType,
     'column-type-set': handleColumnTypeSet,

@@ -36,3 +36,19 @@
     opacity: 0.5;
     transition: opacity 0.15s ease;
 }
+
+/* A thumb aiming for the history button and landing a little off lands on nothing: under a coarse
+   pointer an invisible ::after takes the target to about 44px, growing up, down and to the right —
+   never over redo, which the row's 8px gap already keeps it from reaching on the left. The same
+   trick the selected cell's press strip uses. plans/table-delete-column.md §17.2. */
+@media (pointer: coarse) {
+    #table-undo-list-btn {
+        position: relative;
+    }
+
+    #table-undo-list-btn::after {
+        content: "";
+        position: absolute;
+        inset: -7px -10px -7px -4px;
+    }
+}

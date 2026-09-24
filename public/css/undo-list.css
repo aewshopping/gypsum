@@ -1,0 +1,92 @@
+/* The undo list, hanging under the history button at the end of the table's control row.
+
+   Everything it shares with the column menu — background, border, shadow, backdrop, item rows and
+   the small-screen bottom sheet — is .app-menu's, in menu.css. What is here is where it hangs from,
+   and the rows: a name that wraps, a time that does not, the "earlier" divider, and the clear row
+   that stays in view while the rows scroll. plans/table-delete-column.md §17.6.
+
+   Anchored to the button itself: the control row carries no transform, so the proxy the column menu
+   needs is not needed here. tooltip.js adds its own name beside this one rather than replacing it. */
+
+#table-undo-list-btn {
+    anchor-name: --undo-list-anchor;
+}
+
+#undo-list {
+    position: fixed;
+    max-width: 22rem;
+}
+
+/* Above the small-screen breakpoint only, as menu.css requires of every menu: below it the list is
+   a sheet across the bottom, and an id-level rule here would outrank the sheet's insets. */
+@media (min-width: 601px) {
+    #undo-list {
+        position-anchor: --undo-list-anchor;
+        inset: auto;
+        top: anchor(bottom);
+        right: anchor(right);
+        margin: 4px 0 0;
+    }
+}
+
+/* About twelve rows, then it scrolls inside itself. */
+.undo-list-rows {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(12 * 2.3em);
+    overflow-y: auto;
+}
+
+.undo-list-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    white-space: normal;   /* a long property name wraps rather than widening the list */
+}
+
+.undo-list-name {
+    flex: 1;
+    overflow-wrap: anywhere;
+}
+
+.undo-list-time {
+    flex: none;
+    white-space: nowrap;
+    opacity: 0.6;
+    font-size: 0.9em;
+}
+
+/* Where Ctrl+Z's reach ends: a thin rule with a small muted label. */
+.undo-list-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    font-size: 0.8em;
+    opacity: 0.6;
+
+    &::after {
+        content: "";
+        flex: 1;
+        border-top: 1px solid currentColor;
+    }
+}
+
+.undo-list-clear {
+    border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    margin-top: 4px;
+}
+
+/* On the sheet the table stays in sight above it, and a tap on the backdrop dismisses it. */
+@media (max-width: 600px) {
+    #undo-list {
+        max-width: none;
+        max-height: 70vh;
+    }
+
+    .undo-list-rows {
+        max-height: none;
+        flex: 1;
+        min-height: 0;
+    }
+}

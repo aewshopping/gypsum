@@ -276,3 +276,61 @@ test('a folder load is refused mid-delete, and every write lands in the first fo
   const after = await files(page);
   for (const [name, text] of Object.entries(AFTER)) expect(after[name], name).toBe(text);
 });
+
+// ---------------------------------------------------------------- the undo list, §10
+
+/** Opens the undo list and presses the row naming `name`. */
+async function undoFromList(page, name) {
+  await page.locator('#table-undo-list-btn').click();
+  await page.locator('#undo-list .undo-list-row', { hasText: name }).click();
+}
+
+test('a delete undone from the list keeps a later edit, and refuses a note that has the key again', async ({ page }) => {
+  await openTable(page);
+  await deletePeople(page);
+  await expect(reportLine(page)).toContainText('deleted people');
+
+  await page.evaluate(async () => {
+    const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
+    await applyCellEdits([{ internalId: 'flow.md', property: 'status', text: 'later' }]);
+    // people comes back into last.md from somewhere else, as another editor would put it
+    window.__files['last.md'] = window.__files['last.md'].replace('status: draft\n', 'status: draft\npeople: new\n');
+  });
+
+  await undoFromList(page, 'people column delete');
+  await expect(reportLine(page)).toContainText('undo: people column delete in 7 files — 6 values, 1 fail');
+
+  const after = await files(page);
+  expect(after['flow.md']).toBe('---\nstatus: later\npeople: [ann, bob]\nnote: x\n---\n# Flow\n');
+  expect(after['last.md']).toBe('---\nstatus: draft\npeople: new\n---\n# Last\n');
+  for (const name of ['block.md', 'quoted.md', 'only.md', 'bare.md', 'crlf.md']) expect(after[name], name).toBe(NOTES[name]);
+});
+
+test('a delete is undone from the list after the folder is loaded again', async ({ page }) => {
+  await openTable(page);
+  await deletePeople(page);
+  await expect(reportLine(page)).toContainText('deleted people');
+
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  // A fresh visit: the key does not reach back past it, and the list does.
+  await expect(page.locator('#table-undo-btn')).toBeDisabled();
+  await undoFromList(page, 'people column delete');
+  await expect(reportLine(page)).toContainText('undo: people column delete');
+  expect(await files(page)).toEqual(NOTES);
+});
+
+test('"clear undo history" writes empty stacks', async ({ page }) => {
+  await openTable(page);
+  await deletePeople(page);
+  await expect(reportLine(page)).toContainText('deleted people');
+
+  await page.locator('#table-undo-list-btn').click();
+  await page.locator('#undo-list [data-action="undo-list-clear"]').click();
+  await expect(page.locator('#modal-unsaved-warning-text')).toContainText('The 1 change in the list can no longer be undone');
+  await page.click('[data-action="warning-proceed"]');
+
+  await expect.poll(async () => JSON.parse(await page.evaluate(() => window.__saved['undo.gypsum'])))
+    .toEqual({ undoVersion: 1, undo: [], redo: [] });
+  await expect(page.locator('#table-undo-list-btn')).toBeDisabled();
+});
