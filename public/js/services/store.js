@@ -31,7 +31,7 @@ export const appState = {
         onlyProperties: " press / for search "
       }
     },
-    excludedProperties: ["handle", "contentPeek", "errorOnLoad"],
+    excludedProperties: ["handle", "contentPeek", "fileIssues"],
     filters: new Map(),
     results: new Map(),
     matchingFiles: new Map()
@@ -175,7 +175,7 @@ export const FILE_PROPERTIES = new Map([
   ['internalLinkText', {label: 'link text', type: 'array', column_width: 250, display_order: 11 }],
   ['filepath', { type: 'string', column_width: 300, display_order: 13 }],
   ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 14 }],
-  ['errorOnLoad', { label: 'load error', type: 'string', column_width: 200, display_order: 15 }],
+  ['fileIssues', { label: 'issues', type: 'string', column_width: 200, display_order: 15 }],
 ]);
 
 /**
@@ -198,7 +198,7 @@ export const FILE_PROPERTIES = new Map([
  * @type {string[]}
  */
 export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',
-  'tags', 'color', 'internalLink', 'internalLinkText', 'lastModified', 'errorOnLoad', 'filepath',
+  'tags', 'color', 'internalLink', 'internalLinkText', 'lastModified', 'fileIssues', 'filepath',
   'internalId'];
 
 /**
@@ -265,8 +265,8 @@ export const TABLE_VIEW_COLUMNS = {
   //
   // filename and filepath are deliberately absent: renaming from the table is wanted later, and
   // editing a filepath would move the file, so both may become editable.
-  info_columns: ['internalId', 'sizeInBytes', 'lastModified', 'errorOnLoad'],
-  hidden_by_default: ['color', 'filepath', 'internalLink', 'internalLinkText', 'errorOnLoad'],
+  info_columns: ['internalId', 'sizeInBytes', 'lastModified', 'fileIssues'],
+  hidden_by_default: ['color', 'filepath', 'internalLink', 'internalLinkText', 'fileIssues'],
   current_props: [],
   columnLayout: new Map(),
 };

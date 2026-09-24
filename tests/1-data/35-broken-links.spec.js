@@ -7,14 +7,14 @@ const { setupMockFilesWithLinks, setupMockFiles, loadFolder, showFilenames } = r
 // broken link with unreadable front matter, and front-matter-links.md, whose broken link is
 // declared in a YAML value rather than in the body — which is the point of it being here.
 
-test('broken links are counted into errorOnLoad, and the nudge filters to those files', async ({ page }) => {
+test('broken links are counted into fileIssues, and the nudge filters to those files', async ({ page }) => {
   await setupMockFilesWithLinks(page);
   await page.goto('/');
   await loadFolder(page);
 
   const errors = await page.evaluate(() =>
     window.appState.myFiles
-      .map(file => [file.filename, file.errorOnLoad])
+      .map(file => [file.filename, file.fileIssues])
       .sort((a, b) => a[0].localeCompare(b[0]))
   );
 

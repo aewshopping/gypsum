@@ -12,7 +12,7 @@
  */
 
 /** The property a nudge filters on: the one that reports what is wrong with a file. */
-const ISSUES_PROPERTY = 'errorOnLoad';
+const ISSUES_PROPERTY = 'fileIssues';
 
 /** How long the action half stays before it goes. Long enough to read twice, short enough to leave. */
 const ACTION_MS = 5000;

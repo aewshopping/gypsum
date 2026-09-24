@@ -72,7 +72,7 @@ export function isInfoColumn(name) {
  *
  * Two reasons they may not, and both are facts about the column rather than about one value:
  *
- * - **the app fills the column in** — the size, the last modified date, the load error
+ * - **the app fills the column in** — the size, the last modified date, the file issues
  * - **the property does not come from a note's front matter** — everything in CORE_FILE_PROPERTIES,
  *   which is `title`, `filename`, `filepath`, `tags`, `color`, `internalLink`, `internalLinkText`
  *   and the file-system columns. Their types are the app's: `tags` is always a list and

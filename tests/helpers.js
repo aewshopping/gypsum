@@ -561,7 +561,7 @@ async function setupMockFilesWithLinks(page) {
         ].join('\n')),
         makeFile('ambig.txt', 'The .txt one, which an extensionless link should prefer.'),
         makeFile('ambig.md', '# Ambig\n\nThe .md one.'),
-        // Both faults at once, so errorOnLoad carries a yaml and a links segment together.
+        // Both faults at once, so fileIssues carries a yaml and a links segment together.
         // Appended, never prepended: myFiles[0] is what registers the properties.
         makeFile('both-faults.md', [
           '---',
@@ -634,12 +634,12 @@ async function setupMockFilesLongName(page) {
 /**
  * Injects a mock version of window.showDirectoryPicker into the page before the app's
  * JavaScript runs. Two of the three files have front matter the forgiving YAML parser cannot
- * fully read, so the load-error nudge and the errorOnLoad property both have something to
+ * fully read, so the load-error nudge and the fileIssues property both have something to
  * report.
  *
  *   - broken-yaml.md: two unreadable lines (no colon, and no parent key for the list item)
  *   - half-broken.md: one unreadable line, alongside front matter that parses fine
- *   - clean-yaml.md:  front matter that reads cleanly, so errorOnLoad stays null
+ *   - clean-yaml.md:  front matter that reads cleanly, so fileIssues stays null
  *
  * @param {import('@playwright/test').Page} page
  */

@@ -290,7 +290,7 @@ test('the new shapes register as properties when a folder is loaded', async ({ p
 
   const files = await page.evaluate(() =>
     window.appState.myFiles
-      .map(file => ({ name: file.filename, status: file.status ?? null, people: file.people ?? null, error: file.errorOnLoad }))
+      .map(file => ({ name: file.filename, status: file.status ?? null, people: file.people ?? null, error: file.fileIssues }))
       .sort((a, b) => a.name.localeCompare(b.name))
   );
 

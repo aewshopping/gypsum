@@ -2,11 +2,11 @@ import { appState } from '../store.js';
 import { resolveNoteName } from '../internal-links/note-name-index.js';
 
 /**
- * @file Owns errorOnLoad: every check that can flag a file, and the string they share.
+ * @file Owns fileIssues: every check that can flag a file, and the string they share.
  *
  * One segment per check, joined with ' | ' and led by the word the property search filters
- * on — 'yaml: 2 lines skipped | links: 1 broken' answers to both errorOnLoad:yaml and
- * errorOnLoad:links, and is what the load-message nudges click through to.
+ * on — 'yaml: 2 lines skipped | links: 1 broken' answers to both fileIssues:yaml and
+ * fileIssues:links, and is what the load-message nudges click through to.
  *
  * Checks come in two kinds:
  *   - parse-time, needing detail that exists only while the file is being read (yaml).
@@ -70,7 +70,20 @@ export function yamlSegment(parseErrors, shadowedKeys) {
  * @returns {boolean}
  */
 export function hasYamlError(file) {
-    return (file.errorOnLoad ?? '').split(' | ').some(segment => segment.startsWith('yaml:'));
+    return hasIssue(file, 'yaml');
+}
+
+/**
+ * Whether a file's issues carry a segment of this kind. By the segment's leading word, never by a
+ * substring of the whole string: a later segment's text — a property name in an undo refusal, say —
+ * could contain the word and make a count claim a file it does not have.
+ *
+ * @param {object} file - A file object from appState.myFiles.
+ * @param {string} kind - The segment's leading word: 'yaml', 'links' or 'undo'.
+ * @returns {boolean}
+ */
+export function hasIssue(file, kind) {
+    return (file.fileIssues ?? '').split(' | ').some(segment => segment.startsWith(`${kind}:`));
 }
 
 /**
@@ -88,7 +101,7 @@ function linkSegment(file) {
 }
 
 /**
- * Re-runs the collection-time checks over one file and rewrites its errorOnLoad. Call it
+ * Re-runs the collection-time checks over one file and rewrites its fileIssues. Call it
  * wherever a file object is built or rebuilt. Safe to re-run: each segment is replaced
  * rather than appended, so a count can fall or clear — fixing one of two broken links
  * leaves 'links: 1 broken' instead of wiping the lot.
@@ -98,12 +111,12 @@ function linkSegment(file) {
 export function checkFileErrors(file) {
     // Parse-time segments are already fresh: file-info.js rewrites them on every rebuild.
     // Only the collection-time segments listed below are recomputed here.
-    const kept = (file.errorOnLoad ?? '')
+    const kept = (file.fileIssues ?? '')
         .split(' | ')
         .filter(segment => segment.startsWith('yaml:'));
 
     const segments = [...kept, linkSegment(file)].filter(Boolean);
-    file.errorOnLoad = segments.length > 0 ? segments.join(' | ') : null;
+    file.fileIssues = segments.length > 0 ? segments.join(' | ') : null;
 }
 
 /**

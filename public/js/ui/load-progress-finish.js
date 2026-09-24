@@ -1,7 +1,7 @@
 /**
  * Builds the phrases appended to the finished-load message when something went wrong.
  *
- * The yaml and broken-link phrases are clickable: each runs an `errorOnLoad:` filter through
+ * The yaml and broken-link phrases are clickable: each runs an `fileIssues:` filter through
  * the usual property-filter pathway, narrowing the list to those files. Both counts are taken
  * with the same test their filter uses, so each number is exactly what its own click shows —
  * but a file with both faults is counted in both, so the two phrases can overlap. The
@@ -19,7 +19,7 @@ function renderLoadProblems(yamlErrors, brokenLinks, unreadable) {
     if (yamlErrors > 0) {
         const plural = yamlErrors === 1 ? '' : 's';
         html += ` | <span class="load-error-nudge" data-action="property-filter"`
-            + ` data-property="errorOnLoad" data-value="yaml"`
+            + ` data-property="fileIssues" data-value="yaml"`
             + ` data-tip="show the ${yamlErrors} file${plural} with unreadable yaml">`
             + `${yamlErrors} yaml error${plural}</span>`;
     }
@@ -27,7 +27,7 @@ function renderLoadProblems(yamlErrors, brokenLinks, unreadable) {
     if (brokenLinks > 0) {
         const plural = brokenLinks === 1 ? '' : 's';
         html += ` | <span class="load-error-nudge" data-action="property-filter"`
-            + ` data-property="errorOnLoad" data-value="links"`
+            + ` data-property="fileIssues" data-value="links"`
             + ` data-tip="show the ${brokenLinks} file${plural} with broken internal links">`
             + `${brokenLinks} broken link${plural}</span>`;
     }

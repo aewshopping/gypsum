@@ -14,7 +14,7 @@ import { frontMatterLinks } from './front-matter-links.js';
 // app-owned data — a bogus `handle` alone breaks save, rename, delete and content search. `tags`
 // is handled separately below, merged into the TagMap rather than dropped.
 export const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'internalId',
-                       'contentPeek', 'internalLink', 'internalLinkText', 'errorOnLoad',
+                       'contentPeek', 'internalLink', 'internalLinkText', 'fileIssues',
                        'lastModified'];
 
 
@@ -91,7 +91,7 @@ export async function getFileDataAndMetadata(handle, loadOrder, knownText) {
         lastModified: new Date(file.lastModified),
         ...(yamlData),
         // Null rather than absent when the front matter read cleanly, for the same reason as above.
-        errorOnLoad: yamlSegment(yamlErrors, shadowedKeys),
+        fileIssues: yamlSegment(yamlErrors, shadowedKeys),
     };
 
 }

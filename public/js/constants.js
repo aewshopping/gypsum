@@ -65,7 +65,7 @@ export function isDateType(type) {
 
 /**
  * The type the app gives a column it fills in itself — the file link, the size, the last modified
- * date and the load error. Nobody chooses it and nobody can edit those cells.
+ * date and the file issues. Nobody chooses it and nobody can edit those cells.
  *
  * **Deliberately not inside VALUE_TYPES**, and it must stay outside, because that list does two
  * jobs this one must not join: it fills the type dialog, and it is the set of names a layout file
