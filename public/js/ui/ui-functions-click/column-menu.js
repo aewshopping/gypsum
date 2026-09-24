@@ -26,7 +26,7 @@ import { applySortAndRender } from './sort-object.js';
 import { openColumnTypeDialog } from './column-type-set.js';
 import { deleteColumnFromLayout } from './column-delete.js';
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
-import { isTypeSettable, setPropertyType, propertyType } from '../../services/property-type.js';
+import { isTypeSettable, setPropertyType, propertyType, isPropertyDeletable } from '../../services/property-type.js';
 import { VALUE_TYPES } from '../../constants.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../layout-save-state.js';
@@ -165,18 +165,21 @@ export function handleColumnMenuOpen(evt, headerCell) {
     const typeItem = menu.querySelector('[data-action="column-change-type"]');
     if (typeItem) typeItem.disabled = noType;
 
-    // Hidden rather than greyed out, unlike every other item here. A column with values has nothing
-    // to delete, and a bin sitting inert on every column reads as something withheld.
+    // The last two items are hidden rather than greyed out, unlike every other item here, and at
+    // most one of them shows: "remove from layout" on an empty column, "delete column" on one with
+    // values. Whether the column is empty is the attribute the header drew itself with, so the menu
+    // and the heading cannot disagree — and it is the same question with opposite answers, which is
+    // why the two never meet. plans/table-delete-column.md §4.1.
     //
-    // Both questions are answered elsewhere and only read back here. Whether the column is empty is
-    // the attribute the header drew itself with, so the menu and the heading cannot disagree; and a
-    // layout is what a column is deleted from, so under the app's defaults there is nothing to
-    // delete it from — "hide column", just above, is the answer there.
-    const deleteItem = menu.querySelector('[data-action="column-delete-menu"]');
-    if (deleteItem) {
-        deleteItem.hidden = !headerCell.hasAttribute('data-empty')
-                         || appState.tableLayouts.active === null;
-    }
+    // A layout is what a column is removed from, so under the app's defaults there is nothing to
+    // remove it from — "hide column", above, is the answer there. And only a property the user
+    // made can be deleted from the notes: a column the app fills in would still stand. §3.
+    const isEmpty = headerCell.hasAttribute('data-empty');
+    const removeItem = menu.querySelector('[data-action="column-delete-menu"]');
+    if (removeItem) removeItem.hidden = !isEmpty || appState.tableLayouts.active === null;
+
+    const deleteItem = menu.querySelector('[data-action="column-delete-property"]');
+    if (deleteItem) deleteItem.hidden = isEmpty || !isPropertyDeletable(property);
 
     nameSortItems(menu, property);
 
@@ -209,8 +212,9 @@ export function handleColumnHide() {
 }
 
 /**
- * Removes the menu's column from the saved layout — the same thing the column picker's bin does, and
- * the same function.
+ * "remove from layout": removes the menu's column from the saved layout — the same thing the column
+ * picker's bin does, and the same function. It touches no note; "delete column" is the item that
+ * does, and the two are never offered on the same column.
  *
  * Offered only on a column nothing fills in, which is why it can be this short: no note is opened
  * and no value is lost, so the column can come back from the picker the moment some file carries the

@@ -14,11 +14,6 @@ import { markUndoState } from '../ui-functions-table/render-table-controls.js';
  * plans/table-undo-stack.md §12.
  */
 
-// Undo reads files and writes them, so a second press landing mid-flight would check the file
-// against bytes the first has not written yet — the exact race `expect` exists to close, reopened
-// from the other end. §10.4.
-let inFlight = false;
-
 /**
  * Whether an undo or redo can be asked for at all.
  *
@@ -30,7 +25,11 @@ let inFlight = false;
  * @returns {boolean}
  */
 export function canReverse(direction) {
-    if (inFlight || appState.viewState !== VIEWS.TABLE.value) return false;
+    // Undo reads files and writes them, so a second press landing mid-flight would check the file
+    // against bytes the first has not written yet — the exact race `expect` exists to close,
+    // reopened from the other end. The flag is appState's so a column delete and an undo cannot
+    // overlap either. §10.4 of plans/table-undo-stack.md, §11 of plans/table-delete-column.md.
+    if (appState.bulkWriteInFlight || appState.viewState !== VIEWS.TABLE.value) return false;
 
     return (direction === 'undo' ? appState.undoStack : appState.redoStack).length > 0;
 }
@@ -43,7 +42,7 @@ export function canReverse(direction) {
 export async function reverseCellEdits(direction) {
     if (!canReverse(direction)) return;
 
-    inFlight = true;
+    appState.bulkWriteInFlight = true;
     markUndoState();
     try {
         const { applied, refused, batch } = await reverseBatch(direction);
@@ -53,7 +52,7 @@ export async function reverseCellEdits(direction) {
         flashUndoneCells(applied, refused);
         reportUndo(direction, describeBatch(batch), applied.length, refused.length);
     } finally {
-        inFlight = false;
+        appState.bulkWriteInFlight = false;
         markUndoState();
     }
 }

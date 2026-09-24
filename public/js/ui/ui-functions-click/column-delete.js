@@ -33,7 +33,7 @@ export async function deleteColumnFromLayout(property) {
     const confirmed = await showWarningModal(
         `Remove the "${property}" column from the '${active}' layout? ` +
         `The loaded folder has no values for this property.`,
-        'remove column', 'cancel');
+        'remove from layout', 'cancel');
     if (!confirmed) return false;
 
     TABLE_VIEW_COLUMNS.columnLayout.delete(property);

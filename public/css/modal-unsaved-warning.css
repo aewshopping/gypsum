@@ -16,6 +16,11 @@
 
 #modal-unsaved-warning p {
     margin: 0 0 20px;
+
+    /* The text is set with textContent, which is right — names in it come from notes — but a
+       newline in it would otherwise collapse into a space. pre-line keeps them and still wraps a
+       long line, so a single-line confirmation reads as it always did. */
+    white-space: pre-line;
 }
 
 #modal-unsaved-warning::backdrop {

@@ -27,3 +27,12 @@
     border-radius: 6px;
     border: none;
 }
+
+/* While a column delete runs, the table and its control row are inert. Inert on its own is
+   invisible, and a table that looks usable but ignores every click reads as a hang — so both fade.
+   The report line above sits outside both and stays readable. plans/table-delete-column.md §17.5. */
+#output[inert],
+#output-controls[inert] {
+    opacity: 0.5;
+    transition: opacity 0.15s ease;
+}

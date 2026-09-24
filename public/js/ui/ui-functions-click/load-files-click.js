@@ -14,6 +14,14 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from '../event-listeners-add.js';
 import { loadUndoStacks } from '../../table-undo/undo-stacks.js';
 
+// A column delete across a folder runs for seconds, and the sidebar's load buttons are outside the
+// inert table. Loading a folder meanwhile is refused outright, and closing the tab asks first — the
+// journal makes a closed tab safe, this makes it rare. The same guard rename-file.js raises.
+// plans/table-delete-column.md §6.2a.
+window.addEventListener('beforeunload', (evt) => {
+    if (appState.bulkWriteInFlight) evt.preventDefault();
+});
+
 /**
  * Opens the folder picker and loads the chosen directory.
  * The picker must be reached without awaiting anything first, so the click's user
@@ -21,6 +29,7 @@ import { loadUndoStacks } from '../../table-undo/undo-stacks.js';
  * @returns {Promise<void>}
  */
 export async function handleLoadFolder() {
+    if (appState.bulkWriteInFlight) return;
     const btn = document.getElementById('btn_loadDirectoryHandles');
     let minDuration;
     try {
@@ -43,6 +52,7 @@ export async function handleLoadFolder() {
  * @returns {void}
  */
 export function handleLoadOPFS() {
+    if (appState.bulkWriteInFlight) return;
     loadAndProcess(loadFromOPFS, 'btn-load-opfs');
 }
 
@@ -52,6 +62,7 @@ export function handleLoadOPFS() {
  * @returns {Promise<void>}
  */
 export async function handleImportOPFS() {
+    if (appState.bulkWriteInFlight) return;
     const btn = document.getElementById('btn-import-opfs');
     btn.classList.add('loading');
     appState.myFiles = [];

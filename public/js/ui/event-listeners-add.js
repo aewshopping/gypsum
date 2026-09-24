@@ -20,6 +20,7 @@ import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handle
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
+import { handleColumnDeleteProperty } from './ui-functions-click/column-delete-property.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
@@ -197,6 +198,7 @@ const clickActionHandlers = {
     'column-type-open': handleColumnTypeMenuOpen,
     'column-hide': handleColumnHide,
     'column-delete-menu': handleColumnMenuDelete,
+    'column-delete-property': handleColumnDeleteProperty,
     'column-change-type': handleColumnChangeType,
     'close-column-type': handleCloseColumnType,
     'column-type-set': handleColumnTypeSet,
