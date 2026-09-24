@@ -731,7 +731,8 @@ Each step ships on its own and leaves the app working.
 2. **Faster batches, and the lock the table shows.** The write refuses a note with a shadowed reserved
    key as well as one with a skipped line (§5.1); level 1: a note with `filename:` in its front
    matter is not written by a cell edit's path or an undo, and every other note in the batch is.
-   Then the concurrency pool, the refresh taking the written text, the handles fixed
+   It opens with one commit of moves and nothing else — `undo-cell-edits.js` into `table-undo/`, and
+   `applyRawEdits` into `editing/apply-raw-edits.js` (§15.1). Then the concurrency pool, the refresh taking the written text, the handles fixed
    at the start of the batch (§6.2a), the id `Map`, the missing-file skip (§8.4), and `onProgress`.
    The speed-ups add no behaviour, so the existing level-1 and undo specs hold it, plus §6.3's call-count test.
 3. **Keys put back in place.** `anchor` on removal records, `keySplice` honouring it (§12). Level-1
@@ -781,43 +782,107 @@ long property name; the progress line mid-delete; the undo list in both themes; 
 
 ## 15. Where the code goes
 
-| file | new? | why |
-|---|---|---|
-| `public/js/ui/ui-functions-click/column-delete-property.js` | **new** | the action: count, confirm, two passes, report. One file per user action |
-| `public/js/editing/describe-batch.js` | **new** | a batch's name, §7.2 |
-| `public/js/editing/undo-file.js` | **new** | `undo.gypsum` read, validate, write one at a time; `renameInUndoStacks` — §8 |
-| `public/js/ui/ui-functions-click/undo-list.js` | **new** | the popover: open, draw rows, a row's press, clear history — §10 |
-| `public/css/undo-list.css` | **new** | the popover's rows, time column, divider and scroll — §17.6. A new component gets its own file |
-| `public/css/column-menu.css` | edit | the delete item's rule and warning colour — §17.3 |
-| `public/css/output-controls.css` | edit | the history button's coarse-pointer target; the faded inert table — §17.2, §17.5 |
-| `public/css/modal-unsaved-warning.css` | edit | `white-space: pre-line` on its text — §17.4 |
-| `public/js/editing/save-cell-edit.js` | edit | refuse a shadowed reserved key as well (§5.1); pool, `write: false`, `onProgress`, missing-file skip, handles fixed per batch, `anchor` and `keepKey` through to the splice; `applyCellEdits` passes `kind` |
-| `public/js/editing/front-matter-splice.js` | edit | `keySplice` takes an anchor, a re-created anchor, and `keepKey` — §12, §5.2 |
-| `public/js/editing/save-file-copy.js` | edit | take the `.gypsum` handle and the file's own handle rather than looking either up — §6.2a |
-| `public/js/editing/refresh-file-state.js` | edit | take the written text instead of re-reading — §6.2 |
-| `public/js/editing/undo-cell-edits.js` | edit | `reverseBatch(direction, index)`, `kind`/`property` on push, save after each change |
-| `public/js/editing/rename-file.js` | edit | call `renameInUndoStacks`, which also rekeys `undoRefusals` |
-| `public/js/services/property-type.js` | edit | `isPropertyDeletable` |
-| `public/js/services/store.js` | edit | `UNDO_DEPTH = 100`, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`; `errorOnLoad` → `fileIssues` |
-| `public/js/services/file-parsing/file-errors.js` | edit | the `undo:` segment from `appState.undoRefusals`; the rename |
-| `public/js/services/file-parsing/file-info.js` | edit | export `RESERVED_KEYS`; the rename, in the builder and `RESERVED_KEYS` |
-| `public/js/ui/load-progress-finish.js`, `services/directory-handler.js`, `backup/opfs-import.js` | edit | the rename; counts by segment prefix |
-| `public/js/ui/ui-functions-click/view-change.js` | edit | set `undoHorizon` |
-| `public/js/constants.js` | edit | the `undo.gypsum` filename beside the other two |
-| `public/js/ui/ui-functions-click/column-menu.js` | edit | show one of the two items; the new handler |
-| `public/js/ui/ui-functions-click/column-delete.js` | edit | "remove" wording in the confirm |
-| `public/js/ui/ui-functions-click/undo-cell-edit.js` | edit | in-flight flag moves to `appState`; `canReverse` checks the horizon; each reversal replaces `undoRefusals` |
-| `public/js/ui/ui-functions-click/load-files-click.js` | edit | load the stacks instead of clearing them; refuse a load while `bulkWriteInFlight` |
-| `public/js/ui/ui-functions-click/warning-modal.js` | edit | an optional argument naming which button takes focus — §17.4 |
-| `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the history button; `markUndoState` sets `data-tip` and lights it |
-| `public/js/ui/ui-functions-render/output-report.js` | edit | the progress text and the delete's result line |
-| `public/js/ui/event-listeners-add.js` | edit | `column-delete-property`, `undo-list`, `undo-list-item`, `undo-list-clear` |
-| `index.html` | edit | the new menu item, the renamed one, the undo list popover, `#icon-undo-history` in the sprite |
-| `public/style.css` | edit | import `undo-list.css` |
-| `tests/1-data/…` | edit / new | the file-level checks of steps 2, 3, 5, 6 — in the existing undo and cell-writing specs where they fit |
-| `tests/2-behaviour/40-column-menu.spec.js` | edit | the menu and dialog checks of step 6 |
-| `tests/2-behaviour/19-undo-redo-buttons.spec.js` | edit | the list checks of step 7, and the refusal marks of step 9 |
-| `tests/1-data/52-table-undo-stack.spec.js` | edit | what reaches the disk: the saved stack, the journal, a list undo's writes |
+### 15.1 The shape: a `table-undo/` folder, and a service under every new action
+
+**Undo gets a folder of its own, `public/js/table-undo/`, beside `history/` and `table-layouts/`.**
+Those two are the precedent: each owns one `.gypsum` file and the logic around it, and neither is
+buried in `editing/` or `services/`. Undo is now the same kind of thing — a file on disk, two stacks,
+a writer, a name for each entry, the refusals — and it grows from one module to five. Left in
+`editing/`, it would be five files that only make sense together scattered among sixteen that do not
+concern them. Named `table-undo/` rather than `undo/` because the note editor has an undo of its own
+(`editor-undo.js`) that this has nothing to do with.
+
+**`undo-cell-edits.js` moves into it, renamed `undo-stacks.js`.** It no longer holds only cell edits,
+and "the stacks" is what it is. The move is its own commit at the start of step 2, with nothing else
+in it, so the diff is paths only.
+
+**Every new action is a thin handler over a service**, as CLAUDE.md's three layers require. The
+plan first had the delete's count, confirm, two passes and report all in one click file; the passes
+and the count are business logic and do not touch the DOM, so they go to `editing/`, and the click
+file is left with the dialog, the inert table and the report. The same split applies to the undo
+list: the click file opens and presses, a renderer draws the rows.
+
+**`applyRawEdits` moves out of `save-cell-edit.js` into `editing/apply-raw-edits.js`.** It is the
+one writer every table batch goes through — cell edits, undo, the delete, later paste and the linked
+write — and this plan adds a pool, `write: false`, `onProgress`, fixed handles, the widened lock,
+`anchor` and `keepKey` to it. At 278 lines the file already holds two layers (CLAUDE.md: "the split is
+load-bearing"); giving each layer its own file makes that split visible in `ls`. `changedItem`
+travels with it, being only its concern. `save-cell-edit.js` keeps `applyCellEdits`: types and
+format. Same commit as the move above.
+
+**No new helpers for one caller.** The concurrency pool is a dozen lines inside
+`apply-raw-edits.js`; the relative time (`2 min`, `yesterday`) is inside the undo list's renderer.
+Each moves out on the day a second caller needs it, not before.
+
+### 15.2 The files
+
+**New**
+
+| file | what it holds |
+|---|---|
+| `public/js/table-undo/undo-stacks.js` | moved from `editing/undo-cell-edits.js`: `pushUndoBatch(records, {kind, property})`, `reverseBatch(direction, index)`, `clearUndoStacks`, the depth cap. Asks `undo-file.js` to save after each change |
+| `public/js/table-undo/undo-file.js` | `undo.gypsum`: read and validate at load, write one at a time with the latest state (§8.2). Knows the file's shape and nothing about what an entry means |
+| `public/js/table-undo/describe-batch.js` | a batch's name from its `kind`, `property` and edits (§7.2) |
+| `public/js/table-undo/undo-refusals.js` | replace `appState.undoRefusals` after a reversal, rekey it on rename, and the set of files whose marks must be re-checked (§10.5). The segment's *text* stays in `file-errors.js`, which owns the issues string |
+| `public/js/table-undo/undo-rename.js` | `renameInUndoStacks(oldId, newId)`: both stacks and the refusals, then save (§8.4). Its own file, as `rename-backups.js` is for `history.gypsum` |
+| `public/js/editing/apply-raw-edits.js` | moved from `save-cell-edit.js`: `applyRawEdits` and `changedItem`, plus everything §5.1, §5.2, §6.2 and §6.2a add to them |
+| `public/js/editing/delete-property.js` | the delete as a service, no DOM: `deletionForecast(property)` (carrying, skipped, three sample names, from `appState`) and `deleteProperty(property, handles, onProgress)` (plan pass, journal, write pass, drop an empty batch — §5, §8.3) |
+| `public/js/ui/ui-functions-click/column-delete-property.js` | the action: forecast → dialog → `bulkWriteInFlight` and `inert` → `deleteProperty` → report. Thin |
+| `public/js/ui/ui-functions-click/undo-list.js` | open and close the popover, a row's press, "clear undo history" and its confirmation (§10) |
+| `public/js/ui/ui-functions-table/render-undo-list.js` | the rows as HTML: names, relative times, the "earlier" divider (§17.6). Beside `render-table-controls.js`, which draws the button that opens it |
+| `public/css/undo-list.css` | the popover's rows, time column, divider and scroll — §17.6. A new component gets its own file |
+
+**Moved, then edited**
+
+| from | to |
+|---|---|
+| `public/js/editing/undo-cell-edits.js` | `public/js/table-undo/undo-stacks.js` |
+| `applyRawEdits`, `changedItem` in `public/js/editing/save-cell-edit.js` | `public/js/editing/apply-raw-edits.js` |
+
+Every importer follows the move in the same commit: `undo-cell-edit.js` and `load-files-click.js`
+import the stacks; `save-cell-edit.js` and `undo-stacks.js` import the writer. No spec imports either
+module directly. The comments that name `save-cell-edit.js` as the place a key is taken out —
+`front-matter-splice.js` and `yaml-value-write.js` (twice) — are pointed at `apply-raw-edits.js`.
+
+**Edited**
+
+| file | why |
+|---|---|
+| `public/js/editing/save-cell-edit.js` | `applyCellEdits` only; passes `kind` and `property` to the push |
+| `public/js/editing/front-matter-splice.js` | `keySplice` takes an anchor, a re-created anchor, and `keepKey`; the anchor is computed here too, beside the rest of "where a key's bytes are" — §12, §5.2 |
+| `public/js/editing/save-file-copy.js` | take the `.gypsum` handle and the file's own handle rather than looking either up — §6.2a |
+| `public/js/editing/refresh-file-state.js` | take the written text instead of re-reading — §6.2 |
+| `public/js/editing/rename-file.js` | call `renameInUndoStacks` |
+| `public/js/services/property-type.js` | `isPropertyDeletable`, beside the other per-column answers |
+| `public/js/services/store.js` | `UNDO_DEPTH = 100`, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`; `errorOnLoad` → `fileIssues` |
+| `public/js/services/file-parsing/file-errors.js` | the `undo:` segment, read from `appState.undoRefusals`; the rename |
+| `public/js/services/file-parsing/file-info.js` | export `RESERVED_KEYS`; the rename |
+| `public/js/ui/load-progress-finish.js`, `services/directory-handler.js`, `backup/opfs-import.js` | the rename; counts by segment prefix |
+| `public/js/ui/ui-functions-click/view-change.js` | set `undoHorizon` |
+| `public/js/constants.js` | the `undo.gypsum` filename beside the other two |
+| `public/js/ui/ui-functions-click/column-menu.js` | show one of the two items |
+| `public/js/ui/ui-functions-click/column-delete.js` | "remove" wording in the confirm |
+| `public/js/ui/ui-functions-click/undo-cell-edit.js` | in-flight flag moves to `appState`; `canReverse` checks the horizon; hands the refusals to `undo-refusals.js` |
+| `public/js/ui/ui-functions-click/load-files-click.js` | `postLoad` async, reads the stacks and sets the horizon; refuse a load while `bulkWriteInFlight`; the `beforeunload` guard |
+| `public/js/ui/ui-functions-click/warning-modal.js` | an optional argument naming which button takes focus — §17.4 |
+| `public/js/ui/ui-functions-table/render-table-controls.js` | the history button; `markUndoState` sets `data-tip` and lights it |
+| `public/js/ui/ui-functions-render/output-report.js` | the progress text and the delete's result line |
+| `public/js/ui/event-listeners-add.js` | `column-delete-property`, `undo-list`, `undo-list-item`, `undo-list-clear` |
+| `public/css/column-menu.css` | the delete item's rule and warning colour — §17.3 |
+| `public/css/output-controls.css` | the history button's coarse-pointer target; the faded inert table — §17.2, §17.5 |
+| `public/css/modal-unsaved-warning.css` | `white-space: pre-line` on its text — §17.4 |
+| `public/style.css` | import `undo-list.css` |
+| `index.html` | the new menu item, the renamed one, the undo list popover, `#icon-undo-history` in the sprite |
+| `CLAUDE.md` | the file map gains `table-undo/`, `apply-raw-edits.js` and `delete-property.js`; `save-cell-edit.js`'s line narrows to "types and format" — step 10 |
+
+**Tests**
+
+| file | what |
+|---|---|
+| `tests/1-data/49-table-cell-writing.spec.js` | the widened lock, anchors, `keepKey` — steps 2, 3 |
+| `tests/1-data/52-table-undo-stack.spec.js` | what reaches the disk: the saved stack, one-at-a-time writes, the journal, a list undo's writes, the delete itself — steps 5, 6, 7 |
+| `tests/2-behaviour/40-column-menu.spec.js` | the menu and dialog checks of step 6 |
+| `tests/2-behaviour/19-undo-redo-buttons.spec.js` | the list checks of step 7, and the refusal marks of step 9 |
 
 ---
 
