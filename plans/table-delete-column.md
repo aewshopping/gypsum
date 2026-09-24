@@ -772,6 +772,110 @@ Each step ships on its own and leaves the app working.
    DATA-STRUCTURES.md: `undoStack`'s batch shape, `bulkWriteInFlight`, `undoHorizon`, `undoRefusals`. `table-undo-stack.md`:
    a line at the top pointing here for §9's two superseded rows.
 
+### 14.1 The tests, in one place
+
+The steps above name their tests in a line each. This is the full list, and **where the two
+disagree, this one holds.** It is weighted the way the risk is: a delete across a folder is the most
+destructive thing the app does, so most of what follows is level 1, and level 2 is kept to what the
+screen does.
+
+**Shared fixture.** One mock folder for the delete spec, where every note is there for a reason and
+says so in the spec's header comment, the way `52-table-undo-stack.spec.js` does. The mock records
+every write and every read per file (`window.__writes`, `window.__reads`), can be told to fail the
+write of a named file, and can run a hook between the two passes. The notes:
+
+| note | why it is there |
+|---|---|
+| `flow.md` | `people: [ann, bob]` between two other keys |
+| `block.md` | a block list with 4-space item indentation, and a comment after its last item |
+| `quoted.md` | `people: "ann, bob"` as the **first** key of the block |
+| `last.md` | `people` as the **last** key |
+| `only.md` | `people` as the **only** key, so the block empties to `---`/`---` |
+| `bare.md` | `people:` with nothing after it (§5.2) |
+| `crlf.md` | the whole note in CRLF line endings |
+| `lookalike.md` | `peoples:`, `People:` and `people2:` but no `people`, and a body line reading `people: x` below the block |
+| `none.md` | no front matter at all |
+| `broken.md` | `people` plus a skipped line |
+| `shadow.md` | `people` plus `filename:` in its front matter |
+| `nokey.md` | front matter without `people` |
+
+**Level 1 — node, no browser** (`appModule()`, milliseconds; the pure functions)
+
+- `keySplice` with an anchor: after a present key, after a block list's last item, `null` under the
+  opening `---`, a missing anchor falling back to the end, and an anchor re-created in the same pass
+  (§12).
+- `keySplice` with `keepKey` writes `people:` and nothing after it (§5.2).
+- The anchor recorded for a removal: first key, middle key, key after a comment, key after a block
+  list.
+- `undo-file.js` validation: good file, unparseable JSON, unknown `undoVersion`, a batch with no
+  `edits` array — the last three load as empty stacks.
+- `describeBatch`: every row of the §7.2 table, and a partial redo counting only its own edits.
+
+**Level 1 — the delete** (a new spec, `tests/1-data/54-delete-property.spec.js`: a new area)
+
+- **Every note that has the key loses it, and nothing else in it changes.** Asserted as the exact
+  expected bytes of each fixture note, not as "does not contain `people`" — a splice that took one
+  byte too many passes the weaker test.
+- **Every note without it is not written at all**: `lookalike.md`, `none.md` and `nokey.md` have no
+  entry in `window.__writes`. Unchanged bytes are not enough; a rewrite with the same bytes still
+  moves the modified time.
+- `bare.md` loses its bare key (§5.2).
+- `broken.md` and `shadow.md` are byte-identical afterwards, and counted as skipped.
+- **Undo restores every note byte for byte**, `crlf.md` and `only.md` included, and redo takes them
+  out again byte for byte. Then undo once more: the cycle is stable.
+- **After the delete the column is empty**: no file object carries `people`, and it reads as `dead`
+  (so the refresh that no longer re-reads, §6.2, still reports what the disk holds).
+- **The journal is on disk before the first note is written**: the hook between the passes reads
+  `undo.gypsum` and finds the batch with every file's `before`.
+- **A second pass cut short undoes cleanly**: fail the write of the third file and throw from the
+  fourth onward; undo restores the two that were written and refuses the rest, whose bytes are
+  unchanged.
+- **A note changed between the passes is refused, not overwritten**: the hook edits `flow.md`; it
+  keeps the edit, and the report counts it.
+- **A pass that writes nothing leaves no entry** (§8.3): every carrying file changed between the
+  passes; the undo stack is as it was.
+- **A failed verify is not recorded**: a file whose write fails is absent from the batch, so a later
+  undo does not try to "restore" a note that was never changed.
+- **A folder load is refused mid-delete**, and every write of the batch still lands in the first
+  folder (§6.2a).
+
+**Level 1 — the saved stack and the list's writes** (`52-table-undo-stack.spec.js`)
+
+- An edit, a reload of the same mock folder, an undo that reaches the file.
+- A delete, a reload, the delete undone from the list, byte for byte.
+- A corrupt `undo.gypsum` loads as empty, and the next edit writes a valid one.
+- Ten edits in quick succession leave the newest stack on disk (§8.2).
+- A rename, then an undo that still finds the note; a note deleted from disk, then an undo that
+  refuses it without throwing (§8.4).
+- **The §10.1 case, on disk**: delete `people`, edit another key in `flow.md`, undo the delete from
+  the list — `people` is back and the later edit is kept. And the other half: a note that has had
+  `people` re-added is refused and left alone.
+- The 101st batch drops the **oldest**, never the newest.
+- "Clear undo history" writes empty stacks.
+- A full backup's `undo.gypsum` survives an import, and an undo from it reaches the imported note
+  (in `25-tar-backup.spec.js`, beside the other backup tests).
+
+**Level 1 — the widened lock** (`49-table-cell-writing.spec.js`)
+
+- A note with a shadowed reserved key is not written by a cell edit's path or by an undo; every
+  other note in the same batch is (§5.1).
+
+**Level 2 — what the screen does**
+
+- `40-column-menu.spec.js`: "delete column" absent on `title`, `color`, every core column and an
+  empty column; never beside "remove from layout"; the dialog's counts, sample names and skipped
+  line; the no-delete dialog when every carrying note is unreadable; cancel has focus, and Enter
+  on open deletes nothing.
+- `19-undo-redo-buttons.spec.js`: the tooltip names the batch; undo dark after a view change and
+  after a reload while the history button stays lit; the list's rows, divider and keyboard; a row
+  press closes the list; the refusal mark appears at once, the nudge filters to exactly the refused
+  notes, a clean undo clears it, and it survives a rename.
+- While a delete runs: the table and control row are inert, the report line counts up, and it ends
+  on the result line with a clickable skipped count.
+- The call-count test of §6.3: one render, and one read per file in the refresh.
+
+**Level 3** — the screenshots listed below, at phone width and in both themes.
+
 **Check each UI step against §17**, the one list of what appears on screen.
 
 **Screenshots** at steps 4, 6, 7 and 9: the tooltip naming an undo; the warning at phone width with a
@@ -879,8 +983,10 @@ module directly. The comments that name `save-cell-edit.js` as the place a key i
 
 | file | what |
 |---|---|
-| `tests/1-data/49-table-cell-writing.spec.js` | the widened lock, anchors, `keepKey` — steps 2, 3 |
-| `tests/1-data/52-table-undo-stack.spec.js` | what reaches the disk: the saved stack, one-at-a-time writes, the journal, a list undo's writes, the delete itself — steps 5, 6, 7 |
+| `tests/1-data/49-table-cell-writing.spec.js` | the widened lock; anchors and `keepKey` through a real write; the node tests of `keySplice` and the anchor — steps 2, 3 |
+| `tests/1-data/52-table-undo-stack.spec.js` | the saved stack, one-at-a-time writes, reload, rename, the cap, clear history, a list undo's writes; the node tests of `undo-file.js` and `describeBatch` — steps 4, 5, 7 |
+| `tests/1-data/54-delete-property.spec.js` | **new**: the delete itself, against the §14.1 fixture — byte-exact results, notes left unwritten, the journal, a cut-short pass, the race between passes — step 6 |
+| `tests/1-data/25-tar-backup.spec.js` | a full backup's `undo.gypsum` survives an import — step 5 |
 | `tests/2-behaviour/40-column-menu.spec.js` | the menu and dialog checks of step 6 |
 | `tests/2-behaviour/19-undo-redo-buttons.spec.js` | the list checks of step 7, and the refusal marks of step 9 |
 
