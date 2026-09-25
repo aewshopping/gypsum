@@ -5,7 +5,7 @@
  * the ones that are filtered out or on another page; the line above the file list says *how many*,
  * and is the only thing that speaks when nothing visible changed at all. That line is not here — it
  * belongs to every view, so it lives in ui-functions-render/output-report.js. See
- * plans/table-undo-stack.md §10.2 and §10.6.
+ * plans/completed/table-undo-stack.md §10.2 and §10.6.
  */
 
 /**

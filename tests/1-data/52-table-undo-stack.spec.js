@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { loadFolder, appModule } = require('../helpers');
 
 /**
- * plans/table-undo-stack.md, end to end: edit a cell, put it back, watch the note on disk go with it.
+ * plans/completed/table-undo-stack.md, end to end: edit a cell, put it back, watch the note on disk go with it.
  *
  * What each note is for:
  *   alpha.md — an ordinary block to edit and undo, with keys either side of the one being written

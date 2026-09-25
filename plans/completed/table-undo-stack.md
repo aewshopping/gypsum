@@ -5,11 +5,13 @@
 > rather than 20 (§9 there). That plan also adds named entries, the undo list, and Ctrl+Z scoped to
 > one visit to the table.
 
-Status: **step 11a is built.** The stacks, the check, both buttons, all three key bindings, the cell
-mark and the report line all landed together — the interface of §10 as decided, and the limitations
-of §13 as accepted. **Step 11b is not built and waits for paste**, which is what makes a batch bigger
-than one and what makes §7's key removal worth paying for.
-Covered by `tests/52-table-undo-stack.spec.js`.
+Status: **built.** Step 11a landed the stacks, the check, both buttons, all three key bindings, the
+cell mark and the report line together — the interface of §10 as decided. **Step 11b was built by
+`plans/completed/table-delete-column.md`** rather than waiting for paste: a column delete is a batch
+across hundreds of notes, it needed the depth (100, not 20), and it needed a removed key to come
+back where it was. Undoing a created key now takes the key out (§7, §13.1). Paste itself is its own
+plan, `plans/table-range-paste.md`, and needs nothing more from this one.
+Covered by `tests/1-data/52-table-undo-stack.spec.js`.
 **Ctrl+Z was in scope from the start**, not a later addition — and so were both redo bindings,
 `Ctrl/Cmd+Shift+Z` and `Ctrl+Y` (§10.5). Taking the keys seriously changed both the write's signature
 (§6.2) and two of §10's answers.
@@ -243,6 +245,13 @@ hazard `table-cell-writing.md` §4.2 puts the spans inside the parser to avoid.
 ---
 
 ## 7. Undoing a key that did not exist — v1 puts the value back, not the key
+
+> **Superseded.** Clearing a cell now takes the key out (CLAUDE.md, *Writing a cell edit back to the
+> note*), so undoing a created key does the same: `before` is `''` with `existed: false`, which
+> `applyRawEdits` reads as a removal. A bare key that did exist comes back bare (`keepKey`), and a
+> removed key comes back at its `anchor`. See `plans/completed/table-delete-column.md` §5.2 and §12,
+> and the test "undoing a created key removes it, and redoing puts it back". What follows is v1's
+> reasoning.
 
 Step 4 of `table-cell-writing.md` writes a key the file never had, and may write the whole block. The
 obvious reading is that undo should take the line out again, and an earlier draft of this section said
@@ -693,6 +702,9 @@ screen.
 
 ### Step 11b — depth, the batch, and the key that has to go
 
+> **Built by `plans/completed/table-delete-column.md`**, not with paste: depth 100 (its §9), a batch
+> of many notes through a pool (its §6), key removal and re-creation in place (its §5.2, §12).
+
 Twenty batches, and a batch bigger than one. Most of it is nothing new once 11a is in: a batch of
 fifty and a batch of one take the same path, the render is already one per batch, and the report line
 already counts.
@@ -720,7 +732,7 @@ there is a reason to pay for it.
 | `public/js/editing/refresh-file-state.js` | edit | split `applyRefresh` into re-read-a-file and render, add `refreshFilesNow`, drop `refreshFileNow` — §10.2 |
 | `public/js/ui/ui-functions-cell/cell-edit-commit.js` | edit | light the buttons once a commit's batch has landed — a DOM question, so it belongs this side of the layer |
 | `public/js/ui/ui-functions-click/load-files-click.js` | edit | clear both stacks in `postLoad`, which all three load paths run |
-| `tests/52-table-undo-stack.spec.js` | **new** | the checks in §11a, plus the buttons, the report line and both marks |
+| `tests/1-data/52-table-undo-stack.spec.js` | **new** | the checks in §11a, plus the buttons, the report line and both marks |
 | `public/js/ui/event-listeners-add.js` | edit | register `table-undo` and `table-redo` |
 | `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | edit | Ctrl+Z, Ctrl/Cmd+Shift+Z and Ctrl+Y behind the three-condition guard, and exporting `isTypingTarget()` — §10.4, §10.5 |
 | `public/js/ui/ui-functions-table/render-table-controls.js` | edit | the two buttons, the spacer, the report line, and `markUndoState()` beside `markLayoutDirty()` — §10.1 |
@@ -747,6 +759,8 @@ Three accepted limitations. None of them is a question — they are recorded so 
 recognised rather than diagnosed.
 
 ### 13.1 Undo does not remove a key it created
+
+> **No longer true** — see the note at the top of §7.
 
 §7. Undoing an edit that created a property writes an empty value and leaves the key in the note, so
 the column stays registered and the note keeps a bare `status:`. **Undo is not a total inverse.** The

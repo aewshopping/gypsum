@@ -87,7 +87,7 @@ function changedItem(text, span, items) {
  * **Every file is written and only then is the list rendered, once.** A batch reaching the refresh
  * one file at a time would be a sort, a filter pass and a view transition per file, interrupting
  * one another — and the caller could not mark the cells it changed, because the rows do not exist
- * until the render has run. See plans/table-undo-stack.md §10.2.
+ * until the render has run. See plans/completed/table-undo-stack.md §10.2.
  *
  * `resort` is whether the refresh puts the files back in sort order. True by default, because a
  * written file's last modified time has moved and that is what the table is sorted by until someone

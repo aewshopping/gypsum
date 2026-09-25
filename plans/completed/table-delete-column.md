@@ -4,7 +4,7 @@ Status: **built**, steps 1–10. §14 step 1 records the measurement. Covered by
 `tests/1-data/54-delete-property.spec.js`, and by additions to the undo, cell-writing, parser,
 load-error, backup, column-menu and undo-button specs. Since `plans/completed/bare-keys-as-null.md`
 the plan pass reads only the notes that have the key (§5.2).
-Depends on: `plans/table-undo-stack.md` step 11a, **built** — the stacks, the `expect` check, the
+Depends on: `plans/completed/table-undo-stack.md` step 11a, **built** — the stacks, the `expect` check, the
 batch-shaped write and key removal are all in the tree. This plan **supersedes two of its
 decisions**: the stack is no longer kept in memory only (§8), and 20 batches is no longer the depth
 (§9). It also adds the undo list that plan never had (§10).

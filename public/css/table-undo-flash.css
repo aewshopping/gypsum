@@ -3,7 +3,7 @@
    A single-cell undo is otherwise a silent re-render: a value going back to what it was looks
    exactly like a cell nobody touched. So the cell swaps to a muted version of the app's contrast
    colour — the same mix a pressed button uses, with the same text colour over it — instantly, holds,
-   and then fades. See plans/table-undo-stack.md §10.2.
+   and then fades. See plans/completed/table-undo-stack.md §10.2.
 
    Driven entirely from here. The JS adds a class and takes it off again on animationend; it sets no
    colours and runs no timer of its own, so the three seconds the cell is marked for are stated once,

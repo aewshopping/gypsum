@@ -12,7 +12,7 @@ import { markUndoState } from '../ui-functions-table/render-table-controls.js';
  *
  * One file, because they are one action with a direction rather than two actions — the write, the
  * check, the mark and the line are identical, and only which stack is popped differs. See
- * plans/table-undo-stack.md §12.
+ * plans/completed/table-undo-stack.md §12.
  */
 
 /**
@@ -29,7 +29,7 @@ export function canReverse(direction) {
     // Undo reads files and writes them, so a second press landing mid-flight would check the file
     // against bytes the first has not written yet — the exact race `expect` exists to close,
     // reopened from the other end. The flag is appState's so a column delete and an undo cannot
-    // overlap either. §10.4 of plans/table-undo-stack.md, §11 of plans/completed/table-delete-column.md.
+    // overlap either. §10.4 of plans/completed/table-undo-stack.md, §11 of plans/completed/table-delete-column.md.
     if (!canReach()) return false;
 
     // **Only what was done in this visit to the table.** Keyboard undo means "the thing I just

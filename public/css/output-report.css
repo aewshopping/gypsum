@@ -4,7 +4,7 @@
    "count: 42 | undo: 3 values, 1 fail", the second half gone again a few seconds later. It
    counts rather than names, because it has to fit one line at phone width — and because the cells
    themselves say which values moved, leaving this to be the only thing that speaks when the rows in
-   question are filtered out or on another page. See plans/table-undo-stack.md §10.6.
+   question are filtered out or on another page. See plans/completed/table-undo-stack.md §10.6.
 
    It reads as the same kind of remark as the load message in #fileCountElement — say what happened,
    then stop mattering — so it borrows that line's voice exactly: the same size, the same interface

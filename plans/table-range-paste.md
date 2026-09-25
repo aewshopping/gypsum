@@ -4,7 +4,7 @@ Status: **not started — and should not start yet.** Depends on range select, w
 undo stack.
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
 Depends on: `plans/table-range-select-copy.md`, **not built** (and through it
-`plans/table-undo-stack.md`)
+`plans/completed/table-undo-stack.md`)
 
 ---
 

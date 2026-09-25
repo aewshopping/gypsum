@@ -24,7 +24,7 @@ import { escapeHtml } from '../ui-functions-render/escape-html.js';
  * of controls at the right-hand end of .output-header now, and the only gap that means anything on
  * that line is the one between the file count and the whole row. Their glyphs are the content
  * modal's own undo and redo, reached from the shared sprite so that one drawing serves both
- * places — see plans/table-undo-stack.md §10.1.
+ * places — see plans/completed/table-undo-stack.md §10.1.
  *
  * **Both start disabled**, and become live only when the matching stack has something on it. The
  * state is read from appState here and moved by hand by markUndoState below, because a cell edit

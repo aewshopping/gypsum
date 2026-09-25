@@ -32,7 +32,7 @@ import { pushUndoBatch } from '../table-undo/undo-stacks.js';
  *
  * **This is where an undo batch is pushed**, and deliberately not in applyRawEdits: undo calls that
  * one, so a stack pushed from down there would record the undo as something to undo. See
- * plans/table-undo-stack.md §11a.
+ * plans/completed/table-undo-stack.md §11a.
  *
  * @param {Array<{internalId: string, property: string, text: string}>} edits
  * @param {{resort?: boolean}} [options] - Passed to applyRawEdits; see there.

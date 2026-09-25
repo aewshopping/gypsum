@@ -46,7 +46,7 @@ export function refreshFileAfterSave(snapshot, resort = true) {
  * what puts them back together.
  *
  * **Awaited, and worth awaiting**: the rows the caller wants to mark do not exist until it returns.
- * That is what lets an undo flash the cells it changed — see plans/table-undo-stack.md §10.2.
+ * That is what lets an undo flash the cells it changed — see plans/completed/table-undo-stack.md §10.2.
  *
  * **A snapshot carrying `written` is not read back.** That is the text the write just verified, so
  * reading it again was a second read per file for nothing — at a thousand files, a thousand. Only

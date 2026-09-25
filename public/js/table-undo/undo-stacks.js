@@ -8,7 +8,7 @@ import { describeAction } from './describe-batch.js';
  * @file The two stacks, and putting a batch of cell edits back.
  *
  * Separate from editing/apply-raw-edits.js because this is the only module that knows an edit can be stale.
- * Everything about writing bytes stays in one place — see plans/table-undo-stack.md §12.
+ * Everything about writing bytes stays in one place — see plans/completed/table-undo-stack.md §12.
  *
  * **Undo and redo are the same operation, and the code says so.** A record means "this key's value
  * span went `before` → `after`", so reversing it is always: write `before`, having checked the span
