@@ -25,7 +25,10 @@ async function typeAtEnd(page, text) {
 
 const items = (page) => page.locator('.ac-picker-popup .ac-picker-item');
 
-const createdFiles = (page) => page.evaluate(() => [...window.__createdFiles.keys()]);
+// Notes only: the app's own files in .gypsum — the undo history a cell edit saves among them — are
+// not notes, and are not what these tests are about.
+const createdFiles = (page) => page.evaluate(() =>
+  [...window.__createdFiles.keys()].filter(path => !path.startsWith('.gypsum')));
 const openFilepath = (page) => page.evaluate(() => window.appState.openFileSnapshot?.filepath);
 
 test.describe('creating a note from an unresolved internal link', () => {

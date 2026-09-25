@@ -65,7 +65,7 @@ export function isDateType(type) {
 
 /**
  * The type the app gives a column it fills in itself — the file link, the size, the last modified
- * date and the load error. Nobody chooses it and nobody can edit those cells.
+ * date and the file issues. Nobody chooses it and nobody can edit those cells.
  *
  * **Deliberately not inside VALUE_TYPES**, and it must stay outside, because that list does two
  * jobs this one must not join: it fills the type dialog, and it is the set of names a layout file
@@ -157,6 +157,7 @@ export const DEFAULT_NODE_SHAPE = NODE_SHAPES.ROUND;
 export const SAVE_FOLDER = '.gypsum';
 export const BACKUP_FILENAME = 'history.gypsum';
 export const LAYOUTS_FILENAME = 'table_layouts.gypsum';
+export const UNDO_FILENAME = 'undo.gypsum';
 
 export let PAGINATION_SIZE = 50;
 export function setPaginationSize(n) { PAGINATION_SIZE = n; }

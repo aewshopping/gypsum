@@ -561,7 +561,7 @@ async function setupMockFilesWithLinks(page) {
         ].join('\n')),
         makeFile('ambig.txt', 'The .txt one, which an extensionless link should prefer.'),
         makeFile('ambig.md', '# Ambig\n\nThe .md one.'),
-        // Both faults at once, so errorOnLoad carries a yaml and a links segment together.
+        // Both faults at once, so fileIssues carries a yaml and a links segment together.
         // Appended, never prepended: myFiles[0] is what registers the properties.
         makeFile('both-faults.md', [
           '---',
@@ -634,12 +634,12 @@ async function setupMockFilesLongName(page) {
 /**
  * Injects a mock version of window.showDirectoryPicker into the page before the app's
  * JavaScript runs. Two of the three files have front matter the forgiving YAML parser cannot
- * fully read, so the load-error nudge and the errorOnLoad property both have something to
+ * fully read, so the load-error nudge and the fileIssues property both have something to
  * report.
  *
  *   - broken-yaml.md: two unreadable lines (no colon, and no parent key for the list item)
  *   - half-broken.md: one unreadable line, alongside front matter that parses fine
- *   - clean-yaml.md:  front matter that reads cleanly, so errorOnLoad stays null
+ *   - clean-yaml.md:  front matter that reads cleanly, so fileIssues stays null
  *
  * @param {import('@playwright/test').Page} page
  */
@@ -1193,4 +1193,92 @@ async function setupMockDirectoryWithFlowchart(page) {
   });
 }
 
-module.exports = { loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };
+/**
+ * A folder whose notes can be written, for the table's cell-writing specs: the level-1 one about
+ * what reaches the disk, and the level-2 one about the table around an edit. Three notes, plus any
+ * `extra` a test passes (name → text):
+ *   alpha.md — an ordinary block to write into, with keys either side of the one being edited.
+ *   beta.md  — front matter that does not read cleanly, so its cells are locked.
+ *   gamma.md — no front matter at all.
+ * Writes land in window.__files (notes) and window.__saved (.gypsum), and removals in
+ * window.__removed.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {Object<string, string>} [extra]
+ */
+async function setupMockCellWritingFolder(page, extra = {}) {
+  await page.addInitScript((extra) => {
+    window.__files = {
+      'alpha.md': [
+        '---',
+        'status: draft',
+        '  # a comment the parser skips',
+        'note: plain',
+        'count: 3',
+        'due: 2026-03-01',
+        'ref: "0042"',        // quoted in the note, so an edit has a style to keep
+        'people:',            // flush with its key, so replacing the value has a style to copy
+        '- John Smith',
+        '  # the one in the middle',
+        '- "Doe, Jane"',
+        'langs: [en, fr]',
+        'scores:',
+        '  - 1',
+        '  - 2',
+        '  - 10',
+        '---',
+        '# Alpha',
+        '',
+        'Body text.',
+        '',
+      ].join('\n'),
+      'beta.md': '---\nstatus: live\nextra: beta only\nthis line has no colon\n---\n# Beta\n\nBody text.\n',
+      'gamma.md': '# Gamma\n\nNo front matter here.\n',
+      ...extra,
+    };
+    window.__saved = {};
+    window.__removed = [];
+
+    const mk = (name) => ({
+      kind: 'file', name,
+      getFile: async () => ({
+        name, size: window.__files[name].length, lastModified: Date.now(),
+        text: async () => window.__files[name],
+      }),
+      createWritable: async () => ({
+        write: async (content) => { window.__files[name] = content; },
+        close: async () => {},
+      }),
+    });
+
+    // The real API throws for a file that does not exist unless create is set, which is what makes
+    // the verified write's read-back meaningful.
+    const gypsumDir = {
+      getFileHandle: async (name, options) => {
+        if (!(name in window.__saved)) {
+          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          window.__saved[name] = '';
+        }
+        return {
+          getFile: async () => ({ text: async () => window.__saved[name] }),
+          createWritable: async () => ({
+            write: async (content) => { window.__saved[name] = content; },
+            close: async () => {},
+          }),
+        };
+      },
+      removeEntry: async (name) => { window.__removed.push(name); delete window.__saved[name]; },
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { for (const name of Object.keys(window.__files)) yield mk(name); },
+      getDirectoryHandle: async (name) => {
+        if (name === '.gypsum') return gypsumDir;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  }, extra);
+}
+
+module.exports = { setupMockCellWritingFolder, loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };

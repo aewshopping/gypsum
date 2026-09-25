@@ -1,7 +1,9 @@
+import { endProgress } from './ui-functions-render/progress-bar.js';
+
 /**
  * Builds the phrases appended to the finished-load message when something went wrong.
  *
- * The yaml and broken-link phrases are clickable: each runs an `errorOnLoad:` filter through
+ * The yaml and broken-link phrases are clickable: each runs an `fileIssues:` filter through
  * the usual property-filter pathway, narrowing the list to those files. Both counts are taken
  * with the same test their filter uses, so each number is exactly what its own click shows —
  * but a file with both faults is counted in both, so the two phrases can overlap. The
@@ -19,7 +21,7 @@ function renderLoadProblems(yamlErrors, brokenLinks, unreadable) {
     if (yamlErrors > 0) {
         const plural = yamlErrors === 1 ? '' : 's';
         html += ` | <span class="load-error-nudge" data-action="property-filter"`
-            + ` data-property="errorOnLoad" data-value="yaml"`
+            + ` data-property="fileIssues" data-value="yaml"`
             + ` data-tip="show the ${yamlErrors} file${plural} with unreadable yaml">`
             + `${yamlErrors} yaml error${plural}</span>`;
     }
@@ -27,7 +29,7 @@ function renderLoadProblems(yamlErrors, brokenLinks, unreadable) {
     if (brokenLinks > 0) {
         const plural = brokenLinks === 1 ? '' : 's';
         html += ` | <span class="load-error-nudge" data-action="property-filter"`
-            + ` data-property="errorOnLoad" data-value="links"`
+            + ` data-property="fileIssues" data-value="links"`
             + ` data-tip="show the ${brokenLinks} file${plural} with broken internal links">`
             + `${brokenLinks} broken link${plural}</span>`;
     }
@@ -42,34 +44,24 @@ function renderLoadProblems(yamlErrors, brokenLinks, unreadable) {
 
 /**
  * Ends the load progress bar on #fileCountElement: fills the bar, fades it out, and only then
- * swaps in the finished text. The fade length is read back from the same CSS custom properties
- * that drive the fade, so the colour and the text can never drift out of step.
+ * swaps in the finished text — endProgress in ui-functions-render/progress-bar.js, shared with a
+ * column delete's bar.
  * @param {HTMLElement} el - the #fileCountElement span
  * @param {number} fileCount - number of files loaded
  * @param {string} durationText - how long the load took, in seconds, e.g. "0.4"
  * @param {string} sourceLabel - where the files came from, e.g. "file system" or "opfs"
  * @param {{yamlErrors?: number, brokenLinks?: number, unreadable?: number}} [problems] - counts of what went wrong
- * @returns {void}
+ * @returns {Promise<void>} Resolved once the finished text is in.
  */
-export function finishLoadProgress(el, fileCount, durationText, sourceLabel,
+export async function finishLoadProgress(el, fileCount, durationText, sourceLabel,
                                    { yamlErrors = 0, brokenLinks = 0, unreadable = 0 } = {}) {
-    const style = getComputedStyle(el);
-    const seconds = prop => parseFloat(style.getPropertyValue(prop));
-    const fadeMs = (seconds('--load-fade-delay') + seconds('--load-fade-duration')) * 1000;
     const problems = renderLoadProblems(yamlErrors, brokenLinks, unreadable);
 
-    // the loop only steps the bar every nth file, so it can stop just short of the 100% marker
-    el.style.setProperty('--load-pct', 100);
-    el.classList.remove('loading');
-    el.classList.add('load-fading');
-
+    await endProgress(el);
+    el.innerHTML = `files: ${fileCount} | ${durationText}s${problems}`;
     setTimeout(() => {
-        el.classList.remove('load-fading');
-        el.innerHTML = `files: ${fileCount} | ${durationText}s${problems}`;
-        setTimeout(() => {
-            // problems sit inside the span, not after it: the separators they carry would
-            // otherwise inherit the element's full-contrast colour and break up the faded line.
-            el.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${sourceLabel}${problems}</span>`;
-        }, 3000);
-    }, fadeMs);
+        // problems sit inside the span, not after it: the separators they carry would
+        // otherwise inherit the element's full-contrast colour and break up the faded line.
+        el.innerHTML = `<span class="load-finished-msg">files: ${fileCount} | ${sourceLabel}${problems}</span>`;
+    }, 3000);
 }

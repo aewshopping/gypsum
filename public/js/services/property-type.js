@@ -72,7 +72,7 @@ export function isInfoColumn(name) {
  *
  * Two reasons they may not, and both are facts about the column rather than about one value:
  *
- * - **the app fills the column in** — the size, the last modified date, the load error
+ * - **the app fills the column in** — the size, the last modified date, the file issues
  * - **the property does not come from a note's front matter** — everything in CORE_FILE_PROPERTIES,
  *   which is `title`, `filename`, `filepath`, `tags`, `color`, `internalLink`, `internalLinkText`
  *   and the file-system columns. Their types are the app's: `tags` is always a list and
@@ -115,6 +115,19 @@ export function isTypeSettable(name) {
  * The way back is the way in: clearing the cell removes the key, and the body tag applies again.
  */
 const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
+
+/**
+ * Whether "delete column" is offered: taking this property out of every note that has it.
+ *
+ * **Only a front matter property the user created** — a column that would still stand in a folder
+ * with no front matter at all cannot be deleted, and CORE_FILE_PROPERTIES is exactly that set.
+ * `title` and `color` are in it although a note may hold them as keys: deleting one would take the
+ * key out and leave the column standing, filled in by the app. plans/table-delete-column.md §3.
+ *
+ * @param {string} name - The file property key.
+ * @returns {boolean}
+ */
+export const isPropertyDeletable = (name) => !CORE_FILE_PROPERTIES.includes(name);
 
 /**
  * Whether this column's cells can be typed into at all.

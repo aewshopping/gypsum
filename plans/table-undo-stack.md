@@ -1,5 +1,10 @@
 # Plan: undoing a cell edit
 
+> **Two rows of this plan are superseded by `plans/table-delete-column.md`:** the stack is saved
+> to `.gypsum/undo.gypsum` rather than kept in memory (§9 here, §8 there), and it holds 100 batches
+> rather than 20 (§9 there). That plan also adds named entries, the undo list, and Ctrl+Z scoped to
+> one visit to the table.
+
 Status: **step 11a is built.** The stacks, the check, both buttons, all three key bindings, the cell
 mark and the report line all landed together — the interface of §10 as decided, and the limitations
 of §13 as accepted. **Step 11b is not built and waits for paste**, which is what makes a batch bigger

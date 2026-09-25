@@ -137,16 +137,16 @@ point. These rules follow, and they are the ones to hold:
   write so a later shape change has something to branch on.
 - **The way out for one type is the bin in the types modal**, which is the whole reason that modal
   lists a property the folder no longer has. A type outlives the values it was set on: it is not part
-  of a layout, so deleting the column it was drawn as leaves it in the file — and "delete column" is
-  not offered at all under the app's defaults. Left alone it was read back on every load and written
+  of a layout, so removing the column it was drawn as leaves it in the file — and "remove from
+  layout" is not offered at all under the app's defaults. Left alone it was read back on every load and written
   out on every save with nothing on screen to say so. `property-types-list.js` asks
   `propertiesInFiles()` — the same question, of the same source, as a column's `dead`. **A row
   survives on one of two grounds: a file carries the key, or a type is saved for it** — never because
   `myFilesProperties` still remembers it, since that Map only grows. So every dead row has a bin, and
   pressing it removes the last thing holding the row up: the row goes on the repaint rather than
   lingering, un-typed and un-binnable, until the folder is reloaded. `setPropertyType(name)`
-  with no type is the forget path, so the one writer stays the one writer. **Deleting a column never
-  forgets a type**, and must not start to: the property may be a column in another layout, and it
+  with no type is the forget path, so the one writer stays the one writer. **Neither removing nor
+  deleting a column forgets a type**, and must not start to: the property may be a column in another layout, and it
   comes back with its type intact the moment a note carries the key again.
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
   nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
@@ -175,7 +175,7 @@ point. These rules follow, and they are the ones to hold:
   captures the cell's whole `textContent` — would write the explanation into the note. Nothing in JS
   reads the sentence back, which is what keeps the tooltip and the cell from ever disagreeing.
 - **`TABLE_VIEW_COLUMNS.info_columns` holds the columns the app fills in itself** — the file link,
-  the size, the last modified date and the load error. They wear the info glyph under a padlock, in
+  the size, the last modified date and the file's issues (`fileIssues`, labelled "issues"). They wear the info glyph under a padlock, in
   the header and the picker both, no type can be chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
   renaming from the table is wanted later, and editing a filepath would move the file.
   **`info` sits beside a column's type rather than replacing it.** `lastModified` is still a `date`
@@ -208,17 +208,95 @@ disappears out from under the person who cleared it.
   undid itself: the key was gone from the note but still registered, so `resolveColumns()` read it as
   a property the layout had never seen and appended it hidden — on the render the delete itself runs,
   so it was back in the picker before the user could save, and the next save wrote it to disk again.
-- **"delete column" is offered on an empty column and nowhere else**, from the header's own menu and
-  from the bin in the column picker. Both go through `deleteColumnFromLayout()` in
+- **"remove from layout" is offered on an empty column and nowhere else**, from the header's own
+  menu and from the bin in the column picker. Both go through `deleteColumnFromLayout()` in
   `ui-functions-click/column-delete.js`, so removing a column means the same thing in both places:
   it is dropped from the active layout and the layout is written to disk there and then, since the
   point of it is to be rid of the column rather than to queue one more unsaved change.
 - **It touches the layout and never a file.** No note can lose anything by it, which is why neither
   caller re-checks emptiness inside the shared function.
 - **It is hidden, not greyed out**, unlike every other item in the column menu, and only under a
-  saved layout. Under the app's defaults there is nothing to delete a column *from* —
+  saved layout. Under the app's defaults there is nothing to remove a column *from* —
   `resolveColumns()` would put it straight back from the registered property — and "hide column",
   in the same menu, is the answer there.
+- **"delete column" is the other item in that slot, and the two never show together.** It is offered
+  on a column *with* values and removes the property from every note — see *Deleting a property from
+  every note* below. Empty and not-empty are one attribute read two ways, so the menu always holds at
+  most one delete-like item, and its name says what it reaches: the layout, or the notes.
+
+### Deleting a property from every note
+
+"delete column", last in the column menu below a rule and in the warning colour, takes the column's
+property out of every note in the folder that has it — key, value and every line of a block list —
+in one confirmed batch that one undo puts back. See `plans/table-delete-column.md`.
+
+- **Only a front matter property the user made**: `isPropertyDeletable()` is "not in
+  `CORE_FILE_PROPERTIES`". `title` and `color` are excluded although a note can hold them, because
+  their columns would still stand, filled in by the app.
+- **Every file, whatever the filter**, and **the column stays**, faded as empty — the same as
+  clearing every cell. Undo only restores files, and the values come back into the column they left.
+- **The confirmation counts from `appState`** (`deletionForecast()`), so it opens at once, and counts
+  the notes that *will change*: a note whose front matter did not read is carried but skipped. Cancel
+  has focus. When every carrying note is locked the dialog explains and offers no delete.
+- **Two passes, both through `applyRawEdits`, and the undo entry is written first.**
+  `deleteProperty()` in `editing/delete-property.js` plans every loaded file with `write: false`,
+  pushes that batch and waits for `undo.gypsum` to be written, then writes with `expect: before`. A
+  tab closed half-way leaves a journal listing some edits that never happened, and undoing one finds
+  the key still there and refuses it: **the existing check makes the journal crash-safe**, with no
+  recovery code. A note edited between the passes is refused the same way. A pass that wrote nothing
+  takes its entry off the stack.
+- **Every loaded file is planned, not only the ones with a value**, because a bare `people:` holds no
+  value and so is not in the file object. Undo puts it back bare (`keepKey`).
+- **The table never writes into a note it shows as locked** — a skipped line, a key written twice
+  (`parseYaml` reports a duplicate as an error), or a shadowed reserved key — for every caller of
+  `applyRawEdits`, not only the delete.
+- **The folder is fixed when a batch starts.** `applyRawEdits` takes the directory handle and every
+  file's own handle once; a folder load is refused while `appState.bulkWriteInFlight` is set, and
+  closing the tab asks first. While it runs the table and its control row are `inert` and faded, and
+  the report line shows the folder load's own progress bar. No cancel: a half-done delete would need
+  an undo of its own.
+- **Progress is a bar, never a counting number.** Rewriting the text of a line above a large table
+  costs a layout of the page per change: a count after every file took a 1,000-note delete from about
+  4s to about 19s. `ui-functions-render/progress-bar.js` and `css/progress-bar.css` are the one bar,
+  on `#fileCountElement` for a load or an import and on `#output-report` for a delete — the text is
+  written once before and once after, and only `--load-pct` moves in between, every 1%.
+- **An undo or redo across more than one note gets the same bar and the same inert table**
+  (`setBulkWriteBusy()` in `ui-functions-table/bulk-write-busy.js`, shared with the delete), reading
+  `undoing people column delete in 35 files…`. Undoing a delete takes as long as the delete did. A
+  one-file undo stays as it was: one write, over at once, where a bar would only flicker.
+- **Files go through a pool of 16**, and the refresh parses the verified text rather than reading it
+  back — 13.3s to about 3.7s for 1,000 notes, measured. The verified two-write save is kept.
+
+### The undo history
+
+The table's undo stack is saved, named, and reachable entry by entry. See
+`plans/table-delete-column.md` §7–§10 and `table-undo/`.
+
+- **Saved to `.gypsum/undo.gypsum`**, both stacks, after every change, and read back in `postLoad`.
+  After a column delete the entry is the only copy of what was removed, since table writes take no
+  history snapshot. **A stale entry is safe to keep**: every undo checks the note still says what the
+  edit left there and refuses it otherwise. `undo-file.js` keeps one write in flight and the last on
+  disk is always the newest state. A rename rewrites the ids (`undo-rename.js`). Hand-editable, so
+  validated at the boundary: anything it cannot read starts empty. It is plain text holding deleted
+  values; "clear undo history" is the way to be rid of them, and says so.
+- **Facts, not a sentence.** A batch stores `kind` and `property`; `describeBatch()` words them, and
+  the undo and redo tooltips and the report line all use that name.
+- **The undo list** — the history button after redo — undoes **any single entry**, not only the
+  newest, and only that one. It is safe for the same reason a stale entry is: each edit is reversed
+  only where the note still says what it left, so ten cell edits made since a delete survive the
+  delete's undo. There is no redo list.
+- **Ctrl+Z and the undo and redo buttons reach only this visit to the table.** `undoHorizon` is set
+  on a view change and a folder load, and `canReverse()` asks the top batch's timestamp. Keyboard
+  undo means "the thing I just did"; an older change is chosen deliberately, from the list, with its
+  name and time on screen. The "earlier" divider in the list is where the reach ends.
+- **A refused undo marks the note.** `appState.undoRefusals` holds the notes the latest reversal
+  left alone, and `checkFileErrors` draws an `undo:` segment of their `fileIssues` from it — so it
+  survives a re-read, which a segment written onto the file object would not. Each reversal replaces
+  the lot, and re-checks old and new marks inside the render it already does. The report line's fail
+  count filters to exactly those notes; the issues column stays hidden.
+- **A removed key comes back where it was.** A removal records `anchor`, the key above it;
+  `keySplice` puts a re-created key straight after that key, under the opening `---` for `null`, and
+  at the end of the block only when the anchor has gone too.
 
 ### Front matter is data, not prose
 
@@ -573,7 +651,7 @@ Closing an edited cell writes it into the note's front matter. See
   argument it gained is *not to re-sort*: edit a cell in the column the table is sorted by and the
   row would leap away from under you.
 - **The smallest number of bytes that does the job, and never a rebuilt block.** `parseYaml`'s
-  optional `spans` Map says where a key's value sits, and `editing/save-cell-edit.js` replaces that
+  optional `spans` Map says where a key's value sits, and `editing/apply-raw-edits.js` replaces that
   span and nothing else — so comments, key order, blank lines and anything the parser skipped
   survive. A list where one item's text changed splices that item alone; a list rewritten whole
   re-generates every item from the cell's text, which is where the comment limitation below comes
@@ -600,14 +678,15 @@ Closing an edited cell writes it into the note's front matter. See
   `"02"`. Point the writer at `readValue` and the value goes back to the file bare, for everyone
   else to misread. See DATA-STRUCTURES.md, "How a front matter value is read".
 - **What the note already says at that key is kept, never restyled.** A quoted value stays quoted, a
-  flow list stays a flow list, and a block list keeps its own indentation — `save-cell-edit.js`
+  flow list stays a flow list, and a block list keeps its own indentation — `apply-raw-edits.js`
   reads all three off the span and hands them to the writer, which is why `toYamlText` takes the
   file's shape rather than deciding one. A style is chosen only where there is nothing to copy: two
   spaces for the first item of a list the note has never had.
-- **Two layers, and the split is load-bearing.** `applyCellEdits` knows types and format;
-  `applyRawEdits` knows spans, splicing and the write. It takes a *list* of edits because a pasted
-  range cannot be fifty verified writes, applies a file's edits back to front so no span is
-  invalidated, carries an `expect` nothing passes yet, and returns what it changed. All four are for
+- **Two layers, and the split is load-bearing — and visible in `ls`.** `applyCellEdits`
+  (`save-cell-edit.js`) knows types and format; `applyRawEdits` (`apply-raw-edits.js`) knows spans,
+  splicing and the write. It takes a *list* of edits because a pasted range cannot be fifty verified
+  writes, applies a file's edits back to front so no span is invalidated, carries the `expect` that
+  undo and a column delete's second pass rely on, and returns what it changed. All four are for
   `plans/table-undo-stack.md`, and all four are awkward to retrofit — the alternative is a second
   module that knows how to splice front matter.
 - **A cell that was opened but not typed in writes nothing.** The test is the cell's text now
@@ -758,7 +837,10 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 | `public/js/services/file-parsing/yaml-parse.js` | The front matter parser: `coerceValue` is YAML's answer, `readValue` is what the file object keeps |
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
-| `public/js/editing/save-cell-edit.js` | A cell edit into the note: convert, locate, splice, write, refresh |
+| `public/js/editing/save-cell-edit.js` | A cell edit's types and format: what was typed, as the text to write |
+| `public/js/editing/apply-raw-edits.js` | The one writer every table batch goes through: locate, splice, write in a pool, refresh once |
+| `public/js/editing/delete-property.js` | Deleting a property from every note: the forecast, and the two-pass journalled write |
+| `public/js/table-undo/` | The undo stacks, `undo.gypsum`, each batch's name, and the refused notes |
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |

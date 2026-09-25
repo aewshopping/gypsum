@@ -6,9 +6,9 @@ import { getFileDataAndMetadata } from '../services/file-parsing/file-info.js';
 import { buildParentMap } from '../services/file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
-import { checkAllFileErrors } from '../services/file-parsing/file-errors.js';
+import { checkAllFileErrors, hasIssue } from '../services/file-parsing/file-errors.js';
 import { seedCoreFileProperties } from '../services/file-props.js';
-import { PROGRESS_STEP_SIZE } from '../constants.js';
+import { startProgress, stepProgress } from '../ui/ui-functions-render/progress-bar.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
 import { applyActiveLayout } from '../table-layouts/layout-file.js';
 
@@ -46,16 +46,14 @@ async function clearOPFS(opfsRoot) {
  * Writes all file entries from a parsed tar archive into OPFS, preserving paths.
  * @param {Array<{name: string, type: string, text: string}>} entries
  * @param {FileSystemDirectoryHandle} opfsRoot
+ * @param {number} total - How many of the entries are files, for the progress bar.
  * @returns {Promise<void>}
  */
-async function writeFilesToOPFS(entries, opfsRoot, n, total) {
+async function writeFilesToOPFS(entries, opfsRoot, total) {
     const fileCountEl = document.getElementById('fileCountElement');
-    const increment = n * 100 / total;
     let count = 0;
-    let pct = 0;
-    fileCountEl.classList.add('loading');
     fileCountEl.textContent = `unpacking: ${total}`;
-    fileCountEl.style.setProperty('--load-pct', 0);
+    startProgress(fileCountEl);
     for (const entry of entries) {
         if (entry.type !== 'file') continue;
         const parts = entry.name.split('/');
@@ -68,8 +66,7 @@ async function writeFilesToOPFS(entries, opfsRoot, n, total) {
         const writable = await fileHandle.createWritable();
         await writable.write(entry.text);
         await writable.close();
-        if (++count % n === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
-        // if (++count % n === 0) fileCountEl.textContent = `unpacking: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
+        stepProgress(fileCountEl, ++count, total);
     }
 }
 
@@ -107,11 +104,10 @@ async function readMtimeMap(opfsRoot) {
  * Reads all .txt/.md files from OPFS and populates appState. Mirrors loadDirectoryFileHandles().
  * @param {FileSystemDirectoryHandle} opfsRoot
  * @param {number|null} outerStartTime - performance.now() timestamp from before unpacking, if available.
- * @param {number|null} n
  * @param {Map<string, number>|null} mtimeMap - pre-built mtime map; if null, reads from OPFS.
  * @returns {Promise<void>}
  */
-async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = null, mtimeMap = null) {
+async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, mtimeMap = null) {
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     TABLE_VIEW_COLUMNS.columnLayout.clear();
     appState.myFilesProperties.clear();
@@ -129,14 +125,10 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
 
     const fileEntries = await getFilesRecursive(opfsRoot);
     const total = fileEntries.length;
-    const updateN = n ?? Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
-    const increment = updateN * 100 / total;
     const fileCountEl = document.getElementById('fileCountElement');
     const filesWithMetadata = [];
-    let pct = 0;
-    fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
-    fileCountEl.style.setProperty('--load-pct', 0);
+    startProgress(fileCountEl);
     let unreadableCount = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
@@ -152,8 +144,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
             unreadableCount++;
             continue;
         }
-        if (i % updateN === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
-        // if (i % updateN === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
+        stepProgress(fileCountEl, i + 1, total);
         const lastModified = mtimeMap?.has(filepath) ? new Date(mtimeMap.get(filepath)) : fileObj.lastModified;
         filesWithMetadata.push({ ...fileObj, filepath, internalId: filepath, lastModified });
     }
@@ -174,8 +165,8 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, n = nul
     const fileCount = appState.myFiles.length;
     // Both counts use the same substring test the property search uses, so each equals
     // exactly what its own nudge shows when clicked.
-    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad?.includes('yaml')).length;
-    const brokenLinks = appState.myFiles.filter(file => file.errorOnLoad?.includes('links')).length;
+    const yamlErrors = appState.myFiles.filter(file => hasIssue(file, 'yaml')).length;
+    const brokenLinks = appState.myFiles.filter(file => hasIssue(file, 'links')).length;
     finishLoadProgress(fileCountEl, fileCount, displayDuration, 'opfs',
         { yamlErrors, brokenLinks, unreadable: unreadableCount });
 }
@@ -208,9 +199,8 @@ export async function importTarGzipToOPFS(onComplete) {
 
     async function proceed() {
         const total = entries.filter(e => e.type === 'file').length;
-        const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
-        await writeFilesToOPFS(entries, opfsRoot, n, total);
-        await populateAppStateFromOPFS(opfsRoot, importStartTime, n, mtimeMap);
+        await writeFilesToOPFS(entries, opfsRoot, total);
+        await populateAppStateFromOPFS(opfsRoot, importStartTime, mtimeMap);
         onComplete();
         // Must fire AFTER populateAppStateFromOPFS: concurrent getDirectoryHandle('.gypsum')
         // and values() on the same OPFS root deadlock in Chromium.

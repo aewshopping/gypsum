@@ -290,7 +290,7 @@ test('the new shapes register as properties when a folder is loaded', async ({ p
 
   const files = await page.evaluate(() =>
     window.appState.myFiles
-      .map(file => ({ name: file.filename, status: file.status ?? null, people: file.people ?? null, error: file.errorOnLoad }))
+      .map(file => ({ name: file.filename, status: file.status ?? null, people: file.people ?? null, error: file.fileIssues }))
       .sort((a, b) => a.name.localeCompare(b.name))
   );
 
@@ -408,4 +408,31 @@ test('a tags key holding false or null still leaves the TagMap in place', async 
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   expect(errors).toEqual([]);
+});
+
+// plans/table-delete-column.md §5.3: a key written twice is an error, so the note is locked.
+
+test('a repeated key gives one error per repeat, and the last occurrence is still the value', async () => {
+  const doc = block('people: ann\nstatus: draft\npeople: bob\npeople: cat');
+  const { data, errors, spans } = await parse(doc, true);
+  expect(errors).toEqual(['duplicate key: people', 'duplicate key: people']);
+  expect(data.people).toBe('cat');
+  expect(spans.people.value).toBe(' cat');
+});
+
+test('a bare key followed by the same key with a value is a duplicate', async () => {
+  const { errors } = await parse(block('people:\npeople: bob'));
+  expect(errors).toEqual(['duplicate key: people']);
+});
+
+test('the same key under two different parents is not a duplicate', async () => {
+  const { errors } = await parse(block('a:\n  name: x\nb:\n  name: y\nname: z'));
+  expect(errors).toEqual([]);
+});
+
+test('yamlSegment words a duplicate apart from skipped lines', async () => {
+  const { yamlSegment } = await appModule('services/file-parsing/file-errors.js');
+  expect(yamlSegment(['duplicate key: people'], [])).toBe('yaml: 1 duplicate key "people"');
+  expect(yamlSegment(['unrecognised line: x', 'no parent key for list item: - y', 'duplicate key: people'], []))
+    .toBe('yaml: 2 lines skipped, 1 duplicate key "people"');
 });

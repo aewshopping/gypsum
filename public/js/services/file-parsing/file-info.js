@@ -13,8 +13,8 @@ import { frontMatterLinks } from './front-matter-links.js';
 // Front matter is spread over the file object, so a key colliding with one of these would replace
 // app-owned data — a bogus `handle` alone breaks save, rename, delete and content search. `tags`
 // is handled separately below, merged into the TagMap rather than dropped.
-const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'internalId',
-                       'contentPeek', 'internalLink', 'internalLinkText', 'errorOnLoad',
+export const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'internalId',
+                       'contentPeek', 'internalLink', 'internalLinkText', 'fileIssues',
                        'lastModified'];
 
 
@@ -24,12 +24,14 @@ const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'interna
  * and constructs a file object with all the relevant information.
  * @param {FileSystemFileHandle} handle The file handle to process.
  * @param {number} loadOrder The order in which the file was loaded.
+ * @param {string} [knownText] The file's text when the caller has just written and verified it, so
+ *   it is not read a second time. `getFile()` is still asked, for the size and the modified time.
  * @returns {Promise<object>} A promise that resolves to an object containing the file's metadata.
  */
-export async function getFileDataAndMetadata(handle, loadOrder) {
+export async function getFileDataAndMetadata(handle, loadOrder, knownText) {
 
     const file = await handle.getFile();
-    const content = await file.text();
+    const content = knownText ?? await file.text();
     const frontMatterIndices = findFrontMatterIndices(content);
     const tagData = parseFileContent(content, frontMatterIndices);
     const yamlErrors = [];
@@ -89,7 +91,7 @@ export async function getFileDataAndMetadata(handle, loadOrder) {
         lastModified: new Date(file.lastModified),
         ...(yamlData),
         // Null rather than absent when the front matter read cleanly, for the same reason as above.
-        errorOnLoad: yamlSegment(yamlErrors, shadowedKeys),
+        fileIssues: yamlSegment(yamlErrors, shadowedKeys),
     };
 
 }

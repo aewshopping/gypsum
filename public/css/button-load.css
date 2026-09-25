@@ -1,20 +1,6 @@
-@property --load-pct {
-    syntax: '<number>';
-    inherits: true;
-    initial-value: 0;
-}
-
-
+/* The load progress bar itself lives in progress-bar.css, shared with the column delete's report
+   line. What is left here is this line's own voice. */
 #fileCountElement {
-    --colour-load-msg: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral) 60%);
-
-    /* Source of truth for how long the bar takes to disappear once loading ends. The JS that
-       swaps in the finished text reads these back, so text and colour change together. */
-    --load-fade-delay: 0.5s;
-    --load-fade-duration: 0.5s;
-
-    position: relative;
-    isolation:isolate;
     font-size: 0.8125em;
     color: var(--colour-contr);
     font-family: var(--fontfam-app-input);
@@ -27,53 +13,9 @@
 
 /* Squeezed narrow — a phone with the side panel open — the nowrap text above would otherwise
    spill out of the box flex has shrunk, widening the whole page. Not while loading or fading
-   out, though: the progress bar below is 50dvw wide and would be clipped to the box. */
+   out, though: the progress bar is 50dvw wide and would be clipped to the box. */
 #fileCountElement:not(.loading):not(.load-fading) {
     overflow: hidden;
-}
-
-/* marks the load complete point for loader */
-#fileCountElement::after {
-  position:absolute;
-  content: "100%";
-  /* Both pseudo-elements span the whole box and only fade to opacity 0, which still swallows
-     clicks — without this the load-error nudge inside cannot be clicked. */
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right:4px;
-  border-right:1.5px solid var(--colour-contr);
-  width: 50dvw;
-  left:0;
-  height:100%;
-  bottom:0;
-  opacity: 0;
-  transition: opacity var(--load-fade-duration) ease var(--load-fade-delay);
-}
-
-/* the loading progress bar */
-#fileCountElement::before {
-    content: '';
-    position: absolute;
-    pointer-events: none;
-    bottom: 0;
-    left: 0;
-    width: 50dvw;
-    height: 100%;
-    background: var(--colour-load-msg);
-    z-index: -1;
-    transform-origin: left center;
-    transform: scaleX(calc(var(--load-pct) / 100));
-    transition: transform 0.1s ease, opacity var(--load-fade-duration) ease var(--load-fade-delay);
-    opacity: 0;
-}
-
-/* snap both to visible instantly when loading; removing the class fades them out via the base transition */
-#fileCountElement.loading::before,
-#fileCountElement.loading::after {
-    opacity: 1;
-    transition: none;
 }
 
 .load-finished-msg {color: var(--colour-load-msg);}

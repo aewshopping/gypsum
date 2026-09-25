@@ -234,3 +234,154 @@ test('auto-size fits a list column to its widest item, not its whole line', asyn
   expect(width).toBeGreaterThanOrEqual(measured.item);   // the widest item is not clipped
   expect(width).toBeLessThan(measured.line);             // and the whole line was not fitted
 });
+
+// ---------------------------------------------------------------- delete column
+// plans/table-delete-column.md §3, §4.1, §5 and §17.
+
+async function openPeopleTable(page, notes) {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.addInitScript((notes) => {
+    window.__files = notes;
+    const mk = (name) => ({
+      kind: 'file', name,
+      getFile: async () => ({ name, size: window.__files[name].length, lastModified: Date.now(),
+        text: async () => window.__files[name] }),
+      createWritable: async () => ({
+        write: async (content) => { window.__files[name] = content; }, close: async () => {},
+      }),
+    });
+    const saved = {};
+    const gypsumDir = {
+      getFileHandle: async (name, options) => {
+        if (!(name in saved) && !options?.create) throw Object.assign(new Error('missing'), { name: 'NotFoundError' });
+        saved[name] ??= '';
+        return {
+          getFile: async () => ({ text: async () => saved[name] }),
+          createWritable: async () => ({
+            // Slow enough that the running state can be seen.
+            write: async (content) => { await new Promise(r => setTimeout(r, window.__slow ?? 0)); saved[name] = content; },
+            close: async () => {},
+          }),
+        };
+      },
+      removeEntry: async (name) => { delete saved[name]; },
+    };
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { for (const name of Object.keys(window.__files)) yield mk(name); },
+      getDirectoryHandle: async (name) => {
+        if (name === '.gypsum') return gypsumDir;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  }, notes);
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+}
+
+const PEOPLE = {
+  'meeting-notes.md': '---\npeople: [ann, bob]\ncolor: coral\n---\n# Meeting\n',
+  'bob.md': '---\npeople: bob\n---\n# Bob\n',
+  'project-x.md': '---\npeople: x\n---\n# Project\n',
+  'zed.md': '---\npeople: zed\n---\n# Zed\n',
+  'broken.md': '---\npeople: ann\nthis line has no colon\n---\n# Broken\n',
+};
+
+const headerFor = (page, property) => page.locator(`.note-table-cell-header[data-property="${property}"]`);
+const deleteItem = page => page.locator('#column-menu [data-action="column-delete-property"]');
+const removeItem = page => page.locator('#column-menu [data-action="column-delete-menu"]');
+const warningText = page => page.locator('#modal-unsaved-warning-text');
+
+test('"delete column" is offered on a property with values, and on no core column', async ({ page }) => {
+  await openPeopleTable(page, PEOPLE);
+
+  await openMenuFor(page, headerFor(page, 'people'));
+  await expect(deleteItem(page)).toBeVisible();
+  await expect(removeItem(page)).toBeHidden();
+  await page.keyboard.press('Escape');
+
+  for (const property of ['title', 'color', 'lastModified', 'internalId']) {
+    const header = headerFor(page, property);
+    if (await header.count() === 0) continue;   // hidden by default; the rule is the same either way
+    await openMenuFor(page, header);
+    await expect(deleteItem(page), property).toBeHidden();
+    await page.keyboard.press('Escape');
+  }
+
+  const deletable = await page.evaluate(async () => {
+    const { isPropertyDeletable } = await import('/public/js/services/property-type.js');
+    const { CORE_FILE_PROPERTIES } = await import('/public/js/services/store.js');
+    return { core: CORE_FILE_PROPERTIES.some(isPropertyDeletable), people: isPropertyDeletable('people') };
+  });
+  expect(deletable).toEqual({ core: false, people: true });
+});
+
+test('the dialog counts the notes that will change, names three, and says what is skipped', async ({ page }) => {
+  await openPeopleTable(page, PEOPLE);
+  await openMenuFor(page, headerFor(page, 'people'));
+  await deleteItem(page).click();
+
+  await expect(warningText(page)).toContainText('Delete "people" from 4 files?');
+  await expect(warningText(page)).toContainText('and 1 more.');
+  await expect(warningText(page)).toContainText('1 file will be skipped: their front matter could not be read.');
+  await expect(warningText(page)).toContainText('You can undo this.');
+  await expect(page.locator('#modal-unsaved-warning-proceed')).toHaveText('delete from 4 files');
+
+  // Cancel has focus, so an Enter pressed too soon deletes nothing.
+  await expect(page.locator('#modal-unsaved-warning-cancel')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
+  expect(await page.evaluate(() => window.__files['bob.md'])).toContain('people: bob');
+});
+
+test('when every note carrying it is unreadable, the dialog explains and offers no delete', async ({ page }) => {
+  await openPeopleTable(page, { 'broken.md': PEOPLE['broken.md'], 'other.md': '# Other\n' });
+  await openMenuFor(page, headerFor(page, 'people'));
+  await deleteItem(page).click();
+
+  await expect(warningText(page)).toHaveText('"people" cannot be deleted: every note that has it has front matter that could not be read.');
+  await expect(page.locator('#modal-unsaved-warning-proceed')).toBeHidden();
+  await expect(page.locator('#modal-unsaved-warning-cancel')).toHaveText('close');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
+});
+
+test('while a delete runs the table is inert and the bar shows, and afterwards the column still offers one item', async ({ page }) => {
+  await openPeopleTable(page, PEOPLE);
+  await page.evaluate(() => { window.__slow = 600; });
+  await openMenuFor(page, headerFor(page, 'people'));
+  await deleteItem(page).click();
+  await page.click('[data-action="warning-proceed"]');
+
+  await expect(page.locator('#output')).toHaveAttribute('inert', '');
+  await expect(page.locator('#output-controls')).toHaveAttribute('inert', '');
+  await expect(page.locator('#output-report')).toContainText('deleting people');
+  // The load's bar, not a counting number: only --load-pct moves while it runs.
+  await expect(page.locator('#output-report')).toHaveClass(/progress-bar.*loading|loading.*progress-bar/);
+
+  await expect(page.locator('#output-report')).toContainText('deleted people from 4 files, 1 skipped');
+  await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
+  const skipped = page.locator('#output-report .load-error-nudge');
+  await expect(skipped).toHaveText('1 skipped');
+
+  // broken.md still carries it, so the column is not empty; with that gone it would be. Either way
+  // the menu offers exactly one of the two items.
+  await openMenuFor(page, headerFor(page, 'people'));
+  await expect(removeItem(page)).toBeHidden();
+  await expect(deleteItem(page)).toBeVisible();
+});
+
+test('an emptied column offers no delete', async ({ page }) => {
+  await openPeopleTable(page, { 'bob.md': PEOPLE['bob.md'], 'zed.md': PEOPLE['zed.md'] });
+  await openMenuFor(page, headerFor(page, 'people'));
+  await deleteItem(page).click();
+  await page.click('[data-action="warning-proceed"]');
+  await expect(page.locator('#output-report')).toContainText('deleted people from 2 files');
+  await expect(headerFor(page, 'people')).toHaveAttribute('data-empty', '');
+
+  await openMenuFor(page, headerFor(page, 'people'));
+  await expect(deleteItem(page)).toBeHidden();
+  await expect(removeItem(page)).toBeHidden();   // no saved layout to remove it from
+});

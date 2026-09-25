@@ -1,0 +1,76 @@
+/* The progress bar behind a line of text: the folder load's, on #fileCountElement, and a column
+   delete's, on #output-report. One set of rules for both, so the two cannot drift apart. Driven by
+   ui-functions-render/progress-bar.js, which is the only thing that sets --load-pct or the classes.
+
+   **A bar rather than a counting number, because a number costs a layout per update.** Changing the
+   text of a line above a large table re-lays-out the page; measured on a 1,000-note column delete,
+   a count after every file took the delete from about 4s to about 19s. The bar changes one custom
+   property, which moves a transform and lays nothing out. */
+
+@property --load-pct {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+}
+
+.progress-bar {
+    --colour-load-msg: color-mix(in srgb, var(--colour-contr) 40%, var(--colour-neutral) 60%);
+
+    /* Source of truth for how long the bar takes to disappear once the work ends. The JS that
+       swaps in the finished text reads these back, so text and colour change together. */
+    --load-fade-delay: 0.5s;
+    --load-fade-duration: 0.5s;
+
+    /* How far the bar reaches when full: half the screen, as the load has always drawn it — but
+       never shorter than the line plus room for the 100% marker, which is drawn inside the bar's
+       end and would otherwise land on top of the text. A delete's line, naming its property, is
+       often longer than half the screen, and on a phone always is. */
+    --progress-width: max(50dvw, 100% + 4em);
+
+    position: relative;
+    isolation: isolate;
+}
+
+/* marks the complete point */
+.progress-bar::after {
+  position:absolute;
+  content: "100%";
+  /* Both pseudo-elements span the whole box and only fade to opacity 0, which still swallows
+     clicks — without this a nudge inside the line cannot be clicked. */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right:4px;
+  border-right:1.5px solid var(--colour-contr);
+  width: var(--progress-width);
+  left:0;
+  height:100%;
+  bottom:0;
+  opacity: 0;
+  transition: opacity var(--load-fade-duration) ease var(--load-fade-delay);
+}
+
+/* the bar */
+.progress-bar::before {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    bottom: 0;
+    left: 0;
+    width: var(--progress-width);
+    height: 100%;
+    background: var(--colour-load-msg);
+    z-index: -1;
+    transform-origin: left center;
+    transform: scaleX(calc(var(--load-pct) / 100));
+    transition: transform 0.1s ease, opacity var(--load-fade-duration) ease var(--load-fade-delay);
+    opacity: 0;
+}
+
+/* snap both to visible instantly when running; removing the class fades them out via the base transition */
+.progress-bar.loading::before,
+.progress-bar.loading::after {
+    opacity: 1;
+    transition: none;
+}

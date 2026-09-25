@@ -1,90 +1,15 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, appModule, setupMockCellWritingFolder } = require('../helpers');
 
 /**
  * plans/completed/table-cell-writing.md, end to end: type in a cell, watch the note on disk change, watch
  * the table redraw from the file rather than from memory.
  *
- * What each note is for:
- *   alpha.md — an ordinary block to write into, with a second key after the one being edited so a
- *              splice that took too much is visible.
- *   beta.md  — front matter that does not read cleanly, so its cells are locked (§7).
- *   gamma.md — no front matter at all.
+ * The folder is setupMockCellWritingFolder in helpers.js, shared with the level-2 spec about the
+ * table around an edit (tests/2-behaviour/55-table-row-move.spec.js); what each note is for is said
+ * there.
  */
-async function setupFiles(page, extra = {}) {
-  await page.addInitScript((extra) => {
-    window.__files = {
-      'alpha.md': [
-        '---',
-        'status: draft',
-        '  # a comment the parser skips',
-        'note: plain',
-        'count: 3',
-        'due: 2026-03-01',
-        'ref: "0042"',        // quoted in the note, so an edit has a style to keep
-        'people:',            // flush with its key, so replacing the value has a style to copy
-        '- John Smith',
-        '  # the one in the middle',
-        '- "Doe, Jane"',
-        'langs: [en, fr]',
-        'scores:',
-        '  - 1',
-        '  - 2',
-        '  - 10',
-        '---',
-        '# Alpha',
-        '',
-        'Body text.',
-        '',
-      ].join('\n'),
-      'beta.md': '---\nstatus: live\nextra: beta only\nthis line has no colon\n---\n# Beta\n\nBody text.\n',
-      'gamma.md': '# Gamma\n\nNo front matter here.\n',
-      ...extra,
-    };
-    window.__saved = {};
-    window.__removed = [];
-
-    const mk = (name) => ({
-      kind: 'file', name,
-      getFile: async () => ({
-        name, size: window.__files[name].length, lastModified: Date.now(),
-        text: async () => window.__files[name],
-      }),
-      createWritable: async () => ({
-        write: async (content) => { window.__files[name] = content; },
-        close: async () => {},
-      }),
-    });
-
-    // The real API throws for a file that does not exist unless create is set, which is what makes
-    // the verified write's read-back meaningful.
-    const gypsumDir = {
-      getFileHandle: async (name, options) => {
-        if (!(name in window.__saved)) {
-          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
-          window.__saved[name] = '';
-        }
-        return {
-          getFile: async () => ({ text: async () => window.__saved[name] }),
-          createWritable: async () => ({
-            write: async (content) => { window.__saved[name] = content; },
-            close: async () => {},
-          }),
-        };
-      },
-      removeEntry: async (name) => { window.__removed.push(name); delete window.__saved[name]; },
-    };
-
-    window.showDirectoryPicker = async () => ({
-      kind: 'directory', name: 'root',
-      values: async function* () { for (const name of Object.keys(window.__files)) yield mk(name); },
-      getDirectoryHandle: async (name) => {
-        if (name === '.gypsum') return gypsumDir;
-        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
-      },
-    });
-  }, extra);
-}
+const setupFiles = setupMockCellWritingFolder;
 
 async function openTable(page, extra) {
   await page.setViewportSize({ width: 1400, height: 900 });
@@ -312,148 +237,6 @@ test('clicking another cell writes the one being left', async ({ page }) => {
   await cellFor(page, 'Alpha', 'note').click();
 
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: moved on');
-});
-
-// ---------------------------------------------------------------- the row stays put
-
-/**
- * Sorts by status ascending through the controls above the table: the column's own header is off to
- * the right of a table this wide, and both controls are styled into labels that a click cannot
- * reach headlessly — so the change event they answer to is dispatched directly.
- */
-async function sortByStatus(page) {
-  await page.evaluate(() => {
-    const direction = document.getElementById('sort-direction');
-    direction.checked = true;
-    direction.dispatchEvent(new Event('change', { bubbles: true }));
-    const select = document.getElementById('sort-select');
-    select.value = 'status';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-}
-
-const titles = (page) => page.evaluate(() => [...document.querySelectorAll('.note-table[data-vt-id]')]
-  .map(row => row.querySelector('[data-prop="title"]').textContent));
-
-const heldRow = (page) => page.locator('.note-table.move-pending');
-
-test('an edited row waits, outlined, until focus leaves it', async ({ page }) => {
-  await openTable(page);
-  await sortByStatus(page);
-  await expect.poll(() => titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-
-  // 'zzz' sorts after 'live', and Gamma has no status at all so it stays at the end either way. A
-  // write moves the file's last modified time too, so under the app's own sort every edit would
-  // move its row — which is the whole reason the move waits.
-  await open(cellFor(page, 'Alpha', 'status'));
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('zzz');
-  await page.keyboard.press('Enter');
-
-  await expect(cellFor(page, 'Alpha', 'status')).toHaveText('zzz');
-  await expect(heldRow(page)).toHaveAttribute('data-vt-id', 'alpha.md');
-  expect(await titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-
-  // Enter leaves the cell selected and focused, and it stays that way while the move waits.
-  await expect(cellFor(page, 'Alpha', 'status')).toHaveClass(/is-selected/);
-  await expect(cellFor(page, 'Alpha', 'status')).toBeFocused();
-});
-
-test('the move happens when a cell in another row takes focus', async ({ page }) => {
-  await openTable(page);
-  await sortByStatus(page);
-  await expect.poll(() => titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-
-  // Finished with Enter, which leaves you on the cell — so the row is still the one focus is in.
-  await open(cellFor(page, 'Alpha', 'status'));
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('zzz');
-  await page.keyboard.press('Enter');
-  await expect(heldRow(page)).toHaveCount(1);
-
-  await cellFor(page, 'Gamma', 'title').click();
-
-  await expect.poll(() => titles(page)).toEqual(['Beta', 'Alpha', 'Gamma']);
-  await expect(heldRow(page)).toHaveCount(0);
-  // The row moved under the click, and the cell clicked is still the selected one.
-  await expect(cellFor(page, 'Gamma', 'title')).toHaveClass(/is-selected/);
-});
-
-test('the move happens when the click lands on nothing that can take focus', async ({ page }) => {
-  await openTable(page);
-  await sortByStatus(page);
-  await expect.poll(() => titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-
-  await open(cellFor(page, 'Alpha', 'status'));
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('zzz');
-  await page.keyboard.press('Enter');
-  await expect(heldRow(page)).toHaveCount(1);
-
-  // The report line above the table takes no focus, so this click blurs the cell to the body and
-  // fires no focusin at all. Focus has still left the row, which is the only question that matters.
-  await page.locator('#output-report').click();
-
-  await expect.poll(() => titles(page)).toEqual(['Beta', 'Alpha', 'Gamma']);
-  await expect(heldRow(page)).toHaveCount(0);
-});
-
-test('a cell left by clicking away moves at once, having nobody in it to protect', async ({ page }) => {
-  await openTable(page);
-  await sortByStatus(page);
-  await expect.poll(() => titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-
-  // retype finishes by clicking the searchbox, which is the write and the departure in one gesture:
-  // the write lands after focus has already gone, so there is no row anyone is in to hold.
-  await retype(page, cellFor(page, 'Alpha', 'status'), 'zzz');
-
-  await expect.poll(() => titles(page)).toEqual(['Beta', 'Alpha', 'Gamma']);
-  await expect(heldRow(page)).toHaveCount(0);
-});
-
-test('a row holding a move keeps its outline through another edit in the same row', async ({ page }) => {
-  await openTable(page);
-  await sortByStatus(page);
-  await expect.poll(() => titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-
-  await open(cellFor(page, 'Alpha', 'status'));
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('zzz');
-  await page.keyboard.press('Enter');
-  await expect(heldRow(page)).toHaveCount(1);
-
-  // A second cell in the same row: the row is redrawn by that write, and is still holding its move.
-  await open(cellFor(page, 'Alpha', 'note'));
-  await page.keyboard.press('End');
-  await page.keyboard.type('!');
-  await page.keyboard.press('Enter');
-
-  await expect(cellFor(page, 'Alpha', 'note')).toHaveText('plain!');
-  await expect(heldRow(page)).toHaveAttribute('data-vt-id', 'alpha.md');
-  expect(await titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-});
-
-test('sorting by hand lets a held move go with it', async ({ page }) => {
-  await openTable(page);
-  await sortByStatus(page);
-  await expect.poll(() => titles(page)).toEqual(['Alpha', 'Beta', 'Gamma']);
-
-  await open(cellFor(page, 'Alpha', 'status'));
-  await page.keyboard.press('Home');
-  await page.keyboard.press('Shift+End');
-  await page.keyboard.type('zzz');
-  await page.keyboard.press('Enter');
-  await expect(heldRow(page)).toHaveCount(1);
-
-  // Sorting the table is a new answer to where every row goes, so nothing is left waiting.
-  await sortByStatus(page);
-
-  await expect(heldRow(page)).toHaveCount(0);
-  await expect.poll(() => titles(page)).toEqual(['Beta', 'Alpha', 'Gamma']);
 });
 
 // ---------------------------------------------------------------- number and date
@@ -805,45 +588,6 @@ test('Escape leaves the cell without writing anything', async ({ page }) => {
   expect(await page.evaluate(() => Object.keys(window.__saved).length)).toBe(0);
 });
 
-test('the selection follows the arrow keys, and Enter opens where you are', async ({ page }) => {
-  await openTable(page);
-
-  const start = cellFor(page, 'Alpha', 'note');
-  await start.click();                                   // one click selects, as it always did
-  await expect(start).toHaveClass(/is-selected/);
-
-  const columns = await page.evaluate(() =>
-    [...document.querySelectorAll('.note-table-cell-header')].map(h => h.dataset.property));
-  const next = cellFor(page, 'Alpha', columns[columns.indexOf('note') + 1]);
-
-  await page.keyboard.press('ArrowRight');
-
-  // the mark moves with the keyboard rather than being left behind on the cell you came from
-  expect(await focusedCell(page)).toBe(`Alpha/${columns[columns.indexOf('note') + 1]}`);
-  await expect(next).toHaveClass(/is-selected/);
-  await expect(start).not.toHaveClass(/is-selected/);
-  expect(await page.locator('.note-table-cell.is-selected').count()).toBe(1);
-
-  // so one Enter opens it, the same as a second click would
-  await page.keyboard.press('Enter');
-  await expect(next).toHaveClass(/is-expanded/);
-});
-
-test('arrowing away from an open cell closes it', async ({ page }) => {
-  await openTable(page);
-
-  // a read-only cell opens to be read and keeps the arrow keys, having no caret to give them to.
-  // filename rather than title, which now takes a caret: the file itself is not editable from here.
-  const locked = cellFor(page, 'Alpha', 'filename');
-  await open(locked);
-  await expect(locked).toHaveClass(/is-expanded/);
-
-  await page.keyboard.press('ArrowRight');
-
-  await expect(locked).not.toHaveClass(/is-expanded/);
-  await expect(locked).not.toHaveClass(/is-selected/);
-});
-
 // ---------------------------------------------------------------- Enter in a list cell
 
 test('Enter writes a list cell rather than starting a new item', async ({ page }) => {
@@ -1014,4 +758,176 @@ test('a link completed from the picker reaches the note intact', async ({ page }
   await expect.poll(() => page.evaluate(() =>
     window.appState.myFiles.find(f => f.internalId === 'linked.md')?.internalLink ?? []
   )).toContain('alpha.md');
+});
+
+// ---------------------------------------------------------------- the lock the table shows
+// plans/table-delete-column.md §5.1 and §5.3: the write refuses exactly the notes the table locks.
+
+test('locked or missing notes are not written, the rest of the batch is, and a folder-wide batch renders once', async ({ page }) => {
+  const extra = {};
+  for (let i = 0; i < 20; i++) extra[`n${i}.md`] = `---\nstatus: draft\nnote: ${i}\n---\n# N${i}\n`;
+  await openTable(page, {
+    ...extra,
+    'shadow.md': '---\nstatus: draft\nfilename: fake.md\n---\n# Shadow\n',
+    'dup.md': '---\nstatus: draft\nnote: x\nstatus: live\n---\n# Dup\n',
+  });
+  const before = { shadow: await fileText(page, 'shadow.md'), dup: await fileText(page, 'dup.md') };
+
+  const cellEdit = await page.evaluate(async () => {
+    const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
+    const records = await applyCellEdits(['alpha.md', 'shadow.md', 'dup.md']
+      .map(internalId => ({ internalId, property: 'status', text: 'done' })));
+    return records.map(record => record.internalId);
+  });
+  expect(cellEdit).toEqual(['alpha.md']);
+  expect(await fileText(page, 'alpha.md')).toContain('status: done');
+
+  // An undo is a raw write with `expect`, which is the path that could meet a note locked since.
+  const undo = await page.evaluate(async () => {
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+    const records = await applyRawEdits([
+      { internalId: 'alpha.md', property: 'status', raw: ' draft', expect: ' done' },
+      { internalId: 'shadow.md', property: 'status', raw: ' gone', expect: ' draft' },
+      { internalId: 'dup.md', property: 'status', raw: ' gone', expect: ' live' },
+      // a saved entry can name a note deleted since: refused, not thrown on (§8.4)
+      { internalId: 'gone.md', property: 'status', raw: ' x' },
+    ]);
+    return records.map(record => record.internalId);
+  });
+  expect(undo).toEqual(['alpha.md']);
+  expect(await fileText(page, 'shadow.md')).toBe(before.shadow);
+  expect(await fileText(page, 'dup.md')).toBe(before.dup);
+
+  // §6.3: the shape, not the time. A folder-wide batch renders once and reads each file once.
+  const counts = await page.evaluate(async () => {
+    const { appState } = await import('/public/js/services/store.js');
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+
+    const reads = new Map();
+    for (const file of appState.myFiles) {
+      const getFile = file.handle.getFile;
+      file.handle.getFile = async () => {
+        const got = await getFile();
+        const text = got.text;
+        return { ...got, text: async () => { reads.set(file.filename, (reads.get(file.filename) ?? 0) + 1); return text(); } };
+      };
+    }
+    // One callback per burst of synchronous DOM work, so two renders separated by an await are two.
+    let renders = 0;
+    const counter = new MutationObserver(records => { if (records.some(r => r.addedNodes.length)) renders++; });
+    counter.observe(document.getElementById('output'), { childList: true, subtree: true });
+
+    const edits = appState.myFiles.filter(file => file.filename.startsWith('n'))
+      .map(file => ({ internalId: file.internalId, property: 'note', raw: '' }));
+    const progress = [];
+    const records = await applyRawEdits(edits, { onProgress: (done, total) => progress.push([done, total]) });
+    counter.disconnect();
+    return {
+      records: records.length,
+      maxReads: Math.max(...reads.values()),
+      filesRead: reads.size,
+      progress: progress.length,
+      last: progress.at(-1),
+      renders,
+    };
+  });
+  expect(counts.records).toBe(20);
+  expect(counts.filesRead).toBe(20);
+  // The write's own read and the verified save's read-back; the refresh parses the written text.
+  expect(counts.maxReads).toBe(2);
+  expect(counts.progress).toBe(20);
+  expect(counts.last).toEqual([20, 20]);
+  expect(counts.renders).toBe(1);
+});
+
+
+// ---------------------------------------------------------------- a key put back where it was
+// plans/table-delete-column.md §12 and §5.2.
+
+
+/** Every top-level key's span in a note. */
+async function spansOf(text) {
+  const { parseYaml } = await appModule('services/file-parsing/yaml-parse.js');
+  const spans = new Map();
+  parseYaml(text, [], spans);
+  return spans;
+}
+
+test('the anchor recorded for a removal is the key on the line above, or null for the first', async () => {
+  const { keyAbove } = await appModule('editing/front-matter-splice.js');
+  const text = '---\nfirst: 1\nlist:\n  - a\n  - b\n# a comment\n\nafter: 2\nlast: 3\n---\n';
+  const spans = await spansOf(text);
+  expect(keyAbove(spans, 'first')).toBe(null);
+  expect(keyAbove(spans, 'list')).toBe('first');
+  expect(keyAbove(spans, 'after')).toBe('list');    // past the comment and the blank line
+  expect(keyAbove(spans, 'last')).toBe('after');
+});
+
+test('keySplice puts a key back after its anchor, under the separator, or at the end', async () => {
+  const { keySplice } = await appModule('editing/front-matter-splice.js');
+  const text = '---\nfirst: 1\nlist:\n  - a\n  - b\nlast: 3\n---\nbody\n';
+  const spans = await spansOf(text);
+  const indices = { start: 0, end: 6 };
+  const put = (placement) => {
+    const s = keySplice(text, 'x', ' 9', indices, undefined, placement);
+    return text.slice(0, s.start) + s.written + text.slice(s.end);
+  };
+  expect(put({ anchor: 'first', anchorSpan: spans.get('first') }))
+    .toBe('---\nfirst: 1\nx: 9\nlist:\n  - a\n  - b\nlast: 3\n---\nbody\n');
+  expect(put({ anchor: 'list', anchorSpan: spans.get('list') }))
+    .toBe('---\nfirst: 1\nlist:\n  - a\n  - b\nx: 9\nlast: 3\n---\nbody\n');
+  expect(put({ anchor: null }))
+    .toBe('---\nx: 9\nfirst: 1\nlist:\n  - a\n  - b\nlast: 3\n---\nbody\n');
+  expect(put({ anchor: 'gone' }))
+    .toBe('---\nfirst: 1\nlist:\n  - a\n  - b\nlast: 3\nx: 9\n---\nbody\n');
+});
+
+test('keySplice with keepKey writes a bare key', async () => {
+  const { keySplice } = await appModule('editing/front-matter-splice.js');
+  const text = '---\na: 1\n---\n';
+  const s = keySplice(text, 'people', '', { start: 0, end: 2 }, undefined, { keepKey: true });
+  expect(text.slice(0, s.start) + s.written + text.slice(s.end)).toBe('---\na: 1\npeople:\n---\n');
+});
+
+/** Takes keys out of notes through the writer, then undoes that batch, returning every stage. */
+async function removeAndUndo(page, edits) {
+  return page.evaluate(async (edits) => {
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+    const { pushUndoBatch, reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    const names = [...new Set(edits.map(edit => edit.internalId))];
+    const snap = () => Object.fromEntries(names.map(name => [name, window.__files[name]]));
+    const before = snap();
+    const records = await applyRawEdits(edits.map(edit => ({ ...edit, raw: '' })));
+    pushUndoBatch(records);
+    const removed = snap();
+    await reverseBatch('undo');
+    return { before, removed, undone: snap(), records };
+  }, edits);
+}
+
+// First, middle, block list, CRLF and a bare key coming back byte for byte is held by the column
+// delete's undo cycle in 54-delete-property.spec.js, whose fixture has each. What is left here are
+// the two cases a one-key-per-note delete never meets.
+test('a key whose anchor has gone goes to the end, and two neighbours cleared together come back in order', async ({ page }) => {
+  await openTable(page, {
+    'gone.md': '---\nfirst: 1\nmiddle: 2\nlast: 3\n---\n# Gone\n',
+    'pair.md': '---\nfirst: 1\na: x\nb: y\nlast: 3\n---\n# Pair\n',
+  });
+  const gone = await page.evaluate(async () => {
+    const { applyRawEdits } = await import('/public/js/editing/apply-raw-edits.js');
+    const { pushUndoBatch, reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    pushUndoBatch(await applyRawEdits([{ internalId: 'gone.md', property: 'middle', raw: '' }]));
+    await applyRawEdits([{ internalId: 'gone.md', property: 'first', raw: '' }]);
+    await reverseBatch('undo');
+    return window.__files['gone.md'];
+  });
+  expect(gone).toBe('---\nlast: 3\nmiddle: 2\n---\n# Gone\n');
+
+  const { before, removed, undone, records } = await removeAndUndo(page, [
+    { internalId: 'pair.md', property: 'a' },
+    { internalId: 'pair.md', property: 'b' },
+  ]);
+  expect(removed['pair.md']).toBe('---\nfirst: 1\nlast: 3\n---\n# Pair\n');
+  expect(records.find(record => record.property === 'b').anchor).toBe('a');
+  expect(undone['pair.md']).toBe(before['pair.md']);
 });

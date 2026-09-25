@@ -3,9 +3,9 @@ import { getFileDataAndMetadata } from './file-parsing/file-info.js';
 import { buildParentMap } from './file-parsing/tag-taxon.js';
 import { invalidateTagCache } from '../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from './internal-links/note-name-index.js';
-import { checkAllFileErrors } from './file-parsing/file-errors.js';
+import { checkAllFileErrors, hasIssue } from './file-parsing/file-errors.js';
 import { seedCoreFileProperties } from './file-props.js';
-import { PROGRESS_STEP_SIZE } from '../constants.js';
+import { startProgress, stepProgress } from '../ui/ui-functions-render/progress-bar.js';
 import { finishLoadProgress } from '../ui/load-progress-finish.js';
 import { applyActiveLayout } from '../table-layouts/layout-file.js';
 
@@ -66,12 +66,8 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const fileCountEl = document.getElementById('fileCountElement');
     const filesWithMetadata = [];
     const total = fileEntries.length;
-    const n = Math.max(1, Math.ceil(total * PROGRESS_STEP_SIZE / 100));
-    const increment = n * 100 / total;
-    let pct = 0;
-    fileCountEl.classList.add('loading');
     fileCountEl.textContent = `files: ${total}`;
-    fileCountEl.style.setProperty('--load-pct', 0);
+    startProgress(fileCountEl);
     let unreadableCount = 0;
     for (let i = 0; i < total; i++) {
         const { handle, filepath } = fileEntries[i];
@@ -88,8 +84,7 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
             unreadableCount++;
             continue;
         }
-        if (i % n === 0) fileCountEl.style.setProperty('--load-pct', Math.round(Math.min(100, pct += increment)));
-        // if (i % n === 0) fileCountEl.textContent = `files: ${Math.round(Math.min(100, pct += increment))}% of ${total}`;
+        stepProgress(fileCountEl, i + 1, total);
         filesWithMetadata.push({ ...fileObj, filepath, internalId: filepath });
     }
 
@@ -112,8 +107,8 @@ export async function loadDirectoryFileHandles(onPickerResolved = null) {
     const fileCount = appState.myFiles.length;
     // Both counts use the same substring test the property search uses, so each equals
     // exactly what its own nudge shows when clicked.
-    const yamlErrors = appState.myFiles.filter(file => file.errorOnLoad?.includes('yaml')).length;
-    const brokenLinks = appState.myFiles.filter(file => file.errorOnLoad?.includes('links')).length;
+    const yamlErrors = appState.myFiles.filter(file => hasIssue(file, 'yaml')).length;
+    const brokenLinks = appState.myFiles.filter(file => hasIssue(file, 'links')).length;
     console.log(`Saved metadata for ${fileCount} files.`);
     finishLoadProgress(fileCountEl, fileCount, durationSec, 'file system',
         { yamlErrors, brokenLinks, unreadable: unreadableCount });

@@ -4,14 +4,14 @@ const {
   setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, loadFolder, showFilenames,
 } = require('../helpers');
 
-test('unreadable yaml gets an errorOnLoad summary, and the nudge filters to those files', async ({ page }) => {
+test('unreadable yaml gets an fileIssues summary, and the nudge filters to those files', async ({ page }) => {
   await setupMockFilesBrokenYaml(page);
   await page.goto('/');
   await loadFolder(page);
 
   const errors = await page.evaluate(() =>
     window.appState.myFiles
-      .map(file => [file.filename, file.errorOnLoad])
+      .map(file => [file.filename, file.fileIssues])
       .sort((a, b) => a[0].localeCompare(b[0]))
   );
 
@@ -54,14 +54,14 @@ test('front matter cannot overwrite core file properties, and says so', async ({
     return {
       filename: file.filename,
       handleIsString: typeof file.handle === 'string',
-      errorOnLoad: file.errorOnLoad,
+      fileIssues: file.fileIssues,
       title: file.title,
     };
   });
 
   expect(shadowed.filename).toBe('shadow.md');   // not the 'fake.md' the front matter asked for
   expect(shadowed.handleIsString).toBe(false);   // still a real file handle
-  expect(shadowed.errorOnLoad).toBe('yaml: keys "handle", "filename" ignored');
+  expect(shadowed.fileIssues).toBe('yaml: keys "handle", "filename" ignored');
   expect(shadowed.title).toBe('Shadowed');       // title is NOT reserved, so it still applies
 });
 
@@ -185,4 +185,27 @@ test('a colour is a front matter value: a name bare, a hex quoted and carrying i
   // And the hash in a colour adds no tag, which is the pair of rules working together: it is only
   // safe to write a '#' into front matter because nothing in there is scanned for tags.
   expect((await fileFields(page, 'hex6.md')).tags).toEqual([]);
+});
+
+test('a key written twice counts in the load message as a yaml error', async ({ page }) => {
+  await page.addInitScript(() => {
+    const makeFile = (name, content) => ({
+      kind: 'file', name,
+      getFile: async () => ({ name, size: content.length, lastModified: Date.now(), text: async () => content }),
+    });
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () {
+        yield makeFile('dup.md', '---\npeople: ann\nstatus: draft\npeople: bob\n---\n# Dup\n');
+        yield makeFile('clean.md', '---\npeople: ann\n---\n# Clean\n');
+      },
+    });
+  });
+  await page.goto('/');
+  await loadFolder(page);
+
+  const dup = await page.evaluate(() =>
+    window.appState.myFiles.find(file => file.filename === 'dup.md').fileIssues);
+  expect(dup).toBe('yaml: 1 duplicate key "people"');
+  await expect(page.locator('#fileCountElement .load-error-nudge')).toHaveText('1 yaml error');
 });

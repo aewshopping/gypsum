@@ -38,6 +38,7 @@
 @import url("css/radio.css");
 @import url("css/highlight.css");
 @import url("css/button-save.css");
+@import url("css/progress-bar.css");
 @import url("css/button-load.css");
 @import url("css/button-close-modal.css");
 @import url("css/button-base.css");
@@ -61,6 +62,7 @@
 @import url("css/load-error-nudge.css");
 @import url("css/menu.css");
 @import url("css/column-menu.css");
+@import url("css/undo-list.css");
 @import url("css/table-layouts.css");
 @import url("css/output-controls.css");
 @import url("css/table-undo-flash.css");

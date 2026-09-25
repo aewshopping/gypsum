@@ -38,7 +38,7 @@ test('the picker lists the loaded folder\'s properties, in the table\'s column o
   // display_order and falls to the back.
   await expect(rows(page).locator('.info-modal-row-label')).toHaveText([
     'file', 'filename', 'title', 'tags', 'last modified', 'size',
-    'links', 'link text', 'color', 'filepath', 'load error', 'status',
+    'links', 'link text', 'color', 'filepath', 'issues', 'status',
   ]);
 
   // hidden_always is a hard exclusion, so neither is offered: handle is a FileSystemFileHandle

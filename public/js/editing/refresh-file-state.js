@@ -48,18 +48,32 @@ export function refreshFileAfterSave(snapshot, resort = true) {
  * **Awaited, and worth awaiting**: the rows the caller wants to mark do not exist until it returns.
  * That is what lets an undo flash the cells it changed — see plans/table-undo-stack.md §10.2.
  *
- * @param {Array<{ filepath: string, filename: string }>} snapshots - One per file written.
+ * **A snapshot carrying `written` is not read back.** That is the text the write just verified, so
+ * reading it again was a second read per file for nothing — at a thousand files, a thousand. Only
+ * `getFile()` is still asked, for the size and the modified time the file system alone knows.
+ *
+ * @param {Array<{ filepath: string, filename: string, written?: string }>} snapshots - One per
+ *   file written.
  * @param {boolean} [resort=true] - Whether to put the files back in sort order afterwards.
+ * @param {Iterable<string>} [recheck] - Ids of files not written whose issues must be redrawn all
+ *   the same, in this one render — the notes an undo left alone.
  * @returns {Promise<void>}
  */
-export async function refreshFilesNow(snapshots, resort = true) {
+export async function refreshFilesNow(snapshots, resort = true, recheck = []) {
     try {
+        // One lookup table per refresh, rather than a search of every file per file written.
+        const indexByPath = new Map(appState.myFiles.map((file, index) => [file.filepath, index]));
+
         let fullRender = false;
         for (const snapshot of snapshots) {
             // Or-assigned rather than assigned: one file gaining or losing a key can change the
             // columns, and the render that draws them has to be a full one however many files were
             // quiet.
-            fullRender = await rereadFile(snapshot) || fullRender;
+            fullRender = await rereadFile(snapshot, indexByPath.get(snapshot.filepath)) || fullRender;
+        }
+        const ids = new Set(recheck);
+        for (const file of appState.myFiles) {
+            if (ids.has(file.internalId)) checkFileErrors(file);
         }
         await renderRefreshed(fullRender, resort);
     } catch (err) {
@@ -70,16 +84,16 @@ export async function refreshFilesNow(snapshots, resort = true) {
 /**
  * Re-parses one saved file from disk and updates appState. Renders nothing.
  *
- * @param {{ filepath: string, filename: string }} snapshot
+ * @param {{ filepath: string, filename: string, written?: string }} snapshot
+ * @param {number|undefined} fileIndex - Where the file sits in appState.myFiles, if it is there.
  * @returns {Promise<boolean>} Whether the file's key set changed, so the next render must be full.
  */
-async function rereadFile(snapshot) {
-    const fileIndex = appState.myFiles.findIndex(f => f.filepath === snapshot.filepath);
-    if (fileIndex === -1) return false;
+async function rereadFile(snapshot, fileIndex) {
+    if (fileIndex === undefined) return false;
 
     const existingFile = appState.myFiles[fileIndex];
 
-    const freshFile = await getFileDataAndMetadata(existingFile.handle, 0);
+    const freshFile = await getFileDataAndMetadata(existingFile.handle, 0, snapshot.written);
 
     // The rows can be replaced on their own only while the columns are the ones already drawn, so
     // this asks whether the file's own key set changed — in either direction. A gained key is a
