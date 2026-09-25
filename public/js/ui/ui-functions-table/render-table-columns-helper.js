@@ -27,8 +27,14 @@ import { propertyType, propertySearchType } from '../../services/property-type.j
  *
  * It is still drawn if the layout says so, and
  * still written back to the file; its heading is faded to say it holds nothing, and it can be removed
- * from the layout for good — from the column picker's bin, or from "delete column" in its own header
- * menu.
+ * from the layout for good — from the column picker's bin, or from "remove from layout" in its own
+ * header menu.
+ *
+ * **`blank` is the fade, and it is a wider question than `dead`.** A bare `people:` is a key the
+ * note carries holding null, so a column of bare keys is not dead — it offers "delete column", the
+ * tool that removes those keys, and nothing offers to remove it from the layout — but it holds
+ * nothing to show, so it fades like an empty one. Every dead column is blank; only the fade asks
+ * about values. See plans/bare-keys-as-null.md §4.
  *
  * **It is asked of the files, not of myFilesProperties**, which only ever grows. Nothing unregisters
  * a property when its last value goes, so clearing the last cell of a column left it claiming to have
@@ -52,7 +58,7 @@ import { propertyType, propertySearchType } from '../../services/property-type.j
  * widths without re-rendering — a width read off these objects would be stale mid-drag.
  *
  * @returns {Array<object>} Resolved columns in order: { name, label, width, visible, alwaysOn,
- *                          dead, type, search_type, display_order }.
+ *                          dead, blank, type, search_type, display_order }.
  */
 export function resolveColumns() {
     const { columnLayout, hidden_always, shown_always } = TABLE_VIEW_COLUMNS;
@@ -63,6 +69,7 @@ export function resolveColumns() {
 
     const carried = propertiesInFiles([...columnLayout.keys(), ...candidates]
         .filter(name => !CORE_FILE_PROPERTIES.includes(name)));
+    const filled = propertiesInFiles([...carried], { withValue: true });
 
     // **A property no file carries is not a new column**, and this asks the files for the same
     // reason `dead` does: myFilesProperties only ever grows, so clearing the last value of a key
@@ -101,6 +108,7 @@ export function resolveColumns() {
             visible: alwaysOn || entry.visible,
             alwaysOn,
             dead: !CORE_FILE_PROPERTIES.includes(name) && !carried.has(name),
+            blank: !CORE_FILE_PROPERTIES.includes(name) && !filled.has(name),
         };
     });
 }
@@ -117,21 +125,35 @@ export function resolveColumns() {
  * a column is, and a second answer to "does the folder still have this property" would be a second
  * thing to keep in step.
  *
+ * `withValue` asks the fade's question instead: which of them some file holds a value for that
+ * draws anything. `null`, `''` and `[]` each draw a blank cell, so none of them counts.
+ *
  * @param {string[]} names - The property names to ask about.
+ * @param {{withValue?: boolean}} [options]
  * @returns {Set<string>} Those of them some file has.
  */
-export function propertiesInFiles(names) {
+export function propertiesInFiles(names, { withValue = false } = {}) {
     const pending = new Set(names);
     const carried = new Set();
 
     for (const file of appState.myFiles) {
         if (pending.size === 0) break;
         for (const name of pending) {
-            if (Object.hasOwn(file, name)) {
+            if (withValue ? drawsSomething(file[name]) : Object.hasOwn(file, name)) {
                 carried.add(name);
                 pending.delete(name);
             }
         }
     }
     return carried;
+}
+
+/**
+ * Whether a value shows as anything in its cell.
+ * @param {*} value
+ * @returns {boolean}
+ */
+function drawsSomething(value) {
+    if (value === null || value === undefined || value === '') return false;
+    return !Array.isArray(value) || value.length > 0;
 }
