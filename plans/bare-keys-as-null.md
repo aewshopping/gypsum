@@ -102,8 +102,8 @@ clear-a-value behaviour becomes a goal in its own right, and it would want its o
 per-cell "remove property" action decided alongside it.
 
 **§3's split of "empty"** is settled with it: the fade means **"no note has a non-null value"**, and
-the menu's delete item keys off **"some note carries the key"**. Then a column of bare keys fades like an empty one and offers "delete column", which is the
-tool that will actually remove those keys.
+the menu's delete item keys off **"some note carries the key"**. Then a column of bare keys fades
+like an empty one and offers "delete column", which is the tool that will actually remove those keys.
 
 ## 5. Steps
 
