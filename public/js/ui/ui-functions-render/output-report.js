@@ -104,7 +104,9 @@ export function reportProgressEnd() {
  * @returns {void}
  */
 export function reportDelete(property, deleted, skipped) {
-    const parts = [`deleted ${property} from ${deleted} file${deleted === 1 ? '' : 's'}`];
+    // Two spaces, so "deleted" lines up with the "deleting" it replaces and the property name does
+    // not shift left under the eye. A non-breaking space first, or the line would collapse the pair.
+    const parts = [`deleted\u00A0 ${property} from ${deleted} file${deleted === 1 ? '' : 's'}`];
     if (skipped > 0) {
         parts.push(', ', nudge(`${skipped} skipped`, 'yaml',
             `show the notes with front matter that could not be read`));
