@@ -47,6 +47,10 @@ What that gives:
 - **`tags:` bare.** `file-info.js` already skips a null tag and deletes the key, so nothing changes;
   the CLAUDE.md sentence "the parser emits no key at all for it" becomes "it is null, which the tag
   merge skips".
+- **A bare `title:` hides the note's `# H1`.** Front matter overrides the H1, so a note carrying
+  `title:` (from an Obsidian template, say) shows a blank title where it showed the heading — the
+  same as `title: null` does today. Not considered an issue: gypsum never writes a bare `title:`,
+  and a note that says it has an empty title is taken at its word.
 - **"Empty" needs splitting into two questions.** `dead` (the faded header) and `missing` both ask
   `Object.hasOwn`. With bare keys kept, a column whose every note says `people:` is carried but holds
   no value. Today's rule treats carried as not-empty, which already happens for explicit
