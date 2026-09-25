@@ -193,10 +193,18 @@ point. These rules follow, and they are the ones to hold:
 
 **A column belongs to the layout, not to the files.** A column no loaded file has a key for is drawn
 anyway — faded, so that it reads as empty rather than as a column whose rows happen to be blank. That
-is `dead` on a resolved column, `data-empty` on the header cell, and one rule in `note-table.css`.
+is `blank` on a resolved column, `data-empty` on the header cell, and one rule in `note-table.css`.
 It is what makes deleting a key from a cell safe: the value goes and the column stays, so nothing
 disappears out from under the person who cleared it.
 
+- **Faded and keyless are two questions, and only the fade asks about values.** A bare `people:` is
+  a key the note carries, holding null (see DATA-STRUCTURES.md, "How a front matter value is read").
+  So a column whose notes all say `people:` is not `dead` — nothing offers to remove it from the
+  layout, and it offers "delete column", the tool that removes those keys — but it has nothing to
+  show, so it fades. `blank` on a resolved column drives `data-empty`, the fade: no note holds a value
+  that draws anything, and `null`, `''` and `[]` all draw a blank cell. `dead` drives `data-keyless`,
+  which is what the column menu, the column picker and the types modal read. See
+  `plans/bare-keys-as-null.md`.
 - **`dead` is asked of `appState.myFiles`, never of `myFilesProperties`.** That Map only ever grows —
   nothing unregisters a property when its last value goes — so it would go on claiming the column had
   values until the folder was reloaded, which is exactly the moment the answer has to change.
@@ -208,7 +216,7 @@ disappears out from under the person who cleared it.
   undid itself: the key was gone from the note but still registered, so `resolveColumns()` read it as
   a property the layout had never seen and appended it hidden — on the render the delete itself runs,
   so it was back in the picker before the user could save, and the next save wrote it to disk again.
-- **"remove from layout" is offered on an empty column and nowhere else**, from the header's own
+- **"remove from layout" is offered on a keyless column and nowhere else**, from the header's own
   menu and from the bin in the column picker. Both go through `deleteColumnFromLayout()` in
   `ui-functions-click/column-delete.js`, so removing a column means the same thing in both places:
   it is dropped from the active layout and the layout is written to disk there and then, since the
@@ -221,7 +229,7 @@ disappears out from under the person who cleared it.
   in the same menu, is the answer there.
 - **"delete column" is the other item in that slot, and the two never show together.** It is offered
   on a column *with* values and removes the property from every note — see *Deleting a property from
-  every note* below. Empty and not-empty are one attribute read two ways, so the menu always holds at
+  every note* below. Keyless and not are one attribute read two ways, so the menu always holds at
   most one delete-like item, and its name says what it reaches: the layout, or the notes.
 
 ### Deleting a property from every note
@@ -239,14 +247,15 @@ in one confirmed batch that one undo puts back. See `plans/table-delete-column.m
   the notes that *will change*: a note whose front matter did not read is carried but skipped. Cancel
   has focus. When every carrying note is locked the dialog explains and offers no delete.
 - **Two passes, both through `applyRawEdits`, and the undo entry is written first.**
-  `deleteProperty()` in `editing/delete-property.js` plans every loaded file with `write: false`,
-  pushes that batch and waits for `undo.gypsum` to be written, then writes with `expect: before`. A
-  tab closed half-way leaves a journal listing some edits that never happened, and undoing one finds
-  the key still there and refuses it: **the existing check makes the journal crash-safe**, with no
-  recovery code. A note edited between the passes is refused the same way. A pass that wrote nothing
-  takes its entry off the stack.
-- **Every loaded file is planned, not only the ones with a value**, because a bare `people:` holds no
-  value and so is not in the file object. Undo puts it back bare (`keepKey`).
+  `deleteProperty()` in `editing/delete-property.js` plans every file carrying the key with
+  `write: false`, pushes that batch and waits for `undo.gypsum` to be written, then writes with
+  `expect: before`. A tab closed half-way leaves a journal listing some edits that never happened,
+  and undoing one finds the key still there and refuses it: **the existing check makes the journal
+  crash-safe**, with no recovery code. A note edited between the passes is refused the same way. A
+  pass that wrote nothing takes its entry off the stack.
+- **Only the notes carrying the key are planned, and a bare `people:` is one of them** — it is null
+  on the file object, so the dialog and the result line count the same notes. Undo puts it back bare
+  (`keepKey`).
 - **The table never writes into a note it shows as locked** — a skipped line, a key written twice
   (`parseYaml` reports a duplicate as an error), or a shadowed reserved key — for every caller of
   `applyRawEdits`, not only the delete.

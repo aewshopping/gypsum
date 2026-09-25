@@ -1,6 +1,6 @@
 # Plan: a bare key is a null value, not a missing one
 
-Status: **not started.** §4 is decided: clearing a cell still removes the key (option A).
+Status: **done.** §4 is decided: clearing a cell still removes the key (option A).
 Manifest version: bump the minor version with each step that changes code.
 
 ## 1. The problem

@@ -208,6 +208,10 @@ message's and filters to them.
 
 ### 5.2 A bare `people:` is deleted too
 
+> **Superseded by `plans/bare-keys-as-null.md`.** The parser now keeps a bare key as `null`, so
+> appState sees it: the plan pass is sent only the files carrying the key, and the dialog counts
+> them. The rest of this section is the reasoning as it stood.
+
 **A key with nothing after its colon is not in the file object**, and so is invisible to every count
 above. The parser gives it a span but no value: `people:` on its own line parses to an object without
 `people`, so `Object.hasOwn` is false and the batch built from `appState` would never send that file.

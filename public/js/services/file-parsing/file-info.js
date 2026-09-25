@@ -50,7 +50,7 @@ export async function getFileDataAndMetadata(handle, loadOrder, knownText) {
     // `tags: null` are keys the note carries, and a falsy guard skipped the delete along with the
     // merge — so the spread put a boolean over the TagMap and every view that calls
     // `file.tags.keys()` threw. The table row builder happened to be guarded; the list and the
-    // grid were not. A bare `tags:` is safe either way: the parser emits no key at all for it.
+    // grid were not. A bare `tags:` is null, which the merge below skips.
     if ('tags' in yamlData) {
         const yamlTags = Array.isArray(yamlData.tags) ? yamlData.tags : [yamlData.tags];
         for (const yamlTag of yamlTags) {
