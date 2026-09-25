@@ -4,7 +4,7 @@
  * Saved because after a column delete the undo entry is the only copy of what was removed: table
  * writes take no history snapshot, so a stack that died with the tab took the values with it. A
  * stale entry is safe to keep, because every undo checks the note still says what the edit left
- * there and refuses it otherwise. See plans/table-delete-column.md §8.
+ * there and refuses it otherwise. See plans/completed/table-delete-column.md §8.
  *
  * It knows the file's shape and nothing about what an entry means. appState.undoStack and redoStack
  * stay the single source of truth; this is their copy on disk, the relationship propertyTypes has

@@ -112,12 +112,12 @@ export const appState = {
   // `{ timestamp, kind, property, edits }`: `kind` is 'edit' or 'delete-property', `property` the
   // column when every edit shares one, else null, and `edits` the records applyRawEdits returned.
   // describeBatch() in table-undo/describe-batch.js turns the facts into a name. See
-  // plans/table-undo-stack.md §4 and §5, and plans/table-delete-column.md §7.
+  // plans/table-undo-stack.md §4 and §5, and plans/completed/table-delete-column.md §7.
   //
   // Saved to the folder's .gypsum/undo.gypsum after every change and read back when the folder
   // loads, because after a column delete the entry is the only copy of what was removed. A stale
   // entry is safe to keep: the check at undo time refuses an edit whose note has moved on rather than
-  // forcing it. plans/table-delete-column.md §8.
+  // forcing it. plans/completed/table-delete-column.md §8.
   //
   // Capped at UNDO_DEPTH. Undo pushes onto redoStack and redo pushes back, so an entry is never in
   // both; a fresh edit empties redoStack, which is the ordinary rule.
@@ -141,7 +141,7 @@ export const appState = {
 /**
  * How many batches the undo and redo stacks hold. Kept on disk, a deep stack is cheap, and twenty
  * quick cell edits after a column delete must not push the delete off it. The file is rewritten
- * whole on each push, which is small in any realistic use — see plans/table-delete-column.md §9.
+ * whole on each push, which is small in any realistic use — see plans/completed/table-delete-column.md §9.
  */
 export const UNDO_DEPTH = 100;
 

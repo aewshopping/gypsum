@@ -166,20 +166,21 @@ export function handleColumnMenuOpen(evt, headerCell) {
     if (typeItem) typeItem.disabled = noType;
 
     // The last two items are hidden rather than greyed out, unlike every other item here, and at
-    // most one of them shows: "remove from layout" on an empty column, "delete column" on one with
-    // values. Whether the column is empty is the attribute the header drew itself with, so the menu
-    // and the heading cannot disagree — and it is the same question with opposite answers, which is
-    // why the two never meet. plans/table-delete-column.md §4.1.
+    // most one of them shows: "remove from layout" on a column no note has the key for, "delete
+    // column" on one some note does — even when every such note holds a bare `people:`, since the
+    // notes are what it clears. That is the attribute the header drew itself with, so the menu and
+    // the heading cannot disagree — and it is the same question with opposite answers, which is why
+    // the two never meet. plans/completed/table-delete-column.md §4.1, plans/completed/bare-keys-as-null.md §4.
     //
     // A layout is what a column is removed from, so under the app's defaults there is nothing to
     // remove it from — "hide column", above, is the answer there. And only a property the user
     // made can be deleted from the notes: a column the app fills in would still stand. §3.
-    const isEmpty = headerCell.hasAttribute('data-empty');
+    const isKeyless = headerCell.hasAttribute('data-keyless');
     const removeItem = menu.querySelector('[data-action="column-delete-menu"]');
-    if (removeItem) removeItem.hidden = !isEmpty || appState.tableLayouts.active === null;
+    if (removeItem) removeItem.hidden = !isKeyless || appState.tableLayouts.active === null;
 
     const deleteItem = menu.querySelector('[data-action="column-delete-property"]');
-    if (deleteItem) deleteItem.hidden = isEmpty || !isPropertyDeletable(property);
+    if (deleteItem) deleteItem.hidden = isKeyless || !isPropertyDeletable(property);
 
     nameSortItems(menu, property);
 

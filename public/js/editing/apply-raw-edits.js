@@ -8,7 +8,7 @@ import { newBlock, keySplice, keyAbove } from './front-matter-splice.js';
 import { saveFileCopy } from './save-file-copy.js';
 import { refreshFilesNow } from './refresh-file-state.js';
 
-/** How many files are in flight at once. Measured, not guessed — §6.2 of plans/table-delete-column.md. */
+/** How many files are in flight at once. Measured, not guessed — §6.2 of plans/completed/table-delete-column.md. */
 const POOL_SIZE = 16;
 
 /**
@@ -99,7 +99,7 @@ function changedItem(text, span, items) {
  * is two `createWritable()` cycles, so a folder-wide batch is dominated by waiting on the file
  * system — measured at 13.3s for 1,000 files one at a time. Each file's own edits still go back to
  * front, and the verified two-write save is kept: concurrency is the saving, not dropping the
- * safety. plans/table-delete-column.md §6.
+ * safety. plans/completed/table-delete-column.md §6.
  *
  * **The folder is fixed when the batch starts.** The directory handle and every file's own handle
  * are taken once, here, so a folder loaded while a long batch runs cannot receive the rest of its

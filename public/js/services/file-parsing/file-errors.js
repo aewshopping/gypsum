@@ -105,7 +105,7 @@ function linkSegment(file) {
 /**
  * Says the most recent undo or redo left this note alone, and which one. Neither parse-time nor
  * collection-time: a fact about the session, held in appState.undoRefusals and drawn from there on
- * every rebuild, so it survives a re-read. plans/table-delete-column.md §10.5.
+ * every rebuild, so it survives a re-read. plans/completed/table-delete-column.md §10.5.
  * @param {object} file - A file object from appState.myFiles.
  * @returns {string|null}
  */

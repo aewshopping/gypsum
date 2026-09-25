@@ -145,17 +145,19 @@ export const flowItemRanges = (line, from, to) => {
 };
 
 /**
- * Removes keys left holding an empty object — a key whose nesting was expected but never
- * arrived. Post-order, so a map emptied by this pass is itself removed by it.
- * @param {object} target - The object to prune, mutated in place.
+ * Turns a key left holding an empty object into a key holding null. The parser opens a map for
+ * every key with nothing after its colon, expecting nesting; a key where none arrived is YAML's
+ * empty value — `people:` is `people: null` — and the note does carry it. See
+ * plans/completed/bare-keys-as-null.md.
+ * @param {object} target - The object to resolve, mutated in place.
  * @returns {void}
  */
-const pruneEmptyMaps = (target) => {
+const nullEmptyMaps = (target) => {
     for (const key of Object.keys(target)) {
         const value = target[key];
         if (value === null || typeof value !== "object" || Array.isArray(value)) continue;
-        pruneEmptyMaps(value);
-        if (Object.keys(value).length === 0) delete target[key];
+        if (Object.keys(value).length === 0) target[key] = null;
+        else nullEmptyMaps(value);
     }
 };
 
@@ -174,7 +176,7 @@ const pruneEmptyMaps = (target) => {
  * @param {Map<string, object>} [spans] - When given, collects one entry per top-level key
  *   describing where its value sits in `yamlString`, for editing a value in place. See
  *   §5 of plans/completed/yaml-parser.md for the shape and what each part is for. Spans describe the
- *   text, not the result: a key pruned from the returned object still has its span.
+ *   text, not the result.
  *
  *   **`lineStart` with `valueEnd` is the whole key, not just its name.** The key always sits on the
  *   line `lineStart` begins, and `valueStart` is always on that same line, so
@@ -197,9 +199,8 @@ export const parseYaml = (
 
     const lines = yamlString.split("\n");
     const root = {};
-    // `seen` is per mapping, never asked of the object: a bare `people:` never enters it, so
-    // `people:` then `people: bob` would slip past `key in container`. The same key under two
-    // parents is two mappings and not a duplicate. See plans/table-delete-column.md §5.3.
+    // `seen` is per mapping rather than asked of the object. The same key under two parents is
+    // two mappings and not a duplicate. See plans/completed/table-delete-column.md §5.3.
     const stack = [{ container: root, indent: -1, key: null, parent: null, span: null, seen: new Set() }];
 
     // Character offset of the line being read, carried forward rather than recomputed, so a
@@ -369,6 +370,6 @@ export const parseYaml = (
         context.container[key] = readValue(valueText);
     }
 
-    pruneEmptyMaps(root);
+    nullEmptyMaps(root);
     return root;
 };

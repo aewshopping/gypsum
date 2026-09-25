@@ -368,7 +368,7 @@ test.describe('tar backup buttons', () => {
         expect(outcome.lastModified).toBeCloseTo(FIXED_MTIME, -3);
     });
 
-    // plans/table-delete-column.md §8.2: the undo history is part of the folder's state, and as the
+    // plans/completed/table-delete-column.md §8.2: the undo history is part of the folder's state, and as the
     // copy of what a column delete removed it is worth most exactly when a backup is restored.
     test("a full backup's undo.gypsum survives an import, and an undo from it reaches the note", async ({ page }) => {
         await interceptDownload(page);

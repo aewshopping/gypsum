@@ -1,6 +1,6 @@
 # Plan: undoing a cell edit
 
-> **Two rows of this plan are superseded by `plans/table-delete-column.md`:** the stack is saved
+> **Two rows of this plan are superseded by `plans/completed/table-delete-column.md`:** the stack is saved
 > to `.gypsum/undo.gypsum` rather than kept in memory (§9 here, §8 there), and it holds 100 batches
 > rather than 20 (§9 there). That plan also adds named entries, the undo list, and Ctrl+Z scoped to
 > one visit to the table.

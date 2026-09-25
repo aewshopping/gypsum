@@ -17,7 +17,7 @@ import { loadUndoStacks } from '../../table-undo/undo-stacks.js';
 // A column delete across a folder runs for seconds, and the sidebar's load buttons are outside the
 // inert table. Loading a folder meanwhile is refused outright, and closing the tab asks first — the
 // journal makes a closed tab safe, this makes it rare. The same guard rename-file.js raises.
-// plans/table-delete-column.md §6.2a.
+// plans/completed/table-delete-column.md §6.2a.
 window.addEventListener('beforeunload', (evt) => {
     if (appState.bulkWriteInFlight) evt.preventDefault();
 });
@@ -104,7 +104,7 @@ async function postLoad() {
 
     // An entry names a file by an id that means nothing against a different folder, so the stacks
     // are replaced by this folder's own, read from its .gypsum. Here rather than in each loader,
-    // because all three run this. See plans/table-delete-column.md §8.2.
+    // because all three run this. See plans/completed/table-delete-column.md §8.2.
     await loadUndoStacks();
     // A folder just opened is a visit that has not done anything yet. §10.4.
     appState.undoHorizon = Date.now();

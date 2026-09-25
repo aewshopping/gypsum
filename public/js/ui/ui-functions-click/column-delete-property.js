@@ -11,7 +11,7 @@ import { reportProgress, reportProgressEnd, reportDelete, reportFailure } from '
  * Asks, then deletes the menu's property from every note, with the table inert until it is done.
  *
  * Thin: the counts and the two passes are editing/delete-property.js's. This is the dialog, the
- * inert table and the report line — see plans/table-delete-column.md §5, §11 and §17.
+ * inert table and the report line — see plans/completed/table-delete-column.md §5, §11 and §17.
  *
  * @returns {Promise<void>}
  */

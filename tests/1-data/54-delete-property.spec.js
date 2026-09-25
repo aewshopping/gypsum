@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { loadFolder } = require('../helpers');
 
 /**
- * plans/table-delete-column.md, end to end: "delete column" takes a property out of every note that
+ * plans/completed/table-delete-column.md, end to end: "delete column" takes a property out of every note that
  * has it, and one undo puts all of it back, byte for byte.
  *
  * What each note is for (§14.1):
@@ -11,7 +11,8 @@ const { loadFolder } = require('../helpers');
  *   quoted.md    — `people` quoted, and the first key of the block.
  *   last.md      — `people` as the last key.
  *   only.md      — `people` as the only key, so the block empties to ---/---.
- *   bare.md      — `people:` with nothing after it, which no count from appState can see (§5.2).
+ *   bare.md      — `people:` with nothing after it: null on the file object, so counted and planned
+ *                  like any other (plans/completed/bare-keys-as-null.md).
  *   crlf.md      — the whole note in CRLF.
  *   lookalike.md — peoples:, People: and people2:, and a body line `people: x`, none of them the key.
  *   none.md      — no front matter at all.
@@ -56,6 +57,7 @@ async function setupFiles(page, notes = NOTES) {
     window.__files = { ...notes };
     window.__saved = {};
     window.__writes = {};
+    window.__reads = {};
     window.__failWrite = new Set();
     window.__throwWrite = new Set();
     window.__pickerCalls = 0;
@@ -63,6 +65,7 @@ async function setupFiles(page, notes = NOTES) {
     const mk = (name) => ({
       kind: 'file', name,
       getFile: async () => {
+        window.__reads[name] = (window.__reads[name] ?? 0) + 1;
         if (!(name in window.__files)) throw Object.assign(new Error('gone'), { name: 'NotFoundError' });
         return {
           name, size: window.__files[name].length, lastModified: Date.now(),
@@ -141,6 +144,25 @@ async function deletePeople(page) {
   await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
   await page.click('[data-action="warning-proceed"]');
 }
+
+// plans/completed/bare-keys-as-null.md: bare.md is seen from appState, so the dialog counts the notes the
+// result line will, and a note without the key is never opened.
+test('the dialog counts a bare key, and a note without the key is not read', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(() => { window.__reads = {}; });
+
+  const header = page.locator('.note-table-cell-header[data-property="people"]');
+  await header.click();
+  await header.click();
+  await page.locator('#column-menu [data-action="column-delete-property"]').click();
+  await expect(page.locator('#modal-unsaved-warning-text')).toContainText('Delete "people" from 7 files?');
+  await page.click('[data-action="warning-proceed"]');
+  await expect(reportLine(page)).toContainText('deleted people from 7 files, 3 skipped');
+
+  const reads = await page.evaluate(() => ({ ...window.__reads }));
+  for (const name of ['lookalike.md', 'none.md', 'nokey.md']) expect(reads[name], name).toBeUndefined();
+  expect(reads['bare.md']).toBeGreaterThan(0);
+});
 
 /**
  * One delete, looked at from every side: the bytes it leaves, the notes it never touches, the

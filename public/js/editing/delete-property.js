@@ -10,7 +10,7 @@ import { saveUndoFile } from '../table-undo/undo-file.js';
  *
  * Every file in the loaded folder, whatever is filtered or paged: "delete the property" means just
  * that. The column is left standing, faded as empty, exactly as clearing its cells one by one would
- * leave it — a column belongs to the layout, not to the files. See plans/table-delete-column.md.
+ * leave it — a column belongs to the layout, not to the files. See plans/completed/table-delete-column.md.
  */
 
 /**
@@ -47,9 +47,9 @@ export function deletionForecast(property) {
  * the existing check makes the journal crash-safe with no recovery code — and it also refuses a note
  * edited between the two passes rather than writing a stale splice into it. §8.3.
  *
- * **Every loaded file is planned, not only the ones with a value**, because a bare `people:` holds
- * no value and so is not in the file object. Such a file yields a record with `before: ''` all the
- * same, and undo puts it back bare. §5.2.
+ * **Only the files that carry the key are planned.** A bare `people:` is on the file object as null
+ * (plans/completed/bare-keys-as-null.md), so appState sees every note the delete will reach and no other note
+ * is read. Such a file yields a record with `before: ''`, and undo puts it back bare.
  *
  * @param {string} property
  * @param {(done: number, total: number) => void} [onProgress] - Called as each note is written.
@@ -64,7 +64,7 @@ export async function deleteProperty(property, onProgress) {
         .filter(file => Object.hasOwn(file, property))
         .map(file => file.internalId));
 
-    const edits = appState.myFiles.map(file => ({ internalId: file.internalId, property, raw: '' }));
+    const edits = [...carrying].map(internalId => ({ internalId, property, raw: '' }));
     const planned = await applyRawEdits(edits, { write: false });
     if (planned.length === 0) return { deleted: 0, skipped: carrying.size };
 

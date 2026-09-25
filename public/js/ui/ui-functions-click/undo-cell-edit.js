@@ -29,14 +29,14 @@ export function canReverse(direction) {
     // Undo reads files and writes them, so a second press landing mid-flight would check the file
     // against bytes the first has not written yet — the exact race `expect` exists to close,
     // reopened from the other end. The flag is appState's so a column delete and an undo cannot
-    // overlap either. §10.4 of plans/table-undo-stack.md, §11 of plans/table-delete-column.md.
+    // overlap either. §10.4 of plans/table-undo-stack.md, §11 of plans/completed/table-delete-column.md.
     if (!canReach()) return false;
 
     // **Only what was done in this visit to the table.** Keyboard undo means "the thing I just
     // did"; once the stack outlives the session, a bare Ctrl+Z after a reload or a spell in grid
     // view would rewrite a note to how it was before something no longer in mind. Older entries are
     // reached through the list, deliberately. Only the top needs asking: every push goes on top with
-    // a fresh timestamp, so timestamps only rise up the stack. plans/table-delete-column.md §10.4.
+    // a fresh timestamp, so timestamps only rise up the stack. plans/completed/table-delete-column.md §10.4.
     const top = (direction === 'undo' ? appState.undoStack : appState.redoStack).at(-1);
     return top !== undefined && top.timestamp >= appState.undoHorizon;
 }

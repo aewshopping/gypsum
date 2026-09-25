@@ -19,7 +19,7 @@ flight, each worker taking the next index as one finishes.
   hold thousands of notes, and a cap keeps memory flat and the progress bar moving evenly.
   `plans/table-json-export.md` §4.5 stays sequential for the same worry; a bounded pool answers it.
 - **Start at 16**, the write pool's size, and measure: the same OPFS scratch page used for the delete
-  (`plans/table-delete-column.md` §14 step 1), a load of 1,000 notes, sequential against pools of
+  (`plans/completed/table-delete-column.md` §14 step 1), a load of 1,000 notes, sequential against pools of
   8, 16, 32 and unbounded. Record the numbers here.
 - **One loop for both loaders.** The two copies differ only in their root handle; the pool should
   live once and be called by both, rather than being written twice.

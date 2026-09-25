@@ -16,7 +16,7 @@ import { showWarningModal } from './warning-modal.js';
  *
  * **Only ever a column nothing fills in.** Both callers ask that first, and each in its own way: the
  * picker offers a bin only on a row it drew as dead, the header menu only on a cell it drew with
- * data-empty. Neither is checked again here, because a second answer to "is this column empty" is a
+ * data-keyless. Neither is checked again here, because a second answer to "is this column empty" is a
  * second thing to keep in step — and because this only ever touches the layout. No file is opened,
  * so no note can lose anything by it.
  *

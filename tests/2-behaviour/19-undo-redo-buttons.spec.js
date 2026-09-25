@@ -36,7 +36,7 @@ test('the undo and redo buttons drive the editor history', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------- the table's undo list
-// plans/table-delete-column.md §10.3, §10.4 and §17.6: what the list does on screen.
+// plans/completed/table-delete-column.md §10.3, §10.4 and §17.6: what the list does on screen.
 
 async function openTable(page) {
   await page.setViewportSize({ width: 1400, height: 900 });

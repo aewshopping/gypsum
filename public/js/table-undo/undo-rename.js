@@ -3,7 +3,7 @@
  *
  * A rename gives the file a new internalId — its new filepath — which would orphan every saved
  * entry for it. So the ids are rewritten in both stacks and in the refusals, and the file saved, just
- * as rename-backups.js keeps history.gypsum in step. plans/table-delete-column.md §8.4.
+ * as rename-backups.js keeps history.gypsum in step. plans/completed/table-delete-column.md §8.4.
  */
 
 import { appState } from '../services/store.js';

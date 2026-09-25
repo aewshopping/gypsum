@@ -122,7 +122,7 @@ const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
  * **Only a front matter property the user created** — a column that would still stand in a folder
  * with no front matter at all cannot be deleted, and CORE_FILE_PROPERTIES is exactly that set.
  * `title` and `color` are in it although a note may hold them as keys: deleting one would take the
- * key out and leave the column standing, filled in by the app. plans/table-delete-column.md §3.
+ * key out and leave the column standing, filled in by the app. plans/completed/table-delete-column.md §3.
  *
  * @param {string} name - The file property key.
  * @returns {boolean}

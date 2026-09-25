@@ -236,7 +236,7 @@ test('auto-size fits a list column to its widest item, not its whole line', asyn
 });
 
 // ---------------------------------------------------------------- delete column
-// plans/table-delete-column.md §3, §4.1, §5 and §17.
+// plans/completed/table-delete-column.md §3, §4.1, §5 and §17.
 
 async function openPeopleTable(page, notes) {
   await page.setViewportSize({ width: 1400, height: 900 });
@@ -384,4 +384,20 @@ test('an emptied column offers no delete', async ({ page }) => {
   await openMenuFor(page, headerFor(page, 'people'));
   await expect(deleteItem(page)).toBeHidden();
   await expect(removeItem(page)).toBeHidden();   // no saved layout to remove it from
+});
+
+// plans/completed/bare-keys-as-null.md §4: the notes carry the key, so the column is not keyless — it fades
+// for holding no value, and offers the delete that removes those keys.
+test('a column of bare keys fades and offers delete column', async ({ page }) => {
+  await openPeopleTable(page, {
+    'bare.md': '---\npeople:\n---\n# Bare\n',
+    'null.md': '---\npeople: null\n---\n# Null\n',
+    'none.md': '# None\n',
+  });
+  await expect(headerFor(page, 'people')).toHaveAttribute('data-empty', '');
+  await expect(headerFor(page, 'people')).not.toHaveAttribute('data-keyless', '');
+
+  await openMenuFor(page, headerFor(page, 'people'));
+  await expect(deleteItem(page)).toBeVisible();
+  await expect(removeItem(page)).toBeHidden();
 });

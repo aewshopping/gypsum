@@ -100,7 +100,7 @@ export function markUndoState() {
 /**
  * The history button is lit whenever the undo stack holds anything, including when undo itself is
  * dark after a view change: that pairing is how the table says "nothing from this visit, but there
- * is history". plans/table-delete-column.md §17.2.
+ * is history". plans/completed/table-delete-column.md §17.2.
  * @returns {boolean}
  */
 function canOpenList() {
@@ -114,7 +114,7 @@ const SHORTCUTS = { undo: 'Ctrl+Z', redo: 'Ctrl+Y' };
 /**
  * What pressing undo or redo will do, named after the batch on top of its stack — so the tooltip
  * says `undo people column delete in 35 files | Ctrl+Z` rather than only that something will be
- * undone. plans/table-delete-column.md §7.2.
+ * undone. plans/completed/table-delete-column.md §7.2.
  *
  * Plain text: the renderer escapes it into its attribute, since a property name comes from a note.
  *
