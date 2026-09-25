@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { loadFolder } = require('../helpers');
 
 /**
- * plans/table-delete-column.md, end to end: "delete column" takes a property out of every note that
+ * plans/completed/table-delete-column.md, end to end: "delete column" takes a property out of every note that
  * has it, and one undo puts all of it back, byte for byte.
  *
  * What each note is for (§14.1):
@@ -12,7 +12,7 @@ const { loadFolder } = require('../helpers');
  *   last.md      — `people` as the last key.
  *   only.md      — `people` as the only key, so the block empties to ---/---.
  *   bare.md      — `people:` with nothing after it: null on the file object, so counted and planned
- *                  like any other (plans/bare-keys-as-null.md).
+ *                  like any other (plans/completed/bare-keys-as-null.md).
  *   crlf.md      — the whole note in CRLF.
  *   lookalike.md — peoples:, People: and people2:, and a body line `people: x`, none of them the key.
  *   none.md      — no front matter at all.
@@ -145,7 +145,7 @@ async function deletePeople(page) {
   await page.click('[data-action="warning-proceed"]');
 }
 
-// plans/bare-keys-as-null.md: bare.md is seen from appState, so the dialog counts the notes the
+// plans/completed/bare-keys-as-null.md: bare.md is seen from appState, so the dialog counts the notes the
 // result line will, and a note without the key is never opened.
 test('the dialog counts a bare key, and a note without the key is not read', async ({ page }) => {
   await openTable(page);

@@ -9,7 +9,7 @@ import { markUndoState } from './render-table-controls.js';
  * **Inert rather than checked control by control.** One attribute on #output and #output-controls
  * blocks every click, focus and caret in the table; the keys and a folder load read
  * `appState.bulkWriteInFlight`, which is what they would have to ask anyway. See
- * plans/table-delete-column.md §11.
+ * plans/completed/table-delete-column.md §11.
  *
  * @param {boolean} busy
  * @returns {void}

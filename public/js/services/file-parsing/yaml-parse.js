@@ -148,7 +148,7 @@ export const flowItemRanges = (line, from, to) => {
  * Turns a key left holding an empty object into a key holding null. The parser opens a map for
  * every key with nothing after its colon, expecting nesting; a key where none arrived is YAML's
  * empty value — `people:` is `people: null` — and the note does carry it. See
- * plans/bare-keys-as-null.md.
+ * plans/completed/bare-keys-as-null.md.
  * @param {object} target - The object to resolve, mutated in place.
  * @returns {void}
  */
@@ -200,7 +200,7 @@ export const parseYaml = (
     const lines = yamlString.split("\n");
     const root = {};
     // `seen` is per mapping rather than asked of the object. The same key under two parents is
-    // two mappings and not a duplicate. See plans/table-delete-column.md §5.3.
+    // two mappings and not a duplicate. See plans/completed/table-delete-column.md §5.3.
     const stack = [{ container: root, indent: -1, key: null, parent: null, span: null, seen: new Set() }];
 
     // Character offset of the line being read, carried forward rather than recomputed, so a

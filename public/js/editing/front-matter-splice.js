@@ -50,7 +50,7 @@ const lineEnding = (text, indices) => {
 
 /**
  * The key a removed key sat under, so an undo can put it back there rather than at the end of the
- * block. plans/table-delete-column.md §12.
+ * block. plans/completed/table-delete-column.md §12.
  *
  * The top-level key whose line is the nearest above this one — comments and blank lines are not
  * keys, so they are passed over — or null when it was the first key in the block.

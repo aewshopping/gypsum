@@ -761,7 +761,7 @@ test('a link completed from the picker reaches the note intact', async ({ page }
 });
 
 // ---------------------------------------------------------------- the lock the table shows
-// plans/table-delete-column.md §5.1 and §5.3: the write refuses exactly the notes the table locks.
+// plans/completed/table-delete-column.md §5.1 and §5.3: the write refuses exactly the notes the table locks.
 
 test('locked or missing notes are not written, the rest of the batch is, and a folder-wide batch renders once', async ({ page }) => {
   const extra = {};
@@ -842,7 +842,7 @@ test('locked or missing notes are not written, the rest of the batch is, and a f
 
 
 // ---------------------------------------------------------------- a key put back where it was
-// plans/table-delete-column.md §12 and §5.2.
+// plans/completed/table-delete-column.md §12 and §5.2.
 
 
 /** Every top-level key's span in a note. */

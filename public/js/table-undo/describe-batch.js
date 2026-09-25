@@ -4,7 +4,7 @@
  * A batch stores its `kind` and `property` and never a sentence, so the wording can change without
  * rewriting anyone's undo.gypsum — and so the file count is always the real one. A redo holding only
  * the half of an undo that was applied counts those, because this counts `edits` rather than a
- * number fixed when the batch was made. See plans/table-delete-column.md §7.
+ * number fixed when the batch was made. See plans/completed/table-delete-column.md §7.
  */
 
 /**
@@ -22,7 +22,7 @@ export function describeBatch(batch) {
 /**
  * What a batch did, without where: `people column delete`, `status edit`, `edit of 6 values`. The
  * name a refused note's issues give the undo that left it alone, where a file count would be about
- * other notes. plans/table-delete-column.md §10.5.
+ * other notes. plans/completed/table-delete-column.md §10.5.
  *
  * @param {{kind?: string, property?: string|null, edits: Array<object>}} batch
  * @returns {string}

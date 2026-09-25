@@ -204,7 +204,7 @@ disappears out from under the person who cleared it.
   show, so it fades. `blank` on a resolved column drives `data-empty`, the fade: no note holds a value
   that draws anything, and `null`, `''` and `[]` all draw a blank cell. `dead` drives `data-keyless`,
   which is what the column menu, the column picker and the types modal read. See
-  `plans/bare-keys-as-null.md`.
+  `plans/completed/bare-keys-as-null.md`.
 - **`dead` is asked of `appState.myFiles`, never of `myFilesProperties`.** That Map only ever grows —
   nothing unregisters a property when its last value goes — so it would go on claiming the column had
   values until the folder was reloaded, which is exactly the moment the answer has to change.
@@ -236,7 +236,7 @@ disappears out from under the person who cleared it.
 
 "delete column", last in the column menu below a rule and in the warning colour, takes the column's
 property out of every note in the folder that has it — key, value and every line of a block list —
-in one confirmed batch that one undo puts back. See `plans/table-delete-column.md`.
+in one confirmed batch that one undo puts back. See `plans/completed/table-delete-column.md`.
 
 - **Only a front matter property the user made**: `isPropertyDeletable()` is "not in
   `CORE_FILE_PROPERTIES`". `title` and `color` are excluded although a note can hold them, because
@@ -279,7 +279,7 @@ in one confirmed batch that one undo puts back. See `plans/table-delete-column.m
 ### The undo history
 
 The table's undo stack is saved, named, and reachable entry by entry. See
-`plans/table-delete-column.md` §7–§10 and `table-undo/`.
+`plans/completed/table-delete-column.md` §7–§10 and `table-undo/`.
 
 - **Saved to `.gypsum/undo.gypsum`**, both stacks, after every change, and read back in `postLoad`.
   After a column delete the entry is the only copy of what was removed, since table writes take no

@@ -79,7 +79,7 @@ export function dropUndoBatch(batch, dirHandle) {
  * `before` is `''`, which is what the writer reads as "take the key out". So the two directions stay
  * one operation — a cleared cell's undo puts the key back, and a created key's undo takes it away.
  * A re-created key goes back after the key it sat under, which the removal recorded as `anchor` —
- * see plans/table-delete-column.md §12.
+ * see plans/completed/table-delete-column.md §12.
  *
  * @param {'undo'|'redo'} direction - Which stack to take from.
  * @param {number} [index] - Which entry, counted from the bottom; the top when left out.
@@ -94,7 +94,7 @@ export async function reverseBatch(direction, index, onProgress) {
 
     // Any entry, not only the top: the undo list reverses one batch on its own terms, and the check
     // below is what makes that safe — each edit is reversed only where the note still says what it
-    // left. plans/table-delete-column.md §10.
+    // left. plans/completed/table-delete-column.md §10.
     const [batch] = from.splice(index ?? from.length - 1, 1);
     if (!batch) return { applied: [], refused: [], batch };
 

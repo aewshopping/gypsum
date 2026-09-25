@@ -14,7 +14,7 @@ export function handleViewSelect(evt, selectElement) {
     appState.viewState = viewSelectElem.value;
 
     // A new visit to whichever view this is: Ctrl+Z reaches only what is done from here on, and
-    // the undo list keeps the rest. plans/table-delete-column.md §10.4.
+    // the undo list keeps the rest. plans/completed/table-delete-column.md §10.4.
     appState.undoHorizon = Date.now();
 
     renderFiles();

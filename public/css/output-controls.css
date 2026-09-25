@@ -30,7 +30,7 @@
 
 /* While a column delete runs, the table and its control row are inert. Inert on its own is
    invisible, and a table that looks usable but ignores every click reads as a hang — so both fade.
-   The report line above sits outside both and stays readable. plans/table-delete-column.md §17.5. */
+   The report line above sits outside both and stays readable. plans/completed/table-delete-column.md §17.5. */
 #output[inert],
 #output-controls[inert] {
     opacity: 0.5;
@@ -40,7 +40,7 @@
 /* A thumb aiming for the history button and landing a little off lands on nothing: under a coarse
    pointer an invisible ::after takes the target to about 44px, growing up, down and to the right —
    never over redo, which the row's 8px gap already keeps it from reaching on the left. The same
-   trick the selected cell's press strip uses. plans/table-delete-column.md §17.2. */
+   trick the selected cell's press strip uses. plans/completed/table-delete-column.md §17.2. */
 @media (pointer: coarse) {
     #table-undo-list-btn {
         position: relative;

@@ -2,7 +2,8 @@
 
 Status: **built**, steps 1–10. §14 step 1 records the measurement. Covered by
 `tests/1-data/54-delete-property.spec.js`, and by additions to the undo, cell-writing, parser,
-load-error, backup, column-menu and undo-button specs.
+load-error, backup, column-menu and undo-button specs. Since `plans/completed/bare-keys-as-null.md`
+the plan pass reads only the notes that have the key (§5.2).
 Depends on: `plans/table-undo-stack.md` step 11a, **built** — the stacks, the `expect` check, the
 batch-shaped write and key removal are all in the tree. This plan **supersedes two of its
 decisions**: the stack is no longer kept in memory only (§8), and 20 batches is no longer the depth
@@ -208,27 +209,15 @@ message's and filters to them.
 
 ### 5.2 A bare `people:` is deleted too
 
-> **Superseded by `plans/bare-keys-as-null.md`.** The parser now keeps a bare key as `null`, so
-> appState sees it: the plan pass is sent only the files carrying the key, and the dialog counts
-> them. The rest of this section is the reasoning as it stood.
+> **Superseded in part by `plans/completed/bare-keys-as-null.md`.** The parser now keeps a bare key
+> as `null`, so `Object.hasOwn` sees it: the dialog counts it, and the plan pass is sent only the
+> notes that have the key. What follows about undo still stands.
 
-**A key with nothing after its colon is not in the file object**, and so is invisible to every count
-above. The parser gives it a span but no value: `people:` on its own line parses to an object without
-`people`, so `Object.hasOwn` is false and the batch built from `appState` would never send that file.
-The delete would report success and leave `people:` in those notes — which other readers (Obsidian
-reads it as `null`) still see as the property, and which puts the column straight back the moment
-anything reads it as one.
+**Was:** a key with nothing after its colon was pruned by the parser, so it was not in the file object
+and no count from `appState` could see it. To delete it anyway, the plan pass (§8.3) was sent every
+loaded file rather than only the ones carrying a value, and the report line could read higher than
+the dialog. Both are gone.
 
-So **the plan pass (§8.3) is sent every loaded file whose front matter reads, not only the ones
-carrying a value.** A file with no `people` span produces no record, as today (`removing && !span`
-returns); a file with a bare key produces one, with `before: ''` and `existed: true`. That costs one
-read per loaded file rather than per carrying file, concurrent and read-only, which step 1 measures
-alongside the writes. The writes are still only the files that have the key.
-
-- **The dialog still counts from `appState`**, so it opens instantly, and counts values. A bare key
-  holds no value, so nothing the user would miss is uncounted. The report line counts the files
-  actually written, bare keys included, so it can read higher than the dialog: `deleted people from
-  37 files, 2 skipped`.
 - **Undo has to put a bare key back as a bare key**, and today it cannot: `raw: ''` means "take the
   key out", and a bare key's `before` is also `''`. The record's `existed` already tells the two
   apart, so undo sends `{ raw: '', keepKey: true }` for a record with `before === ''` and
@@ -257,9 +246,8 @@ the parser to keep more than one span per key, for a shape YAML itself forbids. 
 check, and it lands on the rule §5.1 already settled: **the table never writes into a note it shows
 as locked.**
 
-- **The check is a set of keys seen, per mapping**, not `key in container`. A bare `people:` never
-  enters the parsed object (§5.2), so asking the object would miss `people:` followed by
-  `people: bob`. Per mapping, because the same key under two different parents is not a duplicate.
+- **The check is a set of keys seen, per mapping**, not `key in container`. Per mapping, because
+  the same key under two different parents is not a duplicate.
 - **Parsing otherwise goes on as now**: the last occurrence is still the value and the span. The error
   locks the note, so nothing writes into it and it does not matter which one the table draws — and
   skipping the later occurrence instead would strand any block list items under it with no key to
@@ -303,9 +291,8 @@ seconds. Measuring it is step 1.
 In order of how much each is expected to save. Step 1 decides how far down the list to go.
 
 1. **Only files that have the key are written.** A 1,000-file folder where 35 notes have `people`
-   does 35 files of writing, not 1,000. The plan pass reads every loaded file, because a bare
-   `people:` is invisible to `appState` (§5.2), but a read is cheap next to a verified write and the
-   reads run concurrently.
+   does 35 files of writing, not 1,000 — and, since `plans/completed/bare-keys-as-null.md`, 35 files
+   of reading too.
 2. **Files are written a few at a time, not one at a time.** `applyRawEdits`'s per-file loop body
    (read, splice, `saveFileCopy`) runs through a small concurrency pool, starting at 8 and tuned by
    step 1. The files are independent, and each file's edits stay in their existing back-to-front
@@ -741,7 +728,7 @@ known limitation about comments between list items.
 | A key appearing twice in one note | **a front matter error**: the note is locked and skipped. §5.3. |
 | Which notes are skipped | **exactly the ones the table locks**: a skipped line, a duplicated key or a shadowed reserved key. The write's check widens to match `hasYamlError()`, for every caller. §5.1. |
 | Counted from | `appState`; the write re-checks against disk. The dialog counts files that will change, not files that carry the key. §5, §5.1. |
-| A bare `people:` with no value | **deleted too**: the plan pass reads every loaded file; undo puts it back bare (`keepKey`). §5.2. |
+| A bare `people:` with no value | **deleted too**: `null` on the file object, so it is counted and planned like any other; undo puts it back bare (`keepKey`). §5.2, `plans/completed/bare-keys-as-null.md`. |
 | A folder loaded mid-delete | **refused** while the write runs; every handle is fixed when the batch starts; `beforeunload` prompts. §6.2a. |
 | Writes of `undo.gypsum` | **one at a time**, the last one always the newest state. §8.2. |
 | Speed | measured first; concurrency pool, no re-read in the refresh, one render. §6. |
@@ -841,7 +828,7 @@ write of a named file, and can run a hook between the two passes. The notes:
 | `quoted.md` | `people: "ann, bob"` as the **first** key of the block |
 | `last.md` | `people` as the **last** key |
 | `only.md` | `people` as the **only** key, so the block empties to `---`/`---` |
-| `bare.md` | `people:` with nothing after it (§5.2) |
+| `bare.md` | `people:` with nothing after it: counted by the dialog like any other (§5.2) |
 | `crlf.md` | the whole note in CRLF line endings |
 | `lookalike.md` | `peoples:`, `People:` and `people2:` but no `people`, and a body line reading `people: x` below the block |
 | `none.md` | no front matter at all |
@@ -874,7 +861,7 @@ write of a named file, and can run a hook between the two passes. The notes:
 - **Every note without it is not written at all**: `lookalike.md`, `none.md` and `nokey.md` have no
   entry in `window.__writes`. Unchanged bytes are not enough; a rewrite with the same bytes still
   moves the modified time.
-- `bare.md` loses its bare key (§5.2).
+- `bare.md` loses its bare key (§5.2), and the notes without the key are never read.
 - `broken.md`, `shadow.md` and `dup.md` are byte-identical afterwards, and counted as skipped.
 - **Undo restores every note byte for byte**, `crlf.md` and `only.md` included, and redo takes them
   out again byte for byte. Then undo once more: the cycle is stable.

@@ -34,7 +34,7 @@ import { propertyType, propertySearchType } from '../../services/property-type.j
  * note carries holding null, so a column of bare keys is not dead — it offers "delete column", the
  * tool that removes those keys, and nothing offers to remove it from the layout — but it holds
  * nothing to show, so it fades like an empty one. Every dead column is blank; only the fade asks
- * about values. See plans/bare-keys-as-null.md §4.
+ * about values. See plans/completed/bare-keys-as-null.md §4.
  *
  * **It is asked of the files, not of myFilesProperties**, which only ever grows. Nothing unregisters
  * a property when its last value goes, so clearing the last cell of a column left it claiming to have

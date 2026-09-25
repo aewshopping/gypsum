@@ -170,7 +170,7 @@ export function handleColumnMenuOpen(evt, headerCell) {
     // column" on one some note does — even when every such note holds a bare `people:`, since the
     // notes are what it clears. That is the attribute the header drew itself with, so the menu and
     // the heading cannot disagree — and it is the same question with opposite answers, which is why
-    // the two never meet. plans/table-delete-column.md §4.1, plans/bare-keys-as-null.md §4.
+    // the two never meet. plans/completed/table-delete-column.md §4.1, plans/completed/bare-keys-as-null.md §4.
     //
     // A layout is what a column is removed from, so under the app's defaults there is nothing to
     // remove it from — "hide column", above, is the answer there. And only a property the user

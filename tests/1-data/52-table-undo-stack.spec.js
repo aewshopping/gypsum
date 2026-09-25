@@ -264,7 +264,7 @@ test('undoing a cleared cell puts the key back, and redoing takes it away again'
   await expect.poll(() => fileText(page, 'alpha.md')).not.toContain('status:');
 });
 
-// ---------------------------------------------------------------- names, plans/table-delete-column.md §7
+// ---------------------------------------------------------------- names, plans/completed/table-delete-column.md §7
 
 test('describeBatch names every kind of batch, and counts only the edits it holds', async () => {
   const { describeBatch } = await appModule('table-undo/describe-batch.js');

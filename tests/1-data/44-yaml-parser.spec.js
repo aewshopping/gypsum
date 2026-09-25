@@ -58,7 +58,7 @@ test('a dash line holding a colon is a list item, and says so', async () => {
   expect(errors[0]).toContain('list item holding a key');
 });
 
-// plans/bare-keys-as-null.md: `people:` is YAML's empty value, the same as `people: null`.
+// plans/completed/bare-keys-as-null.md: `people:` is YAML's empty value, the same as `people: null`.
 test('a key left holding nothing is null, the same as writing null', async () => {
   expect((await parse(block('foo:\nbar: 1'))).data).toEqual({ foo: null, bar: 1 });
   expect((await parse(block('foo: null\nbar: 1'))).data).toEqual({ foo: null, bar: 1 });
@@ -413,7 +413,7 @@ test('a tags key holding false or null still leaves the TagMap in place', async 
   expect(errors).toEqual([]);
 });
 
-// plans/table-delete-column.md §5.3: a key written twice is an error, so the note is locked.
+// plans/completed/table-delete-column.md §5.3: a key written twice is an error, so the note is locked.
 
 test('a repeated key gives one error per repeat, and the last occurrence is still the value', async () => {
   const doc = block('people: ann\nstatus: draft\npeople: bob\npeople: cat');

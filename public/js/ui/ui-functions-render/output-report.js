@@ -45,7 +45,7 @@ export function reportFileCount(count) {
  *
  * Counts rather than names the cells. A refusal on a row that is filtered out or on another page
  * shows nothing on screen, so a refusal out of view is a number — and the number filters to the
- * notes it counts. §13.3 of plans/table-undo-stack.md, §10.5 of plans/table-delete-column.md.
+ * notes it counts. §13.3 of plans/table-undo-stack.md, §10.5 of plans/completed/table-delete-column.md.
  *
  * @param {'undo'|'redo'} direction - Which word this half opens with.
  * @param {string} name - What the batch was, from describeBatch — the same name its button showed.

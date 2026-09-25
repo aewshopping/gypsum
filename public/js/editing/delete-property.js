@@ -10,7 +10,7 @@ import { saveUndoFile } from '../table-undo/undo-file.js';
  *
  * Every file in the loaded folder, whatever is filtered or paged: "delete the property" means just
  * that. The column is left standing, faded as empty, exactly as clearing its cells one by one would
- * leave it — a column belongs to the layout, not to the files. See plans/table-delete-column.md.
+ * leave it — a column belongs to the layout, not to the files. See plans/completed/table-delete-column.md.
  */
 
 /**
@@ -48,7 +48,7 @@ export function deletionForecast(property) {
  * edited between the two passes rather than writing a stale splice into it. §8.3.
  *
  * **Only the files that carry the key are planned.** A bare `people:` is on the file object as null
- * (plans/bare-keys-as-null.md), so appState sees every note the delete will reach and no other note
+ * (plans/completed/bare-keys-as-null.md), so appState sees every note the delete will reach and no other note
  * is read. Such a file yields a record with `before: ''`, and undo puts it back bare.
  *
  * @param {string} property

@@ -3,7 +3,7 @@
    Everything it shares with the column menu — background, border, shadow, backdrop, item rows and
    the small-screen bottom sheet — is .app-menu's, in menu.css. What is here is where it hangs from,
    and the rows: a name that wraps, a time that does not, the "earlier" divider, and the clear row
-   that stays in view while the rows scroll. plans/table-delete-column.md §17.6.
+   that stays in view while the rows scroll. plans/completed/table-delete-column.md §17.6.
 
    Anchored to the button itself: the control row carries no transform, so the proxy the column menu
    needs is not needed here. tooltip.js adds its own name beside this one rather than replacing it. */

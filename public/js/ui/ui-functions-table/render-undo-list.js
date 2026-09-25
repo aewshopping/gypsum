@@ -7,7 +7,7 @@ import { escapeHtml } from '../ui-functions-render/escape-html.js';
  *
  * **A row is a button, and pressing it undoes that batch** — any one of them, not only the newest.
  * That is safe for the reason every undo is: each edit is reversed only where the note still says
- * what the edit left. plans/table-delete-column.md §10.
+ * what the edit left. plans/completed/table-delete-column.md §10.
  *
  * **The "earlier" divider** falls between the last batch made in this visit to the table and the
  * first one made before it, which is where Ctrl+Z's reach ends (§10.4). It is drawn only when there

@@ -105,7 +105,7 @@ coerces (`normA - normB`) and `readsAsNumber()` in `property-type.js` accepts nu
 the note carries the key, holding nothing. So `Object.hasOwn(file, 'people')` is true for a bare key
 — a column delete reaches it and counts it — while a cell draws it blank and sorting treats it as
 missing. The parser opens a map for such a key, expecting nesting, and turns one that stayed empty
-into `null` at the end (`nullEmptyMaps`), at every level. See `plans/bare-keys-as-null.md`.
+into `null` at the end (`nullEmptyMaps`), at every level. See `plans/completed/bare-keys-as-null.md`.
 
 ### Why `coerceValue` must stay the spec's answer
 
@@ -431,7 +431,7 @@ of one, a column delete is one batch across every note it touched:
 pop and clear — one write at a time, each taking whatever the stacks hold when it starts — and read
 back in `postLoad`. A stale entry is safe to keep: every undo checks the note still says `after`
 and refuses it otherwise. A column delete writes its batch there **before** touching a note, as a
-journal. See `plans/table-delete-column.md` §8.
+journal. See `plans/completed/table-delete-column.md` §8.
 
 Three more pieces of state belong to the same machinery:
 

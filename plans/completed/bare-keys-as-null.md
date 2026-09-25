@@ -14,7 +14,7 @@ and `pruneEmptyMaps()` in `yaml-parse.js` removes it, so **the key is absent fro
 Three things follow, and all three are workarounds rather than design:
 
 - **A column delete reads every loaded note**, not just the ones with the key, because appState
-  cannot say which notes hold a bare key (`plans/table-delete-column.md` §5.2). With 1,000 notes
+  cannot say which notes hold a bare key (`plans/completed/table-delete-column.md` §5.2). With 1,000 notes
   loaded and 20 carrying `people`, that is 1,000 reads to find 20.
 - **The delete's confirmation undercounts.** It counts from appState, which cannot see bare keys, so
   the result line can read higher than the dialog did.
@@ -141,7 +141,7 @@ nothing on screen saying it is empty.
    from layout", and a new flag drives the fade. Level-2: a column of bare keys fades, offers
    "delete column", and has no "remove from layout" in the menu or the picker.
 3. **The delete.** The first pass plans only the notes that carry the key; the "every loaded file is
-   planned" paragraph leaves CLAUDE.md and `plans/table-delete-column.md` §5.2 gains a pointer here.
+   planned" paragraph leaves CLAUDE.md and `plans/completed/table-delete-column.md` §5.2 gains a pointer here.
    Level-1: `bare.md` is in the dialog's count, and a note without the key is not read by the first pass.
    The same paragraph is also the comment above `deleteProperty()` in `editing/delete-property.js`,
    and goes from there too.
