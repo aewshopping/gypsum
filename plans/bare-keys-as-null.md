@@ -44,6 +44,12 @@ What that gives:
 
 - **A bare key registers a column.** A folder where `people` only ever appears bare gains a `people`
   column it does not show today. That is correct — the notes carry the property — but it is visible.
+- **…and a property everywhere else.** A bare key is registered in `myFilesProperties`, so it also
+  appears in the search property list, the sort dropdown and the flowchart options. Correct for the
+  same reason, and visible in the same way.
+- **A bare reserved key now locks the note.** `filename:` is caught as shadowing (§2), and a shadowed
+  key is a `fileIssues` error, so that note stops taking a caret in the table. Rare, and right: the
+  note does carry a key the app owns.
 - **`tags:` bare.** `file-info.js` already skips a null tag and deletes the key, so nothing changes;
   the CLAUDE.md sentence "the parser emits no key at all for it" becomes "it is null, which the tag
   merge skips".
@@ -124,6 +130,10 @@ items today.
 
 ## 5. Steps
 
+**Steps 1 and 2 ship together.** With step 1 alone, a column of bare keys is carried with nothing to set
+the fade apart, so it looks like a column with values and offers "delete column" — right, but with
+nothing on screen saying it is empty.
+
 1. **Parser.** Empty values resolve to `null` at every level instead of being pruned. Level-1 parser
    tests updated. `people:` and `people: null` give the same file object.
 2. **Emptiness.** Split the fade from "carried" in `render-table-columns-helper.js` as decided in
@@ -133,6 +143,9 @@ items today.
 3. **The delete.** The first pass plans only the notes that carry the key; the "every loaded file is
    planned" paragraph leaves CLAUDE.md and `plans/table-delete-column.md` §5.2 gains a pointer here.
    Level-1: `bare.md` is in the dialog's count, and a note without the key is not read by the first pass.
-4. **Docs.** CLAUDE.md's bare `tags:` sentence, and the fade's new meaning under *An empty column*;
+   The same paragraph is also the comment above `deleteProperty()` in `editing/delete-property.js`,
+   and goes from there too.
+4. **Docs.** CLAUDE.md's bare `tags:` sentence — and its source, the comment above the tag merge in
+   `file-info.js`, which says the same thing — and the fade's new meaning under *An empty column*;
    DATA-STRUCTURES.md, "How a front matter value is read", gains the rule that an empty value is
    null.
