@@ -83,11 +83,12 @@ export function dropUndoBatch(batch, dirHandle) {
  *
  * @param {'undo'|'redo'} direction - Which stack to take from.
  * @param {number} [index] - Which entry, counted from the bottom; the top when left out.
+ * @param {(done: number, total: number) => void} [onProgress] - Called as each file finishes.
  * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined}>} The
  *   edits that were written, the edits the check turned down — each gets its own mark on the cell —
  *   and the batch they came from, for its name.
  */
-export async function reverseBatch(direction, index) {
+export async function reverseBatch(direction, index, onProgress) {
     const from = direction === 'undo' ? appState.undoStack : appState.redoStack;
     const to = direction === 'undo' ? appState.redoStack : appState.undoStack;
 
@@ -121,7 +122,7 @@ export async function reverseBatch(direction, index) {
         // block; and a bare key comes back bare, where '' would otherwise mean "no key". §12, §5.2.
         anchor: edit.anchor,
         keepKey: edit.before === '' && edit.existed,
-    })), { beforeRefresh: markRefused });
+    })), { beforeRefresh: markRefused, onProgress });
 
     // The same facts, so a redo has the same name as the undo it reverses.
     push(to, applied, { kind: batch.kind ?? 'edit', property: batch.property ?? null });

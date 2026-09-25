@@ -260,6 +260,10 @@ in one confirmed batch that one undo puts back. See `plans/table-delete-column.m
   4s to about 19s. `ui-functions-render/progress-bar.js` and `css/progress-bar.css` are the one bar,
   on `#fileCountElement` for a load or an import and on `#output-report` for a delete — the text is
   written once before and once after, and only `--load-pct` moves in between, every 1%.
+- **An undo or redo across more than one note gets the same bar and the same inert table**
+  (`setBulkWriteBusy()` in `ui-functions-table/bulk-write-busy.js`, shared with the delete), reading
+  `undoing people column delete in 35 files…`. Undoing a delete takes as long as the delete did. A
+  one-file undo stays as it was: one write, over at once, where a bar would only flicker.
 - **Files go through a pool of 16**, and the refresh parses the verified text rather than reading it
   back — 13.3s to about 3.7s for 1,000 notes, measured. The verified two-write save is kept.
 

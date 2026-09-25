@@ -334,3 +334,32 @@ test('"clear undo history" writes empty stacks', async ({ page }) => {
     .toEqual({ undoVersion: 1, undo: [], redo: [] });
   await expect(page.locator('#table-undo-list-btn')).toBeDisabled();
 });
+
+test('a multi-file undo and redo show the progress bar, with the table inert while it runs', async ({ page }) => {
+  await openTable(page);
+  await deletePeople(page);
+  await expect(reportLine(page)).toContainText('deleted people');
+
+  // Slow the note writes so the running state can be seen.
+  await page.evaluate(() => {
+    for (const file of window.appState.myFiles) {
+      const create = file.handle.createWritable;
+      file.handle.createWritable = async () => { await new Promise(r => setTimeout(r, 300)); return create(); };
+    }
+  });
+  await page.locator('#table-undo-btn').click();
+  await expect(reportLine(page)).toContainText('undoing people column delete in 7 files…');
+  await expect(reportLine(page)).toHaveClass(/loading/);
+  await expect(page.locator('#output')).toHaveAttribute('inert', '');
+
+  await expect(reportLine(page)).toContainText('undo: people column delete in 7 files');
+  await expect(reportLine(page)).not.toHaveClass(/loading/);
+  await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
+  expect(await files(page)).toEqual(NOTES);
+
+  await page.locator('#table-redo-btn').click();
+  await expect(reportLine(page)).toContainText('redoing people column delete in 7 files…');
+  await expect(reportLine(page)).toHaveClass(/loading/);
+  await expect(reportLine(page)).toContainText('redo: people column delete in 7 files');
+});
+

@@ -4,7 +4,7 @@ import { appState } from '../../services/store.js';
 import { deletionForecast, deleteProperty } from '../../editing/delete-property.js';
 import { showWarningModal } from './warning-modal.js';
 import { closeColumnMenu, clearHeaderSelection } from './column-menu.js';
-import { markUndoState } from '../ui-functions-table/render-table-controls.js';
+import { setBulkWriteBusy } from '../ui-functions-table/bulk-write-busy.js';
 import { reportProgress, reportProgressEnd, reportDelete, reportFailure } from '../ui-functions-render/output-report.js';
 
 /**
@@ -12,10 +12,6 @@ import { reportProgress, reportProgressEnd, reportDelete, reportFailure } from '
  *
  * Thin: the counts and the two passes are editing/delete-property.js's. This is the dialog, the
  * inert table and the report line — see plans/table-delete-column.md §5, §11 and §17.
- *
- * **Inert rather than checked control by control.** One attribute on #output and #output-controls
- * blocks every click, focus and caret in the table; the keys and a folder load read
- * `appState.bulkWriteInFlight`, which is what they would have to ask anyway.
  *
  * @returns {Promise<void>}
  */
@@ -38,16 +34,16 @@ export async function handleColumnDeleteProperty() {
         `delete from ${filesPhrase(forecast.changing)}`, 'cancel', { focus: 'cancel' });
     if (!confirmed) return;
 
-    setBusy(true);
+    setBulkWriteBusy(true);
     const onProgress = reportProgress(`deleting ${property}…`);
     try {
         const { deleted, skipped } = await deleteProperty(property, onProgress);
-        setBusy(false);
+        setBulkWriteBusy(false);
         await reportProgressEnd();
         reportDelete(property, deleted, skipped);
     } catch (err) {
         console.error(`Deleting ${property} failed:`, err);
-        setBusy(false);
+        setBulkWriteBusy(false);
         await reportProgressEnd();
         reportFailure(`deleting ${property} stopped: ${err?.message ?? err}`);
     }
@@ -76,16 +72,3 @@ function confirmationText(property, { changing, skipped, samples }) {
 
 /** @param {number} count @returns {string} */
 const filesPhrase = (count) => `${count} file${count === 1 ? '' : 's'}`;
-
-/**
- * Marks a write as running, or as finished: the flag, the inert table, and the buttons it darkens.
- * @param {boolean} busy
- * @returns {void}
- */
-function setBusy(busy) {
-    appState.bulkWriteInFlight = busy;
-    for (const id of ['output', 'output-controls']) {
-        document.getElementById(id)?.toggleAttribute('inert', busy);
-    }
-    markUndoState();
-}
