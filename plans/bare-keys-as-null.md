@@ -72,8 +72,8 @@ note*). With bare keys read as null, there are two coherent answers.
 - **Cons:**
   - Differs from Obsidian, where clearing a value leaves `people:`. A note cleared in gypsum loses
     the property; the same note cleared in Obsidian keeps it.
-  - A blank cell can mean two things, no key or a bare key — unless §5 is built, which is what it is
-    for.
+  - A blank cell can mean two things, no key or a bare key — unless §5 is built, which tints the
+    first and so tells them apart.
   - A column of bare keys reads as carried, so it offers "delete column", not "remove from layout".
     That is right (the notes do have the key) but it is a second kind of blank column.
 
@@ -106,49 +106,60 @@ means **"no note has a non-null value"**, and the menu's delete item keys off **
 key"**. Then a column of bare keys fades like an empty one and offers "delete column", which is the
 tool that will actually remove those keys.
 
-## 5. Showing a key with no value
+## 5. Showing a note that has no such key
 
-**Decided: a cell whose note carries the key but shows nothing gets a very faint tint** — the
-background mixed 2% `--colour-contr` into `--colour-neutral`. A blank cell then says which blank it
-is: plain for "this note has no such key", tinted for "this note has the key, empty". Nothing else
-about the cell changes: no text, no icon, no tooltip it did not already have.
+**Decided: a cell whose note does not have the key at all gets a very faint tint** — the background
+mixed 2% `--colour-contr` into `--colour-neutral`. Every cell whose note *does* have the key looks like
+the rest of the table, whether it holds a value or is empty (`people:`). So the colour of an ordinary
+cell stays the colour of the table, and the odd one out is the cell with nothing behind it in the
+note. Nothing else about the cell changes: no text, no icon, no tooltip it did not already have.
 
-**It can be built as soon as step 1 lands.** The parser change is what puts the key on the file object;
-from there the renderer only has to ask. It does not wait on §4 — under A it marks the bare keys that
-arrive from Obsidian or a template, under B it would also mark every cell cleared in gypsum.
+**It follows step 1, and has to.** Until the parser keeps a bare key, `people:` is absent from the file
+object and would be tinted as if the note had no key — the very confusion the tint exists to end. Once
+step 1 lands the renderer only has to ask. It does not wait on §4.
 
-- **What counts as "key, no value"**: the key is on the file object and the cell draws blank — `null`
-  (bare `people:` or `people: null`), `""`, and an empty list `[]`. One rule for all three, because
-  what the tint answers is "the note has this property and nothing is in it", and all three are that.
-  A `0` or `false` is a value and draws as one, so it is not tinted.
+- **What counts as "no key"**: the property is not on the file object at all. A bare `people:`,
+  `people: null`, `people: ""` and `people: []` all *have* the key and are not tinted, which is the
+  YAML answer: each is the property, present, holding nothing.
+- **What it shows, in practice:**
+  - A sparse column reads at a glance: the notes that never had the property are tinted, the ones
+    that have it — filled or empty — are not.
+  - A note with no front matter has every front matter cell tinted, and so does a note whose block
+    does not carry that key.
+  - A column no note carries (the faded header, `dead`) is tinted all the way down, which agrees with
+    the header rather than adding a second signal.
+  - Under §4 A, clearing a cell removes the key, so the cell turns tinted as it closes — a quiet
+    confirmation that the key has gone from the note, not just its value. Under B it would stay plain,
+    being a bare key.
 - **One answer, in `services/property-type.js`**, beside the other per-cell questions — e.g.
-  `holdsNoValue(file, property)` — so the renderer asks rather than works it out
-  (CLAUDE.md: renderers hold no logic). The row renderer writes a `data-no-value` attribute on the
-  cell, and one rule in `note-table-cell.css` draws it.
+  `noteLacksProperty(file, property)` — so the renderer asks rather than works it out (CLAUDE.md:
+  renderers hold no logic). The row renderer writes a `data-no-key` attribute on the cell, and one
+  rule in `note-table-cell.css` draws it.
 - **An overlay, not a background colour.** Rows are coloured through `attr(data-color)` on the row,
   with hover, suppressed and transparent branches (`note-table.css`); a solid background on the cell
   would paint over all of that. So the tint is a `background-image` of one flat colour —
-  `linear-gradient(var(--cell-no-value-tint), var(--cell-no-value-tint))` with the tint defined as
+  `linear-gradient(var(--cell-no-key-tint), var(--cell-no-key-tint))` with the tint defined as
   `color-mix(in srgb, var(--colour-contr) 2%, transparent)`. On an uncoloured row that comes out as
-  exactly 2% contrast into neutral; on a coloured row it darkens (or, in the dark theme, lightens)
-  the row's own colour by the same small step, rather than replacing it.
-- **An opened cell drops it.** An expanded cell already swaps to the neutral background, and while
-  someone is typing in it the cell is no longer empty in any sense worth marking.
-- **2% is a starting point.** It is at the edge of visible on some screens. The value lives in one
-  custom property so it can be tuned from screenshots — light and dark theme, a coloured row and a
-  plain one — without touching anything else.
+  exactly 2% contrast into neutral; on a coloured row it shifts the row's own colour by the same
+  small step, rather than replacing it.
+- **An opened cell drops it.** An expanded cell already swaps to the neutral background, and a cell
+  being typed into is about to have the key.
+- **2% is a starting point.** It is at the edge of visible on some screens, and in a sparse table it
+  will cover a lot of cells, so it should stay quiet. The value lives in one custom property so it can
+  be tuned from screenshots — light and dark theme, a coloured row and a plain one, a sparse column
+  and a full one — without touching anything else.
 - **Core columns never tint.** `CORE_FILE_PROPERTIES` are on every file object whatever the note says,
-  so "has the key" means nothing for them; `title` and `color` included, since a missing `color:` is
-  the app's `null`, not the note's.
-- **Test**: level 2, that a bare-key cell carries `data-no-value` and a no-key cell does not; the look
+  so "lacks the key" can never be true of them; `title` and `color` included, since a missing
+  `color:` is the app's `null`, not the note's.
+- **Test**: level 2, that a no-key cell carries `data-no-key` and a bare-key cell does not; the look
   itself is a level-3 screenshot, per CLAUDE.md.
 
 ## 6. Steps
 
 1. **Parser.** Empty values resolve to `null` at every level instead of being pruned. Level-1 parser
    tests updated. `people:` and `people: null` give the same file object.
-2. **The tint (§5).** `holdsNoValue()`, `data-no-value` on the cell, the overlay rule. Screenshots in
-   both themes, on a coloured and a plain row.
+2. **The tint (§5).** `noteLacksProperty()`, `data-no-key` on the cell, the overlay rule. Screenshots
+   in both themes, on a coloured and a plain row.
 3. **Emptiness.** Settle §4, then split `dead` from "carried" in `render-table-columns-helper.js` as
    decided. Level-2: a column of bare keys fades and offers "delete column".
 4. **The delete.** The first pass plans only the notes that carry the key; the "every loaded file is
