@@ -5,7 +5,7 @@ import { deletionForecast, deleteProperty } from '../../editing/delete-property.
 import { showWarningModal } from './warning-modal.js';
 import { closeColumnMenu, clearHeaderSelection } from './column-menu.js';
 import { markUndoState } from '../ui-functions-table/render-table-controls.js';
-import { reportProgress, reportDelete, reportFailure } from '../ui-functions-render/output-report.js';
+import { reportProgress, reportProgressEnd, reportDelete, reportFailure } from '../ui-functions-render/output-report.js';
 
 /**
  * Asks, then deletes the menu's property from every note, with the table inert until it is done.
@@ -39,16 +39,17 @@ export async function handleColumnDeleteProperty() {
     if (!confirmed) return;
 
     setBusy(true);
-    reportProgress(`deleting ${property}…`);
+    const onProgress = reportProgress(`deleting ${property}…`);
     try {
-        const { deleted, skipped } = await deleteProperty(property,
-            (done, total) => reportProgress(`deleting ${property}: ${done} / ${total}`));
+        const { deleted, skipped } = await deleteProperty(property, onProgress);
+        setBusy(false);
+        await reportProgressEnd();
         reportDelete(property, deleted, skipped);
     } catch (err) {
         console.error(`Deleting ${property} failed:`, err);
-        reportFailure(`deleting ${property} stopped: ${err?.message ?? err}`);
-    } finally {
         setBusy(false);
+        await reportProgressEnd();
+        reportFailure(`deleting ${property} stopped: ${err?.message ?? err}`);
     }
 }
 

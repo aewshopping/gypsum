@@ -670,7 +670,8 @@ loading, and a column headed "load error" listing one reads as a bug. The new la
 
 **Decided: progress, no cancel.**
 
-- **The report line counts up**: `deleting people: 340 / 1000`. `applyRawEdits` gains an
+- **The report line shows progress** — first built as a count, `deleting people: 340 / 1000`, and
+  replaced by the load's bar (§17.5). `applyRawEdits` gains an
   `onProgress(done, total)` option, called as each file finishes. The report writer is
   `output-report.js`, which already owns that line and is the surface `table-undo-stack.md` §13.3
   said would grow.
@@ -922,7 +923,7 @@ write of a named file, and can run a hook between the two passes. The notes:
   after a reload while the history button stays lit; the list's rows, divider and keyboard; a row
   press closes the list; the refusal mark appears at once, the nudge filters to exactly the refused
   notes, a clean undo clears it, and it survives a rename.
-- While a delete runs: the table and control row are inert, the report line counts up, and it ends
+- While a delete runs: the table and control row are inert, the report line shows the bar, and it ends
   on the result line with a clickable skipped count.
 - The call-count test of §6.3: one render, and one read per file in the refresh.
 
@@ -1187,17 +1188,19 @@ keeps the newlines and still wraps long lines, so the existing single-line calle
  │  (table, faded)                                               │
 ```
 
-- **The report line sits outside `#output`**, so it stays readable while the table is inert. It
-  counts up as each file finishes.
+- **The report line sits outside `#output`**, so it stays readable while the table is inert. Its
+  bar fills as the files finish (see "No progress bar" below, reversed).
 - **The table fades to about half opacity**, one CSS rule on `[inert]` inside `#output`. `inert` on
   its own is invisible, and a table that looks usable but ignores every click reads as a hang.
 - **The control row goes dark with it**: `inert` on `#output-controls`, with the buttons' existing
   disabled fade.
 - **At the end** the fade lifts, and the line reads `deleted people from 35 files, 2 skipped` for
   the same five seconds as an undo's line. `2 skipped` is a nudge (§5.1).
-- **No progress bar.** The load's progress bar belongs to the file count element and is tied to
-  its fade timings. A count in words is enough for a few seconds' wait, and it needs no new
-  component.
+- ~~**No progress bar.**~~ **Reversed after building it: the delete uses the load's progress bar.**
+  The count in words was measured at about 15s of a 1,000-note delete — each rewrite of the line
+  re-lays-out the page above a large table. The bar's CSS and JS now live once, in
+  `css/progress-bar.css` and `ui-functions-render/progress-bar.js`, shared by the load, the backup
+  import and the delete; the line reads `deleting people…` while the bar fills.
 
 ### 17.6 The undo list
 

@@ -1,3 +1,5 @@
+import { startProgress, stepProgress, endProgress } from './progress-bar.js';
+
 /**
  * @file The line above the file list: how many files are showing, and what the last undo did.
  *
@@ -61,13 +63,33 @@ export function reportUndo(direction, name, applied, failed) {
 }
 
 /**
- * Says how far a running column delete has got. It stays until the result replaces it: a progress
- * line that timed out half-way would read as a delete that had stopped.
- * @param {string} text - e.g. `deleting people: 340 / 1000`.
- * @returns {void}
+ * Says a column delete has begun, and shows the bar behind the line that will track it.
+ *
+ * **The text is written once and only the bar moves.** A count rewritten after every file cost a
+ * layout of the page each time — measured, it took a 1,000-note delete from about 4s to about 19s.
+ * The bar is the folder load's own, from progress-bar.js, so both look and move the same.
+ *
+ * It stays until reportProgressEnd: a progress line that timed out half-way would read as a delete
+ * that had stopped.
+ *
+ * @param {string} text - e.g. `deleting people…`.
+ * @returns {(done: number, total: number) => void} What to call as each file finishes.
  */
 export function reportProgress(text) {
     say([text], false, false);
+    const line = document.getElementById('output-report');
+    if (line) startProgress(line);
+    return (done, total) => { if (line) stepProgress(line, done, total); };
+}
+
+/**
+ * Fills the bar and fades it out. Resolves when the fade is over, which is when the result belongs
+ * on the line — the same order the folder load keeps.
+ * @returns {Promise<void>}
+ */
+export function reportProgressEnd() {
+    const line = document.getElementById('output-report');
+    return line ? endProgress(line) : Promise.resolve();
 }
 
 /**

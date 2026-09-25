@@ -253,7 +253,13 @@ in one confirmed batch that one undo puts back. See `plans/table-delete-column.m
 - **The folder is fixed when a batch starts.** `applyRawEdits` takes the directory handle and every
   file's own handle once; a folder load is refused while `appState.bulkWriteInFlight` is set, and
   closing the tab asks first. While it runs the table and its control row are `inert` and faded, and
-  the report line counts up. No cancel: a half-done delete would need an undo of its own.
+  the report line shows the folder load's own progress bar. No cancel: a half-done delete would need
+  an undo of its own.
+- **Progress is a bar, never a counting number.** Rewriting the text of a line above a large table
+  costs a layout of the page per change: a count after every file took a 1,000-note delete from about
+  4s to about 19s. `ui-functions-render/progress-bar.js` and `css/progress-bar.css` are the one bar,
+  on `#fileCountElement` for a load or an import and on `#output-report` for a delete — the text is
+  written once before and once after, and only `--load-pct` moves in between, every 1%.
 - **Files go through a pool of 16**, and the refresh parses the verified text rather than reading it
   back — 13.3s to about 3.7s for 1,000 notes, measured. The verified two-write save is kept.
 

@@ -348,7 +348,7 @@ test('when every note carrying it is unreadable, the dialog explains and offers 
   await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
 });
 
-test('while a delete runs the table is inert, and afterwards the column is empty and offers no delete', async ({ page }) => {
+test('while a delete runs the table is inert and the bar shows, and afterwards the column still offers one item', async ({ page }) => {
   await openPeopleTable(page, PEOPLE);
   await page.evaluate(() => { window.__slow = 600; });
   await openMenuFor(page, headerFor(page, 'people'));
@@ -358,6 +358,8 @@ test('while a delete runs the table is inert, and afterwards the column is empty
   await expect(page.locator('#output')).toHaveAttribute('inert', '');
   await expect(page.locator('#output-controls')).toHaveAttribute('inert', '');
   await expect(page.locator('#output-report')).toContainText('deleting people');
+  // The load's bar, not a counting number: only --load-pct moves while it runs.
+  await expect(page.locator('#output-report')).toHaveClass(/progress-bar.*loading|loading.*progress-bar/);
 
   await expect(page.locator('#output-report')).toContainText('deleted people from 4 files, 1 skipped');
   await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
