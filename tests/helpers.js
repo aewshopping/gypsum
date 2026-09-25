@@ -1193,4 +1193,92 @@ async function setupMockDirectoryWithFlowchart(page) {
   });
 }
 
-module.exports = { loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };
+/**
+ * A folder whose notes can be written, for the table's cell-writing specs: the level-1 one about
+ * what reaches the disk, and the level-2 one about the table around an edit. Three notes, plus any
+ * `extra` a test passes (name → text):
+ *   alpha.md — an ordinary block to write into, with keys either side of the one being edited.
+ *   beta.md  — front matter that does not read cleanly, so its cells are locked.
+ *   gamma.md — no front matter at all.
+ * Writes land in window.__files (notes) and window.__saved (.gypsum), and removals in
+ * window.__removed.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {Object<string, string>} [extra]
+ */
+async function setupMockCellWritingFolder(page, extra = {}) {
+  await page.addInitScript((extra) => {
+    window.__files = {
+      'alpha.md': [
+        '---',
+        'status: draft',
+        '  # a comment the parser skips',
+        'note: plain',
+        'count: 3',
+        'due: 2026-03-01',
+        'ref: "0042"',        // quoted in the note, so an edit has a style to keep
+        'people:',            // flush with its key, so replacing the value has a style to copy
+        '- John Smith',
+        '  # the one in the middle',
+        '- "Doe, Jane"',
+        'langs: [en, fr]',
+        'scores:',
+        '  - 1',
+        '  - 2',
+        '  - 10',
+        '---',
+        '# Alpha',
+        '',
+        'Body text.',
+        '',
+      ].join('\n'),
+      'beta.md': '---\nstatus: live\nextra: beta only\nthis line has no colon\n---\n# Beta\n\nBody text.\n',
+      'gamma.md': '# Gamma\n\nNo front matter here.\n',
+      ...extra,
+    };
+    window.__saved = {};
+    window.__removed = [];
+
+    const mk = (name) => ({
+      kind: 'file', name,
+      getFile: async () => ({
+        name, size: window.__files[name].length, lastModified: Date.now(),
+        text: async () => window.__files[name],
+      }),
+      createWritable: async () => ({
+        write: async (content) => { window.__files[name] = content; },
+        close: async () => {},
+      }),
+    });
+
+    // The real API throws for a file that does not exist unless create is set, which is what makes
+    // the verified write's read-back meaningful.
+    const gypsumDir = {
+      getFileHandle: async (name, options) => {
+        if (!(name in window.__saved)) {
+          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          window.__saved[name] = '';
+        }
+        return {
+          getFile: async () => ({ text: async () => window.__saved[name] }),
+          createWritable: async () => ({
+            write: async (content) => { window.__saved[name] = content; },
+            close: async () => {},
+          }),
+        };
+      },
+      removeEntry: async (name) => { window.__removed.push(name); delete window.__saved[name]; },
+    };
+
+    window.showDirectoryPicker = async () => ({
+      kind: 'directory', name: 'root',
+      values: async function* () { for (const name of Object.keys(window.__files)) yield mk(name); },
+      getDirectoryHandle: async (name) => {
+        if (name === '.gypsum') return gypsumDir;
+        throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
+      },
+    });
+  }, extra);
+}
+
+module.exports = { setupMockCellWritingFolder, loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };

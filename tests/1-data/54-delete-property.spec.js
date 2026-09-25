@@ -142,8 +142,22 @@ async function deletePeople(page) {
   await page.click('[data-action="warning-proceed"]');
 }
 
-test('every note with the key loses it, and nothing else in it changes', async ({ page }) => {
+/**
+ * One delete, looked at from every side: the bytes it leaves, the notes it never touches, the
+ * journal on disk before the first write, a folder load refused mid-way — then undo, redo and undo
+ * again, byte for byte. One test rather than five because each needed the same delete of the same
+ * fixture, and a page load is most of what a test here costs.
+ */
+test('a delete: exact bytes, untouched notes, journal first, load refused, and a stable undo/redo cycle', async ({ page }) => {
   await openTable(page);
+  await page.evaluate(() => {
+    window.__betweenPasses = () => {
+      window.__journal = JSON.parse(window.__saved['undo.gypsum']);
+      window.__writtenAtJournal = { ...window.__writes };
+      document.querySelector('[data-action="load-folder"]').click();
+    };
+  });
+  const pickerCalls = await page.evaluate(() => window.__pickerCalls);
   await deletePeople(page);
   await expect(reportLine(page)).toContainText('deleted people from 7 files, 3 skipped');
 
@@ -159,22 +173,18 @@ test('every note with the key loses it, and nothing else in it changes', async (
   const carrying = await page.evaluate(() => window.appState.myFiles
     .filter(file => Object.hasOwn(file, 'people')).map(file => file.filename).sort());
   expect(carrying).toEqual(['broken.md', 'dup.md', 'shadow.md']);
-});
 
-test('with nothing locked, the column is left standing and empty', async ({ page }) => {
-  const clean = Object.fromEntries(Object.entries(NOTES).filter(([name]) => !UNTOUCHED.includes(name)));
-  await openTable(page, { ...clean, 'nokey.md': NOTES['nokey.md'] });
-  await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 7 files');
-  expect(await page.evaluate(() => window.appState.myFiles.some(file => Object.hasOwn(file, 'people'))))
-    .toBe(false);
-  await expect(page.locator('.note-table-cell-header[data-property="people"]')).toHaveAttribute('data-empty', '');
-});
+  // The journal was on disk, holding every note's removed text, before any note was written (§8.3).
+  const { journal, writtenAtJournal } = await page.evaluate(() =>
+    ({ journal: window.__journal, writtenAtJournal: window.__writtenAtJournal }));
+  expect(writtenAtJournal).toEqual({});
+  const batch = journal.undo.at(-1);
+  expect(batch.kind).toBe('delete-property');
+  expect(batch.edits.map(edit => edit.internalId).sort()).toEqual(Object.keys(AFTER).sort());
+  expect(batch.edits.find(edit => edit.internalId === 'flow.md').before).toBe(' [ann, bob]');
 
-test('undo puts every note back byte for byte, redo takes them out again, and the cycle is stable', async ({ page }) => {
-  await openTable(page);
-  await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people');
+  // The folder load pressed between the passes was refused (§6.2a).
+  expect(await page.evaluate(() => window.__pickerCalls)).toBe(pickerCalls);
 
   await page.locator('#table-undo-btn').click();
   await expect(reportLine(page)).toContainText('undo: people column delete in 7 files');
@@ -188,26 +198,6 @@ test('undo puts every note back byte for byte, redo takes them out again, and th
   await page.locator('#table-undo-btn').click();
   await expect(reportLine(page)).toContainText('undo: people column delete');
   expect(await files(page)).toEqual(NOTES);
-});
-
-test('the journal is on disk before the first note is written', async ({ page }) => {
-  await openTable(page);
-  await page.evaluate(() => {
-    window.__betweenPasses = () => {
-      window.__journal = JSON.parse(window.__saved['undo.gypsum']);
-      window.__writtenAtJournal = { ...window.__writes };
-    };
-  });
-  await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people');
-
-  const { journal, writtenAtJournal } = await page.evaluate(() =>
-    ({ journal: window.__journal, writtenAtJournal: window.__writtenAtJournal }));
-  expect(writtenAtJournal).toEqual({});
-  const batch = journal.undo.at(-1);
-  expect(batch.kind).toBe('delete-property');
-  expect(batch.edits.map(edit => edit.internalId).sort()).toEqual(Object.keys(AFTER).sort());
-  expect(batch.edits.find(edit => edit.internalId === 'flow.md').before).toBe(' [ann, bob]');
 });
 
 test('a second pass cut short undoes cleanly', async ({ page }) => {
@@ -225,16 +215,22 @@ test('a second pass cut short undoes cleanly', async ({ page }) => {
   expect(await files(page)).toEqual(NOTES);
 });
 
-test('a note changed between the passes is refused, not overwritten, and counted', async ({ page }) => {
+test('a note changed between the passes is refused, and a failed verify is not recorded', async ({ page }) => {
   await openTable(page);
   await page.evaluate(() => {
+    window.__failWrite.add('quoted.md');
     window.__betweenPasses = () => {
       window.__files['flow.md'] = window.__files['flow.md'].replace('[ann, bob]', '[ann, bob, cat]');
     };
   });
   await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 6 files, 4 skipped');
+  await expect(reportLine(page)).toContainText('deleted people from 5 files, 5 skipped');
   expect((await files(page))['flow.md']).toContain('people: [ann, bob, cat]');
+
+  // Neither is in the entry, so a later undo cannot "restore" a note that was never changed.
+  const ids = await page.evaluate(() => window.appState.undoStack.at(-1).edits.map(edit => edit.internalId));
+  expect(ids).not.toContain('flow.md');
+  expect(ids).not.toContain('quoted.md');
 });
 
 test('a pass that writes nothing leaves no entry', async ({ page }) => {
@@ -251,30 +247,6 @@ test('a pass that writes nothing leaves no entry', async ({ page }) => {
   await expect(reportLine(page)).toContainText('deleted people from 0 files');
   expect(await page.evaluate(() => window.appState.undoStack.length)).toBe(before);
   expect(JSON.parse(await page.evaluate(() => window.__saved['undo.gypsum'])).undo).toHaveLength(before);
-});
-
-test('a failed verify is not recorded, so undo never "restores" a note that was not changed', async ({ page }) => {
-  await openTable(page);
-  await page.evaluate(() => window.__failWrite.add('flow.md'));
-  await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 6 files');
-  const batch = await page.evaluate(() => window.appState.undoStack.at(-1));
-  expect(batch.edits.some(edit => edit.internalId === 'flow.md')).toBe(false);
-});
-
-test('a folder load is refused mid-delete, and every write lands in the first folder', async ({ page }) => {
-  await openTable(page);
-  await page.evaluate(() => {
-    window.__betweenPasses = () => {
-      document.querySelector('[data-action="load-folder"]').click();
-    };
-  });
-  const calls = await page.evaluate(() => window.__pickerCalls);
-  await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 7 files');
-  expect(await page.evaluate(() => window.__pickerCalls)).toBe(calls);
-  const after = await files(page);
-  for (const [name, text] of Object.entries(AFTER)) expect(after[name], name).toBe(text);
 });
 
 // ---------------------------------------------------------------- the undo list, §10
@@ -306,10 +278,14 @@ test('a delete undone from the list keeps a later edit, and refuses a note that 
   for (const name of ['block.md', 'quoted.md', 'only.md', 'bare.md', 'crlf.md']) expect(after[name], name).toBe(NOTES[name]);
 });
 
-test('a delete is undone from the list after the folder is loaded again', async ({ page }) => {
+test('a delete is undone from the list after the folder is loaded again, and clearing the history writes empty stacks', async ({ page }) => {
   await openTable(page);
   await deletePeople(page);
   await expect(reportLine(page)).toContainText('deleted people');
+  await page.evaluate(async () => {
+    const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
+    await applyCellEdits([{ internalId: 'nokey.md', property: 'status', text: 'later' }]);
+  });
 
   await loadFolder(page);
   await page.selectOption('#view-select', 'table');
@@ -317,13 +293,8 @@ test('a delete is undone from the list after the folder is loaded again', async 
   await expect(page.locator('#table-undo-btn')).toBeDisabled();
   await undoFromList(page, 'people column delete');
   await expect(reportLine(page)).toContainText('undo: people column delete');
-  expect(await files(page)).toEqual(NOTES);
-});
-
-test('"clear undo history" writes empty stacks', async ({ page }) => {
-  await openTable(page);
-  await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people');
+  const undone = await files(page);
+  for (const name of Object.keys(AFTER)) expect(undone[name], name).toBe(NOTES[name]);
 
   await page.locator('#table-undo-list-btn').click();
   await page.locator('#undo-list [data-action="undo-list-clear"]').click();
@@ -334,32 +305,3 @@ test('"clear undo history" writes empty stacks', async ({ page }) => {
     .toEqual({ undoVersion: 1, undo: [], redo: [] });
   await expect(page.locator('#table-undo-list-btn')).toBeDisabled();
 });
-
-test('a multi-file undo and redo show the progress bar, with the table inert while it runs', async ({ page }) => {
-  await openTable(page);
-  await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people');
-
-  // Slow the note writes so the running state can be seen.
-  await page.evaluate(() => {
-    for (const file of window.appState.myFiles) {
-      const create = file.handle.createWritable;
-      file.handle.createWritable = async () => { await new Promise(r => setTimeout(r, 300)); return create(); };
-    }
-  });
-  await page.locator('#table-undo-btn').click();
-  await expect(reportLine(page)).toContainText('undoing people column delete in 7 files…');
-  await expect(reportLine(page)).toHaveClass(/loading/);
-  await expect(page.locator('#output')).toHaveAttribute('inert', '');
-
-  await expect(reportLine(page)).toContainText('undo: people column delete in 7 files');
-  await expect(reportLine(page)).not.toHaveClass(/loading/);
-  await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
-  expect(await files(page)).toEqual(NOTES);
-
-  await page.locator('#table-redo-btn').click();
-  await expect(reportLine(page)).toContainText('redoing people column delete in 7 files…');
-  await expect(reportLine(page)).toHaveClass(/loading/);
-  await expect(reportLine(page)).toContainText('redo: people column delete in 7 files');
-});
-

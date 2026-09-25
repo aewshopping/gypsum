@@ -61,11 +61,5 @@ test('a file with both faults also answers to the yaml nudge', async ({ page }) 
   await expect(page.locator('.note-grid [data-prop="filename"]')).toHaveText(/both-faults\.md/);
 });
 
-test('no broken-link nudge appears when every link resolves', async ({ page }) => {
-  await setupMockFiles(page);
-  await page.goto('/');
-  await loadFolder(page);
-
-  await expect(page.locator('#fileCountElement')).toContainText('files: 3');
-  await expect(page.locator('#fileCountElement [data-value="links"]')).toHaveCount(0);
-});
+// That no nudge appears when every link resolves is held by 29-yaml-load-errors.spec.js's
+// "no nudge appears when every file reads cleanly": the same folder, and it asks for no nudge at all.

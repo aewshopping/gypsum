@@ -209,3 +209,105 @@ test('a refusal mark follows the note through a rename', async ({ page }) => {
   });
   expect(marks).toEqual(['renamed.md']);
 });
+
+test('the buttons name their batch, and a multi-file undo and redo show the bar with the table inert', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(async () => {
+    const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
+    const { markUndoState } = await import('/public/js/ui/ui-functions-table/render-table-controls.js');
+    await applyCellEdits(['alpha.md', 'beta.md'].map(internalId => ({ internalId, property: 'status', text: 'done' })));
+    markUndoState();
+  });
+  await expect(undoBtn(page)).toHaveAttribute('data-tip', 'undo status edit in 2 files | Ctrl+Z');
+
+  // Slow the note writes so the running state can be seen.
+  await page.evaluate(() => {
+    for (const file of window.appState.myFiles) {
+      const create = file.handle.createWritable;
+      file.handle.createWritable = async () => { await new Promise(r => setTimeout(r, 300)); return create(); };
+    }
+  });
+  const report = page.locator('#output-report');
+  await undoBtn(page).click();
+  await expect(report).toContainText('undoing status edit in 2 files…');
+  await expect(report).toHaveClass(/loading/);
+  await expect(page.locator('#output')).toHaveAttribute('inert', '');
+
+  await expect(report).toContainText('undo: status edit in 2 files');
+  await expect(report).not.toHaveClass(/loading/);
+  await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
+  await expect(page.locator('#table-redo-btn')).toHaveAttribute('data-tip', 'redo status edit in 2 files | Ctrl+Y');
+
+  await page.locator('#table-redo-btn').click();
+  await expect(report).toContainText('redoing status edit in 2 files…');
+  await expect(report).toHaveClass(/loading/);
+  await expect(report).toContainText('redo: status edit in 2 files');
+});
+
+// ---------------------------------------------------------------- when the key and buttons answer
+// From tests/1-data/52-table-undo-stack.spec.js, being about the screen rather than the disk.
+
+const cellFor = (page, title, prop) =>
+  page.locator('.note-table').filter({ hasText: title }).first().locator(`.note-table-cell[data-prop="${prop}"]`);
+
+/** Opens a cell, replaces everything in it, and finishes with Enter, which leaves focus on it. */
+async function retype(page, cell, text) {
+  await cell.click();
+  await cell.click();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+End');
+  await page.keyboard.type(text);
+  await page.keyboard.press('Enter');
+}
+
+test('the buttons follow the stacks, and the key is not ours in another view, a dialog or a cell editor', async ({ page }) => {
+  await openTable(page);
+  const redoBtn = page.locator('#table-redo-btn');
+  const fileText = () => page.evaluate(() => window.__files['alpha.md']);
+  await expect(undoBtn(page)).toBeDisabled();
+  await expect(redoBtn).toBeDisabled();
+
+  // a cell opened and closed without typing pushes nothing
+  const status = cellFor(page, 'Alpha', 'status');
+  await status.click();
+  await status.click();
+  await page.keyboard.press('Enter');
+  await expect(undoBtn(page)).toBeDisabled();
+
+  await retype(page, status, 'published');
+  await expect(undoBtn(page)).toBeEnabled();
+  await expect(redoBtn).toBeDisabled();
+  await undoBtn(page).click();
+  await expect(undoBtn(page)).toBeDisabled();
+  await expect(redoBtn).toBeEnabled();
+
+  // a fresh edit empties the redo stack
+  await retype(page, status, 'published');
+  await expect(undoBtn(page)).toBeEnabled();
+  await expect(redoBtn).toBeDisabled();
+
+  // a dialog open
+  await page.click('[data-action="open-column-picker"]');
+  await expect(page.locator('#modal-columns')).toBeVisible();
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(200);
+  expect(await fileText()).toContain('status: published');
+  await page.click('[data-action="close-column-picker"]');
+
+  // a cell editor open — the browser's own undo is the one wanted while typing
+  const note = cellFor(page, 'Alpha', 'note');
+  await note.click();
+  await note.click();
+  await expect(note).toHaveClass(/is-expanded/);
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(200);
+  expect(await fileText()).toContain('status: published');
+  await page.keyboard.press('Escape');
+
+  // another view
+  await page.selectOption('#view-select', 'cards');
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(200);
+  expect(await fileText()).toContain('status: published');
+});
+
