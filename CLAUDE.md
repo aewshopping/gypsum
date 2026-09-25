@@ -696,7 +696,7 @@ Closing an edited cell writes it into the note's front matter. See
   splicing and the write. It takes a *list* of edits because a pasted range cannot be fifty verified
   writes, applies a file's edits back to front so no span is invalidated, carries the `expect` that
   undo and a column delete's second pass rely on, and returns what it changed. All four are for
-  `plans/table-undo-stack.md`, and all four are awkward to retrofit — the alternative is a second
+  `plans/completed/table-undo-stack.md`, and all four are awkward to retrofit — the alternative is a second
   module that knows how to splice front matter.
 - **A cell that was opened but not typed in writes nothing.** The test is the cell's text now
   against the text stashed on it when it opened (`data-opened-text`), never the captured value

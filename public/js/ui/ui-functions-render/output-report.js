@@ -10,7 +10,7 @@ import { startProgress, stepProgress, endProgress } from './progress-bar.js';
  *
  * It sits outside #output, so the file list can be replaced wholesale without taking the line with
  * it, and it belongs to every view rather than to the table: the count is true in cards and peek
- * too, and only the undo half is the table's. See plans/table-undo-stack.md §10.6.
+ * too, and only the undo half is the table's. See plans/completed/table-undo-stack.md §10.6.
  */
 
 /** The property a nudge filters on: the one that reports what is wrong with a file. */
@@ -45,7 +45,7 @@ export function reportFileCount(count) {
  *
  * Counts rather than names the cells. A refusal on a row that is filtered out or on another page
  * shows nothing on screen, so a refusal out of view is a number — and the number filters to the
- * notes it counts. §13.3 of plans/table-undo-stack.md, §10.5 of plans/completed/table-delete-column.md.
+ * notes it counts. §13.3 of plans/completed/table-undo-stack.md, §10.5 of plans/completed/table-delete-column.md.
  *
  * @param {'undo'|'redo'} direction - Which word this half opens with.
  * @param {string} name - What the batch was, from describeBatch — the same name its button showed.

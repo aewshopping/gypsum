@@ -30,7 +30,7 @@ const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'password', 
  * **Exported for Ctrl+Z**, where it is the whole of the third condition and worth stating as a rule
  * rather than a list: if focus is in something that has its own undo, the key is not ours. That one
  * question covers both places the hazard appears — a note's contenteditable in the modal, and an
- * open cell editor in the table. See plans/table-undo-stack.md §10.4.
+ * open cell editor in the table. See plans/completed/table-undo-stack.md §10.4.
  * @returns {boolean}
  */
 export function isTypingTarget() {

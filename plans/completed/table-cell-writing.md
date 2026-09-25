@@ -9,7 +9,7 @@ Manifest version when it landed: `1.211.0`.
 Depends on: `plans/completed/table-value-types.md` and `plans/completed/yaml-parser.md`, **both built**.
 Paired with: `plans/completed/table-cell-editors.md`, **which comes first** — it decides what a click on a
 cell opens and therefore the shape of what arrives here.
-Paired with: `plans/table-undo-stack.md`, **which comes last** and is not built — but four of its requirements land in
+Paired with: `plans/completed/table-undo-stack.md`, **which comes last** and is not built — but four of its requirements land in
 step 2 of this plan and are awkward to retrofit, so §4.6 states them here. The fourth is the `expect`
 argument, which this plan never passes and cannot be added later without a read-then-read race.
 
@@ -214,7 +214,7 @@ makes about what the cell offers.
 Four things about the *shape* of this code, rather than what it does. None of them is undo code, and
 two are forced by the pasted range anyway — but all four are awkward to retrofit, and skipping them
 means a second module that knows how to splice front matter, which is the drift §4.2 puts the spans
-inside the parser to avoid. See `plans/table-undo-stack.md` §6.
+inside the parser to avoid. See `plans/completed/table-undo-stack.md` §6.
 
 **The commit takes a list of edits, not one.**
 
@@ -255,7 +255,7 @@ for the edit to happen at all**, and the edit is skipped otherwise. This plan ne
 fresh edit has nothing to expect — so it costs one ignored argument here. It is in the signature
 because the alternative is undo reading each file to check and `applyRawEdits` reading it again to
 write, with a window between the two: small, but that window is exactly the case the check exists to
-catch. The reason is `plans/table-undo-stack.md` §3 and §6.2; the consequence is that commit, undo
+catch. The reason is `plans/completed/table-undo-stack.md` §3 and §6.2; the consequence is that commit, undo
 and redo end up one function differing only in `raw` and `expect`.
 **Undo calls the lower layer, and must** — its text came *out of* the file, so it is already valid
 front matter, and sending it back through `toYamlText` would not be faithful: §5.1 shows `[1, 2, 10]`
@@ -397,10 +397,10 @@ case parses into something meaningless, and writing into it would write into a k
 |---|---|
 | The same file open in the note modal | **Nothing to do.** `#file-content-modal` uses `showModal()`, which makes every node outside it inert, so the table cannot be touched while a note is open. |
 | A property the file does not have yet | **Editable, and a file with no front matter block at all is included.** Step 4 lifts the guard for both: the key is appended to the block, or the block is written when there is none. Not an edge case — a column exists because *some* file carries that key, so the empty cells in every other row are exactly the ones someone wants to fill in, and a note that has never had front matter is the commonest note there is. |
-| Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. **Undoing a key step 4 created is the deliberate exception** — see `plans/table-undo-stack.md` §7: the rule guards against a column vanishing as a *side effect*, whereas there the column only exists because of the edit being undone. |
+| Clearing a cell | **Write an empty value; do not delete the key.** A deleted key may unregister the column entirely if no other note carries it, and a column vanishing as a side effect of clearing one cell is startling. **Undoing a key step 4 created is the deliberate exception** — see `plans/completed/table-undo-stack.md` §7: the rule guards against a column vanishing as a *side effect*, whereas there the column only exists because of the edit being undone. |
 | Re-sorting after an edit | **Do not re-sort.** Edit a cell in the column you are sorted by and the row leaps away from under you. One optional argument to `applyRefresh`. |
 | A history snapshot per edit | **No.** Snapshots are written when a file is *opened*, so a cell edit takes none unless we add one, and a burst of edits would fill the history fast. The verified write already refuses to leave a half-written file. Calling `saveBackupEntry` before a file's first edit is a one-line change if this proves wrong — and worth switching on as a scaffold while steps 2 to 5 are built against test folders, where the cap objection does not bite. |
-| Undo | **A separate plan, built last** — `plans/table-undo-stack.md`. It reverses writes made from the table and nothing else, and it is not built on `history.gypsum`: that file stores text, which cannot become wrong, where an edit record is a claim about structure. What this plan owes it is §4.6 and nothing more — including the `expect` argument, which exists because undo is reached by Ctrl+Z and a reflexive gesture cannot afford a read-then-read race. |
+| Undo | **A separate plan, built last** — `plans/completed/table-undo-stack.md`. It reverses writes made from the table and nothing else, and it is not built on `history.gypsum`: that file stores text, which cannot become wrong, where an edit record is a claim about structure. What this plan owes it is §4.6 and nothing more — including the `expect` argument, which exists because undo is reached by Ctrl+Z and a reflexive gesture cannot afford a read-then-read race. |
 
 **The expanded cell closes after an edit** whatever we do here, because the refresh re-renders the
 whole table. Worth knowing before it surprises someone.
@@ -520,7 +520,7 @@ lines, since it co-ordinates the others.
 ## 11. What building it settled
 
 Two things the design above left open, and one it had wrong. All three matter to
-`plans/table-undo-stack.md`, which calls the same lower layer.
+`plans/completed/table-undo-stack.md`, which calls the same lower layer.
 
 **`raw` may be a function, and a list edit carries its `items`.** §4.6 gives `toYamlText` a `form`
 argument, and the only thing that knows a key's form is the parse — which happens inside

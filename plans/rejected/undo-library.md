@@ -24,5 +24,5 @@ It was actually tried, built with Claude Code 4.7:
 The browser's built-in undo/redo inside `contenteditable`, which has been completely adequate
 so far.
 
-Note this is separate from `plans/table-undo-stack.md`, which is about undoing **cell edits in
+Note this is separate from `plans/completed/table-undo-stack.md`, which is about undoing **cell edits in
 the table** — a different problem, since those writes go to disk rather than into a text box.

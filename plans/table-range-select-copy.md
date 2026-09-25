@@ -1,8 +1,8 @@
 # Plan: range select and copy in table view
 
-Status: **not started — and should not start yet.** Depends on the undo stack (see below).
+Status: **not started.** Its dependency, the undo stack, is built (see below).
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
-Depends on: `plans/table-undo-stack.md`, **not built**
+Depends on: `plans/completed/table-undo-stack.md`, **built**
 Related: `plans/table-range-paste.md`, which depends on this
 
 ---
