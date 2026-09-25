@@ -105,16 +105,31 @@ outsider they are today, now read correctly. B is worth revisiting only if match
 clear-a-value behaviour becomes a goal in its own right, and it would want its own plan and the
 per-cell "remove property" action decided alongside it.
 
-**§3's split of "empty"** is settled with it: the fade means **"no note has a non-null value"**, and
-the menu's delete item keys off **"some note carries the key"**. Then a column of bare keys fades
-like an empty one and offers "delete column", which is the tool that will actually remove those keys.
+**§3's split of "empty"** is settled with it. A bare key still draws a column, so **only the fade
+asks about values; everything else asks whether a note carries the key.**
+
+- **The fade** (`data-empty` on the header): no note has a value that draws anything — `null`, `""`
+  and `[]` all draw a blank cell, so all three count as no value.
+- **"carried"**: some note has the key, whatever it holds. A carried column:
+  - offers **"delete column"** in the header menu, which is the tool that removes those keys;
+  - does **not** offer "remove from layout", in the header menu or as a bin in the column picker;
+  - is not disabled in the column picker as "not in the loaded folder";
+  - keeps its row in the types modal without a bin, as a column with values does today.
+  `missing` (whether a property becomes a new column) already asks this, and so does
+  `propertiesInFiles()`.
+
+So a column of bare keys fades like an empty one and behaves in every menu like a column with
+values. The header needs a second attribute for this: `column-menu.js` reads `data-empty` for both
+items today.
 
 ## 5. Steps
 
 1. **Parser.** Empty values resolve to `null` at every level instead of being pruned. Level-1 parser
    tests updated. `people:` and `people: null` give the same file object.
-2. **Emptiness.** Split `dead` from "carried" in `render-table-columns-helper.js` as decided in §4.
-   Level-2: a column of bare keys fades and offers "delete column".
+2. **Emptiness.** Split the fade from "carried" in `render-table-columns-helper.js` as decided in
+   §4: `dead` keeps meaning "no note carries the key" for the picker, the types modal and "remove
+   from layout", and a new flag drives the fade. Level-2: a column of bare keys fades, offers
+   "delete column", and has no "remove from layout" in the menu or the picker.
 3. **The delete.** The first pass plans only the notes that carry the key; the "every loaded file is
    planned" paragraph leaves CLAUDE.md and `plans/table-delete-column.md` §5.2 gains a pointer here.
    Level-1: `bare.md` is in the dialog's count, and a note without the key is not read by the first pass.
