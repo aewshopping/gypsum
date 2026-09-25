@@ -69,8 +69,8 @@ export function reportUndo(direction, name, applied, failed) {
  * layout of the page each time — measured, it took a 1,000-note delete from about 4s to about 19s.
  * The bar is the folder load's own, from progress-bar.js, so both look and move the same.
  *
- * It stays until reportProgressEnd: a progress line that timed out half-way would read as a delete
- * that had stopped.
+ * It stays until the result replaces it: a progress line that timed out half-way would read as a
+ * delete that had stopped.
  *
  * @param {string} text - e.g. `deleting people…`.
  * @returns {(done: number, total: number) => void} What to call as each file finishes.
@@ -83,9 +83,12 @@ export function reportProgress(text) {
 }
 
 /**
- * Fills the bar and fades it out. Resolves when the fade is over, which is when the result belongs
- * on the line — the same order the folder load keeps.
- * @returns {Promise<void>}
+ * Fills the bar and fades it out. **The result goes on the line straight after, not once the fade is
+ * over**: the work is done and the table already released, so a line still reading "deleting…" for
+ * the length of the fade would be saying something no longer true — and a result held back a second
+ * could land on top of an undo started in the meantime. The folder load waits for its fade because
+ * its running text, "files: 45", is still true while it fades; this line's is not.
+ * @returns {Promise<void>} Resolved once the fade is over, for a caller that wants to wait for it.
  */
 export function reportProgressEnd() {
     const line = document.getElementById('output-report');

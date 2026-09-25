@@ -39,12 +39,12 @@ export async function handleColumnDeleteProperty() {
     try {
         const { deleted, skipped } = await deleteProperty(property, onProgress);
         setBulkWriteBusy(false);
-        await reportProgressEnd();
+        reportProgressEnd();
         reportDelete(property, deleted, skipped);
     } catch (err) {
         console.error(`Deleting ${property} failed:`, err);
         setBulkWriteBusy(false);
-        await reportProgressEnd();
+        reportProgressEnd();
         reportFailure(`deleting ${property} stopped: ${err?.message ?? err}`);
     }
 }

@@ -90,8 +90,7 @@ export async function reverseCellEdits(direction, index) {
     } finally {
         if (manyFiles) {
             setBulkWriteBusy(false);
-            // The result goes on the line once the bar has faded, as a load's and a delete's do.
-            await reportProgressEnd();
+            reportProgressEnd();
         } else {
             appState.bulkWriteInFlight = false;
             markUndoState();
