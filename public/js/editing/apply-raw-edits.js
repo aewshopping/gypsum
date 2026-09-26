@@ -65,10 +65,11 @@ const POOL_SIZE = 16;
  * fixed by hand since load is written. §5.1, §5.3.
  *
  * `anchor`, on an undo re-creating a removed key, is the key it sat under — see keySplice — and
- * `keepKey` says '' means a bare key rather than no key. A removal's record carries its `anchor`.
+ * `keepKey` says '' means a bare key rather than no key. A removal's record carries its `anchor`, and
+ * `gap`, the blank and comment lines between the two — see placeAbove.
  *
  * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
- *   expect?: string, anchor?: string|null, keepKey?: boolean}>} rawEdits
+ *   expect?: string, anchor?: string|null, gap?: number, keepKey?: boolean}>} rawEdits
  * @param {{resort?: boolean, write?: boolean, onProgress?: Function, beforeRefresh?: Function}} [options] - `resort` false
  *   leaves the list in the order it is in. `write` false does everything but the write and the
  *   refresh — the plan pass a journal is made from (§8.3). `onProgress(done, total)` is called as

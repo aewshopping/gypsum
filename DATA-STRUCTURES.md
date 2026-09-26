@@ -414,7 +414,7 @@ Newest last, capped at `UNDO_DEPTH` (100). One entry is one **batch** — a sing
 of one, a column delete is one batch across every note it touched:
 
 ```js
-{ timestamp, kind, property, edits: [ { internalId, property, before, after, existed, anchor? } ] }
+{ timestamp, kind, property, edits: [ { internalId, property, before, after, existed, anchor?, gap? } ] }
 ```
 
 - `kind` is `'edit'` or `'delete-property'`, and `property` the column when every edit shares one,
@@ -426,8 +426,11 @@ of one, a column delete is one batch across every note it touched:
   which undo puts back bare (`keepKey`).
 - `anchor`, on a removal only, is the key it sat under — `null` when it was first — so undo puts it
   back on its own line rather than at the end of the block. Absent means no position is known.
+- `gap`, beside `anchor`, is how many blank and comment lines sat between the anchor (or the opening
+  `---`) and the key. Undo steps down that many, but only while each line is still blank or a
+  comment, so a gap tidied away since simply isn't skipped. Absent reads as 0.
 
-**Saved** to the folder's `.gypsum/undo.gypsum` as `{ undoVersion: 1, undo, redo }` after every push,
+**Saved** to the folder's `.gypsum/undo.gypsum` as `{ undoVersion: 1, undo, redo, refused }` after every push,
 pop and clear — one write at a time, each taking whatever the stacks hold when it starts — and read
 back in `postLoad`. A stale entry is safe to keep: every undo checks the note still says `after`
 and refuses it otherwise. A column delete writes its batch there **before** touching a note, as a
@@ -439,7 +442,7 @@ Three more pieces of state belong to the same machinery:
 |-----|-------|
 | `bulkWriteInFlight` | `true` while a column delete, an undo or a redo is writing. Refuses a second one, refuses a folder load, and raises a `beforeunload` prompt. |
 | `undoHorizon` | When this visit to the table began: set on a view change and on a folder load. Ctrl+Z and the undo and redo buttons reach only batches made since; the undo list reaches all of them. |
-| `undoRefusals` | Array, newest last, of the edits an undo or redo refused: the stack's record (`internalId`, `property`, `before`, `after`, `existed`, `anchor`) plus `timestamp` and `from` (`{kind, property, values}`, the batch's facts). Drawn as an `undo:` segment of the note's `fileIssues` naming the value `before` held. Accumulates, a note and property keeping only its newest; capped at `REFUSED_DEPTH` (30); saved in `undo.gypsum` as `refused` and read back on load; emptied by "clear undo history". |
+| `undoRefusals` | Array, newest last, of the edits an undo or redo refused: the stack's record (`internalId`, `property`, `before`, `after`, `existed`, `anchor`, `gap`) plus `timestamp` and `from` (`{kind, property, values}`, the batch's facts). Drawn as an `undo:` segment of the note's `fileIssues` naming the value `before` held. Accumulates, a note and property keeping only its newest; capped at `REFUSED_DEPTH` (30); saved in `undo.gypsum` as `refused` and read back on load; emptied by "clear undo history". |
 
 ---
 

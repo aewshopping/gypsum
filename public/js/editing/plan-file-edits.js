@@ -1,7 +1,7 @@
 import { RESERVED_KEYS } from '../services/file-parsing/file-info.js';
 import { parseYaml, isQuoted } from '../services/file-parsing/yaml-parse.js';
 import { findFrontMatterIndices } from '../services/file-parsing/yaml-find.js';
-import { newBlock, keySplice, keyAbove } from './front-matter-splice.js';
+import { newBlock, keySplice, placeAbove } from './front-matter-splice.js';
 import { changedItem, SKIP } from './list-item-splice.js';
 
 /**
@@ -85,9 +85,9 @@ export function planFileEdits(original, fileEdits, internalId) {
         .map(plan => [plan.edit.property, plan]));
 
     const placeOf = (plan, seen = new Set()) => {
-        const { anchor } = plan.edit;
+        const { anchor, gap } = plan.edit;
         if (anchor === undefined || anchor === null || spans.has(anchor)) {
-            return { placement: { anchor, anchorSpan: anchor ? spans.get(anchor) : undefined }, rank: 0 };
+            return { placement: { anchor, gap, anchorSpan: anchor ? spans.get(anchor) : undefined }, rank: 0 };
         }
         const host = recreated.get(anchor);
         if (!host || seen.has(anchor)) return { placement: {}, rank: 0 };
@@ -123,7 +123,7 @@ export function planFileEdits(original, fileEdits, internalId) {
                 : raw,
             existed: Boolean(span),
             // Where a removed key sat, so that undoing this puts it back there. §12.
-            ...(removing && { anchor: keyAbove(spans, edit.property) }),
+            ...(removing && placeAbove(text, spans, edit.property, blockIndices)),
         };
     });
     if (splices.length === 0) return null;
@@ -145,7 +145,7 @@ export function planFileEdits(original, fileEdits, internalId) {
         before: splice.before,
         after: splice.after,
         existed: splice.existed,
-        ...(splice.anchor !== undefined && { anchor: splice.anchor }),
+        ...(splice.anchor !== undefined && { anchor: splice.anchor, gap: splice.gap }),
     }));
     return { updated, records };
 }

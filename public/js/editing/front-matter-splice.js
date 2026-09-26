@@ -49,17 +49,22 @@ const lineEnding = (text, indices) => {
 };
 
 /**
- * The key a removed key sat under, so an undo can put it back there rather than at the end of the
- * block. plans/completed/table-delete-column.md §12.
+ * Where a removed key sat, so an undo can put it back there rather than at the end of the block.
+ * plans/completed/table-delete-column.md §12.
  *
- * The top-level key whose line is the nearest above this one — comments and blank lines are not
- * keys, so they are passed over — or null when it was the first key in the block.
+ * `anchor` is the top-level key whose line is the nearest above this one — comments and blank lines
+ * are not keys, so they are passed over — or null when it was the first key in the block. `gap` is
+ * how many of those passed-over lines sat between the anchor (or the opening `---`) and the key.
+ * After the removal the lines either side of it look alike, so without `gap` a key with a blank
+ * line or a comment above it came back above them instead.
  *
+ * @param {string} text - The whole note.
  * @param {Map<string, object>} spans - Every top-level key's span, from parseYaml.
  * @param {string} property - The key being removed.
- * @returns {string|null}
+ * @param {{start: number}} indices - The block's lines.
+ * @returns {{anchor: string|null, gap: number}}
  */
-export function keyAbove(spans, property) {
+export function placeAbove(text, spans, property, indices) {
     const own = spans.get(property);
     let anchor = null;
     let nearest = -1;
@@ -69,8 +74,32 @@ export function keyAbove(spans, property) {
             nearest = span.lineStart;
         }
     }
-    return anchor;
+    const from = anchor === null
+        ? lineOffset(text, indices.start + 1)
+        : lineEndAfter(text, spans.get(anchor).valueEnd);
+    const gap = text.slice(from, own.lineStart).split('\n').length - 1;
+    return { anchor, gap };
 }
+
+/**
+ * Steps down from `at` over up to `gap` lines — **only while each is blank or a comment**. That
+ * condition is the whole of the safety: a key, a list item and the closing `---` all stop it, so a
+ * re-created key can never land inside another key's value or outside the block. A gap tidied away
+ * since the removal therefore costs nothing but the step: the key goes straight after its anchor.
+ * @param {string} text
+ * @param {number} at - The first character of a line.
+ * @param {number} gap
+ * @returns {number}
+ */
+const stepOverGap = (text, at, gap) => {
+    for (let step = 0; step < gap; step++) {
+        const end = lineEndAfter(text, at);
+        const line = text.slice(at, end).trim();
+        if (line !== '' && !line.startsWith('#')) break;
+        at = end;
+    }
+    return at;
+};
 
 /**
  * The bytes to replace to set one key to `raw`, or to take it out, and what to put there. Four
@@ -85,7 +114,8 @@ export function keyAbove(spans, property) {
  * putting back a removed key passes the key it sat under: straight after that key's value, a block
  * list's last item included, while that key is still there; directly under the opening `---` when
  * it is `null`, meaning the removed key was the first; and the end of the block, as before, when the
- * anchor has gone as well. `keepKey` turns `raw` of '' from "take the key out" into "a key with
+ * anchor has gone as well. `gap`, recorded with the anchor, steps it down past the blank and comment
+ * lines that sat between them — see placeAbove. `keepKey` turns `raw` of '' from "take the key out" into "a key with
  * nothing after it", which is how a bare `people:` comes back bare. §12, §5.2.
  *
  * @param {string} text - The whole note.
@@ -93,7 +123,7 @@ export function keyAbove(spans, property) {
  * @param {string} raw - The text after the colon, or '' to remove the key.
  * @param {{start: number, end: number}|null} indices - The block's lines, or null if there is none.
  * @param {object} [span] - The key's span from parseYaml, if the note has that key.
- * @param {{anchor?: string|null, anchorSpan?: object, keepKey?: boolean}} [placement] - Where a
+ * @param {{anchor?: string|null, anchorSpan?: object, gap?: number, keepKey?: boolean}} [placement] - Where a
  *   re-created key goes, and whether '' keeps the key.
  * @returns {{start: number, end: number, written: string}|null} Null when there is nothing to do —
  *   only ever a key being cleared that was not there to begin with.
@@ -106,8 +136,9 @@ export function keySplice(text, property, raw, indices, span, placement = {}) {
 
     if (indices) {
         const line = `${property}:${raw}${lineEnding(text, indices)}`;
-        const at = placement.anchor === null ? lineOffset(text, indices.start + 1)
-            : placement.anchorSpan ? lineEndAfter(text, placement.anchorSpan.valueEnd)
+        const gap = placement.gap ?? 0;
+        const at = placement.anchor === null ? stepOverGap(text, lineOffset(text, indices.start + 1), gap)
+            : placement.anchorSpan ? stepOverGap(text, lineEndAfter(text, placement.anchorSpan.valueEnd), gap)
             : blockEndOffset(text, indices);
         return { start: at, end: at, written: line };
     }

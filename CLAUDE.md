@@ -313,9 +313,14 @@ The table's undo stack is saved, named, and reachable entry by entry. See
   history button stays lit while any are kept, since that is the one way out. Nothing writes the
   value back: restoring it stays a person's act. The report line's fail count filters to the notes
   carrying one; the issues column stays hidden.
-- **A removed key comes back where it was.** A removal records `anchor`, the key above it;
-  `keySplice` puts a re-created key straight after that key, under the opening `---` for `null`, and
-  at the end of the block only when the anchor has gone too.
+- **A removed key comes back where it was.** A removal records `anchor`, the key above it, and
+  `gap`, the blank and comment lines between them (`placeAbove()`); `keySplice` puts a re-created key
+  after that key, under the opening `---` for `null`, and at the end of the block only when the
+  anchor has gone too — then steps it down over at most `gap` lines, **only while each is still
+  blank or a comment**. That condition is the safety: a key, a list item or the closing `---` stops
+  it, so a gap tidied away since costs nothing and nothing is ever overwritten. Without `gap` the two
+  sides of a removed line look alike, and a key with a blank line or a comment above it came back
+  above them. Not honoured when the anchor is re-created in the same pass (a paste across neighbours).
 
 ### Front matter is data, not prose
 

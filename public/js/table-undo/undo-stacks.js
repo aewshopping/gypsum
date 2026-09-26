@@ -121,6 +121,7 @@ export async function reverseBatch(direction, index, onProgress) {
         // Where a removed key sat, so it comes back on its own line rather than at the end of the
         // block; and a bare key comes back bare, where '' would otherwise mean "no key". §12, §5.2.
         anchor: edit.anchor,
+        gap: edit.gap,
         keepKey: edit.before === '' && edit.existed,
     })), { beforeRefresh: markRefused, onProgress });
 
