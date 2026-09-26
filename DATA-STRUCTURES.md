@@ -439,7 +439,7 @@ Three more pieces of state belong to the same machinery:
 |-----|-------|
 | `bulkWriteInFlight` | `true` while a column delete, an undo or a redo is writing. Refuses a second one, refuses a folder load, and raises a `beforeunload` prompt. |
 | `undoHorizon` | When this visit to the table began: set on a view change and on a folder load. Ctrl+Z and the undo and redo buttons reach only batches made since; the undo list reaches all of them. |
-| `undoRefusals` | `Map<internalId, {count, name}>`: the notes the latest undo or redo left alone. Drawn as an `undo:` segment of their `fileIssues`, replaced by every reversal, emptied on load, never saved. |
+| `undoRefusals` | Array, newest last, of the edits an undo or redo refused: the stack's record (`internalId`, `property`, `before`, `after`, `existed`, `anchor`) plus `timestamp` and `from` (`{kind, property, values}`, the batch's facts). Drawn as an `undo:` segment of the note's `fileIssues` naming the value `before` held. Accumulates, a note and property keeping only its newest; capped at `REFUSED_DEPTH` (30); saved in `undo.gypsum` as `refused` and read back on load; emptied by "clear undo history". |
 
 ---
 

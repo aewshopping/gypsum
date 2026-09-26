@@ -17,6 +17,7 @@
 import { appState } from '../services/store.js';
 import { SAVE_FOLDER, UNDO_FILENAME } from '../constants.js';
 import { writeAndVerify } from '../services/file-save.js';
+import { isRefusal } from './undo-refusals.js';
 
 /** Stamped on write so a later shape has something to branch on. No migration code — §8.2. */
 const UNDO_VERSION = 1;
@@ -34,17 +35,21 @@ const isBatch = (batch) =>
         && typeof edit.before === 'string' && typeof edit.after === 'string');
 
 /**
- * Both stacks as the text of undo.gypsum, or empty stacks when it cannot be used.
+ * Both stacks and the refusals as the text of undo.gypsum, or empty ones when it cannot be used.
  *
  * Unparseable JSON, an unknown `undoVersion` or a batch that is not a batch all start empty and
  * warn to the console — the same rule table_layouts.gypsum follows. A folder with no file starts
  * empty and says nothing, since that is simply a folder nobody has edited from the table.
  *
+ * **`refused` is optional**, an additive key, so `UNDO_VERSION` did not move for it: a file written
+ * before it existed reads as having none. One that is there and unreadable starts empty on its own,
+ * without costing the stacks.
+ *
  * @param {string|null} text - The file's contents, or null when there is no file.
- * @returns {{undo: Array<object>, redo: Array<object>}}
+ * @returns {{undo: Array<object>, redo: Array<object>, refused: Array<object>}}
  */
 export function parseUndoFile(text) {
-    const empty = { undo: [], redo: [] };
+    const empty = { undo: [], redo: [], refused: [] };
     if (text === null) return empty;
 
     let parsed;
@@ -60,7 +65,13 @@ export function parseUndoFile(text) {
         console.warn(`${UNDO_FILENAME} is not in a shape this version reads; starting with no undo history.`);
         return empty;
     }
-    return { undo: parsed.undo, redo: parsed.redo };
+
+    let refused = parsed.refused ?? [];
+    if (!Array.isArray(refused) || !refused.every(isRefusal)) {
+        console.warn(`${UNDO_FILENAME}'s refused undos are not in a shape this version reads; starting with none.`);
+        refused = [];
+    }
+    return { undo: parsed.undo, redo: parsed.redo, refused };
 }
 
 /**
@@ -123,6 +134,7 @@ async function writeStacks(dirHandle) {
         undoVersion: UNDO_VERSION,
         undo: appState.undoStack,
         redo: appState.redoStack,
+        refused: appState.undoRefusals,
     });
     try {
         const gypsumDir = await dirHandle.getDirectoryHandle(SAVE_FOLDER, { create: true });

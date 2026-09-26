@@ -24,10 +24,11 @@ export function renameInUndoStacks(oldId, newId) {
         }
     }
 
-    // A renamed note keeps its mark from the last undo, or the filter to it would lose it.
-    if (appState.undoRefusals.has(oldId)) {
-        appState.undoRefusals.set(newId, appState.undoRefusals.get(oldId));
-        appState.undoRefusals.delete(oldId);
+    // A renamed note keeps its refusals, or the value they hold would be orphaned.
+    for (const refusal of appState.undoRefusals) {
+        if (refusal.internalId !== oldId) continue;
+        refusal.internalId = newId;
+        changed = true;
     }
 
     if (changed) saveUndoFile();

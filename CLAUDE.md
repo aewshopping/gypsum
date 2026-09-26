@@ -303,11 +303,16 @@ The table's undo stack is saved, named, and reachable entry by entry. See
   on a view change and a folder load, and `canReverse()` asks the top batch's timestamp. Keyboard
   undo means "the thing I just did"; an older change is chosen deliberately, from the list, with its
   name and time on screen. The "earlier" divider in the list is where the reach ends.
-- **A refused undo marks the note.** `appState.undoRefusals` holds the notes the latest reversal
-  left alone, and `checkFileErrors` draws an `undo:` segment of their `fileIssues` from it — so it
-  survives a re-read, which a segment written onto the file object would not. Each reversal replaces
-  the lot, and re-checks old and new marks inside the render it already does. The report line's fail
-  count filters to exactly those notes; the issues column stays hidden.
+- **A refused undo keeps the value it would have restored, and marks the note with it.** A refused
+  edit leaves both stacks — it was never reversed — so without this the moment an undo failed was
+  the moment its value was lost, and after a column delete that value is the only copy.
+  `appState.undoRefusals` keeps each refused record whole, is saved in `undo.gypsum` as `refused`,
+  and `checkFileErrors` draws it as `undo: people was "ann, bob" (people column delete)` — so it
+  survives a re-read and a reload. **They accumulate**, a note and property keeping only its newest,
+  until `REFUSED_DEPTH` (30) newer ones push them out or "clear undo history" forgets them; the
+  history button stays lit while any are kept, since that is the one way out. Nothing writes the
+  value back: restoring it stays a person's act. The report line's fail count filters to the notes
+  carrying one; the issues column stays hidden.
 - **A removed key comes back where it was.** A removal records `anchor`, the key above it;
   `keySplice` puts a re-created key straight after that key, under the opening `---` for `null`, and
   at the end of the block only when the anchor has gone too.

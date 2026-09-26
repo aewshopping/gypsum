@@ -24,13 +24,16 @@ export function describeBatch(batch) {
  * name a refused note's issues give the undo that left it alone, where a file count would be about
  * other notes. plans/completed/table-delete-column.md §10.5.
  *
- * @param {{kind?: string, property?: string|null, edits: Array<object>}} batch
+ * A refusal keeps only the facts of the batch it came from, so it passes `values` — how many edits
+ * the batch held — where a batch has its `edits` to count.
+ *
+ * @param {{kind?: string, property?: string|null, edits?: Array<object>, values?: number}} batch
  * @returns {string}
  */
 export function describeAction(batch) {
     if (batch.kind === 'delete-property') return `${batch.property} column delete`;
     if (batch.property) return `${batch.property} edit`;
 
-    const values = batch.edits.length;
+    const values = batch.values ?? batch.edits.length;
     return `edit of ${values} value${values === 1 ? '' : 's'}`;
 }

@@ -367,6 +367,43 @@ test('a delete is undone from the list after the folder is loaded again, and cle
   await page.click('[data-action="warning-proceed"]');
 
   await expect.poll(async () => JSON.parse(await page.evaluate(() => window.__saved['undo.gypsum'])))
-    .toEqual({ undoVersion: 1, undo: [], redo: [] });
+    .toEqual({ undoVersion: 1, undo: [], redo: [], refused: [] });
   await expect(page.locator('#table-undo-list-btn')).toBeDisabled();
+});
+
+// A refused undo is the moment its value is most wanted, and for a delete it is the only copy: it is
+// kept, shown in the note's issues, saved, and survives a later undo and a reload — until cleared.
+test('a refused undo keeps the value it would have restored, through a reload, until the history is cleared', async ({ page }) => {
+  await openTable(page);
+  await deletePeople(page);
+  await expect(reportLine(page)).toContainText('deleted people');
+  // Two notes gain a people key of their own behind the app's back, so undo must leave them alone.
+  await page.evaluate(() => {
+    window.__files['flow.md'] = window.__files['flow.md'].replace('status: draft', 'status: draft\npeople: cat');
+    window.__files['block.md'] = window.__files['block.md'].replace('kind: x', 'kind: x\npeople: dan');
+  });
+
+  await page.locator('#table-undo-btn').click();
+  await expect(reportLine(page)).toContainText('2 fail');
+  const issues = () => page.evaluate(() => Object.fromEntries(window.appState.myFiles
+    .filter(file => file.fileIssues?.includes('undo:')).map(file => [file.filename, file.fileIssues])));
+  const expected = {
+    'flow.md': 'undo: people was "ann, bob" (people column delete)',
+    'block.md': 'undo: people was "ann, bob" (people column delete)',
+  };
+  await expect.poll(issues).toEqual(expected);
+
+  // Saved whole, the raw span included, so nothing about it is lost with the tab.
+  const saved = JSON.parse(await page.evaluate(() => window.__saved['undo.gypsum'])).refused;
+  expect(Object.fromEntries(saved.map(refusal => [refusal.internalId, refusal.before])))
+    .toEqual({ 'block.md': '\n    - ann\n    - bob', 'flow.md': ' [ann, bob]' });
+
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect.poll(issues).toEqual(expected);
+
+  await page.locator('#table-undo-list-btn').click();
+  await page.locator('#undo-list [data-action="undo-list-clear"]').click();
+  await page.click('[data-action="warning-proceed"]');
+  await expect.poll(issues).toEqual({});
 });

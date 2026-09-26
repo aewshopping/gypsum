@@ -133,9 +133,10 @@ export const appState = {
   // the undo list reaches all of them. Set on a view change and on a folder load. §10.4.
   undoHorizon: 0,
 
-  // The files the most recent undo or redo refused, as Map<internalId, {count, name}>. Drawn as an
-  // `undo:` segment of the file's issues, and replaced by every reversal. Never saved. §10.5.
-  undoRefusals: new Map(),
+  // The edits an undo or redo refused, newest last, each holding the value it would have put back.
+  // Drawn as an `undo:` segment of the file's issues; saved in undo.gypsum beside the stacks, and
+  // capped at REFUSED_DEPTH. See table-undo/undo-refusals.js.
+  undoRefusals: [],
 }
 
 /**
@@ -144,6 +145,12 @@ export const appState = {
  * whole on each push, which is small in any realistic use — see plans/completed/table-delete-column.md §9.
  */
 export const UNDO_DEPTH = 100;
+
+/**
+ * How many refused edits are kept. A refusal is the only place its value survives once the undo
+ * has run, so they are kept until this many newer ones push them out or the history is cleared.
+ */
+export const REFUSED_DEPTH = 30;
 
 /**
  * Defines metadata for known - or potential - file object properties.
