@@ -15,7 +15,7 @@
 .output-header {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: end;
 
     /* Room to breathe, inherited from the count line, which carried it for both of them: this sits
        between the tag taxonomy and the file list, and both crowd it. Margin rather than padding so
