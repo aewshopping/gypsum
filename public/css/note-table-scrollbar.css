@@ -7,6 +7,20 @@
   height: 15px;
   position: relative; /* the containing block the thumb is laid out against */
   overflow: clip;     /* a thumb held open by its min-width stays inside the track */
+
+  /* The track, drawn only on hover as scrollbar.css draws the real one's, and pressable either
+     side of the thumb — table-scrollbar-page.js pages the table towards the press. */
+  cursor: default;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.05);
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.07);
+  }
 }
 
 /* Nothing to scroll, so nothing to show. syncScrollbarThumb sets the attribute. */

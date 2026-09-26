@@ -64,7 +64,7 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         const tableHtml = `
         <div class="table-wrapper">
             <div class="table-chrome">
-                <div id="top-scrollbar-container">
+                <div id="top-scrollbar-container" data-action="table-scroll-page">
                     <div id="top-scrollbar-thumb" data-action="table-scroll-drag"></div>
                 </div>
                 ${headerHtml}

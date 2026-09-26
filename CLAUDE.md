@@ -1040,6 +1040,11 @@ the matching browser binary.
   non-obvious.
 - **Do not add error handling for impossible cases.** Trust the app's internal invariants.
   Only validate at genuine system boundaries (user input, File System API responses).
+- **Icons are a `<symbol>` in `index.html`, placed with `<svg viewBox="0 0 W H"><use href="#icon-name"></use></svg>`.**
+  The symbol's `viewBox` holds the drawing's crop, offset included (`viewBox="2 4 50 50"`). The
+  use site's `viewBox` only sets the aspect ratio of the box the symbol is scaled into, so it is
+  always `0 0` plus the symbol's width and height (`0 0 50 50`). Copying the symbol's offset onto
+  the use site shifts the drawing a second time and crops it off-centre.
 - **Bump the manifest version on every change.** `manifest.json`'s `version` field drives
   the service worker's cache-invalidation check (see `service-worker.js`). Any code change
   must bump the **minor** version (e.g. `1.0.0` → `1.1.0`) by default, unless the user

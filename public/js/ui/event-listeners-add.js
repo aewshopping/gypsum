@@ -20,6 +20,7 @@ import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/col
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
+import { handleScrollbarTrackPress } from './ui-functions-table/table-scrollbar-page.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleColumnDeleteProperty } from './ui-functions-click/column-delete-property.js';
 import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
@@ -288,6 +289,7 @@ const pointerDownActionHandlers = {
     'column-reorder-start': handleColumnReorderStart,
     'column-resize-start': handleColumnResizeStart,
     'table-scroll-drag': handleScrollbarDragStart,
+    'table-scroll-page': handleScrollbarTrackPress,
 };
 
 const keyUpActionHandlers = {
