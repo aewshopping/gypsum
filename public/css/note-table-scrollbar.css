@@ -4,7 +4,11 @@
    the other one's scrollLeft on every frame, and on touch that fought the finger. The thumb
    rides the table's scroll timeline instead — see note-table.css. */
 #top-scrollbar-container {
-  height: 15px;
+  /* The thumb's own height, so the track drawn on hover is exactly the band the thumb runs in, as a
+     real scrollbar's is. The margins give back the rest of the 15px strip this used to be, so the
+     header below stays where it was. */
+  height: 10px;
+  margin-block: 1px 4px;
   position: relative; /* the containing block the thumb is laid out against */
   overflow: clip;     /* a thumb held open by its min-width stays inside the track */
 
@@ -38,7 +42,6 @@
   width: calc(100cqi * var(--table-scroll-ratio, 1));
   min-width: 28px; /* still grabbable on a table hundreds of columns wide */
   height: 10px;
-  margin-top: 1px;
   background-color: rgba(0, 0, 0, 0.2);
   background-clip: padding-box;
   border: solid transparent;

@@ -66,7 +66,7 @@ export function renderTableControls() {
                     <svg viewBox="0 0 45 48"><use href="#icon-redo"></use></svg>
                 </button>
                 <button type="button" id="table-undo-list-btn" class="svg-wrapper-style" data-action="undo-list" data-tip="undo history"${canOpenList() ? '' : ' disabled'}>
-                    <svg viewBox="0 0 55 55"><use href="#icon-undo-history"></use></svg>
+                    <svg viewBox="0 0 45 48"><use href="#icon-undo-history"></use></svg>
                 </button>
             </div>`;
 }
