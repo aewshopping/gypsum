@@ -62,3 +62,30 @@
     box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.35);
   }
 }
+
+/* A finger needs more than 10px to land on. Under a coarse pointer the bar is 24px tall to press,
+   while what is drawn stays the same thin band: the track's colour is clipped to its content box,
+   between 7px of padding above and below, and the thumb's own transparent borders — which already
+   inset its fill by 1px — grow to 8px. The header sits 9px lower on a touch screen for it, the
+   same trade the history button's larger target makes. */
+@media (pointer: coarse) {
+  #top-scrollbar-container {
+    height: 24px;
+    margin-block: 0;
+    padding-block: 7px;
+    background-clip: content-box;
+
+    /* An inset shadow is drawn at the padding edge, 7px away from the band it used to outline. */
+    &:hover,
+    &:active {
+      box-shadow: none;
+    }
+  }
+
+  #top-scrollbar-thumb {
+    height: 24px;
+    margin-top: -7px;   /* the whole padded height, not just the band, takes the press */
+    border-top-width: 8px;
+    border-bottom-width: 8px;
+  }
+}
