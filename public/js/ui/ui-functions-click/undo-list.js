@@ -6,6 +6,7 @@ import { renderUndoList } from '../ui-functions-table/render-undo-list.js';
 import { markUndoState } from '../ui-functions-table/render-table-controls.js';
 import { reverseCellEdits } from './undo-cell-edit.js';
 import { showWarningModal } from './warning-modal.js';
+import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /** @returns {HTMLElement|null} */
 const listElement = () => document.getElementById('undo-list');
@@ -20,11 +21,13 @@ const listElement = () => document.getElementById('undo-list');
  */
 export function handleUndoListOpen() {
     const list = listElement();
-    if (!list || appState.bulkWriteInFlight || appState.undoStack.length === 0) return;
+    const empty = appState.undoStack.length === 0 && appState.undoRefusals.length === 0;
+    if (!list || appState.bulkWriteInFlight || empty) return;
 
     list.innerHTML = renderUndoList();
     list.showPopover();
-    list.querySelector('.undo-list-row')?.focus();
+    // With nothing left to undo but refusals kept, the clear row is all there is.
+    (list.querySelector('.undo-list-row') ?? list.querySelector('.undo-list-clear'))?.focus();
 }
 
 /**
@@ -48,15 +51,21 @@ export async function handleUndoListItem(evt, row) {
 export async function handleUndoListClear() {
     closeUndoList();
     const count = appState.undoStack.length;
+    const refused = appState.undoRefusals.length;
     const confirmed = await showWarningModal(
         `Clear all undo history for this folder?\n\n`
         + `The ${count} change${count === 1 ? '' : 's'} in the list can no longer be undone, including any column delete. `
+        + (refused > 0
+            ? `The ${refused} value${refused === 1 ? '' : 's'} refused undos would have restored, shown in the notes' issues, are forgotten. `
+            : '')
         + `The copies of deleted values kept in the folder's .gypsum folder are removed.`,
         'clear history', 'cancel', { focus: 'cancel' });
     if (!confirmed) return;
 
     await clearUndoStacks();
     markUndoState();
+    // The refused notes' issues were redrawn without their marks; this puts that on screen.
+    renderFiles();
 }
 
 /** @returns {void} */

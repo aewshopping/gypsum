@@ -273,6 +273,11 @@ in one confirmed batch that one undo puts back. See `plans/completed/table-delet
   (`setBulkWriteBusy()` in `ui-functions-table/bulk-write-busy.js`, shared with the delete), reading
   `undoing people column delete in 35 files…`. Undoing a delete takes as long as the delete did. A
   one-file undo stays as it was: one write, over at once, where a bar would only flicker.
+- **A write that throws stops the batch only before the first note is written.** A folder that
+  cannot be written fails on its first file; after that a throw is one note touched mid-write, so it
+  is skipped and the rest go on. A throw can follow the write itself (the verify's read), so
+  `editFile` re-reads the note: changed notes stay in the journal, since an entry for an edit that
+  never happened is refused harmlessly and a missing one loses the value.
 - **Files go through a pool of 16**, and the refresh parses the verified text rather than reading it
   back — 13.3s to about 3.7s for 1,000 notes, measured. The verified two-write save is kept.
 
@@ -298,14 +303,24 @@ The table's undo stack is saved, named, and reachable entry by entry. See
   on a view change and a folder load, and `canReverse()` asks the top batch's timestamp. Keyboard
   undo means "the thing I just did"; an older change is chosen deliberately, from the list, with its
   name and time on screen. The "earlier" divider in the list is where the reach ends.
-- **A refused undo marks the note.** `appState.undoRefusals` holds the notes the latest reversal
-  left alone, and `checkFileErrors` draws an `undo:` segment of their `fileIssues` from it — so it
-  survives a re-read, which a segment written onto the file object would not. Each reversal replaces
-  the lot, and re-checks old and new marks inside the render it already does. The report line's fail
-  count filters to exactly those notes; the issues column stays hidden.
-- **A removed key comes back where it was.** A removal records `anchor`, the key above it;
-  `keySplice` puts a re-created key straight after that key, under the opening `---` for `null`, and
-  at the end of the block only when the anchor has gone too.
+- **A refused undo keeps the value it would have restored, and marks the note with it.** A refused
+  edit leaves both stacks — it was never reversed — so without this the moment an undo failed was
+  the moment its value was lost, and after a column delete that value is the only copy.
+  `appState.undoRefusals` keeps each refused record whole, is saved in `undo.gypsum` as `refused`,
+  and `checkFileErrors` draws it as `undo: people was "ann, bob" (people column delete)` — so it
+  survives a re-read and a reload. **They accumulate**, a note and property keeping only its newest,
+  until `REFUSED_DEPTH` (30) newer ones push them out or "clear undo history" forgets them; the
+  history button stays lit while any are kept, since that is the one way out. Nothing writes the
+  value back: restoring it stays a person's act. The report line's fail count filters to the notes
+  carrying one; the issues column stays hidden.
+- **A removed key comes back where it was.** A removal records `anchor`, the key above it, and
+  `gap`, the blank and comment lines between them (`placeAbove()`); `keySplice` puts a re-created key
+  after that key, under the opening `---` for `null`, and at the end of the block only when the
+  anchor has gone too — then steps it down over at most `gap` lines, **only while each is still
+  blank or a comment**. That condition is the safety: a key, a list item or the closing `---` stops
+  it, so a gap tidied away since costs nothing and nothing is ever overwritten. Without `gap` the two
+  sides of a removed line look alike, and a key with a blank line or a comment above it came back
+  above them. Not honoured when the anchor is re-created in the same pass (a paste across neighbours).
 
 ### Front matter is data, not prose
 
@@ -660,7 +675,7 @@ Closing an edited cell writes it into the note's front matter. See
   argument it gained is *not to re-sort*: edit a cell in the column the table is sorted by and the
   row would leap away from under you.
 - **The smallest number of bytes that does the job, and never a rebuilt block.** `parseYaml`'s
-  optional `spans` Map says where a key's value sits, and `editing/apply-raw-edits.js` replaces that
+  optional `spans` Map says where a key's value sits, and `editing/plan-file-edits.js` replaces that
   span and nothing else — so comments, key order, blank lines and anything the parser skipped
   survive. A list where one item's text changed splices that item alone; a list rewritten whole
   re-generates every item from the cell's text, which is where the comment limitation below comes
@@ -687,13 +702,14 @@ Closing an edited cell writes it into the note's front matter. See
   `"02"`. Point the writer at `readValue` and the value goes back to the file bare, for everyone
   else to misread. See DATA-STRUCTURES.md, "How a front matter value is read".
 - **What the note already says at that key is kept, never restyled.** A quoted value stays quoted, a
-  flow list stays a flow list, and a block list keeps its own indentation — `apply-raw-edits.js`
+  flow list stays a flow list, and a block list keeps its own indentation — `plan-file-edits.js`
   reads all three off the span and hands them to the writer, which is why `toYamlText` takes the
   file's shape rather than deciding one. A style is chosen only where there is nothing to copy: two
   spaces for the first item of a list the note has never had.
 - **Two layers, and the split is load-bearing — and visible in `ls`.** `applyCellEdits`
   (`save-cell-edit.js`) knows types and format; `applyRawEdits` (`apply-raw-edits.js`) knows spans,
-  splicing and the write. It takes a *list* of edits because a pasted range cannot be fifty verified
+  splicing and the write — the batch itself, with what one note's text becomes in
+  `plan-file-edits.js` (pure: text in, text out) and putting it on disk in `write-file-edits.js`. It takes a *list* of edits because a pasted range cannot be fifty verified
   writes, applies a file's edits back to front so no span is invalidated, carries the `expect` that
   undo and a column delete's second pass rely on, and returns what it changed. All four are for
   `plans/completed/table-undo-stack.md`, and all four are awkward to retrofit — the alternative is a second
@@ -847,7 +863,10 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
 | `public/js/editing/save-cell-edit.js` | A cell edit's types and format: what was typed, as the text to write |
-| `public/js/editing/apply-raw-edits.js` | The one writer every table batch goes through: locate, splice, write in a pool, refresh once |
+| `public/js/editing/apply-raw-edits.js` | The one writer every table batch goes through: group by file, a pool of writes, when a throw stops it, refresh once |
+| `public/js/editing/plan-file-edits.js` | What one note's text becomes under its edits — no disk: the lock, `expect`, the note's own style, back-to-front splices |
+| `public/js/editing/list-item-splice.js` | Whether a list edit is one item's text changing, so only that item's bytes are rewritten |
+| `public/js/editing/write-file-edits.js` | A planned note onto disk through the verified save, and what happened when that save throws |
 | `public/js/editing/delete-property.js` | Deleting a property from every note: the forecast, and the two-pass journalled write |
 | `public/js/table-undo/` | The undo stacks, `undo.gypsum`, each batch's name, and the refused notes |
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |

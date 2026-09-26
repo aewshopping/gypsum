@@ -1,5 +1,6 @@
 import { appState } from '../store.js';
 import { resolveNoteName } from '../internal-links/note-name-index.js';
+import { describeRefusal } from '../../table-undo/undo-refusals.js';
 
 /**
  * @file Owns fileIssues: every check that can flag a file, and the string they share.
@@ -14,8 +15,9 @@ import { resolveNoteName } from '../internal-links/note-name-index.js';
  *     rebuild and never go stale.
  *   - collection-time, needing the other loaded files (links). These cannot run while the
  *     first file is still being parsed, so checkFileErrors runs them afterwards.
- *   - the session: an undo that refused this note (undo). Not about the text at all, so it is held
- *     in appState.undoRefusals and drawn from there by checkFileErrors, like a collection-time one.
+ *   - the undo history: an undo that refused this note (undo), with the value it would have put
+ *     back. Not about the text at all, so it is held in appState.undoRefusals — saved in
+ *     undo.gypsum — and drawn from there by checkFileErrors, like a collection-time one.
  *
  * To add a check: write a segment function returning its text or null, call it from whichever
  * of the two kinds it belongs to, and give it a distinct leading word. Search and the nudges
@@ -103,15 +105,15 @@ function linkSegment(file) {
 }
 
 /**
- * Says the most recent undo or redo left this note alone, and which one. Neither parse-time nor
- * collection-time: a fact about the session, held in appState.undoRefusals and drawn from there on
- * every rebuild, so it survives a re-read. plans/completed/table-delete-column.md §10.5.
+ * Says which undos left this note alone, and what each would have put back — the only place that
+ * value is shown once the undo has run. Drawn from appState.undoRefusals on every rebuild, so it
+ * survives a re-read. See table-undo/undo-refusals.js.
  * @param {object} file - A file object from appState.myFiles.
  * @returns {string|null}
  */
 function undoSegment(file) {
-    const refusal = appState.undoRefusals.get(file.internalId);
-    return refusal ? `undo: ${refusal.count} refused (${refusal.name})` : null;
+    const refusals = appState.undoRefusals.filter(refusal => refusal.internalId === file.internalId);
+    return refusals.length > 0 ? `undo: ${refusals.map(describeRefusal).join('; ')}` : null;
 }
 
 /**

@@ -853,14 +853,35 @@ async function spansOf(text) {
   return spans;
 }
 
-test('the anchor recorded for a removal is the key on the line above, or null for the first', async () => {
-  const { keyAbove } = await appModule('editing/front-matter-splice.js');
-  const text = '---\nfirst: 1\nlist:\n  - a\n  - b\n# a comment\n\nafter: 2\nlast: 3\n---\n';
+test('a removal records the key on the line above, or null for the first, and the lines between', async () => {
+  const { placeAbove } = await appModule('editing/front-matter-splice.js');
+  const text = '---\n\nfirst: 1\nlist:\n  - a\n  - b\n# a comment\n\nafter: 2\nlast: 3\n---\n';
   const spans = await spansOf(text);
-  expect(keyAbove(spans, 'first')).toBe(null);
-  expect(keyAbove(spans, 'list')).toBe('first');
-  expect(keyAbove(spans, 'after')).toBe('list');    // past the comment and the blank line
-  expect(keyAbove(spans, 'last')).toBe('after');
+  const indices = { start: 0, end: 10 };
+  expect(placeAbove(text, spans, 'first', indices)).toEqual({ anchor: null, gap: 1 });
+  expect(placeAbove(text, spans, 'list', indices)).toEqual({ anchor: 'first', gap: 0 });
+  expect(placeAbove(text, spans, 'after', indices)).toEqual({ anchor: 'list', gap: 2 });   // the comment and the blank line
+  expect(placeAbove(text, spans, 'last', indices)).toEqual({ anchor: 'after', gap: 0 });
+});
+
+// The gap is an "at most": it steps only over lines that are still blank or comments, so a gap tidied
+// away since, or a key written into it, stops it — the key never lands past another key.
+test('keySplice steps a key down past its gap, and only over blank and comment lines', async () => {
+  const { keySplice } = await appModule('editing/front-matter-splice.js');
+  const put = async (text, gap) => {
+    const spans = await spansOf(text);
+    const s = keySplice(text, 'price', '2', { start: 0, end: text.split('\n').indexOf('---', 1) }, undefined,
+      { anchor: 'cheese', anchorSpan: spans.get('cheese'), gap });
+    return text.slice(0, s.start) + s.written + text.slice(s.end);
+  };
+  expect(await put('---\ncheese: cheddar\n\n\ntown: belfast\n---\n', 1))
+    .toBe('---\ncheese: cheddar\n\nprice:2\n\ntown: belfast\n---\n');
+  expect(await put('---\ncheese: cheddar\ntown: belfast\n---\n', 1))
+    .toBe('---\ncheese: cheddar\nprice:2\ntown: belfast\n---\n');
+  expect(await put('---\ncheese: cheddar\nnew: 1\n\ntown: belfast\n---\n', 2))
+    .toBe('---\ncheese: cheddar\nprice:2\nnew: 1\n\ntown: belfast\n---\n');
+  expect(await put('---\ncheese: cheddar\n\n---\n', 3))
+    .toBe('---\ncheese: cheddar\n\nprice:2\n---\n');
 });
 
 test('keySplice puts a key back after its anchor, under the separator, or at the end', async () => {
@@ -908,6 +929,23 @@ async function removeAndUndo(page, edits) {
 // First, middle, block list, CRLF and a bare key coming back byte for byte is held by the column
 // delete's undo cycle in 54-delete-property.spec.js, whose fixture has each. What is left here are
 // the two cases a one-key-per-note delete never meets.
+test('a key with blank lines and comments around it comes back exactly where it was', async ({ page }) => {
+  await openTable(page, {
+    'gap.md': '---\ncheese: cheddar\n\nprice: 2\n\ntown: belfast\n---\n# Gap\n',
+    'note.md': '---\nfirst: 1\n# in GBP\nprice: 2\n---\n# Note\n',
+    'top.md': '---\n\n# the first key\nfirst: 1\nprice: 2\n---\n# Top\n',
+    'crlf.md': '---\r\ncheese: cheddar\r\n\r\nprice: 2\r\n\r\ntown: belfast\r\n---\r\n# Crlf\r\n',
+  });
+  const { before, removed, undone } = await removeAndUndo(page, [
+    { internalId: 'gap.md', property: 'price' },
+    { internalId: 'note.md', property: 'price' },
+    { internalId: 'top.md', property: 'first' },
+    { internalId: 'crlf.md', property: 'price' },
+  ]);
+  expect(removed['gap.md']).toBe('---\ncheese: cheddar\n\n\ntown: belfast\n---\n# Gap\n');
+  expect(undone).toEqual(before);
+});
+
 test('a key whose anchor has gone goes to the end, and two neighbours cleared together come back in order', async ({ page }) => {
   await openTable(page, {
     'gone.md': '---\nfirst: 1\nmiddle: 2\nlast: 3\n---\n# Gone\n',

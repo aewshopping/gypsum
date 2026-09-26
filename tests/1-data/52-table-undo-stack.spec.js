@@ -365,10 +365,17 @@ test('the undo file is validated at the boundary', async () => {
   const batch = { timestamp: 1, kind: 'edit', property: 'a',
     edits: [{ internalId: 'a.md', property: 'a', before: '', after: ' x', existed: false }] };
   const good = JSON.stringify({ undoVersion: 1, undo: [batch], redo: [] });
-  expect(parseUndoFile(good)).toEqual({ undo: [batch], redo: [] });
-  expect(parseUndoFile(null)).toEqual({ undo: [], redo: [] });
-  expect(parseUndoFile('{ nope')).toEqual({ undo: [], redo: [] });
-  expect(parseUndoFile(JSON.stringify({ undoVersion: 2, undo: [batch], redo: [] }))).toEqual({ undo: [], redo: [] });
+  expect(parseUndoFile(good)).toEqual({ undo: [batch], redo: [], refused: [] });
+  expect(parseUndoFile(null)).toEqual({ undo: [], redo: [], refused: [] });
+  expect(parseUndoFile('{ nope')).toEqual({ undo: [], redo: [], refused: [] });
+  expect(parseUndoFile(JSON.stringify({ undoVersion: 2, undo: [batch], redo: [] }))).toEqual({ undo: [], redo: [], refused: [] });
   expect(parseUndoFile(JSON.stringify({ undoVersion: 1, undo: [{ timestamp: 1 }], redo: [] })))
-    .toEqual({ undo: [], redo: [] });
+    .toEqual({ undo: [], redo: [], refused: [] });
+
+  // Refusals are an additive key: kept when well formed, and dropped on their own when not.
+  const refusal = { ...batch.edits[0], timestamp: 2, from: { kind: 'edit', property: 'a', values: 1 } };
+  expect(parseUndoFile(JSON.stringify({ undoVersion: 1, undo: [batch], redo: [], refused: [refusal] })))
+    .toEqual({ undo: [batch], redo: [], refused: [refusal] });
+  expect(parseUndoFile(JSON.stringify({ undoVersion: 1, undo: [batch], redo: [], refused: [{ before: 1 }] })))
+    .toEqual({ undo: [batch], redo: [], refused: [] });
 });

@@ -100,11 +100,12 @@ export function markUndoState() {
 /**
  * The history button is lit whenever the undo stack holds anything, including when undo itself is
  * dark after a view change: that pairing is how the table says "nothing from this visit, but there
- * is history". plans/completed/table-delete-column.md §17.2.
+ * is history". plans/completed/table-delete-column.md §17.2. It stays lit while refused undos are
+ * kept, with nothing left to undo, because "clear undo history" is the one way to be rid of them.
  * @returns {boolean}
  */
 function canOpenList() {
-    return appState.undoStack.length > 0 && !appState.bulkWriteInFlight;
+    return (appState.undoStack.length > 0 || appState.undoRefusals.length > 0) && !appState.bulkWriteInFlight;
 }
 
 /** The fallback tooltips, for a stack with nothing on it — a disabled button shows none anyway. */

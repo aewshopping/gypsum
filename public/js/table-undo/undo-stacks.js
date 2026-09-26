@@ -1,8 +1,8 @@
 import { appState, UNDO_DEPTH } from '../services/store.js';
 import { applyRawEdits } from '../editing/apply-raw-edits.js';
 import { readUndoFile, saveUndoFile } from './undo-file.js';
-import { replaceRefusals } from './undo-refusals.js';
-import { describeAction } from './describe-batch.js';
+import { addRefusals } from './undo-refusals.js';
+import { checkFileErrors } from '../services/file-parsing/file-errors.js';
 
 /**
  * @file The two stacks, and putting a batch of cell edits back.
@@ -106,7 +106,7 @@ export async function reverseBatch(direction, index, onProgress) {
     const markRefused = (applied) => {
         const done = new Set(applied.map(edit => `${edit.internalId}\u0000${edit.property}`));
         refused = batch.edits.filter(edit => !done.has(`${edit.internalId}\u0000${edit.property}`));
-        return replaceRefusals(refused, describeAction(batch));
+        return addRefusals(refused, batch);
     };
 
     const applied = await applyRawEdits(batch.edits.map(edit => ({
@@ -121,6 +121,7 @@ export async function reverseBatch(direction, index, onProgress) {
         // Where a removed key sat, so it comes back on its own line rather than at the end of the
         // block; and a bare key comes back bare, where '' would otherwise mean "no key". §12, §5.2.
         anchor: edit.anchor,
+        gap: edit.gap,
         keepKey: edit.before === '' && edit.existed,
     })), { beforeRefresh: markRefused, onProgress });
 
@@ -138,22 +139,43 @@ export async function reverseBatch(direction, index, onProgress) {
  * @returns {Promise<void>}
  */
 export async function loadUndoStacks() {
-    const { undo, redo } = await readUndoFile();
+    const { undo, redo, refused } = await readUndoFile();
     appState.undoStack.length = 0;
     appState.redoStack.length = 0;
     appState.undoStack.push(...undo);
     appState.redoStack.push(...redo);
+    appState.undoRefusals = refused;
+
+    // The files were checked before this folder's refusals were known, so the notes they name are
+    // checked again, ahead of the render that follows a load.
+    recheck(new Set(refused.map(refusal => refusal.internalId)));
 }
 
 /**
- * Forgets everything on both stacks and writes the empty file — "clear undo history". It removes the
- * only saved copy of what a column delete took out, which is why its button asks first. §8.5.
+ * Forgets everything on both stacks and the refusals, and writes the empty file — "clear undo
+ * history". It removes the only saved copy of what a column delete took out, and the values refused
+ * undos would have put back, which is why its button asks first. §8.5.
  * @returns {Promise<boolean>}
  */
 export function clearUndoStacks() {
     appState.undoStack.length = 0;
     appState.redoStack.length = 0;
+    const marked = new Set(appState.undoRefusals.map(refusal => refusal.internalId));
+    appState.undoRefusals = [];
+    recheck(marked);
     return saveUndoFile();
+}
+
+/**
+ * Redraws the issues of the named files from the refusals as they now stand. The caller renders.
+ * @param {Set<string>} ids
+ * @returns {void}
+ */
+function recheck(ids) {
+    if (ids.size === 0) return;
+    for (const file of appState.myFiles) {
+        if (ids.has(file.internalId)) checkFileErrors(file);
+    }
 }
 
 /**

@@ -53,7 +53,7 @@ Two functions answer two different questions, and the difference is load-bearing
 | | Question | Used by |
 |---|---|---|
 | `coerceValue(text)` | What does **YAML** say this scalar means? | `yaml-value-write.js`, when deciding whether to quote |
-| `readValue(text)` | What does the **file object** store? | the parser itself, and `apply-raw-edits.js` |
+| `readValue(text)` | What does the **file object** store? | the parser itself, and `plan-file-edits.js` |
 
 ### `readValue` — the app's deliberate departure from the spec
 
@@ -78,7 +78,7 @@ disagreed with the most widely deployed reader while being perfectly 1.2-correct
 So `readValue` takes `coerceValue`'s answer and **keeps it only when it round-trips**: a number
 survives if `String(n)` is the text again. That makes the app the core schema with its lossy
 numerics declined — a custom schema, which the spec sanctions, and the same decision gypsum already
-makes elsewhere. `editing/apply-raw-edits.js` splices the smallest span rather than re-serialising a
+makes elsewhere. `editing/plan-file-edits.js` splices the smallest span rather than re-serialising a
 note, precisely so comments, key order and blank lines survive; none of those are in the
 representation graph either. Gypsum edits notes, it does not load and dump them.
 
@@ -137,15 +137,15 @@ always sits on the line `lineStart` begins and `valueStart` is always on that sa
 `valueEnd` walks down the file with it, pushed forward by every list item and every nested key line.
 A blank or comment line never pushes it, so a comment after a list's last item is outside the key and
 survives its removal; one *between* two items is inside it and does not, which is the same cost list
-edits already carry. `apply-raw-edits.js` takes `[lineStart, past the newline after valueEnd)` when
+edits already carry. `plan-file-edits.js` takes `[lineStart, past the newline after valueEnd)` when
 `toYamlText()` hands back `''`, which is the one thing it can return that no value can mean. Between them they recover the presentation detail
-YAML throws away, and `apply-raw-edits.js` assembles that into the `shape` it hands `toYamlText()` —
+YAML throws away, and `plan-file-edits.js` assembles that into the `shape` it hands `toYamlText()` —
 `form` straight off the span, `itemPrefix` sliced from the first item's `lineStart`, and `quoted`
 derived by running `isQuoted()` over the bytes the span points at. So a quoted value stays quoted, a
 flow list stays a flow list, and a block list keeps its own indentation.
 
 **Spans are built at edit time only.** `file-info.js` passes `null` for them at load;
-`apply-raw-edits.js` builds them from a *fresh* read of the file and discards them when the write
+`plan-file-edits.js` builds them from a *fresh* read of the file and discards them when the write
 finishes. This is deliberate: a span is a byte offset into one specific version of one file, and the
 thing it is used for is splicing. Do not cache one across a read — if the file changed on disk in
 between, the offset points at the wrong bytes.
@@ -414,7 +414,7 @@ Newest last, capped at `UNDO_DEPTH` (100). One entry is one **batch** — a sing
 of one, a column delete is one batch across every note it touched:
 
 ```js
-{ timestamp, kind, property, edits: [ { internalId, property, before, after, existed, anchor? } ] }
+{ timestamp, kind, property, edits: [ { internalId, property, before, after, existed, anchor?, gap? } ] }
 ```
 
 - `kind` is `'edit'` or `'delete-property'`, and `property` the column when every edit shares one,
@@ -426,8 +426,11 @@ of one, a column delete is one batch across every note it touched:
   which undo puts back bare (`keepKey`).
 - `anchor`, on a removal only, is the key it sat under — `null` when it was first — so undo puts it
   back on its own line rather than at the end of the block. Absent means no position is known.
+- `gap`, beside `anchor`, is how many blank and comment lines sat between the anchor (or the opening
+  `---`) and the key. Undo steps down that many, but only while each line is still blank or a
+  comment, so a gap tidied away since simply isn't skipped. Absent reads as 0.
 
-**Saved** to the folder's `.gypsum/undo.gypsum` as `{ undoVersion: 1, undo, redo }` after every push,
+**Saved** to the folder's `.gypsum/undo.gypsum` as `{ undoVersion: 1, undo, redo, refused }` after every push,
 pop and clear — one write at a time, each taking whatever the stacks hold when it starts — and read
 back in `postLoad`. A stale entry is safe to keep: every undo checks the note still says `after`
 and refuses it otherwise. A column delete writes its batch there **before** touching a note, as a
@@ -439,7 +442,7 @@ Three more pieces of state belong to the same machinery:
 |-----|-------|
 | `bulkWriteInFlight` | `true` while a column delete, an undo or a redo is writing. Refuses a second one, refuses a folder load, and raises a `beforeunload` prompt. |
 | `undoHorizon` | When this visit to the table began: set on a view change and on a folder load. Ctrl+Z and the undo and redo buttons reach only batches made since; the undo list reaches all of them. |
-| `undoRefusals` | `Map<internalId, {count, name}>`: the notes the latest undo or redo left alone. Drawn as an `undo:` segment of their `fileIssues`, replaced by every reversal, emptied on load, never saved. |
+| `undoRefusals` | Array, newest last, of the edits an undo or redo refused: the stack's record (`internalId`, `property`, `before`, `after`, `existed`, `anchor`, `gap`) plus `timestamp` and `from` (`{kind, property, values}`, the batch's facts). Drawn as an `undo:` segment of the note's `fileIssues` naming the value `before` held. Accumulates, a note and property keeping only its newest; capped at `REFUSED_DEPTH` (30); saved in `undo.gypsum` as `refused` and read back on load; emptied by "clear undo history". |
 
 ---
 
@@ -479,5 +482,5 @@ the same notes in the same order — every cell edit, every autosave — starts 
 | `appState.myParentMap` | `file-parsing/tag-taxon.js` → `buildParentMap()` | Once after all files load, in `file-handler.js` / `directory-handler.js` |
 | `appState.propertyTypes`, `tableLayouts` | `table-layouts/layout-file.js` | Once per folder load, from `.gypsum/table_layouts.gypsum` |
 | `appState.search.*` | `ui-functions-search/a-search-orchestrator.js` | On each search or filter change |
-| value spans | `file-parsing/yaml-parse.js` → `parseYaml(…, spans)` | Only in `editing/apply-raw-edits.js`, on a fresh read |
+| value spans | `file-parsing/yaml-parse.js` → `parseYaml(…, spans)` | Only in `editing/plan-file-edits.js`, on a fresh read |
 | `appState.paginationState` | `ui-functions-render/a-render-all-files.js` | Every render |
