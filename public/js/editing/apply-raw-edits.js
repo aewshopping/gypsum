@@ -151,11 +151,17 @@ export async function applyRawEdits(rawEdits, { resort = true, write = true, onP
             try {
                 results[index] = await editFile(filesById.get(internalId), fileEdits, gypsumDir, write, written);
             } catch (error) {
-                // A write that throws is the batch dying, not a file being skipped: the ones not yet
-                // started are left alone, and the error goes to the caller once the files already
-                // written have been refreshed. A journal written before this began still holds every
-                // edit, and undo refuses the ones that never happened. §8.3.
-                failed ??= error;
+                // **Before the first note is written, a throw is the batch dying; after it, one note
+                // being skipped.** A folder that cannot be written fails on its first file, so a
+                // throw once a note has gone through says the folder works and something touched
+                // this one file — Chrome's "state cached in an interface object" when a file changes
+                // between the verify's getFile() and its read. The files not yet started are then
+                // left alone, and the error goes to the caller once the files already written have
+                // been refreshed; a journal written before this began still holds every edit, and
+                // undo refuses the ones that never happened. §8.3.
+                results[index] = error.records ?? null;
+                if (written.length === 0) failed ??= error;
+                else console.warn(`Skipped ${internalId}: its write threw.`, error);
             }
             onProgress?.(++done, jobs.length);
         }
@@ -202,12 +208,8 @@ async function editFile(file, fileEdits, gypsumDir, write, written) {
     // outside the app — is refused, like any edit that cannot be checked. §8.4.
     if (!file?.handle) return null;
 
-    let original;
-    try {
-        original = await (await file.handle.getFile()).text();
-    } catch {
-        return null;
-    }
+    const original = await readText(file.handle);
+    if (original === null) return null;
     const indices = findFrontMatterIndices(original);
 
     const errors = [];
@@ -336,9 +338,35 @@ async function editFile(file, fileEdits, gypsumDir, write, written) {
     if (!write) return records;
 
     const snapshot = { filepath: file.filepath, filename: file.filename, content: original };
-    if (!await saveFileCopy(snapshot, updated, { gypsumDir, handle: file.handle })) return null;
+    try {
+        if (!await saveFileCopy(snapshot, updated, { gypsumDir, handle: file.handle })) return null;
+    } catch (error) {
+        // A throw can come after the note was written — from the verify's read, or tidying away the
+        // copy in .gypsum — so what the note now holds says what happened. Written: it counts, like
+        // any other. Unreadable or something else: the records go with the error all the same,
+        // because a journal listing an edit that never happened is refused harmlessly on undo, and
+        // one missing an edit that did happen has lost the only copy of the value.
+        const now = await readText(file.handle);
+        if (now !== updated) {
+            error.records = now === original ? null : records;
+            throw error;
+        }
+    }
 
     // The verified text travels to the refresh, which parses it rather than reading it back again.
     written.push({ ...snapshot, written: updated });
     return records;
+}
+
+/**
+ * A note's text as it is on disk now, or null when it cannot be read.
+ * @param {FileSystemFileHandle} handle
+ * @returns {Promise<string|null>}
+ */
+async function readText(handle) {
+    try {
+        return await (await handle.getFile()).text();
+    } catch {
+        return null;
+    }
 }

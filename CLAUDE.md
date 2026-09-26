@@ -273,6 +273,11 @@ in one confirmed batch that one undo puts back. See `plans/completed/table-delet
   (`setBulkWriteBusy()` in `ui-functions-table/bulk-write-busy.js`, shared with the delete), reading
   `undoing people column delete in 35 files…`. Undoing a delete takes as long as the delete did. A
   one-file undo stays as it was: one write, over at once, where a bar would only flicker.
+- **A write that throws stops the batch only before the first note is written.** A folder that
+  cannot be written fails on its first file; after that a throw is one note touched mid-write, so it
+  is skipped and the rest go on. A throw can follow the write itself (the verify's read), so
+  `editFile` re-reads the note: changed notes stay in the journal, since an entry for an edit that
+  never happened is refused harmlessly and a missing one loses the value.
 - **Files go through a pool of 16**, and the refresh parses the verified text rather than reading it
   back — 13.3s to about 3.7s for 1,000 notes, measured. The verified two-write save is kept.
 

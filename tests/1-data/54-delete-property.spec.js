@@ -21,8 +21,9 @@ const { loadFolder } = require('../helpers');
  *   dup.md       — `people` twice, the second a block list: locked, so skipped (§5.3).
  *   nokey.md     — front matter without `people`.
  *
- * The mock records every write per file, can fail a named file's write (verify fails) or make it
- * throw, and runs window.__betweenPasses when the journal reaches undo.gypsum — which is the moment
+ * The mock records every write per file, can fail a named file's write (verify fails), make it
+ * throw — at once, or only once another note has been written — or make the read that verifies it
+ * throw once after the write has landed, and runs window.__betweenPasses when the journal reaches undo.gypsum — which is the moment
  * between the plan pass and the write pass.
  */
 const NOTES = {
@@ -60,6 +61,8 @@ async function setupFiles(page, notes = NOTES) {
     window.__reads = {};
     window.__failWrite = new Set();
     window.__throwWrite = new Set();
+    window.__throwLater = new Set();
+    window.__throwVerify = new Set();
     window.__pickerCalls = 0;
 
     const mk = (name) => ({
@@ -67,6 +70,9 @@ async function setupFiles(page, notes = NOTES) {
       getFile: async () => {
         window.__reads[name] = (window.__reads[name] ?? 0) + 1;
         if (!(name in window.__files)) throw Object.assign(new Error('gone'), { name: 'NotFoundError' });
+        if (window.__writes[name] && window.__throwVerify.delete(name)) {
+          throw Object.assign(new Error('state cached in an interface object'), { name: 'InvalidStateError' });
+        }
         return {
           name, size: window.__files[name].length, lastModified: Date.now(),
           text: async () => window.__files[name],
@@ -74,6 +80,10 @@ async function setupFiles(page, notes = NOTES) {
       },
       createWritable: async () => {
         if (window.__throwWrite.has(name)) throw new Error(`the write of ${name} died`);
+        if (window.__throwLater.has(name)) {
+          while (Object.keys(window.__writes).length === 0) await new Promise(r => setTimeout(r, 5));
+          throw new Error(`the write of ${name} died`);
+        }
         return {
           write: async (content) => {
             window.__writes[name] = (window.__writes[name] ?? 0) + 1;
@@ -222,18 +232,51 @@ test('a delete: exact bytes, untouched notes, journal first, load refused, and a
   expect(await files(page)).toEqual(NOTES);
 });
 
-test('a second pass cut short undoes cleanly', async ({ page }) => {
+test('a batch whose first write throws stops, and changes nothing', async ({ page }) => {
   await openTable(page);
   await page.evaluate(() => {
-    window.__failWrite.add('quoted.md');
-    for (const name of ['last.md', 'only.md', 'bare.md', 'crlf.md']) window.__throwWrite.add(name);
+    for (const name of ['flow.md', 'block.md', 'quoted.md', 'last.md', 'only.md', 'bare.md', 'crlf.md']) {
+      window.__throwWrite.add(name);
+    }
   });
   await deletePeople(page);
   await expect(reportLine(page)).toContainText('deleting people stopped');
+  expect(await files(page)).toEqual(NOTES);
+});
 
-  // Whatever was written, undo puts back; whatever was not, it refuses — and every note ends as it began.
+// Once a note has been written the folder is known to take writes, so a later throw is that note's
+// alone: it is skipped and the rest carry on.
+test('a write that throws after others went through skips that note and carries on', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(() => {
+    window.__failWrite.add('quoted.md');
+    for (const name of ['last.md', 'bare.md']) window.__throwLater.add(name);
+  });
+  await deletePeople(page);
+  await expect(reportLine(page)).toContainText('people from 4 files, 6 skipped');
+
+  const after = await files(page);
+  for (const name of ['flow.md', 'block.md', 'only.md', 'crlf.md']) expect(after[name]).toBe(AFTER[name]);
+  for (const name of ['quoted.md', 'last.md', 'bare.md']) expect(after[name]).toBe(NOTES[name]);
+
+  // Whatever was written, undo puts back — and every note ends as it began.
   await page.locator('#table-undo-btn').click();
-  await expect(reportLine(page)).toContainText('fail');
+  expect(await files(page)).toEqual(NOTES);
+});
+
+// The failure that prompted this: the note is written, then the read that verifies it throws. The note
+// has changed, so it must be in the undo entry, or its value is lost.
+test('a verify that throws after the write landed still counts the note, and undo restores it', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(() => { window.__throwVerify.add('last.md'); });
+  await deletePeople(page);
+  await expect(reportLine(page)).toContainText('deleted people from 7 files');
+  expect((await files(page))['last.md']).toBe(AFTER['last.md']);
+
+  const ids = await page.evaluate(() => window.appState.undoStack.at(-1).edits.map(edit => edit.internalId));
+  expect(ids).toContain('last.md');
+
+  await page.locator('#table-undo-btn').click();
   expect(await files(page)).toEqual(NOTES);
 });
 
