@@ -83,10 +83,13 @@
     background-color: var(--colour-neutral);
 }
 
-/* Where the sticky columns end, so the cells sliding under them look like they are going somewhere. */
+/* Where the sticky columns end, so the cells sliding under them look like they are going somewhere.
+   No blur and no spread, so each cell's shadow is a solid strip exactly its own height and the
+   strips join into one unbroken line down the table. A blurred one faded out at every cell's top
+   and bottom corner, which drew the line as a column of dashes. */
 .note-table-cell-header.is-sticky-last,
 .note-table-cell:where(.is-sticky-last:not(.is-expanded)) {
-    box-shadow: 3px 0 4px -2px rgb(0 0 0 / 0.3);
+    box-shadow: 3px 0 0 0 rgb(0 0 0 / 0.15);
 }
 
 /* The distance the header has been moved is the table's overflow times its scroll progress. The
