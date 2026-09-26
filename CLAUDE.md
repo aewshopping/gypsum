@@ -257,7 +257,9 @@ table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-t
   screen, so `table-focus-scroll.js` scrolls it clear — the same handler that already did this for
   headings.
 - **Stacking:** sticky cells 4, an opened sticky cell 5, `.table-chrome` 6 — the rows scroll up
-  under the chrome, so it has to sit above all of them.
+  under the chrome, so it has to sit above all of them. All of it is held inside the table by
+  `isolation: isolate` on `.table-wrapper`; `container-type` does not make a stacking context, and
+  without the isolation the sticky cells painted over the app's search row (z-index 1).
 
 ### Deleting a property from every note
 

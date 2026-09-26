@@ -116,3 +116,33 @@ test('the count is saved with the layout and goes back to none under the default
   });
   expect(await stuckHeaders(page)).toEqual([]);
 });
+
+// The table scrolls up under the app's sticky search row. Its sticky cells carry a z-index to beat
+// the cells passing beneath them, and without .table-wrapper isolating, that z-index was compared
+// with the search row's and they painted on top of it.
+test('stuck cells scroll up under the search row, not over it', async ({ page }) => {
+  await openTable(page);
+  await stickTo(page, 'title');
+  await scrollTable(page, 250);
+
+  // Room to scroll the page, and far enough down that the search row has stuck to the top — only
+  // then is where it sits worth measuring.
+  const y = await page.evaluate(() => {
+    document.body.style.paddingBottom = '2000px';
+    window.scrollTo(0, 300);
+    const box = document.getElementById('searchbox').getBoundingClientRect();
+    return box.top + box.height / 2;
+  });
+
+  // Then until the first row's stuck title sits behind it.
+  await cell(page, 'title').evaluate((el, y) => {
+    window.scrollBy(0, el.getBoundingClientRect().top + el.offsetHeight / 2 - y);
+  }, y);
+
+  const covered = await cell(page, 'title').evaluate((el, y) => {
+    const box = el.getBoundingClientRect();
+    if (box.top > y || box.bottom < y) return 'not behind the search row';
+    return el.contains(document.elementFromPoint(box.left + 10, y));
+  }, y);
+  expect(covered).toBe(false);
+});

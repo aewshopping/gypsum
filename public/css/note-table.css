@@ -29,6 +29,12 @@
        animation below needs. The scroller has no border or padding, so the wrapper's
        content box and the scroller's client box are the same width. */
     container-type: inline-size;
+
+    /* Keeps every z-index inside the table inside the table, so none of them can rise above the
+       app's own sticky search row (z-index 1), which the table scrolls up under. container-type does
+       not do this, whatever it once did: it no longer implies layout containment, so without this
+       the sticky columns' z-index was compared with the search row's and painted over it. */
+    isolation: isolate;
 }
 
 /* The row of controls above the table is .output-controls, in output-controls.css — it is drawn
@@ -45,9 +51,8 @@
     position: sticky;
     top: var(--stick-top-height);
     /* Above everything the rows paint as they scroll up under it: an expanded cell at 3, a sticky
-       cell at 4 and an opened sticky one at 5 (note-table-sticky.css). .table-wrapper is a stacking
-       context (container-type implies layout containment), so this stays scoped to the table and
-       still cannot rise above the app's own search row. */
+       cell at 4 and an opened sticky one at 5 (note-table-sticky.css). .table-wrapper isolates, so
+       this stays scoped to the table and cannot rise above the app's own search row. */
     z-index: 6;
     background-color: var(--colour-neutral);
 }
