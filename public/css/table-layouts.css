@@ -115,14 +115,16 @@
 /* --- the control row --------------------------------------------------------------------- */
 
 /* The row itself is .output-controls, in output-controls.css. What is left here is what is the
-   table's alone: the layout name and the two buttons that say when there is nothing to press. */
+   table's alone: the layout name and the three buttons that say when there is nothing to press. */
 
-/* Undo and redo say when there is nothing to press, because otherwise a dead button and a live one
-   look identical — the glyph *is* the button here, as it is on a column picker row, so the fade is
-   the only thing left to say it with. The same 0.25 .info-modal-row-btn:disabled uses, and the
-   cursor back to default from the pointer .svg-wrapper-style hands every icon button. */
+/* Undo, redo and the undo history say when there is nothing to press, because otherwise a dead
+   button and a live one look identical — the glyph *is* the button here, as it is on a column
+   picker row, so the fade is the only thing left to say it with. The same 0.25
+   .info-modal-row-btn:disabled uses, and the cursor back to default from the pointer
+   .svg-wrapper-style hands every icon button. */
 #table-undo-btn:disabled,
-#table-redo-btn:disabled {
+#table-redo-btn:disabled,
+#table-undo-list-btn:disabled {
     opacity: 0.25;
     cursor: default;
 }
