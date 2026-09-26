@@ -94,10 +94,14 @@ function addScrollEventListeners(elements) {
     // below accepts that cost only where there is no other way to move the two elements.
     if (cssDrivesHeader) return;
 
+    // Moved back as far as the header is moved, which is what keeps them over their columns.
+    const stickyHeadings = header.querySelectorAll('.is-sticky');
+
     // A full render replaces the scroller, so this listener goes with it.
     scroller.addEventListener('scroll', () => {
         const progress = scroller.scrollLeft / (scroller.scrollWidth - scroller.clientWidth);
         header.style.transform = `translateX(${-scroller.scrollLeft}px)`;
+        stickyHeadings.forEach(cell => { cell.style.transform = `translateX(${scroller.scrollLeft}px)`; });
         thumb.style.transform =
             `translateX(${progress * (topScrollbar.clientWidth - thumb.offsetWidth)}px)`;
     });

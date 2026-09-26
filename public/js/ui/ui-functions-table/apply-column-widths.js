@@ -45,4 +45,24 @@ export function applyColumnWidths(current_props, overrideName = null, overrideTr
         .map(prop => prop.name === overrideName ? overrideTrack : `${columnWidthPx(prop)}px`)
         .join(' ');
     document.body.style.setProperty('--grid-columns', tracks);
+
+    // Where each sticky column comes to rest: the widths of the sticky columns before it. The
+    // sticky columns are the leading ones, so that is also where each sits unscrolled, which is
+    // what lets the header's cells follow with a single counter-scroll rather than an offset each.
+    // Written here for the reason --grid-columns is — a resize drag reflows without re-rendering.
+    let left = 0;
+    for (let i = 0; i < stickyColumnCount(current_props); i++) {
+        document.body.style.setProperty(`--sticky-left-${i}`, `${left}px`);
+        left += columnWidthPx(current_props[i]);
+    }
+    document.body.style.setProperty('--sticky-width', `${left}px`);
+}
+
+/**
+ * How many of the shown columns stick left: the layout's count, cut to the columns there are.
+ * @param {Array<object>} current_props - The columns being rendered, in order.
+ * @returns {number}
+ */
+export function stickyColumnCount(current_props) {
+    return Math.min(TABLE_VIEW_COLUMNS.stickyCount, current_props.length);
 }

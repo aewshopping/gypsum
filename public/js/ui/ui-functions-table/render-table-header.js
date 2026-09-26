@@ -1,6 +1,7 @@
 import { appState } from '../../services/store.js';
 import { typeGlyph } from '../ui-functions-render/type-glyph.js';
 import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
+import { stickyColumnCount } from './apply-column-widths.js';
 
 /**
  * Renders the header strip for the table view.
@@ -50,13 +51,20 @@ import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
  */
 export function renderTableHeader(current_props) {
 
+    const stickyCount = stickyColumnCount(current_props);
+
     // Generate the header cell HTML
     const headerCellsHtml = current_props
-        .map(prop => {
+        .map((prop, column) => {
+            // No left offset, unlike a sticky body cell: the header is not scrolled but moved, so
+            // a sticky heading is moved back by the same amount — see note-table-sticky.css.
+            const sticky = column < stickyCount
+                ? ` is-sticky${column === stickyCount - 1 ? ' is-sticky-last' : ''}`
+                : '';
             const sorted = prop.name === appState.sortState.property
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
-            return `<button type="button" class="note-table-cell-header flex-row" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}${prop.blank ? ' data-empty' : ''}${prop.dead ? ' data-keyless' : ''}>` +
+            return `<button type="button" class="note-table-cell-header flex-row${sticky}" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}${prop.blank ? ' data-empty' : ''}${prop.dead ? ' data-keyless' : ''}>` +
                      `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
                      typeGlyph(prop, 'header-type-glyph', 'set by the app') +

@@ -276,6 +276,11 @@ export const TABLE_VIEW_COLUMNS = {
   hidden_by_default: ['color', 'filepath', 'internalLink', 'internalLinkText', 'fileIssues'],
   current_props: [],
   columnLayout: new Map(),
+
+  // How many of the leftmost shown columns stay put while the table scrolls sideways. A count
+  // rather than a list of names, so it follows the arrangement: whatever the user has moved to the
+  // left is what sticks. Part of the layout, and 0 under the app's defaults until someone sets it.
+  stickyCount: 0,
 };
 
 /**

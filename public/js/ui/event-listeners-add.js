@@ -16,6 +16,7 @@ import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
+import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
@@ -75,7 +76,7 @@ import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, ha
          handleLayoutNameBlur,
          handleLayoutNameKeydown } from './ui-functions-click/layouts-modal.js';
 import { handleTableColHover } from './ui-functions-table/table-col-hover.js';
-import { handleTableHeaderFocus } from './ui-functions-table/table-header-focus.js';
+import { handleTableFocusScroll } from './ui-functions-table/table-focus-scroll.js';
 import { handleCellExpand, handleCellExpandClickOutside, finishOpenCell,
          handleCellFocusIn, handleCellPointerDown } from './ui-functions-cell/cell-expand.js';
 import { releaseRowMove } from './ui-functions-table/pending-row-move.js';
@@ -102,7 +103,7 @@ export function addActionHandlers() {
     // The undo mark takes itself off when it has played, so the next one starts from nothing.
     // animationend does bubble, so one listener covers every cell.
     document.addEventListener('animationend', handleUndoFlashEnd);
-    document.addEventListener('focusin', handleTableHeaderFocus); // focus does not bubble
+    document.addEventListener('focusin', handleTableFocusScroll); // focus does not bubble
     document.addEventListener('focusout', handleLayoutNameBlur);  // nor does blur
 
     // Selection follows focus, which is what leaves Tab alone: the browser moves focus and the mark
@@ -198,6 +199,8 @@ const clickActionHandlers = {
     'property-type-delete': handlePropertyTypeDelete,
     'column-type-open': handleColumnTypeMenuOpen,
     'column-hide': handleColumnHide,
+    'column-stick': handleColumnStick,
+    'column-unstick': handleColumnUnstick,
     'column-delete-menu': handleColumnMenuDelete,
     'column-delete-property': handleColumnDeleteProperty,
     'undo-list': handleUndoListOpen,

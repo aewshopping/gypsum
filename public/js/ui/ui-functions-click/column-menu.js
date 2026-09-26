@@ -165,6 +165,14 @@ export function handleColumnMenuOpen(evt, headerCell) {
     const typeItem = menu.querySelector('[data-action="column-change-type"]');
     if (typeItem) typeItem.disabled = noType;
 
+    // Sticking to the column that already ends the sticky ones would change nothing.
+    const { stickyCount, current_props } = TABLE_VIEW_COLUMNS;
+    const position = current_props.findIndex(prop => prop.name === property);
+    const stickItem = menu.querySelector('[data-action="column-stick"]');
+    if (stickItem) stickItem.disabled = position + 1 === Math.min(stickyCount, current_props.length);
+    const unstickItem = menu.querySelector('[data-action="column-unstick"]');
+    if (unstickItem) unstickItem.disabled = stickyCount === 0;
+
     // The last two items are hidden rather than greyed out, unlike every other item here, and at
     // most one of them shows: "remove from layout" on a column no note has the key for, "delete
     // column" on one some note does — even when every such note holds a bare `people:`, since the

@@ -14,7 +14,7 @@
 
 import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { SAVE_FOLDER, LAYOUTS_FILENAME } from '../constants.js';
-import { layoutFromColumnLayout, applyLayoutToColumnLayout,
+import { layoutFromColumnLayout, applyLayoutToColumnLayout, applyStickyCountFromLayout,
          propertyTypesFromState, applyPropertyTypesFromFile,
          flowchartOptionsFromState, applyFlowchartOptionsFromFile } from './layout-apply.js';
 
@@ -184,6 +184,7 @@ export function applyActiveLayout() {
 
         const { active } = appState.tableLayouts;
         if (active) applyLayoutToColumnLayout(doc.layouts[active].columns ?? []);
+        applyStickyCountFromLayout(active ? doc.layouts[active].stickyColumns : 0);
     });
 }
 
@@ -266,6 +267,7 @@ export function deleteAllLayouts() {
         }
 
         TABLE_VIEW_COLUMNS.columnLayout.clear();
+        applyStickyCountFromLayout(0);
         appState.propertyTypes.clear();
         appState.flowchartOptions.clear();
         refreshState(emptyDocument());
@@ -285,9 +287,10 @@ export function deleteAllLayouts() {
  */
 export function saveLayout(name) {
     const columns = layoutFromColumnLayout();
+    const stickyColumns = TABLE_VIEW_COLUMNS.stickyCount;
     return enqueue(async () => {
         const doc = await readLayouts();
-        doc.layouts[name] = { updated: new Date().toISOString(), columns };
+        doc.layouts[name] = { updated: new Date().toISOString(), stickyColumns, columns };
         doc.active = name;
         await writeLayouts(doc);
         refreshState(doc);
@@ -356,5 +359,6 @@ export function setActiveLayout(name) {
 
         if (doc.active) applyLayoutToColumnLayout(doc.layouts[doc.active].columns ?? []);
         else TABLE_VIEW_COLUMNS.columnLayout.clear();
+        applyStickyCountFromLayout(doc.active ? doc.layouts[doc.active].stickyColumns : 0);
     });
 }

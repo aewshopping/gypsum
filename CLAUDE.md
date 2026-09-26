@@ -232,6 +232,33 @@ disappears out from under the person who cleared it.
   every note* below. Keyless and not are one attribute read two ways, so the menu always holds at
   most one delete-like item, and its name says what it reaches: the layout, or the notes.
 
+### Sticky columns
+
+"stick columns to here" in the column menu keeps every column up to that one in view while the
+table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-table-sticky.css`.
+
+- **A count, not a list of names** — `TABLE_VIEW_COLUMNS.stickyCount`, the leading N shown columns.
+  So it follows the arrangement: hide or move a column and whatever is now first is what sticks.
+  Part of the layout (`stickyColumns` beside `columns`), so it marks the layout unsaved like hiding
+  a column does; 0 under the app's defaults and after "delete all layouts".
+- **Body cells are plain `position: sticky; left`.** Only `left`, so they stick against
+  `.list-table`, the sideways scroller, and still move up and down with the page. A row's
+  `overflow: clip` is not a scroll container, so it does not catch them first.
+- **Headings cannot be sticky** — the header is outside `.list-table` and moved by a transform — so
+  a sticky heading is moved back on the same scroll timeline by the table's overflow, which is
+  `100cqi / --table-scroll-ratio - 100cqi`. An opened sticky cell leaves the flow and needs the same.
+  One keyframe for both; no JS per frame.
+- **Offsets are custom properties written by `applyColumnWidths()`**, beside `--grid-columns`, so a
+  resize drag moves them without a render. The sticky columns are the leading ones, which is why a
+  heading needs one counter-scroll rather than an offset each.
+- **Focus: `scroll-margin` on the cells that scroll, never `scroll-padding` on `.list-table`.**
+  Padding narrows the view for sticky cells too, so focusing one scrolled the table to "reveal" a
+  cell already on screen. And the browser counts a cell *underneath* the sticky columns as on
+  screen, so `table-focus-scroll.js` scrolls it clear — the same handler that already did this for
+  headings.
+- **Stacking:** sticky cells 4, an opened sticky cell 5, `.table-chrome` 6 — the rows scroll up
+  under the chrome, so it has to sit above all of them.
+
 ### Deleting a property from every note
 
 "delete column", last in the column menu below a rule and in the warning colour, takes the column's
@@ -878,6 +905,7 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/autocomplete/` | The completion popup: one session, three hosts — the editor, a table cell, the searchbox |
 | `public/js/ui/ui-functions-render/render-internal-link.js` | A `[[link]]` as HTML: the anchor, and the scan that finds them in a value |
+| `public/js/ui/ui-functions-click/column-stick.js` | How many leading columns stick left while the table scrolls sideways |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

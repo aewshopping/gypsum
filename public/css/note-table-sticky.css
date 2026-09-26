@@ -1,0 +1,106 @@
+/* The leading columns that stay put while the table scrolls sideways — however many the layout's
+   stickyColumns says, and whichever columns the user has arranged at the left.
+
+   Two mechanisms, because the rows and the header are in two different places.
+
+   A row's cells are inside .list-table, the element that scrolls sideways, so position: sticky does
+   the whole job: `left` only, so they stick against .list-table and nothing else, and go on moving
+   up and down with the page. A row's overflow: clip is not a scroll container, so it does not catch
+   them first.
+
+   The header is outside .list-table, so it can stick to the page, and is moved rather than
+   scrolled. Sticky cannot see a transform, so a sticky heading is moved back by exactly as far as
+   the header was moved — on the same scroll timeline, so it costs nothing per frame either. */
+
+/* So a cell the browser scrolls to — Tab, or a focus from the arrow keys — is scrolled clear of the
+   sticky columns rather than under them. A margin on the cells that scroll, not scroll-padding on
+   .list-table: padding narrows the view for every cell, the sticky ones included, and a sticky cell
+   sits inside that padding by definition — so focusing one scrolled the table to "reveal" a cell
+   that was already on screen.
+
+   The browser only scrolls to a cell it thinks is off screen, and one underneath the sticky columns
+   is not. table-focus-scroll.js catches that case; this keeps the browser's own scroll from
+   putting a cell back under them. */
+.note-table-cell:not(.is-sticky) {
+    scroll-margin-left: var(--sticky-width, 0px);
+}
+
+/* Specificity is held down with :where() throughout, so the column hover highlight and an opened
+   cell — both of which paint a cell's background, and both written elsewhere — still win over the
+   plain fill this has to give a sticky cell. */
+.note-table-cell:where(.is-sticky:not(.is-expanded)) {
+    position: sticky;
+    left: var(--sticky-left);
+
+    /* Above the cells that pass underneath, and above an opened cell that has scrolled partly under
+       the sticky columns; below .table-chrome, which the rows scroll under on the way up. */
+    z-index: 4;
+
+    /* Opaque, or the cells passing underneath show through. The row's own colour, but falling back
+       to the page instead of to transparent — an uncoloured row is transparent over the page, which
+       is what this has to paint. The cell carries data-color for exactly this kind of rule. */
+    background-color: if(
+        style(--colours-suppress: true): var(--colour-neutral);
+        else: attr(data-color type(<color>), var(--colour-neutral))
+    );
+}
+
+/* The row's hover, repeated, since a row's background is painted behind its cells and this cell
+   now covers it. The same expression as .note-table:hover in note-table.css. */
+:where(.note-table:hover) > .note-table-cell:where(.is-sticky:not(.is-expanded)) {
+    background-color: if(
+        style(--colours-suppress: true): var(--colour-neutral-alt);
+        else: color-mix(in oklch, attr(data-color type(<color>), var(--colour-neutral-alt)) var(--table-hover-mix), var(--color-mono-contr, var(--colour-contr)))
+    );
+}
+
+/* The file cell on a coloured row keeps its faded colour — but where note-table.css lets it go
+   transparent with colours suppressed, a sticky one needs the page or the row's hover instead. */
+.note-table-cell.color-dynamic-fade:where(.is-sticky:not(.is-expanded)) {
+    background-color: if(
+        style(--colours-suppress: true): var(--colour-neutral);
+        else: var(--colour-dynamic-fade)
+    );
+}
+
+.note-table:hover .note-table-cell.color-dynamic-fade:where(.is-sticky:not(.is-expanded)) {
+    background-color: if(
+        style(--colours-suppress: true): var(--colour-neutral-alt);
+        else: color-mix(in oklch, var(--colour-dynamic-fade) var(--table-hover-mix), var(--color-mono-contr, var(--colour-contr)))
+    );
+}
+
+/* An opened sticky cell leaves the flow for its grid area, which scrolls, so it is moved back by
+   the scroll the same way a sticky heading is (below). Above the sticky cells of the rows it grows
+   down over. */
+.note-table-cell.is-sticky.is-expanded {
+    z-index: 5;
+}
+
+.note-table-cell-header:where(.is-sticky) {
+    position: relative;
+    z-index: 1;
+    background-color: var(--colour-neutral);
+}
+
+/* Where the sticky columns end, so the cells sliding under them look like they are going somewhere. */
+.note-table-cell-header.is-sticky-last,
+.note-table-cell:where(.is-sticky-last:not(.is-expanded)) {
+    box-shadow: 3px 0 4px -2px rgb(0 0 0 / 0.3);
+}
+
+/* The distance the header has been moved is the table's overflow times its scroll progress. The
+   overflow is the full width less the visible one; the full width is the visible one over
+   --table-scroll-ratio, which table-scrollbar-sync.js keeps current for the top scrollbar's thumb.
+   Where there are no scroll timelines, that file's scroll listener moves these cells instead. */
+@supports (animation-timeline: scroll()) {
+    .note-table-cell-header.is-sticky,
+    .note-table-cell.is-sticky.is-expanded {
+        animation: sticky-hold linear both;
+        animation-timeline: --table-h-scroll;
+    }
+
+    @keyframes sticky-hold {
+        to { transform: translateX(calc(100cqi / var(--table-scroll-ratio, 1) - 100cqi)); }
+    }
+}

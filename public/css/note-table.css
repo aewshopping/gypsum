@@ -44,10 +44,11 @@
 .table-chrome {
     position: sticky;
     top: var(--stick-top-height);
-    /* Above an expanded cell, which sits at 3. .table-wrapper is a stacking context
-       (container-type implies layout containment), so this stays scoped to the table and
+    /* Above everything the rows paint as they scroll up under it: an expanded cell at 3, a sticky
+       cell at 4 and an opened sticky one at 5 (note-table-sticky.css). .table-wrapper is a stacking
+       context (container-type implies layout containment), so this stays scoped to the table and
        still cannot rise above the app's own search row. */
-    z-index: 4;
+    z-index: 6;
     background-color: var(--colour-neutral);
 }
 
@@ -169,7 +170,7 @@
    container with a hidden scrollbar, so focusing a header cell that was off screen had the
    browser reveal it by scrolling THIS box. The body never moved, and the header animation
    below tracks .list-table, so the whole header row was left sitting over the wrong columns.
-   clip has no scroll range for anything to scroll. table-header-focus.js scrolls the table
+   clip has no scroll range for anything to scroll. table-focus-scroll.js scrolls the table
    instead, which moves the header and its rows together. */
 .note-table-header-strip {
     overflow: clip;
