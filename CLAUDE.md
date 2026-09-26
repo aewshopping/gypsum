@@ -665,7 +665,7 @@ Closing an edited cell writes it into the note's front matter. See
   argument it gained is *not to re-sort*: edit a cell in the column the table is sorted by and the
   row would leap away from under you.
 - **The smallest number of bytes that does the job, and never a rebuilt block.** `parseYaml`'s
-  optional `spans` Map says where a key's value sits, and `editing/apply-raw-edits.js` replaces that
+  optional `spans` Map says where a key's value sits, and `editing/plan-file-edits.js` replaces that
   span and nothing else — so comments, key order, blank lines and anything the parser skipped
   survive. A list where one item's text changed splices that item alone; a list rewritten whole
   re-generates every item from the cell's text, which is where the comment limitation below comes
@@ -692,13 +692,14 @@ Closing an edited cell writes it into the note's front matter. See
   `"02"`. Point the writer at `readValue` and the value goes back to the file bare, for everyone
   else to misread. See DATA-STRUCTURES.md, "How a front matter value is read".
 - **What the note already says at that key is kept, never restyled.** A quoted value stays quoted, a
-  flow list stays a flow list, and a block list keeps its own indentation — `apply-raw-edits.js`
+  flow list stays a flow list, and a block list keeps its own indentation — `plan-file-edits.js`
   reads all three off the span and hands them to the writer, which is why `toYamlText` takes the
   file's shape rather than deciding one. A style is chosen only where there is nothing to copy: two
   spaces for the first item of a list the note has never had.
 - **Two layers, and the split is load-bearing — and visible in `ls`.** `applyCellEdits`
   (`save-cell-edit.js`) knows types and format; `applyRawEdits` (`apply-raw-edits.js`) knows spans,
-  splicing and the write. It takes a *list* of edits because a pasted range cannot be fifty verified
+  splicing and the write — the batch itself, with what one note's text becomes in
+  `plan-file-edits.js` (pure: text in, text out) and putting it on disk in `write-file-edits.js`. It takes a *list* of edits because a pasted range cannot be fifty verified
   writes, applies a file's edits back to front so no span is invalidated, carries the `expect` that
   undo and a column delete's second pass rely on, and returns what it changed. All four are for
   `plans/completed/table-undo-stack.md`, and all four are awkward to retrofit — the alternative is a second
@@ -852,7 +853,10 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
 | `public/js/services/file-parsing/yaml-value-write.js` | A value as the text after the colon: the quoting rule, and what each type writes |
 | `public/js/editing/save-cell-edit.js` | A cell edit's types and format: what was typed, as the text to write |
-| `public/js/editing/apply-raw-edits.js` | The one writer every table batch goes through: locate, splice, write in a pool, refresh once |
+| `public/js/editing/apply-raw-edits.js` | The one writer every table batch goes through: group by file, a pool of writes, when a throw stops it, refresh once |
+| `public/js/editing/plan-file-edits.js` | What one note's text becomes under its edits — no disk: the lock, `expect`, the note's own style, back-to-front splices |
+| `public/js/editing/list-item-splice.js` | Whether a list edit is one item's text changing, so only that item's bytes are rewritten |
+| `public/js/editing/write-file-edits.js` | A planned note onto disk through the verified save, and what happened when that save throws |
 | `public/js/editing/delete-property.js` | Deleting a property from every note: the forecast, and the two-pass journalled write |
 | `public/js/table-undo/` | The undo stacks, `undo.gypsum`, each batch's name, and the refused notes |
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |

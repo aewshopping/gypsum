@@ -1,7 +1,7 @@
 /**
  * @file Where one front matter key's bytes are, and what a note with no block should be given.
  *
- * Two callers splice front matter and must not disagree: `apply-raw-edits.js` writes a cell edit into
+ * Two callers splice front matter and must not disagree: `plan-file-edits.js` writes a cell edit into
  * a file, `color-pick-apply.js` writes the colour picker's choice into the open editor's text. A
  * second copy of these rules would drift, and drift here writes into the wrong bytes of a note.
  *
