@@ -582,17 +582,52 @@ and a note that gained the new name mid-write all come out right with no case of
   - **what the screen reads** — `columnLayout`, `appState.propertyTypes`, the flowchart options and
     `sortState` — is changed there and then, in `appState`, so the one render that follows draws
     the column under its new name;
-  - **the layouts file** is written by `renamePropertyInLayouts`, which only *queues* the write and
-    is not waited for. If that write fails, it fails as `savePropertyTypes` does today — the queue
-    swallows the error — and the screen stays right until the folder is reloaded, when the layout
-    still names `people`. That is the state §11 already describes for a rename cut short, and it is
-    safe: `attendees` joins the layout as any new property does.
+  - **the layouts file** is written by `renamePropertyInLayouts`, which *queues* the write and is
+    not waited for inside the hook. It hands back the queue's promise instead, and the caller waits
+    for it later (below).
 
   Undo already passes a `beforeRefresh`, `markRefused`, which draws the refusal marks. For a rename
   batch `reverseBatch` passes one function that does both — marks the refusals, then follows the
   name — and returns `markRefused`'s Set. For the rename itself, the write pass (pass 3, §6.3) passes
   a `beforeRefresh` that only follows the name; the delete's write pass passes none today, so this
   is the first on that path.
+- **A layouts file that could not be written is said, not swallowed.** If it went unreported, the
+  screen would be right until the next reload, and then `people` would come back as a faded empty
+  column, `attendees` would be appended hidden, its type would be gone and a flowchart role would
+  point at nothing — the confusion this section exists to prevent, with nothing to say why. So:
+  - **`renamePropertyInLayouts` returns a promise of `true` when the file was written.** Its queued
+    task returns what `writeLayouts` returns, and `writeLayouts` already answers `true` or `false`
+    rather than throwing. `enqueue` passes a task's value through, and its `.catch` turns anything
+    that did throw into `undefined`, so **anything but `true` is a failure**. `enqueue` and every
+    other writer are unchanged, and nothing new can reject unhandled.
+  - **The hook keeps that promise in a variable of the function that built it** — `renameProperty`,
+    or `reverseBatch` — which waits for it once `applyRawEdits` has returned, and hands the answer
+    back as `layoutSaved` beside its counts. No state outside the call, so nothing goes into
+    `appState` for it.
+  - **The caller reports it on the result line**: `renamed people to attendees in 35 files; the
+    table layout could not be saved`, and the same clause after an undo or redo of a rename. The
+    notes are unaffected and the rename stands; the clause tells the user why the columns may look
+    wrong after a reload, and saving the layout again from the layouts modal rewrites it.
+  - **It is waited for while the table is still busy**, before `setBulkWriteBusy(false)`. That keeps
+    the folder fixed until the layouts file is written, since a folder load is refused while
+    `bulkWriteInFlight` is set. It adds one small JSON write, a few milliseconds, to the busy time.
+- **The follow can never make the rename look failed.** `beforeRefresh` runs inside `applyRawEdits`'
+  `finally`, just before the refresh. A throw there would skip the refresh — the notes renamed on
+  disk and the table still showing the old rows — and would reach the rename's `catch`, which says
+  `renaming people stopped` about a rename that had finished. So the hook wraps
+  `followPropertyRename` in its own `try`/`catch`: a throw is logged with `console.warn`, counts as
+  `layoutSaved: false` (reported as above), and the hook still returns its Set, so the refresh runs.
+  - **On an undo, `markRefused` runs first and outside that `try`**, so a failure in the follow
+    cannot cost the refusal marks, which hold the only copy of a value an undo could not put back.
+  - **A throw part-way leaves the screen part-followed**: say the columns renamed but the sort not.
+    That is harmless, since nothing here writes a note, and the layouts file was not queued, so a
+    reload shows the pre-follow state that the result line has just warned about.
+- **One risk is not this plan's, and is not made worse by it.** `readLayouts` answers an empty
+  document for *every* failure to read, so a writer that reads through it and then succeeds in
+  writing would replace a file it failed to read with one holding no layouts.
+  `savePropertyTypes`, `saveFlowchartOptions` and `saveLayout` all read-then-write the same way
+  today. `renamePropertyInLayouts` is one more such writer, run once per rename — not a new kind of
+  risk, but the reason no change to `readLayouts` belongs in this plan.
 - **Under the app's defaults** there is no saved layout, but `columnLayout` is filled in memory by
   `resolveColumns()`, and it is rewritten the same way — so the column keeps its place under the
   defaults too.
@@ -622,10 +657,11 @@ dialog's rename button is pressed — the dialog having already closed (§8.2):
 setBulkWriteBusy(true);
 const onProgress = reportProgress(`renaming ${from} to ${to}…`);
 try {
-    const { renamed, skipped } = await renameProperty(from, to, onProgress);
+    // Waits for the layouts file too (§10.1), so the table stays busy until it is written.
+    const { renamed, skipped, layoutSaved } = await renameProperty(from, to, onProgress);
     setBulkWriteBusy(false);
     reportProgressEnd();
-    reportRename(from, to, renamed, skipped);
+    reportRename(from, to, renamed, skipped, layoutSaved);
 } catch (err) {
     setBulkWriteBusy(false);
     reportProgressEnd();
@@ -658,7 +694,11 @@ try {
 - **Undo and redo of a rename get the bar with nothing added.** `reverseCellEdits` in
   `undo-cell-edit.js` already uses `setBulkWriteBusy` and `reportProgress` for any batch touching
   more than one file, and its text comes from `describeBatch`: `undoing people column rename to
-  attendees in 35 files…`.
+  attendees in 35 files…`. The one thing it gains is §10.1's clause: `reverseBatch` returns
+  `layoutSaved` for a rename batch, and `reverseCellEdits` appends "the table layout could not be
+  saved" to its result line when that is false. A rename undone in a single note is not made busy,
+  as no one-file undo is; its layouts write is still waited for before the result line is written,
+  only without the inert table around it.
 - **Only `output-report.js` gains anything**: `reportRename`, beside `reportDelete`, and JSDoc on
   `reportProgress` / `reportProgressEnd` that stops saying "a column delete" as though it were the
   only caller. `progress-bar.js`, `progress-bar.css` and `bulk-write-busy.js` are untouched.
@@ -702,7 +742,7 @@ nudge filters to them.
 | Feedback while typing | **one line under the text box**: the reason in the warning colour, or what renaming will do. §8.2. |
 | Reach | every note in the folder that carries the key, whatever the filter, and **no other note is read or written** — as the delete. §6.3. |
 | A bare `people:` | renamed to a bare `attendees:` (`keepKey`). §6.3. |
-| Layouts, types, flowchart, sort | **follow the name** by one rule asked of the folder; types are copied, never moved, so undoing a rename keeps a type set on the new name since. The screen changes before the render; the layouts file is queued, not awaited. §10. |
+| Layouts, types, flowchart, sort | **follow the name** by one rule asked of the folder; types are copied, never moved, so undoing a rename keeps a type set on the new name since. The screen changes before the render; the layouts file is queued, then waited for while the table is still busy, and a failed write is said on the result line. A throw in the follow is caught, so it cannot skip the refresh or report a finished rename as stopped. §10.1. |
 | Search filters | **do not follow**. §10.2. |
 | Undo of the layout change | **none of its own**: the rule runs again in the other direction. §10.1. |
 | Undo entry | `kind: 'rename-property'`, `property`, `to`; `people column rename to attendees in 35 files`. §9.1. |
@@ -883,11 +923,12 @@ specs and by the node test above. The delete spec's only change is that import. 
 | `public/js/editing/plan-file-edits.js` | the equal-offset sort rule, `expect: null`, `allOrNothing` |
 | `public/js/editing/apply-raw-edits.js` | pass `allOrNothing` through; its JSDoc |
 | `public/js/services/property-type.js` | `isPropertyDeletable` → `isPropertyUserOwned` |
-| `public/js/table-undo/undo-stacks.js` | `to` on a batch; `allOrNothing` and the follow from `reverseBatch` |
+| `public/js/table-undo/undo-stacks.js` | `to` on a batch; `allOrNothing` and the follow from `reverseBatch`, which returns `layoutSaved` for a rename |
+| `public/js/ui/ui-functions-click/undo-cell-edit.js` | the "layout could not be saved" clause on an undo or redo of a rename (§10.1) |
 | `public/js/table-undo/describe-batch.js` | the rename's line |
 | `public/js/table-undo/undo-refusals.js` | `to` in a refusal's `from` |
 | `public/js/table-layouts/layout-apply.js` | the pure columns rewrite, used for the file and for memory |
-| `public/js/table-layouts/layout-file.js` | `renamePropertyInLayouts`, through the queue, no `refreshState` |
+| `public/js/table-layouts/layout-file.js` | `renamePropertyInLayouts`, through the queue, no `refreshState`, returning whether the file was written. `enqueue` is unchanged |
 | `public/js/ui/ui-functions-click/column-menu.js` | show the item with "delete column"; put the rule on the first shown |
 | `public/js/ui/ui-functions-render/output-report.js` | `reportRename`; the JSDoc of `reportProgress` and `reportProgressEnd` no longer names the delete as their only caller (§11). `progress-bar.js`, `progress-bar.css` and `bulk-write-busy.js` are used as they are |
 | `public/js/ui/event-listeners-add.js` | `column-rename-property` (the menu item, opening the dialog), `column-rename-confirm` and `column-rename-cancel` in the click map; the text box's `input` in the input map |
