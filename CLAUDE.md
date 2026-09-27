@@ -906,6 +906,39 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
   nothing else, and taking the row apart under one would drop focus off a button mid-press — the
   same reason `markUndoState()` moves undo and redo by hand rather than waiting for a render.
 
+### Linked columns
+
+A table column can show a property **of the note a link points at**: "show `status` of the note
+linked in `project`". See `plans/table-linked-properties.md`.
+
+- **Stored at the top of the layouts file**, in `linkedProperties` beside `propertyTypes` and
+  `flowchart`, because it is a fact about the folder rather than one layout — so it works under the
+  app's defaults and reaches the disk when the dialog saves. **One writer**, `setLinkedProperty()` in
+  `services/linked-properties.js`; the file and the dialog are validated by the same `readDefinition()`.
+- **Keyed `linked:<n>`, which cannot collide**: the parser splits a key at its first colon, quoted
+  or not, so no note can carry one. `isLinkedKey()` is the question everything else asks.
+- **`label: null` means "named after its choices"** (`project → status`), worked out when drawn, so a
+  column nobody named follows a re-point or a property rename with no code of its own.
+- **Its own type, `LINKED_TYPE`**, outside `VALUE_TYPES` like `INFO_TYPE`: it draws as text for one
+  value and as a list for several, so it can never mismatch. **No caret** (`isPropertyEditable` is
+  false), **not sortable yet**, **not searchable** — the column menu greys those items out.
+- **One slot per link, an empty slot kept and drawn as nothing between commas**, so two linked
+  columns read against each other line up. A list read value is flattened in, and then they do not.
+- **Never `dead` and never `blank`** — no file carries a `linked:` key, so both would otherwise always
+  be true. A wholly empty linked column is not faded; the dialog's example line says so instead.
+- **No chaining, by construction.** Neither choice may name a linked column, and the evaluation
+  reads the stored file objects, which carry no linked values. Do not pass computed values in.
+- **The `id → file` Map is built per render, never cached** (`filesById()` in
+  `services/internal-links/linked-value.js`). A cell edit replaces the edited note's file object, and
+  nothing would invalidate a cached one: the linked column would show the value from before the edit.
+- **Adding one appends it to the active layout's stored columns and saves nothing else**
+  (`withLinkedColumn()`, pure, in `layout-apply.js`), so a reorder waiting to be saved stays waiting.
+  Deleting one removes it from every layout (`withoutLinkedColumn()`).
+- **It follows a property rename** in `follow-property-rename.js`, once no note carries the old name.
+- **One dialog per column**, `#modal-linked-column`: opened empty from the + in the table's control
+  row, and filled in from "edit linked column…" in the column's menu or its glyph in the column
+  picker. It is where the column is renamed, re-pointed and deleted, and none of it writes a note.
+
 ### Search / filter architecture
 
 - Filters are stored as objects in `appState.search.filters` (Map keyed by unique ID).
@@ -931,6 +964,10 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/services/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
+| `public/js/services/linked-properties.js` | What each linked column is, and the one writer for it |
+| `public/js/services/internal-links/linked-value.js` | What a linked column shows for a row, and the per-render `id → file` Map |
+| `public/js/services/internal-links/link-targets.js` | The links a property holds: `toList` and `linkTarget`, shared with the flowchart |
+| `public/js/services/property-options.js` | The properties a select may offer — the flowchart options and the linked column dialog |
 | `public/js/table-layouts/` | Saved layouts and property types: `table_layouts.gypsum`, read and written |
 | `public/js/services/file-parsing/yaml-parse.js` | The front matter parser: `coerceValue` is YAML's answer, `readValue` is what the file object keeps |
 | `public/js/services/file-parsing/flow-list.js` | A list as one comma-joined line, both directions |
@@ -956,6 +993,7 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 | `public/js/autocomplete/` | The completion popup: one session, three hosts — the editor, a table cell, the searchbox |
 | `public/js/ui/ui-functions-render/render-internal-link.js` | A `[[link]]` as HTML: the anchor, and the scan that finds them in a value |
 | `public/js/ui/ui-functions-click/column-stick.js` | How many leading columns stick left while the table scrolls sideways |
+| `public/js/ui/ui-functions-click/linked-column-*.js` | The linked column dialog: keeping it up to date, save, delete |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

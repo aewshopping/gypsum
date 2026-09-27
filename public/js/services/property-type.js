@@ -1,5 +1,6 @@
-import { isDateType, VALUE_TYPES, SEARCH_TYPES } from '../constants.js';
+import { isDateType, VALUE_TYPES, SEARCH_TYPES, LINKED_TYPE } from '../constants.js';
 import { appState, FILE_PROPERTIES, TABLE_VIEW_COLUMNS, CORE_FILE_PROPERTIES } from './store.js';
+import { isLinkedKey } from './linked-properties.js';
 
 /**
  * @file The one answer to "what type is this column, and how is it searched?".
@@ -38,9 +39,13 @@ function isLegal(legal, value) {
  * was added would be worse than one that is occasionally wrong.
  *
  * @param {string} name - The file property key.
- * @returns {string} One of VALUE_TYPES' values.
+ * @returns {string} One of VALUE_TYPES' values, or LINKED_TYPE's for a linked column.
  */
 export function propertyType(name) {
+    // A linked column draws as text or a list, whatever it reads, so nothing can mismatch it. The
+    // read property's own type is asked for by name where it matters. plans/table-linked-properties.md §3.6.
+    if (isLinkedKey(name)) return LINKED_TYPE.value;
+
     // The app owns the type of every property it fills in itself, so a hand-edited file cannot
     // change one. Without this, `type: "number"` on lastModified would silently stop it sorting as
     // a date, and `type: "date"` on tags would break a column that is always a list.
@@ -77,6 +82,7 @@ export function isInfoColumn(name) {
  *   which is `title`, `filename`, `filepath`, `tags`, `color`, `internalLink`, `internalLinkText`
  *   and the file-system columns. Their types are the app's: `tags` is always a list and
  *   `lastModified` is always a date, whatever a hand-edited layout file says.
+ * - **a linked column** — its type is LINKED_TYPE, and its glyph opens its own dialog instead.
  *
  * **Here rather than beside any one caller**, because four ask: type-glyph.js draws the padlock, the
  * column menu and the picker decide whether to offer the type dialog, the types modal decides which
@@ -90,7 +96,7 @@ export function isInfoColumn(name) {
  * @returns {boolean}
  */
 export function isTypeSettable(name) {
-    return !isInfoColumn(name) && !CORE_FILE_PROPERTIES.includes(name);
+    return !isInfoColumn(name) && !CORE_FILE_PROPERTIES.includes(name) && !isLinkedKey(name);
 }
 
 /**
@@ -124,13 +130,14 @@ const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
  * **Only a front matter property the user created** — a column that would still stand in a folder
  * with no front matter at all cannot be deleted or renamed, and CORE_FILE_PROPERTIES is exactly that
  * set. `title` and `color` are in it although a note may hold them as keys: deleting or renaming one
- * would take the key out and leave the column standing, filled in by the app.
+ * would take the key out and leave the column standing, filled in by the app. A linked column is no
+ * note's key at all; its own dialog is where it is renamed and deleted.
  * plans/completed/table-delete-column.md §3, plans/completed/table-rename-column.md §4.1.
  *
  * @param {string} name - The file property key.
  * @returns {boolean}
  */
-export const isPropertyUserOwned = (name) => !CORE_FILE_PROPERTIES.includes(name);
+export const isPropertyUserOwned = (name) => !CORE_FILE_PROPERTIES.includes(name) && !isLinkedKey(name);
 
 /**
  * Whether this column's cells can be typed into at all.

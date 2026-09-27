@@ -49,6 +49,17 @@ function applyVisibilityFloor() {
 }
 
 /**
+ * Repaints the picker's rows when it is open, keeping what has been toggled so far — for the linked
+ * column dialog, which can be opened from a picker row and changes that row's name, or removes it.
+ * @returns {void}
+ */
+export function repaintColumnPicker() {
+    if (!dialog.open) return;
+    readPickerIntoLayout();
+    paintList();
+}
+
+/**
  * Opens the column picker, built fresh from the current layout.
  *
  * The title names the layout being edited. Everything in this dialog lands on the layout in use,

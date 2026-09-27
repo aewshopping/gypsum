@@ -142,7 +142,9 @@ test('a choice is written at once, and choosing the default takes it back out', 
   await setRole(page, 'subgraph', '');
 
   await expect.poll(async () => (await layoutsFile(page)).flowchart).toEqual({});
-  expect(await source(page)).not.toContain('subgraph');
+  // Polled like the file above: the chart is redrawn by the dialog's close, which a busy machine
+  // can finish after the file is written.
+  await expect.poll(() => source(page)).not.toContain('subgraph');
 });
 
 // Assigning a select a value none of its options carries silently blanks it, which is the trap

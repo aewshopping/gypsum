@@ -1,12 +1,13 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { setPropertyType, propertyType, propertySearchType } from '../services/property-type.js';
 import { setFlowchartOption } from '../services/flowchart-options.js';
+import { setLinkedProperty } from '../services/linked-properties.js';
 import { renameInColumns } from './layout-apply.js';
 import { renamePropertyInLayouts } from './layout-file.js';
 
 /**
  * @file What follows a property's name outside the notes when it is renamed in them: the columns,
- * the type, the flowchart's roles and the sort. Without it a rename would leave the layout asking for
+ * the type, the flowchart's roles, the linked columns and the sort. Without it a rename would leave the layout asking for
  * `people` — a faded, empty column where the user was looking — and `attendees` appended hidden at
  * the end. Here rather than beside the rename because what it changes is what table-layouts/ owns:
  * the layouts, and the types and flowchart choices kept in the same file. plans/completed/table-rename-column.md §10.
@@ -57,8 +58,10 @@ export function followPropertyRename(from, to, records) {
  *   as anyway, so a rename leaves no type behind that says nothing. On an undo the copy runs the
  *   other way, which is what keeps a type set on the new name since: undoing the rename puts the
  *   notes back, not a type change made after it.
- * - **The flowchart's roles and the sort** follow only once no note carries `from`, since some notes
- *   still carrying it means its column still has something to show.
+ * - **The flowchart's roles, the linked columns and the sort** follow only once no note carries
+ *   `from`, since some notes still carrying it means its column still has something to show. A
+ *   linked column named after its choices is renamed with them for free — its heading is worked out
+ *   when drawn. plans/table-linked-properties.md §3.9.
  *
  * @param {string} from
  * @param {string} to
@@ -86,6 +89,14 @@ function follow(from, to, removedFrom) {
     if (fromGone) {
         for (const [role, property] of [...appState.flowchartOptions]) {
             if (property === from) setFlowchartOption(role, to);
+        }
+        for (const [key, definition] of [...appState.linkedProperties]) {
+            if (definition.via !== from && definition.read !== from) continue;
+            setLinkedProperty(key, {
+                ...definition,
+                via: definition.via === from ? to : definition.via,
+                read: definition.read === from ? to : definition.read,
+            });
         }
         if (appState.sortState.property === from) appState.sortState.property = to;
     }

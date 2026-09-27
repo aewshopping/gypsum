@@ -77,6 +77,16 @@
     flex: 1;
 }
 
+/* A row holding a label and a <select> — the flowchart options and the linked column dialog.
+   .info-modal-row-label is flex: 1, which would let a long property name in the select squeeze the
+   label to nothing. The label keeps what it needs and the select takes the rest, down to a floor — a
+   dropdown narrower than this shows none of what it has been set to. */
+.info-modal-select-row > select {
+    flex: 1;
+    min-width: 11ch;
+    max-width: 60%;
+}
+
 /* A small faded icon button living in a row: the history modal's open/recreate/delete, and the
    columns picker's drag grip. The glyph is the whole button, so it fades at rest and comes up
    on hover, the same gesture .svg-wrapper-style makes for the app's toolbar icons. */

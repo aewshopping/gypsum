@@ -1,7 +1,6 @@
 # Plan: linked property columns in table view
 
-Status: **not started.** Nothing blocks it: saved layouts, the `propertyTypes` object and the
-flowchart's options are all built, and this copies their shape.
+Status: **v1 built** (§1–§8). V2, sorting (§9), is not started.
 Related: `plans/completed/table-saved-layouts.md` and `plans/completed/property-type-store.md`,
 both **built**; `plans/flowchart-view.md`, whose connector role already follows a property's links
 V2: sorting by a linked property (§9), designed here and deferred
@@ -315,8 +314,9 @@ Three ways in, all opening the same dialog through the same module:
 - **"edit linked column…" in the column's header menu.** Opens it **filled in**, to change.
 - **The glyph on the column's row in the column picker** (§3.7), where an ordinary column's glyph
   opens the type dialog. Same filled-in dialog. This is the way to a linked column that is hidden in
-  the current layout, which has no header and so no header menu. `column-type-open` branches on a
-  `linked:` key; opening a dialog from the picker is what the type dialog already does.
+  the current layout, which has no header and so no header menu. *As built:* the picker draws that
+  glyph with the + button's own action, `open-linked-column`, carrying the column's key, rather than
+  branching inside the type dialog's handler — one open handler, and the type dialog untouched.
 
 ### 5.2 What is in it
 
@@ -496,8 +496,8 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
   input, cancel.
 - `ui-functions-click/linked-column-save.js` and `linked-column-delete.js` (new): each calls the
   service, writes, and runs a full `renderFiles`. All three registered in `event-listeners-add.js`.
-- `ui-functions-click/column-type-set.js` (`handleColumnTypeMenuOpen`): send a `linked:`
-  key to the dialog instead.
+- `ui-functions-table/column-picker-list.js`: a linked row's glyph carries `open-linked-column` and
+  its key (§5.1, as built).
 - `css/linked-column-modal.css` (new, the width only), imported in `style.css`; `.info-modal-select-row` moved into
   `modal-info.css` from `flowchart-options-modal.css` (§6.0).
 
@@ -539,7 +539,7 @@ public/js/ui/ui-functions-click/linked-column-dialog.js NEW open, input, cancel
 public/js/ui/ui-functions-click/linked-column-save.js  NEW  save
 public/js/ui/ui-functions-click/linked-column-delete.js NEW delete
 public/js/ui/ui-functions-click/column-menu.js         MOD  the linked column's menu
-public/js/ui/ui-functions-click/column-type-set.js     MOD  a linked key opens the dialog
+public/js/ui/ui-functions-click/column-picker.js       MOD  repaint while open, for the dialog
 public/js/ui/ui-functions-render/type-glyph.js         MOD  LOCK_SHIFT entry
 public/js/ui/event-listeners-add.js                    MOD  register the actions
 public/js/constants.js                                 MOD  LINKED_TYPE

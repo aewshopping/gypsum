@@ -1,5 +1,6 @@
 import { appState, TABLE_VIEW_COLUMNS, FILE_PROPERTIES, CORE_FILE_PROPERTIES, defaultColumnEntry } from '../../services/store.js';
 import { propertyType, propertySearchType } from '../../services/property-type.js';
+import { isLinkedKey, linkedProperty, linkedPropertyKeys, linkedHeading } from '../../services/linked-properties.js';
 
 /**
  * The table's columns in order, each carrying whether it is shown and its FILE_PROPERTIES
@@ -53,6 +54,12 @@ import { propertyType, propertySearchType } from '../../services/property-type.j
  * would get the same answer most of the time and the wrong one whenever a layout file arrived with
  * a type nobody legislated for.
  *
+ * **A linked column is a candidate like any property**, but no file carries its key, so it is asked
+ * about separately: the `missing` check lets it through, it is never `dead` or `blank`, and its heading is its
+ * definition's rather than the layout entry's, so a rename shows in every layout at once. A layout
+ * entry naming a linked column whose definition has gone is dropped rather than drawn as an empty
+ * front matter column. plans/table-linked-properties.md §3.2 and §3.8.
+ *
  * The returned width is for completeness, not for use. columnWidthPx reads the Map directly at
  * the moment the tracks are written, because a resize drag updates the layout and re-applies the
  * widths without re-rendering — a width read off these objects would be stale mid-drag.
@@ -63,12 +70,16 @@ import { propertyType, propertySearchType } from '../../services/property-type.j
 export function resolveColumns() {
     const { columnLayout, hidden_always, shown_always } = TABLE_VIEW_COLUMNS;
 
+    for (const name of columnLayout.keys()) {
+        if (isLinkedKey(name) && !linkedProperty(name)) columnLayout.delete(name);
+    }
+
     const excluded = new Set(hidden_always);
-    const candidates = [...appState.myFilesProperties.keys()]
+    const candidates = [...appState.myFilesProperties.keys(), ...linkedPropertyKeys()]
         .filter(prop => !excluded.has(prop) && !columnLayout.has(prop));
 
     const carried = propertiesInFiles([...columnLayout.keys(), ...candidates]
-        .filter(name => !CORE_FILE_PROPERTIES.includes(name)));
+        .filter(name => !CORE_FILE_PROPERTIES.includes(name) && !isLinkedKey(name)));
     const filled = propertiesInFiles([...carried], { withValue: true });
 
     // **A property no file carries is not a new column**, and this asks the files for the same
@@ -78,7 +89,7 @@ export function resolveColumns() {
     // even save — and the next save wrote it to disk again. A core property is always a column,
     // registered or not, which is what gives an empty folder its table.
     const missing = candidates.filter(prop =>
-        CORE_FILE_PROPERTIES.includes(prop) || carried.has(prop));
+        CORE_FILE_PROPERTIES.includes(prop) || carried.has(prop) || isLinkedKey(prop));
 
     // A saved layout is a closed statement of which columns the user wants, so a property it has
     // never seen joins it hidden. The app's defaults make no such statement — there the schema's
@@ -99,16 +110,18 @@ export function resolveColumns() {
     // decides the column set is also the one place the rule cannot be got round.
     return [...columnLayout].map(([name, entry]) => {
         const alwaysOn = shown_always.includes(name);
+        const isLinked = isLinkedKey(name);
         return {
             name,
             ...FILE_PROPERTIES.get(name),
             ...entry,
+            ...(isLinked && { label: linkedHeading(name) }),
             type: propertyType(name),
             search_type: propertySearchType(name),
             visible: alwaysOn || entry.visible,
             alwaysOn,
-            dead: !CORE_FILE_PROPERTIES.includes(name) && !carried.has(name),
-            blank: !CORE_FILE_PROPERTIES.includes(name) && !filled.has(name),
+            dead: !isLinked && !CORE_FILE_PROPERTIES.includes(name) && !carried.has(name),
+            blank: !isLinked && !CORE_FILE_PROPERTIES.includes(name) && !filled.has(name),
         };
     });
 }

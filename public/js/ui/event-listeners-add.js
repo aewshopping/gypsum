@@ -25,6 +25,10 @@ import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.j
 import { handleColumnDeleteProperty } from './ui-functions-click/column-delete-property.js';
 import { handleColumnRenameOpen, handleColumnRenameInput, handleColumnRenameKeydown, handleColumnRenameCancel,
          handleColumnRenameClose } from './ui-functions-click/column-rename-dialog.js';
+import { handleLinkedColumnOpen, handleLinkedColumnEditFromMenu, handleLinkedColumnSelect, handleLinkedColumnNameInput,
+         handleLinkedColumnKeydown, handleLinkedColumnCancel, handleLinkedColumnClose } from './ui-functions-click/linked-column-dialog.js';
+import { handleLinkedColumnSave } from './ui-functions-click/linked-column-save.js';
+import { handleLinkedColumnDelete } from './ui-functions-click/linked-column-delete.js';
 import { handleColumnRenameConfirm } from './ui-functions-click/column-rename-property.js';
 import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
@@ -123,6 +127,7 @@ export function addActionHandlers() {
     document.addEventListener('click', releaseRowMove);
     document.addEventListener('keydown', handleLayoutNameKeydown);
     document.addEventListener('keydown', handleColumnRenameKeydown);
+    document.addEventListener('keydown', handleLinkedColumnKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is
     // over whatever the list has shuffled beneath it, not over the grip that started it. So these
@@ -155,6 +160,9 @@ export function addActionHandlers() {
     // And the rename dialog, whose close — cancel, Escape, the backdrop — puts focus back on the
     // column's header, since the menu that opened it has gone.
     document.getElementById('modal-column-rename').addEventListener('close', handleColumnRenameClose);
+
+    // And the linked column dialog, which closes the same three ways and empties its selects.
+    document.getElementById('modal-linked-column').addEventListener('close', handleLinkedColumnClose);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"], [data-action="cell-date-pick"]')) {
             evt.preventDefault();
@@ -215,6 +223,11 @@ const clickActionHandlers = {
     'column-rename-property': handleColumnRenameOpen,
     'column-rename-confirm': handleColumnRenameConfirm,
     'column-rename-cancel': handleColumnRenameCancel,
+    'open-linked-column': handleLinkedColumnOpen,
+    'column-edit-linked': handleLinkedColumnEditFromMenu,
+    'linked-column-save': handleLinkedColumnSave,
+    'linked-column-delete': handleLinkedColumnDelete,
+    'linked-column-cancel': handleLinkedColumnCancel,
     'undo-list': handleUndoListOpen,
     'undo-list-item': handleUndoListItem,
     'undo-list-clear': handleUndoListClear,
@@ -292,6 +305,7 @@ const changeActionHandlers = {
     'checkbox-toggle': handleCheckboxToggle,
     'column-toggle': handleColumnToggle,
     'cell-date-set': handleCellDateSet,
+    'linked-column-select': handleLinkedColumnSelect,
 };
 
 const pointerDownActionHandlers = {
@@ -315,6 +329,7 @@ const inputActionHandlers = {
     // arrangement 'search-files' has, which is in this map and in keyUpActionHandlers.
     'expand-cell': handleCellAutocomplete,
     'column-rename-input': handleColumnRenameInput,
+    'linked-column-name': handleLinkedColumnNameInput,
 };
 
 /**

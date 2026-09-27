@@ -1,0 +1,8 @@
+/* The linked column dialog: what a column shows, from which property's links, and its name. Built
+   from the shared .info-modal parts — .info-modal-select-row, .info-modal-field and the rename
+   dialog's message stack — so only its width is here. As wide as the flowchart options, whose rows
+   also hold a property name in a dropdown; the viewport term and the 320px floor are the picker's —
+   see sidebar-push.css and .info-modal. */
+#modal-linked-column {
+    max-width: min(420px, calc(100vw - var(--sidebar-width) - 32px));
+}

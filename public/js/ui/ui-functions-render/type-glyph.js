@@ -1,5 +1,6 @@
 import { INFO_TYPE } from '../../constants.js';
 import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
+import { isLinkedKey } from '../../services/linked-properties.js';
 
 /**
  * @file The mark a column wears to say what it holds, and whether the app owns it.
@@ -27,6 +28,7 @@ const LOCK_SHIFT = {
     datetime: '-4 -6',
     array:    '-6 -7',
     info:     '-6 -4',
+    linked:   '-6 -6',   // not drawn locked today: a linked column's glyph opens its own dialog
 };
 
 /**
@@ -34,6 +36,10 @@ const LOCK_SHIFT = {
  *
  * **Which drawing**: the column's own type, unless the app fills the column in, in which case the
  * info glyph says so — the type underneath is unchanged and still drives sorting and rendering.
+ *
+ * **A linked column is drawn open**, though its type is not settable: the padlock means "this does
+ * not press", and in the column picker a linked column's glyph does press — it opens the column's
+ * own dialog. plans/table-linked-properties.md §3.7.
  *
  * **Whether it is locked**: a column whose type is the app's wears the same drawing moved up and
  * left, with the padlock laid over the corner that frees. Composed here from the two symbols rather
@@ -71,7 +77,7 @@ export function typeGlyph(column, className, lockedTip = '') {
     const glyph = isInfoColumn(column.name) ? INFO_TYPE.value : column.type;
     const open = `<svg class="type-glyph ${className}" viewBox="0 0 50 50" aria-hidden="true"`;
 
-    if (isTypeSettable(column.name)) {
+    if (isTypeSettable(column.name) || isLinkedKey(column.name)) {
         return `${open}><use href="#icon-type-${glyph}"></use></svg>`;
     }
 
