@@ -181,3 +181,77 @@
     min-height: 0;
     overflow: auto;
 }
+
+/* A labelled text box, with a button beside it when the field acts on its own, and the one-line
+   message under a dialog's fields. First drawn for the file options modal, and shared since the
+   column rename dialog needs the same parts: one set of rules, named for what they are rather than
+   where they were first used. The message is in the ordinary colour unless it is a warning, since
+   the rename dialog's line also says what renaming will do. */
+.info-modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-modal-field-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.info-modal-field-row input {
+    flex: 1;
+}
+
+.info-modal-field input {
+    padding: 6px 8px;
+    border: 1px solid var(--colour-contr);
+    border-radius: 4px;
+    background: var(--colour-neutral-alt);
+    color: var(--colour-contr);
+    font: 0.804375em var(--fontfam-app-input);
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.info-modal-field input:user-invalid { /* This is a hack to give a visual indicator if form input has changed from initial value */
+    box-shadow: inset 0px 0px 0px 3px var(--colour-contr-warning);
+}
+
+.info-modal-message {
+    margin: 0;
+    min-height: 1em;
+    font-size: 0.85em;
+}
+
+.info-modal-message.is-warning {
+    color: var(--colour-contr-warning);
+}
+
+/* A message long enough to read as a paragraph wraps at reading width, as .info-modal-note does,
+   rather than widening the dialog to one long line. */
+.info-modal-message.is-prose {
+    max-width: 44ch;
+}
+
+/* Messages that take turns in one place — the rename dialog's forecast and its refusal. All of them
+   are laid out in the one grid cell and the hidden ones are only invisible, so the cell, and the
+   dialog around it, is always the size of the largest: a shorter refusal does not shrink the dialog
+   under the pointer as it is typed. */
+.info-modal-message-stack {
+    display: grid;
+}
+
+.info-modal-message-stack > * {
+    grid-area: 1 / 1;
+}
+
+.info-modal-message-stack > [hidden] {
+    display: block;
+    visibility: hidden;
+}
+
+/* Buttons that finish a dialog's fields, rather than act on a list below them: the gap goes above
+   the row instead of under it. */
+.info-modal-field + .info-modal-btn-row {
+    margin: 14px 0 0;
+}

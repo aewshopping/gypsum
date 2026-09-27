@@ -180,3 +180,61 @@ export function applyFlowchartOptionsFromFile(raw) {
         setFlowchartOption(role, property);
     }
 }
+
+/**
+ * One layout's columns after property `from` has been renamed `to` in the notes: the file's array
+ * and the columns in memory both go through here, so the two cannot disagree about what a rename did
+ * to a layout. plans/completed/table-rename-column.md §10.1.
+ *
+ * - **`from` gone from every note**: its entry becomes `to`'s in place — position, width, visibility —
+ *   and a `to` entry already in the layout is dropped. Going forward that is a keyless column left
+ *   over, since no note had `to`; on an undo it can be the column of notes the rename skipped, and
+ *   the outcome is still the one wanted: one column, where the user was looking.
+ * - **`from` still in some note**: a `to` entry goes in straight after `from`'s, with its width and
+ *   visibility, so the renamed notes appear beside the ones left behind rather than hidden at the
+ *   end. A layout that already has `to` is left as it is.
+ * - **A label follows only if it was `from`'s default**; one written by hand is kept.
+ * - **The same columns stay stuck.** The sticky count is of leading shown columns, so a shown column
+ *   dropped or inserted inside that run moves the count with it.
+ *
+ * Nothing is renumbered: the array comes back in resolved order with each entry's own `order`, and
+ * an inserted entry copies `from`'s and sits straight after it, which resolveOrder's index tiebreak
+ * keeps in place.
+ *
+ * @param {Array<object>} columns - A layout's columns: the file's array, or memory's entries with
+ *   their names.
+ * @param {number} stickyCount - How many leading shown columns stick.
+ * @param {string} from
+ * @param {string} to
+ * @param {boolean} fromGone - Whether no loaded note will carry `from` once this rename is counted.
+ * @returns {{columns: Array<object>, stickyCount: number}}
+ */
+export function renameInColumns(columns, stickyCount, from, to, fromGone) {
+    const ordered = resolveOrder(columns);
+    const at = ordered.findIndex(column => column?.name === from);
+    const toAt = ordered.findIndex(column => column?.name === to);
+    if (at === -1 || (!fromGone && toAt !== -1)) return { columns, stickyCount };
+
+    const shown = (column) => column.visible === true || TABLE_VIEW_COLUMNS.shown_always.includes(column.name);
+    const isStuck = (index) => shown(ordered[index])
+        && ordered.slice(0, index).filter(shown).length < stickyCount;
+
+    const source = ordered[at];
+    const renamed = {
+        ...source,
+        name: to,
+        ...(source.label === defaultColumnEntry(from).label && { label: defaultColumnEntry(to).label }),
+    };
+
+    if (fromGone) {
+        return {
+            columns: ordered.map((column, index) => index === at ? renamed : column)
+                .filter((_, index) => index !== toAt),
+            stickyCount: toAt !== -1 && isStuck(toAt) ? stickyCount - 1 : stickyCount,
+        };
+    }
+    return {
+        columns: [...ordered.slice(0, at + 1), renamed, ...ordered.slice(at + 1)],
+        stickyCount: isStuck(at) ? stickyCount + 1 : stickyCount,
+    };
+}

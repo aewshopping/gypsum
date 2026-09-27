@@ -689,21 +689,21 @@
     <button class="modal-close-btn svg-wrapper-style" data-action="file-options-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
     <h2>File options</h2>
     <form class="file-options-form">
-      <div class="file-options-field">
+      <div class="info-modal-field">
         <label for="file-options-folder-input">Change folder:</label>
-        <div class="file-options-field-row">
+        <div class="info-modal-field-row">
           <input id="file-options-folder-input" type="text" list="gypsum-folders" autocomplete="off" placeholder="(root)">
           <button type="button" class="btn-action" data-action="file-options-move-confirm" data-tip="move file">move</button>
         </div>
       </div>
-      <div class="file-options-field">
+      <div class="info-modal-field">
         <label for="rename-name-input">Change filename:</label>
-        <div class="file-options-field-row">
+        <div class="info-modal-field-row">
           <input id="rename-name-input" type="text" autocomplete="off">
           <button type="button" class="btn-action" data-action="rename-confirm" data-tip="rename file">rename</button>
         </div>
       </div>
-      <p id="file-options-error-slot" class="file-options-error"></p>
+      <p id="file-options-error-slot" class="info-modal-message is-warning"></p>
       <div class="flex-column">
         <button type="button" class="btn-action btn-action-danger" data-action="delete-file" data-tip="delete file">
           <div class="svg-wrapper-style">
@@ -797,6 +797,33 @@
     <div class="column-type-group column-type-search-group" id="column-search-options"></div>
   </dialog>
 
+  <!-- Renaming a column's property in every note that has it, from "rename column" in the column
+       menu. A dialog rather than the header made editable: showModal() makes the table inert, so no
+       click, Tab or render can reach it while the name is typed. The dialog is its own confirmation —
+       the line under the text box says why a name cannot be used, or what renaming will do, and the
+       button is only pressable when it can be done. See plans/completed/table-rename-column.md §8.2. -->
+  <dialog id="modal-column-rename" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="column-rename-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title">Rename column</h2>
+
+    <div class="info-modal-field">
+      <label for="column-rename-input" id="column-rename-label">new name</label>
+      <input id="column-rename-input" type="text" autocomplete="off" spellcheck="false" data-action="column-rename-input">
+      <!-- Both lines are always laid out, one over the other, and only one is visible: the dialog is
+           sized by the larger, so it does not jump as a name becomes refused and allowed again. -->
+      <div class="info-modal-message-stack">
+        <p id="column-rename-forecast" class="info-modal-message is-prose"></p>
+        <p id="column-rename-problem" class="info-modal-message is-prose is-warning" hidden></p>
+      </div>
+    </div>
+
+    <div class="info-modal-btn-row">
+      <button type="button" id="column-rename-confirm" class="btn-action" data-action="column-rename-confirm">rename</button>
+      <button type="button" class="btn-action" data-action="column-rename-cancel">cancel</button>
+    </div>
+  </dialog>
+
   <!-- Saved table layouts. Opened from the layout name in the table's control row, which only
        exists in table view — the one way in, now that the name no longer hangs a popover of the
        same layouts under itself as well. Built from the settings modal: a title, a row of
@@ -874,13 +901,15 @@
     <button type="button" class="app-menu-item" data-action="column-hide" data-tip="hide this column">hide column</button>
     <button type="button" class="app-menu-item" data-action="column-stick" data-tip="keep every column up to this one in view while scrolling sideways">stick columns to here</button>
     <button type="button" class="app-menu-item" data-action="column-unstick" data-tip="let every column scroll sideways again">unstick columns</button>
-    <!-- The last two come and go rather than greying out, and at most one of them shows: "remove from
-         layout" on an empty column under a saved layout, "delete column" on a column with values
-         whose property a note can hold. One slot, one rule above it, and a name that says what it
-         reaches — the layout, or every note. See handleColumnMenuOpen and
-         plans/completed/table-delete-column.md §4.1 and §17.3. -->
+    <!-- The last items come and go rather than greying out. Either "remove from layout" shows, on an
+         empty column under a saved layout, or "rename column" and "delete column" show together, on
+         a column with values whose property a note can hold. One rule above whichever shows, and
+         names that say what they reach — the layout, or every note. The rule is on "rename column"
+         rather than "delete column" because the two never show apart. See handleColumnMenuOpen,
+         plans/completed/table-delete-column.md §4.1 and plans/completed/table-rename-column.md §8.1. -->
     <button type="button" class="app-menu-item app-menu-item-last" data-action="column-delete-menu" data-tip="remove this empty column from the layout" hidden>remove from layout</button>
-    <button type="button" class="app-menu-item app-menu-item-last app-menu-item-danger" data-action="column-delete-property" data-tip="remove this property from every note" hidden>delete column</button>
+    <button type="button" class="app-menu-item app-menu-item-last" data-action="column-rename-property" data-tip="rename this property in every note" hidden>rename column</button>
+    <button type="button" class="app-menu-item app-menu-item-danger" data-action="column-delete-property" data-tip="remove this property from every note" hidden>delete column</button>
   </div>
 
   <!-- The undo list, opened from the history button at the end of the table's control row. Its

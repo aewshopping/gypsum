@@ -16,7 +16,7 @@ import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { SAVE_FOLDER, LAYOUTS_FILENAME } from '../constants.js';
 import { layoutFromColumnLayout, applyLayoutToColumnLayout, applyStickyCountFromLayout,
          propertyTypesFromState, applyPropertyTypesFromFile,
-         flowchartOptionsFromState, applyFlowchartOptionsFromFile } from './layout-apply.js';
+         flowchartOptionsFromState, applyFlowchartOptionsFromFile, renameInColumns } from './layout-apply.js';
 
 /**
  * 2 since propertyTypes moved out of the layouts and up to the top of the document.
@@ -236,6 +236,47 @@ export function saveFlowchartOptions() {
         const doc = await readLayouts();
         doc.flowchart = flowchart;
         await writeLayouts(doc);
+    });
+}
+
+/**
+ * Rewrites every saved layout for a property renamed in the notes, and writes the types and the
+ * flowchart's choices as they now stand in appState — the in-memory half of the follow having
+ * already run. plans/completed/table-rename-column.md §10.1.
+ *
+ * It does **not** call refreshState, for savePropertyTypes' reason: that clears isDirty, and an
+ * unsaved column reorder must not start looking saved because a rename happened beside it. The
+ * arrangement on screen was rewritten by the same renameInColumns, so it and the file agree.
+ *
+ * **Nothing is written when nothing changed** — a folder with no layouts file and no types gets
+ * none from a rename.
+ *
+ * @async
+ * @param {string} from
+ * @param {string} to
+ * @param {boolean} fromGone - Whether no loaded note carries `from` any more.
+ * @returns {Promise<boolean|undefined>} true when the file was written or had nothing to change.
+ *   Anything else is a failure: writeLayouts answers false rather than throwing, and the queue turns
+ *   a throw into undefined.
+ */
+export function renamePropertyInLayouts(from, to, fromGone) {
+    const propertyTypes = propertyTypesFromState();
+    const flowchart = flowchartOptionsFromState();
+    return enqueue(async () => {
+        const doc = await readLayouts();
+        const before = JSON.stringify(doc);
+
+        for (const layout of Object.values(doc.layouts)) {
+            if (!Array.isArray(layout?.columns)) continue;
+            const sticky = Number.isInteger(layout.stickyColumns) ? layout.stickyColumns : 0;
+            const result = renameInColumns(layout.columns, sticky, from, to, fromGone);
+            layout.columns = result.columns;
+            if (result.stickyCount !== sticky) layout.stickyColumns = result.stickyCount;
+        }
+        doc.propertyTypes = propertyTypes;
+        doc.flowchart = flowchart;
+
+        return JSON.stringify(doc) === before ? true : writeLayouts(doc);
     });
 }
 

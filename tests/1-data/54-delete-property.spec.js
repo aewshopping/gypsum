@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { loadFolder } = require('../helpers');
+const { NOTES, setupPropertyFolder: setupFiles } = require('../fixtures/property-notes');
 
 /**
  * plans/completed/table-delete-column.md, end to end: "delete column" takes a property out of every note that
@@ -21,27 +22,9 @@ const { loadFolder } = require('../helpers');
  *   dup.md       — `people` twice, the second a block list: locked, so skipped (§5.3).
  *   nokey.md     — front matter without `people`.
  *
- * The mock records every write per file, can fail a named file's write (verify fails), make it
- * throw — at once, or only once another note has been written — or make the read that verifies it
- * throw once after the write has landed, and runs window.__betweenPasses when the journal reaches undo.gypsum — which is the moment
- * between the plan pass and the write pass.
+ * The notes and the mock folder are in tests/fixtures/property-notes.js, shared with the rename spec;
+ * what the mock can be told to do is said there.
  */
-const NOTES = {
-  'flow.md': '---\nstatus: draft\npeople: [ann, bob]\nnote: x\n---\n# Flow\n',
-  'block.md': '---\nkind: x\npeople:\n    - ann\n    - bob\n# after the list\nstatus: live\n---\n# Block\n',
-  'quoted.md': '---\npeople: "ann, bob"\nstatus: draft\n---\n# Quoted\n',
-  'last.md': '---\nstatus: draft\npeople: ann\n---\n# Last\n',
-  'only.md': '---\npeople: ann\n---\n# Only\n',
-  'bare.md': '---\nstatus: draft\npeople:\nnote: y\n---\n# Bare\n',
-  'crlf.md': '---\r\nstatus: draft\r\npeople:\r\n  - ann\r\n  - bob\r\nnote: z\r\n---\r\n# Crlf\r\n',
-  'lookalike.md': '---\npeoples: a\nPeople: b\npeople2: c\n---\n# Lookalike\n\npeople: x\n',
-  'none.md': '# None\n\nNo front matter.\n',
-  'broken.md': '---\npeople: ann\nthis line has no colon\n---\n# Broken\n',
-  'shadow.md': '---\npeople: ann\nfilename: fake.md\n---\n# Shadow\n',
-  'dup.md': '---\npeople: ann\nstatus: draft\npeople:\n  - bob\n---\n# Dup\n',
-  'nokey.md': '---\nstatus: draft\n---\n# Nokey\n',
-};
-
 const AFTER = {
   'flow.md': '---\nstatus: draft\nnote: x\n---\n# Flow\n',
   'block.md': '---\nkind: x\n# after the list\nstatus: live\n---\n# Block\n',
@@ -52,85 +35,6 @@ const AFTER = {
   'crlf.md': '---\r\nstatus: draft\r\nnote: z\r\n---\r\n# Crlf\r\n',
 };
 const UNTOUCHED = ['lookalike.md', 'none.md', 'broken.md', 'shadow.md', 'dup.md', 'nokey.md'];
-
-async function setupFiles(page, notes = NOTES) {
-  await page.addInitScript((notes) => {
-    window.__files = { ...notes };
-    window.__saved = {};
-    window.__writes = {};
-    window.__reads = {};
-    window.__failWrite = new Set();
-    window.__throwWrite = new Set();
-    window.__throwLater = new Set();
-    window.__throwVerify = new Set();
-    window.__pickerCalls = 0;
-
-    const mk = (name) => ({
-      kind: 'file', name,
-      getFile: async () => {
-        window.__reads[name] = (window.__reads[name] ?? 0) + 1;
-        if (!(name in window.__files)) throw Object.assign(new Error('gone'), { name: 'NotFoundError' });
-        if (window.__writes[name] && window.__throwVerify.delete(name)) {
-          throw Object.assign(new Error('state cached in an interface object'), { name: 'InvalidStateError' });
-        }
-        return {
-          name, size: window.__files[name].length, lastModified: Date.now(),
-          text: async () => window.__files[name],
-        };
-      },
-      createWritable: async () => {
-        if (window.__throwWrite.has(name)) throw new Error(`the write of ${name} died`);
-        if (window.__throwLater.has(name)) {
-          while (Object.keys(window.__writes).length === 0) await new Promise(r => setTimeout(r, 5));
-          throw new Error(`the write of ${name} died`);
-        }
-        return {
-          write: async (content) => {
-            window.__writes[name] = (window.__writes[name] ?? 0) + 1;
-            if (!window.__failWrite.has(name)) window.__files[name] = content;
-          },
-          close: async () => {},
-        };
-      },
-    });
-
-    const gypsumDir = {
-      getFileHandle: async (name, options) => {
-        if (!(name in window.__saved)) {
-          if (!options?.create) throw Object.assign(new Error('missing'), { name: 'NotFoundError' });
-          window.__saved[name] = '';
-        }
-        return {
-          getFile: async () => ({ text: async () => window.__saved[name] }),
-          createWritable: async () => ({
-            write: async (content) => {
-              window.__saved[name] = content;
-              if (name === 'undo.gypsum' && content.includes('delete-property') && window.__betweenPasses) {
-                const hook = window.__betweenPasses;
-                window.__betweenPasses = null;
-                await hook();
-              }
-            },
-            close: async () => {},
-          }),
-        };
-      },
-      removeEntry: async (name) => { delete window.__saved[name]; },
-    };
-
-    window.showDirectoryPicker = async () => {
-      window.__pickerCalls++;
-      return {
-        kind: 'directory', name: 'root',
-        values: async function* () { for (const name of Object.keys(window.__files)) yield mk(name); },
-        getDirectoryHandle: async (name) => {
-          if (name === '.gypsum') return gypsumDir;
-          throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);
-        },
-      };
-    };
-  }, notes);
-}
 
 async function openTable(page, notes) {
   await page.setViewportSize({ width: 1400, height: 900 });

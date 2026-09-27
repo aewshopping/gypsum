@@ -18,10 +18,15 @@ import { changedItem, SKIP } from './list-item-splice.js';
  * @param {Array<object>} fileEdits - This note's edits, in the order they were asked for — see
  *   applyRawEdits for their shape.
  * @param {string} internalId - The note's id, for the records.
+ * @param {{allOrNothing?: boolean}} [options] - `allOrNothing`: the note is left alone unless
+ *   **every** edit sent for it produced a splice. An edit refused by its `expect`, and one dropped
+ *   because it changes nothing, both count as not applied. A rename's two edits per note are the
+ *   reason: one without the other loses the value or doubles it.
  * @returns {{updated: string, records: Array<object>}|null} The new text and one record per edit
- *   that changes it; null when the note is locked or no edit changes anything.
+ *   that changes it; null when the note is locked, no edit changes anything, or `allOrNothing` was
+ *   asked and an edit did not apply.
  */
-export function planFileEdits(original, fileEdits, internalId) {
+export function planFileEdits(original, fileEdits, internalId, { allOrNothing = false } = {}) {
     const indices = findFrontMatterIndices(original);
 
     const errors = [];
@@ -47,7 +52,9 @@ export function planFileEdits(original, fileEdits, internalId) {
         const span = spans.get(edit.property);
         const before = span ? text.slice(span.valueStart, span.valueEnd) : '';
 
-        if (edit.expect !== undefined && edit.expect !== before) return;
+        // `expect: null` is "the note must not have this key at all" — '' cannot say it, because a
+        // bare key's span is '' too, and a key re-created over it would replace its value.
+        if (edit.expect === null ? span !== undefined : edit.expect !== undefined && edit.expect !== before) return;
 
         // What the note already looks like at this key, so the write keeps its style rather
         // than choosing one: the form of the value, the indentation of its list items, and
@@ -127,12 +134,19 @@ export function planFileEdits(original, fileEdits, internalId) {
         };
     });
     if (splices.length === 0) return null;
+    if (allOrNothing && splices.length !== fileEdits.length) return null;
 
     // Back to front. Splice the first key and every later span is off by the length delta;
     // working backwards keeps every span valid without recomputing anything. Two new keys share
     // the one insertion point, so they are applied back to front as well and end up in the
     // order they were asked for — a key placed after another re-created key (its rank) after it.
-    splices.sort((a, b) => b.start - a.start || b.rank - a.rank || b.order - a.order);
+    //
+    // At one offset, a splice that replaces bytes goes before one that only inserts, whatever order
+    // they were asked in. Inserting first and then replacing the range that starts there always cuts
+    // into the insertion; the other way round the old bytes go and the new arrive in their place. A
+    // rename is exactly this pair — a key removed and its value re-created at the line it left.
+    const replaces = (splice) => splice.end > splice.start ? 1 : 0;
+    splices.sort((a, b) => b.start - a.start || replaces(b) - replaces(a) || b.rank - a.rank || b.order - a.order);
 
     let updated = text;
     for (const splice of splices) {

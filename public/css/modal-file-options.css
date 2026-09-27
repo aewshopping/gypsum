@@ -5,43 +5,6 @@
     margin: 0;
 }
 
-.file-options-field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.file-options-field-row {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
-}
-
-.file-options-field-row input {
-    flex: 1;
-}
-
-.file-options-field input {
-    padding: 6px 8px;
-    border: 1px solid var(--colour-contr);
-    border-radius: 4px;
-    background: var(--colour-neutral-alt);
-    color: var(--colour-contr);
-    font: 0.804375em var(--fontfam-app-input);
-    transition: background-color 0.15s, border-color 0.15s;
-}
-
-.file-options-field input:user-invalid { /* This is a hack to give a visual indicator if form input has changed from initial value */
-    box-shadow: inset 0px 0px 0px 3px var(--colour-contr-warning);
-}
-
-.file-options-error {
-    margin: 0;
-    min-height: 1em;
-    color: var(--colour-contr-warning);
-    font-size: 0.85em;
-}
-
 /* Appearance comes from .btn-action / .btn-action-danger in button-base.css; this is layout. */
 .file-options-form .btn-action-danger {
     align-self: center;

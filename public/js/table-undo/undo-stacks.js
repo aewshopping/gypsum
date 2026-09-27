@@ -3,6 +3,7 @@ import { applyRawEdits } from '../editing/apply-raw-edits.js';
 import { readUndoFile, saveUndoFile } from './undo-file.js';
 import { addRefusals } from './undo-refusals.js';
 import { checkFileErrors } from '../services/file-parsing/file-errors.js';
+import { followPropertyRename } from '../table-layouts/follow-property-rename.js';
 
 /**
  * @file The two stacks, and putting a batch of cell edits back.
@@ -28,19 +29,19 @@ import { checkFileErrors } from '../services/file-parsing/file-errors.js';
  *
  * @param {Array<object>} records - What applyRawEdits reported it changed.
  * **Saved to undo.gypsum straight after**, and the promise of that write is handed back for the
- * one caller that has to wait for it: a column delete, which records its batch before touching a
+ * callers that have to wait for it: a column delete and a rename, which record their batch before touching a
  * note. A cell edit does not wait.
  *
  * @param {Array<object>} records - What applyRawEdits reported it changed.
- * @param {{kind?: string, property?: string|null, dirHandle?: FileSystemDirectoryHandle}} [facts] -
- *   What the batch was, for its name: 'edit' or 'delete-property', and the column when there is
- *   one (see describe-batch.js). `dirHandle` is the folder to save into, for a batch that fixed its
- *   folder when it began.
+ * @param {{kind?: string, property?: string|null, to?: string, dirHandle?: FileSystemDirectoryHandle}} [facts] -
+ *   What the batch was, for its name: 'edit', 'delete-property' or 'rename-property', the column
+ *   when there is one, and for a rename the name it was given (see describe-batch.js). `dirHandle`
+ *   is the folder to save into, for a batch that fixed its folder when it began.
  * @returns {{batch: object|null, saved: Promise<boolean>}} The entry pushed — null for a batch of
  *   nothing — and its save.
  */
-export function pushUndoBatch(records, { kind = 'edit', property = null, dirHandle } = {}) {
-    const batch = push(appState.undoStack, records, { kind, property });
+export function pushUndoBatch(records, { kind = 'edit', property = null, to, dirHandle } = {}) {
+    const batch = push(appState.undoStack, records, { kind, property, to });
 
     // The ordinary rule: a new edit makes every redo a claim about a file that has moved on. The
     // check would refuse them one at a time anyway; clearing says so at once.
@@ -84,13 +85,19 @@ export function dropUndoBatch(batch, dirHandle) {
  * @param {'undo'|'redo'} direction - Which stack to take from.
  * @param {number} [index] - Which entry, counted from the bottom; the top when left out.
  * @param {(done: number, total: number) => void} [onProgress] - Called as each file finishes.
- * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined}>} The
- *   edits that were written, the edits the check turned down — each gets its own mark on the cell —
- *   and the batch they came from, for its name.
+ * **A rename's name follows the notes back** — its columns, type, flowchart roles and sort — by the
+ * rename's own rule run with the names swapped for an undo, in the same `beforeRefresh`, after the
+ * refusal marks: a failure in the follow must not cost a mark, which may hold the only copy of a
+ * value. plans/completed/table-rename-column.md §9.2, §10.1.
+ *
+ * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined,
+ *   layoutSaved?: boolean}>} The edits that were written, the edits the check turned down — each
+ *   gets its own mark on the cell — the batch they came from, for its name, and for a rename whether
+ *   the layouts file took the name.
  */
 export async function reverseBatch(direction, index, onProgress) {
     const from = direction === 'undo' ? appState.undoStack : appState.redoStack;
-    const to = direction === 'undo' ? appState.redoStack : appState.undoStack;
+    const onto = direction === 'undo' ? appState.redoStack : appState.undoStack;
 
     // Any entry, not only the top: the undo list reverses one batch on its own terms, and the check
     // below is what makes that safe — each edit is reversed only where the note still says what it
@@ -109,6 +116,18 @@ export async function reverseBatch(direction, index, onProgress) {
         return addRefusals(refused, batch);
     };
 
+    // For a rename, which name the notes are leaving: an undo takes them from `to` back to
+    // `property`, a redo the other way.
+    const rename = batch.kind === 'rename-property'
+        ? (direction === 'undo' ? [batch.to, batch.property] : [batch.property, batch.to])
+        : null;
+    let layoutSaved;
+    const beforeRefresh = (records) => {
+        const recheck = markRefused(records);
+        if (rename) layoutSaved = followPropertyRename(...rename, records);
+        return recheck;
+    };
+
     const applied = await applyRawEdits(batch.edits.map(edit => ({
         internalId: edit.internalId,
         property: edit.property,
@@ -123,13 +142,15 @@ export async function reverseBatch(direction, index, onProgress) {
         anchor: edit.anchor,
         gap: edit.gap,
         keepKey: edit.before === '' && edit.existed,
-    })), { beforeRefresh: markRefused, onProgress });
+        // A rename is two edits per note, and half of one loses the value or doubles it: a note
+        // takes both or neither, in either direction. plans/completed/table-rename-column.md §6.2.
+    })), { beforeRefresh, onProgress, allOrNothing: rename !== null });
 
     // The same facts, so a redo has the same name as the undo it reverses.
-    push(to, applied, { kind: batch.kind ?? 'edit', property: batch.property ?? null });
+    push(onto, applied, { kind: batch.kind ?? 'edit', property: batch.property ?? null, to: batch.to });
     saveUndoFile();
 
-    return { applied, refused, batch };
+    return { applied, refused, batch, ...(layoutSaved && { layoutSaved: await layoutSaved }) };
 }
 
 /**
@@ -181,13 +202,14 @@ function recheck(ids) {
 /**
  * @param {Array<object>} stack
  * @param {Array<object>} records
- * @param {{kind: string, property: string|null}} facts
+ * @param {{kind: string, property: string|null, to?: string}} facts - `to` only on a rename, so no
+ *   other batch gains a field in undo.gypsum.
  * @returns {object|null} The entry pushed, or null when there was nothing to push.
  */
-function push(stack, records, { kind, property }) {
+function push(stack, records, { kind, property, to }) {
     if (records.length === 0) return null;
 
-    const batch = { timestamp: Date.now(), kind, property, edits: records };
+    const batch = { timestamp: Date.now(), kind, property, ...(to !== undefined && { to }), edits: records };
     stack.push(batch);
     // The oldest goes, never the newest — the newest is what was just done.
     if (stack.length > UNDO_DEPTH) stack.shift();

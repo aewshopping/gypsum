@@ -411,16 +411,21 @@ time — inactive filters are skipped during the inversion, so they need no seco
 ## Undo and redo (`appState.undoStack` / `redoStack`)
 
 Newest last, capped at `UNDO_DEPTH` (100). One entry is one **batch** — a single cell edit is a batch
-of one, a column delete is one batch across every note it touched:
+of one, a column delete or a rename is one batch across every note it touched:
 
 ```js
-{ timestamp, kind, property, edits: [ { internalId, property, before, after, existed, anchor?, gap? } ] }
+{ timestamp, kind, property, to?, edits: [ { internalId, property, before, after, existed, anchor?, gap? } ] }
 ```
 
-- `kind` is `'edit'` or `'delete-property'`, and `property` the column when every edit shares one,
-  else `null`. Facts rather than a sentence: `describeBatch()` in `table-undo/describe-batch.js`
-  words them (`people column delete in 35 files`), so the wording can change without rewriting
+- `kind` is `'edit'`, `'delete-property'` or `'rename-property'`, and `property` the column when every
+  edit shares one, else `null`. A rename also carries `to`, the name it gave the property, and
+  `property` is the name it had; no other batch has a `to`. Facts rather than a sentence:
+  `describeBatch()` in `table-undo/describe-batch.js` words them (`people column delete in 35 files`,
+  `people column rename to attendees in 35 files`), so the wording can change without rewriting
   anyone's saved file, and the file count is always the one `edits` holds.
+- **A rename is two ordinary records per note**: `people` removed (with its `anchor` and `gap`) and
+  `attendees` created with the very same value span. Undo and redo reverse them with `allOrNothing`,
+  so a note takes both or neither. See `plans/completed/table-rename-column.md` §3.3, §6.2.
 - `before` and `after` are the key's whole value span as text, either side of the splice; `existed`
   says whether the note had that key at all. `before === ''` with `existed` is a bare `people:`,
   which undo puts back bare (`keepKey`).
@@ -430,19 +435,26 @@ of one, a column delete is one batch across every note it touched:
   `---`) and the key. Undo steps down that many, but only while each line is still blank or a
   comment, so a gap tidied away since simply isn't skipped. Absent reads as 0.
 
+**What goes into the writer**, `applyRawEdits` in `editing/apply-raw-edits.js`, is one edit per key:
+`{ internalId, property, raw, items?, expect?, anchor?, gap?, keepKey? }`. `expect` is what the key's
+value span must say for the edit to happen at all — a string, or **`null` for "the note must not
+have this key"**, which a rename's re-created key sends so it cannot land on a note that has gained
+one. The batch option **`allOrNothing`** leaves a note untouched unless every edit sent for it
+produced a splice.
+
 **Saved** to the folder's `.gypsum/undo.gypsum` as `{ undoVersion: 1, undo, redo, refused }` after every push,
 pop and clear — one write at a time, each taking whatever the stacks hold when it starts — and read
 back in `postLoad`. A stale entry is safe to keep: every undo checks the note still says `after`
-and refuses it otherwise. A column delete writes its batch there **before** touching a note, as a
-journal. See `plans/completed/table-delete-column.md` §8.
+and refuses it otherwise. A column delete and a rename write their batch there **before** touching a
+note, as a journal. See `plans/completed/table-delete-column.md` §8.
 
 Three more pieces of state belong to the same machinery:
 
 | key | holds |
 |-----|-------|
-| `bulkWriteInFlight` | `true` while a column delete, an undo or a redo is writing. Refuses a second one, refuses a folder load, and raises a `beforeunload` prompt. |
+| `bulkWriteInFlight` | `true` while a column delete, a rename, an undo or a redo is writing. Refuses a second one, refuses a folder load, and raises a `beforeunload` prompt. |
 | `undoHorizon` | When this visit to the table began: set on a view change and on a folder load. Ctrl+Z and the undo and redo buttons reach only batches made since; the undo list reaches all of them. |
-| `undoRefusals` | Array, newest last, of the edits an undo or redo refused: the stack's record (`internalId`, `property`, `before`, `after`, `existed`, `anchor`, `gap`) plus `timestamp` and `from` (`{kind, property, values}`, the batch's facts). Drawn as an `undo:` segment of the note's `fileIssues` naming the value `before` held. Accumulates, a note and property keeping only its newest; capped at `REFUSED_DEPTH` (30); saved in `undo.gypsum` as `refused` and read back on load; emptied by "clear undo history". |
+| `undoRefusals` | Array, newest last, of the edits an undo or redo refused: the stack's record (`internalId`, `property`, `before`, `after`, `existed`, `anchor`, `gap`) plus `timestamp` and `from` (`{kind, property, to?, values}`, the batch's facts). Drawn as an `undo:` segment of the note's `fileIssues` naming the value `before` held. Accumulates, a note and property keeping only its newest; capped at `REFUSED_DEPTH` (30); saved in `undo.gypsum` as `refused` and read back on load; emptied by "clear undo history". |
 
 ---
 

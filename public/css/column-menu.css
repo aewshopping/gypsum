@@ -65,15 +65,17 @@
     left: anchor(left);
 }
 
-/* The one slot at the bottom of the menu, "remove from layout" or "delete column". The rule is a
-   border on the item rather than an element of its own, so it hides and shows with the item and
-   never leaves a stray line on a column that offers neither. */
+/* The bottom of the menu: "remove from layout", or "rename column" and "delete column" together —
+   what reaches the layout, or what reaches every note. The rule is a border on the first of them
+   rather than an element of its own, so it hides and shows with the item and never leaves a stray
+   line on a column that offers none. */
 #column-menu .app-menu-item-last {
     border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent);
     margin-top: 4px;
 }
 
-/* The one item that changes notes, so it looks like it — the load nudge's warning colour. */
+/* The one item that can lose anything from the notes, so it looks like it — the load nudge's warning
+   colour. "rename column" beside it changes every note too, but loses nothing, so it is ordinary. */
 #column-menu .app-menu-item-danger {
     color: color-mix(in srgb, var(--colour-contr-warning) 65%, currentColor 35%);
 }
