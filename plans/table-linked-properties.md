@@ -410,6 +410,14 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
   `linkedProperties` and from every layout's `columns` in one queued write, and from `columnLayout`
   in memory; `applyActiveLayout()` and `deleteAllLayouts()` load and clear the new state.
   `LAYOUT_VERSION` stays the same: the key is additive.
+- **The document changes are pure functions in `layout-apply.js`**, beside `renameInColumns()`,
+  which is the precedent: `withLinkedColumn(doc, key, definition)` (store the definition, append
+  one visible entry to the active layout's stored `columns`, touch nothing else) and
+  `withoutLinkedColumn(doc, key)` (drop the definition and the key from every layout). The
+  `layout-file.js` functions above only read, call one of these, and queue the write. This is so
+  §3.1's rules can be tested in node rather than by driving the table (§8).
+- `readDefinition(raw)` in `services/linked-properties.js`: the validation `setLinkedProperty()`
+  applies, as a pure function for the same reason.
 - `follow-property-rename.js`: re-point `via` and `read` when `fromGone` (§3.9), beside the
   flowchart roles.
 
@@ -489,31 +497,75 @@ manifest.json, CLAUDE.md                               MOD
 
 ## 8. Verification
 
-`npm test` plus the specs that apply. New tests:
+**Four browser tests, two additions to level 1, and the rest in node.** Most of what this feature
+has to get right is rules — what a lookup returns, what a layouts document becomes — and a rule
+checked in node costs milliseconds, where a browser test costs a page load and a folder load every
+run. The browser is kept for what only the browser can show, and each browser test walks one path
+through several checks rather than one check per test.
 
-- **Level 1** (`tests/1-data/`, next to the property-types writes): creating, editing and deleting a
-  linked column writes the expected `linkedProperties` object; an untouched name is stored as
-  `null`; an add under a saved layout appends one visible entry to that layout's `columns` and
-  changes nothing else in it; a delete also removes the key from every layout's `columns`; a
-  malformed hand-edited definition is dropped; setting one leaves `isDirty` as it was; renaming a
-  property in every note re-points a definition that names it, and undo puts it back; no note is
-  written by any of the dialog's actions.
-- **Level 2** (a new `linked-columns.spec.js`, since this is a new area): the + opens the dialog
-  empty, and the header menu and the picker glyph open it filled in; the name follows the selects
-  until typed in; a heading in use is refused; the example line names a real row, and says so when
-  none is found; cancel changes nothing; a defined column shows the linked note's value; several
-  links give an aligned list with empty slots drawn as nothing between commas; a broken link gives
-  an empty cell with no warning; a list of titles through `internalLink` is not marked as a
-  mismatch; the cell takes no caret; the header has no sort chevron and is not faded.
-  **In the column picker** it can be toggled off and on and dragged to a new place, and a saved
-  layout keeps that; an empty one still has its toggle and no bin.
-  **A new one is shown at once**, rightmost, under the defaults and under a saved layout alike,
-  and is still shown after a reload. Under a saved layout with an unsaved reorder pending, adding
-  one leaves the reorder unsaved (`isDirty` still set, and the file's order unchanged apart from
-  the appended column). Other saved layouts get it hidden. **Editing `status` in a linked note
-  updates the linked cell** — the regression §2.3 exists to prevent.
-- **`linkedValue` in node**, via `appModule()`: single, many, broken, missing property, list read
-  value flattened, Map read value.
+### 8.1 Level 1: two additions, no new spec
+
+Level 1 guards the user's notes. **Nothing in this feature writes a note**, so almost nothing here
+belongs there — the layouts file's writes for types and the flowchart's options are level 2
+(`45-column-types`, `54-flowchart-options`), and linked columns follow that precedent. Two things do
+reach the notes' path, and each is one test added to a spec that already has the fixture:
+
+- **`49-table-cell-writing.spec.js`: a linked cell writes nothing.** Open one, type, press Enter;
+  no file is written. This is the real risk: were a linked cell ever to take a caret, the commit
+  would write `linked:1: …` into the note's front matter, which reads back as a key called `linked`
+  — a corrupted note, not an odd column.
+- **`57-rename-property.spec.js`: a rename with a linked column defined.** The notes are renamed
+  exactly as before, and the definition is re-pointed. The re-pointing runs inside the rename's
+  write batch (`beforeRefresh`), where a throw would report a finished rename as stopped. Undo is
+  not re-tested: the swapped call it relies on is already covered.
+
+### 8.2 Level 2: a new `linked-columns.spec.js`
+
+**Node tests first**, via `appModule()`, each table-driven in one test:
+
+- `linkedValue()`: single, many, broken link, missing property, a list read value flattened, a Map
+  read value, duplicates kept, an empty slot kept in place.
+- `linkedHeading()` and `readDefinition()`: `null` gives `via → read`; a malformed definition is
+  dropped.
+- `withLinkedColumn()` / `withoutLinkedColumn()` (§6c): an add appends one visible entry to the
+  active layout's `columns` and changes nothing else in the document, **including a stored order
+  that differs from the screen's** — which is how "an unsaved reorder stays unsaved" is tested
+  without dragging a column; a delete removes the key from every layout; under the defaults the
+  layouts are untouched.
+
+**Then four browser tests**, sharing one fixture: notes with a `project` link, one with several
+links of which one is broken, and the project notes themselves, which are rows in the same table.
+
+1. **Create, under the defaults.** + opens the dialog empty; the name follows the selects; the
+   example line names a row; add. The column is rightmost and not faded, with no sort chevron; one
+   link shows its value, several show an aligned list with an empty slot, the broken one shows an
+   empty cell with no mismatch mark. Then **edit `status` in a project row and the linked cell
+   updates** — the regression §2.3 exists to prevent, caught for the price of one more step.
+2. **Create under a saved layout with a change pending, then reload.** The dirty mark is still on
+   after the add; set a type on some column (a second writer of the same file); reload. The linked
+   column is still shown, and the pending change was not saved. This one test covers the "shown at
+   once and after a reload" rule and the `readLayouts()` trap — a key it does not name is dropped
+   by the next writer. Switching to another saved layout shows the column hidden.
+3. **Edit and delete from the header menu.** The menu offers only hide, the stick items and "edit
+   linked column…"; re-pointing renames an untouched name; a typed name stays; a heading in use is
+   refused; cancel changes nothing; delete asks, then the column is gone.
+4. **The column picker.** Hide the column; its glyph in the picker opens the dialog; its toggle
+   shows it again. An empty linked column has its toggle and no bin.
+
+### 8.3 Not tested, on purpose
+
+- The move of `toList` and `linkTarget` (§6a): `54-flowchart-options` already covers them, and
+  must pass unchanged — run it.
+- Escaping the heading, the glyph, the "delete all layouts" tooltip: each is one line that says what
+  it does, and a test would only restate it.
+- Dragging a linked column: the picker's drag knows nothing about linked columns, and
+  `42-column-picker` already covers it.
+
+### 8.4 While working
+
+`npm test tests/2-behaviour/linked-columns.spec.js` while iterating. Before finishing, add the specs
+the change touched: `54-flowchart-options` (6a), `43-table-layouts` and `45-column-types` (the
+layouts file), `40-column-menu` and `42-column-picker` (6d). Not the whole suite.
 
 Screenshots per CLAUDE.md: the dialog creating and editing, and the table showing a linked column
 next to its "via" column, including one row whose link is broken.
