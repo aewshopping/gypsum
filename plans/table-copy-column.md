@@ -136,8 +136,31 @@ different from copying a front matter column, and each shapes the build:
    moves the values one more link down the chain, so a re-copy never settles, which defeats what
    "copy again" is for. It happens only when the target is the column's own `read` property and notes link to
    notes of the same kind. Copying "project → status" into a new `project_status` settles at once,
-   because writing `project_status` never changes what the column reads. **So the column's `read`
-   property is refused as a target**, beside its `via` property (§5.5).
+   because writing `project_status` never changes what the column reads.
+
+   **Prevented, not warned about.** The recursion needs one exact condition — the copy's target is
+   the linked column's own `read` property — so it is ruled out at the source rather than explained
+   after the fact:
+
+   - **One predicate, `copyTargetProblem(source, target)`**, pure, in the copy service. For a linked
+     source it refuses a target equal to the definition's `read` (the recursion) or its `via` (which
+     would overwrite the links themselves with values), and for any source a target equal to the
+     source itself. It returns the sentence to show, or null — the shape of `renameProblem()`.
+   - **The dialog asks it on every keystroke** and shows the sentence in the line under the name box,
+     with the button disabled: `"status" is what this column reads — copying into it would change
+     what the column shows, so each copy would move the values one link further`. The name never
+     reaches the write.
+   - **The copy service asks it again before planning**, as `takeRenameRequest()` re-checks a rename,
+     so no other caller — a future "copy again" (§5.6) included — can start one.
+   - **It is checked against the definition as it stands when the copy runs**, not when the column
+     was made, since the column can be re-pointed in its dialog and a property rename can move
+     `read`.
+   - A remembered copy target (§5.6) that a later re-point turns into the column's own `read` is
+     refused the same way, and says so, rather than silently running.
+
+   Nothing else can cause it: the linked column reads only `read` from the linked notes, so writing
+   any other property can never change what it shows. Another linked column reading the copied
+   property just displays the copied values; it feeds nothing back.
 
 ---
 
@@ -182,8 +205,8 @@ notes, 12 overwritten, 2 skipped (locked)`.
    the links, or dropped, since a note's list has no reason to line up with anything?
 5. **Can the target be the source?** Copying `status` onto `status` does nothing. Copying a linked
    column onto its own `via` property would replace the links with values, which is almost certainly
-   a mistake, and onto its own `read` property never settles (§3.4.5). Refuse all three — or, for
-   `read`, warn instead of refusing if a real use for it turns up.
+   a mistake, and onto its own `read` property never settles (§3.4.5). **Refused, all three**, by one
+   predicate asked in the dialog and again in the service (§3.4.5) — decided, not open.
 6. **Remembering a copy.** Re-copying means choosing the same target again each time. Should a copy be
    remembered, so the linked column's menu offers "copy again to project_status"? That is a stored
    recipe in the layouts file, and could be a later step.
@@ -206,6 +229,7 @@ notes, 12 overwritten, 2 skipped (locked)`.
   first write; notes already holding the value are not written; locked notes are skipped; one undo
   restores every byte; a note edited between the passes is refused; **a re-copy of a linked column
   whose values have not changed writes no note** (§3.4.2).
-- **Node**: the raw text each kind of source produces (§3.3), and that a linked value formatted
-  twice gives the same text (§3.4.2).
+- **Node**: the raw text each kind of source produces (§3.3), that a linked value formatted twice
+  gives the same text (§3.4.2), and `copyTargetProblem()` refusing the source itself, a linked
+  column's `via` and its `read`, and allowing anything else (§3.4.5).
 - **Level 2**: the dialog's two lines, the overwrite confirmation, and the new column appearing.
