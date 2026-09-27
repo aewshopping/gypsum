@@ -25,9 +25,14 @@ key in every task note.
 
 A linked column is **evaluated on every render of the visible rows**, and nothing is stored
 (linked-properties §3.5). So it is always live: edit `status` in a project note and every row linking
-to it shows the new value on the next redraw. A copy is therefore a **snapshot** taken when "copy" is
-pressed. Pressing it again later brings the notes up to date, and that re-copy is the common case this
-plan is optimised for (§3.2).
+to it shows the new value on the next redraw.
+
+**A copy is the opposite: fixed.** It writes the values the linked column shows at that moment into
+the notes as plain front matter, and from then on they are ordinary values that nothing updates.
+Edit a project's status afterwards and the linked column changes; the copied `project_status` in
+each task does not. The only thing that changes the copied values is another copy (or an edit).
+So pressing copy again later, onto the same property, is how the notes are brought up to date, and
+that re-copy is the common case this plan is optimised for (§3.2).
 
 ---
 
@@ -122,11 +127,14 @@ different from copying a front matter column, and each shapes the build:
    them. That is what keeps one copy consistent: worked out during the writes instead, a note already
    written could change what the next note reads.
 5. **Copying into the property the column reads from gives a different result each time.** An edge
-   case, but a real one. Tasks A → B → C, each linking to the next, with a linked column "show
-   `status` of the note linked in `next`". Copy it into `status` itself: A takes B's status and B
-   takes C's. Press again and A takes B's *new* status — C's, two links along. Each press moves the
-   values one more link down the chain, so a re-copy never settles, which defeats what "copy again"
-   is for. It happens only when the target is the column's own `read` property and notes link to
+   case, but a real one. The copied values are fixed, as §1.1 says — what moves is the **linked
+   column itself**, which is still live and is now reading the values the copy just wrote. Tasks
+   A → B → C, each linking to the next, with a linked column "show `status` of the note linked in
+   `next`". Copy it into `status` itself: A's `status` is now B's old status and B's is C's, fixed
+   in the notes. But the linked column reads `status`, so it immediately shows new values — A's
+   cell now shows B's *new* status, which is C's. Press copy again and that is written: each press
+   moves the values one more link down the chain, so a re-copy never settles, which defeats what
+   "copy again" is for. It happens only when the target is the column's own `read` property and notes link to
    notes of the same kind. Copying "project → status" into a new `project_status` settles at once,
    because writing `project_status` never changes what the column reads. **So the column's `read`
    property is refused as a target**, beside its `via` property (§5.5).
