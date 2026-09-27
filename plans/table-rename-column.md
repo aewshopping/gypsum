@@ -157,9 +157,11 @@ shows that sentence under the text box in the warning colour, and the rename but
    `CORE_FILE_PROPERTIES` or `RESERVED_KEYS`, compared ignoring case (§4.3).
 9. **A name a note already has, in any case** → `"attendees" is already in 12 notes`, or
    `"Attendees" is already in 12 notes as "attendees"` when only the case differs. §4.4. This is the
-   one rule that needs `appState`, so it is not in `propertyNameProblem`, which stays pure. The
-   service's `renameProblem(from, to)` asks `propertyNameProblem` first and this second, and the
-   rename dialog asks `renameProblem`.
+   one rule that needs to know the folder, so `propertyNameProblem` does not ask it. The same
+   module's `renameProblem(from, to, keys)` asks `propertyNameProblem` first and this second, and
+   the rename dialog asks `renameProblem`. It is handed the folder's keys (§4.4) rather than reading
+   `appState`, so **every function in `property-name.js` is pure** and the whole name rule is tested
+   in node.
 
 Spaces inside a name are allowed (`due date`); the parser reads them, and so does YAML.
 
@@ -199,9 +201,11 @@ apart.
   file object. So does a key in a note whose front matter did not read cleanly, when the parser got
   as far as it: that note is locked either way.
 - **Ignoring case means asking of every key, not looking one up.** `Object.hasOwn(file, to)` cannot
-  find `Attendees`, so the dialog builds, once when it opens, a Map from each lower-cased key the
-  loaded notes carry to its spellings and a count of notes. Each keystroke is then one lookup, at
-  1,000 notes as at 10. `from` is left out of it (§4.2, the case exception).
+  find `Attendees`, so `keysIgnoringCase(files, from)` in `property-name.js` builds a Map from each
+  lower-cased key the notes carry to its spelling and a count of notes. The dialog calls it once,
+  with `appState.myFiles`, when it opens, and hands the Map to `renameProblem` on each keystroke,
+  which is then one lookup at 1,000 notes as at 10. `from` is left out of it (§4.2, the case
+  exception).
 - **A name no note has is free**, even if it is still a keyless column in a saved layout or still
   has a type saved against it. Nothing in any note is lost by using it; §10.1 says what happens to
   that column and that type.
@@ -347,8 +351,13 @@ the removal, `null` for the re-creation.
 
 ## 7. The forecast
 
-`renameForecast(from)` in `editing/rename-property.js`, from `appState` alone, so the dialog opens at
-once at 1,000 notes:
+**The delete's forecast, shared rather than copied.** `deletionForecast(property)` in
+`delete-property.js` already answers exactly this question — how many notes carry the key, how many
+of them are locked, and three sample filenames — from `appState` alone, so the dialog opens at once
+at 1,000 notes. It moves to its own module, `editing/property-forecast.js`, renamed
+`propertyForecast`, and both `column-delete-property.js` and the rename dialog import it. A rename
+module importing a function named for deleting would mislead; one function in two files would
+drift. The body is unchanged:
 
 ```js
 const carrying = appState.myFiles.filter(file => Object.hasOwn(file, from));
@@ -363,8 +372,6 @@ const changing = carrying.filter(file => !hasYamlError(file));
 - **`to` being a core name, or in use, is never asked here**, because §4.2 refuses it and the rename
   button is disabled before the forecast could matter. That is the reason §4.3 exists.
 - **Three sample filenames** from `changing`, as the delete.
-- It has the same shape as `deletionForecast`, and is that function asked of `from`. The build step
-  may call the delete's rather than write a second one; the plan does not need two.
 
 ---
 
@@ -428,8 +435,8 @@ tabbed to or re-rendered into while the name is being typed.
   `<input type="text">`, so a pasted newline cannot arrive: an input strips it, which is the
   browser's rule and harmless here.
 - **The line under the text box is the one place the dialog talks**, rewritten on each `input`:
-  - the name has a problem → `renameProblem`'s sentence (§4.2), in the warning colour
-    (`.load-error-nudge`'s, the one the delete item already uses), and the rename button disabled;
+  - the name has a problem → `renameProblem`'s sentence (§4.2), in the warning colour, and the
+    rename button disabled;
   - the name is unchanged → the forecast in the ordinary colour, and the button disabled: nothing is
     wrong, there is just nothing to do yet (§4.2, rule 3). This is how the dialog opens;
   - the name can be used → the forecast (§7): the count, three filenames and "and N more", the
@@ -459,9 +466,12 @@ tabbed to or re-rendered into while the name is being typed.
   a yes-or-no question. Here the name has to be typed, and read back as legal, before the button can
   be pressed at all, and the rename loses nothing and undoes in one step. A second confirmation after
   typing would be a dialog for the dialog.
-- **Enter is caught in the dialog, as a `keydown` on the text box**, and goes no further, so the
-  table's keyboard navigation never sees it. With `showModal()` open the table cannot take focus
-  anyway.
+- **Enter is caught by `handleColumnRenameKeydown`, registered on `document` in
+  `event-listeners-add.js` beside `handleLayoutNameKeydown`** — the layouts modal's rename box,
+  which is the precedent for a name typed in a dialog. It returns at once unless the key is Enter in
+  `#column-rename-input`, and then presses the rename button if it is enabled. `preventDefault`
+  stops it going further, so the table's keyboard navigation never sees it; with `showModal()` open
+  the table cannot take focus anyway. **Escape needs no handler**: it is the dialog's own cancel.
 - **After the dialog closes, focus goes to that column's header cell**, which is selected, as after
   closing the type dialog: one press opens the column menu again. After a rename the header is found
   by its new name, after a cancel by the old one. Done explicitly, rather than left to the
@@ -471,6 +481,18 @@ tabbed to or re-rendered into while the name is being typed.
   and giving it one for one caller would be the premature abstraction CLAUDE.md warns about.
   `#modal-column-rename` has its own open, input and close handlers, in its own file, as
   `#modal-column-type` does.
+- **No new CSS for it — the File options modal already draws these parts.** `#modal-file-options`
+  has a text box with a button beside it (`.file-options-field`, `.file-options-field-row`) and a
+  warning line under it (`.file-options-error`), styled in `modal-file-options.css`; a disabled
+  `.btn-action` is already drawn by `button-base.css`, and the dialog's frame is `.info-modal`. A
+  copy of those rules under new names would drift, and borrowing `.file-options-*` classes in a
+  column dialog would mislead the next reader. So those rules move, unchanged, into
+  `modal-info.css`, under names that say what they are rather than where they were first used —
+  `.info-modal-field`, `.info-modal-field-row` and `.info-modal-message` — and both dialogs use
+  them. One addition: the rename line is not always a warning, so `.info-modal-message` takes the
+  ordinary colour and `.info-modal-message.is-warning` the warning one; the File options modal's
+  error line carries both classes and looks as it does today. `modal-file-options.css` keeps only
+  what is its own (the form's gap, the delete button's layout).
 
 ---
 
@@ -548,7 +570,10 @@ to have vanished. So the name is followed everywhere the app writes it down.
 
 ### 10.1 One rule, asked of the folder, not of the batch
 
-`followPropertyRename(from, to, removedFrom)` in `editing/rename-property.js`. It is asked after a
+`followPropertyRename(from, to, removedFrom)` in `table-layouts/follow-property-rename.js` — in
+`table-layouts/` rather than beside the rename, because what it changes is what that folder owns:
+the layouts, and the types and flowchart choices kept in the same file. `editing/` stays about the
+notes. It is asked after a
 rename, after its undo (`from`/`to` swapped) and after its redo, and it decides from what the
 folder now holds rather than from what the batch hoped to do — so a partial rename, a partial undo
 and a note that gained the new name mid-write all come out right with no case of their own:
@@ -764,16 +789,21 @@ Each step ships on its own and leaves the app working.
    first.** Today it fails in the remove-first request order, and the sort rule is what makes it
    pass. No caller uses the last two options yet; the sort rule changes nothing an existing caller
    can reach, which the existing level-1 specs hold.
-2. **The name.** `services/property-name.js` and `propertyNameProblem` (§4.2);
+2. **The name.** `services/property-name.js`: `propertyNameProblem`, `keysIgnoringCase` and
+   `renameProblem` (§4.2, §4.4), all pure;
    `isPropertyDeletable` renamed `isPropertyUserOwned` and its callers followed — its own commit,
    nothing else in it.
-3. **The service.** `editing/rename-property.js`: `renameProblem` (the in-use check, §4.4), `renameForecast`, `renameProperty(from, to,
-   onProgress)` with the three passes and the journal (§6.3, §7), `describeAction`'s line and `to`
+3. **The service.** `deletionForecast` moved to `editing/property-forecast.js` as
+   `propertyForecast`, its caller followed — its own commit (§7). Then `editing/rename-property.js`:
+   `renameProperty(from, to, onProgress)` with the three passes and the journal (§6.3),
+   `describeAction`'s line and `to`
    on a batch (§9.1), `allOrNothing` from `reverseBatch` (§9.2). No follow yet: a rename made at
    this step leaves the layout naming the old key, which is the §11 state and is safe.
-4. **Following the name.** `followPropertyRename`, `renamePropertyInLayouts`, the pure columns
+4. **Following the name.** `table-layouts/follow-property-rename.js`, `renamePropertyInLayouts`, the pure columns
    rewrite in `layout-apply.js`, and the call from the rename and from `reverseBatch` (§10).
-5. **The menu and the rename dialog.** The item, the rule moving, the dialog with its text box,
+5. **The menu and the rename dialog.** First the File options modal's field and message rules move
+   to `modal-info.css` under their new names, its markup follows, and a screenshot shows it
+   unchanged — its own commit (§8.2). Then the item, the rule moving, the dialog with its text box,
    its line and its ways out (§8), focus back to the header, the result line (§9.1), and the busy
    table and progress bar wired exactly as `column-delete-property.js` does it (§11).
 6. **Docs.** CLAUDE.md: a short section *Renaming a property in every note* after *Deleting a
@@ -826,7 +856,8 @@ and it runs in milliseconds.
 2. `expect: null` refuses a present key and a bare one, and allows an absent one. `allOrNothing`
    with one edit refused plans nothing for that note. Three short cases in the same spec.
 3. `propertyNameProblem`: one table of names and expected answers (§4.2), `__proto__`, `a"b` and
-   `x<y` among them. It lives in the same spec,
+   `x<y` among them; and `renameProblem` over a `keysIgnoringCase` Map — in use, in use in another
+   case, `from` itself in another case (allowed). It lives in the same spec,
    because the rule exists to keep the note readable by other YAML readers.
 
 ### 14.3 Level 1 — browser (`tests/1-data/57-rename-property.spec.js`, three tests)
@@ -912,16 +943,26 @@ specs and by the node test above. The delete spec's only change is that import. 
 
 | file | what it holds |
 |---|---|
-| `public/js/services/property-name.js` | `propertyNameProblem(name, from)`: what a legal new key is (§4.2). Pure |
-| `public/js/editing/rename-property.js` | `renameProblem` (§4.4), `renameForecast`, `renameProperty` (the three passes and the journal), `followPropertyRename` (§6.3, §7, §10). No DOM |
+| `public/js/services/property-name.js` | whether a name can be used: `propertyNameProblem(name, from)`, `keysIgnoringCase(files, from)` and `renameProblem(from, to, keys)` (§4.2, §4.4). All pure. Beside `property-type.js`, the other module that answers a question about a property; `editing/rename-validate.js` is the precedent for pure name validation, but it is about files |
+| `public/js/editing/property-forecast.js` | `propertyForecast(property)`, moved from `delete-property.js` and renamed; shared by the delete and the rename (§7) |
+| `public/js/editing/rename-property.js` | `renameProperty`: the three passes and the journal (§6.3). The rename's counterpart to `delete-property.js`, and the same size. No DOM |
+| `public/js/table-layouts/follow-property-rename.js` | `followPropertyRename`: the columns, types, flowchart roles and sort following the name, and queueing the layouts file (§10.1). No DOM |
 | `public/js/ui/ui-functions-click/column-rename-property.js` | the rename button's action: close the dialog, then `setBulkWriteBusy` → `reportProgress` → `renameProperty` → report, and focus back to the header (§11). Thin |
-| `public/js/ui/ui-functions-click/column-rename-dialog.js` | the dialog: open it from the menu item (name selected, forecast worked out once, the key map of §4.4 built once), the `input` check that rewrites the line and enables the button, Enter in the text box, close and focus back to the header. It asks the service and decides nothing itself (§8.2) |
-| `public/css/column-rename-dialog.css` | the dialog's text box and line: the warning colour, the disabled button. A new component gets its own file |
+| `public/js/ui/ui-functions-click/column-rename-dialog.js` | the dialog: open it from the menu item (name selected, forecast worked out once, the key map of §4.4 built once), the `input` check that rewrites the line and enables the button, `handleColumnRenameKeydown`, close and focus back to the header. It asks the services and decides nothing itself (§8.2) |
+
+**Why two click files and not one.** `column-delete-property.js` is one file because its dialog is a
+yes-or-no `showWarningModal`. The rename's dialog has a text box that is checked on every keystroke,
+which is a second responsibility; the pair matches `column-type-set.js` beside the type dialog's own
+code. No new CSS file: §8.2.
 
 **Edited**
 
 | file | why |
 |---|---|
+| `public/js/editing/delete-property.js` | `deletionForecast` moves out to `property-forecast.js` (§7) |
+| `public/js/ui/ui-functions-click/column-delete-property.js` | imports `propertyForecast` |
+| `public/css/modal-info.css` | `.info-modal-field`, `.info-modal-field-row`, `.info-modal-message` (and `.is-warning`), moved from `modal-file-options.css` (§8.2) |
+| `public/css/modal-file-options.css` | keeps only what is the File options modal's own |
 | `public/js/editing/plan-file-edits.js` | the equal-offset sort rule, `expect: null`, `allOrNothing` |
 | `public/js/editing/apply-raw-edits.js` | pass `allOrNothing` through; its JSDoc |
 | `public/js/services/property-type.js` | `isPropertyDeletable` → `isPropertyUserOwned` |
@@ -933,10 +974,9 @@ specs and by the node test above. The delete spec's only change is that import. 
 | `public/js/table-layouts/layout-file.js` | `renamePropertyInLayouts`, through the queue, no `refreshState`, returning whether the file was written. `enqueue` is unchanged |
 | `public/js/ui/ui-functions-click/column-menu.js` | show the item with "delete column"; put the rule on the first shown |
 | `public/js/ui/ui-functions-render/output-report.js` | `reportRename`; the JSDoc of `reportProgress` and `reportProgressEnd` no longer names the delete as their only caller (§11). `progress-bar.js`, `progress-bar.css` and `bulk-write-busy.js` are used as they are |
-| `public/js/ui/event-listeners-add.js` | `column-rename-property` (the menu item, opening the dialog), `column-rename-confirm` and `column-rename-cancel` in the click map; the text box's `input` in the input map |
+| `public/js/ui/event-listeners-add.js` | `column-rename-property` (the menu item, opening the dialog), `column-rename-confirm` and `column-rename-cancel` in the click map; the text box's `input` in the input map; `handleColumnRenameKeydown` on `document`, beside `handleLayoutNameKeydown` |
 | `public/css/column-menu.css` | the rule on whichever item comes first |
-| `public/style.css` | import `column-rename-dialog.css` |
-| `index.html` | the menu item, and `#modal-column-rename` |
+| `index.html` | the menu item; `#modal-column-rename` beside `#modal-column-type`; the File options modal's fields on the new class names |
 | `CLAUDE.md`, `DATA-STRUCTURES.md` | step 6 |
 
 **Tests** (§14):
