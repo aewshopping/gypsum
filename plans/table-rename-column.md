@@ -696,8 +696,10 @@ No recovery code.
 Each step ships on its own and leaves the app working.
 
 1. **The writer.** The equal-offset sort rule (§5.1), `expect: null` (§6.1) and `allOrNothing`
-   (§6.2) in `plan-file-edits.js` and `apply-raw-edits.js`. No caller uses the last two yet; the
-   sort rule changes nothing any existing caller can reach, which the existing level-1 specs hold.
+   (§6.2) in `plan-file-edits.js` and `apply-raw-edits.js`. **Write §14.2's node test of the pair
+   first.** Today it fails in the remove-first request order, and the sort rule is what makes it
+   pass. No caller uses the last two options yet; the sort rule changes nothing an existing caller
+   can reach, which the existing level-1 specs hold.
 2. **The name.** `services/property-name.js` and `propertyNameProblem` (§4.2);
    `isPropertyDeletable` renamed `isPropertyUserOwned` and its callers followed — its own commit,
    nothing else in it.
@@ -721,86 +723,128 @@ Each step ships on its own and leaves the app working.
 
 ## 14. Tests
 
-Weighted as the delete's were: a rename writes to every note that has the key, so most of this is
-level 1.
+**Aim: every way a rename could damage a note is held in level 1, and it costs level 1 about three
+page loads.** The expensive thing in this suite is a browser page. Most of what a rename could get
+wrong is a question about text, which node answers in milliseconds, so the cost goes there.
 
-**Shared fixture**: the delete spec's notes, with `people` renamed in each assertion, plus:
+### 14.1 What a rename can get wrong, and where each is caught
 
-| note | why it is there |
-|---|---|
-| `taken.md` | `attendees` only — makes the name `attendees` refused while it is loaded; a copy of the fixture without it is used for the rename itself |
-| `commented.md` | a comment above `people`, one between two block items, one after the last item |
-| `crowded.md` | `people` with a blank line and a comment between it and the key above |
-| `first.md` | `people` as the first key, with a comment line before it under `---` |
+| risk | caught by | cost |
+|---|---|---|
+| a note's bytes come out wrong: key misplaced, value altered, CRLF lost, comment moved | node, `planFileEdits` over every fixture shape | ms |
+| the two splices applied in the wrong order | node, the same test run with both request orders | ms |
+| a note half-renamed (value lost or doubled) | node, `allOrNothing` and `expect: null` | ms |
+| undo or redo not byte-exact | node: plan the undo edits from the rename's records and apply them to its output | ms |
+| an illegal name gets through | node, `propertyNameProblem` | ms |
+| a note without the key is read or written | browser, the mock's `__reads` / `__writes` | 1 page |
+| the journal is not on disk before the first write | browser, the between-passes hook | same page |
+| a note gaining the new name mid-rename is overwritten | browser, the hook adds it | 1 page |
+| a way out of the header writes when it should not | browser, driving the real header | 1 page |
 
-**Level 1 — node, no browser**
+**The first five are the heart of it, and none needs a browser.** The rename's whole effect on one
+note is `planFileEdits(text, pairs)`, a pure function of the note's text. Checked while writing
+this plan, against the code as it is today: removing `people` and re-creating its value at the
+recorded anchor gives exactly the old text with the key renamed, for the flow, block, quoted, first,
+crowded, last, only, bare and CRLF shapes, **but only when the removal is applied first**. In the
+other order every one of them is corrupted. So that node test is what proves §5 and holds §5.1,
+and it runs in milliseconds.
 
-- `planFileEdits`: a removal and an insertion at one offset give the same text in either request
-  order (§5.1). `expect: null` refuses a present key and a bare one, and allows an absent one.
-  `allOrNothing` with one edit refused plans nothing for that note and still plans the next.
-- `propertyNameProblem`: each rule of §4.2 in order, including `due date` accepted, `People` from
-  `people` accepted, ` people ` trimmed, `[x]`, `#x`, `- x`, `a #b`, `a:b`, `title` and `filename`
-  refused.
-- The columns rewrite (§10.1): in place, a leftover keyless `to` entry replaced, insert-beside, a sticky count crossing the
-  dropped column, a hand-written label kept.
-- `describeAction` for a rename and its refusal.
+### 14.2 Level 1 — node (`appModule`, no browser)
 
-**Level 1 — the rename** (a new spec, `tests/1-data/57-rename-property.spec.js`: a new area)
+`plan-file-edits.js` and `layout-apply.js` both import cleanly in node; this was checked.
 
-- **Every note with the key has exactly its expected bytes**, asserted whole, not as "contains
-  `attendees`": the old text with one word replaced, `crlf.md`, `commented.md`, `crowded.md` and
-  `first.md` included.
-- **Notes without the key are neither read nor written**, in any of the three passes:
-  `lookalike.md`, `none.md` and `nokey.md` have no entry in `window.__reads` or `window.__writes`
-  (§6.3). `broken.md`, `shadow.md` and `dup.md` are byte-identical and not written.
-- **`bare.md`'s `people:` becomes `attendees:`, still bare**, and its undo puts back `people:`,
-  bare (`keepKey`, §6.3).
-- **Undo restores every note byte for byte; redo renames them again byte for byte**; undo once more
-  is stable.
-- **The journal is on disk before the first note is written**, and holds both records per note.
-- **A note that gains `attendees` between the passes is refused whole** — `people` is still there
-  with its value.
-- **A write pass cut short undoes cleanly**, refusing the unwritten notes in pairs.
-- **After the rename**: `people` reads as `dead`; the saved layout names `attendees` where `people`
-  was, with its width; `propertyTypes` holds the type under both names; a flowchart role pointed at
-  `people` points at `attendees`. After the undo, the layout names `people` again in the same place.
-- **A name in use is refused**: with `taken.md` loaded, `renameProblem('people', 'attendees')`
-  names it and `renameProperty` is never reached; nothing is read or written.
-- **A note that gains `attendees` between the name check and the write** (the hook between passes adds
-  it) is refused whole: `people` is still there with its value, and it is counted as skipped. The
-  layout then keeps `people` (still carried) with `attendees` inserted beside it.
-- **A folder load is refused mid-rename.**
-- **The header editor's ways out, as they reach the disk** (level 1, because they decide whether
-  notes are written): Enter with a legal new name, then confirm, renames; a click elsewhere and Tab
-  reach the same confirmation; **cancelling the confirmation writes nothing** and puts the old name
-  back; Escape after typing writes nothing; Enter or a click away with an unchanged, empty, illegal
-  or in-use name writes nothing, puts the old name back, and opens no confirmation. Driven through the real header, with
-  `window.__writes` checked in each case.
+1. **One table-driven test of the pair**, in `49-table-cell-writing.spec.js` beside the other
+   `planFileEdits` and `keySplice` node tests. For each fixture note:
+   - Locate: plan the removal alone, and take `before`, `anchor` and `gap` from its record.
+   - Apply the pair in **both** request orders; each must equal `text.replace(/^people:/m, 'attendees:')`.
+   - Undo: send the resulting records back as `reverseBatch` would, with `allOrNothing`, and the
+     result must equal the original text.
 
-**Level 2** (`40-column-menu.spec.js`)
+   The expected output is computed, not written out, so adding a shape to the fixture is one line.
+2. `expect: null` refuses a present key and a bare one, and allows an absent one. `allOrNothing`
+   with one edit refused plans nothing for that note. Three short cases in the same spec.
+3. `propertyNameProblem`: one table of names and expected answers (§4.2). It lives in the same spec,
+   because the rule exists to keep the note readable by other YAML readers.
 
-- The item shows exactly where "delete column" does, the rule sits above it, and "remove from
-  layout" still shows alone on a keyless column.
-- The header editor: "rename column" makes the label editable with the property name selected
-  (not a hand-written label); typing turns it the warning colour for each §4.2 refusal and back again;
-  the report line recounts per keystroke and names the problem; a press inside the label does not
-  open the column menu; after Enter, Escape or a click away the header is selected and focused, and
-  one more Enter opens its menu rather than reopening the editor. The Enter that commits does not
-  also open the menu.
-- The confirmation: its counts, sample names and skipped line; the "few seconds" line only at or
-  above `RENAME_SLOW_AT`; cancel has focus; the header shows the typed name, not editable, while it
-  is open; after cancel the header is selected and focused with the old name.
-- `19-undo-redo-buttons.spec.js`: the tooltip and the list name the rename.
-- **While a rename runs**, as the delete's test does: the table and control row are `inert`, the
-  report line reads `renaming people to attendees…` with the bar showing (`.loading`), the text
-  does not change while `--load-pct` moves, and the line ends on the result. An undo of the rename
-  shows `undoing people column rename to attendees in N files…` with the same bar.
+### 14.3 Level 1 — browser (`tests/1-data/57-rename-property.spec.js`, three tests)
 
-**Screenshots** at step 5: the menu with both items; the header being edited, with a legal name
-and with a refused one in the warning colour, and the report line under each; a long name scrolled
-inside the header; the confirmation with and without the "few seconds" line; the same at phone
-width — both
-themes.
+The delete spec's `NOTES` move to a shared `tests/fixtures/property-notes.js`, imported by both
+specs and by the node test above. The delete spec's only change is that import. The rename adds
+`commented.md`, `crowded.md` and `first.md` to it.
+
+1. **One rename, end to end**, called through the service rather than the header. Like the delete
+   spec's main test, it is one page with many assertions:
+   - Notes without the key have no entry in `__reads` or `__writes`.
+   - Locked notes are byte-identical.
+   - The between-passes hook finds both records per note in `undo.gypsum`, and a folder load is
+     refused while the rename runs.
+   - Every carrying note is spot-checked on disk. The node test has already proved the bytes; this
+     proves they reached the disk.
+   - Undo, then redo, leaves the whole folder byte-identical to before and after.
+2. **A note that gains `attendees` between the passes** is refused whole and counted as skipped.
+   This is the one case where `expect: null` matters against the disk.
+3. **The header's ways out, as they reach the disk**, on one page and in sequence. Each checks
+   `__writes`:
+   - Escape after typing writes nothing.
+   - Enter on a refused name writes nothing and opens no confirmation.
+   - Enter on a legal name, then cancel, writes nothing.
+   - Enter on a legal name, then confirm, writes.
+
+   This is the one test of the UI in level 1, because it decides whether the notes are touched at
+   all. Click-away and Tab reach the same commit function, so they are level 2.
+
+**Not in level 1, deliberately:**
+- A write pass cut short, and a first write that throws. That machinery is the delete's, shared
+  unchanged. The one thing the rename adds to it, refusing in pairs, is covered by `allOrNothing`
+  in node.
+- Undo from the list, the refused-undo marks, and reload. Also the delete's machinery, already in
+  `52-table-undo-stack.spec.js` and `54-delete-property.spec.js`.
+
+### 14.4 Level 2 — two browser tests, plus node
+
+- **`40-column-menu.spec.js`, one test on one page**, walking the header editor:
+  - The item shows where "delete column" does, and is absent on a keyless column.
+  - The label opens editable with the property name selected.
+  - A refused name turns the warning colour and the report line gives the reason. A legal one
+    clears it, and the report line gives the count.
+  - A press inside the label does not open the menu.
+  - Click-away and Tab each open the confirmation.
+  - The confirmation: its counts, and cancel has focus.
+  - After cancel, the header is selected and focused with the old name, and one Enter opens the
+    menu rather than the editor.
+- **`43-table-layouts.spec.js`, one test**: after a rename, the saved layout, the types, a flowchart
+  role and the sort all name `attendees`; after its undo, `people` is back in the same place. While
+  it runs, the table is `inert` and the report line shows the bar. This is one run observed twice,
+  not two runs.
+- **Node, in the same spec**: the pure columns rewrite of §10.1. Each case is a few lines and costs
+  no page: rename in place, a leftover keyless `to` replaced, insert beside, the sticky count, a
+  hand-written label kept. It is level 2 because a wrong layout loses no note.
+
+**Not tested, deliberately:**
+- `describeAction`'s wording, tooltips and the undo bar's text: each restates one line of code, and
+  the undo path is the delete's.
+- The `RENAME_SLOW_AT` line: a screenshot shows it.
+- Sort following: one assignment. It is observed in the layouts test above only because that test
+  already has the page open.
+
+### 14.5 Running them while building
+
+- **Steps 1–4** (writer, name check, service, following the name): `npm test` (level 1 only), which
+  includes the node tests and the new spec. The level 2 layouts spec is added at step 4:
+  `npm test tests/2-behaviour/43-table-layouts.spec.js`.
+- **Step 5** (header and confirmation): `npm test tests/2-behaviour/40-column-menu.spec.js`.
+- **`npm run test:all` once**, at the end.
+- **While iterating on the pair logic, run the node test alone**:
+  `npx playwright test tests/1-data/49-table-cell-writing.spec.js -g "rename"`, through the npm
+  script's environment. It returns in about a second, with no page.
+
+**Screenshots**, at step 5 only, taken by hand and not committed as tests:
+- the menu with both items;
+- the header being edited, with a legal name and with a refused one in the warning colour, and the
+  report line under each;
+- a long name scrolled inside the header;
+- the confirmation with and without the "few seconds" line;
+- the same at phone width, in both themes.
 
 ---
 
@@ -838,9 +882,14 @@ themes.
 | `index.html` | the menu item |
 | `CLAUDE.md`, `DATA-STRUCTURES.md` | step 6 |
 
-**Tests**: `tests/1-data/57-rename-property.spec.js` (new), `49-table-cell-writing.spec.js` (the
-writer's node tests), `52-table-undo-stack.spec.js` (`describeAction`),
-`tests/2-behaviour/40-column-menu.spec.js`, `19-undo-redo-buttons.spec.js`.
+**Tests** (§14):
+- `tests/fixtures/property-notes.js`: new, the fixture notes shared with the delete spec.
+- `tests/1-data/57-rename-property.spec.js`: new, three browser tests.
+- `tests/1-data/49-table-cell-writing.spec.js`: the node tests of the pair, `expect: null`,
+  `allOrNothing` and the name check.
+- `tests/1-data/54-delete-property.spec.js`: imports the shared fixture; nothing else changes.
+- `tests/2-behaviour/40-column-menu.spec.js`: the header editor and the confirmation.
+- `tests/2-behaviour/43-table-layouts.spec.js`: following the name, and the pure columns rewrite.
 
 ---
 
