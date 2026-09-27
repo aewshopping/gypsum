@@ -60,7 +60,7 @@ test('a rename: only carrying notes read, journal first, load refused, exact byt
   });
   const pickerCalls = await page.evaluate(() => window.__pickerCalls);
 
-  expect(await renameThroughService(page)).toEqual({ renamed: 10, skipped: 3 });
+  expect(await renameThroughService(page)).toEqual({ renamed: 10, skipped: 3, layoutSaved: true });
 
   const reads = await page.evaluate(() => ({ ...window.__reads }));
   for (const name of WITHOUT) expect(reads[name], name).toBeUndefined();
@@ -102,7 +102,7 @@ test('a note that gains the new name between the passes is refused whole and cou
     };
   });
 
-  expect(await renameThroughService(page)).toEqual({ renamed: 9, skipped: 4 });
+  expect(await renameThroughService(page)).toEqual({ renamed: 9, skipped: 4, layoutSaved: true });
   expect((await files(page))['flow.md']).toBe(RENAME_NOTES['flow.md'].replace('status: draft', 'status: draft\nattendees: cat'));
 
   const ids = await page.evaluate(() => window.appState.undoStack.at(-1).edits.map(edit => edit.internalId));

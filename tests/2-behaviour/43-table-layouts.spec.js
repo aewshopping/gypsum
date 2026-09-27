@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockDirectoryWithLayouts } = require('../helpers');
+const { loadFolder, setupMockDirectoryWithLayouts, appModule } = require('../helpers');
+const { setupPropertyFolder } = require('../fixtures/property-notes');
 
 async function openTable(page) {
   await page.setViewportSize({ width: 1000, height: 900 });
@@ -842,4 +843,108 @@ test('delete all layouts forgets the flowchart choices too', async ({ page }) =>
     const m = await import('/public/js/services/flowchart-options.js');
     return m.flowchartProperty('subgraph');
   })).toBeNull();
+});
+
+// ---------------------------------------------------------------- a rename follows the name, plans/table-rename-column.md §10
+
+/**
+ * One rename observed twice: after it, and after its undo. Everything the app writes a property's
+ * name into outside the notes — the saved layout, the columns on screen, the type, a flowchart role
+ * and the sort — must follow it, and follow it back. A type set on the new name in between survives
+ * the undo: undoing the rename puts the notes back, not a type change made since.
+ */
+test('a rename carries the column, type, flowchart role and sort with it, and its undo carries them back', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await setupPropertyFolder(page, {
+    'a.md': '---\npeople: [ann, bob]\nstatus: draft\n---\n# A\n',
+    'b.md': '---\nstatus: live\npeople: [cat]\n---\n# B\n',
+  });
+  await page.addInitScript(() => { window.__betweenPassesKind = 'rename-property'; });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  await page.evaluate(async () => {
+    const { appState } = await import('/public/js/services/store.js');
+    const { setPropertyType } = await import('/public/js/services/property-type.js');
+    const { setFlowchartOption } = await import('/public/js/services/flowchart-options.js');
+    const { savePropertyTypes, saveFlowchartOptions, saveLayout } = await import('/public/js/table-layouts/layout-file.js');
+    setPropertyType('people', 'array');
+    setFlowchartOption('subgraph', 'people');
+    appState.sortState.property = 'people';
+    await savePropertyTypes();
+    await saveFlowchartOptions();
+    await saveLayout('mine');
+  });
+
+  const saved = () => page.evaluate(() => JSON.parse(window.__saved['table_layouts.gypsum']));
+  const names = async () => (await saved()).layouts.mine.columns.map(column => column.name);
+  const headers = () => page.locator('.note-table-cell-header').evaluateAll(cells => cells.map(cell => cell.dataset.property));
+  const before = await names();
+  const position = before.indexOf('people');
+  const onScreen = (await headers()).indexOf('people');
+  expect(position).toBeGreaterThan(-1);
+
+  expect(await page.evaluate(async () => {
+    const { renameProperty } = await import('/public/js/editing/rename-property.js');
+    return renameProperty('people', 'attendees');
+  })).toEqual({ renamed: 2, skipped: 0, layoutSaved: true });
+
+  expect(await names()).toEqual(before.map(name => name === 'people' ? 'attendees' : name));
+  expect((await headers()).indexOf('attendees')).toBe(onScreen);
+  const file = await saved();
+  expect(file.propertyTypes.attendees).toEqual({ type: 'array' });
+  expect(file.propertyTypes.people).toEqual({ type: 'array' });   // copied, never moved
+  expect(file.flowchart.subgraph).toBe('attendees');
+  expect(await page.evaluate(() => window.appState.sortState.property)).toBe('attendees');
+
+  // A type set on the new name after the rename is the user's, and the undo keeps it.
+  await page.evaluate(async () => {
+    const { setPropertyType } = await import('/public/js/services/property-type.js');
+    const { savePropertyTypes } = await import('/public/js/table-layouts/layout-file.js');
+    setPropertyType('attendees', 'string');
+    await savePropertyTypes();
+  });
+
+  await page.locator('#table-undo-btn').click();
+  await expect(page.locator('#output-report')).toContainText('undo: people column rename to attendees in 2 files');
+  await expect.poll(names).toEqual(before);
+  expect((await headers()).indexOf('people')).toBe(onScreen);
+  const undone = await saved();
+  expect(undone.propertyTypes.people).toEqual({ type: 'string' });
+  expect(undone.flowchart.subgraph).toBe('people');
+  expect(await page.evaluate(() => window.appState.sortState.property)).toBe('people');
+});
+
+// The pure rewrite behind both the file and the screen. Each case costs no page.
+test('renameInColumns: in place, a leftover replaced, inserted beside, the sticky count, a label kept', async () => {
+  const { renameInColumns } = await appModule('table-layouts/layout-apply.js');
+  const col = (name, extra = {}) => ({ name, label: name, width: 100, visible: true, ...extra });
+  const names = ({ columns }) => columns.map(column => column.name);
+
+  // Gone from every note: renamed in place, width and visibility kept, label following its default.
+  const inPlace = renameInColumns([col('a'), col('people', { width: 150 }), col('b')], 0, 'people', 'attendees', true);
+  expect(inPlace.columns[1]).toEqual({ name: 'attendees', label: 'attendees', width: 150, visible: true });
+
+  // A leftover keyless `attendees` is dropped, and the stuck columns stay the same columns.
+  const leftover = renameInColumns([col('attendees'), col('a'), col('people')], 3, 'people', 'attendees', true);
+  expect(names(leftover)).toEqual(['a', 'attendees']);
+  expect(leftover.stickyCount).toBe(2);
+
+  // Still in some notes: inserted straight after, and inside the stuck run the count grows by one.
+  const beside = renameInColumns([col('a'), col('people'), col('b')], 2, 'people', 'attendees', false);
+  expect(names(beside)).toEqual(['a', 'people', 'attendees', 'b']);
+  expect(beside.stickyCount).toBe(3);
+  // ... and a layout that already has the new name is left as it is.
+  const has = [col('a'), col('people'), col('attendees')];
+  expect(renameInColumns(has, 0, 'people', 'attendees', false).columns).toBe(has);
+
+  // A label someone wrote is theirs, and a hidden column stays hidden.
+  const labelled = renameInColumns([col('people', { label: 'Who', visible: false })], 0, 'people', 'attendees', true);
+  expect(labelled.columns[0]).toEqual({ name: 'attendees', label: 'Who', width: 100, visible: false });
+
+  // The file's own order is honoured, and not renumbered.
+  const ordered = renameInColumns([col('b', { order: 2 }), col('people', { order: 1 })], 0, 'people', 'attendees', false);
+  expect(ordered.columns.map(column => [column.name, column.order])).toEqual([['people', 1], ['attendees', 1], ['b', 2]]);
 });

@@ -2,6 +2,7 @@ import { appState } from '../services/store.js';
 import { applyRawEdits } from './apply-raw-edits.js';
 import { pushUndoBatch, dropUndoBatch } from '../table-undo/undo-stacks.js';
 import { saveUndoFile } from '../table-undo/undo-file.js';
+import { followPropertyRename } from '../table-layouts/follow-property-rename.js';
 
 /**
  * @file Renaming a property in every note that has it — the key's name changes, and nothing else
@@ -32,13 +33,19 @@ import { saveUndoFile } from '../table-undo/undo-file.js';
  *
  * @param {string} from
  * @param {string} to
+ * **The name then follows outside the notes** — columns, type, flowchart, sort — in the write pass's
+ * `beforeRefresh`, so the one render draws the column under its new name; the layouts file it queues
+ * is waited for before this returns, which keeps the table busy and the folder fixed until it is
+ * written. §10.1.
+ *
+ * @param {string} from
+ * @param {string} to
  * @param {(done: number, total: number) => void} [onProgress] - Called as each note is written.
- * @param {(records: Array<object>) => Set<string>} [beforeRefresh] - Handed to the write pass: runs
- *   once the notes are written, before the table is drawn. See applyRawEdits.
- * @returns {Promise<{renamed: number, skipped: number}>} How many notes were renamed, and how many
- *   that carried `from` at the start were left alone — locked, or changed since.
+ * @returns {Promise<{renamed: number, skipped: number, layoutSaved: boolean}>} How many notes were
+ *   renamed, how many that carried `from` at the start were left alone — locked, or changed since —
+ *   and whether the layouts file took the new name. false says so on the result line.
  */
-export async function renameProperty(from, to, onProgress, beforeRefresh) {
+export async function renameProperty(from, to, onProgress) {
     // Fixed now, for the journal's writes as well as the notes': a folder loaded meanwhile must not
     // receive either.
     const dirHandle = appState.dirHandle;
@@ -57,7 +64,7 @@ export async function renameProperty(from, to, onProgress, beforeRefresh) {
     ]);
 
     const planned = await applyRawEdits(pairs(located), { write: false, allOrNothing: true });
-    if (planned.length === 0) return { renamed: 0, skipped: carrying.length };
+    if (planned.length === 0) return { renamed: 0, skipped: carrying.length, layoutSaved: true };
 
     const { batch, saved } = pushUndoBatch(planned, { kind: 'rename-property', property: from, to, dirHandle });
 
@@ -67,9 +74,15 @@ export async function renameProperty(from, to, onProgress, beforeRefresh) {
         throw new Error('the undo history could not be saved, so nothing was renamed');
     }
 
+    let layoutSaved = Promise.resolve(true);
+    const follow = (records) => {
+        layoutSaved = followPropertyRename(from, to, records);
+        return new Set();
+    };
+
     const plannedIds = new Set(planned.map(record => record.internalId));
     const applied = await applyRawEdits(pairs(located.filter(record => plannedIds.has(record.internalId))),
-        { allOrNothing: true, onProgress, beforeRefresh });
+        { allOrNothing: true, onProgress, beforeRefresh: follow });
 
     // The entry now holds what actually happened; a pass that wrote nothing leaves no entry at all.
     if (applied.length === 0) {
@@ -80,5 +93,6 @@ export async function renameProperty(from, to, onProgress, beforeRefresh) {
     }
 
     const renamed = new Set(applied.map(record => record.internalId)).size;
-    return { renamed, skipped: carrying.length - renamed };
+    return { renamed, skipped: carrying.length - renamed, layoutSaved: await layoutSaved };
 }
+

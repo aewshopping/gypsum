@@ -81,8 +81,9 @@ export async function reverseCellEdits(direction, index) {
 
     let applied;
     let refused;
+    let layoutSaved;
     try {
-        ({ applied, refused } = await reverseBatch(direction, index, onProgress));
+        ({ applied, refused, layoutSaved } = await reverseBatch(direction, index, onProgress));
 
         // After the write, which awaited its own render — so these are the rows on screen now, and
         // the cells the marks are about actually exist. §10.2.
@@ -100,7 +101,8 @@ export async function reverseCellEdits(direction, index) {
     // notes it reached. It counts notes. plans/table-rename-column.md §6.2.
     const perNote = pending.kind === 'rename-property';
     const count = (edits) => perNote ? new Set(edits.map(edit => edit.internalId)).size : edits.length;
-    reportUndo(direction, name, count(applied), count(refused), perNote ? 'notes' : 'values');
+    reportUndo(direction, name, count(applied), count(refused),
+        { unit: perNote ? 'notes' : 'values', layoutUnsaved: layoutSaved === false });
 }
 
 /**

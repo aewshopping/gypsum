@@ -3,6 +3,7 @@ import { applyRawEdits } from '../editing/apply-raw-edits.js';
 import { readUndoFile, saveUndoFile } from './undo-file.js';
 import { addRefusals } from './undo-refusals.js';
 import { checkFileErrors } from '../services/file-parsing/file-errors.js';
+import { followPropertyRename } from '../table-layouts/follow-property-rename.js';
 
 /**
  * @file The two stacks, and putting a batch of cell edits back.
@@ -84,9 +85,15 @@ export function dropUndoBatch(batch, dirHandle) {
  * @param {'undo'|'redo'} direction - Which stack to take from.
  * @param {number} [index] - Which entry, counted from the bottom; the top when left out.
  * @param {(done: number, total: number) => void} [onProgress] - Called as each file finishes.
- * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined}>} The
- *   edits that were written, the edits the check turned down — each gets its own mark on the cell —
- *   and the batch they came from, for its name.
+ * **A rename's name follows the notes back** — its columns, type, flowchart roles and sort — by the
+ * rename's own rule run with the names swapped for an undo, in the same `beforeRefresh`, after the
+ * refusal marks: a failure in the follow must not cost a mark, which may hold the only copy of a
+ * value. plans/table-rename-column.md §9.2, §10.1.
+ *
+ * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined,
+ *   layoutSaved?: boolean}>} The edits that were written, the edits the check turned down — each
+ *   gets its own mark on the cell — the batch they came from, for its name, and for a rename whether
+ *   the layouts file took the name.
  */
 export async function reverseBatch(direction, index, onProgress) {
     const from = direction === 'undo' ? appState.undoStack : appState.redoStack;
@@ -109,6 +116,18 @@ export async function reverseBatch(direction, index, onProgress) {
         return addRefusals(refused, batch);
     };
 
+    // For a rename, which name the notes are leaving: an undo takes them from `to` back to
+    // `property`, a redo the other way.
+    const rename = batch.kind === 'rename-property'
+        ? (direction === 'undo' ? [batch.to, batch.property] : [batch.property, batch.to])
+        : null;
+    let layoutSaved;
+    const beforeRefresh = (records) => {
+        const recheck = markRefused(records);
+        if (rename) layoutSaved = followPropertyRename(...rename, records);
+        return recheck;
+    };
+
     const applied = await applyRawEdits(batch.edits.map(edit => ({
         internalId: edit.internalId,
         property: edit.property,
@@ -125,13 +144,13 @@ export async function reverseBatch(direction, index, onProgress) {
         keepKey: edit.before === '' && edit.existed,
         // A rename is two edits per note, and half of one loses the value or doubles it: a note
         // takes both or neither, in either direction. plans/table-rename-column.md §6.2.
-    })), { beforeRefresh: markRefused, onProgress, allOrNothing: batch.kind === 'rename-property' });
+    })), { beforeRefresh, onProgress, allOrNothing: rename !== null });
 
     // The same facts, so a redo has the same name as the undo it reverses.
     push(onto, applied, { kind: batch.kind ?? 'edit', property: batch.property ?? null, to: batch.to });
     saveUndoFile();
 
-    return { applied, refused, batch };
+    return { applied, refused, batch, ...(layoutSaved && { layoutSaved: await layoutSaved }) };
 }
 
 /**

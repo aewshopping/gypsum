@@ -4,7 +4,7 @@ import { startProgress, stepProgress, endProgress } from './progress-bar.js';
  * @file The line above the file list: how many files are showing, and what the last undo did.
  *
  * One line, two writers, and they do not know about each other. Every render sets the count; an
- * undo, a redo or a column delete adds its half and takes it away again a few seconds later. So the
+ * undo, a redo, a column delete or a rename adds its half and takes it away again a few seconds later. So the
  * line is rebuilt from the two pieces held here rather than written to directly — otherwise whichever spoke last would erase
  * the other, and a render is exactly what an undo causes.
  *
@@ -20,7 +20,7 @@ const ISSUES_PROPERTY = 'fileIssues';
 const ACTION_MS = 5000;
 
 let fileCount = 0;
-// The action half: what an undo, a redo or a column delete did, or how far a delete has got. A list
+// The action half: what an undo, a redo, a column delete or a rename did, or how far one has got. A list
 // of pieces rather than a string, because a count in it can be a clickable filter.
 let actionParts = [];
 let actionFailed = false;
@@ -51,21 +51,28 @@ export function reportFileCount(count) {
  * @param {string} name - What the batch was, from describeBatch — the same name its button showed.
  * @param {number} applied - How many values were put back.
  * @param {number} failed - How many the check refused because the file had moved on.
- * @param {'values'|'notes'} [unit] - What the two counts count: notes for a rename, whose two edits
- *   per note are taken or refused together.
+ * @param {{unit?: 'values'|'notes', layoutUnsaved?: boolean}} [options] - `unit` is what the two
+ *   counts count: notes for a rename, whose two edits per note are taken or refused together.
+ *   `layoutUnsaved` says a rename's name could not be written into the layouts file.
  * @returns {void}
  */
-export function reportUndo(direction, name, applied, failed, unit = 'values') {
+export function reportUndo(direction, name, applied, failed, { unit = 'values', layoutUnsaved = false } = {}) {
     const parts = [`${direction}: ${name} — ${applied} ${unit}`];
     if (failed > 0) {
         parts.push(', ', nudge(`${failed} fail`, 'undo',
             `show the ${failed} note${failed === 1 ? '' : 's'} the ${direction} left alone`));
     }
-    say(parts, failed > 0, true);
+    if (layoutUnsaved) parts.push(LAYOUT_UNSAVED);
+    say(parts, failed > 0 || layoutUnsaved, true);
 }
 
+/** Said after a rename, or its undo or redo, whose layouts file could not be written: the notes are
+ * right, but after a reload the columns will not be. plans/table-rename-column.md §10.1. */
+const LAYOUT_UNSAVED = '; the table layout could not be saved';
+
 /**
- * Says a column delete has begun, and shows the bar behind the line that will track it.
+ * Says a folder-wide write has begun — a column delete, a rename, or an undo or redo across many
+ * notes — and shows the bar behind the line that will track it.
  *
  * **The text is written once and only the bar moves.** A count rewritten after every file cost a
  * layout of the page each time — measured, it took a 1,000-note delete from about 4s to about 19s.
@@ -114,6 +121,26 @@ export function reportDelete(property, deleted, skipped) {
             `show the notes with front matter that could not be read`));
     }
     say(parts, skipped > 0, true);
+}
+
+/**
+ * Says what a rename did, as reportDelete says what a delete did.
+ * @param {string} from
+ * @param {string} to
+ * @param {number} renamed - Notes renamed.
+ * @param {number} skipped - Notes that carried `from` and were left alone.
+ * @param {boolean} layoutSaved - Whether the layouts file took the new name.
+ * @returns {void}
+ */
+export function reportRename(from, to, renamed, skipped, layoutSaved) {
+    // Two spaces for reportDelete's reason: "renamed" lines up with the "renaming" it replaces.
+    const parts = [`renamed\u00A0 ${from} to ${to} in ${renamed} file${renamed === 1 ? '' : 's'}`];
+    if (skipped > 0) {
+        parts.push(', ', nudge(`${skipped} skipped`, 'yaml',
+            `show the notes with front matter that could not be read`));
+    }
+    if (!layoutSaved) parts.push(LAYOUT_UNSAVED);
+    say(parts, skipped > 0 || !layoutSaved, true);
 }
 
 /**
