@@ -627,7 +627,9 @@ and a note that gained the new name mid-write all come out right with no case of
   writing would replace a file it failed to read with one holding no layouts.
   `savePropertyTypes`, `saveFlowchartOptions` and `saveLayout` all read-then-write the same way
   today. `renamePropertyInLayouts` is one more such writer, run once per rename — not a new kind of
-  risk, but the reason no change to `readLayouts` belongs in this plan.
+  risk, but the reason no change to `readLayouts` belongs in this plan. It is fixed for all three
+  app files by `plans/gypsum-file-reads.md`; once that is built, `renamePropertyInLayouts` refuses
+  on an unreadable file like every other writer, and its `false` reaches the result line (above).
 - **Under the app's defaults** there is no saved layout, but `columnLayout` is filled in memory by
   `resolveColumns()`, and it is rewritten the same way — so the column keeps its place under the
   defaults too.
