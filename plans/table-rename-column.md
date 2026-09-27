@@ -24,13 +24,21 @@ loaded folder that has it: the key's name changes, and nothing else in the note 
 batch, and one undo puts it back. The column, its type, its place in every saved layout and the flowchart's
 roles follow the new name.
 
+**Rename is not a merge.** A rename gives a property a name no note uses yet. Anything that would
+bring two keys together under one name, in one note or across the folder, is a *merge*. That
+includes finishing a rename that left some notes behind, and tidying `colour` into an existing
+`color`. A merge is a different feature: it has to decide what happens where both keys hold values,
+and none of this plan's rules answer that. It may be built later, in a plan of its own. Until then,
+**a name any note already has is refused, with no exceptions** (§4.4), and nothing in this plan is
+to be read as partly supporting a merge.
+
 **In scope:** the menu item and which columns get it; editing the name in the header and what a
-legal name is;
-what happens where a note already has the new name; the write; what follows the name outside the
+legal name is; refusing a name a note already has; the write; what follows the name outside the
 notes; undo and redo of it.
 
 **Out of scope:** renaming within the filtered files only (as the delete, §4.2 there); cancelling
-part-way (as the delete, §11); renaming onto a property the app fills in (§4.3); renaming a column's
+part-way (as the delete, §11); **merging two properties** (above, §4.4); renaming onto a property
+the app fills in (§4.3); renaming a column's
 *label* without touching the notes (§3.2); renaming a linked property, which
 `plans/table-linked-properties.md` will own.
 
@@ -144,14 +152,11 @@ Spaces inside a name are allowed (`due date`); the parser reads them, and so doe
 
 ### 4.3 Not onto a property the app fills in
 
-**Decided: `title`, `color` and every other core name are refused as a new name**, although `title`
-and `color` are keys a note may hold and renaming `colour` to `color` is a real wish.
-
-The reason is the in-use rule (§4.4). A file object carries `title` and `color` whether or not
-the note's front matter does, because the app fills them in. So `Object.hasOwn` would call both
-names in use in every folder, and `appState` cannot say which notes really have a `title:` key.
-Allowing these two needs the parser to report which core values came from front matter. §16 gives
-that as the way to lift this; it is not built here.
+**Decided: `title`, `color` and every other core name are refused as a new name.** The app fills
+these in on every file object, so every note already has them in the sense §4.4 asks, and a rename
+onto one would be a merge with the value the app supplies. Most `colour` → `color` wishes are a
+merge in the plain sense as well: some notes already say `color:`. Both are for the merge feature,
+if it is built.
 
 `RESERVED_KEYS` must be refused for a stronger reason: a note carrying one is locked, so the rename
 would lock every note it touched.
@@ -160,9 +165,11 @@ would lock every note it touched.
 
 **Decided: if any loaded note has the new name as a key, the name is refused.** While it is typed,
 the header shows it in the warning colour and the report line says why, as for any other illegal
-name (§4.2, rule 8). Finishing with it writes nothing (§8.2). Renaming
-onto a name that is in use would be a merge of two columns. A rename is not the tool for that: in a
-note holding both keys, one value would have to be chosen and the other destroyed.
+name (§4.2, rule 8). Finishing with it writes nothing (§8.2). A name in use makes the operation a
+merge, and **rename is not a merge** (§1). No exception is made for a merge that looks harmless: not
+for notes that never hold both keys, not for finishing an earlier rename of the same two names, and
+not for the app's own names (§4.3). One rule with no exceptions is what keeps the two features
+apart.
 
 - **"Has the key" is the question `dead` asks**: `Object.hasOwn(file, to)` over `appState.myFiles`,
   never `myFilesProperties`, which only grows. A bare `attendees:` counts, since it is `null` on the
@@ -171,8 +178,8 @@ note holding both keys, one value would have to be chosen and the other destroye
 - **A name no note has is free**, even if it is still a keyless column in a saved layout or still
   has a type saved against it. Nothing in any note is lost by using it; §10.1 says what happens to
   that column and that type.
-- **The sentence gives a count**, `"attendees" is already in 12 notes`, so the user can go and look,
-  or delete that column first if merging really is what they want.
+- **The sentence gives a count**, `"attendees" is already in 12 notes`, so the user can go and look.
+  It does not suggest a way round the refusal.
 - **The write re-checks against the bytes on disk.** A note that gains the new key after the
   name was checked, in another editor or from the sidebar, is refused whole by `expect: null` (§6.1)
   and `allOrNothing` (§6.2). It keeps `people` untouched, and is counted as skipped.
@@ -542,6 +549,29 @@ a *file* being renamed. Its file comment says so; this plan's module is `rename-
 
 ---
 
+### 9.3 Undo is the history, so every outcome must undo
+
+Table writes take no version snapshot, so after a rename the undo entry is the only record of what
+each note said. **Every state a rename can leave the folder in must therefore be fully reversed by
+one undo of its entry**, and that is the test of the design rather than a feature of it:
+
+- **A complete rename** undoes to the original bytes, and redoes to the renamed bytes again (§14.2
+  proves both in node, per note shape).
+- **A rename with skipped notes** undoes the notes it renamed. The skipped ones were never written
+  and are not in the entry.
+- **A rename cut short** (a tab closed mid-write) undoes the notes that were written. The journal's
+  entries for notes never written are refused in pairs, harmlessly, and leave nothing behind.
+- **An undo refused for a note edited since** keeps the values it would have restored, as the
+  delete's do (`undoRefusals`, the `undo:` segment). Both halves of the pair are kept (§6.2).
+- **The entry survives a reload and a file rename**, through `undo.gypsum` and `renameInUndoStacks`,
+  with nothing added for a rename.
+- **"Clear undo history" is the one act that makes a rename permanent**, and its confirmation
+  already says it removes the saved copies.
+
+Nothing else in the plan may produce a note state that one undo cannot put back. That is why
+following the name (§10) re-runs its rule in the reverse direction rather than recording a layout
+change of its own.
+
 ## 10. What follows the name outside the notes
 
 A rename that changed 35 notes and left the layout asking for `people` would draw a faded, empty
@@ -657,9 +687,14 @@ No cancel, as the delete.
 listing all of them. Undo reverses the renamed ones and refuses the rest, in pairs (§6.2) — none of
 whose bytes are at risk. The layouts file was not yet rewritten (§10 runs after the writes), so the
 layout still names `people`: its column shows the notes left behind, and `attendees` joins the
-layout as any new property does. **Running the rename again finishes it**: the notes renamed
-already carry only `attendees` and are not in the forecast, and the rest are renamed as normal.
-No recovery code.
+layout as any new property does. No recovery code.
+
+**Running the rename again does not finish it, and must not.** `attendees` is now in use, so the
+name is refused (§4.4): finishing a part-done rename brings two keys together, which is a merge.
+**The way out is undo** (§9.3): one undo puts every renamed note back, and the rename can then be
+run again once whatever stopped it is dealt with. The same holds for the notes a rename skips because
+their front matter did not read: undo, fix those notes, rename again. The report line's `2 skipped`
+nudge filters to them.
 
 ---
 
@@ -673,8 +708,8 @@ No recovery code.
 | How it is written | **remove + re-create at the anchor**, two ordinary records per note — not a new kind of splice. §3.3. |
 | Two splices at one offset | **the writer orders them**: replacing before inserting, for every caller. §5.1. |
 | A legal new name | trimmed; parsed back as itself; nothing another reader would read differently; no core or reserved name. §4.2. |
-| Onto `title` or `color` | **refused**, until the forecast can count their front matter keys. §4.3, §15. |
-| Onto a name any note already has | **refused**: the header turns the warning colour while it is typed, and the report line says how many notes have it; no merges. The write re-checks against disk (`expect: null`). §4.4. |
+| Onto `title`, `color` or any core name | **refused**: every file object carries them, so it would be a merge. §4.3. |
+| Onto a name any note already has | **refused, with no exceptions**: rename is not a merge. The header turns the warning colour while it is typed, and the report line says how many notes have it. The write re-checks against disk (`expect: null`). §4.4. |
 | A note that would half-rename | **cannot**: `allOrNothing`, per note, for the rename, its undo and its redo. §6.2. |
 | "must not have the key" | **`expect: null`**. §6.1. |
 | Passes | locate, plan (the journal), write, each sent only the carrying notes. §6.3. |
@@ -687,6 +722,9 @@ No recovery code.
 | Search filters | **do not follow**. §10.2. |
 | Undo of the layout change | **none of its own**: the rule runs again in the other direction. §10.1. |
 | Undo entry | `kind: 'rename-property'`, `property`, `to`; `people column rename to attendees in 35 files`. §9.1. |
+| Rename or merge | **a rename is never a merge**; merging, if built, is a separate plan. §1, §4.4. |
+| A part-done or partly skipped rename | **undone, not finished**: renaming again onto the new name is a merge, so it is refused. §11. |
+| Undo | **the only history**: every state a rename can leave is reversed by one undo of its entry. §9.3. |
 | While running | **as the delete**: `setBulkWriteBusy`, the shared bar started by `reportProgress` before the passes, `onProgress` on the write pass only, one step per note, text written once. §11. |
 
 ---
@@ -895,11 +933,10 @@ specs and by the node test above. The delete spec's only change is that import. 
 
 ## 16. What this knowingly does not do
 
-- **Rename onto `title` or `color`.** §4.3. The way to lift it: the parser reports which core
-  properties front matter supplied (it already knows, at the spread in `file-info.js`), and the
-  in-use check asks that instead of `Object.hasOwn`.
-- **Merge two columns.** §4.4. A name any note already has is refused; merging would mean choosing
-  which of two values to destroy, and deleting one column first is the way to do it deliberately.
+- **Merge.** Rename is not a merge (§1, §4.4). A name any note already has is refused, with no
+  exceptions: that covers finishing a part-done rename, renaming onto `title` or `color`, and
+  bringing two differently spelled columns together. A merge feature, if built, is its own plan.
+  It would have to decide what happens where both keys hold values.
 - **Rename within a filter, or cancel once started.** As the delete.
 - **Rewrite search filters.** §10.2.
 - **Rename a column's label without touching notes.** §3.2 — a separate, smaller feature.
