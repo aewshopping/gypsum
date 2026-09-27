@@ -810,7 +810,12 @@
     <div class="info-modal-field">
       <label for="column-rename-input" id="column-rename-label">new name</label>
       <input id="column-rename-input" type="text" autocomplete="off" spellcheck="false" data-action="column-rename-input">
-      <p id="column-rename-message" class="info-modal-message is-prose"></p>
+      <!-- Both lines are always laid out, one over the other, and only one is visible: the dialog is
+           sized by the larger, so it does not jump as a name becomes refused and allowed again. -->
+      <div class="info-modal-message-stack">
+        <p id="column-rename-forecast" class="info-modal-message is-prose"></p>
+        <p id="column-rename-problem" class="info-modal-message is-prose is-warning" hidden></p>
+      </div>
     </div>
 
     <div class="info-modal-btn-row">

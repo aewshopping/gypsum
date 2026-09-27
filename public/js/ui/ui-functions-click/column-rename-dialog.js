@@ -28,7 +28,8 @@ const elements = () => ({
     dialog: document.getElementById('modal-column-rename'),
     input: document.getElementById('column-rename-input'),
     label: document.getElementById('column-rename-label'),
-    message: document.getElementById('column-rename-message'),
+    forecast: document.getElementById('column-rename-forecast'),
+    problem: document.getElementById('column-rename-problem'),
     confirm: document.getElementById('column-rename-confirm'),
 });
 
@@ -46,8 +47,12 @@ export function handleColumnRenameOpen() {
     _keys = keysIgnoringCase(appState.myFiles, property);
     _forecast = propertyForecast(property);
 
-    const { dialog, input, label } = elements();
+    const { dialog, input, label, forecast } = elements();
     label.textContent = `new name for "${property}"`;
+    // Written once: which notes a rename reaches does not depend on the name typed.
+    const locked = _forecast.changing === 0;
+    forecast.textContent = locked ? lockedText() : forecastText();
+    forecast.classList.toggle('is-warning', locked);
     input.value = property;
     dialog.returnValue = '';
     paint();
@@ -119,17 +124,19 @@ function canRename(typed) {
 }
 
 /**
- * Writes the line under the text box and the button, from what is typed now.
+ * Shows the refusal or the forecast under the text box, and enables the button, from what is typed
+ * now.
  * @returns {void}
  */
 function paint() {
-    const { input, message, confirm } = elements();
+    const { input, forecast, problem, confirm } = elements();
     const typed = input.value;
-    const problem = renameProblem(_from, typed, _keys);
-    const locked = _forecast.changing === 0;
+    const reason = renameProblem(_from, typed, _keys);
 
-    message.textContent = problem ?? (locked ? lockedText() : forecastText());
-    message.classList.toggle('is-warning', Boolean(problem) || locked);
+    // The two lines take turns in one place, and both stay laid out, so the dialog keeps its size.
+    problem.textContent = reason ?? '';
+    problem.hidden = reason === null;
+    forecast.hidden = reason !== null;
     confirm.disabled = !canRename(typed);
     confirm.textContent = `rename in ${filesPhrase(_forecast.changing)}`;
 }

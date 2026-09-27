@@ -320,7 +320,9 @@ journalled batch that one undo puts back. It is the delete's machinery with a se
 `plans/completed/table-rename-column.md`.
 
 - **Rename is never a merge.** A name any loaded note already has, **in any case**, is refused, and
-  so is every name the app keeps for itself. Bringing two keys together is a different feature with
+  so is every name the app keeps for itself — and every built-in column's label (`size`, `file`,
+  `last modified`…), from `FILE_PROPERTIES`, since a property of that name would be a second column
+  reading the same. A label given by hand-editing a layouts file is not looked for. Bringing two keys together is a different feature with
   questions a rename cannot answer. Case is refused *in the dialog only*: `People:` beside `people:`
   typed by hand is still two keys to everything else. Renaming a name's own case is allowed.
 - **What a legal name is lives in `services/property-name.js`, all pure.** Trimmed; no colon, control
@@ -348,7 +350,9 @@ journalled batch that one undo puts back. It is the delete's machinery with a se
 - **A dialog, not an editable header.** An editable header had to be taught not to trip over the
   table at every way out; `showModal()` makes the table inert instead. The dialog is its own
   confirmation: the line under the text box gives the reason a name is refused or what renaming will
-  do, and the button is disabled until it can be done.
+  do, and the button is disabled until it can be done. **The two lines are stacked in one grid cell
+  and both laid out**, the inactive one only invisible, so the dialog keeps its size as a name is
+  refused and allowed again.
 
 ### The undo history
 

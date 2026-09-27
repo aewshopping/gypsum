@@ -233,6 +233,23 @@
     max-width: 44ch;
 }
 
+/* Messages that take turns in one place — the rename dialog's forecast and its refusal. All of them
+   are laid out in the one grid cell and the hidden ones are only invisible, so the cell, and the
+   dialog around it, is always the size of the largest: a shorter refusal does not shrink the dialog
+   under the pointer as it is typed. */
+.info-modal-message-stack {
+    display: grid;
+}
+
+.info-modal-message-stack > * {
+    grid-area: 1 / 1;
+}
+
+.info-modal-message-stack > [hidden] {
+    display: block;
+    visibility: hidden;
+}
+
 /* Buttons that finish a dialog's fields, rather than act on a list below them: the gap goes above
    the row instead of under it. */
 .info-modal-field + .info-modal-btn-row {

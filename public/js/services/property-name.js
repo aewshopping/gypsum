@@ -1,4 +1,4 @@
-import { CORE_FILE_PROPERTIES } from './store.js';
+import { CORE_FILE_PROPERTIES, FILE_PROPERTIES } from './store.js';
 import { RESERVED_KEYS } from './file-parsing/file-info.js';
 import { parseYaml } from './file-parsing/yaml-parse.js';
 
@@ -55,6 +55,12 @@ export function propertyNameProblem(name, from) {
     if ([...CORE_FILE_PROPERTIES, ...RESERVED_KEYS].some(key => key.toLowerCase() === lower)) {
         return `"${trimmed}" is set by the app`;
     }
+    // A built-in column headed by a label rather than its name — `size` is sizeInBytes, `file` is
+    // internalId — would stand beside a property of that name as two columns read the same. Only the
+    // app's own labels: one a layouts file was hand-edited to give is left alone, rather than read the
+    // file for it. plans/completed/table-rename-column.md §4.2, rule 8.
+    const labelled = [...FILE_PROPERTIES].find(([, schema]) => schema.label?.toLowerCase() === lower);
+    if (labelled) return `"${trimmed}" is the name of a built-in column`;
     return null;
 }
 

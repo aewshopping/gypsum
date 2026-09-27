@@ -1072,6 +1072,10 @@ test('propertyNameProblem: what a property may be renamed to', async () => {
     ['title', '"title" is set by the app'],
     ['Title', '"Title" is set by the app'],
     ['FILENAME', '"FILENAME" is set by the app'],
+    // The app's built-in labels, which head a column whose property has another name.
+    ['size', '"size" is the name of a built-in column'],
+    ['Last Modified', '"Last Modified" is the name of a built-in column'],
+    ['links', '"links" is the name of a built-in column'],
   ];
   for (const [name, expected] of cases) expect(propertyNameProblem(name, 'people'), JSON.stringify(name)).toBe(expected);
 });

@@ -407,7 +407,8 @@ test('a column of bare keys fades and offers delete column', async ({ page }) =>
 const renameItem = page => page.locator('#column-menu [data-action="column-rename-property"]');
 const renameDialog = page => page.locator('#modal-column-rename');
 const renameInput = page => page.locator('#column-rename-input');
-const renameMessage = page => page.locator('#column-rename-message');
+const renameProblem = page => page.locator('#column-rename-problem');
+const renameForecast = page => page.locator('#column-rename-forecast');
 const renameButton = page => page.locator('#column-rename-confirm');
 
 test('rename column: offered beside delete, and its dialog says as you type whether a name can be used', async ({ page }) => {
@@ -427,24 +428,32 @@ test('rename column: offered beside delete, and its dialog says as you type whet
   await expect(renameInput(page)).toBeFocused();
   expect(await renameInput(page).evaluate(el => [el.value, el.selectionStart, el.selectionEnd])).toEqual(['people', 0, 6]);
   await expect(renameButton(page)).toBeDisabled();   // unchanged: nothing to do yet
+  const size = await renameDialog(page).boundingBox();
 
   for (const [name, reason] of [
     ['color', '"color" is set by the app'],
+    ['size', '"size" is the name of a built-in column'],
     ['Color', '"Color" is set by the app'],
     ['a"b', 'a name cannot contain """'],
     ['a: b', 'a name cannot contain ":"'],
   ]) {
     await renameInput(page).fill(name);
-    await expect(renameMessage(page)).toHaveText(reason);
-    await expect(renameMessage(page)).toHaveClass(/is-warning/);
+    await expect(renameProblem(page)).toHaveText(reason);
+    await expect(renameProblem(page)).toBeVisible();
+    await expect(renameForecast(page)).toBeHidden();
     await expect(renameButton(page)).toBeDisabled();
+    // A refusal shorter than the forecast still takes the forecast's room, so nothing moves.
+    expect(await renameDialog(page).boundingBox()).toEqual(size);
   }
 
   await renameInput(page).fill('attendees');
-  await expect(renameMessage(page)).toContainText('Renames the key in 4 files');
-  await expect(renameMessage(page)).toContainText('and 1 more.');
-  await expect(renameMessage(page)).toContainText('1 file will be skipped: their front matter could not be read.');
-  await expect(renameMessage(page)).not.toHaveClass(/is-warning/);
+  await expect(renameForecast(page)).toBeVisible();
+  await expect(renameProblem(page)).toBeHidden();
+  await expect(renameForecast(page)).toContainText('Renames the key in 4 files');
+  await expect(renameForecast(page)).toContainText('and 1 more.');
+  await expect(renameForecast(page)).toContainText('1 file will be skipped: their front matter could not be read.');
+  await expect(renameForecast(page)).not.toHaveClass(/is-warning/);
+  expect(await renameDialog(page).boundingBox()).toEqual(size);
   await expect(renameButton(page)).toBeEnabled();
   await expect(renameButton(page)).toHaveText('rename in 4 files');
 

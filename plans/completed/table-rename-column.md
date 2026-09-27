@@ -15,6 +15,11 @@ difference is listed here:
   button is the first `.btn-action` that is ever disabled. And one rule in `modal-info.css` puts the
   gap above a button row that finishes a dialog's fields.
 - **`filesPhrase` moved into `property-forecast.js`** beside `sampleNames`, both dialogs using it.
+- **A built-in column's label is refused as a name** (§4.2, rule 8), found after the build: `size`
+  beside the `size` column would be two columns reading the same.
+- **The forecast and the refusal are two lines stacked in one place**, both always laid out and one
+  invisible, so the dialog does not change size as a name is refused and allowed again. One line
+  whose text changed made the dialog shrink under the pointer.
 - **`RENAME_SLOW_AT` is 500**, from the delete's measurement of about 4s per 1,000 notes rather than
   from a timing of its own: the rename's write pass is the delete's.
 Follows: `plans/completed/table-delete-column.md`, **built**. That plan's machinery — the journal,
@@ -170,7 +175,11 @@ shows that sentence under the text box in the warning colour, and the rename but
    fails. A file object could not hold such a property either. The test in §14.2 lists it so that
    nobody "simplifies" this rule and lets it through.
 8. **A name the app keeps for itself, in any case** → `"Title" is set by the app`. Anything in
-   `CORE_FILE_PROPERTIES` or `RESERVED_KEYS`, compared ignoring case (§4.3).
+   `CORE_FILE_PROPERTIES` or `RESERVED_KEYS`, compared ignoring case (§4.3). **And a built-in
+   column's label** → `"size" is the name of a built-in column`: `size`, `file`, `last modified`,
+   `links`, `link text`, `preview` and `issues` head columns whose properties have other names, so a
+   property called `size` would be a second column reading the same. Only the labels in
+   `FILE_PROPERTIES`; a label a layouts file was hand-edited to give is not looked for.
 9. **A name a note already has, in any case** → `"attendees" is already in 12 notes`, or
    `"Attendees" is already in 12 notes as "attendees"` when only the case differs. §4.4. This is the
    one rule that needs to know the folder, so `propertyNameProblem` does not ask it. The same
