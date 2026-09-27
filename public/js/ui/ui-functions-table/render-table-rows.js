@@ -3,6 +3,7 @@ import { typeMismatch, isInfoColumn, isPropertyEditable } from '../../services/p
 import { hasYamlError } from '../../services/file-parsing/file-errors.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
 import { renderCellValue, mismatchMessage, rendersAsList } from './render-cell-value.js';
+import { stickyColumnCount } from './apply-column-widths.js';
 
 // Said to whoever opens a cell of a note whose front matter did not read cleanly. Every value in
 // that block is a guess, so the fix is the note rather than anything the table can offer.
@@ -21,11 +22,12 @@ const YAML_ERROR_TIP = 'this note\'s front matter could not be read — fix it i
 export function renderTableRows(current_props, renderEverything) {
     let rowsHtml = '';
     let index = 0;
+    const stickyCount = stickyColumnCount(current_props);
 
     for (const file of appState.myFiles) {
         if (checkFileOnPage(file.internalId)) {
 
-            const cellsHtml = current_props.map(prop => {
+            const cellsHtml = current_props.map((prop, column) => {
                 index++;
 
                 // A cell whose value cannot be drawn as its column's type shows its text and says
@@ -77,7 +79,14 @@ export function renderTableRows(current_props, renderEverything) {
                 const flag = (mismatch ? ` data-mismatch="${mismatch}"` : '')
                     + (brokenYaml ? ' data-yaml-error' : '')
                     + (tip ? ` data-tip="${tip}"` : '');
-                return `<div class="note-table-cell keyboard-navigable${fade}" data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
+                // A leading column that stays put while the table scrolls sideways. Where it comes
+                // to rest is a custom property rather than a number, so a resize drag moves it
+                // without a render — see applyColumnWidths.
+                const isSticky = column < stickyCount;
+                const sticky = isSticky ? ` is-sticky${column === stickyCount - 1 ? ' is-sticky-last' : ''}` : '';
+                const stickyLeft = isSticky ? ` style="--sticky-left: var(--sticky-left-${column})"` : '';
+
+                return `<div class="note-table-cell keyboard-navigable${fade}${sticky}"${stickyLeft} data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

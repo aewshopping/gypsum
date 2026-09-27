@@ -179,17 +179,17 @@ test('a tag line above the block is still front matter', async () => {
   expect((await parse(adjacent)).data).toEqual({ day: 'Monday' });
 });
 
-// The shapes that show what refusing prose above the separator is worth. Both hold something that
-// reads as front matter, so the block test alone would claim them: the list is asserted through
-// the rendered output because a keyless list parses to nothing either way — what would be lost is
-// the body, not the values.
-test('a setext heading over a list or a key is not front matter', async () => {
-  const { parseContent } = await appModule('services/parse-content.js');
-  const list = 'My Title\n---\n\n- milk\n- eggs\n\nAnother section\n---\n';
-  expect(parseContent(list)).toContain('milk');
+// What sits above the separator is never inspected: a plain line of text there is as good as a
+// heading. Only a block of prose between two rules is refused, by what is inside it.
+test('any line above the block is allowed, so long as the block reads as front matter', async () => {
+  const plain = 'My Title\n---\nday: Monday\n---\n';
+  expect((await parse(plain)).data).toEqual({ day: 'Monday' });
 
-  const key = 'My Title\n---\n\nNote: this is important\n\nAnother section\n---\n';
-  expect((await parse(key)).data).toEqual({});
+  const mixed = 'some words\n\n#admin\n---\nday: Monday\n---\n';
+  expect((await parse(mixed)).data).toEqual({ day: 'Monday' });
+
+  const tooLow = 'one\ntwo\nthree\nfour\nfive\n---\nday: Monday\n---\n';
+  expect((await parse(tooLow)).data).toEqual({});
 });
 
 test('a note whose front matter is eaten keeps its body in the rendered output', async () => {

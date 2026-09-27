@@ -190,7 +190,7 @@ export function handleLayoutEditName(evt, target) {
 
 /**
  * Commits a rename when the input loses focus. Bound to the document because focus events do not
- * bubble in the form this needs — the same arrangement handleTableHeaderFocus uses — so it leaves
+ * bubble in the form this needs — the same arrangement handleTableFocusScroll uses — so it leaves
  * immediately unless the thing being left is a name being edited.
  * @param {FocusEvent} evt
  * @returns {void}

@@ -134,3 +134,29 @@ test('opening a note from a row below the fold keeps the page where it was', asy
   // whether the anchor was followed, and with it the dead step it used to add to the Back button.
   expect(page.url()).not.toContain('#');
 });
+
+// The top scrollbar is drawn rather than real, so the track pressing a page either side of the
+// thumb is written out rather than free — and it went missing once, with no track to press.
+test('pressing the top scrollbar track beside the thumb pages the table towards the press', async ({ page }) => {
+  await page.setViewportSize({ width: 620, height: 700 });
+  await setupFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+  await showFilenames(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('#top-scrollbar-container[data-scrollable]')).toBeVisible();
+
+  const scroller = page.locator('.list-table');
+  const scrollLeft = () => scroller.evaluate(el => el.scrollLeft);
+  const track = page.locator('#top-scrollbar-container');
+  const box = await track.boundingBox();
+
+  await track.hover({ position: { x: box.width - 4, y: box.height / 2 } });
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect.poll(scrollLeft).toBeGreaterThan(0);
+  const after = await scrollLeft();
+
+  await track.click({ position: { x: 2, y: box.height / 2 } });
+  await expect.poll(scrollLeft).toBeLessThan(after);
+});

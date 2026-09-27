@@ -102,6 +102,19 @@ export function applyLayoutToColumnLayout(columns) {
 }
 
 /**
+ * How many columns stick left, as a layout in the file asks for it.
+ *
+ * Hand-editable like the rest of a layout, so anything but a whole number from 0 up is read as 0 —
+ * a count too large for the columns shown is fine, since the renderer stops at the last column.
+ *
+ * @param {*} raw - The layout's `stickyColumns` value, or anything at all.
+ * @returns {void}
+ */
+export function applyStickyCountFromLayout(raw) {
+    TABLE_VIEW_COLUMNS.stickyCount = Number.isInteger(raw) && raw > 0 ? raw : 0;
+}
+
+/**
  * The chosen types as the object a file holds: one entry per property, keyed by its name.
  *
  * Only properties someone has typed appear. An absent key is the answer "ask the schema", so

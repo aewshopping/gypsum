@@ -45,4 +45,13 @@
 /* Appearance comes from .btn-action / .btn-action-danger in button-base.css; this is layout. */
 .file-options-form .btn-action-danger {
     align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    /* The glyph sits beside a label, as on .btn-menu, so it is held at full strength rather than
+       faded to wait for a hover of its own — and it takes the button's warning colour with it. */
+    & .svg-wrapper-style > svg {
+        opacity: 1;
+    }
 }
