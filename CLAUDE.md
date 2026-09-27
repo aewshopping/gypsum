@@ -267,7 +267,7 @@ table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-t
 property out of every note in the folder that has it — key, value and every line of a block list —
 in one confirmed batch that one undo puts back. See `plans/completed/table-delete-column.md`.
 
-- **Only a front matter property the user made**: `isPropertyDeletable()` is "not in
+- **Only a front matter property the user made**: `isPropertyUserOwned()` is "not in
   `CORE_FILE_PROPERTIES`". `title` and `color` are excluded although a note can hold them, because
   their columns would still stand, filled in by the app.
 - **Every file, whatever the filter**, and **the column stays**, faded as empty — the same as

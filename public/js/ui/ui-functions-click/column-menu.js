@@ -26,7 +26,7 @@ import { applySortAndRender } from './sort-object.js';
 import { openColumnTypeDialog } from './column-type-set.js';
 import { deleteColumnFromLayout } from './column-delete.js';
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
-import { isTypeSettable, setPropertyType, propertyType, isPropertyDeletable } from '../../services/property-type.js';
+import { isTypeSettable, setPropertyType, propertyType, isPropertyUserOwned } from '../../services/property-type.js';
 import { VALUE_TYPES } from '../../constants.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../layout-save-state.js';
@@ -188,7 +188,7 @@ export function handleColumnMenuOpen(evt, headerCell) {
     if (removeItem) removeItem.hidden = !isKeyless || appState.tableLayouts.active === null;
 
     const deleteItem = menu.querySelector('[data-action="column-delete-property"]');
-    if (deleteItem) deleteItem.hidden = isKeyless || !isPropertyDeletable(property);
+    if (deleteItem) deleteItem.hidden = isKeyless || !isPropertyUserOwned(property);
 
     nameSortItems(menu, property);
 

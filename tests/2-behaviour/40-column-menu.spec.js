@@ -311,9 +311,9 @@ test('"delete column" is offered on a property with values, and on no core colum
   }
 
   const deletable = await page.evaluate(async () => {
-    const { isPropertyDeletable } = await import('/public/js/services/property-type.js');
+    const { isPropertyUserOwned } = await import('/public/js/services/property-type.js');
     const { CORE_FILE_PROPERTIES } = await import('/public/js/services/store.js');
-    return { core: CORE_FILE_PROPERTIES.some(isPropertyDeletable), people: isPropertyDeletable('people') };
+    return { core: CORE_FILE_PROPERTIES.some(isPropertyUserOwned), people: isPropertyUserOwned('people') };
   });
   expect(deletable).toEqual({ core: false, people: true });
 });
