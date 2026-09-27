@@ -8,7 +8,7 @@ import { followPropertyRename } from '../table-layouts/follow-property-rename.js
  * @file Renaming a property in every note that has it — the key's name changes, and nothing else
  * in the note does — as one batch that one undo puts back. The service: no DOM, no dialog. The
  * rename's counterpart to delete-property.js, and built the same way. See
- * plans/table-rename-column.md.
+ * plans/completed/table-rename-column.md.
  *
  * **A rename is two ordinary edits per note**: `people` removed, and its value re-created under
  * `attendees` at the line `people` left. The value comes back as the very bytes that went — a block

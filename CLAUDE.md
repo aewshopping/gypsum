@@ -230,7 +230,9 @@ disappears out from under the person who cleared it.
 - **"delete column" is the other item in that slot, and the two never show together.** It is offered
   on a column *with* values and removes the property from every note — see *Deleting a property from
   every note* below. Keyless and not are one attribute read two ways, so the menu always holds at
-  most one delete-like item, and its name says what it reaches: the layout, or the notes.
+  most one delete-like item, and its name says what it reaches: the layout, or the notes. **"rename
+  column" shows with "delete column", always** — same columns, one question (`isPropertyUserOwned`)
+  — so the rule above the slot sits on "rename column".
 
 ### Sticky columns
 
@@ -309,6 +311,44 @@ in one confirmed batch that one undo puts back. See `plans/completed/table-delet
   never happened is refused harmlessly and a missing one loses the value.
 - **Files go through a pool of 16**, and the refresh parses the verified text rather than reading it
   back — 13.3s to about 3.7s for 1,000 notes, measured. The verified two-write save is kept.
+
+### Renaming a property in every note
+
+"rename column", above "delete column" in the column menu, opens a dialog; the property is then
+renamed in every note that has it — the key's name changes and nothing else in the note does — in one
+journalled batch that one undo puts back. It is the delete's machinery with a second caller. See
+`plans/completed/table-rename-column.md`.
+
+- **Rename is never a merge.** A name any loaded note already has, **in any case**, is refused, and
+  so is every name the app keeps for itself. Bringing two keys together is a different feature with
+  questions a rename cannot answer. Case is refused *in the dialog only*: `People:` beside `people:`
+  typed by hand is still two keys to everything else. Renaming a name's own case is allowed.
+- **What a legal name is lives in `services/property-name.js`, all pure.** Trimmed; no colon, control
+  character, YAML indicator at the start or ` #`; none of `" < > &`, because the header writes a name
+  unescaped; and it must read back from gypsum's parser as exactly itself — which is also, and must
+  stay, what refuses `__proto__`.
+- **Two ordinary records per note, not a new kind of splice**: `people` removed, and its value span
+  — the very bytes, a block list's items and comments included — re-created as `attendees` at the
+  anchor the removal recorded. The undo stack, the journal and the refusal marks need nothing new.
+  At one offset **a splice that replaces goes before one that inserts** (`plan-file-edits.js`), which
+  is what makes the pair right in either order.
+- **Half a rename loses a value or doubles it**, so the pair is sent with `allOrNothing`, and the
+  re-creation with **`expect: null`** — the note must not have gained the new key since the dialog
+  checked. Undo and redo pass `allOrNothing` for a rename batch.
+- **The name follows outside the notes** — columns, type, flowchart roles, sort — in
+  `table-layouts/follow-property-rename.js`, run in the write pass's `beforeRefresh` and again, names
+  swapped, after an undo or redo. It asks what the folder will hold, not what the batch hoped: a
+  column is renamed in place once no note carries the old name, and a new column goes in beside it
+  while some still do. **The type is copied, never moved**, and the new name is read as the old one
+  was — its saved type or, failing that, the schema's. Nothing here is on the undo stack.
+- **It never throws, and a layouts file it could not write is said.** A throw in `beforeRefresh`
+  would skip the refresh and report a finished rename as stopped, so it is caught; the layouts write
+  is waited for while the table is still busy, and "the table layout could not be saved" joins the
+  result line when it failed.
+- **A dialog, not an editable header.** An editable header had to be taught not to trip over the
+  table at every way out; `showModal()` makes the table inert instead. The dialog is its own
+  confirmation: the line under the text box gives the reason a name is refused or what renaming will
+  do, and the button is disabled until it can be done.
 
 ### The undo history
 
@@ -896,7 +936,11 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 | `public/js/editing/plan-file-edits.js` | What one note's text becomes under its edits — no disk: the lock, `expect`, the note's own style, back-to-front splices |
 | `public/js/editing/list-item-splice.js` | Whether a list edit is one item's text changing, so only that item's bytes are rewritten |
 | `public/js/editing/write-file-edits.js` | A planned note onto disk through the verified save, and what happened when that save throws |
-| `public/js/editing/delete-property.js` | Deleting a property from every note: the forecast, and the two-pass journalled write |
+| `public/js/editing/delete-property.js` | Deleting a property from every note: the two-pass journalled write |
+| `public/js/editing/rename-property.js` | Renaming a property in every note: the three-pass journalled write |
+| `public/js/editing/property-forecast.js` | Which notes a delete or a rename reaches, counted from `appState`, and how a dialog says so |
+| `public/js/services/property-name.js` | Whether a name can be given to a property: the rename dialog's question, all pure |
+| `public/js/table-layouts/follow-property-rename.js` | What follows a renamed property outside the notes: columns, type, flowchart roles, sort |
 | `public/js/table-undo/` | The undo stacks, `undo.gypsum`, each batch's name, and the refused notes |
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |

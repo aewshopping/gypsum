@@ -970,7 +970,7 @@ test('a key whose anchor has gone goes to the end, and two neighbours cleared to
   expect(undone['pair.md']).toBe(before['pair.md']);
 });
 
-// ---------------------------------------------------------------- a rename's pair, plans/table-rename-column.md §5
+// ---------------------------------------------------------------- a rename's pair, plans/completed/table-rename-column.md §5
 
 /**
  * The rename's whole effect on one note, as the service sends it: locate `people` by planning its
@@ -1040,7 +1040,7 @@ test('expect: null refuses a key that is there, bare or not, and allOrNothing re
   expect(planFileEdits(text, pair, 'n')?.updated).toBe('---\nattendees: bob\n---\n');
 });
 
-// ---------------------------------------------------------------- a legal new name, plans/table-rename-column.md §4.2
+// ---------------------------------------------------------------- a legal new name, plans/completed/table-rename-column.md §4.2
 
 // In this spec because the rule exists to keep the note readable — by gypsum, and by other YAML
 // readers — once the new key is written into it.

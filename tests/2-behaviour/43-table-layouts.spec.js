@@ -845,7 +845,7 @@ test('delete all layouts forgets the flowchart choices too', async ({ page }) =>
   })).toBeNull();
 });
 
-// ---------------------------------------------------------------- a rename follows the name, plans/table-rename-column.md §10
+// ---------------------------------------------------------------- a rename follows the name, plans/completed/table-rename-column.md §10
 
 /**
  * One rename observed twice: after it, and after its undo. Everything the app writes a property's

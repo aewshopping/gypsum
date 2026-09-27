@@ -184,7 +184,7 @@ export function applyFlowchartOptionsFromFile(raw) {
 /**
  * One layout's columns after property `from` has been renamed `to` in the notes: the file's array
  * and the columns in memory both go through here, so the two cannot disagree about what a rename did
- * to a layout. plans/table-rename-column.md §10.1.
+ * to a layout. plans/completed/table-rename-column.md §10.1.
  *
  * - **`from` gone from every note**: its entry becomes `to`'s in place — position, width, visibility —
  *   and a `to` entry already in the layout is dropped. Going forward that is a keyless column left

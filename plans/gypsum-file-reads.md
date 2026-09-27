@@ -15,7 +15,7 @@ Each file treats "could not read it" as "there is nothing in it", and then write
 
 | file | how it is written | what goes wrong |
 |---|---|---|
-| `table_layouts.gypsum` | every writer reads the file, changes one part, writes the whole back: `savePropertyTypes`, `saveFlowchartOptions`, `saveLayout`, `renameLayout`, `deleteLayout`, `setActiveLayout` (and `renamePropertyInLayouts`, once `plans/table-rename-column.md` is built) | `readLayouts` answers an empty document for **every** failure. One failed read before any of those writes, and the next write replaces every saved layout, every type and every flowchart choice with just the thing being saved |
+| `table_layouts.gypsum` | every writer reads the file, changes one part, writes the whole back: `savePropertyTypes`, `saveFlowchartOptions`, `saveLayout`, `renameLayout`, `deleteLayout`, `setActiveLayout` (and `renamePropertyInLayouts`, once `plans/completed/table-rename-column.md` is built) | `readLayouts` answers an empty document for **every** failure. One failed read before any of those writes, and the next write replaces every saved layout, every type and every flowchart choice with just the thing being saved |
 | `history.gypsum` | `saveBackupEntry`, on every note open and close, reads, appends a snapshot, writes | a read that throws is already safe: the whole function is in one `try` and writes nothing. But `parseHistory` answers an empty history for text that is not valid JSON, so a corrupt file is overwritten by one holding a single snapshot, and every earlier version of every note is gone |
 | `undo.gypsum` | never patched: the stacks in `appState` are written out whole after every change | read once, at folder load (`readUndoFile` → `parseUndoFile`). A failed read, a corrupt file or a shape this version does not know all start the stacks empty, with a console warning. The next table edit saves, and the file now holds that one edit. After a column delete, the lost entry was the only copy of the deleted values |
 
@@ -124,7 +124,7 @@ rule — the alternative is saving it by destroying everything else.
 - **The column delete already refuses when the journal cannot be saved** —
   `the undo history could not be saved, so nothing was deleted`. With the flag set that is now what
   happens, which is right: a delete whose only record would be lost at the next reload must not run.
-  The rename in `plans/table-rename-column.md` makes the same check the same way. Cell edits carry
+  The rename in `plans/completed/table-rename-column.md` makes the same check the same way. Cell edits carry
   on; their undo works until the tab closes.
 - **"clear undo history" clears the flag**, then writes. It is the one act that is meant to replace
   the file whatever is in it, and its confirmation already says it removes the saved copies. Its

@@ -1,6 +1,22 @@
 # Plan: renaming a property in every note
 
-Status: **not started.**
+Status: **built.** Where the build differed from the plan, the plan has been corrected and the
+difference is listed here:
+
+- **A type from the schema follows too** (§10.1). `people` is a list by the app's own schema, so it
+  has no saved type, and copying "the saved type, or none" left `attendees` a text column full of
+  mismatched lists. The new name is now read as the old one was — its saved type, or failing that
+  the schema's — saved only where that differs from what the new name would be read as anyway.
+- **The rule above the menu's last items is static** (§8.1): "rename column" carries it, since it
+  never shows without "delete column". No code decides it.
+- **An undo of a rename counts notes, not values** — `— 10 notes`, where two edits per note would
+  have read `— 20 values`.
+- **`.btn-action` gained a disabled look**, faded like `.btn-plain`'s; it had none, and the dialog's
+  button is the first `.btn-action` that is ever disabled. And one rule in `modal-info.css` puts the
+  gap above a button row that finishes a dialog's fields.
+- **`filesPhrase` moved into `property-forecast.js`** beside `sampleNames`, both dialogs using it.
+- **`RENAME_SLOW_AT` is 500**, from the delete's measurement of about 4s per 1,000 notes rather than
+  from a timing of its own: the rename's write pass is the delete's.
 Follows: `plans/completed/table-delete-column.md`, **built**. That plan's machinery — the journal,
 `applyRawEdits`' pool and fixed handles, the widened lock, anchors, the saved and named undo stack,
 the refusal marks, the inert table and the progress bar — is all in the tree, and this plan is
@@ -589,7 +605,7 @@ and a note that gained the new name mid-write all come out right with no case of
 |---|---|
 | a layout's columns, every saved layout and the columns in memory | `from` gone, layout lacks `to` → `from`'s entry becomes `to`'s **in place**: position, width, visibility. `from` gone, layout already has a `to` entry (a keyless column left over, since no note has `to`) → `from`'s entry is renamed in place as above and the leftover `to` entry is dropped, so the column stays where the user was looking; `stickyColumns` drops by one if the leftover sat among the sticky ones. `from` not gone, layout lacks `to` → a `to` entry is inserted **straight after** `from`'s, with its width and visibility, so the renamed notes appear beside the ones left behind rather than hidden at the end. **On an undo the same steps run with the names swapped**, and there the `to` entry is not always a leftover: undoing a partial rename finds `people` still in the layout, as the column of the notes the rename skipped. The in-place step is still what is wanted — `attendees`' entry, which sits straight after `people`'s, becomes `people`, and the old `people` entry goes — so the folder ends with one `people` column, one place to the right of where it started and with the width `attendees` had. No case of its own. |
 | a column's `label` | taken to `to`'s default if it was `from`'s default; a label someone wrote by hand is kept. |
-| `propertyTypes` | **copied, never moved: `to`'s saved type becomes exactly `from`'s** — the type, or none if `from` has none — and `from` keeps its own. After a rename, `attendees` is `people`'s column under a new name, so it takes `people`'s type, replacing any type left saved against `attendees` from values since removed (no note has `attendees`, §4.4). **On an undo the copy runs the other way, and that is what keeps a type set after the rename:** change `attendees` from text to list, undo the rename, and `people` comes back as a list. Undoing the rename puts the notes back; it does not undo a type change made since, which was a separate act and is not on the undo stack. `attendees` keeps its type after the undo, as `from` always does, and the types modal's bin is the way to forget it. |
+| `propertyTypes` | **copied, never moved: `to` is read as `from` is read** — `from`'s saved type, or failing that the schema's, saved against `to` only where it differs from what `to` would be read as anyway — and `from` keeps its own. After a rename, `attendees` is `people`'s column under a new name, so it takes `people`'s type, replacing any type left saved against `attendees` from values since removed (no note has `attendees`, §4.4). **On an undo the copy runs the other way, and that is what keeps a type set after the rename:** change `attendees` from text to list, undo the rename, and `people` comes back as a list. Undoing the rename puts the notes back; it does not undo a type change made since, which was a separate act and is not on the undo stack. `attendees` keeps its type after the undo, as `from` always does, and the types modal's bin is the way to forget it. |
 | the flowchart's roles | each role naming `from` names `to`, when `from` is gone. Through `setFlowchartOption`. |
 | `appState.sortState` | follows when `from` is gone, so the table stays sorted by the column the user was looking at. |
 

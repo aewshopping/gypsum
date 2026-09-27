@@ -242,7 +242,7 @@ export function saveFlowchartOptions() {
 /**
  * Rewrites every saved layout for a property renamed in the notes, and writes the types and the
  * flowchart's choices as they now stand in appState — the in-memory half of the follow having
- * already run. plans/table-rename-column.md §10.1.
+ * already run. plans/completed/table-rename-column.md §10.1.
  *
  * It does **not** call refreshState, for savePropertyTypes' reason: that clears isDirty, and an
  * unsaved column reorder must not start looking saved because a rename happened beside it. The

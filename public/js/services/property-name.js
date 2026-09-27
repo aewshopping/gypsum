@@ -5,7 +5,7 @@ import { parseYaml } from './file-parsing/yaml-parse.js';
 /**
  * @file Whether a name can be given to a property: the rename dialog's question, asked on every
  * keystroke. Pure — the folder's keys are handed in rather than read from appState — so the whole
- * rule is tested in node. plans/table-rename-column.md §4.2–§4.4.
+ * rule is tested in node. plans/completed/table-rename-column.md §4.2–§4.4.
  *
  * Two readers are protected, as the quoting rule protects them (yaml-value-write.js): gypsum's own
  * parser, asked last as the authority, and a spec reader such as Obsidian or PyYAML, which reads a

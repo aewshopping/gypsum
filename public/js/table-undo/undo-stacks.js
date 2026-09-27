@@ -88,7 +88,7 @@ export function dropUndoBatch(batch, dirHandle) {
  * **A rename's name follows the notes back** — its columns, type, flowchart roles and sort — by the
  * rename's own rule run with the names swapped for an undo, in the same `beforeRefresh`, after the
  * refusal marks: a failure in the follow must not cost a mark, which may hold the only copy of a
- * value. plans/table-rename-column.md §9.2, §10.1.
+ * value. plans/completed/table-rename-column.md §9.2, §10.1.
  *
  * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined,
  *   layoutSaved?: boolean}>} The edits that were written, the edits the check turned down — each
@@ -143,7 +143,7 @@ export async function reverseBatch(direction, index, onProgress) {
         gap: edit.gap,
         keepKey: edit.before === '' && edit.existed,
         // A rename is two edits per note, and half of one loses the value or doubles it: a note
-        // takes both or neither, in either direction. plans/table-rename-column.md §6.2.
+        // takes both or neither, in either direction. plans/completed/table-rename-column.md §6.2.
     })), { beforeRefresh, onProgress, allOrNothing: rename !== null });
 
     // The same facts, so a redo has the same name as the undo it reverses.

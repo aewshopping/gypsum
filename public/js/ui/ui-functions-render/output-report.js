@@ -67,7 +67,7 @@ export function reportUndo(direction, name, applied, failed, { unit = 'values', 
 }
 
 /** Said after a rename, or its undo or redo, whose layouts file could not be written: the notes are
- * right, but after a reload the columns will not be. plans/table-rename-column.md §10.1. */
+ * right, but after a reload the columns will not be. plans/completed/table-rename-column.md §10.1. */
 const LAYOUT_UNSAVED = '; the table layout could not be saved';
 
 /**

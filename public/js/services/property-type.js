@@ -125,7 +125,7 @@ const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
  * with no front matter at all cannot be deleted or renamed, and CORE_FILE_PROPERTIES is exactly that
  * set. `title` and `color` are in it although a note may hold them as keys: deleting or renaming one
  * would take the key out and leave the column standing, filled in by the app.
- * plans/completed/table-delete-column.md §3, plans/table-rename-column.md §4.1.
+ * plans/completed/table-delete-column.md §3, plans/completed/table-rename-column.md §4.1.
  *
  * @param {string} name - The file property key.
  * @returns {boolean}
