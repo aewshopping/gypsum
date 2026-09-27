@@ -241,7 +241,24 @@ planned. It is per note, not per batch: one note refusing does not stop the othe
 - **The undo and the redo pass it too** — `reverseBatch` sets it from `batch.kind` (§9.2), so no
   entry needs to store it.
 
-### 6.3 No new pass, no new read
+### 6.3 Only the notes that carry the key, in three passes
+
+**No note without `people` is read, planned or written.** The parser keeps a bare key as `null`
+(`plans/completed/bare-keys-as-null.md`), so `Object.hasOwn(file, from)` on the loaded file objects
+finds every note the rename can reach, bare `people:` included. That list is fixed once, when
+`renameProperty` starts, as `deleteProperty` fixes its `carrying` set. **Every pass below is sent
+edits for those notes and no others**, so a 1,000-note folder where 35 carry `people` reads 35 notes
+per pass and writes at most 35. The skip is not an optimisation: a note that is never written keeps
+its modified time, which the table sorts by.
+
+- **A bare `people:` is renamed to a bare `attendees:`.** Its `before` is `''`, and the re-creation
+  sends `keepKey: true` whenever `before` is `''`, the way an undo puts back a bare key (§5.2 of the
+  delete plan). Without it, `raw: ''` would mean "take the key out", and the key would disappear
+  instead of being renamed. The undo needs nothing extra: the removal's record has `before: ''` and
+  `existed: true`, which `reverseBatch` already turns into `keepKey`.
+- **The notes that will merge are left out from pass 2 on.** `appState` already says which carrying
+  notes also have `to` (§7), so they are not sent the pairs. The write's `expect: null` still refuses
+  any note that gained `to` after the forecast was made.
 
 The re-create edit needs `before`, `anchor` and `gap`, and only reading the note can supply them.
 `applyRawEdits` is what reads notes, so the service does not read them itself.
@@ -252,17 +269,19 @@ builds the write pass's pairs from those records, which is the first time it kno
 
 ```js
 planned.flatMap(record => [
-    { internalId, property: to,   raw: record.before, anchor: record.anchor, gap: record.gap, expect: null },
+    { internalId, property: to, raw: record.before, keepKey: record.before === '',
+      anchor: record.anchor, gap: record.gap, expect: null },
     { internalId, property: from, raw: '', expect: record.before },
 ])
 ```
 
-But the journal must hold what the *write* will do, and the plan pass has only planned the removal.
-So there is a second plan pass: the pairs go through `{ write: false, allOrNothing: true }`, and
-*those* records are the journal. It reads each note once more — measured by the delete at 0.3s for
-1,000 notes — and it is what finds the collisions against the bytes, so the journal never lists a
-note the write will refuse for a reason already knowable. The write pass is then the pairs again,
-each carrying `expect` from its record: `record.before` for the removal, `null` for the re-creation.
+But the journal must hold what the *write* will do, and the first pass planned only the removal.
+So there is a second planning pass: the pairs go through `{ write: false, allOrNothing: true }`, and
+*those* records are the journal. It reads each carrying note once more (the delete measured its
+planning pass at 0.3s for 1,000 notes), and it finds collisions against the bytes on disk. So the
+journal never lists a note the write will refuse for a reason that could already be known. The
+write pass then sends the pairs again, each carrying `expect` from its record: `record.before` for
+the removal, `null` for the re-creation.
 
 | pass | sends | `write` | yields |
 |---|---|---|---|
@@ -461,9 +480,55 @@ and a merge all come out right with no case of their own:
 
 ## 11. While it runs, and if it stops
 
-Exactly the delete's (§6.2a, §11 there): `bulkWriteInFlight`, the table and control row `inert`, a
-folder load refused and `beforeunload` prompting, the bar on the report line reading
-`renaming people to attendees…`, no cancel.
+**The same code path as the delete, with no new code for the progress bar.** The click file,
+`column-rename-property.js`, follows `column-delete-property.js` line for line:
+
+```js
+setBulkWriteBusy(true);
+const onProgress = reportProgress(`renaming ${from} to ${to}…`);
+try {
+    const { renamed, locked, merging } = await renameProperty(from, to, onProgress);
+    setBulkWriteBusy(false);
+    reportProgressEnd();
+    reportRename(from, to, renamed, locked, merging);
+} catch (err) {
+    setBulkWriteBusy(false);
+    reportProgressEnd();
+    reportFailure(`renaming ${from} stopped: ${err?.message ?? err}`);
+}
+```
+
+- **`setBulkWriteBusy(true)`** (`ui-functions-table/bulk-write-busy.js`) sets
+  `appState.bulkWriteInFlight`, makes `#output` and `#output-controls` `inert` (faded by the CSS
+  already there), and darkens the undo buttons through `markUndoState()`. The same flag refuses a
+  folder load and makes `beforeunload` prompt. None of it needs changing.
+- **`reportProgress(text)`** (`output-report.js`) writes the line **once** and starts the shared
+  bar from `ui-functions-render/progress-bar.js` on `#output-report`. It returns the `onProgress`
+  callback, which moves only `--load-pct`, every `PROGRESS_STEP_SIZE` percent. The text is never
+  rewritten while the rename runs. That rule came from measuring the delete: a count rewritten after
+  every file took 1,000 notes from about 4s to about 19s.
+- **It is started before `renameProperty` is called**, so the bar is up, empty, while the locate
+  and plan passes read the notes and the journal is saved. **`onProgress` is passed only to the
+  write pass** (pass 3 in §6.3), as `deleteProperty` passes it only to its second
+  `applyRawEdits`. The two read-only passes are not reported: the delete measured its one at 0.3s
+  for 1,000 notes, and a bar that filled twice and then started again would look like a fault.
+- **`total` counts notes, not edits.** `applyRawEdits` calls `onProgress(done, jobs.length)` once per
+  *file*, with a file's edits grouped. So a rename's two edits per note move the bar by one note,
+  and it fills over the same count the dialog showed.
+- **`reportProgressEnd()` fades the bar, and the result goes on the line straight after**, without
+  waiting for the fade, for the reason its JSDoc gives: "renaming…" would no longer be true.
+- **A throw ends the bar too**, then `reportFailure`, as the delete. A throw before the first write
+  means nothing was renamed. After that, a throw skips only the note it happened in (see
+  `applyRawEdits`).
+- **Undo and redo of a rename get the bar with nothing added.** `reverseCellEdits` in
+  `undo-cell-edit.js` already uses `setBulkWriteBusy` and `reportProgress` for any batch touching
+  more than one file, and its text comes from `describeBatch`: `undoing people column rename to
+  attendees in 35 files…`.
+- **Only `output-report.js` gains anything**: `reportRename`, beside `reportDelete`, and JSDoc on
+  `reportProgress` / `reportProgressEnd` that stops saying "a column delete" as though it were the
+  only caller. `progress-bar.js`, `progress-bar.css` and `bulk-write-busy.js` are untouched.
+
+No cancel, as the delete.
 
 **A tab closed during the write pass** leaves some notes renamed and some not, and the journal
 listing all of them. Undo reverses the renamed ones and refuses the rest, in pairs (§6.2) — none of
@@ -489,14 +554,15 @@ No recovery code.
 | Onto a name other notes have | **allowed**: a merge; a note holding both keys is skipped. §4.4. |
 | A note that would half-rename | **cannot**: `allOrNothing`, per note, for the rename, its undo and its redo. §6.2. |
 | "must not have the key" | **`expect: null`**. §6.1. |
-| Passes | locate, plan (the journal), write. §6.3. |
+| Passes | locate, plan (the journal), write, each sent only the carrying notes. §6.3. |
 | Confirmation | **one dialog with the field**; recounts as you type; Enter renames when the name is valid. §8.2. |
-| Reach | every file in the folder, whatever the filter — as the delete. |
+| Reach | every note in the folder that carries the key, whatever the filter, and **no other note is read or written** — as the delete. §6.3. |
+| A bare `people:` | renamed to a bare `attendees:` (`keepKey`). §6.3. |
 | Layouts, types, flowchart, sort | **follow the name** by one rule asked of the folder; types are copied, never moved. §10. |
 | Search filters | **do not follow**. §10.2. |
 | Undo of the layout change | **none of its own**: the rule runs again in the other direction. §10.1. |
 | Undo entry | `kind: 'rename-property'`, `property`, `to`; `people column rename to attendees in 35 files`. §9.1. |
-| While running | as the delete. §11. |
+| While running | **as the delete**: `setBulkWriteBusy`, the shared bar started by `reportProgress` before the passes, `onProgress` on the write pass only, one step per note, text written once. §11. |
 
 ---
 
@@ -517,7 +583,8 @@ Each step ships on its own and leaves the app working.
 4. **Following the name.** `followPropertyRename`, `renamePropertyInLayouts`, the pure columns
    rewrite in `layout-apply.js`, and the call from the rename and from `reverseBatch` (§10).
 5. **The menu and the dialog.** The item, the rule moving, the dialog and its click file, the report
-   line (§8, §9.1).
+   line (§8, §9.1), and the busy table and progress bar wired exactly as `column-delete-property.js`
+   does it (§11).
 6. **Docs.** CLAUDE.md: a short section *Renaming a property in every note* after *Deleting a
    property from every note*, the file map's new modules, `isPropertyUserOwned` where
    `isPropertyDeletable` is named. DATA-STRUCTURES.md: a batch's `to`, and `expect: null` and
@@ -556,8 +623,11 @@ level 1.
 - **Every note with the key has exactly its expected bytes**, asserted whole, not as "contains
   `attendees`": the old text with one word replaced, `crlf.md`, `commented.md`, `crowded.md` and
   `first.md` included.
-- **Notes without the key are not written**; `merge.md`, `broken.md`, `shadow.md` and `dup.md` are
-  byte-identical and not written.
+- **Notes without the key are neither read nor written**, in any of the three passes:
+  `lookalike.md`, `none.md` and `nokey.md` have no entry in `window.__reads` or `window.__writes`
+  (§6.3). `merge.md`, `broken.md`, `shadow.md` and `dup.md` are byte-identical and not written.
+- **`bare.md`'s `people:` becomes `attendees:`, still bare**, and its undo puts back `people:`,
+  bare (`keepKey`, §6.3).
 - **Undo restores every note byte for byte; redo renames them again byte for byte**; undo once more
   is stable.
 - **The journal is on disk before the first note is written**, and holds both records per note.
@@ -579,6 +649,10 @@ level 1.
   sentence; the button disabled for an unchanged name; Enter renames only when enabled; Escape
   writes nothing.
 - `19-undo-redo-buttons.spec.js`: the tooltip and the list name the rename.
+- **While a rename runs**, as the delete's test does: the table and control row are `inert`, the
+  report line reads `renaming people to attendees…` with the bar showing (`.loading`), the text
+  does not change while `--load-pct` moves, and the line ends on the result. An undo of the rename
+  shows `undoing people column rename to attendees in N files…` with the same bar.
 
 **Screenshots** at step 5: the menu with both items, the dialog at phone width with a long name and
 all three lines showing, a refused name's sentence, and the report line after a merge — both
@@ -610,7 +684,7 @@ themes.
 | `public/js/table-layouts/layout-apply.js` | the pure columns rewrite, used for the file and for memory |
 | `public/js/table-layouts/layout-file.js` | `renamePropertyInLayouts`, through the queue, no `refreshState` |
 | `public/js/ui/ui-functions-click/column-menu.js` | show the item with "delete column"; put the rule on the first shown |
-| `public/js/ui/ui-functions-render/output-report.js` | `reportRename` |
+| `public/js/ui/ui-functions-render/output-report.js` | `reportRename`; the JSDoc of `reportProgress` and `reportProgressEnd` no longer names the delete as their only caller (§11). `progress-bar.js`, `progress-bar.css` and `bulk-write-busy.js` are used as they are |
 | `public/js/ui/event-listeners-add.js` | `column-rename-property`, the dialog's confirm and cancel |
 | `public/css/column-menu.css` | the rule on whichever item comes first |
 | `public/style.css` | import `modal-column-rename.css` |
