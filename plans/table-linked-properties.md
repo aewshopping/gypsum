@@ -24,19 +24,20 @@ note. It is defined by two choices and a name:
 
 - **via**: the row's property that holds the link, e.g. `project` or `internalLink`;
 - **read**: the property to read from the linked note, e.g. `status`;
-- **name**: the column heading, e.g. "Project status".
+- **name**: the column heading. Left alone it is `project → status`, and follows the two choices;
+  typed, it is whatever was typed (§3.2).
 
 *"Take this note's `project` link, find that note, show its `status`."*
 
 **Once defined, it is a column like any other.** It appears in the column picker with a toggle and
 a drag handle, and each layout shows it or hides it, and places it, the same way it does
-`status` or `due`. It can also be hidden from its own header menu. The dialog in §5 owns what the
-column *is* (its name and its two properties) and the column picker owns *whether and where it
-shows*, just as the picker already does for front matter columns. Deleting it is the one thing the
-picker does not do (§3.1).
+`status` or `due`. It can also be hidden from its own header menu. **Everything about what the
+column *is* — its two choices, its name, deleting it — lives in one dialog per column (§5)**, and the
+column picker owns *whether and where it shows*, just as it already does for front matter columns.
 
-**In scope:** defining, renaming, re-pointing and deleting linked properties from one dialog
-(§5); drawing them as table columns; following a property that holds one link or many (§3.3).
+**In scope:** creating, editing and deleting a linked column from its dialog (§5); drawing it as a
+table column; following a property that holds one link or many (§3.3); following a property rename
+(§3.9).
 
 **Out of scope:** chains longer than one hop, a linked property that reads another linked
 property, sorting by one (V2, designed in §9), searching or filtering by one (§11 records what it
@@ -68,12 +69,18 @@ helpers, move them into a shared module (§6a) instead of copying them.** A seco
 `[[…]]` would agree with the first on the day it was written and drift after, which is the
 reason `linksInText` was exported to begin with.
 
-### 2.3 There is no `internalId → file` lookup
+### 2.3 There is no `internalId → file` lookup, and it must not be cached
 
 Nine call sites do `appState.myFiles.find(f => f.internalId === id)`. That is fine for a click and
-wasteful for every cell of a column on every render. `note-name-index.js`'s `build()` already walks
-every file and is already invalidated in the right places, so give it a `byId` map. A second cache
-would be a second thing to invalidate, and a stale one reads a deleted file's properties.
+wasteful for every cell of a column on every render.
+
+**The lookup is built once per render and thrown away after it** — one pass over `myFiles` into a
+Map, handed to `linkedValue()`. It is *not* added to `note-name-index.js`, although that looks like
+the natural home: `refreshFileAfterSave` replaces the edited note's file object
+(`appState.myFiles[fileIndex] = {...}`) and invalidates the name index only when the note's tags
+changed. A cached `id → file` Map would go on handing out the old object, so editing `status` in a
+project note would leave every "Project status" cell showing the old value. The name index can stay
+cached because names and ids do not change on an edit; file objects do.
 
 ### 2.4 The layouts file already holds folder-wide facts
 
@@ -93,7 +100,7 @@ It is stored at the top of the layouts file, next to `propertyTypes` and `flowch
 
 ```json
 "linkedProperties": {
-  "linked:1": { "label": "Project status", "via": "project", "read": "status" },
+  "linked:1": { "label": null, "via": "project", "read": "status" },
   "linked:2": { "label": "Linked titles", "via": "internalLink", "read": "title" }
 }
 ```
@@ -103,8 +110,8 @@ It goes here, and not on a layout's column entry, for the reasons `propertyTypes
 - **It works under the app's defaults.** Under the defaults `columnLayout` is rebuilt rather than
   saved, so a definition living on a column entry would need a layout saved before one could
   exist. The old plan listed "what happens with no layout saved" as open; this answers it.
-- **The + creates it, and it reaches the disk at once.** There is no "save" to forget. Its writer,
-  like `savePropertyTypes()`, leaves `isDirty` alone.
+- **Saving the dialog writes it to disk at once.** There is no "save layout" to forget. Its
+  writer, like `savePropertyTypes()`, leaves `isDirty` alone.
 - **Once defined, it is one more column.** `resolveColumns()` treats it as a candidate. **It is
   switched on and off, and reordered, in the column picker like any other column**, and a layout
   records its `visible`, `order` and `width` in its `columns` array as usual.
@@ -131,21 +138,31 @@ It goes here, and not on a layout's column entry, for the reasons `propertyTypes
     that took a click to show.
 
 Deleting one therefore removes it from `linkedProperties` **and** from every layout's `columns`
-array in the same write, so no layout goes on naming a column that no longer exists. This is the
-"delete from the layouts file" the dialog offers. "Delete all layouts" removes these too, since it
-removes the file; its tooltip should say so.
+array in the same write, so no layout goes on naming a column that no longer exists. "Delete all
+layouts" removes these too, since it removes the file; its tooltip should say so.
 
 ### 3.2 The key is generated and stable; the name is only a label
 
 A column is keyed by `linked:<n>`, the first number not in use, the same scheme as
 `nextLayoutName()`. **It cannot collide with a front matter property**, because `yaml-parse.js`
-splits a key at its first colon, so no note can have a key containing one. Keys are never shown
-and never reused while the file exists.
+splits a key at its first colon, quoted or not (`"a:b": x` reads as the key `"a`), so no note can
+have a key containing one. Keys are never shown and never reused while the file exists.
 
-Renaming changes `label` only. The key stays the same, so every layout that places the column keeps
-it. The heading is read from the definition, not from the layout's column entry: `resolveColumns()`
-spreads the definition's `label` over the entry's. Otherwise a rename would show in one layout and
-not the others. A layout still writes a `label` for the column; it is harmless and ignored.
+- **`label: null` means "name it after its choices"**: the heading is worked out when drawn, as
+  `<via label> → <read label>`. So re-pointing a column that was never given a name renames it too,
+  and so does a property rename (§3.9), with no code of their own. A typed name is stored and never
+  touched again.
+- **The heading is read from the definition, not from the layout's column entry**:
+  `resolveColumns()` puts the definition's heading over the entry's `label`. Otherwise a rename
+  would show in one layout and not the others. A layout still writes a `label` for the column; it
+  is harmless and ignored.
+- **A typed name may hold any character, and is escaped where it is drawn.** It never reaches a
+  note, so none of `property-name.js`'s YAML rules apply. It is still a new thing for the header to
+  draw, and the header writes property names unescaped today, so the label goes through
+  `escapeHtml` there and in the column picker.
+- **The one refusal is a heading already in use**: the same text, ignoring case, as another shown
+  column's heading, linked or not. Two columns headed "status" cannot be told apart. The dialog
+  says so under the name and disables its button, the rename dialog's pattern.
 
 ### 3.3 One link or many
 
@@ -153,15 +170,28 @@ not the others. A layout still writes a `label` for the column; it is harmless a
 - **"via" holds several (`internalLink` always does):** the cell shows a list with one value per
   link, in link order, and draws as a list cell (one comma-joined line with `itemRangesIn()`
   marks). Four linked projects give four statuses, in the same order as the links.
-- **A slot that finds nothing stays in the list, as an empty item.** A slot can be empty because
-  the link is broken or because the linked note has no such property. Dropping it would leave
-  `alpha, delta` misaligned with the links that produced it, and alignment is what lets two linked
-  columns be read against each other. *This is the one decision here to check against real notes
-  during §8; the old plan held it open for the same reason.*
+- **A slot that finds nothing stays in the list, as an empty item: `alpha, , delta`.** A slot can
+  be empty because the link is broken or because the linked note has no such property. Dropping it
+  would leave `alpha, delta` misaligned with the links that produced it, and alignment is what lets
+  two linked columns be read against each other.
+  - **Nothing is drawn in the gap** — no `–` or other placeholder. What the cell shows is what the
+    notes say and nothing else, so text copied out of it (a future copy operation) carries no
+    marks nobody wrote. A leading empty slot therefore reads `, delta`, which is accepted.
+  - Checked against the code: `flowItemRanges()` keeps no zero-width range, so `itemRangesIn()`
+    marks `alpha` and `delta` and skips the gap, and nothing breaks. `splitFlowItems()` drops the
+    empty item too, so if a copied cell is ever pasted into a list cell the gap goes, which is
+    right for a note's own list.
+  - *Check this against real notes during §8.*
 - **Duplicates are kept.** Two links to one note give its value twice, because deduplicating was
   not requested.
 - **A "read" value that is itself a list is flattened into the cell's list.** A cell draws one
-  line, so a nested list could only appear as `a,b, c`.
+  line, so a nested list could only appear as `a,b, c`. **Alignment then holds only for a "read"
+  property with one value per note**: one link to a note with `tags: [x, y]` and another to one with
+  `tags: [z]` give `x, y, z`, and which tag came from which note is not shown. This is accepted
+  rather than refused. Refusing a list-valued "read" would be *more* work and would still not
+  remove the case: a type is the user's choice, not a fact about the data, so a `text` property can
+  hold a list in some notes, and the evaluation has to cope with a list value whatever the menu
+  offered.
 
 A cell where every slot is empty (no links, or none that resolve) is an empty cell with no warning.
 Leaving a property unset is the common case, and a warning on every row that lacks it would hide
@@ -177,113 +207,171 @@ check. Document this as intentional so that nobody passes computed values in lat
 ### 3.5 Evaluated per visible row, never stored
 
 Drawing evaluates per visible row: the table draws one page at a time, so that is about 50 lookups
-per linked column per render. Nothing is kept between renders, so nothing needs invalidating. The lookups are `resolveNoteName` then `byId`, both
-already cached.
+per linked column per render. The `id → file` Map (§2.3) is built once for that render and dropped
+after it, and nothing else is kept between renders, so nothing needs invalidating. `resolveNoteName`
+is the one cache involved, and it is already invalidated in the right places.
 
-### 3.6 Display-only: no caret, no sort, no type of its own
+### 3.6 Its own type, `linked`, and display-only
 
+**A linked column has a type of its own, `linked`**, and does not borrow the read property's.
+
+- **No mismatch can arise.** Borrowing the read type made every `internalLink → title` cell a list
+  in a `text` column — a shape mismatch, with a sentence telling the user to change a type they
+  cannot change. A `linked` column has no shape to be wrong about: it draws as text when "via" gave
+  one value, and as a list when it gave several. `typeMismatch()` is not asked about it.
+- **Borrowing bought almost nothing for drawing anyway.** Every type already draws the note's own
+  text (see CLAUDE.md, *What a table cell may contain*), so a linked `due` looks the same drawn as
+  text as drawn as a date. The read type matters for sorting, and V2 asks `propertyType(read)` there
+  (§9) rather than storing it as the column's type.
+- **`LINKED_TYPE` lives in `constants.js` outside `VALUE_TYPES`**, for `INFO_TYPE`'s reason: it is
+  not a name a user can choose, so it must never appear in the type dialog or be accepted from a
+  layout file's `propertyTypes`. `isTypeSettable()` is false for a `linked:` key.
 - **No caret.** The value lives in another note, so there is nothing in this note to splice into.
   `isPropertyEditable()` returns false for a `linked:` key, and nothing else is needed.
 - **No sort in v1.** No chevron on its header, no sort items in its column menu, and it is not in
   the sort select, so `sortState` can never name a linked key. The design is done and waits in §9:
   it is small, but it brings a real complication with it (an edit moving rows other than its own),
   and that is not worth taking on before linked columns have been used.
-- **No type.** `propertyType()` gives the **read** property's type, and so does the cell. A linked
-  `due` draws like `due`, and a change to `due`'s type changes both columns. The type dialog is not
-  offered for the column; to change its type, change the property it reads.
 
 ### 3.7 Its glyph
 
 The header and the column picker both draw a column's mark via `type-glyph.js`. A linked column
-gets a **link glyph under the padlock**, the way info columns do (`INFO_TYPE`): the app fills it in,
-and it takes no type of its own. That means one new `#icon-type-linked` symbol and one `LOCK_SHIFT`
-entry, following the rule in CLAUDE.md. `LINKED_TYPE` goes in `constants.js`, *outside*
-`VALUE_TYPES`, for `INFO_TYPE`'s reason: it is not a name a user can choose.
+gets **a chain-link glyph, `#icon-type-linked`, drawn open — no padlock**. The padlock means "the
+type is the app's and this button does not press", and a linked column's glyph in the picker *does*
+press: it opens the column's dialog (§5.1). CLAUDE.md's rule still applies — a new type needs a
+symbol named after it and a `LOCK_SHIFT` entry — so it gets one, unused today.
 
-### 3.8 A definition whose property has gone
+### 3.8 A column that finds nothing
 
-If "via" or "read" names a property that no loaded file has, the column is empty. It is not an
-error. The dialog still lists it and still allows re-pointing it: its current value stays in the
-menu, marked as not in any file, the same way the types modal keeps a dead type binnable. The
-column is **never `dead`**, even when every cell is empty. `dead` does more than fade a header:
-the column picker locks a dead column's toggle and offers its bin instead, and that bin deletes the
-column from the layout. For a linked column that would take away the toggle (it could no longer be
-switched on and off like any other column) and add a second way to delete it that bypasses the
-dialog. An empty linked column is fixed by re-pointing it, not by deleting it from one layout. A
-hand-edited definition that is malformed (not an object, a missing or non-string `via` or `read`)
-is dropped on read, via the single writer, like an unknown type name.
+If "via" or "read" names a property that no loaded file has, or no link resolves, the column is
+empty. It is not an error.
+
+- **It is never `dead` and never `blank`.** `resolveColumns()` gives a linked key `dead: false` and
+  `blank: false`, one line, since both are otherwise asked of the files' own keys and no file has a
+  `linked:` key — every linked column would be faded and binnable. `dead` does more than fade a
+  header: the column picker locks a dead column's toggle and offers its bin instead, which would
+  take away the toggle and add a way to delete it that bypasses the dialog.
+- **The cost is that a wholly empty linked column is not faded.** The dialog's example line (§5.2)
+  is where emptiness is said instead, at the moment it can be fixed.
+- The dialog still lists a property no file has, when it is the column's current choice, marked as
+  not in any file, so it can be re-pointed from there.
+- A hand-edited definition that is malformed (not an object, a missing or non-string `via` or
+  `read`, a `label` that is neither null nor a string) is dropped on read, via the single writer,
+  like an unknown type name.
+
+### 3.9 A property rename follows into linked columns
+
+"rename column" on an ordinary column renames the property in every note, and
+`follow-property-rename.js` already carries the new name to everything outside the notes that
+names the old one: layout columns, the saved type, the flowchart's roles and the sort. **Linked
+definitions join that list**: every definition whose `via` or `read` is the old name takes the new
+one.
+
+- **The same rule as the flowchart's roles: only once no note carries the old name** (`fromGone`).
+  While some notes still carry it — a rename that skipped locked notes — the old name still finds
+  values, so the definition keeps it.
+- **Undo needs nothing of its own**: `followPropertyRename` already runs again with the names
+  swapped after an undo or redo.
+- **A column named automatically is renamed too, for free** (`label: null`, §3.2); a typed name is
+  left alone.
+- It is written in the same layouts-file write `renamePropertyInLayouts()` already queues, so the
+  definitions and the layouts cannot disagree about the name.
 
 ---
 
 ## 4. Evaluation
 
-One pure function, `linkedValue(definition, file)`:
+One pure function, `linkedValue(definition, file, filesById)`:
 
 1. `toList(file[via])`, then `linkTarget` on each item;
-2. for each target, `getFileById(resolveNoteName(target))`, which may be `undefined`;
+2. for each target, `filesById.get(resolveNoteName(target))`, which may be `undefined`;
 3. from each linked file, `linked?.[read]`, where `null`/`undefined` becomes an empty slot, a Map
    becomes its keys and an array is flattened in (§3.3);
 4. if "via" held one scalar, return a single value; otherwise return the list.
 
-No DOM and no `appState` beyond the index. It sits in `services/`, next to the index it reads.
+No DOM and no `appState` beyond the name index. It sits in `services/`, next to the index it reads.
+`filesById` is the per-render Map of §2.3, passed in so the function stays pure and testable in
+node.
 
 ---
 
-## 5. The dialog
+## 5. The linked column dialog
+
+**One dialog per column, used to create it and to change it later.** It holds everything that
+defines the column — its two choices and its name — and is where it is deleted. There is no list of
+every linked column: the column picker already lists them.
 
 ### 5.1 Getting there
 
-A **+ button** in the table's control row (`render-table-controls.js`), to the **left of the layout
-name**, tooltip "add a column from linked notes". It opens `#modal-linked-properties`. It is in the
-table's own row, so it exists only while the table is drawn, and needs no view-conditional logic,
-the same as the column picker.
+Three ways in, all opening the same dialog through the same module:
 
-The + is the only way in. A second entry point (a "linked property…" item in the column menu, or
-in the column picker) can be added later if it is missed. **Every path goes through the same
-module**, so a second one is a button, not a second code path.
+- **The + button** in the table's control row (`render-table-controls.js`), to the **left of the
+  layout name**, tooltip "add a column from linked notes". Opens the dialog **empty**, to create.
+  It is in the table's own row, so it exists only while the table is drawn, and needs no
+  view-conditional logic, the same as the column picker.
+- **"edit linked column…" in the column's header menu.** Opens it **filled in**, to change.
+- **The glyph on the column's row in the column picker** (§3.7), where an ordinary column's glyph
+  opens the type dialog. Same filled-in dialog. This is the way to a linked column that is hidden in
+  the current layout, which has no header and so no header menu. `column-type-open` branches on a
+  `linked:` key; opening a dialog from the picker is what the type dialog already does.
 
 ### 5.2 What is in it
 
 Static markup in `index.html`, outside `#output`, like `#modal-flowchart-options`, so the render
-that follows a change cannot destroy the dialog mid-interaction. Its list is filled when it opens.
+that follows a change cannot destroy the dialog mid-interaction.
 
 ```
- Linked properties                                         ×
+ Linked column                                        ×
 
- Project status   [project      ▾] → [status  ▾]       🗑
- Linked titles    [links        ▾] → [title   ▾]       🗑
+ show                         [status  ▾]
+ from the note linked in      [project ▾]
 
- ─────────────────────────────────────────────
- name [            ]  [via ▾] → [read ▾]     [add]
+ name  [project → status              ]
+
+ e.g. "shopping.md" links to "alpha.md", which says: active
+
+ [delete]                                [save]  [cancel]
 ```
 
-- **One row per existing linked property.** The name is an inline text input, committed on
-  `change`, like renaming a layout. The two selects are committed on `change`. The bin deletes the
-  property. Each change goes through the one writer and reaches the disk at once (§3.1).
-- **The add row is last** and is focused when the dialog opens from the + button: that press means
-  "add one". **add** is disabled until both selects hold a value. A blank name defaults to
-  `<via label> → <read label>`. Adding closes nothing: the new row joins the list above, the add
-  row clears, and the column appears in the table behind the dialog on the redraw, as the rightmost
-  column, in whichever layout is in use (§3.1). No trip to the column picker.
-- **"via" offers** every front matter property plus `internalLink`, listed first. Info columns,
-  control columns and linked properties are excluded. It does not check which properties actually
-  hold links: a property pointed at the wrong thing gives an empty column, which is the user's
-  business in the same way a column's type is.
-- **"read" offers** every property that could be a column, `title`, `filename` and `lastModified`
-  included, minus control columns and linked properties.
-- **Both menus show labels**, like the flowchart options' selects, and are built by the same helper
-  (`flowchart-options-list.js`'s option-building could be shared or copied. It is about ten lines;
-  **copy it unless a third list appears**).
+- **"show" and "from the note linked in"** are the read and via selects. **Both show labels**, like
+  the flowchart options' selects. The option-building is about ten lines in
+  `flowchart-options-list.js`; **copy it unless a third list appears**.
+  - **"from the note linked in" offers** every front matter property plus `internalLink`, listed
+    first. Info columns, control columns and linked properties are excluded. It does not check which
+    properties actually hold links: a property pointed at the wrong thing gives an empty column,
+    and the example line says so.
+  - **"show" offers** every property that could be a column, `title`, `filename` and
+    `lastModified` included, minus control columns and linked properties.
+- **The name follows the two choices until it is typed in.** It starts as `project → status` and
+  changes as either select changes. Once typed in, it stays as typed. On save it is stored as
+  `null` when it is empty or still reads as the automatic name, so it goes on following (§3.2).
+  A heading already in use is refused under the box (§3.2).
+- **The example line** shows the first row, in the table's current order, where the lookup finds a
+  value: `e.g. "shopping.md" links to "alpha.md", which says: active`. When no row does, it says
+  `no note links through "project" to a note with a "status"`. It is redrawn when either select
+  changes, and it is what tells the user a choice works before they save it — and what replaces the
+  fade that a wholly empty linked column does not get (§3.8).
+- **Save and cancel.** Nothing is applied until save, and Escape or cancel leaves the column as it
+  was. The button reads **"add column"** when creating and **"save"** when editing, and is disabled
+  until both selects hold a value and the name is not refused. Save goes through the one writer,
+  reaches the disk at once (§3.1), closes the dialog and runs a full `renderFiles`. A new column
+  appears rightmost, in whichever layout is in use (§3.1).
+- **Delete** is shown only when editing, at the left in the warning colour. **It asks first**, the
+  same way the types modal's bin does (`showWarningModal`): it removes the column from every saved
+  layout, which cannot be undone from the table.
+- **Focus** goes to "show" when creating, and to the name when editing.
 
-### 5.3 Deleting asks
+### 5.3 The column menu of a linked column
 
-The bin opens a confirm first. Deleting removes the column from every saved layout (§3.1), which
-cannot be undone from the table, and it is the same sort of bin that asks in the types modal.
+"hide column", the stick items, and **"edit linked column…"**. Not offered: sort items, "change
+type", "rename column", "delete column" and "remove from layout". Renaming and deleting are the
+dialog's, and "rename column" and "delete column" on an ordinary column reach every note, which is
+not what they would do here.
 
 ### 5.4 Nothing here writes a note
 
-Adding, renaming, re-pointing and deleting a linked property only touch the layouts file. A mistake
-gives an odd column, never a changed note. The delete confirm protects the layouts, not the notes.
+Creating, editing and deleting a linked column only touch the layouts file. A mistake gives an odd
+column, never a changed note. The delete confirm protects the layouts, not the notes.
 
 ---
 
@@ -295,24 +383,21 @@ Move `toList` and `linkTarget` out of `flowchart/mermaid-source.js` into
 `services/internal-links/link-targets.js` (exported, with JSDoc), and import them back. Nothing in
 the flowchart's behaviour changes, and its tests should pass unchanged.
 
-### 6b. `note-name-index.js`
-
-Add `byId` to `build()` and export `getFileById(id)`. Moving the nine `myFiles.find` call sites
-over is a separate tidy-up; do it separately or not at all.
-
-### 6c. `services/linked-properties.js` (new)
+### 6b. `services/linked-properties.js` (new)
 
 The service, shaped like `property-type.js` and `flowchart-options.js`:
 
 - `linkedProperty(key)` and `linkedPropertyKeys()` are the readers;
+- `linkedHeading(key)` — the stored label, or `<via label> → <read label>` when it is `null`;
 - `setLinkedProperty(key, { label, via, read })` is **the one writer**, validating a hand-edited
-  file and a dialog change the same way; `setLinkedProperty(key)` with no definition forgets it;
+  file and a dialog save the same way; `setLinkedProperty(key)` with no definition forgets it;
 - `nextLinkedKey()`;
-- `linkedValue(definition, file)` from §4, or a sibling module if the file grows past a screen.
+- `linkedValue(definition, file, filesById)` from §4, or a sibling module if the file grows past a
+  screen.
 
 State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 
-### 6d. Layouts file
+### 6c. Layouts file
 
 - `layout-apply.js`: `linkedPropertiesFromState()` and `applyLinkedPropertiesFromFile(raw)`, the
   third pair.
@@ -321,47 +406,53 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
   touch `isDirty`; `addLinkedProperty(key, definition)`, which in one queued write stores the
   definition and, when a layout is active, appends `{ name: key, visible: true, order: <after the
   last>, … }` to that layout's stored `columns`, then sets it visible and last in `columnLayout`,
-  leaving `isDirty` alone (§3.1); `deleteLinkedProperty(key)`, which removes the key from `linkedProperties` and
-  from every layout's `columns` in one queued write, and from `columnLayout` in memory;
-  `applyActiveLayout()` and `deleteAllLayouts()` load and clear the new state.
+  leaving `isDirty` alone (§3.1); `deleteLinkedProperty(key)`, which removes the key from
+  `linkedProperties` and from every layout's `columns` in one queued write, and from `columnLayout`
+  in memory; `applyActiveLayout()` and `deleteAllLayouts()` load and clear the new state.
   `LAYOUT_VERSION` stays the same: the key is additive.
+- `follow-property-rename.js`: re-point `via` and `read` when `fromGone` (§3.9), beside the
+  flowchart roles.
 
-### 6e. Columns
+### 6d. Columns
 
 - `resolveColumns()` includes `linkedPropertyKeys()` among its candidates, is exempt from the
-  `missing` file check (no file carries a `linked:` key), overrides `label` from the definition
-  (§3.2), and returns `dead: false` for it (§3.8). `propertiesInFiles` is not asked about it.
-- `column-picker-list.js`: no change is expected. A linked column is an ordinary row there, with its
-  toggle, drag handle and §3.7 glyph, because it is never `dead`, so it never gets the bin. Check
-  that this holds, and do not add a linked-specific branch.
-- `property-type.js`: `propertyType()` returns the read property's type for a linked key, and
+  `missing` file check (no file carries a `linked:` key), takes the heading from `linkedHeading()`
+  (§3.2), and gives `dead: false, blank: false` (§3.8). `propertiesInFiles` is not asked about it.
+- `column-picker-list.js`: a linked column is an ordinary row, with its toggle and drag handle,
+  because it is never `dead`. Its glyph is enabled and opens the dialog (§5.1); its label is
+  escaped (§3.2).
+- `property-type.js`: `propertyType()` returns `LINKED_TYPE` for a linked key, and
   `isTypeSettable()` and `isPropertyEditable()` both return false for it.
-- `render-table-rows.js`: a linked column's value comes from `linkedValue()`, not `file[name]`, and
-  is then drawn by the existing branch for its type. A list result goes through the array branch,
-  which is where `linkifyText` and the list marks already live.
-- `render-table-header.js`: no sort trigger for a linked column (§3.6). The glyph comes from §3.7.
-- `column-menu.js`: "change type" and the sort items are not offered. "Hide column" is unchanged.
-  "Delete column" is **not** offered: deleting a linked property is the dialog's job, since it
-  removes the column from every layout and not only from one.
+- `render-table-rows.js`: builds the `id → file` Map once per render (§2.3); a linked column's value
+  comes from `linkedValue()`, not `file[name]`, and skips `typeMismatch()`.
+- `render-cell-value.js`: a `linked` case — an array goes through the list branch (where
+  `linkifyText` and the list marks already live), anything else through the text branch.
+- `render-table-header.js`: no sort trigger for a linked column (§3.6); the glyph from §3.7; the
+  heading escaped.
+- `column-menu.js`: the linked column's menu (§5.3).
 
-### 6f. The dialog
+### 6e. The dialog
 
-- `index.html`: `#modal-linked-properties`, and `#icon-type-linked` in the sprite.
-- `ui-functions-table/render-table-controls.js`: the + button, `data-action="open-linked-properties"`.
-- `ui-functions-table/linked-properties-list.js` (new): renders the rows and the add row.
-- `ui-functions-click/linked-properties.js` (new): open, close, add, rename, re-point and delete,
-  registered in `event-listeners-add.js`. Each change calls the service, saves, and runs a full
-  `renderFiles`.
-- a CSS file for the dialog's rows, if `info-modal`'s existing row classes are not enough.
+- `index.html`: `#modal-linked-column`, and `#icon-type-linked` in the sprite.
+- `ui-functions-table/render-table-controls.js`: the + button, `data-action="open-linked-column"`.
+- `ui-functions-table/linked-column-form.js` (new): fills the selects, the name and the example
+  line.
+- `ui-functions-click/linked-column.js` (new): open (empty or for a key), select and name input,
+  save, cancel and delete, registered in `event-listeners-add.js`. Save and delete call the service,
+  write, and run a full `renderFiles`.
+- `ui-functions-click/column-type-set.js` (`handleColumnTypeMenuOpen`): send a `linked:`
+  key to the dialog instead.
+- a CSS file for the dialog, if `info-modal`'s existing classes are not enough.
 
-### 6g. Housekeeping
+### 6f. Housekeeping
 
 - `constants.js`: `LINKED_TYPE`. `type-glyph.js`: its `LOCK_SHIFT` entry.
-- The "delete all layouts" tooltip mentions linked properties.
+- The "delete all layouts" tooltip mentions linked columns.
 - CLAUDE.md: a short *Linked properties* section: stored at the top of the layouts file, one
-  writer, a `linked:` key cannot collide, no chaining by construction, no caret, not sortable
-  yet, not searchable. Add the new
-  files to the file map.
+  writer, a `linked:` key cannot collide, `label: null` follows its choices, its own type and no
+  mismatch, no chaining by construction, no caret, never dead or blank, follows a property rename,
+  the `id → file` Map is per render and why, not sortable yet, not searchable. Add the new files to
+  the file map.
 - Bump `manifest.json` minor version.
 
 ---
@@ -371,19 +462,22 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 ```
 public/js/services/internal-links/link-targets.js      NEW  toList + linkTarget, shared
 public/js/services/flowchart/mermaid-source.js         MOD  imports them
-public/js/services/internal-links/note-name-index.js    MOD  byId + getFileById
-public/js/services/linked-properties.js                NEW  state, one writer, linkedValue
+public/js/services/linked-properties.js                NEW  state, one writer, heading, linkedValue
 public/js/services/store.js                            MOD  appState.linkedProperties
-public/js/services/property-type.js                    MOD  read property's type; not settable/editable
+public/js/services/property-type.js                    MOD  LINKED_TYPE; not settable/editable
 public/js/table-layouts/layout-apply.js                MOD  from-state / apply-from-file pair
-public/js/table-layouts/layout-file.js                 MOD  read, save, delete, clear
-public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  linked keys as columns, never dead
-public/js/ui/ui-functions-table/render-table-rows.js   MOD  linkedValue for linked columns
-public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger; the glyph
+public/js/table-layouts/layout-file.js                 MOD  read, save, add, delete, clear
+public/js/table-layouts/follow-property-rename.js      MOD  re-point via/read
+public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  linked keys as columns, never dead or blank
+public/js/ui/ui-functions-table/render-table-rows.js   MOD  per-render id map; linkedValue; no mismatch
+public/js/ui/ui-functions-table/render-cell-value.js   MOD  the linked case
+public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger; glyph; escaped heading
 public/js/ui/ui-functions-table/render-table-controls.js MOD the + button
-public/js/ui/ui-functions-table/linked-properties-list.js NEW the dialog's rows
-public/js/ui/ui-functions-click/linked-properties.js   NEW  the dialog's actions
-public/js/ui/ui-functions-click/column-menu.js         MOD  no change type / sort / delete on a linked column
+public/js/ui/ui-functions-table/column-picker-list.js  MOD  enabled glyph, escaped label
+public/js/ui/ui-functions-table/linked-column-form.js  NEW  the dialog's contents
+public/js/ui/ui-functions-click/linked-column.js       NEW  the dialog's actions
+public/js/ui/ui-functions-click/column-menu.js         MOD  the linked column's menu
+public/js/ui/ui-functions-click/column-type-set.js     MOD  a linked key opens the dialog
 public/js/ui/ui-functions-render/type-glyph.js         MOD  LOCK_SHIFT entry
 public/js/ui/event-listeners-add.js                    MOD  register the actions
 public/js/constants.js                                 MOD  LINKED_TYPE
@@ -397,26 +491,31 @@ manifest.json, CLAUDE.md                               MOD
 
 `npm test` plus the specs that apply. New tests:
 
-- **Level 1** (`tests/1-data/`, in the layouts spec's level-1 counterpart if there is one,
-  otherwise next to the property-types writes): adding, renaming and deleting a linked property
-  writes the expected `linkedProperties` object; an add under a saved layout appends one visible entry
-  to that layout's `columns` and changes nothing else in it; a delete also removes the key from
-  every layout's `columns`; a malformed hand-edited definition is dropped; setting one leaves `isDirty` as it was;
-  no note is written by any of it.
-- **Level 2** (`tests/2-behaviour/43-table-layouts.spec.js` or a new
-  `linked-properties.spec.js`, since this is a new area): the + opens the dialog; a defined column
-  shows the linked note's value; several links give an aligned list with empty slots; a broken link
-  gives an empty cell with no warning; the cell takes no caret; the header has no sort chevron.
+- **Level 1** (`tests/1-data/`, next to the property-types writes): creating, editing and deleting a
+  linked column writes the expected `linkedProperties` object; an untouched name is stored as
+  `null`; an add under a saved layout appends one visible entry to that layout's `columns` and
+  changes nothing else in it; a delete also removes the key from every layout's `columns`; a
+  malformed hand-edited definition is dropped; setting one leaves `isDirty` as it was; renaming a
+  property in every note re-points a definition that names it, and undo puts it back; no note is
+  written by any of the dialog's actions.
+- **Level 2** (a new `linked-columns.spec.js`, since this is a new area): the + opens the dialog
+  empty, and the header menu and the picker glyph open it filled in; the name follows the selects
+  until typed in; a heading in use is refused; the example line names a real row, and says so when
+  none is found; cancel changes nothing; a defined column shows the linked note's value; several
+  links give an aligned list with empty slots drawn as nothing between commas; a broken link gives
+  an empty cell with no warning; a list of titles through `internalLink` is not marked as a
+  mismatch; the cell takes no caret; the header has no sort chevron and is not faded.
   **In the column picker** it can be toggled off and on and dragged to a new place, and a saved
   layout keeps that; an empty one still has its toggle and no bin.
   **A new one is shown at once**, rightmost, under the defaults and under a saved layout alike,
   and is still shown after a reload. Under a saved layout with an unsaved reorder pending, adding
   one leaves the reorder unsaved (`isDirty` still set, and the file's order unchanged apart from
-  the appended column). Other saved layouts get it hidden.
+  the appended column). Other saved layouts get it hidden. **Editing `status` in a linked note
+  updates the linked cell** — the regression §2.3 exists to prevent.
 - **`linkedValue` in node**, via `appModule()`: single, many, broken, missing property, list read
-  value, Map read value.
+  value flattened, Map read value.
 
-Screenshots per CLAUDE.md: the dialog with two definitions, and the table showing a linked column
+Screenshots per CLAUDE.md: the dialog creating and editing, and the table showing a linked column
 next to its "via" column, including one row whose link is broken.
 
 Check by hand, against a real folder: **four links, only some of which resolve**, which is where
@@ -439,10 +538,12 @@ status is the first thing anyone will want from a "Project status" column.
   reads each file's sort value through a small getter: `file[property]` for an ordinary property,
   and `linkedSortValue()` for a `linked:` key. That value is **computed once per file per
   comparator** and memoised in the comparator's own closure, so a sort costs one evaluation per
-  file, not one per comparison. Nothing outlives the sort, so nothing can go stale. The history
+  file, not one per comparison. The comparator builds its own `id → file` Map for the same reason
+  the renderer does (§2.3). Nothing outlives the sort, so nothing can go stale. The history
   overview's rows never carry a `linked:` key, so they are unaffected.
-- **The sort type is the read property's type**, which `propertyType()` already answers (§3.6).
-  Sorting a linked `due` sorts by date.
+- **The sort type is the read property's type.** The column's own type is `linked` (§3.6), which
+  says nothing about ordering, so for a `linked:` key the comparator asks `propertyType(read)`
+  instead. Sorting a linked `due` sorts by date.
 - **A list is sorted by its first non-empty item, not by its length.** The existing `array` branch
   orders a list by item count, which is meaningless for "Project status". Worse, a note written
   `project: ["[[alpha]]"]` makes the value a list of one where `project: "[[alpha]]"` makes it a
@@ -451,7 +552,7 @@ status is the first thing anyone will want from a "Project status" column.
   whose every slot is empty goes to the end, like any missing value. *If the read property is itself
   a list type (e.g. `tags`), sort by item count as usual; the reduction applies only to the list
   that "via" produced.*
-- **The sort select offers linked properties**, labelled with their name, after the ordinary
+- **The sort select offers linked properties**, labelled with their heading, after the ordinary
   properties. `populateSortSelect()` reads `myFilesProperties`, so it needs the linked keys added
   explicitly. Offering them in every view is free, because the sort is global, not the table's.
 - **Whatever `sortState` names must exist.** When the definition being sorted by is deleted, or
@@ -471,13 +572,13 @@ second look once it can be tried, so it gets its own test (below).
 ### Steps
 
 - `file-object-sort.js`: `compareByProperty()` reads values through a getter that recognises a
-  `linked:` key and memoises `linkedSortValue()` per file for the life of the comparator. Every
-  caller is untouched.
-- `services/linked-properties.js`: `linkedSortValue(definition, file)`, which is `linkedValue()`
-  with a "via" list reduced to its first non-empty slot.
+  `linked:` key, sorts it under `propertyType(read)`, and memoises `linkedSortValue()` per file for
+  the life of the comparator. Every caller is untouched.
+- `services/linked-properties.js`: `linkedSortValue(definition, file, filesById)`, which is
+  `linkedValue()` with a "via" list reduced to its first non-empty slot.
 - `render-table-header.js` and `column-menu.js`: put back the sort trigger and the sort items
   that v1 withholds (§3.6).
-- `sort-select-load.js`: `populateSortSelect()` adds the linked keys, labelled by name.
+- `sort-select-load.js`: `populateSortSelect()` adds the linked keys, labelled by heading.
 - The sort falls back to the default when its linked key is deleted (in the dialog's delete action)
   or absent after a folder load (next to `applyActiveLayout()` in the loaders), then
   `syncSortControls()`.
