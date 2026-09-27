@@ -15,10 +15,11 @@ list and comment beside it left exactly as it was. Today they would open 35 note
 
 ## 1. What this delivers
 
-A **"rename column"** item in the table header's column menu. It turns that column's header cell
-into an editor: the user types the new name straight into the header, sees as they type whether the
-name can be used, and finishes the way a table cell is finished. Enter or clicking away asks for
-confirmation, with the counts, and then renames; Escape, or cancelling, leaves everything as it was.
+A **"rename column"** item in the table header's column menu. It opens a **rename dialog**: one text
+box holding the property's name, a line under it that says as the user types whether the new name
+can be used and how many notes it will change, and a rename button that is only pressable when the
+name can be used. The dialog is the confirmation — there is no second one. Rename, or Enter, renames;
+cancel, Escape or clicking outside it leaves everything as it was.
 The column's property is then renamed in every note in the
 loaded folder that has it: the key's name changes, and nothing else in the note does. It is one
 batch, and one undo puts it back. The column, its type, its place in every saved layout and the flowchart's
@@ -32,8 +33,7 @@ and none of this plan's rules answer that. It may be built later, in a plan of i
 **a name any note already has is refused, with no exceptions** (§4.4), and nothing in this plan is
 to be read as partly supporting a merge.
 
-**In scope:** the menu item and which columns get it; editing the name in the header and what a
-legal name is; refusing a name a note already has; the write; what follows the name outside the
+**In scope:** the menu item and which columns get it; the rename dialog and what a legal name is; refusing a name a note already has; the write; what follows the name outside the
 notes; undo and redo of it.
 
 **Out of scope:** renaming within the filtered files only (as the delete, §4.2 there); cancelling
@@ -87,8 +87,8 @@ bytes that come back are the very bytes that went (§5).
 A layout's column entry already has a `label`, and changing it would rename the column *on screen*
 without writing to a single note. That is a different action, it is not what was asked for, and
 there is no UI for it today. This plan does not build it. The two must not be confused later, so
-the menu item says **"rename column"** only because the column is the property, and the report
-line says so while the name is being typed (§8.3): *renames the key in 35 notes*.
+the menu item says **"rename column"** only because the column is the property, and the dialog
+says so while the name is being typed (§8.2): *renames the key in 35 notes*.
 
 ### 3.3 Why not splice the key's bytes directly
 
@@ -123,8 +123,9 @@ the key for (not `data-keyless`). A bare `people:` counts, as it does for the de
 two-sided rule as `needsQuoting()` (*Quote defensively* in CLAUDE.md).
 
 `propertyNameProblem(name, from)` in a new `services/property-name.js` returns a sentence saying
-what is wrong, or `null`. While the header is being edited, a name with a problem turns the
-header's text the warning colour and the report line shows the sentence (§8.3). In order:
+what is wrong, or `null`. While the name is being typed in the rename dialog, a name with a problem
+shows that sentence under the text box in the warning colour, and the rename button is disabled
+(§8.2). In order:
 
 1. **Trimmed first.** Leading and trailing spaces are dropped rather than refused.
 2. **Empty** → `a name is needed`.
@@ -137,18 +138,40 @@ header's text the warning colour and the report line shows the sentence (§8.3).
    `@` or `` ` ``, or contains ` #`** → `a name cannot start with "["`. Gypsum's parser would read
    most of these as a key, but a spec reader (Obsidian, PyYAML) reads a list, a flow collection, an
    alias, a comment. The rule protects the text from other readers, as the quoting rule does.
-6. **The parser's own answer**: `parseYaml("---\n" + name + ": x\n---\n")` must give no errors and
-   exactly one key, equal to `name`. Asked last, as the authority, so that the rule can never
-   accept a name gypsum itself would misread — the same move as `needsQuoting()` asking
-   `coerceValue` rather than listing shapes.
-7. **A name the app keeps for itself** → `"filename" is set by the app`. Anything in
-   `CORE_FILE_PROPERTIES` or `RESERVED_KEYS` (§4.3).
-8. **A name a note already has** → `"attendees" is already in 12 notes`. §4.4. This is the one rule
-   that needs `appState`, so it is not in `propertyNameProblem`, which stays pure. The service's
-   `renameProblem(from, to)` asks `propertyNameProblem` first and this second, and the header
-   editor asks `renameProblem`.
+6. **`"`, `<`, `>` or `&` anywhere** → `a name cannot contain "<"`. These are not a YAML problem;
+   they are the app's own. A property name is written unescaped into the header's HTML —
+   `data-property="${prop.name}"` and the label in `render-table-header.js` — and looked up with
+   `[data-property="…"]` selectors, so `a"b` breaks the attribute and every lookup of that column,
+   and `<` starts markup. A key typed by hand into a note can already do this, and escaping the
+   header is a separate fix; what this rule guarantees is that the app never writes such a key
+   itself.
+7. **The parser's own answer**: `parseYaml("---\n" + name + ": x\n---\n")` must give no errors and
+   exactly one key, equal to `name`. Asked last of the pure rules, as the authority, so that the rule
+   can never accept a name gypsum itself would misread — the same move as `needsQuoting()` asking
+   `coerceValue` rather than listing shapes. **This is also what refuses `__proto__`**, and must go
+   on doing so: in JavaScript, assigning `obj['__proto__'] = x` changes the object's prototype
+   instead of creating a key, so the parser hands back no key at all and the "exactly one key" test
+   fails. A file object could not hold such a property either. The test in §14.2 lists it so that
+   nobody "simplifies" this rule and lets it through.
+8. **A name the app keeps for itself, in any case** → `"Title" is set by the app`. Anything in
+   `CORE_FILE_PROPERTIES` or `RESERVED_KEYS`, compared ignoring case (§4.3).
+9. **A name a note already has, in any case** → `"attendees" is already in 12 notes`, or
+   `"Attendees" is already in 12 notes as "attendees"` when only the case differs. §4.4. This is the
+   one rule that needs `appState`, so it is not in `propertyNameProblem`, which stays pure. The
+   service's `renameProblem(from, to)` asks `propertyNameProblem` first and this second, and the
+   rename dialog asks `renameProblem`.
 
 Spaces inside a name are allowed (`due date`); the parser reads them, and so does YAML.
+
+**Names that differ only in case are refused here, and only here.** Keys are case-sensitive, so
+`people` and `People` would be two columns with the same name to the eye, which is confusing and
+nearly always a mistake. The rename dialog is deliberately the only place that says so: nothing
+stops someone typing `People:` into a note's front matter by hand, and nothing should — the parser,
+the table and the writer all go on treating the two as the different keys they are. **One exception:
+changing the case of the name being renamed** (`people` → `People`). That replaces the name rather
+than adding a look-alike beside it, so rule 9 ignores `from` itself when it compares. Notes the
+rename skips keep `people` beside the renamed `People`, as any partial rename leaves both names; undo
+is the way back (§11).
 
 ### 4.3 Not onto a property the app fills in
 
@@ -163,18 +186,22 @@ would lock every note it touched.
 
 ### 4.4 Not onto a name any note already has
 
-**Decided: if any loaded note has the new name as a key, the name is refused.** While it is typed,
-the header shows it in the warning colour and the report line says why, as for any other illegal
-name (§4.2, rule 8). Finishing with it writes nothing (§8.2). A name in use makes the operation a
+**Decided: if any loaded note has the new name as a key, in any case, the name is refused.** While it
+is typed, the dialog says why in the warning colour and the rename button is disabled, as for any
+other illegal name (§4.2, rule 9). A name in use makes the operation a
 merge, and **rename is not a merge** (§1). No exception is made for a merge that looks harmless: not
 for notes that never hold both keys, not for finishing an earlier rename of the same two names, and
 not for the app's own names (§4.3). One rule with no exceptions is what keeps the two features
 apart.
 
-- **"Has the key" is the question `dead` asks**: `Object.hasOwn(file, to)` over `appState.myFiles`,
-  never `myFilesProperties`, which only grows. A bare `attendees:` counts, since it is `null` on the
+- **"Has the key" is the question `dead` asks**, asked of `appState.myFiles`, never
+  `myFilesProperties`, which only grows. A bare `attendees:` counts, since it is `null` on the
   file object. So does a key in a note whose front matter did not read cleanly, when the parser got
   as far as it: that note is locked either way.
+- **Ignoring case means asking of every key, not looking one up.** `Object.hasOwn(file, to)` cannot
+  find `Attendees`, so the dialog builds, once when it opens, a Map from each lower-cased key the
+  loaded notes carry to its spellings and a count of notes. Each keystroke is then one lookup, at
+  1,000 notes as at 10. `from` is left out of it (§4.2, the case exception).
 - **A name no note has is free**, even if it is still a keyless column in a saved layout or still
   has a type saved against it. Nothing in any note is lost by using it; §10.1 says what happens to
   that column and that type.
@@ -182,7 +209,9 @@ apart.
   It does not suggest a way round the refusal.
 - **The write re-checks against the bytes on disk.** A note that gains the new key after the
   name was checked, in another editor or from the sidebar, is refused whole by `expect: null` (§6.1)
-  and `allOrNothing` (§6.2). It keeps `people` untouched, and is counted as skipped.
+  and `allOrNothing` (§6.2). It keeps `people` untouched, and is counted as skipped. That re-check
+  is of the exact name: a note gaining `Attendees` in that window is renamed beside it, since the
+  case rule belongs to the dialog alone (§4.2).
 
 ---
 
@@ -240,7 +269,7 @@ Two options on an edit and one on a batch. Nothing else in `apply-raw-edits.js` 
 **`null` means the note must not have the key at all** (`span` undefined). Nothing passes `null`
 today — every record's `after` is a string — so the meaning is free.
 
-This is what makes the rule in §4.4 hold against the bytes on disk. The header editor refuses a
+This is what makes the rule in §4.4 hold against the bytes on disk. The rename dialog refuses a
 name any loaded note has, but a note can gain `attendees` after that check, and the write then refuses it.
 
 ### 6.2 `allOrNothing` — a note takes both edits or neither
@@ -250,8 +279,12 @@ name any loaded note has, but a note can gain `attendees` after that check, and 
 The reverse leaves the value twice.
 
 So `applyRawEdits(edits, { allOrNothing: true })` passes it to `planFileEdits`, which returns
-`null` — the note is untouched and yields no records — unless every edit sent for that note is
-planned. It is per note, not per batch: one note refusing does not stop the other 34.
+`null` — the note is untouched and yields no records — unless every edit sent for that note
+**produced a splice**. That is the definition, and the JSDoc says it in those words: an edit can
+also drop out because it changes nothing (`raw === before`, or a list item `SKIP`), and under
+`allOrNothing` that counts as not applied too. Neither can happen to a rename's pair, but the option
+is general, so what it means has to be exact. It is per note, not per batch: one note refusing does
+not stop the other 34.
 
 - **Refusals come in pairs.** With `allOrNothing`, a note's edits are all applied or all refused,
   so the refusal marks (`undo-refusals.js`) and the report line count both halves of a refused
@@ -314,27 +347,28 @@ the removal, `null` for the re-creation.
 
 ## 7. The forecast
 
-`renameForecast(from, to)` in `editing/rename-property.js`, from `appState` alone, so the header
-editor can recount on every keystroke (§8.3) at 1,000 notes:
+`renameForecast(from)` in `editing/rename-property.js`, from `appState` alone, so the dialog opens at
+once at 1,000 notes:
 
 ```js
 const carrying = appState.myFiles.filter(file => Object.hasOwn(file, from));
-const locked   = carrying.filter(hasYamlError);
 const changing = carrying.filter(file => !hasYamlError(file));
-const inUse    = appState.myFiles.filter(file => Object.hasOwn(file, to)).length;
 ```
 
-- **Counts the notes that will change**, as the delete's does: `changing`, with `locked` said
+- **It depends on `from` alone**, so it is worked out once, when the dialog opens, and not on each
+  keystroke. Which notes a rename reaches does not depend on the new name; whether the new name can
+  be used is `renameProblem`'s question (§4.2), not the forecast's.
+- **Counts the notes that will change**, as the delete's does: `changing`, with the locked ones said
   separately.
-- **`inUse` is what refuses the name** (§4.4). When it is above 0 the report line shows no counts at
-  all, only the sentence.
-- **`to` being a core name is never asked here**, because §4.2 refuses it before a forecast is
-  drawn. That is the reason §4.3 exists.
+- **`to` being a core name, or in use, is never asked here**, because §4.2 refuses it and the rename
+  button is disabled before the forecast could matter. That is the reason §4.3 exists.
 - **Three sample filenames** from `changing`, as the delete.
+- It has the same shape as `deletionForecast`, and is that function asked of `from`. The build step
+  may call the delete's rather than write a second one; the plan does not need two.
 
 ---
 
-## 8. The menu, and typing the name into the header
+## 8. The menu and the rename dialog
 
 ### 8.1 The menu
 
@@ -356,154 +390,87 @@ const inUse    = appState.myFiles.filter(file => Object.hasOwn(file, to)).length
   this in the same place.
 - `data-action="column-rename-property"`, `data-tip="rename this property in every note"`.
 
-### 8.2 The header cell becomes the editor
+### 8.2 The dialog
 
-**Decided: the name is typed in the header, and a confirmation follows (§8.4).** Pressing
-"rename column" closes the menu and makes the text of that column's header cell editable, with the name selected, so typing replaces it. It is finished exactly as a
-table cell is finished (CLAUDE.md, *What a table cell may contain* and the sections after it):
-
-| way out | what happens |
-|---|---|
-| **Enter** | commits: if the name is new and legal (below), asks for confirmation (§8.4) |
-| **clicking anywhere else, or Tab** | commits, the same |
-| **Escape** | puts the header back to the name it opened with and writes nothing |
-
-After any of them, and after the confirmation is answered either way, the header cell is **left
-selected and focused**, as a finished cell is. One
-press then opens its menu again, and the arrow keys move from it.
-
-- **A commit with a problem writes nothing.** If the name is unchanged, empty, illegal or already in
-  use, finishing puts the old name back, exactly as Escape does. A name in the warning colour
-  therefore never reaches a note, however the header was left.
-- **A legal new name is confirmed before anything is written** (§8.4). A cell edit writes at
-  once because it is one note and over at once. A rename writes to every note carrying the key, can
-  take several seconds with the table locked, and has no cancel once it starts (§11). So it asks
-  first, as the delete does, and a click away that was not meant as "rename" costs one press of
-  cancel.
-- **The label is what gets the caret, not the button.** The header cell is a `<button>`, and a
-  button's own contents do not take a caret reliably: Space and Enter press the button. So
-  `contenteditable="plaintext-only"` goes on the `.header-label` span inside it, which
-  `focusWithCaret` then focuses, the helper a cell opened from the keyboard already uses.
-  *Step 5 checks this first, with a screenshot.* If Chromium will not give a caret to a span inside
-  a button, the header cell is drawn as a `<div role="button" tabindex="0">` instead, for every
-  column. That is one change to `render-table-header.js`, with the same classes and the same
-  `data-action`, since the delegated listener does not care which element carries it.
-- **What the span shows while open is the property name**, even when the layout gives the column a
-  hand-written label, because the name is what is being renamed. The label is kept on the cell
-  (`data-opened-label`) so Escape puts back what was showing.
-- **`data-opened-text` holds the name it opened with**, the same attribute a cell uses, and the
-  commit compares against it. So a header opened and not typed in writes nothing, for the same
-  reason a cell does.
-- **The header's own click is ignored while it is being edited.** A press inside the editable
-  label bubbles to the header's `data-action="column-menu-open"`, and would open the menu over the
-  caret. `handleColumnMenuOpen` returns at once when its cell is being renamed, as
-  `handleCellExpand` returns for a cell already open: *clicks inside an open editor belong to the
-  caret.*
-- **Where the code follows the cell's and where it does not.** The keys follow the cell's.
-  `keyDownDelegate` asks `handleHeaderRenameKeydown(evt)` beside `handleCellEditorKeydown`, and an
-  Enter it takes goes no further. Otherwise keyboard navigation would turn Enter on the header into a
-  click, and the menu would open the instant the rename finished. The Escape branch in
-  `keyboard-shortcuts.js`, which already calls `finishOpenCell(true)` and `clearHeaderSelection()`,
-  calls `finishHeaderRename(true)` too. **Committing on arrival rather than on the way out** holds
-  here as well: a click elsewhere commits through a click-outside check like
-  `handleCellExpandClickOutside`, and focus arriving anywhere else through a `focusin` check. Never
-  on `focusout`, which is what made Chrome drop Tab moves in the cell editor.
-- **Ctrl+Z inside the header is the text's own undo**, because `isTypingTarget()` is already true
-  for any contenteditable. The table's undo is not reached until the header is finished.
-- **A long name scrolls inside the header**, as text scrolls in an input: `white-space: nowrap`
-  and `overflow-x: auto` with no scrollbar on the editing label. The header keeps its width, so no
-  column moves while typing. The sort chevron and the type glyph stay where they are.
-- **The editing header looks like an open cell**: the same outline an expanded cell draws, so
-  "this is being typed into" reads the same in the header and the body. `is-renaming` on the header
-  cell, in a new `note-table-header-rename.css`.
-- **Pasted text is plain**, since the span is `plaintext-only`. A pasted newline is refused by
-  rule 4 (§4.2) rather than silently stripped, so the warning shows and the user sees why.
-- **A render while the header is open cancels the rename.** A full render rebuilds the header,
-  and nothing puts an editor back into it. That is Escape's outcome, so nothing is written. Nothing
-  the user does can cause one while the header has focus: the table's control row and the other
-  headers are reached by clicking, and a click is a commit first.
-
-### 8.3 What the user sees while typing
-
-On every `input`, the editor asks `renameProblem(from, typed)` and `renameForecast(from, typed)`
-(§4.2, §7), both from `appState` alone. It shows the answer in two places:
-
-- **The header's text turns the warning colour while the name has a problem.** The class is
-  `is-name-refused`, and the colour is `.load-error-nudge`'s, the one the delete item already uses.
-  A name that is unchanged, or not finished yet, is not a problem and stays in the ordinary colour.
-- **The report line (`#output-report`) says what finishing would do**, rewritten on each keystroke:
-
-  ```
-  rename people to attendees: 35 notes, 2 skipped (front matter could not be read)
-  "attendees" is already in 12 notes                 ← warning colour
-  a name cannot contain ":"                           ← warning colour
-  ```
-
-  **The report line rather than a tooltip**, because a tooltip needs a pointer, and the reason
-  CLAUDE.md gives for drawing a mismatch cell's sentence with CSS applies here too: half the people
-  using this have a finger. And **the report line rather than a `data-tip` drawn inside the
-  header**, because the header is one line high with `overflow: hidden`, and its text is the thing
-  being edited. The line sits outside `#output`, so it is visible above the header whatever the
-  table's scroll position.
-- **The line is written through `output-report.js`**, as a new `reportRenamePreview(...)`, and goes
-  back to what it said before once the header is finished without a rename. A rename that runs
-  replaces it with the progress bar and then the result (§11). Rewriting this line per keystroke is
-  not the cost the delete measured: that was once per *file* during a write above a large table,
-  while this is once per key the user presses.
-
-The explanation is never written into the header itself. The header's text is what the commit
-reads, so anything else put there would become part of the name.
-
-
-### 8.4 The confirmation
-
-**Every commit with a legal new name asks first**, whichever way out reached it: Enter, a click
-away or Tab. It is the delete's dialog, `showWarningModal`, reused with its own text. No new dialog
-is needed, and `#modal-unsaved-warning-text` already keeps line breaks (`white-space: pre-line`,
-added for the delete).
+**Decided: a dialog, not an editable header.** Typing into the header cell was the first design,
+and it was dropped because every way out of it had to be taught not to trip over the table: a click
+elsewhere both committed the rename *and* ran whatever was clicked (the delegated click handler does
+not swallow a click-away), Tab moved focus away just as a confirmation needed to pull it back, the
+global Escape clears the header selection a finished edit was meant to keep, and a `<dialog>` closing
+cannot give focus back to a span that stopped being editable. A dialog opened with `showModal()`
+makes the rest of the page inert, so none of those can arise: nothing behind it can be clicked,
+tabbed to or re-rendered into while the name is being typed.
 
 ```
 ┌──────────────────────────────────────────────┐
-│ Rename "people" to "attendees" in 35 files?  │
+│ Rename column                            [×] │
 │                                              │
-│ The key is renamed in each note; its value   │
-│ stays exactly as it is.                      │
-│ meeting-notes.md, bob.md, project-x.md and   │
-│ 32 more.                                     │
-│ 2 files will be skipped: their front matter  │
-│ could not be read.                           │
-│ This can take a few seconds, and the table   │
-│ is locked until it is done.                  │
-│ You can undo this.                           │
+│  ┌────────────────────────────────────────┐  │
+│  │ attendees                              │  │
+│  └────────────────────────────────────────┘  │
+│  renames the key in 35 notes: meeting-notes  │
+│  .md, bob.md, project-x.md and 32 more.      │
+│  2 will be skipped: their front matter could │
+│  not be read.                                │
+│  The value in each note stays exactly as it  │
+│  is. You can undo this.                      │
 │                                              │
 │      [ rename in 35 files ]   [ cancel ]     │
 └──────────────────────────────────────────────┘
 ```
 
-- **The counts are the forecast's (§7)**, worked out again when the dialog opens rather than taken
-  from the last keystroke, so they are what the write will attempt. The headline and the button
-  count the notes that will change, as the delete's do. The skipped line is left out when nothing is
-  skipped, and "and N more" when there are three files or fewer.
-- **The "few seconds" line is shown only for a large rename.** It appears at or above
-  `RENAME_SLOW_AT` notes, a constant beside the dialog code whose value step 5 sets from a timing.
-  The delete measured about 4s for 1,000 notes, so at 35 the line would only alarm. The rest of the
-  text is always shown.
-- **Cancel has focus** (`{ focus: 'cancel' }`), as the delete's. An Enter that finished typing and
-  was pressed again too quickly then does nothing destructive.
-- **While the dialog is open, the header shows the typed name but is no longer editable.**
-  `contenteditable` comes off before `showWarningModal` is called, so the user sees what they are
-  confirming beside the column it applies to, and nothing behind the modal takes a caret.
-  `showModal()` makes the page inert anyway.
-- **Cancel, or Escape in the dialog, is the header's Escape**: the old name (or label) goes back,
-  nothing is written, and the header is left selected and focused. The global Escape handler's
-  `finishHeaderRename(true)` is a no-op by then, because the editor has already finished. Being
-  finished already is also what stops the dialog's own focus move being read as one more
-  "focus arrived elsewhere" commit.
-- **Confirm runs §11**: `setBulkWriteBusy`, `reportProgress`, the three passes, the result line. The
-  report line switches straight from the confirmed preview to the progress bar.
-- **When the name is legal but `changing` is 0** (every carrying note is locked), no confirmation
-  is offered. The commit writes nothing, the old name goes back, and the report line says why, as
-  the delete's "cannot be deleted" dialog does, but without a dialog to close.
+- **Static markup in `index.html`**, `<dialog id="modal-column-rename" class="info-modal"
+  closedby="any">`, beside `#modal-column-type`, which is the dialog the same column menu already
+  opens. Outside `#output`, so the render that follows a rename cannot destroy it mid-interaction.
+  Its title is `Rename column`; the property being renamed is what the text box starts with.
+- **The text box starts with the property's name, selected**, so typing replaces it. The name, not
+  a hand-written layout label, because the name is what is being renamed (§3.2). An ordinary
+  `<input type="text">`, so a pasted newline cannot arrive: an input strips it, which is the
+  browser's rule and harmless here.
+- **The line under the text box is the one place the dialog talks**, rewritten on each `input`:
+  - the name has a problem → `renameProblem`'s sentence (§4.2), in the warning colour
+    (`.load-error-nudge`'s, the one the delete item already uses), and the rename button disabled;
+  - the name is unchanged → the forecast in the ordinary colour, and the button disabled: nothing is
+    wrong, there is just nothing to do yet (§4.2, rule 3). This is how the dialog opens;
+  - the name can be used → the forecast (§7): the count, three filenames and "and N more", the
+    skipped line when any are skipped, and "The value in each note stays exactly as it is. You can
+    undo this." The button reads `rename in 35 files` and is enabled.
+- **The forecast's counts do not move as the name is typed**, since they depend on `from` alone
+  (§7), so the line only changes between "this name cannot be used, because…" and "this is what
+  renaming will do".
+- **The "few seconds" line is shown only for a large rename**: "This can take a few seconds, and
+  the table is locked until it is done." It appears at or above `RENAME_SLOW_AT` notes, a constant
+  beside the dialog code whose value step 5 sets from a timing. The delete measured about 4s for
+  1,000 notes, so at 35 the line would only alarm.
+- **When every carrying note is locked** (`changing` is 0), the line says so — "all 3 notes with
+  people are skipped: their front matter could not be read" — and the button stays disabled
+  whatever is typed, as the delete's dialog offers no delete in the same case.
+
+**The ways out:**
+
+| way out | what happens |
+|---|---|
+| **rename** button, or **Enter** in the text box while the button is enabled | closes the dialog and renames (§11) |
+| **Enter** while the button is disabled | nothing: the dialog stays open, and the line already says why |
+| **cancel**, **Escape**, the close button, or a click on the backdrop (`closedby="any"`) | closes the dialog; nothing is written |
+
+- **Enter renames, and focus starts in the text box**, unlike the delete's dialog, which gives
+  cancel focus. The delete's guard is against an Enter pressed once too often on a dialog that asks
+  a yes-or-no question. Here the name has to be typed, and read back as legal, before the button can
+  be pressed at all, and the rename loses nothing and undoes in one step. A second confirmation after
+  typing would be a dialog for the dialog.
+- **Enter is caught in the dialog, as a `keydown` on the text box**, and goes no further, so the
+  table's keyboard navigation never sees it. With `showModal()` open the table cannot take focus
+  anyway.
+- **After the dialog closes, focus goes to that column's header cell**, which is selected, as after
+  closing the type dialog: one press opens the column menu again. After a rename the header is found
+  by its new name, after a cancel by the old one. Done explicitly, rather than left to the
+  `<dialog>`'s own focus return, because the menu item that opened it has gone with the menu.
+- **Opening the dialog closes the column menu**, as "change type" does.
+- **No new dialog code beyond this one.** It is not `showWarningModal`: that dialog has no text box,
+  and giving it one for one caller would be the premature abstraction CLAUDE.md warns about.
+  `#modal-column-rename` has its own open, input and close handlers, in its own file, as
+  `#modal-column-type` does.
 
 ---
 
@@ -595,9 +562,9 @@ and a note that gained the new name mid-write all come out right with no case of
 
 | where the name is written | what happens |
 |---|---|
-| a layout's columns, every saved layout and the columns in memory | `from` gone, layout lacks `to` → `from`'s entry becomes `to`'s **in place**: position, width, visibility. `from` gone, layout already has a `to` entry (a keyless column left over, since no note has `to`) → `from`'s entry is renamed in place as above and the leftover `to` entry is dropped, so the column stays where the user was looking; `stickyColumns` drops by one if the leftover sat among the sticky ones. `from` not gone, layout lacks `to` → a `to` entry is inserted **straight after** `from`'s, with its width and visibility, so the renamed notes appear beside the ones left behind rather than hidden at the end. |
+| a layout's columns, every saved layout and the columns in memory | `from` gone, layout lacks `to` → `from`'s entry becomes `to`'s **in place**: position, width, visibility. `from` gone, layout already has a `to` entry (a keyless column left over, since no note has `to`) → `from`'s entry is renamed in place as above and the leftover `to` entry is dropped, so the column stays where the user was looking; `stickyColumns` drops by one if the leftover sat among the sticky ones. `from` not gone, layout lacks `to` → a `to` entry is inserted **straight after** `from`'s, with its width and visibility, so the renamed notes appear beside the ones left behind rather than hidden at the end. **On an undo the same steps run with the names swapped**, and there the `to` entry is not always a leftover: undoing a partial rename finds `people` still in the layout, as the column of the notes the rename skipped. The in-place step is still what is wanted — `attendees`' entry, which sits straight after `people`'s, becomes `people`, and the old `people` entry goes — so the folder ends with one `people` column, one place to the right of where it started and with the width `attendees` had. No case of its own. |
 | a column's `label` | taken to `to`'s default if it was `from`'s default; a label someone wrote by hand is kept. |
-| `propertyTypes` | **copied, never moved.** `to` takes `from`'s type, replacing any type left saved against `to` from values since removed, since no note has `to` (§4.4) and the column is `from`'s column under a new name; `from` keeps its type. No type is ever lost, so an undo needs nothing — `from`'s type is still there when its values come back — and the types modal's bin is still the way to forget one. |
+| `propertyTypes` | **copied, never moved: `to`'s saved type becomes exactly `from`'s** — the type, or none if `from` has none — and `from` keeps its own. After a rename, `attendees` is `people`'s column under a new name, so it takes `people`'s type, replacing any type left saved against `attendees` from values since removed (no note has `attendees`, §4.4). **On an undo the copy runs the other way, and that is what keeps a type set after the rename:** change `attendees` from text to list, undo the rename, and `people` comes back as a list. Undoing the rename puts the notes back; it does not undo a type change made since, which was a separate act and is not on the undo stack. `attendees` keeps its type after the undo, as `from` always does, and the types modal's bin is the way to forget it. |
 | the flowchart's roles | each role naming `from` names `to`, when `from` is gone. Through `setFlowchartOption`. |
 | `appState.sortState` | follows when `from` is gone, so the table stays sorted by the column the user was looking at. |
 
@@ -608,6 +575,24 @@ and a note that gained the new name mid-write all come out right with no case of
   array lives in `layout-apply.js`, which already owns both directions of each fact, and the same
   function rewrites `columnLayout` in memory, so the file and the screen cannot disagree about what
   a rename did to a layout.
+- **When it runs: inside `beforeRefresh`, the in-memory part now and the disk write queued.**
+  `applyRawEdits` calls `beforeRefresh(records)` once, after the notes are written and before the
+  table is drawn, and it is synchronous: it must return straight away with the Set of files to
+  re-check. So `followPropertyRename` splits in two:
+  - **what the screen reads** — `columnLayout`, `appState.propertyTypes`, the flowchart options and
+    `sortState` — is changed there and then, in `appState`, so the one render that follows draws
+    the column under its new name;
+  - **the layouts file** is written by `renamePropertyInLayouts`, which only *queues* the write and
+    is not waited for. If that write fails, it fails as `savePropertyTypes` does today — the queue
+    swallows the error — and the screen stays right until the folder is reloaded, when the layout
+    still names `people`. That is the state §11 already describes for a rename cut short, and it is
+    safe: `attendees` joins the layout as any new property does.
+
+  Undo already passes a `beforeRefresh`, `markRefused`, which draws the refusal marks. For a rename
+  batch `reverseBatch` passes one function that does both — marks the refusals, then follows the
+  name — and returns `markRefused`'s Set. For the rename itself, the write pass (pass 3, §6.3) passes
+  a `beforeRefresh` that only follows the name; the delete's write pass passes none today, so this
+  is the first on that path.
 - **Under the app's defaults** there is no saved layout, but `columnLayout` is filled in memory by
   `resolveColumns()`, and it is rewritten the same way — so the column keeps its place under the
   defaults too.
@@ -630,13 +615,10 @@ and a note that gained the new name mid-write all come out right with no case of
 ## 11. While it runs, and if it stops
 
 **The same code path as the delete, with no new code for the progress bar.** The click file,
-`column-rename-property.js`, follows `column-delete-property.js` line for line, confirmation first:
+`column-rename-property.js`, follows `column-delete-property.js` line for line from the moment the
+dialog's rename button is pressed — the dialog having already closed (§8.2):
 
 ```js
-const confirmed = await showWarningModal(confirmationText(from, to, forecast),
-    `rename in ${filesPhrase(forecast.changing)}`, 'cancel', { focus: 'cancel' });
-if (!confirmed) { finishHeaderRename(true); return; }   // §8.4: cancel is Escape
-
 setBulkWriteBusy(true);
 const onProgress = reportProgress(`renaming ${from} to ${to}…`);
 try {
@@ -667,7 +649,7 @@ try {
   for 1,000 notes, and a bar that filled twice and then started again would look like a fault.
 - **`total` counts notes, not edits.** `applyRawEdits` calls `onProgress(done, jobs.length)` once per
   *file*, with a file's edits grouped. So a rename's two edits per note move the bar by one note,
-  and it fills over the same count the report line showed while typing.
+  and it fills over the same count the dialog showed.
 - **`reportProgressEnd()` fades the bar, and the result goes on the line straight after**, without
   waiting for the fade, for the reason its JSDoc gives: "renaming…" would no longer be true.
 - **A throw ends the bar too**, then `reportFailure`, as the delete. A throw before the first write
@@ -709,16 +691,18 @@ nudge filters to them.
 | Two splices at one offset | **the writer orders them**: replacing before inserting, for every caller. §5.1. |
 | A legal new name | trimmed; parsed back as itself; nothing another reader would read differently; no core or reserved name. §4.2. |
 | Onto `title`, `color` or any core name | **refused**: every file object carries them, so it would be a merge. §4.3. |
-| Onto a name any note already has | **refused, with no exceptions**: rename is not a merge. The header turns the warning colour while it is typed, and the report line says how many notes have it. The write re-checks against disk (`expect: null`). §4.4. |
+| Onto a name any note already has, in any case | **refused, with no exceptions**: rename is not a merge. The dialog says how many notes have it, in the warning colour, and the rename button is disabled. The write re-checks the exact name against disk (`expect: null`). §4.4. |
+| Names differing only in case | **refused in the rename dialog, and nowhere else**: a note's front matter may still say `People:` beside `people:` if typed by hand. Changing the case of the name being renamed is allowed. §4.2. |
+| `"`, `<`, `>`, `&` in a name | **refused**, because a property name goes into the header's HTML unescaped. §4.2, rule 6. |
 | A note that would half-rename | **cannot**: `allOrNothing`, per note, for the rename, its undo and its redo. §6.2. |
 | "must not have the key" | **`expect: null`**. §6.1. |
 | Passes | locate, plan (the journal), write, each sent only the carrying notes. §6.3. |
-| Where the name is typed | **in the header cell itself**, made editable. Enter or clicking away commits, Escape cancels, as a table cell does. §8.2. |
-| Confirmation | **always, before any note is written**: the delete's `showWarningModal`, counts and three filenames, cancel focused, a "few seconds" line for a large rename. Cancel puts the old name back. An illegal, in-use or unchanged name never reaches it and writes nothing. §8.4. |
-| Feedback while typing | **the header's text in the warning colour** for a refused name, and **the sentence on the report line**. §8.3. |
+| Where the name is typed | **in a rename dialog** (`#modal-column-rename`), not in the header: a modal dialog makes the table inert, so no click, Tab or render can reach the table mid-rename. §8.2. |
+| Confirmation | **the dialog is the confirmation**: counts and three filenames under the text box, a "few seconds" line for a large rename, and a rename button disabled for an unchanged, illegal or in-use name. Rename or Enter renames; cancel, Escape or the backdrop writes nothing. §8.2. |
+| Feedback while typing | **one line under the text box**: the reason in the warning colour, or what renaming will do. §8.2. |
 | Reach | every note in the folder that carries the key, whatever the filter, and **no other note is read or written** — as the delete. §6.3. |
 | A bare `people:` | renamed to a bare `attendees:` (`keepKey`). §6.3. |
-| Layouts, types, flowchart, sort | **follow the name** by one rule asked of the folder; types are copied, never moved. §10. |
+| Layouts, types, flowchart, sort | **follow the name** by one rule asked of the folder; types are copied, never moved, so undoing a rename keeps a type set on the new name since. The screen changes before the render; the layouts file is queued, not awaited. §10. |
 | Search filters | **do not follow**. §10.2. |
 | Undo of the layout change | **none of its own**: the rule runs again in the other direction. §10.1. |
 | Undo entry | `kind: 'rename-property'`, `property`, `to`; `people column rename to attendees in 35 files`. §9.1. |
@@ -747,11 +731,9 @@ Each step ships on its own and leaves the app working.
    this step leaves the layout naming the old key, which is the §11 state and is safe.
 4. **Following the name.** `followPropertyRename`, `renamePropertyInLayouts`, the pure columns
    rewrite in `layout-apply.js`, and the call from the rename and from `reverseBatch` (§10).
-5. **The menu and the header editor.** First, the check in §8.2: does a span inside a `<button>`
-   take a caret? A screenshot either way, and the fallback if not. Then the item, the rule moving,
-   the editable header with its keys, click-away and Escape, the live warning colour and report line,
-   the confirmation (§8), the result line (§9.1), and the busy table and progress bar wired exactly as `column-delete-property.js`
-   does it (§11).
+5. **The menu and the rename dialog.** The item, the rule moving, the dialog with its text box,
+   its line and its ways out (§8), focus back to the header, the result line (§9.1), and the busy
+   table and progress bar wired exactly as `column-delete-property.js` does it (§11).
 6. **Docs.** CLAUDE.md: a short section *Renaming a property in every note* after *Deleting a
    property from every note*, the file map's new modules, `isPropertyUserOwned` where
    `isPropertyDeletable` is named. DATA-STRUCTURES.md: a batch's `to`, and `expect: null` and
@@ -777,7 +759,7 @@ wrong is a question about text, which node answers in milliseconds, so the cost 
 | a note without the key is read or written | browser, the mock's `__reads` / `__writes` | 1 page |
 | the journal is not on disk before the first write | browser, the between-passes hook | same page |
 | a note gaining the new name mid-rename is overwritten | browser, the hook adds it | 1 page |
-| a way out of the header writes when it should not | browser, driving the real header | 1 page |
+| a way out of the dialog writes when it should not | browser, driving the real dialog | 1 page |
 
 **The first five are the heart of it, and none needs a browser.** The rename's whole effect on one
 note is `planFileEdits(text, pairs)`, a pure function of the note's text. Checked while writing
@@ -801,7 +783,8 @@ and it runs in milliseconds.
    The expected output is computed, not written out, so adding a shape to the fixture is one line.
 2. `expect: null` refuses a present key and a bare one, and allows an absent one. `allOrNothing`
    with one edit refused plans nothing for that note. Three short cases in the same spec.
-3. `propertyNameProblem`: one table of names and expected answers (§4.2). It lives in the same spec,
+3. `propertyNameProblem`: one table of names and expected answers (§4.2), `__proto__`, `a"b` and
+   `x<y` among them. It lives in the same spec,
    because the rule exists to keep the note readable by other YAML readers.
 
 ### 14.3 Level 1 — browser (`tests/1-data/57-rename-property.spec.js`, three tests)
@@ -810,7 +793,7 @@ The delete spec's `NOTES` move to a shared `tests/fixtures/property-notes.js`, i
 specs and by the node test above. The delete spec's only change is that import. The rename adds
 `commented.md`, `crowded.md` and `first.md` to it.
 
-1. **One rename, end to end**, called through the service rather than the header. Like the delete
+1. **One rename, end to end**, called through the service rather than the dialog. Like the delete
    spec's main test, it is one page with many assertions:
    - Notes without the key have no entry in `__reads` or `__writes`.
    - Locked notes are byte-identical.
@@ -821,15 +804,15 @@ specs and by the node test above. The delete spec's only change is that import. 
    - Undo, then redo, leaves the whole folder byte-identical to before and after.
 2. **A note that gains `attendees` between the passes** is refused whole and counted as skipped.
    This is the one case where `expect: null` matters against the disk.
-3. **The header's ways out, as they reach the disk**, on one page and in sequence. Each checks
+3. **The dialog's ways out, as they reach the disk**, on one page and in sequence. Each checks
    `__writes`:
-   - Escape after typing writes nothing.
-   - Enter on a refused name writes nothing and opens no confirmation.
-   - Enter on a legal name, then cancel, writes nothing.
-   - Enter on a legal name, then confirm, writes.
+   - Escape after typing a legal name writes nothing.
+   - Enter on a refused name writes nothing and leaves the dialog open.
+   - Cancel after typing a legal name writes nothing.
+   - Enter on a legal name writes.
 
    This is the one test of the UI in level 1, because it decides whether the notes are touched at
-   all. Click-away and Tab reach the same commit function, so they are level 2.
+   all. The close button and the backdrop reach the same close, so they are level 2.
 
 **Not in level 1, deliberately:**
 - A write pass cut short, and a first write that throws. That machinery is the delete's, shared
@@ -840,23 +823,20 @@ specs and by the node test above. The delete spec's only change is that import. 
 
 ### 14.4 Level 2 — two browser tests, plus node
 
-- **`40-column-menu.spec.js`, one test on one page**, walking the header editor:
+- **`40-column-menu.spec.js`, one test on one page**, walking the rename dialog:
   - The item shows where "delete column" does, and is absent on a keyless column.
-  - The label opens editable with the property name selected.
-  - A refused name turns the warning colour and the report line gives the reason. A legal one
-    clears it, and the report line gives the count.
-  - A press inside the label does not open the menu.
-  - Click-away and Tab each open the confirmation.
-  - The confirmation: its counts, and cancel has focus.
-  - After cancel, the header is selected and focused with the old name, and one Enter opens the
-    menu rather than the editor.
+  - The dialog opens with the property name selected in the text box, and the button disabled.
+  - A refused name — one in use, one differing only in case, one with `"` — shows its reason in
+    the warning colour and keeps the button disabled. A legal one shows the count and enables it.
+  - The backdrop closes it and writes nothing.
+  - After closing, the column's header is selected and focused, and one Enter opens its menu.
 - **`43-table-layouts.spec.js`, one test**: after a rename, the saved layout, the types, a flowchart
-  role and the sort all name `attendees`; after its undo, `people` is back in the same place. While
+  role and the sort all name `attendees`; a type is then set on `attendees`; after the undo, `people` is back in the same place and has that type. While
   it runs, the table is `inert` and the report line shows the bar. This is one run observed twice,
   not two runs.
 - **Node, in the same spec**: the pure columns rewrite of §10.1. Each case is a few lines and costs
   no page: rename in place, a leftover keyless `to` replaced, insert beside, the sticky count, a
-  hand-written label kept. It is level 2 because a wrong layout loses no note.
+  hand-written label kept, and the undo direction where `to` is a live column rather than a leftover. It is level 2 because a wrong layout loses no note.
 
 **Not tested, deliberately:**
 - `describeAction`'s wording, tooltips and the undo bar's text: each restates one line of code, and
@@ -870,7 +850,7 @@ specs and by the node test above. The delete spec's only change is that import. 
 - **Steps 1–4** (writer, name check, service, following the name): `npm test` (level 1 only), which
   includes the node tests and the new spec. The level 2 layouts spec is added at step 4:
   `npm test tests/2-behaviour/43-table-layouts.spec.js`.
-- **Step 5** (header and confirmation): `npm test tests/2-behaviour/40-column-menu.spec.js`.
+- **Step 5** (menu and dialog): `npm test tests/2-behaviour/40-column-menu.spec.js`.
 - **`npm run test:all` once**, at the end.
 - **While iterating on the pair logic, run the node test alone**:
   `npx playwright test tests/1-data/49-table-cell-writing.spec.js -g "rename"`, through the npm
@@ -878,10 +858,8 @@ specs and by the node test above. The delete spec's only change is that import. 
 
 **Screenshots**, at step 5 only, taken by hand and not committed as tests:
 - the menu with both items;
-- the header being edited, with a legal name and with a refused one in the warning colour, and the
-  report line under each;
-- a long name scrolled inside the header;
-- the confirmation with and without the "few seconds" line;
+- the dialog with a legal name, with a refused one in the warning colour, and with the "few
+  seconds" line;
 - the same at phone width, in both themes.
 
 ---
@@ -894,9 +872,9 @@ specs and by the node test above. The delete spec's only change is that import. 
 |---|---|
 | `public/js/services/property-name.js` | `propertyNameProblem(name, from)`: what a legal new key is (§4.2). Pure |
 | `public/js/editing/rename-property.js` | `renameProblem` (§4.4), `renameForecast`, `renameProperty` (the three passes and the journal), `followPropertyRename` (§6.3, §7, §10). No DOM |
-| `public/js/ui/ui-functions-click/column-rename-property.js` | the menu item's action: close the menu and open the header editor. Then, on a commit with a legal new name, the confirmation through `showWarningModal` (§8.4), and on confirm `setBulkWriteBusy` → `reportProgress` → `renameProperty` → report (§11). Thin |
-| `public/js/ui/ui-functions-table/header-rename.js` | the header editor: open (`contenteditable` on the label, `data-opened-text`, `focusWithCaret`), the input check (warning class, `reportRenamePreview`), `handleHeaderRenameKeydown`, `finishHeaderRename(discard)`, the click-outside and `focusin` checks. It asks the service and decides nothing itself (§8.2, §8.3) |
-| `public/css/note-table-header-rename.css` | the editing header: the open-cell outline, the scrolling label, the warning colour. A new component gets its own file |
+| `public/js/ui/ui-functions-click/column-rename-property.js` | the rename button's action: close the dialog, then `setBulkWriteBusy` → `reportProgress` → `renameProperty` → report, and focus back to the header (§11). Thin |
+| `public/js/ui/ui-functions-click/column-rename-dialog.js` | the dialog: open it from the menu item (name selected, forecast worked out once, the key map of §4.4 built once), the `input` check that rewrites the line and enables the button, Enter in the text box, close and focus back to the header. It asks the service and decides nothing itself (§8.2) |
+| `public/css/column-rename-dialog.css` | the dialog's text box and line: the warning colour, the disabled button. A new component gets its own file |
 
 **Edited**
 
@@ -912,12 +890,10 @@ specs and by the node test above. The delete spec's only change is that import. 
 | `public/js/table-layouts/layout-file.js` | `renamePropertyInLayouts`, through the queue, no `refreshState` |
 | `public/js/ui/ui-functions-click/column-menu.js` | show the item with "delete column"; put the rule on the first shown |
 | `public/js/ui/ui-functions-render/output-report.js` | `reportRename`; the JSDoc of `reportProgress` and `reportProgressEnd` no longer names the delete as their only caller (§11). `progress-bar.js`, `progress-bar.css` and `bulk-write-busy.js` are used as they are |
-| `public/js/ui/event-listeners-add.js` | `column-rename-property`; `handleHeaderRenameKeydown` in `keyDownDelegate` beside the cell editor's; the header editor's `input`, click-outside and `focusin` checks |
-| `public/js/ui/ui-functions-click/keyboard-shortcuts.js` | Escape calls `finishHeaderRename(true)` beside `finishOpenCell(true)` |
-| `public/js/ui/ui-functions-table/render-table-header.js` | only if step 5's check fails: the header cell as a `div role="button"` (§8.2) |
+| `public/js/ui/event-listeners-add.js` | `column-rename-property` (the menu item, opening the dialog), `column-rename-confirm` and `column-rename-cancel` in the click map; the text box's `input` in the input map |
 | `public/css/column-menu.css` | the rule on whichever item comes first |
-| `public/style.css` | import `note-table-header-rename.css` |
-| `index.html` | the menu item |
+| `public/style.css` | import `column-rename-dialog.css` |
+| `index.html` | the menu item, and `#modal-column-rename` |
 | `CLAUDE.md`, `DATA-STRUCTURES.md` | step 6 |
 
 **Tests** (§14):
@@ -926,7 +902,7 @@ specs and by the node test above. The delete spec's only change is that import. 
 - `tests/1-data/49-table-cell-writing.spec.js`: the node tests of the pair, `expect: null`,
   `allOrNothing` and the name check.
 - `tests/1-data/54-delete-property.spec.js`: imports the shared fixture; nothing else changes.
-- `tests/2-behaviour/40-column-menu.spec.js`: the header editor and the confirmation.
+- `tests/2-behaviour/40-column-menu.spec.js`: the menu item and the rename dialog.
 - `tests/2-behaviour/43-table-layouts.spec.js`: following the name, and the pure columns rewrite.
 
 ---
