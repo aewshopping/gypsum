@@ -28,7 +28,7 @@ import { handleColumnRenameOpen, handleColumnRenameInput, handleColumnRenameKeyd
 import { handleLinkedColumnOpen, handleLinkedColumnEditFromMenu, handleLinkedColumnSelect, handleLinkedColumnNameInput,
          handleLinkedColumnKeydown, handleLinkedColumnCancel, handleLinkedColumnClose } from './ui-functions-click/linked-column-dialog.js';
 import { handleLinkedColumnSave } from './ui-functions-click/linked-column-save.js';
-import { handleLinkedColumnDelete } from './ui-functions-click/linked-column-delete.js';
+import { handleLinkedColumnDelete, handleLinkedColumnDeleteFromMenu } from './ui-functions-click/linked-column-delete.js';
 import { handleColumnRenameConfirm } from './ui-functions-click/column-rename-property.js';
 import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
@@ -225,6 +225,7 @@ const clickActionHandlers = {
     'column-rename-cancel': handleColumnRenameCancel,
     'open-linked-column': handleLinkedColumnOpen,
     'column-edit-linked': handleLinkedColumnEditFromMenu,
+    'column-delete-linked': handleLinkedColumnDeleteFromMenu,
     'linked-column-save': handleLinkedColumnSave,
     'linked-column-delete': handleLinkedColumnDelete,
     'linked-column-cancel': handleLinkedColumnCancel,

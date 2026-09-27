@@ -937,7 +937,10 @@ linked in `project`". See `plans/table-linked-properties.md`.
 - **It follows a property rename** in `follow-property-rename.js`, once no note carries the old name.
 - **One dialog per column**, `#modal-linked-column`: opened empty from the + in the table's control
   row, and filled in from "edit linked column…" in the column's menu or its glyph in the column
-  picker. It is where the column is renamed, re-pointed and deleted, and none of it writes a note.
+  picker. It is where the column is renamed and re-pointed, and none of it writes a note. **"delete
+  column" in its menu is the same item in the same slot as on any other column**, but reaches the
+  layouts rather than the notes — its confirmation says "No note is changed". The dialog has the
+  same delete, for a column hidden in the current layout.
 
 ### Search / filter architecture
 

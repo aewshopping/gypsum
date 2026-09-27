@@ -307,8 +307,8 @@ every linked column: the column picker already lists them.
 
 Three ways in, all opening the same dialog through the same module:
 
-- **The + button** in the table's control row (`render-table-controls.js`), to the **left of the
-  layout name**, tooltip "add a column from linked notes". Opens the dialog **empty**, to create.
+- **The + button** in the table's control row (`render-table-controls.js`), **after the column
+  picker button and before undo**, tooltip "add a column from linked notes". Opens the dialog **empty**, to create.
   It is in the table's own row, so it exists only while the table is drawn, and needs no
   view-conditional logic, the same as the column picker.
 - **"edit linked column…" in the column's header menu.** Opens it **filled in**, to change.
@@ -368,10 +368,12 @@ that follows a change cannot destroy the dialog mid-interaction.
 
 ### 5.3 The column menu of a linked column
 
-"hide column", the stick items, and **"edit linked column…"**. Not offered: sort items, "change
-type", "rename column", "delete column" and "remove from layout". Renaming and deleting are the
-dialog's, and "rename column" and "delete column" on an ordinary column reach every note, which is
-not what they would do here.
+"hide column", the stick items, **"edit linked column…"** and **"delete column"**, the last two in
+the slot where an ordinary column has "rename column" and "delete column". Sort, search and "change
+type" are greyed out; "rename column" (of the notes) and "remove from layout" are not offered.
+*Changed after v1 was built:* "delete column" was at first the dialog's alone, on the grounds that the
+same words reach every note on an ordinary column. It is in the menu now, so every column's menu ends
+the same way; its confirmation says "No note is changed", which is where the difference is told.
 
 ### 5.4 Nothing here writes a note
 

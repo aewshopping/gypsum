@@ -217,10 +217,12 @@ export function handleColumnMenuOpen(evt, headerCell) {
     const removeItem = menu.querySelector('[data-action="column-delete-menu"]');
     if (removeItem) removeItem.hidden = !isKeyless || appState.tableLayouts.active === null;
 
-    // A linked column is renamed, re-pointed and deleted from its own dialog, and none of that reaches
-    // a note — so it offers that dialog in the same slot, and never the items that do.
-    const editLinkedItem = menu.querySelector('[data-action="column-edit-linked"]');
-    if (editLinkedItem) editLinkedItem.hidden = !isLinked;
+    // A linked column has its own pair in the same slot: its dialog, and a delete that reaches the
+    // layouts rather than the notes — never the items that do reach them.
+    for (const action of ['column-edit-linked', 'column-delete-linked']) {
+        const item = menu.querySelector(`[data-action="${action}"]`);
+        if (item) item.hidden = !isLinked;
+    }
 
     // Rename reaches exactly the notes delete does, so it is offered on exactly the same columns —
     // one question for both. plans/completed/table-rename-column.md §4.1.

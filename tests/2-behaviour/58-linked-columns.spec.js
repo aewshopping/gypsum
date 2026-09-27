@@ -254,6 +254,7 @@ test('a linked column is edited, renamed and deleted from its own dialog', async
   for (const action of ['column-rename-property', 'column-delete-property', 'column-delete-menu']) {
     await expect(page.locator(`#column-menu [data-action="${action}"]`)).toBeHidden();
   }
+  await expect(page.locator('#column-menu [data-action="column-delete-linked"]')).toBeVisible();
   await page.locator('[data-action="column-edit-linked"]').click();
   await expect(page.locator('#linked-column-title')).toHaveText('Linked column');
   await expect(page.locator('#linked-column-save')).toHaveText('save');
@@ -284,11 +285,11 @@ test('a linked column is edited, renamed and deleted from its own dialog', async
   await page.click('#modal-linked-column .btn-action[data-action="linked-column-cancel"]');
   await expect(cellFor(page, 'Task A', 'linked:1')).toHaveText('active');
 
-  // Delete asks, then the column is gone from the table and the file.
+  // Delete, from the menu like every other column's, asks and says no note changes; then the column
+  // is gone from the table and the file. The dialog's delete button is the same function.
   await openMenu(page, 'linked:1');
-  await page.locator('[data-action="column-edit-linked"]').click();
-  await page.click('#linked-column-delete');
-  await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+  await page.locator('[data-action="column-delete-linked"]').click();
+  await expect(page.locator('#modal-unsaved-warning')).toContainText('No note is changed');
   await page.click('[data-action="warning-proceed"]');
   await expect(header(page, 'linked:1')).toHaveCount(0);
   await expect.poll(async () => (await layouts(page)).linkedProperties).toEqual({});

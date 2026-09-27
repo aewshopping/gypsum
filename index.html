@@ -954,9 +954,10 @@
          rather than "delete column" because the two never show apart. See handleColumnMenuOpen,
          plans/completed/table-delete-column.md §4.1 and plans/completed/table-rename-column.md §8.1. -->
     <button type="button" class="app-menu-item app-menu-item-last" data-action="column-delete-menu" data-tip="remove this empty column from the layout" hidden>remove from layout</button>
-    <!-- A linked column's own dialog, in the same slot: it is renamed, re-pointed and deleted there,
-         and none of that reaches a note. plans/table-linked-properties.md §5.3. -->
-    <button type="button" class="app-menu-item app-menu-item-last" data-action="column-edit-linked" data-tip="change what this column shows, rename or delete it" hidden>edit linked column…</button>
+    <!-- A linked column's pair, in the same slot as rename and delete: its own dialog, and a delete
+         that removes it from every layout and reaches no note. plans/table-linked-properties.md §5.3. -->
+    <button type="button" class="app-menu-item app-menu-item-last" data-action="column-edit-linked" data-tip="change what this column shows, or rename it" hidden>edit linked column…</button>
+    <button type="button" class="app-menu-item app-menu-item-danger" data-action="column-delete-linked" data-tip="remove this linked column from every layout — no note is changed" hidden>delete column</button>
     <button type="button" class="app-menu-item app-menu-item-last" data-action="column-rename-property" data-tip="rename this property in every note" hidden>rename column</button>
     <button type="button" class="app-menu-item app-menu-item-danger" data-action="column-delete-property" data-tip="remove this property from every note" hidden>delete column</button>
   </div>
