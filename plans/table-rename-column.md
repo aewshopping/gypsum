@@ -253,8 +253,11 @@ its modified time, which the table sorts by.
 
 - **A bare `people:` is renamed to a bare `attendees:`.** Its `before` is `''`, and the re-creation
   sends `keepKey: true` whenever `before` is `''`, the way an undo puts back a bare key (§5.2 of the
-  delete plan). Without it, `raw: ''` would mean "take the key out", and the key would disappear
-  instead of being renamed. The undo needs nothing extra: the removal's record has `before: ''` and
+  delete plan). Without it, `planFileEdits` reads `raw: ''` as "take `attendees` out"
+  (`removing = raw === '' && !edit.keepKey`), finds no `attendees` to take out, and drops the edit.
+  Only the removal of `people` would then be planned. `allOrNothing` catches the mismatch and skips
+  the whole note, so every bare note would be left unrenamed, and the dialog would have counted it.
+  Without `allOrNothing`, the key would simply have gone. The undo needs nothing extra: the removal's record has `before: ''` and
   `existed: true`, which `reverseBatch` already turns into `keepKey`.
 - **The notes that will merge are left out from pass 2 on.** `appState` already says which carrying
   notes also have `to` (§7), so they are not sent the pairs. The write's `expect: null` still refuses
