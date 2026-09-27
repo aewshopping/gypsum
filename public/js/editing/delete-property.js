@@ -1,5 +1,4 @@
 import { appState } from '../services/store.js';
-import { hasYamlError } from '../services/file-parsing/file-errors.js';
 import { applyRawEdits } from './apply-raw-edits.js';
 import { pushUndoBatch, dropUndoBatch } from '../table-undo/undo-stacks.js';
 import { saveUndoFile } from '../table-undo/undo-file.js';
@@ -12,28 +11,6 @@ import { saveUndoFile } from '../table-undo/undo-file.js';
  * that. The column is left standing, faded as empty, exactly as clearing its cells one by one would
  * leave it — a column belongs to the layout, not to the files. See plans/completed/table-delete-column.md.
  */
-
-/**
- * What a delete of this property would do, from appState alone, so the confirmation opens at once
- * however large the folder. A forecast: the write re-checks every file against its bytes on disk.
- *
- * **The count is of the files that will change**, not of the files that carry the key: a note whose
- * front matter did not read is carried but skipped, and a button promising to delete from it would
- * promise a write it will not make. §5.
- *
- * @param {string} property
- * @returns {{changing: number, skipped: number, samples: string[]}} How many notes will lose the key,
- *   how many carry it but are locked, and the names of up to three that will change.
- */
-export function deletionForecast(property) {
-    const carrying = appState.myFiles.filter(file => Object.hasOwn(file, property));
-    const changing = carrying.filter(file => !hasYamlError(file));
-    return {
-        changing: changing.length,
-        skipped: carrying.length - changing.length,
-        samples: changing.slice(0, 3).map(file => file.filename),
-    };
-}
 
 /**
  * Takes the property out of every note that has it, recording the undo entry **before** the first

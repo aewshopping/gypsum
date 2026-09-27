@@ -1,7 +1,8 @@
 // "delete column": taking the column's property out of every note that has it.
 
 import { appState } from '../../services/store.js';
-import { deletionForecast, deleteProperty } from '../../editing/delete-property.js';
+import { deleteProperty } from '../../editing/delete-property.js';
+import { propertyForecast, sampleNames } from '../../editing/property-forecast.js';
 import { showWarningModal } from './warning-modal.js';
 import { closeColumnMenu, clearHeaderSelection } from './column-menu.js';
 import { setBulkWriteBusy } from '../ui-functions-table/bulk-write-busy.js';
@@ -22,7 +23,7 @@ export async function handleColumnDeleteProperty() {
     closeColumnMenu();
     clearHeaderSelection();
 
-    const forecast = deletionForecast(property);
+    const forecast = propertyForecast(property);
     if (forecast.changing === 0) {
         await showWarningModal(
             `"${property}" cannot be deleted: every note that has it has front matter that could not be read.`,
@@ -55,14 +56,13 @@ export async function handleColumnDeleteProperty() {
  * @param {{changing: number, skipped: number, samples: string[]}} forecast
  * @returns {string}
  */
-function confirmationText(property, { changing, skipped, samples }) {
-    const more = changing - samples.length;
-    const names = more > 0 ? `${samples.join(', ')} and ${more} more.` : `${samples.join(', ')}.`;
+function confirmationText(property, forecast) {
+    const { changing, skipped } = forecast;
     return [
         `Delete "${property}" from ${filesPhrase(changing)}?`,
         '',
         'The key and its value are removed from each note — a list, every item of it.',
-        names,
+        sampleNames(forecast),
         ...(skipped > 0
             ? [`${filesPhrase(skipped)} will be skipped: their front matter could not be read.`]
             : []),

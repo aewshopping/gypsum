@@ -272,7 +272,7 @@ in one confirmed batch that one undo puts back. See `plans/completed/table-delet
   their columns would still stand, filled in by the app.
 - **Every file, whatever the filter**, and **the column stays**, faded as empty — the same as
   clearing every cell. Undo only restores files, and the values come back into the column they left.
-- **The confirmation counts from `appState`** (`deletionForecast()`), so it opens at once, and counts
+- **The confirmation counts from `appState`** (`propertyForecast()` in `editing/property-forecast.js`, shared with the rename), so it opens at once, and counts
   the notes that *will change*: a note whose front matter did not read is carried but skipped. Cancel
   has focus. When every carrying note is locked the dialog explains and offers no delete.
 - **Two passes, both through `applyRawEdits`, and the undo entry is written first.**
