@@ -8,7 +8,7 @@ Depends on: `plans/completed/table-undo-stack.md` step 11a, **built** — the st
 batch-shaped write and key removal are all in the tree. This plan **supersedes two of its
 decisions**: the stack is no longer kept in memory only (§8), and 20 batches is no longer the depth
 (§9). It also adds the undo list that plan never had (§10).
-Makes way for: `plans/table-linked-properties.md` §10, writing a linked value into every note. **If
+Makes way for: `plans/completed/table-linked-properties.md` §10, writing a linked value into every note. **If
 the app is going to add a property to every file in one action, it should first be able to take one
 out of every file in one action**, and undo either.
 Manifest version: bump the minor version with each step that changes code.

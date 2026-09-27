@@ -2,6 +2,8 @@ import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { VALUE_TYPES, SEARCH_TYPES, labelFor } from '../../constants.js';
 import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 import { typeGlyph } from '../ui-functions-render/type-glyph.js';
+import { escapeHtml } from '../ui-functions-render/escape-html.js';
+import { isLinkedKey } from '../../services/linked-properties.js';
 import { resolveColumns } from './render-table-columns-helper.js';
 
 /**
@@ -46,6 +48,10 @@ import { resolveColumns } from './render-table-columns-helper.js';
  * so a type follows exactly the path the order and the visibility already take.
 
  *
+ * A linked column's glyph is live: it opens that column's own dialog rather than the type dialog,
+ * which is the way to a linked column hidden in the current layout — it has no header, so no header
+ * menu. Its label is escaped, being typed in that dialog. plans/completed/table-linked-properties.md §5.1.
+ *
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.
  *
@@ -61,7 +67,8 @@ export function renderColumnPickerList() {
     const underSavedLayout = appState.tableLayouts.active !== null;
 
     return resolveColumns().map(column => {
-        const label = column.label ?? column.name;
+        const label = escapeHtml(column.label ?? column.name);
+        const isLinked = isLinkedKey(column.name);
         const checked = column.visible ? ' checked' : '';
         const locked = column.alwaysOn ? ' disabled data-always-on'
                      : column.dead     ? ' disabled data-dead'
@@ -78,12 +85,13 @@ export function renderColumnPickerList() {
         // two keep their type in the tooltip, because it is still what the column sorts by.
         const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(column.name);
         const isInfo = isInfoColumn(column.name);
-        const noType = !isTypeSettable(column.name);
+        const noType = !isTypeSettable(column.name) && !isLinked;
         const typeLabel = labelFor(VALUE_TYPES, column.type);
         const spelledOut = column.type === VALUE_TYPES.ARRAY.value
             ? `${typeLabel}, ${labelFor(SEARCH_TYPES, column.search_type)}`
             : typeLabel;
-        const typeTip = isControl ? 'this column opens the file, so it has no type'
+        const typeTip = isLinked ? 'linked column — change what it shows'
+                      : isControl ? 'this column opens the file, so it has no type'
                       : isInfo ? `info — ${typeLabel}, filled in by the app`
                       : noType ? `${spelledOut} — set by the app`
                       : spelledOut;
@@ -99,7 +107,7 @@ export function renderColumnPickerList() {
                    `<svg class="info-modal-row-icon"><use href="#icon-drag"></use></svg></button>` +
                  `<span class="info-modal-row-label">${label}</span>` +
                  `<span class="column-picker-actions">` +
-                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="column-type-open" data-tip="${typeTip}"${noType ? ' disabled' : ''}>` +
+                   `<button type="button" class="info-modal-row-btn column-picker-type" data-action="${isLinked ? 'open-linked-column' : 'column-type-open'}"${isLinked ? ` data-property="${column.name}"` : ''} data-tip="${typeTip}"${noType ? ' disabled' : ''}>` +
                      typeGlyph(column, 'info-modal-row-icon') + `</button>` +
                    bin +
                    `<input type="checkbox" class="toggle" data-action="column-toggle" data-tip="${tip}"${checked}${locked}>` +

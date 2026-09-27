@@ -61,7 +61,7 @@ notes; undo and redo of it.
 part-way (as the delete, §11); **merging two properties** (above, §4.4); renaming onto a property
 the app fills in (§4.3); renaming a column's
 *label* without touching the notes (§3.2); renaming a linked property, which
-`plans/table-linked-properties.md` will own.
+`plans/completed/table-linked-properties.md` will own.
 
 ---
 

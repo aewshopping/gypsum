@@ -16,12 +16,3 @@
     display: grid;
     gap: 4px;
 }
-
-/* .info-modal-row-label is flex: 1, which would let a long property name in the select squeeze the
-   role's name to nothing. The label keeps what it needs and the select takes the rest, down to a
-   floor — a dropdown narrower than this shows none of what it has been set to. */
-.flowchart-option-row > select {
-    flex: 1;
-    min-width: 11ch;
-    max-width: 60%;
-}

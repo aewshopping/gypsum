@@ -1,7 +1,7 @@
 /**
  * @file Reads and writes .gypsum/table_layouts.gypsum — every saved layout for the folder, which
- * one is in use, the type the user has chosen for each property, and which property fills each
- * part of the flowchart.
+ * one is in use, the type the user has chosen for each property, which property fills each part of
+ * the flowchart, and the table's linked columns.
  *
  * One file rather than one per layout: a layout's name is a JSON key, so nothing has to be
  * sanitised into a filename, renaming is a key change rather than the write-then-delete the File
@@ -12,11 +12,14 @@
  * table should break because a layout could not be read or written.
  */
 
-import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
+import { appState, TABLE_VIEW_COLUMNS, defaultColumnEntry } from '../services/store.js';
 import { SAVE_FOLDER, LAYOUTS_FILENAME } from '../constants.js';
 import { layoutFromColumnLayout, applyLayoutToColumnLayout, applyStickyCountFromLayout,
          propertyTypesFromState, applyPropertyTypesFromFile,
-         flowchartOptionsFromState, applyFlowchartOptionsFromFile, renameInColumns } from './layout-apply.js';
+         flowchartOptionsFromState, applyFlowchartOptionsFromFile, renameInColumns,
+         linkedPropertiesFromState, applyLinkedPropertiesFromFile,
+         withLinkedColumn, withoutLinkedColumn } from './layout-apply.js';
+import { linkedProperty } from '../services/linked-properties.js';
 
 /**
  * 2 since propertyTypes moved out of the layouts and up to the top of the document.
@@ -58,10 +61,10 @@ function enqueue(task) {
  * for a folder with no file, and a key missing from it would be absent from doc, then absent from
  * the first thing written.
  *
- * @returns {{layoutVersion: number, propertyTypes: object, flowchart: object, active: string|null, layouts: object}}
+ * @returns {{layoutVersion: number, propertyTypes: object, flowchart: object, linkedProperties: object, active: string|null, layouts: object}}
  */
 function emptyDocument() {
-    return { layoutVersion: LAYOUT_VERSION, propertyTypes: {}, flowchart: {}, active: null, layouts: {} };
+    return { layoutVersion: LAYOUT_VERSION, propertyTypes: {}, flowchart: {}, linkedProperties: {}, active: null, layouts: {} };
 }
 
 /**
@@ -77,7 +80,7 @@ function emptyDocument() {
  * silently vanish the next time a layout was saved.
  *
  * @async
- * @returns {Promise<{layoutVersion: number, propertyTypes: object, flowchart: object, active: string|null, layouts: object}>}
+ * @returns {Promise<{layoutVersion: number, propertyTypes: object, flowchart: object, linkedProperties: object, active: string|null, layouts: object}>}
  */
 export async function readLayouts() {
     if (!appState.dirHandle) return emptyDocument();
@@ -91,6 +94,8 @@ export async function readLayouts() {
                 ? parsed.propertyTypes : {},
             flowchart: (parsed.flowchart && typeof parsed.flowchart === 'object')
                 ? parsed.flowchart : {},
+            linkedProperties: (parsed.linkedProperties && typeof parsed.linkedProperties === 'object')
+                ? parsed.linkedProperties : {},
             active: typeof parsed.active === 'string' ? parsed.active : null,
             layouts: (parsed.layouts && typeof parsed.layouts === 'object') ? parsed.layouts : {},
         };
@@ -181,6 +186,7 @@ export function applyActiveLayout() {
         refreshState(doc);
         applyPropertyTypesFromFile(doc.propertyTypes);
         applyFlowchartOptionsFromFile(doc.flowchart);
+        applyLinkedPropertiesFromFile(doc.linkedProperties);
 
         const { active } = appState.tableLayouts;
         if (active) applyLayoutToColumnLayout(doc.layouts[active].columns ?? []);
@@ -240,8 +246,65 @@ export function saveFlowchartOptions() {
 }
 
 /**
- * Rewrites every saved layout for a property renamed in the notes, and writes the types and the
- * flowchart's choices as they now stand in appState — the in-memory half of the follow having
+ * Writes the linked columns' definitions, leaving everything else in the document as it is — what an
+ * edit from the linked column dialog needs, since re-pointing or renaming a column changes nothing
+ * in any layout. It does **not** call refreshState, for savePropertyTypes' reason.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export function saveLinkedProperties() {
+    const linkedProperties = linkedPropertiesFromState();
+    return enqueue(async () => {
+        const doc = await readLayouts();
+        doc.linkedProperties = linkedProperties;
+        await writeLayouts(doc);
+    });
+}
+
+/**
+ * A linked column just recorded with setLinkedProperty, onto the screen and into the file: shown at
+ * once as the rightmost column, in whichever layout is in use. plans/completed/table-linked-properties.md §3.1.
+ *
+ * On screen it is put last and visible in columnLayout. In the file, withLinkedColumn appends it to
+ * the active layout's stored columns and changes nothing else there — so a reorder waiting to be
+ * saved stays waiting, and isDirty is left as it was. Without the file half it would show now and
+ * come back hidden after a reload, because the stored layout had never heard of it.
+ *
+ * @async
+ * @param {string} key - The new column's key.
+ * @returns {Promise<void>}
+ */
+export function addLinkedProperty(key) {
+    const definition = linkedProperty(key);
+    const { columnLayout } = TABLE_VIEW_COLUMNS;
+    columnLayout.delete(key);
+    columnLayout.set(key, { ...defaultColumnEntry(key), visible: true });
+
+    return enqueue(async () => {
+        await writeLayouts(withLinkedColumn(await readLayouts(), key, definition));
+    });
+}
+
+/**
+ * A linked column just forgotten with setLinkedProperty, off the screen and out of the file — from
+ * **every** layout, in the same write as its definition, so no layout goes on naming a column that
+ * no longer exists. isDirty is left as it was.
+ *
+ * @async
+ * @param {string} key - The column's key.
+ * @returns {Promise<void>}
+ */
+export function deleteLinkedProperty(key) {
+    TABLE_VIEW_COLUMNS.columnLayout.delete(key);
+    return enqueue(async () => {
+        await writeLayouts(withoutLinkedColumn(await readLayouts(), key));
+    });
+}
+
+/**
+ * Rewrites every saved layout for a property renamed in the notes, and writes the types, the
+ * flowchart's choices and the linked columns as they now stand in appState — the in-memory half of the follow having
  * already run. plans/completed/table-rename-column.md §10.1.
  *
  * It does **not** call refreshState, for savePropertyTypes' reason: that clears isDirty, and an
@@ -262,6 +325,7 @@ export function saveFlowchartOptions() {
 export function renamePropertyInLayouts(from, to, fromGone) {
     const propertyTypes = propertyTypesFromState();
     const flowchart = flowchartOptionsFromState();
+    const linkedProperties = linkedPropertiesFromState();
     return enqueue(async () => {
         const doc = await readLayouts();
         const before = JSON.stringify(doc);
@@ -275,14 +339,15 @@ export function renamePropertyInLayouts(from, to, fromGone) {
         }
         doc.propertyTypes = propertyTypes;
         doc.flowchart = flowchart;
+        doc.linkedProperties = linkedProperties;
 
         return JSON.stringify(doc) === before ? true : writeLayouts(doc);
     });
 }
 
 /**
- * Deletes the whole file: every layout, the active pointer, every chosen type and the flowchart's
- * chosen properties.
+ * Deletes the whole file: every layout, the active pointer, every chosen type, the flowchart's
+ * chosen properties and every linked column.
  *
  * The file is removed rather than overwritten with an empty document, which is what clearAllHistory
  * does to history.gypsum. Nothing downstream can tell the difference — readLayouts already answers
@@ -311,6 +376,7 @@ export function deleteAllLayouts() {
         applyStickyCountFromLayout(0);
         appState.propertyTypes.clear();
         appState.flowchartOptions.clear();
+        appState.linkedProperties.clear();
         refreshState(emptyDocument());
     });
 }

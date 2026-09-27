@@ -4,6 +4,8 @@ import { hasYamlError } from '../../services/file-parsing/file-errors.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
 import { renderCellValue, mismatchMessage, rendersAsList } from './render-cell-value.js';
 import { stickyColumnCount } from './apply-column-widths.js';
+import { isLinkedKey, linkedProperty } from '../../services/linked-properties.js';
+import { filesById, linkedValue } from '../../services/internal-links/linked-value.js';
 
 // Said to whoever opens a cell of a note whose front matter did not read cleanly. Every value in
 // that block is a guess, so the fix is the note rather than anything the table can offer.
@@ -24,6 +26,11 @@ export function renderTableRows(current_props, renderEverything) {
     let index = 0;
     const stickyCount = stickyColumnCount(current_props);
 
+    // Built once for this render and dropped after it, never cached: an edit replaces a note's file
+    // object, and a kept Map would show a linked column the value from before it. Only when a linked
+    // column is on screen to ask. plans/completed/table-linked-properties.md §2.3.
+    const byId = current_props.some(prop => isLinkedKey(prop.name)) ? filesById(appState.myFiles) : null;
+
     for (const file of appState.myFiles) {
         if (checkFileOnPage(file.internalId)) {
 
@@ -34,8 +41,13 @@ export function renderTableRows(current_props, renderEverything) {
                 // so, rather than being blanked or drawn wrongly. The marker is on the cell rather
                 // than left for anyone to infer from the text, because a matching text cell and a
                 // mismatched one look the same — and the editing work has to tell them apart.
-                const mismatch = typeMismatch(file[prop.name], prop.type);
-                const cellContent = renderCellValue(prop, file, mismatch);
+                //
+                // A linked column's value comes from the notes this row links to, and is drawn as
+                // text or a list whatever it reads — so it can never mismatch.
+                const linked = isLinkedKey(prop.name);
+                const value = linked ? linkedValue(linkedProperty(prop.name), file, byId) : file[prop.name];
+                const mismatch = linked ? null : typeMismatch(value, prop.type);
+                const cellContent = renderCellValue(prop, file, mismatch, value);
 
                 // The file column takes the file's colour faded the way the content modal fades it,
                 // so the link keeps its contrast against whatever colour the user picked. The row
@@ -60,7 +72,7 @@ export function renderTableRows(current_props, renderEverything) {
                 // Marks the cells whose items list-highlight.js bands after the render. On the cell
                 // for the same reason data-info is: the renderer knows, and asking again later is
                 // how the mark and the text end up disagreeing.
-                const list = rendersAsList(prop, file, mismatch) ? ' data-list' : '';
+                const list = rendersAsList(prop, file, mismatch, value) ? ' data-list' : '';
 
                 // One sentence per cell, and the one that wins is the one that explains why the
                 // cell is as it is. A broken block outranks anything said about a single value in

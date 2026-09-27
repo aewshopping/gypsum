@@ -122,6 +122,14 @@
       </g>
     </symbol>
 
+    <!-- linked: two chain links, for a column that shows a property of the note a link points at -->
+    <symbol id="icon-type-linked" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+        <path d="M22 28a6 6 0 0 0 8.5 0l6-6a6 6 0 0 0-8.5-8.5l-2 2"/>
+        <path d="M28 22a6 6 0 0 0-8.5 0l-6 6a6 6 0 0 0 8.5 8.5l2-2"/>
+      </g>
+    </symbol>
+
     <!-- The padlock a locked column's glyph wears, drawn where it sits: the bottom-right corner,
          which the type drawing is moved out of to make room. Its own symbol rather than one combined
          symbol per type — the header lays it over the plain type glyph with a second <use>, so this
@@ -755,6 +763,12 @@
       <button class="btn-base-style" data-action="hide-all-columns" data-tip="hide every column">hide all</button>
       <button class="btn-base-style" data-action="reset-columns" data-tip="discard changes and go back to the layout as it was saved">reset columns</button>
     </div>
+    <!-- Here, beside the list of columns, because making one is deciding which columns there are.
+         Its own row: a fourth equal-width button would not fit its words. The linked column dialog
+         opens over this one, and the new column's row is here when it closes. -->
+    <div class="info-modal-btn-row">
+      <button class="btn-base-style" data-action="open-linked-column" data-tip="add a column showing a property of the note a link points at">add linked column</button>
+    </div>
 
     <div id="column-picker-list"></div>
 
@@ -795,6 +809,42 @@
 
     <!-- Indented under the list option above, which is the only type they mean anything for. -->
     <div class="column-type-group column-type-search-group" id="column-search-options"></div>
+  </dialog>
+
+  <!-- A linked column: "show `read` of the note linked in `via`". One dialog per column, to create it
+       (from the + in the table's control row) and to change or delete it later (from its header
+       menu, or its glyph in the column picker). Nothing is applied until save, and nothing here
+       writes a note. See plans/completed/table-linked-properties.md §5. -->
+  <dialog id="modal-linked-column" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="linked-column-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title" id="linked-column-title">New linked column</h2>
+
+    <div class="info-modal-row info-modal-select-row">
+      <label class="info-modal-row-label" for="linked-column-read">show</label>
+      <select id="linked-column-read" data-action="linked-column-select"></select>
+    </div>
+    <div class="info-modal-row info-modal-select-row">
+      <label class="info-modal-row-label" for="linked-column-via">from the note linked in</label>
+      <select id="linked-column-via" data-action="linked-column-select"></select>
+    </div>
+
+    <div class="info-modal-field">
+      <label for="linked-column-name">name</label>
+      <input id="linked-column-name" type="text" autocomplete="off" spellcheck="false" data-action="linked-column-name">
+      <!-- The example and the refusal take turns in one place, both laid out, so the dialog keeps
+           its size — the rename dialog's arrangement. -->
+      <div class="info-modal-message-stack">
+        <p id="linked-column-example" class="info-modal-message is-prose"></p>
+        <p id="linked-column-problem" class="info-modal-message is-prose is-warning" hidden></p>
+      </div>
+    </div>
+
+    <div class="info-modal-btn-row">
+      <button type="button" id="linked-column-delete" class="btn-action btn-action-danger" data-action="linked-column-delete" hidden>delete</button>
+      <button type="button" id="linked-column-save" class="btn-action" data-action="linked-column-save">add column</button>
+      <button type="button" class="btn-action" data-action="linked-column-cancel">cancel</button>
+    </div>
   </dialog>
 
   <!-- Renaming a column's property in every note that has it, from "rename column" in the column
@@ -839,7 +889,7 @@
          version of the file format. Same escape hatch, same place, as the history modal's
          "clear all history". -->
     <button id="layout-clear-btn" class="layout-clear-btn" data-action="layout-clear"
-            data-tip="delete every saved layout, every column type and every flowchart option you have set">delete all layouts</button>
+            data-tip="delete every saved layout, every column type, every flowchart option and every linked column you have set">delete all layouts</button>
   </dialog>
 
   <!-- Which property fills each part of the flowchart. Opened from the flowchart view's own
@@ -908,6 +958,10 @@
          rather than "delete column" because the two never show apart. See handleColumnMenuOpen,
          plans/completed/table-delete-column.md §4.1 and plans/completed/table-rename-column.md §8.1. -->
     <button type="button" class="app-menu-item app-menu-item-last" data-action="column-delete-menu" data-tip="remove this empty column from the layout" hidden>remove from layout</button>
+    <!-- A linked column's pair, in the same slot as rename and delete: its own dialog, and a delete
+         that removes it from every layout and reaches no note. plans/completed/table-linked-properties.md §5.3. -->
+    <button type="button" class="app-menu-item app-menu-item-last" data-action="column-edit-linked" data-tip="change what this column shows, or rename it" hidden>edit linked column…</button>
+    <button type="button" class="app-menu-item app-menu-item-danger" data-action="column-delete-linked" data-tip="remove this linked column from every layout — no note is changed" hidden>delete column</button>
     <button type="button" class="app-menu-item app-menu-item-last" data-action="column-rename-property" data-tip="rename this property in every note" hidden>rename column</button>
     <button type="button" class="app-menu-item app-menu-item-danger" data-action="column-delete-property" data-tip="remove this property from every note" hidden>delete column</button>
   </div>

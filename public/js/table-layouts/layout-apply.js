@@ -1,6 +1,7 @@
 /**
  * @file Converts between what the layouts file holds and what the app holds in memory: the columns
- * array, the propertyTypes object, and the flowchart object.
+ * array, the propertyTypes object, the flowchart object and the linkedProperties object — and the
+ * pure document changes that adding or deleting a linked column makes.
  *
  * No File System API, no DOM — just the two directions of each fact, kept in one place so they
  * cannot drift apart. layout-file.js does the reading and writing around it.
@@ -16,6 +17,7 @@
 import { appState, TABLE_VIEW_COLUMNS, defaultColumnEntry } from '../services/store.js';
 import { setPropertyType } from '../services/property-type.js';
 import { setFlowchartOption } from '../services/flowchart-options.js';
+import { setLinkedProperty } from '../services/linked-properties.js';
 
 /**
  * The current layout as the array a file holds: one object per column, carrying its position.
@@ -179,6 +181,82 @@ export function applyFlowchartOptionsFromFile(raw) {
     for (const [role, property] of Object.entries(raw)) {
         setFlowchartOption(role, property);
     }
+}
+
+/**
+ * The linked columns as the object a file holds, keyed by `linked:<n>`.
+ * @returns {Object<string, {label: string|null, via: string, read: string}>}
+ */
+export function linkedPropertiesFromState() {
+    return Object.fromEntries(appState.linkedProperties);
+}
+
+/**
+ * Fills appState.linkedProperties from a file's linkedProperties object, replacing whatever was
+ * there. Every entry goes through setLinkedProperty, so a malformed hand-edited definition is
+ * dropped exactly as a bad dialog save would be.
+ *
+ * @param {*} raw - The `linkedProperties` object as parsed from the file, or anything at all.
+ * @returns {void}
+ */
+export function applyLinkedPropertiesFromFile(raw) {
+    appState.linkedProperties.clear();
+    if (!raw || typeof raw !== 'object') return;
+
+    for (const [key, definition] of Object.entries(raw)) {
+        setLinkedProperty(key, definition);
+    }
+}
+
+/**
+ * The layouts document with a new linked column in it: its definition stored, and — when a layout
+ * is active — **one visible entry appended to that layout's stored columns, and nothing else
+ * changed.** plans/completed/table-linked-properties.md §3.1.
+ *
+ * Appended to what the file holds rather than saved from the screen, because the screen may carry a
+ * reorder or a resize waiting to be saved, and adding a column must not make those look saved. Only
+ * the active layout gets it: the others meet it hidden, the way they meet any column they have not
+ * chosen. Pure, so the rule is tested in node.
+ *
+ * @param {object} doc - The layouts document, as readLayouts returns it.
+ * @param {string} key - The new column's key.
+ * @param {{label: string|null, via: string, read: string}} definition
+ * @returns {object} A new document; `doc` is untouched.
+ */
+export function withLinkedColumn(doc, key, definition) {
+    const next = { ...doc, linkedProperties: { ...doc.linkedProperties, [key]: definition } };
+
+    const layout = doc.active ? doc.layouts?.[doc.active] : null;
+    if (!layout || !Array.isArray(layout.columns) || layout.columns.some(column => column?.name === key)) {
+        return next;
+    }
+
+    const orders = layout.columns.map(column => column?.order).filter(Number.isFinite);
+    const order = orders.length > 0 ? Math.max(...orders) + 1 : layout.columns.length;
+    const entry = { order, name: key, ...defaultColumnEntry(key), visible: true };
+    next.layouts = { ...doc.layouts, [doc.active]: { ...layout, columns: [...layout.columns, entry] } };
+    return next;
+}
+
+/**
+ * The layouts document without a linked column: its definition gone, and its entry taken out of
+ * **every** layout, so no layout goes on naming a column that no longer exists. Pure.
+ *
+ * @param {object} doc - The layouts document, as readLayouts returns it.
+ * @param {string} key - The column's key.
+ * @returns {object} A new document; `doc` is untouched.
+ */
+export function withoutLinkedColumn(doc, key) {
+    const linkedProperties = { ...doc.linkedProperties };
+    delete linkedProperties[key];
+
+    const layouts = Object.fromEntries(Object.entries(doc.layouts ?? {}).map(([name, layout]) => [
+        name,
+        Array.isArray(layout?.columns)
+            ? { ...layout, columns: layout.columns.filter(column => column?.name !== key) }
+            : layout,
+    ]));
+    return { ...doc, linkedProperties, layouts };
 }
 
 /**

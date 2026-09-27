@@ -302,6 +302,30 @@ test('a cell whose shape its column cannot hold still writes nothing', async ({ 
   expect(await page.evaluate(() => Object.keys(window.__saved))).not.toContain('history.gypsum');
 });
 
+// A linked column's key is `linked:1`. Were its cell ever to take a caret, the commit would write
+// `linked:1: …` into the note, which reads back as a key called `linked` — a corrupted note rather
+// than an odd column. plans/completed/table-linked-properties.md §8.1.
+test('a linked cell writes nothing into any note', async ({ page }) => {
+  await openTable(page, { 'task.md': '---\nref: "[[alpha.md]]"\n---\n# Task\n' });
+  // Defined the way a hand-edited layouts file would define it, then the folder loaded again to read it.
+  await page.evaluate(() => {
+    window.__saved['table_layouts.gypsum'] = JSON.stringify({
+      linkedProperties: { 'linked:1': { label: null, via: 'ref', read: 'status' } },
+    });
+  });
+  await loadFolder(page);
+  const before = await page.evaluate(() => ({ ...window.__files }));
+
+  const cell = cellFor(page, 'Task', 'linked:1');
+  await expect(cell).toHaveText('draft');
+  await open(cell);
+  await expect(cell).toHaveClass(/is-readonly/);
+  await page.keyboard.type('zzz');
+  await commit(page);
+
+  expect(await page.evaluate(() => window.__files)).toEqual(before);
+});
+
 test('a date is written exactly as it was typed', async ({ page }) => {
   await openTable(page);
   await setType(page, 'due', 'date');

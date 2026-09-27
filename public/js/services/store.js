@@ -107,6 +107,15 @@ export const appState = {
   // other half of the answer.
   flowchartOptions: new Map(),
 
+  // The table's linked columns, read from the same file's `linkedProperties` object.
+  // Map<'linked:<n>', {label: string|null, via: string, read: string}> — "show `read` of the note
+  // linked in `via`", headed `label`, or after its two choices when that is null.
+  //
+  // A fact about the folder rather than about one layout, like the two above, so a linked column
+  // exists under the app's defaults too. Session-scoped, cleared and refilled on folder load. Ask
+  // services/linked-properties.js rather than reading this directly.
+  linkedProperties: new Map(),
+
   // Table writes that can be put back, newest last. One entry is one batch — a single cell edit is
   // a batch of one, a column delete is one batch across every note it touched — shaped
   // `{ timestamp, kind, property, edits }`: `kind` is 'edit' or 'delete-property', `property` the

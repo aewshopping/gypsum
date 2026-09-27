@@ -258,7 +258,7 @@ export async function handleLayoutDelete(evt, target) {
  */
 export async function handleLayoutClear() {
     const confirmed = await showWarningModal(
-        'Delete every saved layout, and every column type you have set? This cannot be undone.',
+        'Delete every saved layout, every column type and every linked column you have set? This cannot be undone.',
         'delete all', 'cancel');
     if (!confirmed) return;
 

@@ -1,7 +1,7 @@
 import { FLOWCHART_ROLES } from '../../constants.js';
 import { flowchartProperty, nodeShapeFor } from '../flowchart-options.js';
 import { resolveNoteName } from '../internal-links/note-name-index.js';
-import { linksInText } from '../file-parsing/front-matter-links.js';
+import { toList, linkTarget } from '../internal-links/link-targets.js';
 
 /**
  * @file The visible files as mermaid flowchart source.
@@ -35,27 +35,6 @@ import { linksInText } from '../file-parsing/front-matter-links.js';
  */
 function mermaidLabel(text) {
     return String(text).replace(/"/g, '#quot;');
-}
-
-/**
- * Whatever a property holds, as a list.
- *
- * **A Map becomes its keys**, which is the app's one answer for a Map value — see
- * ui-functions-table/render-cell-value.js and render-table-rows.js. It matters because `tags` is a
- * `Map<tagName, {count, parents}>`: the names are the keys and the values are counting metadata, so
- * reading the values would put `[object Object]` in every node of a chart grouped by tag. One
- * consequence worth knowing: tag keys are stored lower-cased, so those groups are lower-case.
- *
- * It is also what makes iterating safe at all. `Map.forEach` yields `(value, key)`, not
- * `(item, index)`, so a Map-valued connectors property read directly would mis-pair every label.
- *
- * @param {*} value - Whatever the file object holds for a property.
- * @returns {Array<*>} The items, or one item, or none.
- */
-function toList(value) {
-    if (value instanceof Map) return [...value.keys()];
-    if (Array.isArray(value)) return value;
-    return (value === null || value === undefined || value === '') ? [] : [value];
 }
 
 /**
@@ -129,27 +108,6 @@ function nodeDeclaration(file, number, roles) {
 }
 
 /**
- * What one connector item points at.
- *
- * internalLink holds targets the app has already stripped out of their brackets, but a property the
- * user points the role at may well hold `"[[cave.md]]"` as written. Handed straight to
- * resolveNoteName that resolves nothing, and the whole chart draws as unresolved nodes — silently,
- * and completely. So an item holding a link contributes its target, and anything else is the target
- * as written.
- *
- * **A link's own `|label` is deliberately ignored.** Labels come from the connector text role and
- * nowhere else, so there is one labelling story rather than two — and nothing is lost by it, since
- * front matter `[[a.md|b]]` is already collected into internalLink and internalLinkText as a pair.
- *
- * @param {*} item - One item of the connectors property.
- * @returns {string} The link target.
- */
-function linkTarget(item) {
-    const text = String(item).trim();
-    return linksInText(text)[0]?.target ?? text;
-}
-
-/**
  * Pass one: every node, declared, grouped into its subgraph.
  *
  * Groups are kept in the order their value is first met, which is the order the files are sorted
@@ -216,6 +174,8 @@ function edgeLines(files, fileNumbers, roles) {
         const texts = toList(valueFor(file, roles.connectorText));
 
         targets.forEach((item, index) => {
+            // A link's own `|label` is dropped here on purpose: labels come from the connector text
+            // role and nowhere else, so there is one labelling story rather than two.
             const target = linkTarget(item);
             let targetNode = fileNumbers.get(resolveNoteName(target));
 

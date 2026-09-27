@@ -1,4 +1,4 @@
-import { VALUE_TYPES, labelFor } from '../../constants.js';
+import { VALUE_TYPES, LINKED_TYPE, labelFor } from '../../constants.js';
 import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
@@ -99,12 +99,14 @@ function renderMismatch(value) {
  * @param {object} prop - The column, carrying `name` and `type`.
  * @param {object} file - The file object the row is for.
  * @param {'shape'|'unreadable'|null} mismatch
+ * @param {*} [value] - The cell's value, when it is not the file's own — a linked column's.
  * @returns {boolean}
  */
-export function rendersAsList(prop, file, mismatch) {
+export function rendersAsList(prop, file, mismatch, value = file[prop.name]) {
+    if (prop.type === LINKED_TYPE.value) return Array.isArray(value);
     return !mismatch
         && prop.type === VALUE_TYPES.ARRAY.value
-        && Array.isArray(file[prop.name]);
+        && Array.isArray(value);
 }
 
 /**
@@ -117,10 +119,11 @@ export function rendersAsList(prop, file, mismatch) {
  * @param {object} prop - The column, carrying `name` and the `type` propertyType() gave it.
  * @param {object} file - The file object the row is for.
  * @param {'shape'|'unreadable'|null} mismatch - What typeMismatch() said about this value.
+ * @param {*} [value] - The cell's value, when it is not the file's own — a linked column's, which
+ *   comes from the notes its row links to.
  * @returns {string} The cell's inner HTML.
  */
-export function renderCellValue(prop, file, mismatch) {
-    const value = file[prop.name];
+export function renderCellValue(prop, file, mismatch, value = file[prop.name]) {
 
     // A cell whose value cannot be drawn as its column's type shows its text and says so, rather
     // than being blanked or drawn wrongly. The caller marks the cell; this just draws the text.
@@ -168,11 +171,32 @@ export function renderCellValue(prop, file, mismatch) {
         case VALUE_TYPES.NUMBER.value:
             return escapeHtml(value?.toString() ?? '');
 
+        case LINKED_TYPE.value:
+            // One value as text, several as one comma-joined line — and an empty slot as nothing
+            // between two commas, so the items stay aligned with the links that found them and
+            // copied text carries no mark nobody wrote. No cell of it takes a caret, which is what
+            // makes anything but the notes' own text safe here at all.
+            // plans/completed/table-linked-properties.md §3.3.
+            return Array.isArray(value)
+                ? linkifyText(joinFlowItems(value.map(linkedText)))
+                : linkifyText(linkedText(value));
+
         default:
             // ?? rather than ||: a front matter key holding `false` or `0` is a value, and || threw
             // both away as empty.
             return escapeHtml(String(value ?? ''));
     }
+}
+
+/**
+ * One value a linked note gave, as text. A Date is the one value no note wrote — `lastModified`,
+ * which the app keeps as a Date — so it is formatted the way its own column formats it.
+ * @param {*} value
+ * @returns {string}
+ */
+function linkedText(value) {
+    if (value instanceof Date) return formatDateTime(value);
+    return String(value ?? '');
 }
 
 /**

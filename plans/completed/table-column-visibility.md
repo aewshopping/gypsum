@@ -3,7 +3,7 @@
 Status: **built.** §0 below is the state it was written in, when the picker existed and reached
 nothing; everything it lists as missing has since landed.
 Branch: `claude/column-hide-show-modal-y1bhj4`
-Related: `plans/completed/table-column-resize.md`, `plans/table-json-export.md`, `plans/table-linked-properties.md`
+Related: `plans/completed/table-column-resize.md`, `plans/table-json-export.md`, `plans/completed/table-linked-properties.md`
 
 ---
 

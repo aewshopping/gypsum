@@ -77,6 +77,24 @@ export function isDateType(type) {
 export const INFO_TYPE = { value: "info", label: "info" };
 
 /**
+ * The type of a linked column — one that shows a property of the note a link points at. It draws
+ * as text for one value and as a list for several, so no value can mismatch it.
+ *
+ * **Outside VALUE_TYPES for INFO_TYPE's reason**: nobody chooses it, so it must never appear in the
+ * type dialog or be accepted from a layout file's propertyTypes. Unlike `info` it *replaces* the
+ * column's type rather than sitting beside it; the read property's own type is asked for where it
+ * matters. See plans/completed/table-linked-properties.md §3.6.
+ */
+export const LINKED_TYPE = { value: "linked", label: "linked" };
+
+/**
+ * What every linked column's key starts with: `linked:1`, `linked:2`. A front matter key can never
+ * contain a colon — the parser splits a key at its first one, quoted or not — so no note's property
+ * can be mistaken for one.
+ */
+export const LINKED_KEY_PREFIX = "linked:";
+
+/**
  * How a column is searched, which is deliberately not the same question as what type it is: a
  * column can want to render as a list and still be searched by part of its text, which is what
  * `people` and `internalLink` have always done.

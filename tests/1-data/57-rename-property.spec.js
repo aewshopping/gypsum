@@ -151,3 +151,34 @@ test('the dialog writes only when a legal name is confirmed', async ({ page }) =
   expect((await noteWrites()).sort()).toEqual([...CARRYING].sort());
   expect((await files(page))['flow.md']).toBe(renamed('flow.md'));
 });
+
+// A linked column following the renamed property is re-pointed inside the rename's own write batch
+// (beforeRefresh), where a throw would report a finished rename as stopped — so this is the one
+// linked-column test in level 1. Undo is not repeated: it runs the same follow with the names
+// swapped, which the tests above already cover. plans/completed/table-linked-properties.md §3.9, §8.1.
+test('a rename with a linked column defined renames the notes and re-points the column', async ({ page }) => {
+  const notes = {
+    'task.md': '---\npeople: "[[lead.md]]"\n---\n# Task\n',
+    'lead.md': '---\nstatus: busy\n---\n# Lead\n',
+  };
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await setupPropertyFolder(page, notes);
+  await page.goto('/');
+  await page.evaluate(() => {
+    window.__saved['table_layouts.gypsum'] = JSON.stringify({
+      linkedProperties: { 'linked:1': { label: null, via: 'people', read: 'status' } },
+    });
+  });
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  expect(await renameThroughService(page)).toEqual({ renamed: 1, skipped: 0, layoutSaved: true });
+
+  expect(await files(page)).toEqual({ ...notes, 'task.md': notes['task.md'].replace('people:', 'attendees:') });
+  const saved = await page.evaluate(() => JSON.parse(window.__saved['table_layouts.gypsum']));
+  expect(saved.linkedProperties).toEqual({ 'linked:1': { label: null, via: 'attendees', read: 'status' } });
+  await expect(page.locator('.note-table-cell-header[data-property="linked:1"] .header-label')).toHaveText('attendees → status');
+  await expect(page.locator('.note-table').filter({ hasText: 'Task' }).first()
+    .locator('.note-table-cell[data-prop="linked:1"]')).toHaveText('busy');
+});

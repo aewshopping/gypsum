@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { typeGlyph } from '../ui-functions-render/type-glyph.js';
 import { HEADER_TIP_IDLE } from '../ui-functions-click/column-menu.js';
 import { stickyColumnCount } from './apply-column-widths.js';
+import { escapeHtml } from '../ui-functions-render/escape-html.js';
 
 /**
  * Renders the header strip for the table view.
@@ -39,6 +40,8 @@ import { stickyColumnCount } from './apply-column-widths.js';
  * The cell carries the type and search type as data attributes for the same reason a picker row
  * does — it is what the type menu reads and writes when it is opened over this column.
  *
+ * The heading is escaped: a linked column's is typed in a dialog and may hold any character.
+ *
  * data-empty says no file in the folder has a value for this column, which note-table.css draws as
  * a faded heading: the layout asked for the column, so it stays, and the fade is what stops it
  * reading like a column whose rows merely happen to be blank. data-keyless is the narrower fact
@@ -65,7 +68,7 @@ export function renderTableHeader(current_props) {
                 ? ` data-sorted="${appState.sortState.direction}"`
                 : '';
             return `<button type="button" class="note-table-cell-header flex-row${sticky}" data-property="${prop.name}" data-action="column-menu-open" data-tip="${HEADER_TIP_IDLE}" data-type="${prop.type}" data-search-type="${prop.search_type}"${sorted}${prop.blank ? ' data-empty' : ''}${prop.dead ? ' data-keyless' : ''}>` +
-                     `<span class="header-label flexgrow">${prop.label ?? prop.name}</span>` +
+                     `<span class="header-label flexgrow">${escapeHtml(prop.label ?? prop.name)}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
                      typeGlyph(prop, 'header-type-glyph', 'set by the app') +
                    `</button>`;

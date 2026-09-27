@@ -28,6 +28,7 @@ import { deleteColumnFromLayout } from './column-delete.js';
 import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { isTypeSettable, setPropertyType, propertyType, isPropertyUserOwned } from '../../services/property-type.js';
 import { VALUE_TYPES } from '../../constants.js';
+import { isLinkedKey } from '../../services/linked-properties.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../layout-save-state.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
@@ -179,12 +180,16 @@ export function handleColumnMenuOpen(evt, headerCell) {
     // not only the info ones: isTypeSettable is the same question the header's padlock asks, so
     // a column drawn as locked is a column with no type to set. It says nothing about the caret,
     // which `title` takes despite its padlock.
+    //
+    // A linked column is neither sorted nor searched yet, and its type is not its own, so all three
+    // are inert on it too. plans/completed/table-linked-properties.md §3.6 and §5.3.
     const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(property);
+    const isLinked = isLinkedKey(property);
     const noType = !isTypeSettable(property);
 
     for (const action of ['column-sort-asc', 'column-sort-desc', 'column-search']) {
         const item = menu.querySelector(`[data-action="${action}"]`);
-        if (item) item.disabled = isControl;
+        if (item) item.disabled = isControl || isLinked;
     }
 
     const typeItem = menu.querySelector('[data-action="column-change-type"]');
@@ -211,6 +216,13 @@ export function handleColumnMenuOpen(evt, headerCell) {
     const isKeyless = headerCell.hasAttribute('data-keyless');
     const removeItem = menu.querySelector('[data-action="column-delete-menu"]');
     if (removeItem) removeItem.hidden = !isKeyless || appState.tableLayouts.active === null;
+
+    // A linked column has its own pair in the same slot: its dialog, and a delete that reaches the
+    // layouts rather than the notes — never the items that do reach them.
+    for (const action of ['column-edit-linked', 'column-delete-linked']) {
+        const item = menu.querySelector(`[data-action="${action}"]`);
+        if (item) item.hidden = !isLinked;
+    }
 
     // Rename reaches exactly the notes delete does, so it is offered on exactly the same columns —
     // one question for both. plans/completed/table-rename-column.md §4.1.
