@@ -63,8 +63,8 @@ export function openLinkedColumnDialog(key, { fromHeader = false } = {}) {
 }
 
 /**
- * The + in the table's control row, which creates a column, and a linked column's glyph in the
- * column picker, which carries its key and opens that column. One handler for both: the key is the
+ * "add linked column" in the column picker, which creates a column, and a linked column's glyph on
+ * its picker row, which carries its key and opens that column. One handler for both: the key is the
  * only difference.
  * @param {MouseEvent} evt
  * @param {HTMLElement} target - The button, carrying data-property when it is over a column.

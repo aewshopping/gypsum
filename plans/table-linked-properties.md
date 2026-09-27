@@ -307,15 +307,16 @@ every linked column: the column picker already lists them.
 
 Three ways in, all opening the same dialog through the same module:
 
-- **The + button** in the table's control row (`render-table-controls.js`), **after the column
-  picker button and before undo**, tooltip "add a column from linked notes". Opens the dialog **empty**, to create.
-  It is in the table's own row, so it exists only while the table is drawn, and needs no
-  view-conditional logic, the same as the column picker.
+- **"add linked column"**, a text button in the column picker, on its own row under "show all",
+  "hide all" and "reset columns". Opens the dialog **empty**, to create, over the picker; the new
+  column's row is in the picker when it closes. *Changed after v1 was built:* this was a + icon in
+  the table's control row, first before the layout name and then after the picker button. Making a
+  column is deciding which columns there are, which is the picker's job, and the icon was dropped.
 - **"edit linked column…" in the column's header menu.** Opens it **filled in**, to change.
 - **The glyph on the column's row in the column picker** (§3.7), where an ordinary column's glyph
   opens the type dialog. Same filled-in dialog. This is the way to a linked column that is hidden in
   the current layout, which has no header and so no header menu. *As built:* the picker draws that
-  glyph with the + button's own action, `open-linked-column`, carrying the column's key, rather than
+  glyph with the "add linked column" button's own action, `open-linked-column`, carrying the column's key, rather than
   branching inside the type dialog's handler — one open handler, and the type dialog untouched.
 
 ### 5.2 What is in it
@@ -491,7 +492,7 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 ### 6e. The dialog
 
 - `index.html`: `#modal-linked-column`, and `#icon-type-linked` in the sprite.
-- `ui-functions-table/render-table-controls.js`: the + button, `data-action="open-linked-column"`.
+- `index.html`: "add linked column" in `#modal-columns`, `data-action="open-linked-column"`.
 - `ui-functions-table/linked-column-form.js` (new): fills the selects, the name and the example
   line.
 - `ui-functions-click/linked-column-dialog.js` (new): open (empty or for a key), select and name
@@ -534,7 +535,6 @@ public/js/ui/ui-functions-table/render-table-columns-helper.js  MOD  linked keys
 public/js/ui/ui-functions-table/render-table-rows.js   MOD  per-render id map; linkedValue; no mismatch
 public/js/ui/ui-functions-table/render-cell-value.js   MOD  the linked case
 public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger; glyph; escaped heading
-public/js/ui/ui-functions-table/render-table-controls.js MOD the + button
 public/js/ui/ui-functions-table/column-picker-list.js  MOD  enabled glyph, escaped label
 public/js/ui/ui-functions-table/linked-column-form.js  NEW  the dialog's contents
 public/js/ui/ui-functions-click/linked-column-dialog.js NEW open, input, cancel
@@ -548,7 +548,7 @@ public/js/constants.js                                 MOD  LINKED_TYPE
 public/css/linked-column-modal.css                     NEW  the dialog's width
 public/css/modal-info.css, flowchart-options-modal.css MOD  .info-modal-select-row, shared
 public/style.css                                       MOD  @import the new CSS file
-index.html                                             MOD  dialog + icon
+index.html                                             MOD  dialog, icon, the picker's button
 manifest.json, CLAUDE.md                               MOD
 ```
 
@@ -595,7 +595,7 @@ reach the notes' path, and each is one test added to a spec that already has the
 **Then four browser tests**, sharing one fixture: notes with a `project` link, one with several
 links of which one is broken, and the project notes themselves, which are rows in the same table.
 
-1. **Create, under the defaults.** + opens the dialog empty; the name follows the selects; the
+1. **Create, under the defaults.** "add linked column" opens the dialog empty; the name follows the selects; the
    example line names a row; add. The column is rightmost and not faded, with no sort chevron; one
    link shows its value, several show an aligned list with an empty slot, the broken one shows an
    empty cell with no mismatch mark. Then **edit `status` in a project row and the linked cell

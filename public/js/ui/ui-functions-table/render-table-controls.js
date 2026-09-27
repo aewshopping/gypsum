@@ -9,9 +9,7 @@ import { escapeHtml } from '../ui-functions-render/escape-html.js';
  * undo history at the far end.
  *
  * Reading left to right it says what the table is showing and then offers to change it — the name,
- * which opens the layouts modal, and the column picker. The + after the picker adds a linked column
- * (plans/table-linked-properties.md §5.1): beside the other control over which columns there are,
- * and in the table's own row, so it exists only while the table is drawn. **The name is the way in to the layouts,
+ * which opens the layouts modal, and the column picker. **The name is the way in to the layouts,
  * and the only one.** It used to be a popover listing the layouts to switch between, with a
  * separate icon button beside it for the modal that lists the same layouts and can also rename,
  * delete and save them. Two doors onto one list, one of which could do less: the name now opens the
@@ -60,9 +58,6 @@ export function renderTableControls() {
                 <button type="button" id="layout-name" class="btn-menu" data-action="open-layouts-modal" data-tip="switch, save and edit table layouts">${active ?? DEFAULT_LAYOUT_LABEL}</button>
                 <button type="button" class="svg-wrapper-style" data-action="open-column-picker" data-tip="show and hide columns">
                     <svg viewBox="0 0 50 50"><use href="#icon-columns"></use></svg>
-                </button>
-                <button type="button" class="svg-wrapper-style" data-action="open-linked-column" data-tip="add a column from linked notes">
-                    <svg viewBox="0 0 50 50"><use href="#icon-plus"></use></svg>
                 </button>
                 <button type="button" id="table-undo-btn" class="svg-wrapper-style" data-action="table-undo" data-tip="${escapeHtml(undoTip('undo'))}"${canReverse('undo') ? '' : ' disabled'}>
                     <svg viewBox="0 0 45 48"><use href="#icon-undo"></use></svg>

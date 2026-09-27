@@ -53,15 +53,28 @@ const header = (page, prop) => page.locator(`.note-table-cell-header[data-proper
 const heading = (page, prop) => header(page, prop).locator('.header-label');
 const headings = page => page.locator('.note-table-cell-header .header-label').allTextContents();
 
-/** Creates a linked column from the + and leaves the dialog closed. */
-async function addLinked(page, read, via, name) {
-  await page.click('[data-action="open-linked-column"]');
+/** Opens "add linked column", which is in the column picker. */
+async function openAddDialog(page) {
+  await page.click('[data-action="open-column-picker"]');
+  await page.click('#modal-columns [data-action="open-linked-column"]');
   await expect(dialog(page)).toBeVisible();
+}
+
+/** Closes the column picker, which is what redraws the table behind it. */
+async function closePicker(page) {
+  await page.click('[data-action="close-column-picker"]');
+  await expect(page.locator('#modal-columns')).not.toBeVisible();
+}
+
+/** Creates a linked column from the column picker, and closes both dialogs. */
+async function addLinked(page, read, via, name) {
+  await openAddDialog(page);
   await page.selectOption('#linked-column-read', read);
   await page.selectOption('#linked-column-via', via);
   if (name !== undefined) await page.fill('#linked-column-name', name);
   await page.click('#linked-column-save');
   await expect(dialog(page)).not.toBeVisible();
+  await closePicker(page);
 }
 
 /** Opens a header's column menu: one press selects the header, the second opens the menu. */
@@ -155,11 +168,10 @@ test('adding appends one visible entry to the active layout only; deleting remov
 
 // ----------------------------------------------------------------------------- in the browser
 
-test('a linked column is created from the +, shows the linked values, and follows an edit', async ({ page }) => {
+test('a linked column is created from the column picker, shows the linked values, and follows an edit', async ({ page }) => {
   await openTable(page);
 
-  await page.click('[data-action="open-linked-column"]');
-  await expect(dialog(page)).toBeVisible();
+  await openAddDialog(page);
   await expect(page.locator('#linked-column-title')).toHaveText('New linked column');
   await expect(page.locator('#linked-column-save')).toBeDisabled();
   await expect(page.locator('#linked-column-delete')).toBeHidden();
@@ -176,6 +188,12 @@ test('a linked column is created from the +, shows the linked values, and follow
   await expect(page.locator('#linked-column-name')).toHaveValue('project → status');
   await page.click('#linked-column-save');
   await expect(dialog(page)).not.toBeVisible();
+
+  // Its row is in the picker when the dialog closes, last and switched on.
+  const row = page.locator('#column-picker-list .info-modal-row').last();
+  await expect(row).toHaveAttribute('data-property', 'linked:1');
+  await expect(row.locator('input.toggle')).toBeChecked();
+  await closePicker(page);
 
   // Shown at once, rightmost, not faded, with the glyph and no padlock.
   expect((await headings(page)).at(-1)).toBe('project → status');

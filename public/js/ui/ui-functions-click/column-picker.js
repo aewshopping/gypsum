@@ -50,12 +50,20 @@ function applyVisibilityFloor() {
 
 /**
  * Repaints the picker's rows when it is open, keeping what has been toggled so far — for the linked
- * column dialog, which can be opened from a picker row and changes that row's name, or removes it.
+ * column dialog, which is opened from here and adds a row, renames one or removes one.
+ *
+ * A column added while the picker was open is in columnLayout but not yet among the rows, and
+ * reading the rows in rebuilds columnLayout from them alone — so it is put back after, where it was:
+ * last, and shown.
  * @returns {void}
  */
 export function repaintColumnPicker() {
     if (!dialog.open) return;
+    const before = new Map(TABLE_VIEW_COLUMNS.columnLayout);
     readPickerIntoLayout();
+    for (const [name, entry] of before) {
+        if (!TABLE_VIEW_COLUMNS.columnLayout.has(name)) TABLE_VIEW_COLUMNS.columnLayout.set(name, entry);
+    }
     paintList();
 }
 
