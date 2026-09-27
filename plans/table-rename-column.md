@@ -9,8 +9,7 @@ and the code built from it.
 Manifest version: bump the minor version with each step that changes code.
 
 Someone has `people` in 35 notes and wants it called `attendees`: the key renamed, every value,
-list and comment beside it left exactly as it was. Today they would open 35 notes. Or they have
-`Author` in 12 notes and `author` in 40, and want one column.
+list and comment beside it left exactly as it was. Today they would open 35 notes.
 
 ---
 
@@ -131,6 +130,10 @@ what is wrong, or `null`. The dialog shows the sentence and disables the button.
    `coerceValue` rather than listing shapes.
 7. **A name the app keeps for itself** → `"filename" is set by the app`. Anything in
    `CORE_FILE_PROPERTIES` or `RESERVED_KEYS` (§4.3).
+8. **A name a note already has** → `"attendees" is already in 12 notes`. §4.4. This is the one rule
+   that needs `appState`, so it is not in `propertyNameProblem`, which stays pure. The service's
+   `renameProblem(from, to)` asks `propertyNameProblem` first and this second, and the dialog asks
+   `renameProblem`.
 
 Spaces inside a name are allowed (`due date`); the parser reads them, and so does YAML.
 
@@ -139,29 +142,34 @@ Spaces inside a name are allowed (`due date`); the parser reads them, and so doe
 **Decided: `title`, `color` and every other core name are refused as a new name**, although `title`
 and `color` are keys a note may hold and renaming `colour` to `color` is a real wish.
 
-The reason is the forecast. A file object carries `title` and `color` whether or not the note's
-front matter does — the app fills them in — so `appState` cannot say which notes already have a
-`title:` key, and the dialog could not count the notes that would be skipped (§7). The write would
-still be right, since it asks the note's bytes (§6.1), but a dialog that says 35 and a result line
-that says 12 is the thing the delete's counts were designed never to do. Allowing these two needs
-the parser to report which core values came from front matter; it is written down in §15 as the
-way to lift this, not built.
+The reason is the in-use rule (§4.4). A file object carries `title` and `color` whether or not
+the note's front matter does, because the app fills them in. So `Object.hasOwn` would call both
+names in use in every folder, and `appState` cannot say which notes really have a `title:` key.
+Allowing these two needs the parser to report which core values came from front matter. §16 gives
+that as the way to lift this; it is not built here.
 
 `RESERVED_KEYS` must be refused for a stronger reason: a note carrying one is locked, so the rename
 would lock every note it touched.
 
-### 4.4 Onto a name some other notes already have: a merge, allowed
+### 4.4 Not onto a name any note already has
 
-**Decided: allowed, and a note that has both keys is skipped.** `Author` in 12 notes and `author`
-in 40 is exactly the case a rename is wanted for, and it is a rename of the 12 into a column that
-already exists.
+**Decided: if any loaded note has the new name as a key, the name is refused.** The dialog shows
+the sentence and the button stays disabled, as for any other illegal name (§4.2, rule 8). Renaming
+onto a name that is in use would be a merge of two columns. A rename is not the tool for that: in a
+note holding both keys, one value would have to be chosen and the other destroyed.
 
-- **A note carrying both keys is left alone and counted.** Choosing which value wins would be
-  destroying one of them, which is the delete's job and needs its own confirmation. The dialog names
-  how many (§8.2), and after the rename those notes are exactly the ones still carrying the old key,
-  so the old column, still standing, shows them.
-- **When every note carrying the old key also carries the new one**, the dialog says so and offers
-  no rename, as the delete's "every carrying note is locked" dialog does.
+- **"Has the key" is the question `dead` asks**: `Object.hasOwn(file, to)` over `appState.myFiles`,
+  never `myFilesProperties`, which only grows. A bare `attendees:` counts, since it is `null` on the
+  file object. So does a key in a note whose front matter did not read cleanly, when the parser got
+  as far as it: that note is locked either way.
+- **A name no note has is free**, even if it is still a keyless column in a saved layout or still
+  has a type saved against it. Nothing in any note is lost by using it; §10.1 says what happens to
+  that column and that type.
+- **The sentence gives a count**, `"attendees" is already in 12 notes`, so the user can go and look,
+  or delete that column first if merging really is what they want.
+- **The write re-checks against the bytes on disk.** A note that gains the new key after the
+  dialog opened, in another editor or from the sidebar, is refused whole by `expect: null` (§6.1)
+  and `allOrNothing` (§6.2). It keeps `people` untouched, and is counted as skipped.
 
 ---
 
@@ -219,8 +227,8 @@ Two options on an edit and one on a batch. Nothing else in `apply-raw-edits.js` 
 **`null` means the note must not have the key at all** (`span` undefined). Nothing passes `null`
 today — every record's `after` is a string — so the meaning is free.
 
-This is what makes the merge rule (§4.4) hold against the bytes on disk: a note that has gained
-`attendees` since load, or had it all along, is refused by the write whatever the forecast said.
+This is what makes the rule in §4.4 hold against the bytes on disk. The dialog refuses a name any
+loaded note has, but a note can gain `attendees` after that check, and the write then refuses it.
 
 ### 6.2 `allOrNothing` — a note takes both edits or neither
 
@@ -259,9 +267,6 @@ its modified time, which the table sorts by.
   the whole note, so every bare note would be left unrenamed, and the dialog would have counted it.
   Without `allOrNothing`, the key would simply have gone. The undo needs nothing extra: the removal's record has `before: ''` and
   `existed: true`, which `reverseBatch` already turns into `keepKey`.
-- **The notes that will merge are left out from pass 2 on.** `appState` already says which carrying
-  notes also have `to` (§7), so they are not sent the pairs. The write's `expect: null` still refuses
-  any note that gained `to` after the forecast was made.
 
 The re-create edit needs `before`, `anchor` and `gap`, and only reading the note can supply them.
 `applyRawEdits` is what reads notes, so the service does not read them itself.
@@ -302,12 +307,14 @@ can recount on every keystroke (§8.2) at 1,000 notes:
 ```js
 const carrying = appState.myFiles.filter(file => Object.hasOwn(file, from));
 const locked   = carrying.filter(hasYamlError);
-const merging  = carrying.filter(file => !hasYamlError(file) && Object.hasOwn(file, to));
-const changing = carrying.filter(file => !hasYamlError(file) && !Object.hasOwn(file, to));
+const changing = carrying.filter(file => !hasYamlError(file));
+const inUse    = appState.myFiles.filter(file => Object.hasOwn(file, to)).length;
 ```
 
-- **Counts the notes that will change**, as the delete's does: `changing`, with `locked` and
-  `merging` said separately because they have different fixes.
+- **Counts the notes that will change**, as the delete's does: `changing`, with `locked` said
+  separately.
+- **`inUse` is what refuses the name** (§4.4). When it is above 0 the dialog shows no counts at all,
+  only the sentence.
 - **`to` being a core name is never asked here**, because §4.2 refuses it before a forecast is
   drawn. That is the reason §4.3 exists.
 - **Three sample filenames** from `changing`, as the delete.
@@ -351,8 +358,6 @@ Built like the file options modal (`info-modal`, a close button, one field in a 
 │ stays exactly as it is.                      │
 │ meeting-notes.md, bob.md, project-x.md and   │
 │ 32 more.                                     │
-│ 3 files already have "attendees" and will be │
-│ skipped.                                     │
 │ 2 files will be skipped: their front matter  │
 │ could not be read.                           │
 │ You can undo this.                           │
@@ -370,10 +375,12 @@ Built like the file options modal (`info-modal`, a close button, one field in a 
   cancel takes focus so that an Enter pressed too soon does nothing. Here nothing can happen until
   a new name has been typed, which is itself the deliberate act — close to the type-to-confirm the
   delete plan judged unnecessary for a delete. Enter on an unchanged or invalid name does nothing.
-- **The button repeats the count** (`rename in 35 files`), and a merge is not dressed up as
-  anything else: the "already have" line is the whole explanation.
-- **When `changing` is 0 but the name is valid**, the text says why — every carrying note is
-  locked, or already has the new name — and the button stays disabled. One dialog, so there is no
+- **The button repeats the count** (`rename in 35 files`).
+- **A name already in use** shows `"attendees" is already in 12 notes` in place of the counts, and
+  the button is disabled (§4.4). It is checked as you type, so the user sees it before pressing
+  anything.
+- **When `changing` is 0 but the name is legal**, the text says why (every carrying note is locked)
+  and the button stays disabled. One dialog, so there is no
   separate "cannot" dialog as the delete has.
 - **Text set with `textContent`, `white-space: pre-line`**, as `#modal-unsaved-warning-text`, for
   the same reasons: names come from notes.
@@ -401,10 +408,10 @@ A batch gains one fact: `{ kind: 'rename-property', property: from, to, edits }`
 | a rename | `people column rename to attendees in 35 files` |
 | its redo | the same — the facts are copied, as the delete's are |
 
-The report line after the rename: `renamed people to attendees in 35 files, 2 skipped, 3 merged
-away` — `2 skipped` is the yaml nudge the delete already draws; the merge count is plain text,
-because there is no filter for "has both keys", and the old column, still standing, is where those
-notes are. The exact wording is the build step's to settle; the facts it reports are fixed here.
+The report line after the rename: `renamed people to attendees in 35 files, 2 skipped`. `2 skipped`
+is the yaml nudge the delete already draws. A note refused because it gained `attendees` after the
+dialog is counted in the same number; it is rare, and it still carries `people`, so the old column,
+still standing, shows it. The exact wording is the build step's to settle; the facts it reports are fixed here.
 
 ### 9.2 Reversing it
 
@@ -438,7 +445,7 @@ to have vanished. So the name is followed everywhere the app writes it down.
 `followPropertyRename(from, to, removedFrom)` in `editing/rename-property.js`. It is asked after a
 rename, after its undo (`from`/`to` swapped) and after its redo, and it decides from what the
 folder now holds rather than from what the batch hoped to do — so a partial rename, a partial undo
-and a merge all come out right with no case of their own:
+and a note that gained the new name mid-write all come out right with no case of their own:
 
 - **`from` is gone** when no loaded file will carry it once this batch's writes are counted:
   every file object carrying it is in `removedFrom`, the ids whose records removed it. Asked from
@@ -449,9 +456,9 @@ and a merge all come out right with no case of their own:
 
 | where the name is written | what happens |
 |---|---|
-| a layout's columns, every saved layout and the columns in memory | `from` gone, layout lacks `to` → `from`'s entry becomes `to`'s **in place**: position, width, visibility. `from` gone, layout has `to` (a merge) → `from`'s entry is dropped, and `stickyColumns` drops by one if it sat among the sticky ones. `from` not gone, layout lacks `to` → a `to` entry is inserted **straight after** `from`'s, with its width and visibility, so the renamed notes appear beside the ones left behind rather than hidden at the end. |
+| a layout's columns, every saved layout and the columns in memory | `from` gone, layout lacks `to` → `from`'s entry becomes `to`'s **in place**: position, width, visibility. `from` gone, layout already has a `to` entry (a keyless column left over, since no note has `to`) → `from`'s entry is renamed in place as above and the leftover `to` entry is dropped, so the column stays where the user was looking; `stickyColumns` drops by one if the leftover sat among the sticky ones. `from` not gone, layout lacks `to` → a `to` entry is inserted **straight after** `from`'s, with its width and visibility, so the renamed notes appear beside the ones left behind rather than hidden at the end. |
 | a column's `label` | taken to `to`'s default if it was `from`'s default; a label someone wrote by hand is kept. |
-| `propertyTypes` | **copied, never moved.** `to` takes `from`'s type if it has none of its own; `from` keeps its type. A merge keeps the target's type. No type is ever lost, so an undo needs nothing — `from`'s type is still there when its values come back — and the types modal's bin is still the way to forget one. |
+| `propertyTypes` | **copied, never moved.** `to` takes `from`'s type, replacing any type left saved against `to` from values since removed, since no note has `to` (§4.4) and the column is `from`'s column under a new name; `from` keeps its type. No type is ever lost, so an undo needs nothing — `from`'s type is still there when its values come back — and the types modal's bin is still the way to forget one. |
 | the flowchart's roles | each role naming `from` names `to`, when `from` is gone. Through `setFlowchartOption`. |
 | `appState.sortState` | follows when `from` is gone, so the table stays sorted by the column the user was looking at. |
 
@@ -490,10 +497,10 @@ and a merge all come out right with no case of their own:
 setBulkWriteBusy(true);
 const onProgress = reportProgress(`renaming ${from} to ${to}…`);
 try {
-    const { renamed, locked, merging } = await renameProperty(from, to, onProgress);
+    const { renamed, skipped } = await renameProperty(from, to, onProgress);
     setBulkWriteBusy(false);
     reportProgressEnd();
-    reportRename(from, to, renamed, locked, merging);
+    reportRename(from, to, renamed, skipped);
 } catch (err) {
     setBulkWriteBusy(false);
     reportProgressEnd();
@@ -554,7 +561,7 @@ No recovery code.
 | Two splices at one offset | **the writer orders them**: replacing before inserting, for every caller. §5.1. |
 | A legal new name | trimmed; parsed back as itself; nothing another reader would read differently; no core or reserved name. §4.2. |
 | Onto `title` or `color` | **refused**, until the forecast can count their front matter keys. §4.3, §15. |
-| Onto a name other notes have | **allowed**: a merge; a note holding both keys is skipped. §4.4. |
+| Onto a name any note already has | **refused** in the dialog, with how many notes have it; no merges. The write re-checks against disk (`expect: null`). §4.4. |
 | A note that would half-rename | **cannot**: `allOrNothing`, per note, for the rename, its undo and its redo. §6.2. |
 | "must not have the key" | **`expect: null`**. §6.1. |
 | Passes | locate, plan (the journal), write, each sent only the carrying notes. §6.3. |
@@ -579,7 +586,7 @@ Each step ships on its own and leaves the app working.
 2. **The name.** `services/property-name.js` and `propertyNameProblem` (§4.2);
    `isPropertyDeletable` renamed `isPropertyUserOwned` and its callers followed — its own commit,
    nothing else in it.
-3. **The service.** `editing/rename-property.js`: `renameForecast`, `renameProperty(from, to,
+3. **The service.** `editing/rename-property.js`: `renameProblem` (the in-use check, §4.4), `renameForecast`, `renameProperty(from, to,
    onProgress)` with the three passes and the journal (§6.3, §7), `describeAction`'s line and `to`
    on a batch (§9.1), `allOrNothing` from `reverseBatch` (§9.2). No follow yet: a rename made at
    this step leaves the layout naming the old key, which is the §11 state and is safe.
@@ -604,7 +611,7 @@ level 1.
 
 | note | why it is there |
 |---|---|
-| `merge.md` | `people` and `attendees` both — skipped, both keys untouched |
+| `taken.md` | `attendees` only — makes the name `attendees` refused while it is loaded; a copy of the fixture without it is used for the rename itself |
 | `commented.md` | a comment above `people`, one between two block items, one after the last item |
 | `crowded.md` | `people` with a blank line and a comment between it and the key above |
 | `first.md` | `people` as the first key, with a comment line before it under `---` |
@@ -617,7 +624,7 @@ level 1.
 - `propertyNameProblem`: each rule of §4.2 in order, including `due date` accepted, `People` from
   `people` accepted, ` people ` trimmed, `[x]`, `#x`, `- x`, `a #b`, `a:b`, `title` and `filename`
   refused.
-- The columns rewrite (§10.1): in place, merge-drop, insert-beside, a sticky count crossing the
+- The columns rewrite (§10.1): in place, a leftover keyless `to` entry replaced, insert-beside, a sticky count crossing the
   dropped column, a hand-written label kept.
 - `describeAction` for a rename and its refusal.
 
@@ -628,7 +635,7 @@ level 1.
   `first.md` included.
 - **Notes without the key are neither read nor written**, in any of the three passes:
   `lookalike.md`, `none.md` and `nokey.md` have no entry in `window.__reads` or `window.__writes`
-  (§6.3). `merge.md`, `broken.md`, `shadow.md` and `dup.md` are byte-identical and not written.
+  (§6.3). `broken.md`, `shadow.md` and `dup.md` are byte-identical and not written.
 - **`bare.md`'s `people:` becomes `attendees:`, still bare**, and its undo puts back `people:`,
   bare (`keepKey`, §6.3).
 - **Undo restores every note byte for byte; redo renames them again byte for byte**; undo once more
@@ -640,8 +647,11 @@ level 1.
 - **After the rename**: `people` reads as `dead`; the saved layout names `attendees` where `people`
   was, with its width; `propertyTypes` holds the type under both names; a flowchart role pointed at
   `people` points at `attendees`. After the undo, the layout names `people` again in the same place.
-- **A merge**: the layout drops `people`, keeps `attendees` where it was, and `merge.md`'s `people`
-  column still shows it. Its undo puts `people` back beside `attendees`.
+- **A name in use is refused**: with `taken.md` loaded, `renameProblem('people', 'attendees')`
+  names it and `renameProperty` is never reached; nothing is read or written.
+- **A note that gains `attendees` between the dialog and the write** (the hook between passes adds
+  it) is refused whole: `people` is still there with its value, and it is counted as skipped. The
+  layout then keeps `people` (still carried) with `attendees` inserted beside it.
 - **A folder load is refused mid-rename.**
 
 **Level 2** (`40-column-menu.spec.js`)
@@ -658,7 +668,7 @@ level 1.
   shows `undoing people column rename to attendees in N files…` with the same bar.
 
 **Screenshots** at step 5: the menu with both items, the dialog at phone width with a long name and
-all three lines showing, a refused name's sentence, and the report line after a merge — both
+all three lines showing, a refused name's sentence, and a name refused as already in use — both
 themes.
 
 ---
@@ -670,7 +680,7 @@ themes.
 | file | what it holds |
 |---|---|
 | `public/js/services/property-name.js` | `propertyNameProblem(name, from)`: what a legal new key is (§4.2). Pure |
-| `public/js/editing/rename-property.js` | `renameForecast`, `renameProperty` (the three passes and the journal), `followPropertyRename` (§6.3, §7, §10). No DOM |
+| `public/js/editing/rename-property.js` | `renameProblem` (§4.4), `renameForecast`, `renameProperty` (the three passes and the journal), `followPropertyRename` (§6.3, §7, §10). No DOM |
 | `public/js/ui/ui-functions-click/column-rename-property.js` | the action: open the dialog, recount on input, confirm → `setBulkWriteBusy` → `renameProperty` → report. Thin |
 | `public/css/modal-column-rename.css` | the dialog's field row and text. A new component gets its own file |
 
@@ -704,9 +714,9 @@ writer's node tests), `52-table-undo-stack.spec.js` (`describeAction`),
 
 - **Rename onto `title` or `color`.** §4.3. The way to lift it: the parser reports which core
   properties front matter supplied (it already knows, at the spread in `file-info.js`), and the
-  forecast asks that instead of `Object.hasOwn`.
-- **Choose a winner in a merge.** §4.4. A note with both keys is left for a person, and the old
-  column shows which.
+  in-use check asks that instead of `Object.hasOwn`.
+- **Merge two columns.** §4.4. A name any note already has is refused; merging would mean choosing
+  which of two values to destroy, and deleting one column first is the way to do it deliberately.
 - **Rename within a filter, or cancel once started.** As the delete.
 - **Rewrite search filters.** §10.2.
 - **Rename a column's label without touching notes.** §3.2 — a separate, smaller feature.
