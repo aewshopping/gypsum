@@ -39,7 +39,7 @@ const LOCK_SHIFT = {
  *
  * **A linked column is drawn open**, though its type is not settable: the padlock means "this does
  * not press", and in the column picker a linked column's glyph does press — it opens the column's
- * own dialog. plans/table-linked-properties.md §3.7.
+ * own dialog. plans/completed/table-linked-properties.md §3.7.
  *
  * **Whether it is locked**: a column whose type is the app's wears the same drawing moved up and
  * left, with the padlock laid over the corner that frees. Composed here from the two symbols rather

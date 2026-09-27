@@ -909,7 +909,7 @@ and the controls. The group wraps, so a viewport too narrow for both puts the ro
 ### Linked columns
 
 A table column can show a property **of the note a link points at**: "show `status` of the note
-linked in `project`". See `plans/table-linked-properties.md`.
+linked in `project`". See `plans/completed/table-linked-properties.md`.
 
 - **Stored at the top of the layouts file**, in `linkedProperties` beside `propertyTypes` and
   `flowchart`, because it is a fact about the folder rather than one layout — so it works under the

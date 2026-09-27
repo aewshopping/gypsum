@@ -211,7 +211,7 @@ export function applyLinkedPropertiesFromFile(raw) {
 /**
  * The layouts document with a new linked column in it: its definition stored, and — when a layout
  * is active — **one visible entry appended to that layout's stored columns, and nothing else
- * changed.** plans/table-linked-properties.md §3.1.
+ * changed.** plans/completed/table-linked-properties.md §3.1.
  *
  * Appended to what the file holds rather than saved from the screen, because the screen may carry a
  * reorder or a resize waiting to be saved, and adding a column must not make those look saved. Only

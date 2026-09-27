@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { loadFolder, appModule, setupMockCellWritingFolder } = require('../helpers');
 
 /**
- * plans/table-linked-properties.md: a table column showing a property of the note a link points at.
+ * plans/completed/table-linked-properties.md: a table column showing a property of the note a link points at.
  *
  * Most of it is rules, and those are checked in node, where a test costs milliseconds. The browser
  * tests are kept for what only a page can show, and each walks one path through several checks

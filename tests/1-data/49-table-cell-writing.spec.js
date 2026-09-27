@@ -304,7 +304,7 @@ test('a cell whose shape its column cannot hold still writes nothing', async ({ 
 
 // A linked column's key is `linked:1`. Were its cell ever to take a caret, the commit would write
 // `linked:1: …` into the note, which reads back as a key called `linked` — a corrupted note rather
-// than an odd column. plans/table-linked-properties.md §8.1.
+// than an odd column. plans/completed/table-linked-properties.md §8.1.
 test('a linked cell writes nothing into any note', async ({ page }) => {
   await openTable(page, { 'task.md': '---\nref: "[[alpha.md]]"\n---\n# Task\n' });
   // Defined the way a hand-edited layouts file would define it, then the folder loaded again to read it.

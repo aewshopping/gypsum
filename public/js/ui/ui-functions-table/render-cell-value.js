@@ -176,7 +176,7 @@ export function renderCellValue(prop, file, mismatch, value = file[prop.name]) {
             // between two commas, so the items stay aligned with the links that found them and
             // copied text carries no mark nobody wrote. No cell of it takes a caret, which is what
             // makes anything but the notes' own text safe here at all.
-            // plans/table-linked-properties.md §3.3.
+            // plans/completed/table-linked-properties.md §3.3.
             return Array.isArray(value)
                 ? linkifyText(joinFlowItems(value.map(linkedText)))
                 : linkifyText(linkedText(value));

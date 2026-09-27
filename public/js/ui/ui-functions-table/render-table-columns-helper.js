@@ -58,7 +58,7 @@ import { isLinkedKey, linkedProperty, linkedPropertyKeys, linkedHeading } from '
  * about separately: the `missing` check lets it through, it is never `dead` or `blank`, and its heading is its
  * definition's rather than the layout entry's, so a rename shows in every layout at once. A layout
  * entry naming a linked column whose definition has gone is dropped rather than drawn as an empty
- * front matter column. plans/table-linked-properties.md §3.2 and §3.8.
+ * front matter column. plans/completed/table-linked-properties.md §3.2 and §3.8.
  *
  * The returned width is for completeness, not for use. columnWidthPx reads the Map directly at
  * the moment the tracks are written, because a resize drag updates the layout and re-applies the

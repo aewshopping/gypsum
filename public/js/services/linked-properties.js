@@ -8,7 +8,7 @@ import { appState, FILE_PROPERTIES } from './store.js';
  * The same shape as property-type.js and flowchart-options.js: a Map in appState, readers here, and
  * one writer, so the dialog and a hand-edited layouts file are validated by the same function. What
  * a cell *shows* is not here — that is internal-links/linked-value.js — because this module answers
- * what a column is and that one what it draws. See plans/table-linked-properties.md.
+ * what a column is and that one what it draws. See plans/completed/table-linked-properties.md.
  *
  * No page, no disk.
  */

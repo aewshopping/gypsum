@@ -10,7 +10,7 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
  * Records the column through the one writer and writes it to the layouts file at once — there is no
  * "save layout" to forget, and isDirty is left as it was. A new column is shown straight away as the
  * rightmost, in whichever layout is in use; an edited one only changes what it shows or its name,
- * which no layout records. See plans/table-linked-properties.md §3.1.
+ * which no layout records. See plans/completed/table-linked-properties.md §3.1.
  *
  * Nothing here writes a note: a wrong choice makes an odd column, which the dialog puts right.
  *

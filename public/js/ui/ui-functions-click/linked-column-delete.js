@@ -12,7 +12,7 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
  * Asks, then deletes a linked column — its definition, and its place in **every** saved layout, in
  * one write. It asks because the layouts cannot get it back from the table; no note is touched
  * either way, and the sentence says so, since "delete column" on any other column rewrites every
- * note that has the key. See plans/table-linked-properties.md §5.2 and §5.3.
+ * note that has the key. See plans/completed/table-linked-properties.md §5.2 and §5.3.
  *
  * @async
  * @param {string} key - The linked column's key.

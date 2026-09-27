@@ -4,7 +4,7 @@ import { toList, linkTarget } from './link-targets.js';
 /**
  * @file What a linked column shows for one row: follow the row's `via` links to their notes, and
  * read `read` from each. Beside the name index it resolves through, and pure apart from it — the
- * files are handed in — so it is tested in node. See plans/table-linked-properties.md §3.3 and §4.
+ * files are handed in — so it is tested in node. See plans/completed/table-linked-properties.md §3.3 and §4.
  *
  * **No chaining, by construction.** The files read here are the stored file objects, which carry no
  * linked values, and neither `via` nor `read` may name a linked column (readDefinition refuses it).

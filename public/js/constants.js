@@ -83,7 +83,7 @@ export const INFO_TYPE = { value: "info", label: "info" };
  * **Outside VALUE_TYPES for INFO_TYPE's reason**: nobody chooses it, so it must never appear in the
  * type dialog or be accepted from a layout file's propertyTypes. Unlike `info` it *replaces* the
  * column's type rather than sitting beside it; the read property's own type is asked for where it
- * matters. See plans/table-linked-properties.md §3.6.
+ * matters. See plans/completed/table-linked-properties.md §3.6.
  */
 export const LINKED_TYPE = { value: "linked", label: "linked" };
 

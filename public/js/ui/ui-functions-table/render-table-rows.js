@@ -28,7 +28,7 @@ export function renderTableRows(current_props, renderEverything) {
 
     // Built once for this render and dropped after it, never cached: an edit replaces a note's file
     // object, and a kept Map would show a linked column the value from before it. Only when a linked
-    // column is on screen to ask. plans/table-linked-properties.md §2.3.
+    // column is on screen to ask. plans/completed/table-linked-properties.md §2.3.
     const byId = current_props.some(prop => isLinkedKey(prop.name)) ? filesById(appState.myFiles) : null;
 
     for (const file of appState.myFiles) {

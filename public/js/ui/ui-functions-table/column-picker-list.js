@@ -50,7 +50,7 @@ import { resolveColumns } from './render-table-columns-helper.js';
  *
  * A linked column's glyph is live: it opens that column's own dialog rather than the type dialog,
  * which is the way to a linked column hidden in the current layout — it has no header, so no header
- * menu. Its label is escaped, being typed in that dialog. plans/table-linked-properties.md §5.1.
+ * menu. Its label is escaped, being typed in that dialog. plans/completed/table-linked-properties.md §5.1.
  *
  * No floor logic here — a renderer returns HTML. Disabling the last remaining toggle is applied
  * to the DOM afterwards by column-picker.js.

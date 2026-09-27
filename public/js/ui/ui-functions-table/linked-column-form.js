@@ -9,7 +9,7 @@ import { resolveColumns } from './render-table-columns-helper.js';
 /**
  * @file What the linked column dialog shows: the options of its two selects, the line saying whether
  * a choice finds anything, and whether a heading is already taken. It decides nothing about saving —
- * that is ui-functions-click/linked-column-save.js. See plans/table-linked-properties.md §5.2.
+ * that is ui-functions-click/linked-column-save.js. See plans/completed/table-linked-properties.md §5.2.
  */
 
 /**

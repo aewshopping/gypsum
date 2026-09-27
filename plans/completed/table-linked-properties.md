@@ -4,7 +4,7 @@ Status: **v1 built** (§1–§8). V2, sorting (§9), is not started.
 Related: `plans/completed/table-saved-layouts.md` and `plans/completed/property-type-store.md`,
 both **built**; `plans/flowchart-view.md`, whose connector role already follows a property's links
 V2: sorting by a linked property (§9), designed here and deferred
-Later: writing a linked value back into the note (§10), and searching by a linked property (§11),
+Later: writing a linked value back into the note (§10, now `plans/table-copy-column.md`), and searching by a linked property (§11),
 each a separate plan
 
 This plan used to be about **formula columns**: a small expression language
@@ -709,6 +709,8 @@ second look once it can be tried, so it gets its own test (below).
 ---
 
 ## 10. Later: writing the linked value back
+
+*Now planned in `plans/table-copy-column.md`, as "copy column".*
 
 Not part of this plan. It is recorded so the thinking is not lost. A column that computes this
 value and *writes* it into each note's front matter, so that other tools and gypsum's own search

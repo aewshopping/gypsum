@@ -61,7 +61,7 @@ export function followPropertyRename(from, to, records) {
  * - **The flowchart's roles, the linked columns and the sort** follow only once no note carries
  *   `from`, since some notes still carrying it means its column still has something to show. A
  *   linked column named after its choices is renamed with them for free — its heading is worked out
- *   when drawn. plans/table-linked-properties.md §3.9.
+ *   when drawn. plans/completed/table-linked-properties.md §3.9.
  *
  * @param {string} from
  * @param {string} to

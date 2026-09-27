@@ -9,7 +9,7 @@ import { closeColumnMenu, focusHeaderCell } from './column-menu.js';
  * that defines the column — what it shows, which property's links it follows, its name — and it is
  * where the column is deleted. Saving is linked-column-save.js and deleting linked-column-delete.js,
  * the rename dialog's split: this file keeps the dialog honest and writes nothing.
- * See plans/table-linked-properties.md §5.
+ * See plans/completed/table-linked-properties.md §5.
  *
  * **The name follows the two choices until it is typed in.** While it has not been, the box holds the
  * automatic heading and a choice changes it; once typed in, it stays as typed. Saved untouched, it is

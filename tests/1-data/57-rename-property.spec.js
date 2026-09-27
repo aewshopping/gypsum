@@ -155,7 +155,7 @@ test('the dialog writes only when a legal name is confirmed', async ({ page }) =
 // A linked column following the renamed property is re-pointed inside the rename's own write batch
 // (beforeRefresh), where a throw would report a finished rename as stopped — so this is the one
 // linked-column test in level 1. Undo is not repeated: it runs the same follow with the names
-// swapped, which the tests above already cover. plans/table-linked-properties.md §3.9, §8.1.
+// swapped, which the tests above already cover. plans/completed/table-linked-properties.md §3.9, §8.1.
 test('a rename with a linked column defined renames the notes and re-points the column', async ({ page }) => {
   const notes = {
     'task.md': '---\npeople: "[[lead.md]]"\n---\n# Task\n',

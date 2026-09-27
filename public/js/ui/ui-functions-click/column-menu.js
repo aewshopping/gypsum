@@ -182,7 +182,7 @@ export function handleColumnMenuOpen(evt, headerCell) {
     // which `title` takes despite its padlock.
     //
     // A linked column is neither sorted nor searched yet, and its type is not its own, so all three
-    // are inert on it too. plans/table-linked-properties.md §3.6 and §5.3.
+    // are inert on it too. plans/completed/table-linked-properties.md §3.6 and §5.3.
     const isControl = TABLE_VIEW_COLUMNS.control_columns.includes(property);
     const isLinked = isLinkedKey(property);
     const noType = !isTypeSettable(property);

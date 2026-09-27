@@ -264,7 +264,7 @@ export function saveLinkedProperties() {
 
 /**
  * A linked column just recorded with setLinkedProperty, onto the screen and into the file: shown at
- * once as the rightmost column, in whichever layout is in use. plans/table-linked-properties.md §3.1.
+ * once as the rightmost column, in whichever layout is in use. plans/completed/table-linked-properties.md §3.1.
  *
  * On screen it is put last and visible in columnLayout. In the file, withLinkedColumn appends it to
  * the active layout's stored columns and changes nothing else there — so a reorder waiting to be

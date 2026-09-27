@@ -43,7 +43,7 @@ function isLegal(legal, value) {
  */
 export function propertyType(name) {
     // A linked column draws as text or a list, whatever it reads, so nothing can mismatch it. The
-    // read property's own type is asked for by name where it matters. plans/table-linked-properties.md §3.6.
+    // read property's own type is asked for by name where it matters. plans/completed/table-linked-properties.md §3.6.
     if (isLinkedKey(name)) return LINKED_TYPE.value;
 
     // The app owns the type of every property it fills in itself, so a hand-edited file cannot
