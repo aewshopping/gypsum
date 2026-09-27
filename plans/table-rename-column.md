@@ -549,7 +549,7 @@ a *file* being renamed. Its file comment says so; this plan's module is `rename-
 
 ---
 
-### 9.3 Undo is the history, so every outcome must undo
+### 9.4 Undo is the history, so every outcome must undo
 
 Table writes take no version snapshot, so after a rename the undo entry is the only record of what
 each note said. **Every state a rename can leave the folder in must therefore be fully reversed by
@@ -691,7 +691,7 @@ layout as any new property does. No recovery code.
 
 **Running the rename again does not finish it, and must not.** `attendees` is now in use, so the
 name is refused (§4.4): finishing a part-done rename brings two keys together, which is a merge.
-**The way out is undo** (§9.3): one undo puts every renamed note back, and the rename can then be
+**The way out is undo** (§9.4): one undo puts every renamed note back, and the rename can then be
 run again once whatever stopped it is dealt with. The same holds for the notes a rename skips because
 their front matter did not read: undo, fix those notes, rename again. The report line's `2 skipped`
 nudge filters to them.
@@ -724,7 +724,7 @@ nudge filters to them.
 | Undo entry | `kind: 'rename-property'`, `property`, `to`; `people column rename to attendees in 35 files`. §9.1. |
 | Rename or merge | **a rename is never a merge**; merging, if built, is a separate plan. §1, §4.4. |
 | A part-done or partly skipped rename | **undone, not finished**: renaming again onto the new name is a merge, so it is refused. §11. |
-| Undo | **the only history**: every state a rename can leave is reversed by one undo of its entry. §9.3. |
+| Undo | **the only history**: every state a rename can leave is reversed by one undo of its entry. §9.4. |
 | While running | **as the delete**: `setBulkWriteBusy`, the shared bar started by `reportProgress` before the passes, `onProgress` on the write pass only, one step per note, text written once. §11. |
 
 ---
