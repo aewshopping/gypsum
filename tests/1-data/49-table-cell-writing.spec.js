@@ -1039,3 +1039,59 @@ test('expect: null refuses a key that is there, bare or not, and allOrNothing re
   expect(planFileEdits(text, pair, 'n', { allOrNothing: true })).toBeNull();
   expect(planFileEdits(text, pair, 'n')?.updated).toBe('---\nattendees: bob\n---\n');
 });
+
+// ---------------------------------------------------------------- a legal new name, plans/table-rename-column.md §4.2
+
+// In this spec because the rule exists to keep the note readable — by gypsum, and by other YAML
+// readers — once the new key is written into it.
+test('propertyNameProblem: what a property may be renamed to', async () => {
+  const { propertyNameProblem } = await appModule('services/property-name.js');
+  const cases = [
+    ['attendees', null],
+    ['  attendees  ', null],                       // trimmed, not refused
+    ['due date', null],                            // spaces inside are fine
+    ['people', null],                              // unchanged: nothing wrong, nothing to do
+    ['People', null],                              // a change of case is a different name
+    ['', 'a name is needed'],
+    ['   ', 'a name is needed'],
+    ['a: b', 'a name cannot contain ":"'],
+    ['a\nb', 'a name cannot contain a line break or a control character'],
+    ['a\tb', 'a name cannot contain a line break or a control character'],
+    ['[x', 'a name cannot start with "["'],
+    ['#x', 'a name cannot start with "#"'],
+    ['- x', 'a name cannot start with "-"'],
+    ['&x', 'a name cannot start with "&"'],
+    ['x #y', 'a name cannot contain " #"'],
+    ['a"b', 'a name cannot contain """'],
+    ['x<y', 'a name cannot contain "<"'],
+    ['x&y', 'a name cannot contain "&"'],
+    ['x>y', 'a name cannot contain ">"'],
+    // Refused by the parser's own answer, and only by it: assigning __proto__ changes an object's
+    // prototype instead of adding a key. Listed so nobody "simplifies" that rule and lets it through.
+    ['__proto__', '"__proto__" cannot be read back as a name'],
+    ['title', '"title" is set by the app'],
+    ['Title', '"Title" is set by the app'],
+    ['FILENAME', '"FILENAME" is set by the app'],
+  ];
+  for (const [name, expected] of cases) expect(propertyNameProblem(name, 'people'), JSON.stringify(name)).toBe(expected);
+});
+
+test('renameProblem refuses a name any note has, in any case, but not a change of its own case', async () => {
+  const { renameProblem, keysIgnoringCase } = await appModule('services/property-name.js');
+  const files = [
+    { people: 'a', attendees: 'x', Status: 'y' },
+    { people: 'b', attendees: 'z' },
+    { People: 'c' },
+  ];
+  const keys = keysIgnoringCase(files, 'people');
+  expect(renameProblem('people', 'attendees', keys)).toBe('"attendees" is already in 2 notes');
+  expect(renameProblem('people', 'Attendees', keys)).toBe('"Attendees" is already in 2 notes as "attendees"');
+  expect(renameProblem('people', 'status', keys)).toBe('"status" is already in 1 note as "Status"');
+  // `People` is another spelling some note carries, so it is refused; the name being renamed is not.
+  expect(renameProblem('people', 'PEOPLE', keys)).toBe('"PEOPLE" is already in 1 note as "People"');
+  expect(renameProblem('people', 'people', keys)).toBeNull();
+  expect(renameProblem('people', 'guests', keys)).toBeNull();
+  expect(renameProblem('people', 'a:b', keys)).toBe('a name cannot contain ":"');
+  // A case change of the name itself, where nothing else is spelled that way, is allowed.
+  expect(renameProblem('Status', 'status', keysIgnoringCase(files, 'Status'))).toBeNull();
+});
