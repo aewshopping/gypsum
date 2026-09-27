@@ -36,3 +36,10 @@ export function sampleNames({ changing, samples }) {
     const more = changing - samples.length;
     return more > 0 ? `${samples.join(', ')} and ${more} more.` : `${samples.join(', ')}.`;
 }
+
+/**
+ * A count of files as a dialog says it: `1 file`, `35 files`.
+ * @param {number} count
+ * @returns {string}
+ */
+export const filesPhrase = (count) => `${count} file${count === 1 ? '' : 's'}`;

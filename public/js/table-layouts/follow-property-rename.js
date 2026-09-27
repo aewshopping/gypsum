@@ -1,5 +1,5 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
-import { setPropertyType } from '../services/property-type.js';
+import { setPropertyType, propertyType, propertySearchType } from '../services/property-type.js';
 import { setFlowchartOption } from '../services/flowchart-options.js';
 import { renameInColumns } from './layout-apply.js';
 import { renamePropertyInLayouts } from './layout-file.js';
@@ -9,7 +9,7 @@ import { renamePropertyInLayouts } from './layout-file.js';
  * the type, the flowchart's roles and the sort. Without it a rename would leave the layout asking for
  * `people` — a faded, empty column where the user was looking — and `attendees` appended hidden at
  * the end. Here rather than beside the rename because what it changes is what table-layouts/ owns:
- * the layouts, and the types and flowchart choices kept in the same file. plans/table-rename-column.md §10.
+ * the layouts, and the types and flowchart choices kept in the same file. plans/completed/table-rename-column.md §10.
  *
  * **Nothing here writes a note, and nothing here is on the undo stack.** Undo restores files; the
  * name follows the files because this runs again with the names swapped after an undo, not because
@@ -51,9 +51,12 @@ export function followPropertyRename(from, to, records) {
 
 /**
  * - **Columns**, in memory and in every saved layout: renameInColumns.
- * - **The type is copied, never moved**: `to`'s saved type becomes exactly `from`'s, or none, and
- *   `from` keeps its own. On an undo that copy runs the other way, which is what keeps a type set on
- *   the new name since: undoing the rename puts the notes back, not a type change made after it.
+ * - **The type is copied, never moved**: `to` is read as `from` is read — `from`'s saved type, or
+ *   failing that the schema's, since `people` is a list by the app's own schema and `attendees` has
+ *   none — and `from` keeps its own. It is saved only where it differs from what `to` would be read
+ *   as anyway, so a rename leaves no type behind that says nothing. On an undo the copy runs the
+ *   other way, which is what keeps a type set on the new name since: undoing the rename puts the
+ *   notes back, not a type change made after it.
  * - **The flowchart's roles and the sort** follow only once no note carries `from`, since some notes
  *   still carrying it means its column still has something to show.
  *
@@ -73,8 +76,12 @@ function follow(from, to, removedFrom) {
     for (const { name, ...entry } of inMemory.columns) columnLayout.set(name, entry);
     TABLE_VIEW_COLUMNS.stickyCount = inMemory.stickyCount;
 
-    const type = appState.propertyTypes.get(from);
-    setPropertyType(to, type?.type, type?.search_type);
+    const type = propertyType(from);
+    const searchType = propertySearchType(from);
+    setPropertyType(to);   // forgotten first, so what `to` resolves to next is its own default
+    setPropertyType(to,
+        type !== propertyType(to) ? type : undefined,
+        searchType !== propertySearchType(to) ? searchType : undefined);
 
     if (fromGone) {
         for (const [role, property] of [...appState.flowchartOptions]) {

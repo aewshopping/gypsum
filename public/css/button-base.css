@@ -146,11 +146,18 @@
     color: var(--colour-contr);
     border: 2px solid transparent;
 
-    &:hover, &:focus-within {
+    &:hover:not(:disabled), &:focus-within {
         background-color: var(--colour-compl-emph-light);
         border-color: var(--colour-compl-emph-contr);
         color: var(--colour-compl-emph-contr);
         box-shadow: 3px 3px 0px 0px var(--colour-compl-emph-contr);
+    }
+
+    /* The rename dialog's button, until the name typed can be used — faded as the other buttons
+       here fade, so it reads as waiting rather than broken. */
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
     }
 }
 

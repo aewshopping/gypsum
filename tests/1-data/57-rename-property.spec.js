@@ -3,7 +3,7 @@ const { loadFolder } = require('../helpers');
 const { RENAME_NOTES, setupPropertyFolder } = require('../fixtures/property-notes');
 
 /**
- * plans/table-rename-column.md, end to end: renaming a property in every note changes the key and
+ * plans/completed/table-rename-column.md, end to end: renaming a property in every note changes the key and
  * nothing else, reads and writes only the notes that have it, journals before it writes, and one undo
  * puts every byte back.
  *
@@ -107,4 +107,47 @@ test('a note that gains the new name between the passes is refused whole and cou
 
   const ids = await page.evaluate(() => window.appState.undoStack.at(-1).edits.map(edit => edit.internalId));
   expect(ids).not.toContain('flow.md');
+});
+
+/** Opens people's column menu and presses "rename column". */
+async function openRenameDialog(page) {
+  const header = page.locator('.note-table-cell-header[data-property="people"]');
+  await header.click();
+  await header.click();
+  await page.locator('#column-menu [data-action="column-rename-property"]').click();
+  await expect(page.locator('#modal-column-rename')).toBeVisible();
+  await expect(page.locator('#column-rename-input')).toBeFocused();
+}
+
+// The one test of the dialog in level 1, because it decides whether the notes are touched at all.
+// The close button and the backdrop reach the same close as cancel, so they are level 2.
+test('the dialog writes only when a legal name is confirmed', async ({ page }) => {
+  await openTable(page);
+  await page.evaluate(() => { window.__writes = {}; });
+  const noteWrites = () => page.evaluate(() => Object.keys(window.__writes));
+
+  await openRenameDialog(page);
+  await page.keyboard.type('attendees');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#modal-column-rename')).toBeHidden();
+  expect(await noteWrites()).toEqual([]);
+
+  await openRenameDialog(page);
+  await page.keyboard.type('status');   // a key other notes have: a merge, so refused
+  await expect(page.locator('#column-rename-confirm')).toBeDisabled();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#modal-column-rename')).toBeVisible();
+  expect(await noteWrites()).toEqual([]);
+
+  await page.locator('#column-rename-input').fill('attendees');
+  await page.locator('#modal-column-rename [data-action="column-rename-cancel"]').last().click();
+  await expect(page.locator('#modal-column-rename')).toBeHidden();
+  expect(await noteWrites()).toEqual([]);
+
+  await openRenameDialog(page);
+  await page.keyboard.type('attendees');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#output-report')).toContainText('renamed');
+  expect((await noteWrites()).sort()).toEqual([...CARRYING].sort());
+  expect((await files(page))['flow.md']).toBe(renamed('flow.md'));
 });

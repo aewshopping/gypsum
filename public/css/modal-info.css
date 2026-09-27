@@ -226,3 +226,15 @@
 .info-modal-message.is-warning {
     color: var(--colour-contr-warning);
 }
+
+/* A message long enough to read as a paragraph wraps at reading width, as .info-modal-note does,
+   rather than widening the dialog to one long line. */
+.info-modal-message.is-prose {
+    max-width: 44ch;
+}
+
+/* Buttons that finish a dialog's fields, rather than act on a list below them: the gap goes above
+   the row instead of under it. */
+.info-modal-field + .info-modal-btn-row {
+    margin: 14px 0 0;
+}

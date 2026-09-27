@@ -104,6 +104,32 @@ export function clearHeaderSelection() {
 }
 
 /**
+ * Marks a header cell selected, so the next press on it opens its menu.
+ * @param {HTMLElement} headerCell
+ * @returns {void}
+ */
+function selectHeaderCell(headerCell) {
+    headerCell.classList.add('is-selected');
+    headerCell.dataset.tip = HEADER_TIP_SELECTED; // a second click opens the menu, not a highlight
+}
+
+/**
+ * Puts focus on a column's header cell and selects it — the state one press leaves a header in, so
+ * one more press, or Enter, opens its menu. For a dialog reached from the menu, which the menu has
+ * gone with by the time it closes, so the dialog's own focus return has nowhere to go.
+ * @param {string} property - The column, by its property name.
+ * @returns {void}
+ */
+export function focusHeaderCell(property) {
+    const headerCell = [...document.querySelectorAll('.note-table-cell-header')]
+        .find(cell => cell.dataset.property === property);
+    if (!headerCell) return;
+    clearHeaderSelection();
+    selectHeaderCell(headerCell);
+    headerCell.focus();
+}
+
+/**
  * Selects a header cell, or opens its options if it was already selected.
  *
  * Note there is no toggle-closed here: light dismiss has already closed the popover by the
@@ -121,8 +147,7 @@ export function handleColumnMenuOpen(evt, headerCell) {
 
     closeColumnMenu();
     clearHeaderSelection();
-    headerCell.classList.add('is-selected');
-    headerCell.dataset.tip = HEADER_TIP_SELECTED; // a second click opens the menu, not a highlight
+    selectHeaderCell(headerCell);
 
     if (!shouldOpen) return;
 
@@ -173,12 +198,12 @@ export function handleColumnMenuOpen(evt, headerCell) {
     const unstickItem = menu.querySelector('[data-action="column-unstick"]');
     if (unstickItem) unstickItem.disabled = stickyCount === 0;
 
-    // The last two items are hidden rather than greyed out, unlike every other item here, and at
-    // most one of them shows: "remove from layout" on a column no note has the key for, "delete
-    // column" on one some note does — even when every such note holds a bare `people:`, since the
-    // notes are what it clears. That is the attribute the header drew itself with, so the menu and
-    // the heading cannot disagree — and it is the same question with opposite answers, which is why
-    // the two never meet. plans/completed/table-delete-column.md §4.1, plans/completed/bare-keys-as-null.md §4.
+    // The last items are hidden rather than greyed out, unlike every other item here, and either
+    // "remove from layout" shows or the pair below it does: "remove from layout" on a column no note
+    // has the key for, "rename column" and "delete column" on one some note does — even when every
+    // such note holds a bare `people:`, since the notes are what they change. That is the attribute
+    // the header drew itself with, so the menu and the heading cannot disagree — and it is the same
+    // question with opposite answers, which is why the two never meet. plans/completed/table-delete-column.md §4.1, plans/completed/bare-keys-as-null.md §4.
     //
     // A layout is what a column is removed from, so under the app's defaults there is nothing to
     // remove it from — "hide column", above, is the answer there. And only a property the user
@@ -187,8 +212,13 @@ export function handleColumnMenuOpen(evt, headerCell) {
     const removeItem = menu.querySelector('[data-action="column-delete-menu"]');
     if (removeItem) removeItem.hidden = !isKeyless || appState.tableLayouts.active === null;
 
-    const deleteItem = menu.querySelector('[data-action="column-delete-property"]');
-    if (deleteItem) deleteItem.hidden = isKeyless || !isPropertyUserOwned(property);
+    // Rename reaches exactly the notes delete does, so it is offered on exactly the same columns —
+    // one question for both. plans/completed/table-rename-column.md §4.1.
+    const reachesNotes = !isKeyless && isPropertyUserOwned(property);
+    for (const action of ['column-rename-property', 'column-delete-property']) {
+        const item = menu.querySelector(`[data-action="${action}"]`);
+        if (item) item.hidden = !reachesNotes;
+    }
 
     nameSortItems(menu, property);
 

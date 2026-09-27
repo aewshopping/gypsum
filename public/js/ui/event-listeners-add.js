@@ -23,6 +23,9 @@ import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragE
 import { handleScrollbarTrackPress } from './ui-functions-table/table-scrollbar-page.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleColumnDeleteProperty } from './ui-functions-click/column-delete-property.js';
+import { handleColumnRenameOpen, handleColumnRenameInput, handleColumnRenameKeydown, handleColumnRenameCancel,
+         handleColumnRenameClose } from './ui-functions-click/column-rename-dialog.js';
+import { handleColumnRenameConfirm } from './ui-functions-click/column-rename-property.js';
 import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
@@ -119,6 +122,7 @@ export function addActionHandlers() {
     // the click delegate, so an edit this same click closes has already been handed to the write.
     document.addEventListener('click', releaseRowMove);
     document.addEventListener('keydown', handleLayoutNameKeydown);
+    document.addEventListener('keydown', handleColumnRenameKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is
     // over whatever the list has shuffled beneath it, not over the grip that started it. So these
@@ -147,6 +151,10 @@ export function addActionHandlers() {
     // And the flowchart options modal, which is the same arrangement again: a choice is written the
     // moment it is made, and the close is what redraws the chart it changed.
     document.getElementById('modal-flowchart-options').addEventListener('close', handleFlowchartOptionsClose);
+
+    // And the rename dialog, whose close — cancel, Escape, the backdrop — puts focus back on the
+    // column's header, since the menu that opened it has gone.
+    document.getElementById('modal-column-rename').addEventListener('close', handleColumnRenameClose);
     document.addEventListener("mousedown", (evt) => {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"], [data-action="cell-date-pick"]')) {
             evt.preventDefault();
@@ -204,6 +212,9 @@ const clickActionHandlers = {
     'column-unstick': handleColumnUnstick,
     'column-delete-menu': handleColumnMenuDelete,
     'column-delete-property': handleColumnDeleteProperty,
+    'column-rename-property': handleColumnRenameOpen,
+    'column-rename-confirm': handleColumnRenameConfirm,
+    'column-rename-cancel': handleColumnRenameCancel,
     'undo-list': handleUndoListOpen,
     'undo-list-item': handleUndoListItem,
     'undo-list-clear': handleUndoListClear,
@@ -303,6 +314,7 @@ const inputActionHandlers = {
     // The cell is the element carrying data-action, so its input events land here — the same
     // arrangement 'search-files' has, which is in this map and in keyUpActionHandlers.
     'expand-cell': handleCellAutocomplete,
+    'column-rename-input': handleColumnRenameInput,
 };
 
 /**

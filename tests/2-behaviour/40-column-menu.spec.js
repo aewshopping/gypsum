@@ -401,3 +401,61 @@ test('a column of bare keys fades and offers delete column', async ({ page }) =>
   await expect(deleteItem(page)).toBeVisible();
   await expect(removeItem(page)).toBeHidden();
 });
+
+// ---------------------------------------------------------------- rename column, plans/completed/table-rename-column.md §8
+
+const renameItem = page => page.locator('#column-menu [data-action="column-rename-property"]');
+const renameDialog = page => page.locator('#modal-column-rename');
+const renameInput = page => page.locator('#column-rename-input');
+const renameMessage = page => page.locator('#column-rename-message');
+const renameButton = page => page.locator('#column-rename-confirm');
+
+test('rename column: offered beside delete, and its dialog says as you type whether a name can be used', async ({ page }) => {
+  await openPeopleTable(page, PEOPLE);
+  const before = await page.evaluate(() => ({ ...window.__files }));
+
+  // The same columns as "delete column" — one question for both.
+  for (const property of ['people', 'title']) {
+    await openMenuFor(page, headerFor(page, property));
+    expect(await renameItem(page).isVisible(), property).toBe(await deleteItem(page).isVisible());
+    await page.keyboard.press('Escape');
+  }
+
+  await openMenuFor(page, headerFor(page, 'people'));
+  await renameItem(page).click();
+  await expect(renameDialog(page)).toBeVisible();
+  await expect(renameInput(page)).toBeFocused();
+  expect(await renameInput(page).evaluate(el => [el.value, el.selectionStart, el.selectionEnd])).toEqual(['people', 0, 6]);
+  await expect(renameButton(page)).toBeDisabled();   // unchanged: nothing to do yet
+
+  for (const [name, reason] of [
+    ['color', '"color" is set by the app'],
+    ['Color', '"Color" is set by the app'],
+    ['a"b', 'a name cannot contain """'],
+    ['a: b', 'a name cannot contain ":"'],
+  ]) {
+    await renameInput(page).fill(name);
+    await expect(renameMessage(page)).toHaveText(reason);
+    await expect(renameMessage(page)).toHaveClass(/is-warning/);
+    await expect(renameButton(page)).toBeDisabled();
+  }
+
+  await renameInput(page).fill('attendees');
+  await expect(renameMessage(page)).toContainText('Renames the key in 4 files');
+  await expect(renameMessage(page)).toContainText('and 1 more.');
+  await expect(renameMessage(page)).toContainText('1 file will be skipped: their front matter could not be read.');
+  await expect(renameMessage(page)).not.toHaveClass(/is-warning/);
+  await expect(renameButton(page)).toBeEnabled();
+  await expect(renameButton(page)).toHaveText('rename in 4 files');
+
+  // The backdrop closes it like cancel, and nothing is written.
+  await page.mouse.click(5, 5);
+  await expect(renameDialog(page)).toBeHidden();
+  expect(await page.evaluate(() => ({ ...window.__files }))).toEqual(before);
+
+  // Focus is back on the column's header, selected, so one Enter opens its menu.
+  await expect(headerFor(page, 'people')).toBeFocused();
+  await expect(headerFor(page, 'people')).toHaveClass(/is-selected/);
+  await page.keyboard.press('Enter');
+  await expect(menu(page)).toBeVisible();
+});

@@ -2,7 +2,7 @@
 
 import { appState } from '../../services/store.js';
 import { deleteProperty } from '../../editing/delete-property.js';
-import { propertyForecast, sampleNames } from '../../editing/property-forecast.js';
+import { propertyForecast, sampleNames, filesPhrase } from '../../editing/property-forecast.js';
 import { showWarningModal } from './warning-modal.js';
 import { closeColumnMenu, clearHeaderSelection } from './column-menu.js';
 import { setBulkWriteBusy } from '../ui-functions-table/bulk-write-busy.js';
@@ -69,6 +69,3 @@ function confirmationText(property, forecast) {
         'You can undo this.',
     ].join('\n');
 }
-
-/** @param {number} count @returns {string} */
-const filesPhrase = (count) => `${count} file${count === 1 ? '' : 's'}`;
