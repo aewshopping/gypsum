@@ -24,7 +24,7 @@ import { describeAction } from './describe-batch.js';
  * Adds the refusals of the reversal that has just run.
  *
  * @param {Array<object>} refused - The edits the check turned down, as they were on the stack.
- * @param {{kind?: string, property?: string|null, edits: Array<object>}} batch - The batch they came
+ * @param {{kind?: string, property?: string|null, to?: string, edits: Array<object>}} batch - The batch they came
  *   from, for the name the note's issues give it.
  * @returns {Set<string>} Every file whose mark has to be redrawn: the ones marked now, and any whose
  *   refusal the cap pushed out. A refused file was by definition not written, so nothing else will
@@ -32,7 +32,8 @@ import { describeAction } from './describe-batch.js';
  */
 export function addRefusals(refused, batch) {
     const recheck = new Set();
-    const from = { kind: batch.kind ?? 'edit', property: batch.property ?? null, values: batch.edits.length };
+    const from = { kind: batch.kind ?? 'edit', property: batch.property ?? null,
+        ...(batch.to !== undefined && { to: batch.to }), values: batch.edits.length };
     const timestamp = Date.now();
 
     for (const edit of refused) {

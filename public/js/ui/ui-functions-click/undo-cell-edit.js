@@ -96,7 +96,11 @@ export async function reverseCellEdits(direction, index) {
             markUndoState();
         }
     }
-    reportUndo(direction, name, applied.length, refused.length);
+    // A rename is two edits per note, taken or refused together, so "20 values" would be twice the
+    // notes it reached. It counts notes. plans/table-rename-column.md §6.2.
+    const perNote = pending.kind === 'rename-property';
+    const count = (edits) => perNote ? new Set(edits.map(edit => edit.internalId)).size : edits.length;
+    reportUndo(direction, name, count(applied), count(refused), perNote ? 'notes' : 'values');
 }
 
 /**

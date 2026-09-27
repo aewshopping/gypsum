@@ -51,10 +51,12 @@ export function reportFileCount(count) {
  * @param {string} name - What the batch was, from describeBatch — the same name its button showed.
  * @param {number} applied - How many values were put back.
  * @param {number} failed - How many the check refused because the file had moved on.
+ * @param {'values'|'notes'} [unit] - What the two counts count: notes for a rename, whose two edits
+ *   per note are taken or refused together.
  * @returns {void}
  */
-export function reportUndo(direction, name, applied, failed) {
-    const parts = [`${direction}: ${name} — ${applied} values`];
+export function reportUndo(direction, name, applied, failed, unit = 'values') {
+    const parts = [`${direction}: ${name} — ${applied} ${unit}`];
     if (failed > 0) {
         parts.push(', ', nudge(`${failed} fail`, 'undo',
             `show the ${failed} note${failed === 1 ? '' : 's'} the ${direction} left alone`));
