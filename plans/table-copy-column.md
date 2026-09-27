@@ -97,6 +97,40 @@ To be settled in §5, but the shape is:
 - **A core column** (`title`, `filename`, `tags`, `lastModified`…): its value as text — tags as a
   list of names, a Date as ISO. Some of these may simply not be offered (§5.1).
 
+### 3.4 A linked column: where it differs
+
+§3.2 holds for a linked column, and holds most strongly there: copy → delete → rename does not even
+apply, because a linked column has no key in any note to delete or rename. But five things are
+different from copying a front matter column, and each shapes the build:
+
+1. **It is written out as text, not copied byte for byte.** A front matter column carries its source
+   bytes across. A linked value has no bytes in the note being written — it comes from other notes —
+   so it goes through the same formatting a cell edit uses (`toYamlText`).
+2. **Skipping unchanged notes depends on the text matching exactly, not just the value.** The writer
+   skips a note when the new text is identical to what is already there. A re-copy formats each
+   value the same way every time, so an unchanged value gives identical text and is skipped. A value
+   someone restyled by hand since (added quotes, say) is rewritten in the app's style — harmless,
+   but a write. **The cheap re-copy rests on this, so it gets a level-1 test** (§7).
+3. **The protection covers the note being written, not the notes the values come from.** `expect:
+   before` refuses to write a task note that changed during the copy. It does not watch the project
+   notes the values are read from, so a project edited while the copy runs can leave a task with the
+   old value. Accepted: a copy is a snapshot of the moment it was pressed, and pressing again puts it
+   right. It is a weaker guarantee than the check gives the note itself, and the plan says so rather
+   than implying otherwise.
+4. **Every value is worked out once, before anything is written.** All the linked values are
+   computed in the plan pass, from the file objects as they stand, and the write pass only writes
+   them. That is what keeps one copy consistent: worked out during the writes instead, a note already
+   written could change what the next note reads.
+5. **Copying into the property the column reads from gives a different result each time.** An edge
+   case, but a real one. Tasks A → B → C, each linking to the next, with a linked column "show
+   `status` of the note linked in `next`". Copy it into `status` itself: A takes B's status and B
+   takes C's. Press again and A takes B's *new* status — C's, two links along. Each press moves the
+   values one more link down the chain, so a re-copy never settles, which defeats what "copy again"
+   is for. It happens only when the target is the column's own `read` property and notes link to
+   notes of the same kind. Copying "project → status" into a new `project_status` settles at once,
+   because writing `project_status` never changes what the column reads. **So the column's `read`
+   property is refused as a target**, beside its `via` property (§5.5).
+
 ---
 
 ## 4. The dialog
@@ -140,7 +174,8 @@ notes, 12 overwritten, 2 skipped (locked)`.
    the links, or dropped, since a note's list has no reason to line up with anything?
 5. **Can the target be the source?** Copying `status` onto `status` does nothing. Copying a linked
    column onto its own `via` property would replace the links with values, which is almost certainly
-   a mistake. Refuse both.
+   a mistake, and onto its own `read` property never settles (§3.4.5). Refuse all three — or, for
+   `read`, warn instead of refusing if a real use for it turns up.
 6. **Remembering a copy.** Re-copying means choosing the same target again each time. Should a copy be
    remembered, so the linked column's menu offers "copy again to project_status"? That is a stored
    recipe in the layouts file, and could be a later step.
@@ -161,6 +196,8 @@ notes, 12 overwritten, 2 skipped (locked)`.
 
 - **Level 1**: exact bytes for a new key, an overwrite and a clear; the journal is on disk before the
   first write; notes already holding the value are not written; locked notes are skipped; one undo
-  restores every byte; a note edited between the passes is refused.
-- **Node**: the raw text each kind of source produces (§3.3).
+  restores every byte; a note edited between the passes is refused; **a re-copy of a linked column
+  whose values have not changed writes no note** (§3.4.2).
+- **Node**: the raw text each kind of source produces (§3.3), and that a linked value formatted
+  twice gives the same text (§3.4.2).
 - **Level 2**: the dialog's two lines, the overwrite confirmation, and the new column appearing.
