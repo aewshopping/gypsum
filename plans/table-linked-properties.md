@@ -289,9 +289,12 @@ One pure function, `linkedValue(definition, file, filesById)`:
    becomes its keys and an array is flattened in (§3.3);
 4. if "via" held one scalar, return a single value; otherwise return the list.
 
-No DOM and no `appState` beyond the name index. It sits in `services/`, next to the index it reads.
-`filesById` is the per-render Map of §2.3, passed in so the function stays pure and testable in
-node.
+No DOM and no `appState` beyond the name index. It lives in
+`services/internal-links/linked-value.js`, beside the index it reads and the helpers of §6a — the
+folder that answers "where does this link go". `filesById` is the per-render Map of §2.3, passed in
+so the function stays pure and testable in node, and built by `filesById()` in the same module:
+the renderer, the dialog's example line and V2's comparator each need one, and one builder is what
+keeps them from disagreeing.
 
 ---
 
@@ -334,8 +337,10 @@ that follows a change cannot destroy the dialog mid-interaction.
 ```
 
 - **"show" and "from the note linked in"** are the read and via selects. **Both show labels**, like
-  the flowchart options' selects. The option-building is about ten lines in
-  `flowchart-options-list.js`; **copy it unless a third list appears**.
+  the flowchart options' selects, and **use the same option list** (§6.0): the "show" menu is
+  exactly the flowchart's list, and "from the note linked in" is that list narrowed to front matter
+  properties and `internalLink`. The earlier "copy it unless a third list appears" no longer holds —
+  the sort select is already a third.
   - **"from the note linked in" offers** every front matter property plus `internalLink`, listed
     first. Info columns, control columns and linked properties are excluded. It does not check which
     properties actually hold links: a property pointed at the wrong thing gives an empty column,
@@ -377,6 +382,46 @@ column, never a changed note. The delete confirm protects the layouts, not the n
 
 ## 6. Steps
 
+### 6.0 Where the code goes, and what is reused
+
+Every new file goes in a folder that already holds its kind of code, **no new folder is made**, and
+each new module is shaped like one already there. The layers stay apart as CLAUDE.md asks:
+services decide, `ui-functions-table/` draws, `ui-functions-click/` acts.
+
+| What | Where | Modelled on |
+|------|-------|-------------|
+| State, the one writer, the heading, validation | `services/linked-properties.js` | `services/flowchart-options.js`, `services/property-type.js` |
+| `toList`, `linkTarget` (moved) | `services/internal-links/link-targets.js` | — |
+| `linkedValue`, `filesById` | `services/internal-links/linked-value.js` | — |
+| The property list both selects offer (moved) | `services/property-options.js` | — |
+| The layouts document's add and delete | `table-layouts/layout-apply.js` (pure) and `layout-file.js` (queued write) | `renameInColumns` / `renamePropertyInLayouts` |
+| The dialog's contents: options, name, example line | `ui/ui-functions-table/linked-column-form.js` | `property-types-list.js` |
+| Opening, typing, cancelling | `ui/ui-functions-click/linked-column-dialog.js` | `column-rename-dialog.js` |
+| Saving | `ui/ui-functions-click/linked-column-save.js` | `column-rename-property.js` |
+| Deleting | `ui/ui-functions-click/linked-column-delete.js` | the types modal's bin |
+
+- **Save and delete are files of their own**, following the rename dialog's split: one file keeps
+  the dialog up to date, and each act that writes is its own, which is "one file per user action".
+- **`linked-value.js` is separate from `linked-properties.js`** because they answer different
+  questions — what a column *is*, and what a cell *shows* — and only the second is needed by V2's
+  comparator.
+- **Reused rather than rewritten:**
+  - the option list — `propertyOptions()` moves out of `flowchart-options-list.js` into
+    `services/property-options.js` (it reads `appState` and builds no HTML, so it is a service),
+    taking the names to keep even when no file has them, and marking those `(not in this folder)`
+    with the flowchart's own wording. The flowchart and the dialog both import it.
+    `sort-select-load.js` builds a similar list; moving it over too is a separate tidy-up, not part
+    of this plan;
+  - `showWarningModal` for the delete confirm; `escapeHtml` for the heading;
+  - **the rename dialog's markup classes, all in `modal-info.css`**: `.info-modal`,
+    `.info-modal-field`, `.info-modal-message-stack` (the refusal line and the example line share
+    one cell, so the dialog keeps its size), `.info-modal-btn-row`, and `btn-action-danger` for
+    delete.
+- **CSS: one small file, `linked-column-modal.css`, for the width only.** The one rule a row of
+  label-and-select needs is `.flowchart-option-row > select` in `flowchart-options-modal.css`.
+  Rather than copy it, rename its class to `.info-modal-select-row` and move the rule to
+  `modal-info.css`, where the shared row rules already live; both dialogs then use it.
+
 ### 6a. Shared link helpers
 
 Move `toList` and `linkTarget` out of `flowchart/mermaid-source.js` into
@@ -392,8 +437,10 @@ The service, shaped like `property-type.js` and `flowchart-options.js`:
 - `setLinkedProperty(key, { label, via, read })` is **the one writer**, validating a hand-edited
   file and a dialog save the same way; `setLinkedProperty(key)` with no definition forgets it;
 - `nextLinkedKey()`;
-- `linkedValue(definition, file, filesById)` from §4, or a sibling module if the file grows past a
-  screen.
+- `readDefinition(raw)`: the validation, pure (see §6c);
+- `headingInUse(text, key)`: whether another column is already headed so.
+
+`linkedValue()` is not here: it is in `services/internal-links/linked-value.js` (§4, §6.0).
 
 State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 
@@ -431,7 +478,7 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
   escaped (§3.2).
 - `property-type.js`: `propertyType()` returns `LINKED_TYPE` for a linked key, and
   `isTypeSettable()` and `isPropertyEditable()` both return false for it.
-- `render-table-rows.js`: builds the `id → file` Map once per render (§2.3); a linked column's value
+- `render-table-rows.js`: builds the `id → file` Map once per render with `filesById()` (§2.3); a linked column's value
   comes from `linkedValue()`, not `file[name]`, and skips `typeMismatch()`.
 - `render-cell-value.js`: a `linked` case — an array goes through the list branch (where
   `linkifyText` and the list marks already live), anything else through the text branch.
@@ -445,12 +492,14 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 - `ui-functions-table/render-table-controls.js`: the + button, `data-action="open-linked-column"`.
 - `ui-functions-table/linked-column-form.js` (new): fills the selects, the name and the example
   line.
-- `ui-functions-click/linked-column.js` (new): open (empty or for a key), select and name input,
-  save, cancel and delete, registered in `event-listeners-add.js`. Save and delete call the service,
-  write, and run a full `renderFiles`.
+- `ui-functions-click/linked-column-dialog.js` (new): open (empty or for a key), select and name
+  input, cancel.
+- `ui-functions-click/linked-column-save.js` and `linked-column-delete.js` (new): each calls the
+  service, writes, and runs a full `renderFiles`. All three registered in `event-listeners-add.js`.
 - `ui-functions-click/column-type-set.js` (`handleColumnTypeMenuOpen`): send a `linked:`
   key to the dialog instead.
-- a CSS file for the dialog, if `info-modal`'s existing classes are not enough.
+- `css/linked-column-modal.css` (new, the width only), imported in `style.css`; `.info-modal-select-row` moved into
+  `modal-info.css` from `flowchart-options-modal.css` (§6.0).
 
 ### 6f. Housekeeping
 
@@ -470,7 +519,10 @@ State goes in `appState.linkedProperties` (a Map), declared in `store.js`.
 ```
 public/js/services/internal-links/link-targets.js      NEW  toList + linkTarget, shared
 public/js/services/flowchart/mermaid-source.js         MOD  imports them
-public/js/services/linked-properties.js                NEW  state, one writer, heading, linkedValue
+public/js/services/internal-links/linked-value.js      NEW  linkedValue + filesById
+public/js/services/property-options.js                 NEW  the property list, moved from the flowchart
+public/js/ui/ui-functions-flowchart/flowchart-options-list.js  MOD  imports it; row class renamed
+public/js/services/linked-properties.js                NEW  state, one writer, heading, validation
 public/js/services/store.js                            MOD  appState.linkedProperties
 public/js/services/property-type.js                    MOD  LINKED_TYPE; not settable/editable
 public/js/table-layouts/layout-apply.js                MOD  from-state / apply-from-file pair
@@ -483,12 +535,17 @@ public/js/ui/ui-functions-table/render-table-header.js MOD  no sort trigger; gly
 public/js/ui/ui-functions-table/render-table-controls.js MOD the + button
 public/js/ui/ui-functions-table/column-picker-list.js  MOD  enabled glyph, escaped label
 public/js/ui/ui-functions-table/linked-column-form.js  NEW  the dialog's contents
-public/js/ui/ui-functions-click/linked-column.js       NEW  the dialog's actions
+public/js/ui/ui-functions-click/linked-column-dialog.js NEW open, input, cancel
+public/js/ui/ui-functions-click/linked-column-save.js  NEW  save
+public/js/ui/ui-functions-click/linked-column-delete.js NEW delete
 public/js/ui/ui-functions-click/column-menu.js         MOD  the linked column's menu
 public/js/ui/ui-functions-click/column-type-set.js     MOD  a linked key opens the dialog
 public/js/ui/ui-functions-render/type-glyph.js         MOD  LOCK_SHIFT entry
 public/js/ui/event-listeners-add.js                    MOD  register the actions
 public/js/constants.js                                 MOD  LINKED_TYPE
+public/css/linked-column-modal.css                     NEW  the dialog's width
+public/css/modal-info.css, flowchart-options-modal.css MOD  .info-modal-select-row, shared
+public/style.css                                       MOD  @import the new CSS file
 index.html                                             MOD  dialog + icon
 manifest.json, CLAUDE.md                               MOD
 ```
@@ -554,8 +611,8 @@ links of which one is broken, and the project notes themselves, which are rows i
 
 ### 8.3 Not tested, on purpose
 
-- The move of `toList` and `linkTarget` (§6a): `54-flowchart-options` already covers them, and
-  must pass unchanged — run it.
+- The moves of `toList`, `linkTarget`, `propertyOptions()` and the select-row CSS rule (§6.0,
+  §6a): `54-flowchart-options` already covers all four, and must pass unchanged — run it.
 - Escaping the heading, the glyph, the "delete all layouts" tooltip: each is one line that says what
   it does, and a test would only restate it.
 - Dragging a linked column: the picker's drag knows nothing about linked columns, and
