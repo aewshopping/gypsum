@@ -67,8 +67,8 @@ refuses to merge. None of that is needed.
 ### 3.2 Recommended: write the target key directly, in one batch
 
 Copying into `target` is, for each note, **one edit to one key**: replace `target`'s value span with
-the source value, or append `target` if the note lacks it. A note whose source is empty is not
-edited at all (§5.3), so a copy never removes a key.
+the source value, or append `target` if the note lacks it. A note with nothing to copy is not edited
+at all (§5.3), so a copy never removes a key.
 That is exactly the edit a cell commit makes, sent for every note at once through `applyRawEdits`,
 using the delete's journalled two passes:
 
@@ -97,7 +97,9 @@ Every column can be copied except the file link, `internalId` (§5.1):
 
 - **A front matter column**: the source key's value span, **byte for byte**, as the rename re-creates a
   key. The quoting, flow or block style and item comments come across unchanged, and nothing is
-  re-serialised.
+  re-serialised. **An empty value is copied too**: a bare `people:` becomes a bare `target:` (sent
+  with `keepKey`, since `''` alone means "remove the key" to the writer), and `people: ""` or
+  `people: []` arrive exactly as written (§5.3).
 - **A linked column**: `linkedValue()` for that note, written through `toYamlText` in the target's
   existing shape (one value → a scalar, several → a list). **Empty slots are kept**, written as `""`
   items, because their position still matters (§5.4): `active, , done` is written as three items.
@@ -180,7 +182,8 @@ it that says which of two things will happen, stacked in one cell like the renam
   `property-name.js`'s rules, since it becomes a key.
 - **an existing property**: `writes "status" in 35 notes — overwrites 12 values`.
 
-Either line adds `5 notes have nothing to copy and are left as they are` when some do (§5.3).
+Either line adds `5 notes have nothing to copy and are left as they are` when some do: notes without
+the source key, or — for a linked or core column — whose cell shows nothing (§5.3).
 
 **For a linked column the box is pre-filled with the last target it was copied to** (§5.5), selected,
 so typing replaces it and Enter re-copies. Every other column opens empty.
@@ -208,16 +211,27 @@ These were the open questions; each is now settled.
    id nobody sees. That includes every core column (§3.3).
 2. **Which notes? Every note in the folder, whatever is filtered**, as the delete does. A filter
    decides what is shown, not what a column holds.
-3. **An empty source writes nothing to that note** — no key, no bare `key:`, and an existing target
-   value left exactly as it is. This is not only a linked column's case: a note that lacks the source
-   key, holds a bare `people:` (null), `''` or `[]`, or a linked cell with no links or only empty
-   slots, all count as "nothing showing". Such a note is never planned, so it is never read or
-   written, and the dialog counts it (§4.1). **The accepted cost**: a re-copy does not clear a target
-   whose source has since become empty — the old value stays until someone clears it. A copy only
-   ever adds or replaces.
+3. **An empty source: be as faithful to the source as possible.** Two rules, because the two kinds of
+   source are different things:
+   - **A front matter column copies whatever the note has, empty included.** A bare `people:` is
+     written as a bare `target:`; `people: ""` and `people: []` are copied as written. The key is in
+     the note, so the copy says so too. Only a note **without the source key** has nothing to copy:
+     it is not planned, so it is never read or written, and an existing target value in it stays as
+     it is.
+   - **A linked column copies only what its cell shows.** A note is written only if its linked cell
+     shows a value — at least one slot with something in it. A cell with no links, with links that
+     all resolve to nothing, or with only empty slots, writes nothing: no key, no bare key, and an
+     existing target value left alone. The linked column has no key in the note to be faithful to,
+     so what is on screen is the source.
+   - **A core column follows the linked rule**, for the same reason — it is filled in by the app,
+     not written in the note: `color` with no colour, or no tags, writes nothing.
+
+   The dialog counts the notes left alone (§4.1). **The accepted cost**: a re-copy does not clear a
+   target whose source has since gone — the old value stays until someone clears it. A copy only ever
+   adds or replaces.
 4. **A linked list's empty slots are kept**, as `""` items, because the sequence can matter — the
-   n-th item still belongs to the n-th link. Only a cell where *every* slot is empty is "nothing
-   showing" (§5.3).
+   n-th item still belongs to the n-th link. Only a cell where *every* slot is empty shows nothing
+   (§5.3).
 5. **A linked column remembers where it was last copied to, as a pre-fill.** A successful copy from a
    linked column stores the target on its definition in the layouts file's `linkedProperties` —
    `{ label, via, read, copyTo: "project_status" }` — and the copy dialog opens with it in the name
@@ -243,8 +257,9 @@ These were the open questions; each is now settled.
 
 ## 7. Verification (sketch)
 
-- **Level 1**: exact bytes for a new key and an overwrite, and a note with an empty source left
-  untouched; a linked list with an empty slot written as three items; the journal is on disk before the
+- **Level 1**: exact bytes for a new key and an overwrite; a bare source key copied as a bare key,
+  and `""` and `[]` copied as written; a note without the source key, and a note whose linked cell
+  shows nothing, both left untouched; a linked list with an empty slot written as three items; the journal is on disk before the
   first write; notes already holding the value are not written; locked notes are skipped; one undo
   restores every byte; a note edited between the passes is refused; **a re-copy of a linked column
   whose values have not changed writes no note** (§3.4.2).
