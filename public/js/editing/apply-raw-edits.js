@@ -68,11 +68,15 @@ const POOL_SIZE = 16;
  * `keepKey` says '' means a bare key rather than no key. A removal's record carries its `anchor`, and
  * `gap`, the blank and comment lines between the two — see placeAbove.
  *
+ * `expect: null` says the note must not have the key at all — a rename's re-created key, which
+ * must not land on a note that has meanwhile gained one.
+ *
  * @param {Array<{internalId: string, property: string, raw: string|Function, items?: string[],
- *   expect?: string, anchor?: string|null, gap?: number, keepKey?: boolean}>} rawEdits
- * @param {{resort?: boolean, write?: boolean, onProgress?: Function, beforeRefresh?: Function}} [options] - `resort` false
+ *   expect?: string|null, anchor?: string|null, gap?: number, keepKey?: boolean}>} rawEdits
+ * @param {{resort?: boolean, write?: boolean, allOrNothing?: boolean, onProgress?: Function, beforeRefresh?: Function}} [options] - `resort` false
  *   leaves the list in the order it is in. `write` false does everything but the write and the
- *   refresh — the plan pass a journal is made from (§8.3). `onProgress(done, total)` is called as
+ *   refresh — the plan pass a journal is made from (§8.3). `allOrNothing` leaves a note untouched
+ *   unless every edit sent for it produced a splice — see planFileEdits. `onProgress(done, total)` is called as
  *   each file finishes, written or not. `beforeRefresh(records)` runs once the writes are done and
  *   before the render, and returns the ids of files to re-check in it (§10.5).
  * @returns {Promise<Array<{internalId: string, property: string, before: string, after: string,
@@ -80,7 +84,7 @@ const POOL_SIZE = 16;
  *   span before and after. This is what an undo entry is made of, and what a partly-applied undo
  *   hands to the redo stack — so an edit the check refused is simply absent from it.
  */
-export async function applyRawEdits(rawEdits, { resort = true, write = true, onProgress, beforeRefresh } = {}) {
+export async function applyRawEdits(rawEdits, { resort = true, write = true, allOrNothing = false, onProgress, beforeRefresh } = {}) {
     const byFile = new Map();
     for (const edit of rawEdits) {
         if (!byFile.has(edit.internalId)) byFile.set(edit.internalId, []);
@@ -105,7 +109,7 @@ export async function applyRawEdits(rawEdits, { resort = true, write = true, onP
             const index = next++;
             const [internalId, fileEdits] = jobs[index];
             try {
-                results[index] = await editFile(filesById.get(internalId), fileEdits, gypsumDir, write, written);
+                results[index] = await editFile(filesById.get(internalId), fileEdits, gypsumDir, write, written, allOrNothing);
             } catch (error) {
                 // **Before the first note is written, a throw is the batch dying; after it, one note
                 // being skipped.** A folder that cannot be written fails on its first file, so a
@@ -157,16 +161,17 @@ export async function applyRawEdits(rawEdits, { resort = true, write = true, onP
  * @param {FileSystemDirectoryHandle|null} gypsumDir - Where the verified save's copy goes.
  * @param {boolean} write - False for a plan pass.
  * @param {Array<object>} written - Collects a snapshot per file written, for the refresh.
+ * @param {boolean} allOrNothing - This note takes every edit or none — see planFileEdits.
  * @returns {Promise<Array<object>|null>} This file's records, or null if nothing changed.
  */
-async function editFile(file, fileEdits, gypsumDir, write, written) {
+async function editFile(file, fileEdits, gypsumDir, write, written, allOrNothing) {
     // A file gone since the entry was made — deleted, or a saved undo entry from before a rename
     // outside the app — is refused, like any edit that cannot be checked. §8.4.
     if (!file?.handle) return null;
 
     const original = await readText(file.handle);
     if (original === null) return null;
-    const plan = planFileEdits(original, fileEdits, file.internalId);
+    const plan = planFileEdits(original, fileEdits, file.internalId, { allOrNothing });
     if (!plan || !write) return plan?.records ?? null;
     return writeFileEdits(file, original, plan.updated, plan.records, gypsumDir, written);
 }

@@ -969,3 +969,73 @@ test('a key whose anchor has gone goes to the end, and two neighbours cleared to
   expect(records.find(record => record.property === 'b').anchor).toBe('a');
   expect(undone['pair.md']).toBe(before['pair.md']);
 });
+
+// ---------------------------------------------------------------- a rename's pair, plans/table-rename-column.md §5
+
+/**
+ * The rename's whole effect on one note, as the service sends it: locate `people` by planning its
+ * removal alone, then send the pair — `attendees` re-created from that record at `people`'s anchor, and
+ * `people` removed — in the order asked. Both orders must give the same bytes: §5.1's sort rule is
+ * what makes the answer not depend on it.
+ */
+async function renamePeople(text, order) {
+  const { planFileEdits } = await appModule('editing/plan-file-edits.js');
+  const located = planFileEdits(text, [{ internalId: 'n', property: 'people', raw: '' }], 'n');
+  if (!located) return { located: null };
+  const [record] = located.records;
+  const recreate = { internalId: 'n', property: 'attendees', raw: record.before, keepKey: record.before === '',
+    anchor: record.anchor, gap: record.gap, expect: null };
+  const remove = { internalId: 'n', property: 'people', raw: '', expect: record.before };
+  const pair = order === 'remove-first' ? [remove, recreate] : [recreate, remove];
+  return { located, renamed: planFileEdits(text, pair, 'n', { allOrNothing: true }) };
+}
+
+/** What reverseBatch sends for a batch of records — the undo, and applied to an undo's records, the redo. */
+async function reverse(text, records) {
+  const { planFileEdits } = await appModule('editing/plan-file-edits.js');
+  return planFileEdits(text, records.map(edit => ({
+    internalId: 'n', property: edit.property, raw: edit.before, expect: edit.after,
+    anchor: edit.anchor, gap: edit.gap, keepKey: edit.before === '' && edit.existed,
+  })), 'n', { allOrNothing: true });
+}
+
+test('a rename changes the key and nothing else, in either order, and undoes and redoes byte for byte', async () => {
+  const { RENAME_NOTES } = require('../fixtures/property-notes');
+  const carrying = ['flow.md', 'block.md', 'quoted.md', 'last.md', 'only.md', 'bare.md', 'crlf.md',
+    'commented.md', 'crowded.md', 'first.md'];
+  for (const name of carrying) {
+    const text = RENAME_NOTES[name];
+    const expected = text.replace(/^people:/m, 'attendees:');
+    for (const order of ['recreate-first', 'remove-first']) {
+      const { renamed } = await renamePeople(text, order);
+      expect(renamed?.updated, `${name}, ${order}`).toBe(expected);
+
+      const undone = await reverse(renamed.updated, renamed.records);
+      expect(undone?.updated, `${name} undone, ${order}`).toBe(text);
+      const redone = await reverse(undone.updated, undone.records);
+      expect(redone?.updated, `${name} redone, ${order}`).toBe(expected);
+    }
+  }
+  // A locked note gives nothing to rename: the locate pass already refuses it.
+  for (const name of ['broken.md', 'shadow.md', 'dup.md']) {
+    expect((await renamePeople(RENAME_NOTES[name], 'remove-first')).located, name).toBeNull();
+  }
+});
+
+test('expect: null refuses a key that is there, bare or not, and allOrNothing refuses the whole note', async () => {
+  const { planFileEdits } = await appModule('editing/plan-file-edits.js');
+  const put = (text, options) => planFileEdits(text,
+    [{ internalId: 'n', property: 'attendees', raw: ' x', expect: null }], 'n', options);
+  expect(put('---\nattendees: y\n---\n')).toBeNull();
+  expect(put('---\nattendees:\n---\n')).toBeNull();
+  expect(put('---\nother: y\n---\n')?.updated).toBe('---\nother: y\nattendees: x\n---\n');
+
+  // The re-creation is refused, so the removal beside it must not happen either.
+  const pair = [
+    { internalId: 'n', property: 'attendees', raw: ' ann', expect: null },
+    { internalId: 'n', property: 'people', raw: '', expect: ' ann' },
+  ];
+  const text = '---\npeople: ann\nattendees: bob\n---\n';
+  expect(planFileEdits(text, pair, 'n', { allOrNothing: true })).toBeNull();
+  expect(planFileEdits(text, pair, 'n')?.updated).toBe('---\nattendees: bob\n---\n');
+});
