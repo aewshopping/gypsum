@@ -16,3 +16,4 @@ below changed, and the file should say so.
 | `undo-library.md` | Complexity and cursor bugs; the browser's own undo is adequate |
 | `save-folder-handle-indexeddb.md` | Permission prompt every load anyway, so nothing is saved |
 | `settings-file.md` | Settings are a styling scratchpad, and mobile sizing should not follow you to desktop |
+| `layout-undo.md` | Mission creep: every such change already asks first and none touches a note |
