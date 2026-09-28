@@ -1,4 +1,5 @@
 import { extendRange } from './cell-range.js';
+import { followPointer, cellUnderPointer, startAutoscroll, stopAutoscroll } from './cell-range-autoscroll.js';
 
 /**
  * @file Dragging out a range of table cells with the pointer.
@@ -14,6 +15,10 @@ import { extendRange } from './cell-range.js';
  * **Focus does not move during a drag.** The press focuses the start cell, as any press does, and
  * that cell is the range's anchor. Focusing each cell crossed would also have the table scrolled to
  * reveal it, and put a different cell under the pointer.
+ *
+ * **Once a drag has crossed a cell, the table scrolls at its edges** — cell-range-autoscroll.js,
+ * which also answers which cell is under the pointer, for a move here and a scroll there alike.
+ * Not before the first crossing: a click near the bottom of the window must not scroll the page.
  *
  * A finger is left alone: on a touch screen a drag across the table is how it scrolls.
  */
@@ -38,17 +43,27 @@ export function handleRangeDragStart(evt) {
 
 /**
  * Pointermove anywhere: grows the range when the pointer reaches another cell. Leaves at once when no
- * drag is under way, or when the pointer is still over the cell it was over last — so the work is
- * per cell crossed, not per move.
+ * drag is under way.
  * @param {PointerEvent} evt
  * @returns {void}
  */
 export function handleRangeDragMove(evt) {
     if (!start) return;
-    const cell = evt.target.closest?.('.list-table .note-table-cell');
+    followPointer(evt.clientX, evt.clientY);
+    reachCellUnderPointer();
+}
+
+/**
+ * Grows the range to whichever cell is under the pointer now, if that is a different one from last
+ * time — so the work is per cell crossed, not per move or per frame of scrolling.
+ * @returns {void}
+ */
+function reachCellUnderPointer() {
+    const cell = cellUnderPointer();
     if (!cell || cell === over) return;
 
     over = cell;
+    if (!crossed) startAutoscroll(reachCellUnderPointer);
     crossed = true;
     extendRange(start, cell);
 }
@@ -58,6 +73,7 @@ export function handleRangeDragMove(evt) {
  * @returns {void}
  */
 export function handleRangeDragEnd() {
+    if (start) stopAutoscroll();
     start = over = null;
 }
 

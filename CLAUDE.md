@@ -291,6 +291,13 @@ A rectangle of table cells, made by dragging from one cell to another or by `Shi
 - **A cell has one shadow list, so a cell's other shadows are named layers.** The sticky columns'
   edge line is `--sticky-edge`, and the range appends it to its own list; a new shadow on a table
   cell has to be added the same way or a range will erase it.
+- **A drag scrolls the table at its edges** (`cell-range-autoscroll.js`), once it has crossed a
+  cell — a click near the bottom of the window must not scroll the page. The browser's own edge
+  scrolling belongs to text selection, which the range turns off, and a scroll under a still pointer
+  fires no `pointermove`, so both are done here. A scroll listener alive only for the drag owns the
+  hit test after any scroll, the loop's and the wheel's alike, and the hit test clamps the pointer
+  into the visible rows so a pointer off the table still means the edge row or column. The left
+  strip starts where the sticky columns end: pointing at a sticky cell means that cell.
 - **Closed cells are `user-select: none`, and links in the table `-webkit-user-drag: none`** — the
   first so a drag does not also select text, the second because the browser's own link drag
   cancels the pointer and would end a range begun on a `[[link]]`.
@@ -1050,7 +1057,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`) |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`) |
 | `public/js/ui/ui-functions-flowchart/` | The flowchart's control row and its options modal's rows |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |

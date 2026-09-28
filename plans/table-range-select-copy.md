@@ -1,7 +1,7 @@
 # Plan: range select and copy in table view
 
-Status: **step 1 (selecting a range) built. Auto-scrolling a drag (§6) planned, not built. Step 2
-(copy) not started.**
+Status: **step 1 (selecting a range) built, auto-scrolling a drag (§6) included. Step 2 (copy) not
+started.**
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
 Depends on: `plans/completed/table-undo-stack.md`, **built**
 Related: `plans/table-range-paste.md`, which depends on this
@@ -176,7 +176,7 @@ again.
 
 ---
 
-## 6. Auto-scrolling a drag (refinement — planned, not built)
+## 6. Auto-scrolling a drag (refinement — built)
 
 **The problem.** Focus stays on the anchor, so nothing scrolls the table as a drag grows the range
 down or right. Two gaps, and both need closing:
@@ -209,8 +209,9 @@ found again and the range extends to it.
     of ordinary cells there that scrolls when the user meant to point at it; accepted.
 - **What scrolls:** the window up and down, since the page is what scrolls vertically, and
   `.list-table`'s `scrollLeft` sideways.
-- **Speed:** from about one row a frame at the strip's inner edge to about five rows a frame well
-  past it, capped. The exact numbers are a matter of feel once it runs; they are two constants,
+- **Speed:** from 2px a frame at the strip's inner edge to 30px a frame a strip's width past the
+  edge, capped — about 120 to 1,800px a second. The plan first said one to five *rows* a frame,
+  which at 60 frames a second is 2,400px a second at the slowest: far too fast to aim. Constants,
   not settings.
 - **A pointer outside the table still means a cell.** Before asking which cell is there, the
   pointer's position is clamped into the table's visible area, so dragging below the window or
@@ -236,8 +237,8 @@ which drives it:
   or past the strips, scroll, then run the hit test.
 - **Wheel scrolling during a drag** is covered by the same hit test: a `scroll` listener on the
   window and on `.list-table`, added when a drag starts and removed when it ends, runs the hit test
-  at the last pointer position. The loop's own scrolling fires these listeners too, so the loop may
-  not need to run the hit test itself. Decide which one owns it when building; not both.
+  at the last pointer position. The loop's own scrolling fires these listeners too, so **the scroll
+  listener owns the hit test after any scroll**, and the loop only scrolls.
 - **No new registration in `event-listeners-add.js`.** The loop and the two scroll listeners live
   only as long as a drag, so `cell-range-drag.js` starts and stops them. That matches how the rest
   of a drag already hangs off the document listeners registered there.
@@ -251,16 +252,12 @@ bigger than it should, the fallback is to ship only the scroll listener (gap 1, 
 user can then scroll with the wheel while dragging, and the loop can be added on top later without
 throwing anything away.
 
+- **It starts on the first cell crossed, not on the press**, so a click on a cell near the bottom of
+  the window cannot scroll the page.
+
 ### 6.3 Tests
 
-Level 2, in `59-table-range-select.spec.js`:
-
-- A drag held past the bottom of the window scrolls the page and extends the range to a row that
-  was off screen when the drag started, with focus still on the anchor.
-- A drag held past the table's right edge scrolls `.list-table` sideways and extends the range into
-  a column that was off screen.
-- Scrolling with the wheel mid-drag, the mouse otherwise still, extends the range.
-- Releasing stops the scrolling: `scrollY` does not change after `pointerup`.
+None, by decision: checked by driving the app and looking at screenshots instead.
 
 ---
 
@@ -289,7 +286,7 @@ that concern. Nothing is duplicated: each piece that already exists is exported 
 |---|---|---|
 | `ui/ui-functions-cell/cell-range.js` | **new** | The range itself: `extendRange(cell)`, `clearRange()`, and the paint. Beside `cell-expand.js`, which owns the single-cell mark; this owns the many-cell one. |
 | `ui/ui-functions-cell/cell-range-drag.js` | **new** | The pointer gesture: start, move, end, and whether the last press crossed a cell. Separate from `cell-range.js` because the keyboard uses the range and not the drag. |
-| `ui/ui-functions-cell/cell-range-autoscroll.js` | **new** (§6, not built) | The edge auto-scroll loop and the drag-time scroll listeners, started and stopped by `cell-range-drag.js`. |
+| `ui/ui-functions-cell/cell-range-autoscroll.js` | **new** (§6) | The edge auto-scroll loop and the drag-time scroll listeners, started and stopped by `cell-range-drag.js`. |
 | `css/note-table-range.css` | **new** | The marks (§5), `user-select` on closed cells, `-webkit-user-drag` on the table's links, the `--range-tint` token. Imported in `style.css` beside `note-table-sticky.css`. |
 | `ui/ui-functions-click/keyboard-navigate.js` | edited | The arithmetic becomes one function; the `Shift` branch calls `extendRange()`. |
 | `ui/ui-functions-click/keyboard-shortcuts.js` | edited | `clearRange()` in the Escape branch. |
