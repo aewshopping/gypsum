@@ -1,6 +1,6 @@
 # Plan: range select and copy in table view
 
-Status: **not started.** Its dependency, the undo stack, is built (see below).
+Status: **not started.** Its dependency, the undo stack, is built.
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
 Depends on: `plans/completed/table-undo-stack.md`, **built**
 Related: `plans/table-range-paste.md`, which depends on this
@@ -9,157 +9,122 @@ Related: `plans/table-range-paste.md`, which depends on this
 
 ## 1. What this delivers
 
-Selecting a rectangular range of table cells, and copying its contents to the clipboard with
-`Ctrl/Cmd+C`. Built in two steps, and the first stands on its own:
+Selecting a rectangular range of table cells, and copying it with `Ctrl/Cmd+C`. Two steps, and the
+first stands on its own:
 
-1. **Selecting a range** — §2 and §3. Nothing is written or copied; a range is drawn and kept.
-2. **Copying it** — §4. Reads the range step 1 leaves in `appState`.
+1. **Selecting a range** (§2–§5). Nothing is written or copied.
+2. **Copying it** (§6). Reads the range step 1 leaves in `appState`.
 
-**In scope:**
+**In scope:** press in a cell and drag to another; `Shift`+arrow to extend one cell at a time and
+`Ctrl+Shift`+arrow to extend to the end of the row or column — today's arrow and `Ctrl`+arrow with
+`Shift` held; copy to the clipboard.
 
-- **Pointer:** press in a cell and drag to another cell.
-- **Keyboard:** `Shift`+arrow extends the range one cell at a time, and `Ctrl/Cmd+Shift`+arrow
-  extends it to the end of the row or column — the existing navigation (arrow, and `Ctrl`+arrow to
-  the end of the line) with `Shift` held.
-- Copy to the clipboard.
+**Not designed for touch.** A finger drag scrolls the table, as now. The range handlers ignore
+`pointerType === 'touch'`, so a finger never paints half a range before the browser takes the
+gesture for a scroll. Anything else a touch screen gets is a bonus.
 
-**Not designed for touch.** A finger drag on the table scrolls, as it does now, and nothing here
-changes that. Anything a touch screen gets from the pointer code is a bonus, not a promise — the
-pointer handlers ignore `pointerType === 'touch'`, so a finger never paints half a range before the
-browser takes the gesture for a scroll and cancels it.
+**Out of scope:** paste (`plans/table-range-paste.md`), non-rectangular or multiple selections,
+selecting by row or column header, a fill handle, shift-click, and auto-scrolling while a drag is
+held at the table's edge — `Ctrl+Shift`+arrow is the answer to a range bigger than the screen.
 
-**Explicitly out of scope:** pasting (that is `plans/table-range-paste.md`), non-rectangular or
-multiple selections, selecting whole rows or columns by their headers, dragging a fill handle, and
-auto-scrolling the table while a drag is held at its edge (§3.6).
-
-### 1.1 Why the undo stack comes first
-
-Copy writes nothing, so it needs no undo of its own — but the selection model it introduces is what
-paste then writes through, and a fifty-cell paste with no way back is not shippable. Building the
-selection first and the safety net second means the dangerous half arrives before the net. The undo
-plan also already assumes a pasted range in its write signature (`applyRawEdits` taking a list), so
-its shape is the one to build against.
+The undo stack came first because the selection is what paste will write through, and a fifty-cell
+paste with no way back is not shippable.
 
 ---
 
 ## 2. The range model
 
-### 2.1 Focus stays on the cell the range started from
+**The anchor is the focused cell, and the range grows away from it**, as in a spreadsheet. The far
+corner, the *extent*, is the only new fact.
 
-**Decided: the anchor is the focused cell, and the range grows away from it**, as in a spreadsheet.
-The other corner, the *extent*, is the only new fact. So:
+- **"Selection follows focus" is untouched.** The anchor keeps its `is-selected` outline inside the
+  range, and a plain arrow moves from it — exactly today's behaviour.
+- **A mouse drag never moves focus.** The press focuses the start cell natively, as it does today;
+  the drag moves only the extent.
+- **`Shift`+arrow moves the extent, never focus, and always continues the range there is.** With no
+  range the extent starts at the anchor; with one, it moves on from where it is, however the range
+  was made: release `Shift`, press it again, and the same range grows or shrinks. `Ctrl+Shift`+arrow
+  carries on from the same corner, after a `Shift`+arrow or a drag. Pressing a modifier alone does
+  nothing — only the things in the list below end a range.
+- **A range of one cell is no range**: when the extent comes back to the anchor, the range is
+  cleared, so "is there a range" is one test.
 
-- **"Selection follows focus" is untouched.** The focused cell is the anchor and keeps its
-  `is-selected` outline inside the range, marking where the range began and where a plain arrow
-  will move from.
-- **A mouse drag never moves focus at all.** The press focuses the start cell natively, as it does
-  today; the drag moves only the extent. So nothing in `handleCellFocusIn` has to tell a range's own
-  focus move from anyone else's — **any focus move ends the range** (§2.3), with no flag.
-- **`Shift`+arrow moves the extent, not focus, and always continues the range there is.** With no
-  range, the extent starts at the focused cell. With one, it moves on from where the range's extent
-  already is, **however the range was made and however long ago**: let go of `Shift`, press it
-  again, and the next `Shift`+arrow grows or shrinks the same range; `Ctrl+Shift`+arrow after
-  `Shift`+arrow, or after a mouse drag, carries on from the same corner. This falls out of keeping
-  the range in `appState` until something ends it (§2.3), rather than tying it to a key being held.
-  **Pressing or releasing a modifier on its own does nothing to it** — `handleKeyboardNavigate`
-  already ignores keys it does not handle, and the rule to keep is that only the keys in §2.3 clear
-  the range. `Ctrl+Shift`+arrow jumps the extent to the end of its row or column, and `Shift+PageDown`
-  by a page. `keyboard-navigate.js` already turns a key and an index into a target index; that
-  arithmetic is lifted into one function asked from either index — focus's for a plain arrow, the
-  extent's with `Shift` — so the edge rules exist once.
-- **Without `Shift`, an arrow clears the range and moves from the anchor**, which is the focused
-  cell, so that is exactly today's behaviour.
-- **The extent has to be scrolled into view by hand**, since no focus move happens to do it.
-  `table-focus-scroll.js` already knows how to bring a cell clear of the header and the sticky
-  columns; its body becomes a function taking a cell, called by its `focusin` handler as now and by
-  the range code for the extent.
+**Stored as `appState.tableRange`**: `null`, or `{ anchor, extent }`, each a cell address
+`{ vtId, prop }` — the shape `keep-cell-state.js` already uses, so its `addressOf()` and
+`elementAt()` are exported and reused rather than written again. The anchor is stored even though it
+is always the focused cell, so that copy (and later paste) read one place.
 
-### 2.2 Where it lives
+**What ends a range**, all through one `clearRange()`:
 
-`appState.tableRange`: `null`, or `{ anchor, extent }`, each `{ id, prop }` — a cell addressed by its
-row's file id and its column, the way `keep-cell-state.js` already addresses one, never by
-`data-index`, which shifts when the rows do. `anchor` is always the focused cell, but it is stored
-rather than read off `document.activeElement` so copy (and later paste) read one place.
+- **Any focus move** — a plain arrow, Tab, a press in a cell, a press outside the table. One line in
+  `handleCellFocusIn`, the door selection already goes through. Nothing the range does moves focus,
+  so nothing needs exempting.
+- **Escape**, beside `finishOpenCell(true)` in the Escape branch of `keyboard-shortcuts.js`.
+- **Opening a cell** (Enter, F2, a second press) — one line in `expand()`.
+- **Any render that replaces the rows.** One line in `renderFiles`' `doRender`, where
+  `captureCellState()` already runs. The new rows carry no marks anyway, and the only redraws that
+  would happen during a range are ones this list already ends it for.
 
-**Writing `appState` on every cell crossing is cheap; re-rendering is not, and nothing here
-re-renders.** A drag writes `tableRange` and calls one paint function (§3.3) that changes classes on the cells
-the change touches.
-`renderFiles` calls the same paint function after it replaces the rows, so a range survives the
-redraws that change nothing (a cell commit, an autosave).
+---
 
-**A range is cleared when the rows it spans may no longer be the rows on screen**: a render that
-draws different ids or a different order (a sort, a filter, a page change — the same test
-`view-transition.js` already asks of `pageFileIds`), a view change, and a folder load. A range is on
-one page by construction: only cells on the page can be pressed or arrowed to.
-
-**A range of one cell is no range.** When the anchor and extent are the same cell, `tableRange` is
-set back to `null`, so "is there a range" is one test and a drag that comes back to where it started
-leaves the table as a plain click would.
-
-### 2.3 What ends a range
-
-Nothing else does: not time, not releasing `Shift`, not pressing `Shift` or `Ctrl` again (§2.1).
-
-- **Any focus move** — a plain arrow, Tab, a press in a cell, a press outside the table.
-  `handleCellFocusIn` clears `tableRange`, one line in the one door selection already goes through.
-  Nothing the range does moves focus, so nothing needs exempting.
-- A press on the anchor itself (which is already focused, so fires no `focusin`) starts a new drag
-  from it, which replaces the range on its first crossing and clears it if released where it began.
-- Escape, when no cell is open (an open cell's Escape still belongs to the cell, one level at a time).
-- Opening a cell (Enter, F2, a second press): the open cell is the whole of the user's attention.
-
-## 3. Selecting with the pointer
-
-### 3.1 A click and a drag are told apart by the cell, not by pixels
+## 3. The pointer
 
 **A drag is a press whose pointer reaches a different cell before it is released.** No distance
-threshold: the grid is its own threshold, and a wobble inside one cell is still a click.
+threshold: the grid is the threshold, and a wobble within a cell is still a click.
 
-This needs very little of its own, because **the browser already makes a click only when the press
-and the release land on the same element.** A press in cell A released in cell B fires its `click`
-on their common ancestor, which carries no `data-action` — so `expand-cell` is never reached, and the
-existing two-press cycle (first press focuses, second opens) is untouched. So the answer to "should
-opening move to pointerup" is no: it already effectively is, and moving it would mean re-deriving
-what `click` gives for nothing.
+**Opening a cell stays on `click`**, because the browser already fires `click` only when the press
+and release land on the same element. Pressed in A and released in B, the click goes to their shared
+row, which has no `data-action`, so `expand-cell` is never reached and the two-press cycle is
+untouched.
 
-**The one case the browser does not cover** is a drag that leaves its cell and comes back: pressed in
-A, dragged to B, released in A. That is a `click` on A, and if A was already focused it would open.
-So a press that crossed a cell sets `dragged`, and `handleCellExpand` returns early when it is set —
-next to `pressWasOnSelectedCell()`, which exists for the same reason (the press knows something the
-click cannot find out). Cleared on the next `pointerdown`.
+**One case the browser does not cover**: pressed in A, dragged to B, released back in A. That is a
+click on A, and would open it if A was already focused. So the drag records that it crossed a cell,
+and `handleCellExpand` returns early when it did — beside `pressWasOnSelectedCell()`, which exists for
+the same reason: the press knows something the click cannot.
 
-### 3.2 The handlers
+- **Start** — primary button, not touch, on a closed cell. A press inside an open cell belongs to the
+  caret. Records the start cell; focus arrives on it natively.
+- **Move** — returns at once unless a drag is under way, then finds the cell under the pointer and
+  **does nothing unless it is a different cell from last time.** On a crossing, the extent moves and
+  the range is repainted.
+- **End** (`pointerup`, `pointercancel`) — ends the drag. Focus is already on the anchor.
 
-In a new `ui-functions-cell/cell-range-drag.js`, registered in `event-listeners-add.js` beside
-`handleCellPointerDown`:
+**Focus never moves during a drag**, which also keeps the table still under the pointer: focusing
+each crossed cell would run `table-focus-scroll.js` and scroll a different cell under it.
 
-- **`pointerdown`** — primary button, not touch, landing on a *closed* cell. A press inside an open
-  cell belongs to the caret and its own text selection. With `Shift` held it would be a shift-click
-  extending from focus; **not in this step**, but it falls out of the model for one line if wanted.
-  Records the pressed cell as the drag's start. Focus arrives on it natively, as today.
-- **`pointermove`** on the document — returns at once unless a drag is in progress, then finds the
-  cell under the pointer (`evt.target.closest('.note-table-cell')`, ignoring anything outside
-  `.list-table`) and **does nothing unless it is a different cell from last time.** So the work is
-  per cell crossed — tens in a drag — not per mouse event. On the first crossing: the anchor is the
-  start cell, the table gains `is-ranging` (§3.5), and `dragged` is set.
-- **`pointerup` / `pointercancel`** on the document — end the drag. Nothing else: focus is already
-  on the anchor, where it stays (§2.1), and the range is already painted.
+**Text selection and link dragging.** Closed cells get `user-select: none`, or a drag paints the
+browser's own text selection over the range; an open cell keeps its own, which is the caret's. And
+`-webkit-user-drag: none` on links in the table, because pressing and moving on an `<a href>` starts
+the browser's link drag, which cancels the pointer stream and would end the range from any cell
+holding a `[[link]]`, the file link or a tag pill.
 
-**Focus never moves during a drag**, which is also what keeps the table still under the pointer:
-focusing each crossed cell would run `table-focus-scroll.js` mid-drag and scroll a different cell
-under it.
+---
 
-Document listeners rather than pointer capture: capture set on `pointerdown` retargets the `click`
-to the capturing element, which would break the click that opens a cell. If a release outside the
-window turns out to be missed, capture can be taken on the *first crossing*, when there is no click
-left to protect.
+## 4. The keyboard
 
-### 3.3 Drawing the outline: the edge cells draw it
+In `keyboard-navigate.js`, which is already where the arrow keys are.
 
-**Each cell in the range carries `in-range`, and the cells on its edges carry `range-top`,
-`range-bottom`, `range-left` and `range-right`.** CSS draws a 2px inset `box-shadow` on each side a
-cell is marked with, so only the outside of the rectangle is outlined, and a translucent
-`background-image` gives the whole range a tint:
+- **The arithmetic is lifted into one function**, from a key and an index to a target index —
+  including `Ctrl`'s jump to the end of the line and `PageDown`. A plain arrow asks it from the
+  focused cell's index and focuses the result, as now; `Shift`+arrow asks it from the extent's index
+  and moves the extent. The edge rules exist once.
+- **`Shift` applies only in the table.** On cards, `Shift`+arrow keeps doing what an arrow does.
+- **The extent is scrolled into view by hand**, since no focus move does it. `table-focus-scroll.js`
+  already brings a cell clear of the sticky columns sideways; that body becomes an exported
+  `revealCell(cell)`, called by its own `focusin` handler as now and by the range code. Then
+  `scrollIntoView({ block: 'nearest', inline: 'nearest' })` for the vertical: the cells' existing
+  `scroll-margin` keeps it clear of the header, and horizontally it is already a no-op.
+- `handleKeyboardNavigate` already returns for an open cell, so `Shift`+arrow inside one stays text
+  selection with no extra code.
+
+---
+
+## 5. Drawing it
+
+**Each cell in the range carries `in-range`, and the cells on its edges `range-top`,
+`range-bottom`, `range-left`, `range-right`.** CSS draws a 2px inset `box-shadow` on each marked
+side, so only the outside of the rectangle is outlined, and a translucent `background-image` tints
+the whole range:
 
 ```css
 .note-table-cell.in-range {
@@ -175,140 +140,121 @@ cell is marked with, so only the outside of the rectangle is outlined, and a tra
 .note-table-cell.in-range.range-right  { --rr: 2px; }
 ```
 
-**The edge rules name `.in-range` as well**, so they outrank the zeroes it sets whatever order the
-rules end up in. In the prototype they came first and the zeroes silently won: the tint drew and no
-border did.
+- **The edge rules name `.in-range` too**, so they outrank its zeroes in any rule order. In the
+  prototype they came first and the zeroes won: the tint drew and no border did.
+- **The sticky edge is kept by naming it.** The last sticky column draws the line where the sticky
+  columns end as a `box-shadow` on each of its cells, and a cell has one shadow list, so the range's
+  would replace it. `note-table-sticky.css` sets that value once as `--sticky-edge` on
+  `.is-sticky-last` and draws `box-shadow: var(--sticky-edge)`; the range appends the variable to its
+  own list. Prototyped with the table scrolled sideways: the range's border draws, and the sticky
+  line runs unbroken down every row, through the range too. The opened cell's drop shadow cannot meet
+  a range, since opening a cell ends one. No other cell sets a `box-shadow`.
+- **The tint layers over the row colour** without knowing it: a `background-image` paints above
+  whatever `background-color` the row's colour branches set.
+- **It sits beside the anchor's outline**, since `outline` and `box-shadow` are separate properties.
 
-**How it tracks a drag.** The pointer is only ever used to answer "which cell am I over?", and
-nothing is positioned from its coordinates. Each time that answer changes (§3.2), the paint function
-takes the anchor's row and column and the hovered cell's, works out the rectangle (lowest to highest
-row, lowest to highest column — anchor r1 c3 dragged to r5 c1 is r1–r5 × c1–c3), and re-marks the
-cells. So the border always lies on cell boundaries and jumps a cell at a time. The keyboard reaches
-the same function with the extent in place of the hovered cell. Rows and columns come from DOM
-positions (a row's place in `.list-table`, a cell's place in its row), so **no geometry is read** and
-nothing forces a layout mid-gesture.
+**The paint function** takes the anchor's and extent's row and column — from DOM positions, never
+from geometry, so nothing forces a layout mid-gesture — works out the rectangle (anchor r1 c3 to
+r5 c1 is r1–r5 × c1–c3), clears the marks from the cells it marked last time and marks the new ones.
+So the border lies on cell boundaries and jumps a cell at a time. The pointer is only ever asked
+which cell it is over.
 
-What the marks cost, and why they are cheap:
+**Performance: no throttling, and the simple repaint is enough.** Measured in a Chromium prototype
+with the table's `subgrid` rows and 20 columns, including style and layout: under 2ms per cell
+crossing at 50 rows, 2.6ms at 1,000 (p95 5ms), against a 16ms frame. The marks are paint-only, so no
+layout runs however many rows the page holds. Chrome delivers `pointermove` at most once a frame, and
+a move within a cell costs a `closest()` and a comparison. Marking a whole 1,000 × 40 page at once
+took about half a second — so if a range that size is ever felt to lag on each further `Shift`+arrow,
+the fix is to change only the cells whose marks differ. Not before.
 
-- **They are paint-only.** `box-shadow` and `background-image` change no box, so no layout runs,
-  however large the table. This is why the cells draw the outline, rather than one overlay (below).
-- **Only the cells whose marks change are touched.** The edge classes are cleared and re-applied on
-  the old and new perimeter, which is at most two rows and two columns. `in-range` is changed only
-  on the cells that entered or left the rectangle, which is the difference between the old one and
-  the new one. That is one row or column per crossing, not the whole area, so a range already
-  1,000 rows tall still grows sideways at the cost of one column.
-- **The tint layers over the row colour** without knowing it. A row's background is
-  `attr(data-color)` through `color-mix`, with hover and suppressed branches (see the fade note in
-  `note-table-cell.css`). A `background-image` paints above whatever `background-color` those
-  branches set.
-- **Sticky columns need one change, because they already use `box-shadow`.** The last sticky
-  column draws the line where the sticky columns end as `box-shadow: 3px 0 0 0 rgb(0 0 0 / 0.15)`
-  on each of its cells (`note-table-sticky.css`), so those cells joining a range would lose it:
-  the property holds one list, and the range's rule would replace it rather than add to it. The
-  fix is to **make that shadow a named layer**. `note-table-sticky.css` sets
-  `--sticky-edge: 3px 0 0 0 rgb(0 0 0 / 0.15)` on `.is-sticky-last` and draws it as
-  `box-shadow: var(--sticky-edge)`. The range rule appends `var(--sticky-edge, 0 0 transparent)`
-  to its own list. The value is stated once, in the file that owns it; the range only knows the
-  name. Prototyped: a range across the sticky boundary, scrolled sideways, draws its border and the
-  sticky line runs unbroken down every row, through the range included. Otherwise the border
-  moves with the cells, so it is right across the boundary with no further work.
-- **The opened cell's drop shadow** (`note-table-cell.css`) cannot meet a range, since opening a
-  cell ends one (§2.3).
-- **Check for any other `box-shadow` on a table cell when building**; anything found becomes a
-  named layer the same way.
-- **It sits beside the anchor's `is-selected` outline** without disturbing it, because `outline` and
-  `box-shadow` are separate properties.
-
-**Why not one overlay element, measured.** The first idea was a single element with one border,
-pinned to the range's corner cells by CSS anchor positioning (or, the same thing done differently,
-placed on `.list-table`'s grid lines with `grid-area`). It drew correctly, sticky case included. But
-moving it is a layout change inside `.list-table`, and Chrome answers that by laying out the whole
-table grid again. Prototyped in Chromium with the table's `subgrid` rows and 20 columns, the time per
-cell crossing, including style and layout, was:
-
-| Rows on the page | Anchor overlay | Grid-line overlay | Cell marks |
-|---|---|---|---|
-| 50 (the default) | 1.5ms | 1.2ms | 1.9ms |
-| 200 | 6.8ms | 6.5ms | 1.8ms |
-| 1,000 (the maximum) | 54ms (p95 116ms) | 56ms (p95 121ms) | 2.6ms (p95 5ms) |
-
-An overlay costs time in proportion to the rows on the page, and a page may hold 1,000. The cell marks
-did not, and those figures are for the naive version that re-marked the whole range each time, up to
-about 1,500 cells. Even marking an entire 1,000 × 40 page at once (40,000 cells — `Ctrl+Shift+Down`
-then `Ctrl+Shift+Right`) took about half a second including the frames that painted it: acceptable for a
-one-off key press, and the reason the paint function changes only the cells that differ rather than
-re-marking the whole range.
-
-**No throttling.** Chrome already delivers `pointermove` at most once per frame for a mouse. A move
-that stays within one cell costs a `closest()` and a comparison (under a microsecond, measured). A
-cell crossing costs the table above. Key repeat on `Shift`+arrow is about 30 a second. Nothing
-needs debouncing or batching into `requestAnimationFrame`, and adding it would only put a frame of
-lag behind the pointer.
-
-### 3.4 Text selection
-
-**Closed cells get `user-select: none`**, always, not only during a drag. Otherwise a drag across
-cells paints the browser's own text selection over the range, and a second highlight saying
-something different is worse than none. An open cell keeps its text selection, since that is the
-caret's. Nothing is lost: selecting part of a closed cell's text was never a supported act — the
-second press opens it.
-
-**Links and images in a cell are not draggable.** An `<a href>` starts a native drag-and-drop when
-pressed and moved, which cancels the pointer stream (`pointercancel`) and ends the range at once —
-from any cell holding a `[[link]]`, the file column's link and a tag pill. `-webkit-user-drag: none`
-on `.list-table a`, or `draggable="false"` in `render-internal-link.js` and the pill renderer; the
-CSS is one line and needs no renderer to know.
-
-### 3.5 `is-ranging`
-
-A class on `.list-table` for the length of a drag, for anything that should behave differently while
-one is held — the column hover highlight (`table-col-hover.js`) flickering across columns under a
-dragging pointer is the likely first customer. Nothing else is planned on it; it is cheap to have.
-
-### 3.6 Deferred: auto-scroll
-
-Holding a drag at the table's edge does not scroll it. A range too wide or tall for the screen is
-made from the keyboard, where `Ctrl+Shift`+arrow is exactly that job, or by scrolling with the wheel
-while the button is held and moving the pointer once. Worth adding if missed; not worth building
-before it is.
+**Why not one outline element.** A single element pinned to the range's corners with anchor
+positioning (or placed on the grid lines with `grid-area`) drew correctly, sticky case included. But
+moving any element inside `.list-table` makes Chrome lay out the whole table grid again: 55ms per
+crossing at 1,000 rows, p95 over 110ms. A page can hold 1,000 rows. Recorded here so it is not tried
+again.
 
 ---
 
-## 4. Copying (step 2 — decisions still open)
+## 6. Copying (step 2 — decisions still open)
 
-- **What copying puts on the clipboard.** TSV is what a spreadsheet expects, but a cell's text may
-  itself contain a tab or a newline, and a list cell is one comma-joined line. Decide the escaping
-  rule, and whether a second flavour (`text/html`, or gypsum's own) is written alongside so that a
-  paste back into gypsum can be exact where a paste into Excel is merely reasonable.
-- **Whether the copied text is the cell's text or its value.** The cell rules say a cell shows the
-  note's own text; copy almost certainly follows, but it needs saying, because it decides what
-  paste receives.
-- **What a range may cross.** Probably anything — reading is safe — so an info column, a locked
-  column, a mismatched cell and a linked column are all inside a range and all copied, even though
-  paste will refuse to write most of them. **Step 1 already assumes this**: every body cell can be
-  a corner. If copy decides otherwise, it filters; the range itself does not change.
-- **Which keys are taken.** `Ctrl/Cmd+C` must not fire while a cell is open for editing, where it
-  belongs to the caret. The same holds for every key in step 1: `handleKeyboardNavigate` already
-  returns for a `contenteditable` cell, so `Shift`+arrow inside an open cell stays text selection
-  with no extra code.
-- **With no range, `Ctrl+C` copies the focused cell** — a range of one — so the key does something
-  predictable wherever focus is in the table.
+- **The clipboard format.** TSV is what a spreadsheet expects, but a cell's text may hold a tab or a
+  newline, and a list cell is one comma-joined line. Decide the escaping rule, and whether a second
+  flavour (`text/html`, or gypsum's own) goes alongside so a paste back into gypsum can be exact.
+- **The cell's text, not its value** — almost certainly, since a cell shows the note's own text; it
+  decides what paste receives, so it needs saying.
+- **A range may cross anything.** Reading is safe, so info, locked, mismatched and linked cells are
+  all copied, though paste will refuse to write most of them. Step 1 already assumes this: any body
+  cell can be a corner.
+- **`Ctrl/Cmd+C` goes in `keyboard-shortcuts.js`**, beside the other `Ctrl` keys, and must not fire
+  while a cell is open, where it belongs to the caret.
+- **With no range, it copies the focused cell** — a range of one.
 
 ---
 
-## 5. Tests
+## 7. Where the code goes
 
-Level 2, in the spec that covers keyboard navigation and cell selection — none of this writes a file
-until paste.
+Two new JS files and one new CSS file; everything else is a small edit to the file that already owns
+that concern. Nothing is duplicated: each piece that already exists is exported and reused.
 
-- A press and release in one cell still selects and, on the second press, opens it; a drag to
-  another cell opens nothing, and nor does a drag that returns to its start.
-- `Shift`+arrow and `Ctrl+Shift`+arrow produce the expected `tableRange` and leave focus on the
-  anchor; a plain arrow clears it and moves from the anchor.
-- A range made by `Shift`+arrow, with `Shift` then released, is continued rather than restarted by
-  the next `Shift`+arrow or `Ctrl+Shift`+arrow; the same after a mouse drag.
-- The marked cells are exactly the rectangle, and the edge classes exactly its perimeter, after a
-  drag that grows the range and then shrinks it back (the diff is where a stale mark would hide).
-- A drag started on a `[[link]]` makes a range rather than dropping it.
+| File | New or edited | What |
+|---|---|---|
+| `ui/ui-functions-cell/cell-range.js` | **new** | The range itself: `extendRange(cell)`, `clearRange()`, and the paint. Beside `cell-expand.js`, which owns the single-cell mark; this owns the many-cell one. |
+| `ui/ui-functions-cell/cell-range-drag.js` | **new** | The pointer gesture: start, move, end, and whether the last press crossed a cell. Separate from `cell-range.js` because the keyboard uses the range and not the drag. |
+| `css/note-table-range.css` | **new** | The marks (§5), `user-select` on closed cells, `-webkit-user-drag` on the table's links, the `--range-tint` token. Imported in `style.css` beside `note-table-sticky.css`. |
+| `ui/ui-functions-click/keyboard-navigate.js` | edited | The arithmetic becomes one function; the `Shift` branch calls `extendRange()`. |
+| `ui/ui-functions-click/keyboard-shortcuts.js` | edited | `clearRange()` in the Escape branch. |
+| `ui/ui-functions-cell/cell-expand.js` | edited | `clearRange()` in `handleCellFocusIn` and `expand()`; the crossed-a-cell check in `handleCellExpand`. |
+| `ui/ui-functions-table/table-focus-scroll.js` | edited | Body exported as `revealCell(cell)`. |
+| `ui/ui-functions-render/keep-cell-state.js` | edited | `addressOf()` and `elementAt()` exported. |
+| `ui/ui-functions-render/a-render-all-files.js` | edited | `clearRange()` in `doRender`. |
+| `css/note-table-sticky.css` | edited | The edge shadow's value moves into `--sticky-edge`. |
+| `ui/event-listeners-add.js` | edited | Registration (§8). |
+| `services/store.js`, `DATA-STRUCTURES.md` | edited | `tableRange: null`, and its entry. |
+| `CLAUDE.md` | edited | A short *Range selection* section (the model, the paint-only marks and why, the named sticky shadow) and the file map rows. |
 
-The sticky-boundary case (§3.3) is a screenshot, level 3.
+**Nothing goes in `services/`**: there is no business logic, only which cells are marked, and the
+rectangle is two `Math.min`/`Math.max` pairs inside the paint function — not worth a helper used once.
+
+---
+
+## 8. Registration, following the app's conventions
+
+- **The drag is registered like every other drag in the table** (column reorder, column resize, the
+  scrollbar): the press through `pointerDownActionHandlers`, the rest through document listeners
+  that return unless a drag is under way. The cell already carries `data-action="expand-cell"`, so:
+
+  ```js
+  const pointerDownActionHandlers = {
+      // ...
+      'expand-cell': handleRangeDragStart,
+  };
+  ```
+
+  and, in the block of drag listeners headed "The rest of a drag cannot be reached by data-action":
+
+  ```js
+  document.addEventListener('pointermove', handleRangeDragMove);
+  document.addEventListener('pointerup', handleRangeDragEnd);
+  document.addEventListener('pointercancel', handleRangeDragEnd);
+  ```
+
+  `handleCellPointerDown` stays where it is; the two read the same press for different reasons.
+- **Keys are not registered anywhere new.** `keyDownDelegate` → `handleKeyboardShortcuts` →
+  `handleKeyboardNavigate` already carries every arrow; the `Shift` branch lives inside that last
+  function, and Escape inside the second. Its early returns — autocomplete first, then an open
+  cell's editor — are what keep these keys out of an open cell.
+- No inline handlers, no new `data-action` values.
+
+---
+
+## 9. Tests
+
+Level 2, in the spec that covers keyboard navigation and cell selection — nothing here writes a file.
+
+- A press and release in one cell still selects, and on the second press opens; a drag to another
+  cell opens nothing, nor does a drag that returns to its start.
+- `Shift`+arrow and `Ctrl+Shift`+arrow give the expected range and leave focus on the anchor; a plain
+  arrow clears it and moves from the anchor.
+- A range is continued, not restarted, by the next `Shift`+arrow after `Shift` is released, and after
+  a drag.
+- A drag started on a `[[link]]` makes a range rather than being cancelled.
