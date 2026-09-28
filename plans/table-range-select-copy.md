@@ -44,32 +44,35 @@ its shape is the one to build against.
 
 ## 2. The range model
 
-### 2.1 A range is two corners, and focus is one of them
+### 2.1 Focus stays on the cell the range started from
 
-**The far corner is the focused cell.** The other corner, the *anchor*, is the cell focus was in when
-the range began — a new fact, but a small one. So:
+**Decided: the anchor is the focused cell, and the range grows away from it**, as in a spreadsheet.
+The other corner, the *extent*, is the only new fact. So:
 
-- **"Selection follows focus" stays the whole rule for the selected cell.** The focused cell still
-  wears the `is-selected` outline; inside a range that outline marks the corner that moves, which is
-  what a spreadsheet shows too.
-- **The keyboard code barely changes.** `Shift`+arrow is: set the anchor to the focused cell if
-  there is no range yet, then do exactly what the arrow already does. `Ctrl+Shift`+arrow reuses the
-  `Ctrl`+arrow jump unchanged, and `Shift+PageDown` extends by a page for free. Without `Shift`, an
-  arrow clears the range and moves as it does today.
-- **Keeping the moving corner on screen is already done.** `table-focus-scroll.js` scrolls a focused
-  cell clear of the header and the sticky columns; the far corner is a focused cell, so it gets that
-  for nothing.
-
-The alternative — focus stays on the anchor and the far corner is tracked separately, as Excel does —
-would need its own scroll-into-view, its own edge-jump code and its own mark, all to serve a
-distinction that matters for filling a range by typing, which is out of scope.
+- **"Selection follows focus" is untouched.** The focused cell is the anchor and keeps its
+  `is-selected` outline inside the range, marking where the range began and where a plain arrow
+  will move from.
+- **A mouse drag never moves focus at all.** The press focuses the start cell natively, as it does
+  today; the drag moves only the extent. So nothing in `handleCellFocusIn` has to tell a range's own
+  focus move from anyone else's — **any focus move ends the range** (§2.3), with no flag.
+- **`Shift`+arrow moves the extent, not focus.** With no range, the extent starts at the focused
+  cell. `Ctrl+Shift`+arrow jumps the extent to the end of its row or column, and `Shift+PageDown`
+  by a page. `keyboard-navigate.js` already turns a key and an index into a target index; that
+  arithmetic is lifted into one function asked from either index — focus's for a plain arrow, the
+  extent's with `Shift` — so the edge rules exist once.
+- **Without `Shift`, an arrow clears the range and moves from the anchor**, which is the focused
+  cell, so that is exactly today's behaviour.
+- **The extent has to be scrolled into view by hand**, since no focus move happens to do it.
+  `table-focus-scroll.js` already knows how to bring a cell clear of the header and the sticky
+  columns; its body becomes a function taking a cell, called by its `focusin` handler as now and by
+  the range code for the extent.
 
 ### 2.2 Where it lives
 
 `appState.tableRange`: `null`, or `{ anchor, extent }`, each `{ id, prop }` — a cell addressed by its
 row's file id and its column, the way `keep-cell-state.js` already addresses one, never by
-`data-index`, which shifts when the rows do. `extent` is the focused cell once the gesture ends; it is
-stored rather than read off `document.activeElement` so copy (and later paste) read one place.
+`data-index`, which shifts when the rows do. `anchor` is always the focused cell, but it is stored
+rather than read off `document.activeElement` so copy (and later paste) read one place.
 
 **Writing `appState` on every cell crossing is cheap; re-rendering is not, and nothing here
 re-renders.** A drag writes `tableRange` and calls one paint function (§3.3) that moves two classes.
@@ -87,14 +90,13 @@ leaves the table as a plain click would.
 
 ### 2.3 What ends a range
 
-- A focus move that is not an extension — a plain arrow, Tab, a click in another cell, a click
-  outside the table. `handleCellFocusIn` clears the range **unless** the move was made by the range
-  code itself, which says so with a module flag set just before it calls `focus()` — the one door
-  selection already goes through, asked one more question.
+- **Any focus move** — a plain arrow, Tab, a press in a cell, a press outside the table.
+  `handleCellFocusIn` clears `tableRange`, one line in the one door selection already goes through.
+  Nothing the range does moves focus, so nothing needs exempting.
+- A press on the anchor itself (which is already focused, so fires no `focusin`) starts a new drag
+  from it, which replaces the range on its first crossing and clears it if released where it began.
 - Escape, when no cell is open (an open cell's Escape still belongs to the cell, one level at a time).
 - Opening a cell (Enter, F2, a second press): the open cell is the whole of the user's attention.
-
----
 
 ## 3. Selecting with the pointer
 
@@ -130,24 +132,23 @@ In a new `ui-functions-cell/cell-range-drag.js`, registered in `event-listeners-
   `.list-table`) and **does nothing unless it is a different cell from last time.** So the work is
   per cell crossed — tens in a drag — not per mouse event. On the first crossing: the anchor is the
   start cell, the table gains `is-ranging` (§3.5), and `dragged` is set.
-- **`pointerup` / `pointercancel`** on the document — end the drag and focus the extent (with the
-  flag from §2.3 so the range survives it). `preventScroll` is not needed: the extent is under the
-  pointer.
+- **`pointerup` / `pointercancel`** on the document — end the drag. Nothing else: focus is already
+  on the anchor, where it stays (§2.1), and the range is already painted.
 
-**Focus does not move during the drag, only at the end of it.** Focusing each crossed cell would run
-`table-focus-scroll.js` mid-drag and scroll the table under the pointer, which then puts a different
-cell under the pointer. At the end the cell is where the pointer is, so the scroll has nothing to do.
+**Focus never moves during a drag**, which is also what keeps the table still under the pointer:
+focusing each crossed cell would run `table-focus-scroll.js` mid-drag and scroll a different cell
+under it.
 
 Document listeners rather than pointer capture: capture set on `pointerdown` retargets the `click`
 to the capturing element, which would break the click that opens a cell. If a release outside the
 window turns out to be missed, capture can be taken on the *first crossing*, when there is no click
 left to protect.
 
-### 3.3 Drawing the outline: one overlay, anchored to two cells
+### 3.3 Drawing the outline: one overlay, anchored to the range's corner cells
 
-**The range is one element with a border, not a border drawn on each edge cell.** It is positioned
-with CSS anchor positioning — already used by the undo list, the tooltip and the completion popup —
-between two cells:
+**The range is one element with a border, and it never follows the pointer.** Its four edges are
+pinned by CSS anchor positioning — already used by the undo list, the tooltip and the completion
+popup — to the outer edges of two *cells*:
 
 ```css
 .note-table-cell.range-start { anchor-name: --range-start; }
@@ -163,44 +164,54 @@ between two cells:
     background: color-mix(in srgb, var(--colour-contr) 8%, transparent);
     pointer-events: none;
 }
+.list-table:has(.range-start) .table-range { display: block; }   /* none otherwise */
 ```
 
-`range-start` goes on the rectangle's **top-left** cell and `range-end` on its **bottom-right**,
-worked out from the two corners' row and column positions — not on the anchor and the extent, which
-can be any two opposite corners. The overlay is hidden (`display: none`) while no cell carries
-`range-start`.
+**How it tracks a drag.** The pointer is only ever used to answer "which cell am I over?". Each time
+that answer changes (§3.2), the paint function:
+
+1. takes the anchor's row and column and the hovered cell's row and column (row = the row
+   element's position in `.list-table`, column = the cell's position in its row);
+2. works out the rectangle's **top-left** cell — lowest row, lowest column — and its
+   **bottom-right** — highest of each. These are often *neither* the anchor nor the hovered cell:
+   anchor r1 c3 dragged to r5 c1 gives r1 c1 and r5 c3;
+3. moves `range-start` and `range-end` onto those two cells.
+
+The browser re-resolves the overlay in the same frame, so its border sits on the outer edges of the
+cells at the rectangle's corners and therefore along the cell boundaries all the way round. It jumps
+a whole cell at a time as the pointer crosses into the next one; a free-form drag rectangle is never
+drawn, because nothing is ever positioned from the pointer's coordinates. The keyboard reaches the
+same paint function with the extent in place of the hovered cell.
 
 What that buys:
 
-- **Painting a range is moving two classes**, whatever its size — the paint function does nothing
-  else. No per-cell class on hundreds of cells, no `getBoundingClientRect`, no per-frame JS.
-- **It stays right without being told.** A column resize, a sideways scroll, a row that re-renders
-  in place: the browser re-resolves the anchors, and none of those code paths need to know a range
-  exists.
-- **A true outline of the rectangle**, which is the requirement: one border, around the outside,
-  with no inner lines to suppress. Per-cell edge classes (`range-top`, `range-left`…) would reach
-  the same picture with four classes and a box-shadow per side, on every cell the range touches.
+- **Painting a range is moving two classes**, whatever its size. No class on each of hundreds of
+  cells, no `getBoundingClientRect`, no JS per frame.
+- **It stays right without being told.** A column resize, a sideways scroll, a row re-rendered in
+  place: the browser re-resolves the anchors, and none of those code paths need know a range exists.
+- **One border round the outside**, with no inner lines to suppress. Per-cell edge classes
+  (`range-top`, `range-left`…) reach the same picture with four classes and a box-shadow per side on
+  every cell the range touches.
 - **The tint layers over the row colour** without knowing it. A row's background is
   `attr(data-color)` through `color-mix` with hover and suppressed branches (see the fade note in
-  `note-table-cell.css`); a translucent layer on top sidesteps all of them, the same argument that
-  made a mask attractive there — without the mask's problem, since the overlay is not the cell and
-  does not eat the cell's outline.
+  `note-table-cell.css`); a translucent layer on top sidesteps all of them — and, being a separate
+  element, it does not eat the anchor's outline the way the mask did.
 
 **Where the overlay lives:** one element inside `.list-table`, the sideways scroller, given
-`position: relative` so it is the containing block. Anchors inside the same scroll container as the
-positioned element move with it, so no scroll compensation is asked of the browser. It is drawn by
-the table renderer, so it exists while the table does, like the control row.
+`position: relative` so it is the containing block, and **after the rows in tree order** — an anchor
+sharing the positioned element's containing block must be laid out before it. Anchors in the same
+scroll container move with it, so no scroll compensation is asked of the browser. Drawn by the table
+renderer, so it exists while the table does.
 
-**Stacking:** above the rows and the sticky cells (4), below an opened sticky cell (5) and
-`.table-chrome` (6), so it slides under the header like the rows. That needs a slot — renumber the
-sticky layers or give the overlay 5 and the opened cell 6/chrome 7; decide when building, and update
-the stacking note in CLAUDE.md with it.
+**Stacking:** above the rows and the sticky cells (4), below `.table-chrome` (6), so it slides under
+the header like the rows. An opened sticky cell is 5; the overlay can share 5 since a range ends when
+a cell opens (§2.3). Update the stacking note in CLAUDE.md with it.
 
-**To prove first, with a screenshot, before building the rest:** a range that spans the sticky
-boundary while the table is scrolled sideways. A sticky cell's offset is applied at scroll time, and
-whether an anchor inside a sticky cell reports its stuck position or its laid-out one is the one
-place this could draw wrong. If it does, the fallback for that case alone is to clip the overlay to
-the non-sticky columns — not to abandon the approach.
+**Prototyped, and it works — the sticky case included** (standalone page with the table's
+`subgrid` rows, `overflow: clip visible` and a sticky first column, driven by Playwright in
+Chromium). A drag from r1 c3 to r5 c1 outlines exactly r1–r5 × c1–c3, updating as it goes. A range
+from the sticky column to c4 with the table scrolled sideways draws its left edge at the sticky
+column's *stuck* position, not its laid-out one, so the outline stays correct across the boundary.
 
 ### 3.4 Text selection
 
@@ -260,7 +271,8 @@ until paste.
 
 - A press and release in one cell still selects and, on the second press, opens it; a drag to
   another cell opens nothing, and nor does a drag that returns to its start.
-- `Shift`+arrow and `Ctrl+Shift`+arrow produce the expected `tableRange`; a plain arrow clears it.
+- `Shift`+arrow and `Ctrl+Shift`+arrow produce the expected `tableRange` and leave focus on the
+  anchor; a plain arrow clears it and moves from the anchor.
 - The overlay's box matches the union of the corner cells' boxes, after a column resize too.
 - A drag started on a `[[link]]` makes a range rather than dropping it.
 
