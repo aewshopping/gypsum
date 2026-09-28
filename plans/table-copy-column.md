@@ -240,6 +240,11 @@ holds a list, otherwise the type of `read`. For a core source, the schema's type
 The report line says what happened: `copied project → status to project_status: 35 notes,
 12 overwritten, 2 skipped (locked)`.
 
+**Undo takes back the notes and nothing else.** The column stays, faded if nothing now holds a
+value (CLAUDE.md, *An empty column*), and the type stays set, as neither removing a column nor
+deleting its values forgets a type. So a copy needs nothing in undo's `beforeRefresh`, unlike a
+rename, and one edit per note needs no `allOrNothing`.
+
 ---
 
 ## 5. Decisions
@@ -303,22 +308,104 @@ These were the open questions; each is now settled.
 
 ---
 
-## 7. Verification (sketch)
+## 7. Verification
 
-- **Level 1**: exact bytes for a new key and an overwrite; a bare source key copied as a bare key,
-  and `""` and `[]` copied as written; a note without the source key, and a note whose linked cell
-  shows nothing, both left untouched; a linked list with an empty slot written as three items; a
-  linked value from a `via` list with one link written as a one-item list; an item containing a comma
-  written as one item; the journal is on disk before the first write; notes already holding the value
-  are not written; locked notes are skipped; one undo restores every byte; a note whose target was
-  edited between the passes is refused; **a re-copy of a linked column whose values have not changed
-  writes no note** (§3.4.2).
-- **Node**: the raw text each kind of source produces (§3.3), that a linked value formatted twice
-  gives the same text (§3.4.2), the list writer keeping a target's flow or block form, and
-  `copyTargetProblem()` refusing the source, a linked column's `via`, core names other than `title`
-  and `color`, and a case variant of an existing property — and allowing `title`, `color` and a
-  linked column's `read` (§3.5). `readDefinition()` keeping `copyTo`.
-- **Level 2**: the dialog's lines — new, overwrite with "already match", and "nothing to copy" — and
-  its button text; the new column appearing without saving a pending reorder; the target's type set
-  to the source's; a linked column's dialog pre-filled with its last target, and the linked column
-  dialog's save keeping it.
+**Most of what keeps a copy safe is already tested, and is not tested again.** The copy adds no new
+kind of write: it sends ordinary edits through `applyRawEdits`, with the delete's and the rename's
+journal. Locked notes being skipped, `expect` refusing a changed note, a throw mid-batch, the pool,
+a folder load refused mid-write and undo putting bytes back are all proved for every caller by
+`49-table-cell-writing`, `52-table-undo-stack`, `54-delete-property` and `57-rename-property`. What
+this plan must prove is **that the copy uses that machinery correctly** — which one end-to-end test
+shows — and **the new rules it adds**, which are pure and belong in node.
+
+### 7.1 Node, in milliseconds — where the detail goes
+
+Each case below is a function call, not a page load, so this is where the long list lives. Added to
+the spec that already covers the module, as `appModule()` calls:
+
+- **`49-table-cell-writing.spec.js`** (level 1, since these are bytes): what each kind of source
+  produces for one note (§3.3), run through `planFileEdits` against a note's text — a front matter
+  value byte for byte in flow, block and quoted form; a bare key copied bare; `""` and `[]` as
+  written; a linked value from a `via` list with one link written as a one-item list; an empty slot
+  kept as a `""` item; an item holding a comma kept whole; overwriting an existing flow list keeps
+  it flow. And **the cheap re-copy** (§3.4.2): the same value planned a second time against the
+  note the first plan produced gives `null` — no splice, so no write.
+- **`48-yaml-value-write.spec.js`** (level 1): the new list writer, from items, in both forms.
+- **`58-linked-columns.spec.js`** (level 2, beside the existing `readDefinition` node test):
+  `readDefinition()` keeping `copyTo`, and dropping one that is not a non-empty string.
+- **The spec that tests `renameProblem()`**, for `copyTargetProblem()` (§3.5): refuses the source, a
+  linked column's `via`, a core name other than `title` and `color`, and a case variant of an
+  existing property; allows `title`, `color`, an exact existing name and a linked column's `read`.
+  Level 2: a wrong answer here offers or refuses a name, and the service asks again before writing.
+
+### 7.2 Level 1, in the browser — two tests
+
+A new spec, `tests/1-data/6x-copy-property.spec.js`, on the existing `tests/fixtures/property-notes.js`
+folder, which already holds every note shape and the locked notes. **One page load per test**, each
+looking at everything it can, as the rename spec's main test does:
+
+1. **A front matter copy, end to end.** Copy `people` into a property some notes already have,
+   through the service. In the between-passes hook, check the journal is on disk with nothing yet
+   written, and edit one carrying note's target. Then: exact bytes for every note — created,
+   overwritten, already matching (not written: `__writes`), without the source key (not read),
+   locked (not written), and the one edited between the passes (refused) — then one undo, and the
+   whole folder is back byte for byte.
+2. **A linked copy, then a re-copy.** Copy a linked column into a new property, check the bytes,
+   and copy again: **no note is written**. This is the one behaviour the plan is optimised for
+   (§1.1), and the only one where the formatting and the writer have to agree across two runs in a
+   real folder.
+
+Nothing else goes in level 1.
+
+### 7.3 Level 2 — one test
+
+In `58-linked-columns.spec.js` rather than a new file, since the pre-fill is a linked column's and
+the rest is one dialog: open "copy column…" on a linked column, type a new name and an existing one
+and read the line and the button each time (`creates…`; `12 to overwrite, 8 already match`;
+`overwrite 12 notes`), type `size` and see the refusal, copy, and check the column appears with
+the source's type; reopen and find the name box pre-filled. One page load.
+
+**Left untested on purpose**: that the new column goes into the saved layout without saving a
+pending reorder, since the copy calls the code the linked columns spec already tests for that; the
+report line's wording; the progress bar and the busy table, shared with the delete.
+
+---
+
+## 8. Where the code goes
+
+**No new directory, and no new CSS.** Every new file sits beside its rename counterpart, so someone
+who knows how rename works finds copy in the same places. The dialog is built only from the shared
+`.info-modal` parts in `modal-info.css` (`.info-modal-field`, `.info-modal-message-stack`,
+`.info-modal-btn-row`, `btn-action-danger` for an overwrite), as the rename and linked column dialogs
+are.
+
+### 8.1 New files
+
+| File | Beside | What it holds |
+|------|--------|---------------|
+| `editing/copy-property.js` | `rename-property.js` | The service: the passes (§3.2), the undo batch, the result. No DOM. |
+| `editing/copy-source-value.js` | `plan-file-edits.js` | Pure: what one note contributes for each kind of source — raw text, a function of the target's shape, or nothing (§3.3, §5.3). Asked by the service and by the forecast, so the dialog and the write agree on which notes have something to copy and which already match. |
+| `table-layouts/follow-property-copy.js` | `follow-property-rename.js` | Everything outside the notes, run in the write pass's `beforeRefresh`: the type (§4.3), the column shown, and a linked column's `copyTo` — in one layouts write. |
+| `ui/ui-functions-click/column-copy-dialog.js` | `column-rename-dialog.js` | Open, keystroke, Enter, cancel, close, `takeCopyRequest()`. |
+| `ui/ui-functions-click/column-copy-property.js` | `column-rename-property.js` | The confirm: busy table, progress, report, focus. |
+
+### 8.2 Existing files that gain a little
+
+| File | Gains |
+|------|-------|
+| `services/property-name.js` | `copyTargetProblem()`, beside `renameProblem()`. `propertyNameProblem()`'s core-name rule is split from its text rules, so the copy can ask the text rules alone and allow `title` and `color` without a second copy of them. The case check reuses `keysIgnoringCase()`. |
+| `services/file-parsing/yaml-value-write.js` | An exported list writer taking items (§3.3), the existing private `listText()` made public rather than a second one written. |
+| `editing/property-forecast.js` | `copyForecast()` — new, to overwrite, already matching, nothing to copy, locked — beside `propertyForecast()`. |
+| `table-layouts/layout-apply.js` | The column entry `withLinkedColumn()` appends, taken out into a pure `withColumnShown(doc, name)` that both use, so adding a column to the saved layout is written once. |
+| `services/linked-properties.js` | `readDefinition()` keeps `copyTo`. |
+| `ui/ui-functions-click/linked-column-save.js` | Carries the stored `copyTo` forward on save. |
+| `ui/ui-functions-click/column-menu.js`, `ui/event-listeners-add.js` | "copy column…" and its actions. |
+| `ui/ui-functions-render/output-report.js` | `reportCopy()`, beside `reportRename()`. |
+| `table-undo/describe-batch.js` | The `copy-property` kind (§5.7). |
+| `index.html` | `<dialog id="modal-column-copy">`, the rename dialog's markup with a `<datalist>`. |
+
+**Deliberately not shared**: the rename dialog and the copy dialog look alike, but the only code
+they have in common is the three lines that swap the forecast for the refusal, and a helper for
+three lines costs more to follow than it saves. The copy dialog's forecast also differs in kind: it
+depends on the name typed (new, existing, how many match), so the source values are worked out once
+when the dialog opens and only the target is compared on each keystroke.
