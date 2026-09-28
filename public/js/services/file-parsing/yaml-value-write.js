@@ -181,6 +181,23 @@ export function toYamlItem(item, inFlow) {
 }
 
 /**
+ * A list as the text after its key's colon, from its items rather than from a line of typed text.
+ *
+ * For a value that is already a list — a linked column's slots, a note's tags — which toYamlText
+ * would have to join with commas and split again, turning `London, UK` into two items and dropping
+ * an empty slot. Each item is quoted by the one rule, so an empty one is written `""` and keeps its
+ * place. The file's own form and indentation are kept as toYamlText keeps them.
+ *
+ * @param {string[]} items - The items, in order.
+ * @param {{form?: string, itemPrefix?: string}} [shape] - What the file already looks like at this
+ *   key; see toYamlText.
+ * @returns {string} The text after the colon — '' for no items, meaning the key should go.
+ */
+export function toYamlList(items, shape = {}) {
+    return listText(items, shape.form, shape.itemPrefix ?? '  - ');
+}
+
+/**
  * A list as the text after its key's colon.
  *
  * **A list with nothing left in it writes nothing at all**, whatever form it had — which is this

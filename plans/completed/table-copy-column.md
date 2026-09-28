@@ -1,7 +1,6 @@
 # Plan: copy a column into every note
 
-Status: **skeleton** — the approach is recommended (§3), the questions it raised are decided (§5),
-and nothing is built.
+Status: **built** — the approach in §3, the decisions in §5, the tests in §7 and the files in §8.
 Related: `plans/completed/table-linked-properties.md` §10, which recorded this as "later: writing the
 linked value back"; `plans/completed/table-delete-column.md` and
 `plans/completed/table-rename-column.md`, whose machinery this reuses.
@@ -330,17 +329,17 @@ the spec that already covers the module, as `appModule()` calls:
   kept as a `""` item; an item holding a comma kept whole; overwriting an existing flow list keeps
   it flow. And **the cheap re-copy** (§3.4.2): the same value planned a second time against the
   note the first plan produced gives `null` — no splice, so no write.
-- **`48-yaml-value-write.spec.js`** (level 1): the new list writer, from items, in both forms.
+- The new list writer, `toYamlList()`, is covered by those same cases in `49` — both forms, the
+  empty slot and the comma — rather than by a separate test in `48-yaml-value-write.spec.js`.
 - **`58-linked-columns.spec.js`** (level 2, beside the existing `readDefinition` node test):
   `readDefinition()` keeping `copyTo`, and dropping one that is not a non-empty string.
-- **The spec that tests `renameProblem()`**, for `copyTargetProblem()` (§3.5): refuses the source, a
+- **`49-table-cell-writing.spec.js`, beside `renameProblem()`**, for `copyTargetProblem()` (§3.5): refuses the source, a
   linked column's `via`, a core name other than `title` and `color`, and a case variant of an
   existing property; allows `title`, `color`, an exact existing name and a linked column's `read`.
-  Level 2: a wrong answer here offers or refuses a name, and the service asks again before writing.
 
 ### 7.2 Level 1, in the browser — two tests
 
-A new spec, `tests/1-data/6x-copy-property.spec.js`, on the existing `tests/fixtures/property-notes.js`
+A new spec, `tests/1-data/59-copy-property.spec.js`, on the existing `tests/fixtures/property-notes.js`
 folder, which already holds every note shape and the locked notes. **One page load per test**, each
 looking at everything it can, as the rename spec's main test does:
 

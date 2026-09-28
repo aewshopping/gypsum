@@ -211,12 +211,7 @@ export function applyLinkedPropertiesFromFile(raw) {
 /**
  * The layouts document with a new linked column in it: its definition stored, and — when a layout
  * is active — **one visible entry appended to that layout's stored columns, and nothing else
- * changed.** plans/completed/table-linked-properties.md §3.1.
- *
- * Appended to what the file holds rather than saved from the screen, because the screen may carry a
- * reorder or a resize waiting to be saved, and adding a column must not make those look saved. Only
- * the active layout gets it: the others meet it hidden, the way they meet any column they have not
- * chosen. Pure, so the rule is tested in node.
+ * changed.** plans/completed/table-linked-properties.md §3.1. Pure, so the rule is tested in node.
  *
  * @param {object} doc - The layouts document, as readLayouts returns it.
  * @param {string} key - The new column's key.
@@ -224,18 +219,39 @@ export function applyLinkedPropertiesFromFile(raw) {
  * @returns {object} A new document; `doc` is untouched.
  */
 export function withLinkedColumn(doc, key, definition) {
-    const next = { ...doc, linkedProperties: { ...doc.linkedProperties, [key]: definition } };
+    return withColumnShown({ ...doc, linkedProperties: { ...doc.linkedProperties, [key]: definition } }, key);
+}
 
+/**
+ * The layouts document with one column shown in the active layout: appended visible when the layout
+ * has never heard of it, made visible where it stands when it is there hidden, and **nothing else
+ * changed.** Used for a new linked column and for the target of a copy.
+ *
+ * Applied to what the file holds rather than saved from the screen, because the screen may carry a
+ * reorder or a resize waiting to be saved, and adding a column must not make those look saved. Only
+ * the active layout gets it: the others meet it hidden, the way they meet any column they have not
+ * chosen. Under the app's defaults there is no layout to add it to. Pure, so it is tested in node.
+ *
+ * @param {object} doc - The layouts document, as readLayouts returns it.
+ * @param {string} name - The column's name.
+ * @returns {object} A new document, or `doc` itself when there is nothing to change.
+ */
+export function withColumnShown(doc, name) {
     const layout = doc.active ? doc.layouts?.[doc.active] : null;
-    if (!layout || !Array.isArray(layout.columns) || layout.columns.some(column => column?.name === key)) {
-        return next;
-    }
+    if (!layout || !Array.isArray(layout.columns)) return doc;
 
-    const orders = layout.columns.map(column => column?.order).filter(Number.isFinite);
-    const order = orders.length > 0 ? Math.max(...orders) + 1 : layout.columns.length;
-    const entry = { order, name: key, ...defaultColumnEntry(key), visible: true };
-    next.layouts = { ...doc.layouts, [doc.active]: { ...layout, columns: [...layout.columns, entry] } };
-    return next;
+    const existing = layout.columns.find(column => column?.name === name);
+    if (existing?.visible === true) return doc;
+
+    let columns;
+    if (existing) {
+        columns = layout.columns.map(column => (column === existing ? { ...column, visible: true } : column));
+    } else {
+        const orders = layout.columns.map(column => column?.order).filter(Number.isFinite);
+        const order = orders.length > 0 ? Math.max(...orders) + 1 : layout.columns.length;
+        columns = [...layout.columns, { order, name, ...defaultColumnEntry(name), visible: true }];
+    }
+    return { ...doc, layouts: { ...doc.layouts, [doc.active]: { ...layout, columns } } };
 }
 
 /**

@@ -28,7 +28,7 @@ export function isLinkedKey(name) {
 
 /**
  * @param {string} key - A linked column's key.
- * @returns {{label: string|null, via: string, read: string}|undefined}
+ * @returns {{label: string|null, via: string, read: string, copyTo?: string}|undefined}
  */
 export function linkedProperty(key) {
     return appState.linkedProperties.get(key);
@@ -74,17 +74,24 @@ export function linkedHeading(key) {
  * string `via` and `read` is dropped rather than guessed at. A `label` that is not a non-empty
  * string is read as none, so the column is named after its choices.
  *
+ * `copyTo` is where the column was last copied into the notes, the copy dialog's pre-fill
+ * (plans/completed/table-copy-column.md §5.5). Kept when it is a non-empty string and dropped otherwise, and
+ * absent rather than null when there is none, so a column never copied writes nothing for it.
+ *
  * @param {*} raw - A `linkedProperties` entry as parsed from the file, or the dialog's choices.
- * @returns {{label: string|null, via: string, read: string}|null}
+ * @returns {{label: string|null, via: string, read: string, copyTo?: string}|null}
  */
 export function readDefinition(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    const { via, read, label } = raw;
+    const { via, read, label, copyTo } = raw;
     if (typeof via !== 'string' || via === '' || typeof read !== 'string' || read === '') return null;
     // Neither may name another linked column: that is the chaining this feature rules out. §3.4.
     if (isLinkedKey(via) || isLinkedKey(read)) return null;
     const named = typeof label === 'string' && label.trim() !== '' ? label.trim() : null;
-    return { label: named, via, read };
+    return {
+        label: named, via, read,
+        ...(typeof copyTo === 'string' && copyTo.trim() !== '' && { copyTo: copyTo.trim() }),
+    };
 }
 
 /**
@@ -96,7 +103,7 @@ export function readDefinition(raw) {
  * half of one, and a key nextLinkedKey() would never have made is refused.
  *
  * @param {string} key - A linked column's key.
- * @param {*} [definition] - `{label, via, read}`, or nothing to forget the column.
+ * @param {*} [definition] - `{label, via, read, copyTo?}`, or nothing to forget the column.
  * @returns {void}
  */
 export function setLinkedProperty(key, definition) {

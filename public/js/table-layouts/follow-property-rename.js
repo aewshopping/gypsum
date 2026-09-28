@@ -91,11 +91,12 @@ function follow(from, to, removedFrom) {
             if (property === from) setFlowchartOption(role, to);
         }
         for (const [key, definition] of [...appState.linkedProperties]) {
-            if (definition.via !== from && definition.read !== from) continue;
+            if (definition.via !== from && definition.read !== from && definition.copyTo !== from) continue;
             setLinkedProperty(key, {
                 ...definition,
                 via: definition.via === from ? to : definition.via,
                 read: definition.read === from ? to : definition.read,
+                copyTo: definition.copyTo === from ? to : definition.copyTo,
             });
         }
         if (appState.sortState.property === from) appState.sortState.property = to;

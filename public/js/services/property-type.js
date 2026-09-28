@@ -120,7 +120,7 @@ export function isTypeSettable(name) {
  * already true of any note with `color:` in its front matter; the table only makes it easy to reach.
  * The way back is the way in: clearing the cell removes the key, and the body tag applies again.
  */
-const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
+export const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
 
 /**
  * Whether this is a key only the notes define — which is what "delete column" and "rename column"

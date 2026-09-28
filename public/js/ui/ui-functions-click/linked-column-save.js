@@ -1,6 +1,6 @@
 // "add column" and "save" in the linked column dialog.
 
-import { setLinkedProperty, nextLinkedKey } from '../../services/linked-properties.js';
+import { setLinkedProperty, nextLinkedKey, linkedProperty } from '../../services/linked-properties.js';
 import { addLinkedProperty, saveLinkedProperties } from '../../table-layouts/layout-file.js';
 import { takeLinkedColumnRequest } from './linked-column-dialog.js';
 import { repaintColumnPicker } from './column-picker.js';
@@ -20,8 +20,11 @@ export function handleLinkedColumnSave() {
     const request = takeLinkedColumnRequest();
     if (!request) return;
 
+    // The dialog knows nothing of where the column was last copied to, and a re-point or a rename
+    // is no reason to forget it. plans/completed/table-copy-column.md §5.5.
     const key = request.key ?? nextLinkedKey();
-    setLinkedProperty(key, request.definition);
+    const copyTo = request.key ? linkedProperty(request.key)?.copyTo : undefined;
+    setLinkedProperty(key, { ...request.definition, copyTo });
     if (request.key) saveLinkedProperties();
     else addLinkedProperty(key);
 
