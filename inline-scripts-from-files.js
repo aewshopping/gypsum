@@ -25,11 +25,14 @@ try {
   // 3. Read HTML template and inline content
   let htmlContent = fs.readFileSync(htmlFile, 'utf8');
   
+  // Replace with a function, never a string: in a replacement string `$``, `$'` and `$&` are
+  // patterns, so a bundle containing one (a template literal ending in `$``) splices part of
+  // the page into the script.
   const cssLinkTag = '<link rel="stylesheet" href="public/style.css">';
-  htmlContent = htmlContent.replace(cssLinkTag, `<style>${cssContent}</style>`);
+  htmlContent = htmlContent.replace(cssLinkTag, () => `<style>${cssContent}</style>`);
 
   const jsScriptTag = '<script type="module" src="public/main.js"></script>';
-  htmlContent = htmlContent.replace(jsScriptTag, `<script>${jsContent}</script>`);
+  htmlContent = htmlContent.replace(jsScriptTag, () => `<script>${jsContent}</script>`);
   
   // 4. Write the final HTML file
   fs.writeFileSync(outputFile, htmlContent, 'utf8');
