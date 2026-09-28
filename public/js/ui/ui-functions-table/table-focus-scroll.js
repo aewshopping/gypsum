@@ -15,20 +15,30 @@
 /**
  * Focusin handler — scrolls the table so the focused header cell or body cell is fully visible.
  * Attach to document via event-listeners-add.js.
+ * @param {FocusEvent} evt
+ * @returns {void}
+ */
+export function handleTableFocusScroll(evt) {
+    const cell = evt.target.closest('.note-table-cell-header, .note-table-cell');
+    if (cell) revealCell(cell);
+}
+
+/**
+ * Scrolls the table sideways so a header cell or body cell is fully visible, clear of the sticky
+ * columns. Asked by focus, and by a range's moving corner, which is shown without being focused.
  *
  * offsetLeft is in the table's own coordinates for both: a header cell's is measured against
  * .table-chrome and a body cell's against its row, and each of those starts where the scrolled
  * content starts — the same space as the table's scrollLeft. It is also untouched by the
  * scroll-driven transform on .note-table-header, which getBoundingClientRect would have to be
  * corrected for.
- * @param {FocusEvent} evt
+ * @param {HTMLElement} cell
  * @returns {void}
  */
-export function handleTableFocusScroll(evt) {
-    const cell = evt.target.closest('.note-table-cell-header, .note-table-cell');
+export function revealCell(cell) {
     const scroller = document.querySelector('.list-table');
     // A sticky one is always on screen.
-    if (!cell || !scroller || cell.classList.contains('is-sticky')) return;
+    if (!scroller || cell.classList.contains('is-sticky')) return;
 
     // The sticky columns cover the left of the view, so a cell is only clear of them past their
     // width. Its own row's or header's sticky cells, which are the same widths either way.

@@ -1,0 +1,53 @@
+/* A range of table cells — see ui-functions-cell/cell-range.js.
+
+   The outline is drawn by the cells on the range's edges, each drawing the sides it has on the
+   outside, so the four sides join into one rectangle around the cells. Paint-only on purpose: an
+   inset box-shadow and a background image change no box, so marking a range lays nothing out,
+   however many rows the page holds. One element drawn around the range was measured and dropped —
+   see plans/table-range-select-copy.md §5.
+
+   The border is the selected cell's colour and width, so a range reads as the selection grown. */
+
+:root {
+    --range-tint: color-mix(in srgb, var(--colour-contr) 8%, transparent);
+}
+
+/* The tint is a background image so it lays over whatever background-color the row's colour, the
+   column hover and the sticky fill set, without having to know any of them.
+
+   --sticky-edge is the line the last sticky column draws where the sticky columns end
+   (note-table-sticky.css). A cell holds one shadow list, so without it here a range crossing that
+   column would wipe the line out along its height. */
+.note-table-cell.in-range {
+    --rt: 0px;
+    --rb: 0px;
+    --rl: 0px;
+    --rr: 0px;
+    background-image: linear-gradient(var(--range-tint), var(--range-tint));
+    box-shadow:
+        inset 0 var(--rt) var(--colour-contr),
+        inset 0 calc(-1 * var(--rb)) var(--colour-contr),
+        inset var(--rl) 0 var(--colour-contr),
+        inset calc(-1 * var(--rr)) 0 var(--colour-contr),
+        var(--sticky-edge, 0 0 transparent);
+}
+
+/* Naming .in-range as well is what makes these outrank its zeroes in whatever order the rules
+   arrive. In the prototype they came first, and the range drew its tint and no border at all. */
+.note-table-cell.in-range.range-top    { --rt: 2px; }
+.note-table-cell.in-range.range-bottom { --rb: 2px; }
+.note-table-cell.in-range.range-left   { --rl: 2px; }
+.note-table-cell.in-range.range-right  { --rr: 2px; }
+
+/* A drag across the table is a range, not the browser selecting the text it passes over — which
+   would paint a second highlight over the range, saying something different. An open cell keeps its
+   own: that selection is the caret's. */
+.list-table .note-table-cell:not(.is-expanded) {
+    user-select: none;
+}
+
+/* Pressing a link and moving starts the browser's own drag of the link, which cancels the pointer —
+   so a drag begun on a [[link]], a tag pill or the file column's link would end the range at once. */
+.list-table a {
+    -webkit-user-drag: none;
+}

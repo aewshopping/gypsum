@@ -11,6 +11,9 @@
  * **Carried here rather than by each caller**, the same arrangement the table's horizontal scroll
  * position already has and for the same reason: filtering, sorting, paging and saving would each
  * have to remember, and the one that forgot would be the bug.
+ *
+ * The addresses are shared with the table's range (ui-functions-cell/cell-range.js), which has to
+ * name a cell in appState and find it again, and is the same question.
  */
 
 /**
@@ -23,7 +26,7 @@
  * @param {Element|null} element
  * @returns {{vtId: string, prop: string|null}|null}
  */
-function addressOf(element) {
+export function addressOf(element) {
     const row = element?.closest?.('#output [data-vt-id]');
     if (!row) return null;
 
@@ -37,7 +40,7 @@ function addressOf(element) {
  * @param {{vtId: string, prop: string|null}|null} address
  * @returns {Element|null}
  */
-function elementAt(address) {
+export function elementAt(address) {
     if (!address) return null;
 
     const row = document.querySelector(`#output [data-vt-id="${CSS.escape(address.vtId)}"]`);

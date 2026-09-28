@@ -1,5 +1,7 @@
 import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
 import { releaseRowMove } from '../ui-functions-table/pending-row-move.js';
+import { clearRange } from './cell-range.js';
+import { pressCrossedCells } from './cell-range-drag.js';
 
 /**
  * @file Which cell is selected, which is open, and what opens one.
@@ -80,6 +82,10 @@ export function handleCellFocusIn(evt) {
 
     cell?.classList.add(SELECTED);
 
+    // A range grows away from the focused cell, so focus moving on is the range ending. Nothing that
+    // makes a range moves focus, which is why nothing needs exempting here.
+    clearRange();
+
     releaseRowMove();
 }
 
@@ -156,6 +162,7 @@ function expand(cell) {
         sibling.style.gridColumn = `${i + 1} / ${i + 2}`;
     });
 
+    clearRange();
     cell.classList.add(EXPANDED);
     openEditor(cell);
 }
@@ -175,6 +182,9 @@ export function handleCellExpand(evt, cell) {
     // Clicks inside an already-open cell belong to the caret, not to us. Escape, Tab, or a click
     // elsewhere closes it.
     if (cell.classList.contains(EXPANDED)) return;
+
+    // A drag that came back to the cell it began in: the browser calls that a click, the user did not.
+    if (evt.detail !== 0 && pressCrossedCells()) return;
 
     // A click the app made itself carries no press — detail is 0 — and only Enter, Space and F2
     // make one, each of them on the cell that already has focus.
@@ -196,6 +206,10 @@ export function handleCellExpandClickOutside(evt) {
     // the completion is already in and would be committed correctly. What the exemption buys is
     // the cell staying open for a second one. Cancelling the press instead would not work, because
     // cancelling a press suppresses focus, not the click that follows it.
+    //
+    // And a drag from one cell to another is clicked on the row they share — outside every cell, but
+    // not a press outside the table, and collapsing here would take the mark off the range's anchor.
+    if (evt.detail !== 0 && pressCrossedCells()) return;
     if (!evt.target.closest('.note-table-cell, .ac-picker-popup')) {
         clearExpandedCells();
     }

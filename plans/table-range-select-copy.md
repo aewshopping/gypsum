@@ -1,6 +1,6 @@
 # Plan: range select and copy in table view
 
-Status: **not started.** Its dependency, the undo stack, is built.
+Status: **step 1 (selecting a range) built; step 2 (copy) not started.**
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
 Depends on: `plans/completed/table-undo-stack.md`, **built**
 Related: `plans/table-range-paste.md`, which depends on this
@@ -219,26 +219,15 @@ rectangle is two `Math.min`/`Math.max` pairs inside the paint function — not w
 
 ## 8. Registration, following the app's conventions
 
-- **The drag is registered like every other drag in the table** (column reorder, column resize, the
-  scrollbar): the press through `pointerDownActionHandlers`, the rest through document listeners
-  that return unless a drag is under way. The cell already carries `data-action="expand-cell"`, so:
-
-  ```js
-  const pointerDownActionHandlers = {
-      // ...
-      'expand-cell': handleRangeDragStart,
-  };
-  ```
-
-  and, in the block of drag listeners headed "The rest of a drag cannot be reached by data-action":
-
-  ```js
-  document.addEventListener('pointermove', handleRangeDragMove);
-  document.addEventListener('pointerup', handleRangeDragEnd);
-  document.addEventListener('pointercancel', handleRangeDragEnd);
-  ```
-
-  `handleCellPointerDown` stays where it is; the two read the same press for different reasons.
+- **The press is a document listener beside `handleCellPointerDown`, not an entry in
+  `pointerDownActionHandlers`.** The plan first said the map, since the cell carries
+  `data-action="expand-cell"` — but the delegate stops at the *nearest* `data-action`, and a `[[link]]`,
+  a tag pill or the open-file link inside a cell carries its own, so a drag begun on one would
+  never start. Found while writing the test for it. `handleCellPointerDown` is a document listener for the same reason.
+- **The rest of the drag is registered like every other drag in the table** (column reorder, column
+  resize, the scrollbar): document `pointermove`, `pointerup` and `pointercancel` listeners in the
+  block headed "The rest of a drag cannot be reached by data-action", each returning unless a drag is
+  under way.
 - **Keys are not registered anywhere new.** `keyDownDelegate` → `handleKeyboardShortcuts` →
   `handleKeyboardNavigate` already carries every arrow; the `Shift` branch lives inside that last
   function, and Escape inside the second. Its early returns — autocomplete first, then an open

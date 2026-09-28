@@ -42,6 +42,10 @@ export const appState = {
 
   // The row whose move is waiting for you to finish with it — see ui-functions-table/pending-row-move.js.
   pendingRowMove: null,
+
+  // The table's selected range — see ui-functions-cell/cell-range.js. Null, or two cell addresses:
+  // the anchor, which is the focused cell, and the extent, the corner that moves.
+  tableRange: null,
   paginationState: {
     currentPage: 1,
     pageFileIds: new Set(),

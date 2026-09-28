@@ -14,6 +14,7 @@ import { renderPagination } from "../pagination/render-pagination.js";
 import { fileTransitionName } from "./file-transition-name.js";
 import { viewTransitionsWanted } from "./view-transition.js";
 import { captureCellState, restoreCellState } from "./keep-cell-state.js";
+import { clearRange } from "../ui-functions-cell/cell-range.js";
 import { renderSidebarRecent } from "../render-sidebar-recent.js";
 import { reparkColumnResizer } from "../ui-functions-table/table-col-resize.js";
 import { reportFileCount } from "./output-report.js";
@@ -74,6 +75,10 @@ export function renderFiles(fullRender = true, keepPage = false) {
         // Read before anything is replaced and put back after, so the cell you were in is still the
         // one the arrow keys move from and still one click from opening again.
         const cellState = captureCellState();
+
+        // The new rows carry no marks, and whether they are still the rows the range was drawn over
+        // is not worth asking: every redraw that can happen during a range is one that ends it anyway.
+        clearRange();
 
         // Remove stale pagination nav (required for the table fullRender=false path)
         document.querySelector('.pagination')?.remove();

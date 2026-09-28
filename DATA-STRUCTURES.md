@@ -483,6 +483,24 @@ the same notes in the same order — every cell edit, every autosave — starts 
 
 ---
 
+## The table's range (`appState.tableRange`)
+
+```js
+appState.tableRange = null;   // or:
+appState.tableRange = {
+  anchor: { vtId: 'id-7', prop: 'status' },   // the focused cell — the range grows away from it
+  extent: { vtId: 'id-12', prop: 'due' },     // the corner a drag or Shift+arrow moves
+}
+```
+
+Cells are addressed by their row's file id and their column, the same address
+`ui-functions-render/keep-cell-state.js` uses to put focus back after a render, and read back with its
+`elementAt()`. A range of one cell is stored as `null`. Written only by
+`ui-functions-cell/cell-range.js`, and cleared by any focus move, Escape, opening a cell, and every
+render.
+
+---
+
 ## Where the structures are built
 
 | Structure | Built in | Called from |
@@ -496,3 +514,4 @@ the same notes in the same order — every cell edit, every autosave — starts 
 | `appState.search.*` | `ui-functions-search/a-search-orchestrator.js` | On each search or filter change |
 | value spans | `file-parsing/yaml-parse.js` → `parseYaml(…, spans)` | Only in `editing/plan-file-edits.js`, on a fresh read |
 | `appState.paginationState` | `ui-functions-render/a-render-all-files.js` | Every render |
+| `appState.tableRange` | `ui-functions-cell/cell-range.js` | On a drag across cells, and on Shift+arrow in the table |

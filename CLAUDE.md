@@ -263,6 +263,38 @@ table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-t
   `isolation: isolate` on `.table-wrapper`; `container-type` does not make a stacking context, and
   without the isolation the sticky cells painted over the app's search row (z-index 1).
 
+### Range selection
+
+A rectangle of table cells, made by dragging from one cell to another or by `Shift`+arrow
+(`Ctrl+Shift`+arrow to the end of a row or column). Nothing is copied or written yet. See
+`ui-functions-cell/cell-range.js` and `plans/table-range-select-copy.md`.
+
+- **The anchor is the focused cell, and nothing that makes a range moves focus.** A drag and
+  `Shift`+arrow move only the far corner, `appState.tableRange.extent`. So *selection follows focus*
+  is untouched, and every focus move can end a range with no exemptions — one `clearRange()` in
+  `handleCellFocusIn`, beside the ones for Escape, opening a cell and every render.
+- **`Shift`+arrow continues the range there is**, from its far corner, whether it was made by keys
+  or a drag and however many times `Shift` has been let go since. It shares the arrow keys' arithmetic
+  (`targetIndex()` in `keyboard-navigate.js`), except that a range does not wrap past a row's end.
+- **A drag is a press that reaches another cell before release**; the cell grid is the threshold.
+  Opening a cell stays on `click`, which the browser only fires where press and release land on the
+  same element — so the one case needing code is a drag that comes back to its start
+  (`pressCrossedCells()`, asked by `handleCellExpand` and the click-outside handler). The press is a
+  document listener beside `handleCellPointerDown`, **not** `expand-cell` in
+  `pointerDownActionHandlers`: a link or tag pill inside a cell carries its own `data-action`, which is
+  the one the delegate finds, so a drag begun on one would never start. The move, up and cancel
+  listeners sit with the table's other drags and return unless one is under way.
+- **The marks are paint-only, and must stay so.** Edge cells draw inset `box-shadow`s and every cell
+  in the range a `background-image` tint (`css/note-table-range.css`). One element drawn round the
+  range was measured: moving anything inside `.list-table` lays the whole grid out again, 55ms a move
+  on a 1,000-row page.
+- **A cell has one shadow list, so a cell's other shadows are named layers.** The sticky columns'
+  edge line is `--sticky-edge`, and the range appends it to its own list; a new shadow on a table
+  cell has to be added the same way or a range will erase it.
+- **Closed cells are `user-select: none`, and links in the table `-webkit-user-drag: none`** — the
+  first so a drag does not also select text, the second because the browser's own link drag
+  cancels the pointer and would end a range begun on a `[[link]]`.
+
 ### Deleting a property from every note
 
 "delete column", last in the column menu below a rule and in the warning colour, takes the column's
@@ -1018,7 +1050,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`) |
 | `public/js/ui/ui-functions-flowchart/` | The flowchart's control row and its options modal's rows |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |

@@ -14,6 +14,7 @@ import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
 import { toggleWrapSelection } from '../../editing/wrap-selection.js';
 import { finishOpenCell } from '../ui-functions-cell/cell-expand.js';
+import { clearRange } from '../ui-functions-cell/cell-range.js';
 import { clearHeaderSelection } from './column-menu.js';
 import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
@@ -206,6 +207,7 @@ export function handleKeyboardShortcuts(evt) {
         // go of the cell: the mark follows focus, and Escape does not move that.
         finishOpenCell(true);
         clearHeaderSelection();
+        clearRange();
     }
 
     if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {
