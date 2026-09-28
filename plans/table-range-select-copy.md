@@ -75,7 +75,8 @@ row's file id and its column, the way `keep-cell-state.js` already addresses one
 rather than read off `document.activeElement` so copy (and later paste) read one place.
 
 **Writing `appState` on every cell crossing is cheap; re-rendering is not, and nothing here
-re-renders.** A drag writes `tableRange` and calls one paint function (§3.3) that moves two classes.
+re-renders.** A drag writes `tableRange` and calls one paint function (§3.3) that changes classes on the cells
+the change touches.
 `renderFiles` calls the same paint function after it replaces the rows, so a range survives the
 redraws that change nothing (a cell commit, an autosave).
 
@@ -144,74 +145,79 @@ to the capturing element, which would break the click that opens a cell. If a re
 window turns out to be missed, capture can be taken on the *first crossing*, when there is no click
 left to protect.
 
-### 3.3 Drawing the outline: one overlay, anchored to the range's corner cells
+### 3.3 Drawing the outline: the edge cells draw it
 
-**The range is one element with a border, and it never follows the pointer.** Its four edges are
-pinned by CSS anchor positioning — already used by the undo list, the tooltip and the completion
-popup — to the outer edges of two *cells*:
+**Each cell in the range carries `in-range`, and the cells on its edges carry `range-top`,
+`range-bottom`, `range-left` and `range-right`.** CSS draws a 2px inset `box-shadow` on each side a
+cell is marked with, so only the outside of the rectangle is outlined, and a translucent
+`background-image` gives the whole range a tint:
 
 ```css
-.note-table-cell.range-start { anchor-name: --range-start; }
-.note-table-cell.range-end   { anchor-name: --range-end; }
-
-.table-range {
-    position: absolute;
-    top:    anchor(--range-start top);
-    left:   anchor(--range-start left);
-    bottom: anchor(--range-end bottom);
-    right:  anchor(--range-end right);
-    border: 2px solid var(--colour-contr);
-    background: color-mix(in srgb, var(--colour-contr) 8%, transparent);
-    pointer-events: none;
+.note-table-cell.in-range {
+    --rt: 0px; --rb: 0px; --rl: 0px; --rr: 0px;
+    background-image: linear-gradient(var(--range-tint), var(--range-tint));
+    box-shadow: inset 0 var(--rt) var(--colour-contr), inset 0 calc(-1 * var(--rb)) var(--colour-contr),
+                inset var(--rl) 0 var(--colour-contr), inset calc(-1 * var(--rr)) 0 var(--colour-contr);
 }
-.list-table:has(.range-start) .table-range { display: block; }   /* none otherwise */
+.note-table-cell.range-top    { --rt: 2px; }
+.note-table-cell.range-bottom { --rb: 2px; }
+.note-table-cell.range-left   { --rl: 2px; }
+.note-table-cell.range-right  { --rr: 2px; }
 ```
 
-**How it tracks a drag.** The pointer is only ever used to answer "which cell am I over?". Each time
-that answer changes (§3.2), the paint function:
+**How it tracks a drag.** The pointer is only ever used to answer "which cell am I over?", and
+nothing is positioned from its coordinates. Each time that answer changes (§3.2), the paint function
+takes the anchor's row and column and the hovered cell's, works out the rectangle (lowest to highest
+row, lowest to highest column — anchor r1 c3 dragged to r5 c1 is r1–r5 × c1–c3), and re-marks the
+cells. So the border always lies on cell boundaries and jumps a cell at a time. The keyboard reaches
+the same function with the extent in place of the hovered cell. Rows and columns come from DOM
+positions (a row's place in `.list-table`, a cell's place in its row), so **no geometry is read** and
+nothing forces a layout mid-gesture.
 
-1. takes the anchor's row and column and the hovered cell's row and column (row = the row
-   element's position in `.list-table`, column = the cell's position in its row);
-2. works out the rectangle's **top-left** cell — lowest row, lowest column — and its
-   **bottom-right** — highest of each. These are often *neither* the anchor nor the hovered cell:
-   anchor r1 c3 dragged to r5 c1 gives r1 c1 and r5 c3;
-3. moves `range-start` and `range-end` onto those two cells.
+What the marks cost, and why they are cheap:
 
-The browser re-resolves the overlay in the same frame, so its border sits on the outer edges of the
-cells at the rectangle's corners and therefore along the cell boundaries all the way round. It jumps
-a whole cell at a time as the pointer crosses into the next one; a free-form drag rectangle is never
-drawn, because nothing is ever positioned from the pointer's coordinates. The keyboard reaches the
-same paint function with the extent in place of the hovered cell.
-
-What that buys:
-
-- **Painting a range is moving two classes**, whatever its size. No class on each of hundreds of
-  cells, no `getBoundingClientRect`, no JS per frame.
-- **It stays right without being told.** A column resize, a sideways scroll, a row re-rendered in
-  place: the browser re-resolves the anchors, and none of those code paths need know a range exists.
-- **One border round the outside**, with no inner lines to suppress. Per-cell edge classes
-  (`range-top`, `range-left`…) reach the same picture with four classes and a box-shadow per side on
-  every cell the range touches.
+- **They are paint-only.** `box-shadow` and `background-image` change no box, so no layout runs,
+  however large the table. This is why the cells draw the outline, rather than one overlay (below).
+- **Only the cells whose marks change are touched.** The edge classes are cleared and re-applied on
+  the old and new perimeter, which is at most two rows and two columns. `in-range` is changed only
+  on the cells that entered or left the rectangle, which is the difference between the old one and
+  the new one. That is one row or column per crossing, not the whole area, so a range already
+  1,000 rows tall still grows sideways at the cost of one column.
 - **The tint layers over the row colour** without knowing it. A row's background is
-  `attr(data-color)` through `color-mix` with hover and suppressed branches (see the fade note in
-  `note-table-cell.css`); a translucent layer on top sidesteps all of them — and, being a separate
-  element, it does not eat the anchor's outline the way the mask did.
+  `attr(data-color)` through `color-mix`, with hover and suppressed branches (see the fade note in
+  `note-table-cell.css`). A `background-image` paints above whatever `background-color` those
+  branches set.
+- **Sticky columns need nothing.** The border is on the cells, so it moves with them. That includes
+  a range crossing the sticky boundary while the table is scrolled sideways.
+- **It sits beside the anchor's `is-selected` outline** without disturbing it, because `outline` and
+  `box-shadow` are separate properties. Check, when building, that nothing else in the table
+  already puts a `box-shadow` on a cell.
 
-**Where the overlay lives:** one element inside `.list-table`, the sideways scroller, given
-`position: relative` so it is the containing block, and **after the rows in tree order** — an anchor
-sharing the positioned element's containing block must be laid out before it. Anchors in the same
-scroll container move with it, so no scroll compensation is asked of the browser. Drawn by the table
-renderer, so it exists while the table does.
+**Why not one overlay element, measured.** The first idea was a single element with one border,
+pinned to the range's corner cells by CSS anchor positioning (or, the same thing done differently,
+placed on `.list-table`'s grid lines with `grid-area`). It drew correctly, sticky case included. But
+moving it is a layout change inside `.list-table`, and Chrome answers that by laying out the whole
+table grid again. Prototyped in Chromium with the table's `subgrid` rows and 20 columns, the time per
+cell crossing, including style and layout, was:
 
-**Stacking:** above the rows and the sticky cells (4), below `.table-chrome` (6), so it slides under
-the header like the rows. An opened sticky cell is 5; the overlay can share 5 since a range ends when
-a cell opens (§2.3). Update the stacking note in CLAUDE.md with it.
+| Rows on the page | Anchor overlay | Grid-line overlay | Cell marks |
+|---|---|---|---|
+| 50 (the default) | 1.5ms | 1.2ms | 1.9ms |
+| 200 | 6.8ms | 6.5ms | 1.8ms |
+| 1,000 (the maximum) | 54ms (p95 116ms) | 56ms (p95 121ms) | 2.6ms (p95 5ms) |
 
-**Prototyped, and it works — the sticky case included** (standalone page with the table's
-`subgrid` rows, `overflow: clip visible` and a sticky first column, driven by Playwright in
-Chromium). A drag from r1 c3 to r5 c1 outlines exactly r1–r5 × c1–c3, updating as it goes. A range
-from the sticky column to c4 with the table scrolled sideways draws its left edge at the sticky
-column's *stuck* position, not its laid-out one, so the outline stays correct across the boundary.
+An overlay costs time in proportion to the rows on the page, and a page may hold 1,000. The cell marks
+did not, and those figures are for the naive version that re-marked the whole range each time, up to
+about 1,500 cells. Even marking an entire 1,000 × 40 page at once (40,000 cells — `Ctrl+Shift+Down`
+then `Ctrl+Shift+Right`) took about half a second including the frames that painted it: acceptable for a
+one-off key press, and the reason the paint function changes only the cells that differ rather than
+re-marking the whole range.
+
+**No throttling.** Chrome already delivers `pointermove` at most once per frame for a mouse. A move
+that stays within one cell costs a `closest()` and a comparison (under a microsecond, measured). A
+cell crossing costs the table above. Key repeat on `Shift`+arrow is about 30 a second. Nothing
+needs debouncing or batching into `requestAnimationFrame`, and adding it would only put a frame of
+lag behind the pointer.
 
 ### 3.4 Text selection
 
@@ -273,7 +279,8 @@ until paste.
   another cell opens nothing, and nor does a drag that returns to its start.
 - `Shift`+arrow and `Ctrl+Shift`+arrow produce the expected `tableRange` and leave focus on the
   anchor; a plain arrow clears it and moves from the anchor.
-- The overlay's box matches the union of the corner cells' boxes, after a column resize too.
+- The marked cells are exactly the rectangle, and the edge classes exactly its perimeter, after a
+  drag that grows the range and then shrinks it back (the diff is where a stale mark would hide).
 - A drag started on a `[[link]]` makes a range rather than dropping it.
 
 The sticky-boundary case (§3.3) is a screenshot, level 3.
