@@ -1123,3 +1123,97 @@ test('renameProblem refuses a name any note has, in any case, but not a change o
   // A case change of the name itself, where nothing else is spelled that way, is allowed.
   expect(renameProblem('Status', 'status', keysIgnoringCase(files, 'Status'))).toBeNull();
 });
+
+// ---------------------------------------------------------------- a copy, plans/completed/table-copy-column.md §3.3
+
+/**
+ * The copy's whole effect on one note from a front matter source, as the service sends it: locate
+ * `people` by planning its removal alone, then write its bytes into `target`.
+ */
+async function copyPeople(text, target) {
+  const { planFileEdits } = await appModule('editing/plan-file-edits.js');
+  const located = planFileEdits(text, [{ internalId: 'n', property: 'people', raw: '' }], 'n');
+  if (!located) return null;
+  const [{ before }] = located.records;
+  return planFileEdits(text, [{ internalId: 'n', property: target, raw: before, keepKey: before === '' }], 'n');
+}
+
+test('a front matter copy writes the source bytes into the target, empty values included, and undoes byte for byte', async () => {
+  const cases = [
+    ['---\npeople: [ann, bob]\nstatus: draft\n---\n', '---\npeople: [ann, bob]\nstatus: [ann, bob]\n---\n'],
+    ['---\npeople:\n    - ann   # chair\n    - bob\nstatus: x\n---\n', '---\npeople:\n    - ann   # chair\n    - bob\nstatus:\n    - ann   # chair\n    - bob\n---\n'],
+    ['---\npeople: "007"\n---\n', '---\npeople: "007"\nstatus: "007"\n---\n'],
+    // Empty values are copied as written: a bare key bare, and "" and [] as they are.
+    ['---\npeople:\nstatus: draft\n---\n', '---\npeople:\nstatus:\n---\n'],
+    ['---\npeople:\n---\n', '---\npeople:\nstatus:\n---\n'],
+    ['---\npeople: ""\n---\n', '---\npeople: ""\nstatus: ""\n---\n'],
+    ['---\npeople: []\nstatus: x\n---\n', '---\npeople: []\nstatus: []\n---\n'],
+  ];
+  for (const [text, expected] of cases) {
+    const copied = await copyPeople(text, 'status');
+    expect(copied?.updated, text).toBe(expected);
+    expect((await reverse(copied.updated, copied.records))?.updated, `${text} undone`).toBe(text);
+  }
+  // A target already holding the same bytes is not written.
+  expect(await copyPeople('---\npeople: ann\nstatus: ann\n---\n', 'status')).toBeNull();
+});
+
+test('a linked or core value is written from its items, in the shape the target has, and a re-copy is a no-op', async () => {
+  const { planFileEdits } = await appModule('editing/plan-file-edits.js');
+  const { copyText, copyableValue } = await appModule('editing/copy-source-value.js');
+  const write = (text, value) => planFileEdits(text,
+    [{ internalId: 'n', property: 'status', raw: (shape) => copyText(value, shape) }], 'n');
+
+  // A list stays a list, one item included; an empty slot keeps its place; a comma stays in its item.
+  expect(write('---\nx: 1\n---\n', ['active'])?.updated).toBe('---\nx: 1\nstatus:\n  - active\n---\n');
+  expect(write('---\nx: 1\n---\n', ['active', '', 'London, UK'])?.updated)
+    .toBe('---\nx: 1\nstatus:\n  - active\n  - ""\n  - London, UK\n---\n');
+  // The target's own form is kept, and a flow list quotes the item that holds a comma.
+  expect(write('---\nstatus: [a]\n---\n', ['b', 'London, UK'])?.updated).toBe('---\nstatus: [b, "London, UK"]\n---\n');
+  // A single value is quoted only where it would read back as something else.
+  expect(write('---\nx: 1\n---\n', '42')?.updated).toBe('---\nx: 1\nstatus: 42\n---\n');
+  expect(write('---\nx: 1\n---\n', '007')?.updated).toBe('---\nx: 1\nstatus: "007"\n---\n');
+  expect(write('---\nstatus:\n  - a\n---\n', 'done')?.updated).toBe('---\nstatus: done\n---\n');
+
+  // The same value planned again against what the first plan wrote changes nothing, so a re-copy of
+  // an unchanged linked value writes no note. §3.4.2.
+  for (const value of [['active', '', 'London, UK'], '007', 'done', ['b']]) {
+    for (const start of ['---\nx: 1\n---\n', '---\nstatus: [a]\n---\n', '---\nstatus: "x"\n---\n']) {
+      const first = write(start, value);
+      expect(write(first.updated, value), JSON.stringify([value, start])).toBeNull();
+    }
+  }
+
+  // What a cell shows is what is copied: nothing for an empty cell or one of empty slots.
+  expect(copyableValue(['', ''])).toBeNull();
+  expect(copyableValue('')).toBeNull();
+  expect(copyableValue(null)).toBeNull();
+  expect(copyableValue(['a', null])).toEqual(['a', '']);
+  expect(copyableValue(new Map([['work', {}], ['home', {}]]))).toEqual(['work', 'home']);
+  expect(copyableValue(1024)).toBe('1024');
+});
+
+test('copyTargetProblem: where a column may be copied to', async () => {
+  const { copyTargetProblem, keysIgnoringCase } = await appModule('services/property-name.js');
+  const keys = keysIgnoringCase([{ people: 'a', status: 'x', title: 'T', color: null, project: '[[p]]' }]);
+  const linked = { via: 'project', read: 'status' };
+  const cases = [
+    ['people', 'people', null, '"people" is the column being copied'],
+    ['linked:1', 'project', linked, '"project" holds this column\'s links — copying into it would replace them'],
+    ['people', 'filename', null, '"filename" is set by the app'],
+    ['people', 'tags', null, '"tags" is set by the app'],
+    ['people', 'size', null, '"size" is the name of a built-in column'],
+    ['people', 'Status', null, '"Status" differs only in case from "status", which notes already have'],
+    ['people', 'a:b', null, 'a name cannot contain ":"'],
+    ['people', '', null, 'a name is needed'],
+    // Allowed: an existing name is overwritten, and title, color and a linked column's own read may be written.
+    ['people', 'status', null, null],
+    ['people', 'title', null, null],
+    ['people', 'color', null, null],
+    ['people', 'attendees', null, null],
+    ['linked:1', 'status', linked, null],
+  ];
+  for (const [source, target, definition, expected] of cases) {
+    expect(copyTargetProblem(source, target, keys, definition), `${source} → ${target}`).toBe(expected);
+  }
+});

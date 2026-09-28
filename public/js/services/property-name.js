@@ -1,10 +1,11 @@
 import { CORE_FILE_PROPERTIES, FILE_PROPERTIES } from './store.js';
 import { RESERVED_KEYS } from './file-parsing/file-info.js';
 import { parseYaml } from './file-parsing/yaml-parse.js';
+import { WRITABLE_CORE_PROPERTIES } from './property-type.js';
 
 /**
- * @file Whether a name can be given to a property: the rename dialog's question, asked on every
- * keystroke. Pure — the folder's keys are handed in rather than read from appState — so the whole
+ * @file Whether a name can be given to a property: the rename dialog's question, and the copy
+ * dialog's, asked on every keystroke. Pure — the folder's keys are handed in rather than read from appState — so the whole
  * rule is tested in node. plans/completed/table-rename-column.md §4.2–§4.4.
  *
  * Two readers are protected, as the quoting rule protects them (yaml-value-write.js): gypsum's own
@@ -33,7 +34,15 @@ export function propertyNameProblem(name, from) {
     const trimmed = name.trim();
     if (trimmed === '') return 'a name is needed';
     if (trimmed === from) return null;
+    return textProblem(trimmed) ?? appNameProblem(trimmed);
+}
 
+/**
+ * What is wrong with a trimmed, non-empty name as the text of a key, whoever owns it.
+ * @param {string} trimmed
+ * @returns {string|null}
+ */
+function textProblem(trimmed) {
     if (trimmed.includes(':')) return 'a name cannot contain ":"';
     // eslint-disable-next-line no-control-regex
     if (/[\x00-\x1f\x7f]/.test(trimmed)) return 'a name cannot contain a line break or a control character';
@@ -50,7 +59,16 @@ export function propertyNameProblem(name, from) {
     if (errors.length > 0 || keys.length !== 1 || keys[0] !== trimmed) {
         return `"${trimmed}" cannot be read back as a name`;
     }
+    return null;
+}
 
+/**
+ * Whether a trimmed name is one the app keeps for itself: a property it fills in, a key it reserves,
+ * or a built-in column's label.
+ * @param {string} trimmed
+ * @returns {string|null}
+ */
+function appNameProblem(trimmed) {
     const lower = trimmed.toLowerCase();
     if ([...CORE_FILE_PROPERTIES, ...RESERVED_KEYS].some(key => key.toLowerCase() === lower)) {
         return `"${trimmed}" is set by the app`;
@@ -111,4 +129,37 @@ export function renameProblem(from, to, keys) {
     return spelling === name
         ? `"${name}" is already in ${notes}`
         : `"${name}" is already in ${notes} as "${spelling}"`;
+}
+
+/**
+ * What is wrong with copying the column `source` into the property `target`, or null when it can be
+ * done. plans/completed/table-copy-column.md §3.5.
+ *
+ * Unlike a rename, **an existing name is the point** — it is overwritten — so only a name that
+ * differs from one in the notes by case alone is refused: `Status` beside `status` would be a second
+ * key that reads as the same one. `title` and `color` are the app's names that a note can also hold
+ * as keys, so they are the two it lets a copy write; every other one it fills in itself, and several
+ * are reserved keys that would lock every note written.
+ *
+ * @param {string} source - The column being copied: a property, or a linked column's key.
+ * @param {string} target - What was typed.
+ * @param {Map<string, Map<string, number>>} keys - keysIgnoringCase(files), with nothing left out.
+ * @param {{via: string}|null} [linked] - The linked column's definition, when the source is one.
+ * @returns {string|null} A sentence for the dialog, or null.
+ */
+export function copyTargetProblem(source, target, keys, linked = null) {
+    const name = target.trim();
+    if (name === '') return 'a name is needed';
+    if (name === source) return `"${name}" is the column being copied`;
+    if (linked && name === linked.via) {
+        return `"${name}" holds this column's links — copying into it would replace them`;
+    }
+
+    const problem = textProblem(name) ?? (WRITABLE_CORE_PROPERTIES.includes(name) ? null : appNameProblem(name));
+    if (problem) return problem;
+
+    const spellings = keys.get(name.toLowerCase());
+    if (!spellings || spellings.has(name)) return null;
+    const [spelling] = spellings.keys();
+    return `"${name}" differs only in case from "${spelling}", which notes already have`;
 }

@@ -354,6 +354,32 @@ journalled batch that one undo puts back. It is the delete's machinery with a se
   and both laid out**, the inactive one only invisible, so the dialog keeps its size as a name is
   refused and allowed again.
 
+### Copying a column into every note
+
+"copy column…" in the column menu writes a column's value, row by row, into a property of every note
+— a new key, or an existing one overwritten — in one journalled batch that one undo puts back. Its
+reason is the linked column, which lives in no note until it is copied. See
+`plans/completed/table-copy-column.md`.
+
+- **One edit per note, to one key**, through `applyRawEdits` with the delete's journal. A note whose
+  target already says what would be written is dropped as a no-op, so **a re-copy writes only the
+  notes whose value moved** — that is how a copied linked column is brought up to date, and a level-1
+  test holds it.
+- **A front matter source is copied as bytes** (a locate pass, as the rename's), empty values
+  included: a bare key stays bare. **A linked or core source is copied as what its cell shows**, and a
+  note whose cell is empty is not written. A list stays a list, written from its items by
+  `toYamlList()` — never joined and split at commas.
+- **What a target may be is `copyTargetProblem()`** in `services/property-name.js`, asked in the dialog
+  and again by the service: not the source, not a linked column's `via`, not a case variant of a key the
+  notes have, and nothing the app owns except `title` and `color`. A linked column's own `read` is
+  allowed — each re-copy then moves values one link further when notes link to their own kind, and
+  every press is the user's.
+- **The target takes the source's type**, overwriting its own, and is shown through
+  `withColumnShown()` — the saved layout gains the column and nothing pending is saved. A linked
+  column remembers the target as `copyTo`, the dialog's next pre-fill. Undo takes back the notes only.
+- **The dialog is its own confirmation**, as the rename's is: the line under the box counts what will
+  be created, overwritten and already matches, and the button names an overwrite.
+
 ### The undo history
 
 The table's undo stack is saved, named, and reachable entry by entry. See
@@ -982,9 +1008,12 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/write-file-edits.js` | A planned note onto disk through the verified save, and what happened when that save throws |
 | `public/js/editing/delete-property.js` | Deleting a property from every note: the two-pass journalled write |
 | `public/js/editing/rename-property.js` | Renaming a property in every note: the three-pass journalled write |
-| `public/js/editing/property-forecast.js` | Which notes a delete or a rename reaches, counted from `appState`, and how a dialog says so |
+| `public/js/editing/copy-property.js` | Copying a column into every note: the journalled write |
+| `public/js/editing/copy-source-value.js` | What one note has to copy, and the text a linked or core value becomes |
+| `public/js/editing/property-forecast.js` | Which notes a delete, a rename or a copy reaches, counted from `appState`, and how a dialog says so |
 | `public/js/services/property-name.js` | Whether a name can be given to a property: the rename dialog's question, all pure |
 | `public/js/table-layouts/follow-property-rename.js` | What follows a renamed property outside the notes: columns, type, flowchart roles, sort |
+| `public/js/table-layouts/follow-property-copy.js` | What follows a copy outside the notes: the target's type and column, a linked column's `copyTo` |
 | `public/js/table-undo/` | The undo stacks, `undo.gypsum`, each batch's name, and the refused notes |
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |

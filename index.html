@@ -874,6 +874,32 @@
     </div>
   </dialog>
 
+  <!-- Copying a column into a property of every note, from "copy column…" in the column menu. The
+       rename dialog's arrangement: the dialog is its own confirmation, the line under the text box
+       saying why a name cannot be used or what copying will do — overwrites included, which the
+       button then names. No existing names are suggested: overwriting another property is rare
+       enough to be typed on purpose. See
+       plans/completed/table-copy-column.md §4. -->
+  <dialog id="modal-column-copy" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="column-copy-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title">Copy column</h2>
+
+    <div class="info-modal-field">
+      <label for="column-copy-input" id="column-copy-label">copy into</label>
+      <input id="column-copy-input" type="text" autocomplete="off" spellcheck="false" data-action="column-copy-input">
+      <div class="info-modal-message-stack">
+        <p id="column-copy-forecast" class="info-modal-message is-prose"></p>
+        <p id="column-copy-problem" class="info-modal-message is-prose is-warning" hidden></p>
+      </div>
+    </div>
+
+    <div class="info-modal-btn-row">
+      <button type="button" id="column-copy-confirm" class="btn-action" data-action="column-copy-confirm">copy</button>
+      <button type="button" class="btn-action" data-action="column-copy-cancel">cancel</button>
+    </div>
+  </dialog>
+
   <!-- Saved table layouts. Opened from the layout name in the table's control row, which only
        exists in table view — the one way in, now that the name no longer hangs a popover of the
        same layouts under itself as well. Built from the settings modal: a title, a row of
@@ -951,6 +977,9 @@
     <button type="button" class="app-menu-item" data-action="column-hide" data-tip="hide this column">hide column</button>
     <button type="button" class="app-menu-item" data-action="column-stick" data-tip="keep every column up to this one in view while scrolling sideways">stick columns to here</button>
     <button type="button" class="app-menu-item" data-action="column-unstick" data-tip="let every column scroll sideways again">unstick columns</button>
+    <!-- Offered on every column but the three isCopyableSource refuses, and greyed out there rather
+         than hidden, like the items above. plans/completed/table-copy-column.md §5.1. -->
+    <button type="button" class="app-menu-item" data-action="column-copy-property" data-tip="copy this column's values into a property of every note">copy column…</button>
     <!-- The last items come and go rather than greying out. Either "remove from layout" shows, on an
          empty column under a saved layout, or "rename column" and "delete column" show together, on
          a column with values whose property a note can hold. One rule above whichever shows, and

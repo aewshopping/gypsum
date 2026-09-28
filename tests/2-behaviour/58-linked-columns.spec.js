@@ -31,9 +31,9 @@ const SAVED_LAYOUT = JSON.stringify({
   ] } },
 });
 
-async function openTable(page, layoutsFile) {
+async function openTable(page, layoutsFile, notes = NOTES) {
   await page.setViewportSize({ width: 3000, height: 900 });
-  await setupMockCellWritingFolder(page, NOTES);
+  await setupMockCellWritingFolder(page, notes);
   if (layoutsFile) {
     await page.addInitScript(content => { window.__saved['table_layouts.gypsum'] = content; }, layoutsFile);
   }
@@ -123,6 +123,10 @@ test('a definition: validated, named after its choices, and a heading in use is 
   expect(readDefinition({ via: 'project', read: 'status' })).toEqual({ label: null, via: 'project', read: 'status' });
   expect(readDefinition({ via: 'project', read: 'status', label: '  Project status ' }))
     .toEqual({ label: 'Project status', via: 'project', read: 'status' });
+  // Where the column was last copied to is kept, and anything but a name is dropped. plans/completed/table-copy-column.md §5.5.
+  expect(readDefinition({ via: 'project', read: 'status', copyTo: ' project_status ' }))
+    .toEqual({ label: null, via: 'project', read: 'status', copyTo: 'project_status' });
+  expect(readDefinition({ via: 'project', read: 'status', copyTo: 3 })).toEqual({ label: null, via: 'project', read: 'status' });
   for (const bad of [null, 'text', [], { via: 'project' }, { via: '', read: 'status' }, { via: 3, read: 'status' },
     { via: 'linked:1', read: 'status' }, { via: 'project', read: 'linked:2' }]) {
     expect(readDefinition(bad)).toBeNull();
@@ -159,6 +163,12 @@ test('adding appends one visible entry to the active layout only; deleting remov
 
   // Under the app's defaults there is no layout to add it to.
   expect(withLinkedColumn({ ...doc, active: null }, 'linked:1', definition).layouts).toEqual(doc.layouts);
+
+  // A copy's target that the layout holds hidden is shown where it stands, not appended again.
+  const { withColumnShown } = await appModule('table-layouts/layout-apply.js');
+  const shown = withColumnShown(doc, 'due');
+  expect(shown.layouts.mine.columns).toEqual([doc.layouts.mine.columns[0], { order: 2, name: 'due', visible: true }]);
+  expect(withColumnShown(doc, 'title')).toBe(doc);
 
   const both = { ...added, layouts: { ...added.layouts, other: { columns: [...doc.layouts.other.columns, { name: 'linked:1' }] } } };
   const removed = withoutLinkedColumn(both, 'linked:1');
@@ -335,4 +345,65 @@ test('in the column picker a linked column has its toggle, no bin, and its glyph
   await row.locator('input.toggle').check();
   await page.click('[data-action="close-column-picker"]');
   await expect(heading(page, 'linked:1')).toHaveText('Project count');
+});
+
+// The copy dialog, reached from a linked column because that is where its pre-fill lives. The bytes
+// are level 1's (59-copy-property.spec.js); this is what the dialog says and what the table does
+// after. plans/completed/table-copy-column.md §4, §7.3.
+test('copy column: the dialog says what will happen, the column appears, and it opens with its last target', async ({ page }) => {
+  const notes = {
+    ...NOTES,
+    'task-a.md': NOTES['task-a.md'].replace('---\n# Task A', 'phase: active\n---\n# Task A'),
+    'task-b.md': NOTES['task-b.md'].replace('---\n# Task B', 'phase: old\n---\n# Task B'),
+  };
+  const layout = JSON.parse(SAVED_LAYOUT);
+  layout.linkedProperties = { 'linked:1': { label: null, via: 'project', read: 'status' } };
+  layout.layouts.mine.columns.push({ order: 4, name: 'linked:1', label: 'project → status', width: 150, visible: true });
+  await openTable(page, JSON.stringify(layout), notes);
+
+  const copyDialog = page.locator('#modal-column-copy');
+  const forecast = page.locator('#column-copy-forecast');
+  const problem = page.locator('#column-copy-problem');
+  const confirm = page.locator('#column-copy-confirm');
+  const openCopy = async () => {
+    await openMenu(page, 'linked:1');
+    await page.click('#column-menu [data-action="column-copy-property"]');
+    await expect(copyDialog).toBeVisible();
+  };
+
+  await openCopy();
+  await expect(page.locator('#column-copy-input')).toHaveValue('');
+  await expect(forecast).toHaveText('Copies this column into a property of 2 files. 6 files have nothing to copy and are left as they are.');
+  await expect(confirm).toBeDisabled();
+
+  await page.fill('#column-copy-input', 'project');
+  await expect(problem).toHaveText('"project" holds this column\'s links — copying into it would replace them');
+  await expect(confirm).toBeDisabled();
+  await page.fill('#column-copy-input', 'size');
+  await expect(problem).toHaveText('"size" is the name of a built-in column');
+
+  await page.fill('#column-copy-input', 'phase');
+  await expect(problem).toBeHidden();
+  await expect(forecast).toContainText('Writes "phase" in 1 file — 1 to overwrite, 1 already match.');
+  await expect(confirm).toHaveText('overwrite 1 file');
+  await expect(confirm).toHaveClass(/btn-action-danger/);
+
+  await page.fill('#column-copy-input', 'project_status');
+  await expect(forecast).toContainText('Creates "project_status" in 2 files.');
+  await expect(confirm).toHaveText('copy into 2 files');
+  await page.keyboard.press('Enter');
+  await expect(copyDialog).toBeHidden();
+  await expect(page.locator('#output-report')).toContainText('copied\u00A0 project → status to project_status in 2 files');
+
+  // Shown last and visible, in the saved layout too, and nothing pending was saved by it.
+  expect((await headings(page)).at(-1)).toBe('project_status');
+  await expect(cellFor(page, 'Task A', 'project_status')).toHaveText('active');
+  const savedColumns = (await layouts(page)).layouts.mine.columns;
+  expect(savedColumns.at(-1)).toMatchObject({ name: 'project_status', visible: true });
+  expect(await isDirty(page)).toBe(false);
+
+  await openCopy();
+  await expect(page.locator('#column-copy-input')).toHaveValue('project_status');
+  await expect(forecast).toContainText('Every file already holds these values in "project_status".');
+  await expect(confirm).toBeDisabled();
 });

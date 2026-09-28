@@ -18,7 +18,7 @@ import { layoutFromColumnLayout, applyLayoutToColumnLayout, applyStickyCountFrom
          propertyTypesFromState, applyPropertyTypesFromFile,
          flowchartOptionsFromState, applyFlowchartOptionsFromFile, renameInColumns,
          linkedPropertiesFromState, applyLinkedPropertiesFromFile,
-         withLinkedColumn, withoutLinkedColumn } from './layout-apply.js';
+         withLinkedColumn, withoutLinkedColumn, withColumnShown } from './layout-apply.js';
 import { linkedProperty } from '../services/linked-properties.js';
 
 /**
@@ -283,6 +283,36 @@ export function addLinkedProperty(key) {
 
     return enqueue(async () => {
         await writeLayouts(withLinkedColumn(await readLayouts(), key, definition));
+    });
+}
+
+/**
+ * The target of a copy, onto the screen and into the file, with the type and the linked column's
+ * `copyTo` the copy has just set in appState. plans/completed/table-copy-column.md §4.3.
+ *
+ * On screen it is made visible: put last when it is not yet a column, left where it is when it is.
+ * In the file, withColumnShown does the same to the active layout's stored columns and changes
+ * nothing else there — so a reorder waiting to be saved stays waiting, and isDirty is left as it
+ * was, as addLinkedProperty leaves them.
+ *
+ * @async
+ * @param {string} name - The property copied into.
+ * @returns {Promise<boolean|undefined>} true when the file was written or had nothing to change.
+ *   Anything else is a failure — see renamePropertyInLayouts.
+ */
+export function showCopiedColumn(name) {
+    const { columnLayout } = TABLE_VIEW_COLUMNS;
+    const entry = columnLayout.get(name);
+    if (entry) columnLayout.set(name, { ...entry, visible: true });
+    else columnLayout.set(name, { ...defaultColumnEntry(name), visible: true });
+
+    const propertyTypes = propertyTypesFromState();
+    const linkedProperties = linkedPropertiesFromState();
+    return enqueue(async () => {
+        const doc = await readLayouts();
+        const before = JSON.stringify(doc);
+        const next = { ...withColumnShown(doc, name), propertyTypes, linkedProperties };
+        return JSON.stringify(next) === before ? true : writeLayouts(next);
     });
 }
 

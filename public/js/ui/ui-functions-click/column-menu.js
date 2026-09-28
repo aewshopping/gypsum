@@ -29,6 +29,7 @@ import { appState, TABLE_VIEW_COLUMNS } from '../../services/store.js';
 import { isTypeSettable, setPropertyType, propertyType, isPropertyUserOwned } from '../../services/property-type.js';
 import { VALUE_TYPES } from '../../constants.js';
 import { isLinkedKey } from '../../services/linked-properties.js';
+import { isCopyableSource } from '../../editing/copy-source-value.js';
 import { savePropertyTypes } from '../../table-layouts/layout-file.js';
 import { markLayoutDirty } from '../layout-save-state.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
@@ -194,6 +195,9 @@ export function handleColumnMenuOpen(evt, headerCell) {
 
     const typeItem = menu.querySelector('[data-action="column-change-type"]');
     if (typeItem) typeItem.disabled = noType;
+
+    const copyItem = menu.querySelector('[data-action="column-copy-property"]');
+    if (copyItem) copyItem.disabled = !isCopyableSource(property);
 
     // Sticking to the column that already ends the sticky ones would change nothing.
     const { stickyCount, current_props } = TABLE_VIEW_COLUMNS;

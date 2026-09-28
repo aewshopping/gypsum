@@ -144,6 +144,26 @@ export function reportRename(from, to, renamed, skipped, layoutSaved) {
 }
 
 /**
+ * Says what a copy did, as reportDelete says what a delete did.
+ * @param {string} source - The copied column's heading.
+ * @param {string} target
+ * @param {{copied: number, overwritten: number, matched: number, skipped: number, layoutSaved: boolean}} result
+ * @returns {void}
+ */
+export function reportCopy(source, target, { copied, overwritten, matched, skipped, layoutSaved }) {
+    // Two spaces for reportDelete's reason: "copied" lines up with the "copying" it replaces.
+    const parts = [`copied\u00A0 ${source} to ${target} in ${copied} file${copied === 1 ? '' : 's'}`];
+    if (overwritten > 0) parts.push(`, ${overwritten} overwritten`);
+    if (matched > 0) parts.push(`, ${matched} already matched`);
+    if (skipped > 0) {
+        parts.push(', ', nudge(`${skipped} skipped`, 'yaml',
+            `show the notes with front matter that could not be read`));
+    }
+    if (!layoutSaved) parts.push(LAYOUT_UNSAVED);
+    say(parts, skipped > 0 || !layoutSaved, true);
+}
+
+/**
  * Says something went wrong, in the same place and the same warning colour.
  * @param {string} text
  * @returns {void}

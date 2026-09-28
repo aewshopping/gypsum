@@ -34,8 +34,8 @@ import { followPropertyRename } from '../table-layouts/follow-property-rename.js
  *
  * @param {Array<object>} records - What applyRawEdits reported it changed.
  * @param {{kind?: string, property?: string|null, to?: string, dirHandle?: FileSystemDirectoryHandle}} [facts] -
- *   What the batch was, for its name: 'edit', 'delete-property' or 'rename-property', the column
- *   when there is one, and for a rename the name it was given (see describe-batch.js). `dirHandle`
+ *   What the batch was, for its name: 'edit', 'delete-property', 'rename-property' or
+ *   'copy-property', the column when there is one, and for a rename or a copy the name it went to (see describe-batch.js). `dirHandle`
  *   is the folder to save into, for a batch that fixed its folder when it began.
  * @returns {{batch: object|null, saved: Promise<boolean>}} The entry pushed — null for a batch of
  *   nothing — and its save.
@@ -202,8 +202,8 @@ function recheck(ids) {
 /**
  * @param {Array<object>} stack
  * @param {Array<object>} records
- * @param {{kind: string, property: string|null, to?: string}} facts - `to` only on a rename, so no
- *   other batch gains a field in undo.gypsum.
+ * @param {{kind: string, property: string|null, to?: string}} facts - `to` only on a rename or a
+ *   copy, so no other batch gains a field in undo.gypsum.
  * @returns {object|null} The entry pushed, or null when there was nothing to push.
  */
 function push(stack, records, { kind, property, to }) {
