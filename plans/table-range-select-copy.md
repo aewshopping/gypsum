@@ -55,8 +55,15 @@ The other corner, the *extent*, is the only new fact. So:
 - **A mouse drag never moves focus at all.** The press focuses the start cell natively, as it does
   today; the drag moves only the extent. So nothing in `handleCellFocusIn` has to tell a range's own
   focus move from anyone else's — **any focus move ends the range** (§2.3), with no flag.
-- **`Shift`+arrow moves the extent, not focus.** With no range, the extent starts at the focused
-  cell. `Ctrl+Shift`+arrow jumps the extent to the end of its row or column, and `Shift+PageDown`
+- **`Shift`+arrow moves the extent, not focus, and always continues the range there is.** With no
+  range, the extent starts at the focused cell. With one, it moves on from where the range's extent
+  already is, **however the range was made and however long ago**: let go of `Shift`, press it
+  again, and the next `Shift`+arrow grows or shrinks the same range; `Ctrl+Shift`+arrow after
+  `Shift`+arrow, or after a mouse drag, carries on from the same corner. This falls out of keeping
+  the range in `appState` until something ends it (§2.3), rather than tying it to a key being held.
+  **Pressing or releasing a modifier on its own does nothing to it** — `handleKeyboardNavigate`
+  already ignores keys it does not handle, and the rule to keep is that only the keys in §2.3 clear
+  the range. `Ctrl+Shift`+arrow jumps the extent to the end of its row or column, and `Shift+PageDown`
   by a page. `keyboard-navigate.js` already turns a key and an index into a target index; that
   arithmetic is lifted into one function asked from either index — focus's for a plain arrow, the
   extent's with `Shift` — so the edge rules exist once.
@@ -90,6 +97,8 @@ set back to `null`, so "is there a range" is one test and a drag that comes back
 leaves the table as a plain click would.
 
 ### 2.3 What ends a range
+
+Nothing else does: not time, not releasing `Shift`, not pressing `Shift` or `Ctrl` again (§2.1).
 
 - **Any focus move** — a plain arrow, Tab, a press in a cell, a press outside the table.
   `handleCellFocusIn` clears `tableRange`, one line in the one door selection already goes through.
@@ -157,13 +166,18 @@ cell is marked with, so only the outside of the rectangle is outlined, and a tra
     --rt: 0px; --rb: 0px; --rl: 0px; --rr: 0px;
     background-image: linear-gradient(var(--range-tint), var(--range-tint));
     box-shadow: inset 0 var(--rt) var(--colour-contr), inset 0 calc(-1 * var(--rb)) var(--colour-contr),
-                inset var(--rl) 0 var(--colour-contr), inset calc(-1 * var(--rr)) 0 var(--colour-contr);
+                inset var(--rl) 0 var(--colour-contr), inset calc(-1 * var(--rr)) 0 var(--colour-contr),
+                var(--sticky-edge, 0 0 transparent);
 }
-.note-table-cell.range-top    { --rt: 2px; }
-.note-table-cell.range-bottom { --rb: 2px; }
-.note-table-cell.range-left   { --rl: 2px; }
-.note-table-cell.range-right  { --rr: 2px; }
+.note-table-cell.in-range.range-top    { --rt: 2px; }
+.note-table-cell.in-range.range-bottom { --rb: 2px; }
+.note-table-cell.in-range.range-left   { --rl: 2px; }
+.note-table-cell.in-range.range-right  { --rr: 2px; }
 ```
+
+**The edge rules name `.in-range` as well**, so they outrank the zeroes it sets whatever order the
+rules end up in. In the prototype they came first and the zeroes silently won: the tint drew and no
+border did.
 
 **How it tracks a drag.** The pointer is only ever used to answer "which cell am I over?", and
 nothing is positioned from its coordinates. Each time that answer changes (§3.2), the paint function
@@ -187,11 +201,23 @@ What the marks cost, and why they are cheap:
   `attr(data-color)` through `color-mix`, with hover and suppressed branches (see the fade note in
   `note-table-cell.css`). A `background-image` paints above whatever `background-color` those
   branches set.
-- **Sticky columns need nothing.** The border is on the cells, so it moves with them. That includes
-  a range crossing the sticky boundary while the table is scrolled sideways.
+- **Sticky columns need one change, because they already use `box-shadow`.** The last sticky
+  column draws the line where the sticky columns end as `box-shadow: 3px 0 0 0 rgb(0 0 0 / 0.15)`
+  on each of its cells (`note-table-sticky.css`), so those cells joining a range would lose it:
+  the property holds one list, and the range's rule would replace it rather than add to it. The
+  fix is to **make that shadow a named layer**. `note-table-sticky.css` sets
+  `--sticky-edge: 3px 0 0 0 rgb(0 0 0 / 0.15)` on `.is-sticky-last` and draws it as
+  `box-shadow: var(--sticky-edge)`. The range rule appends `var(--sticky-edge, 0 0 transparent)`
+  to its own list. The value is stated once, in the file that owns it; the range only knows the
+  name. Prototyped: a range across the sticky boundary, scrolled sideways, draws its border and the
+  sticky line runs unbroken down every row, through the range included. Otherwise the border
+  moves with the cells, so it is right across the boundary with no further work.
+- **The opened cell's drop shadow** (`note-table-cell.css`) cannot meet a range, since opening a
+  cell ends one (§2.3).
+- **Check for any other `box-shadow` on a table cell when building**; anything found becomes a
+  named layer the same way.
 - **It sits beside the anchor's `is-selected` outline** without disturbing it, because `outline` and
-  `box-shadow` are separate properties. Check, when building, that nothing else in the table
-  already puts a `box-shadow` on a cell.
+  `box-shadow` are separate properties.
 
 **Why not one overlay element, measured.** The first idea was a single element with one border,
 pinned to the range's corner cells by CSS anchor positioning (or, the same thing done differently,
@@ -279,6 +305,8 @@ until paste.
   another cell opens nothing, and nor does a drag that returns to its start.
 - `Shift`+arrow and `Ctrl+Shift`+arrow produce the expected `tableRange` and leave focus on the
   anchor; a plain arrow clears it and moves from the anchor.
+- A range made by `Shift`+arrow, with `Shift` then released, is continued rather than restarted by
+  the next `Shift`+arrow or `Ctrl+Shift`+arrow; the same after a mouse drag.
 - The marked cells are exactly the rectangle, and the edge classes exactly its perimeter, after a
   drag that grows the range and then shrinks it back (the diff is where a stale mark would hide).
 - A drag started on a `[[link]]` makes a range rather than dropping it.
