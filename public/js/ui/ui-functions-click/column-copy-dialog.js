@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { isLinkedKey, linkedProperty } from '../../services/linked-properties.js';
+import { linkedProperty } from '../../services/linked-properties.js';
 import { copyTargetProblem, keysIgnoringCase } from '../../services/property-name.js';
 import { copySources, copyForecast, filesPhrase } from '../../editing/property-forecast.js';
 import { isCopyableSource, sourceHeading } from '../../editing/copy-source-value.js';
@@ -21,7 +21,6 @@ const elements = () => ({
     dialog: document.getElementById('modal-column-copy'),
     input: document.getElementById('column-copy-input'),
     label: document.getElementById('column-copy-label'),
-    names: document.getElementById('column-copy-names'),
     forecast: document.getElementById('column-copy-forecast'),
     problem: document.getElementById('column-copy-problem'),
     confirm: document.getElementById('column-copy-confirm'),
@@ -43,11 +42,10 @@ export function handleColumnCopyOpen() {
     // Worked out once: what each note would copy does not depend on the name typed.
     _sources = copySources(property);
 
-    const { dialog, input, label, names, forecast } = elements();
+    const { dialog, input, label, forecast } = elements();
     label.textContent = `copy "${sourceHeading(_source)}" into`;
     // Something under a pre-filled name that is refused at once, such as a column since re-pointed.
     forecast.textContent = forecastText('', null);
-    names.replaceChildren(...suggestions().map(name => Object.assign(document.createElement('option'), { value: name })));
     input.value = _linked?.copyTo ?? '';
     dialog.returnValue = '';
     paint();
@@ -185,14 +183,4 @@ function detail({ overwrite, match }) {
         ...(match > 0 ? [`${match} already match`] : []),
     ];
     return parts.length > 0 ? ` — ${parts.join(', ')}` : '';
-}
-
-/**
- * The folder's own properties that can be copied into, for the name box's suggestions.
- * @returns {string[]}
- */
-function suggestions() {
-    return [...appState.myFilesProperties.keys()]
-        .filter(name => !isLinkedKey(name) && copyTargetProblem(_source, name, _keys, _linked) === null)
-        .sort((a, b) => a.localeCompare(b));
 }

@@ -877,7 +877,8 @@
   <!-- Copying a column into a property of every note, from "copy column…" in the column menu. The
        rename dialog's arrangement: the dialog is its own confirmation, the line under the text box
        saying why a name cannot be used or what copying will do — overwrites included, which the
-       button then names. The folder's own properties are offered as suggestions. See
+       button then names. No existing names are suggested: overwriting another property is rare
+       enough to be typed on purpose. See
        plans/completed/table-copy-column.md §4. -->
   <dialog id="modal-column-copy" class="info-modal" closedby="any">
     <button class="modal-close-btn svg-wrapper-style" data-action="column-copy-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
@@ -886,8 +887,7 @@
 
     <div class="info-modal-field">
       <label for="column-copy-input" id="column-copy-label">copy into</label>
-      <input id="column-copy-input" type="text" list="column-copy-names" autocomplete="off" spellcheck="false" data-action="column-copy-input">
-      <datalist id="column-copy-names"></datalist>
+      <input id="column-copy-input" type="text" autocomplete="off" spellcheck="false" data-action="column-copy-input">
       <div class="info-modal-message-stack">
         <p id="column-copy-forecast" class="info-modal-message is-prose"></p>
         <p id="column-copy-problem" class="info-modal-message is-prose is-warning" hidden></p>

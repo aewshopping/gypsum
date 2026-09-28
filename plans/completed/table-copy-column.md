@@ -199,8 +199,9 @@ when the copy runs, since the column can be re-pointed and a property rename can
 ### 4.1 Choosing where to copy to
 
 From "copy column…" in the column menu, on every column but those in §5.1. One text box for the
-target name, with the folder's own properties offered as suggestions (a `<datalist>`, leaving out
-the names §3.5 refuses), and a line under it that says what will happen, stacked in one cell with
+target name — **no suggestions**: offering the folder's properties made overwriting one a click
+away, when it is rare enough to be typed on purpose; a linked column's pre-fill is the one name
+offered — and a line under it that says what will happen, stacked in one cell with
 the refusal sentence as in the rename dialog, so the dialog keeps its size:
 
 - **a new name**: `creates "project_status" in 35 notes`.
@@ -401,7 +402,7 @@ are.
 | `ui/ui-functions-click/column-menu.js`, `ui/event-listeners-add.js` | "copy column…" and its actions. |
 | `ui/ui-functions-render/output-report.js` | `reportCopy()`, beside `reportRename()`. |
 | `table-undo/describe-batch.js` | The `copy-property` kind (§5.7). |
-| `index.html` | `<dialog id="modal-column-copy">`, the rename dialog's markup with a `<datalist>`. |
+| `index.html` | `<dialog id="modal-column-copy">`, the rename dialog's markup. |
 
 **Deliberately not shared**: the rename dialog and the copy dialog look alike, but the only code
 they have in common is the three lines that swap the forecast for the refusal, and a helper for
