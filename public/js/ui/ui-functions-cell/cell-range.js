@@ -7,8 +7,10 @@ import { addressOf, elementAt } from '../ui-functions-render/keep-cell-state.js'
  * **The anchor is the focused cell, and the range grows away from it.** Nothing here moves focus,
  * so "selection follows focus" is untouched: the anchor keeps its selected outline inside the range,
  * and a plain arrow moves from it as it always did. The far corner, the extent, is the one new fact,
- * and it is what a drag and Shift+arrow move. A range ends whenever focus moves, a cell opens, Escape
- * is pressed or the rows are redrawn — every one of those through clearRange().
+ * and it is what a drag and Shift+arrow move. A range ends whenever focus moves on, Escape is pressed
+ * with no cell open, or a redraw changes which rows are drawn — every one of those through
+ * clearRange(). **Opening the anchor does not end it**, and nor does the redraw that writes it: the
+ * open cell is where a value for the whole range will be typed.
  *
  * **The marks are paint-only**: an inset box-shadow on each outside edge and a tinted background
  * image (note-table-range.css), so no layout runs however many rows the page holds. One element
@@ -31,14 +33,15 @@ function gridPosition(cell) {
 }
 
 /**
- * Marks the cells of appState.tableRange, and unmarks every other.
+ * Marks the cells of appState.tableRange, and unmarks every other. Exported for the redraw that
+ * keeps the range, whose new rows carry no marks.
  *
  * Clears the whole of the last range and marks the whole of this one. Changing only the cells that
  * differ would be quicker on a range of tens of thousands of cells — and is the fix if that is ever
  * felt — but it measured at 2–5ms for ordinary ranges, against a 16ms frame.
  * @returns {void}
  */
-function paintRange() {
+export function paintRange() {
     for (const cell of document.querySelectorAll('.list-table .in-range')) cell.classList.remove(...MARKS);
 
     const range = appState.tableRange;
@@ -75,6 +78,14 @@ function paintRange() {
 export function extendRange(anchor, extent) {
     appState.tableRange = anchor === extent ? null : { anchor: addressOf(anchor), extent: addressOf(extent) };
     paintRange();
+}
+
+/**
+ * The cell the range grows from, which is the focused cell.
+ * @returns {HTMLElement|null} Null when there is no range.
+ */
+export function rangeAnchor() {
+    return elementAt(appState.tableRange?.anchor);
 }
 
 /**

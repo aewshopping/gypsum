@@ -205,9 +205,10 @@ export function handleKeyboardShortcuts(evt) {
         // An open cell closes and stays selected, writing nothing — the only exit that does not,
         // which is what makes it safe to open a cell just to look at it. It does not go on to let
         // go of the cell: the mark follows focus, and Escape does not move that.
-        finishOpenCell(true);
+        //
+        // A range around that cell stays with it, one level at a time: the Escape after ends it.
+        if (!finishOpenCell(true)) clearRange();
         clearHeaderSelection();
-        clearRange();
     }
 
     if (evt.key === 'F5' && evt.target.dataset.action === 'file-content-edit') {

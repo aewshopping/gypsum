@@ -496,8 +496,9 @@ appState.tableRange = {
 Cells are addressed by their row's file id and their column, the same address
 `ui-functions-render/keep-cell-state.js` uses to put focus back after a render, and read back with its
 `elementAt()`. A range of one cell is stored as `null`. Written only by
-`ui-functions-cell/cell-range.js`, and cleared by any focus move, Escape, opening a cell, and every
-render.
+`ui-functions-cell/cell-range.js`, and cleared by focus moving to another cell, Escape with no cell
+open, a press outside the table, and any render that is full or draws different rows. It survives
+opening its anchor and the redraw that writes it.
 
 ---
 

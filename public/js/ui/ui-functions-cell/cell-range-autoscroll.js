@@ -1,3 +1,5 @@
+import { tableChromeBottom } from '../ui-functions-table/table-focus-scroll.js';
+
 /**
  * @file Scrolling the table while a range is dragged against its edge, and finding the cell under a
  * pointer that may be off the table altogether.
@@ -33,7 +35,7 @@ let onScroll = null;
  */
 function visibleRows() {
     const box = scroller.getBoundingClientRect();
-    const chrome = document.querySelector('.table-chrome')?.getBoundingClientRect().bottom ?? 0;
+    const chrome = tableChromeBottom();
     const rows = scroller.lastElementChild?.getBoundingClientRect();
     const sticky = parseFloat(getComputedStyle(document.body).getPropertyValue('--sticky-width')) || 0;
     return {

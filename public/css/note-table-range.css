@@ -17,8 +17,11 @@
 
    --sticky-edge is the line the last sticky column draws where the sticky columns end
    (note-table-sticky.css). A cell holds one shadow list, so without it here a range crossing that
-   column would wipe the line out along its height. */
-.note-table-cell.in-range {
+   column would wipe the line out along its height.
+
+   Not on the opened cell, which is the anchor being typed into: it keeps its own drop shadow and
+   background, and it sits over its own slot in the range, so the outline shows no gap. */
+.note-table-cell.in-range:not(.is-expanded) {
     --rt: 0px;
     --rb: 0px;
     --rl: 0px;

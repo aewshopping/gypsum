@@ -95,7 +95,6 @@ export function handleKeyboardNavigate(evt) {
 
         extendRange(focused, target);
         revealCell(target);
-        target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         return;
     }
 

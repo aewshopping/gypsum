@@ -57,14 +57,16 @@ is always the focused cell, so that copy (and later paste) read one place.
 
 **What ends a range**, all through one `clearRange()`:
 
-- **Any focus move** — a plain arrow, Tab, a press in a cell, a press outside the table. One line in
-  `handleCellFocusIn`, the door selection already goes through. Nothing the range does moves focus,
-  so nothing needs exempting.
-- **Escape**, beside `finishOpenCell(true)` in the Escape branch of `keyboard-shortcuts.js`.
-- **Opening a cell** (Enter, F2, a second press) — one line in `expand()`.
-- **Any render that replaces the rows.** One line in `renderFiles`' `doRender`, where
-  `captureCellState()` already runs. The new rows carry no marks anyway, and the only redraws that
-  would happen during a range are ones this list already ends it for.
+- **Focus moving to another cell, or out of the table** — one line in `handleCellFocusIn`. Focus
+  arriving back on the anchor is not moving on: that is a redraw putting it back.
+- **Escape with no cell open**, and **a press outside the table**, which can blur to the body with no
+  `focusin`.
+- **A render that is full or draws different rows** — a sort, a filter, a page, a change of columns.
+
+**Opening the anchor keeps the range**, and so does the redraw after the cell is written: the open
+cell is where a value for the whole range will be typed (a future Ctrl+Enter fills the range with
+it). The first Escape closes the cell and keeps the range, the second clears it. *Changed after
+step 1 was built, which ended the range on opening a cell and on every render.*
 
 ---
 
@@ -187,11 +189,12 @@ down or right. Two gaps, and both need closing:
 2. **Nothing scrolls on its own.** The browser's own edge auto-scroll belongs to text selection,
    which the range turns off with `user-select: none` (§3).
 
-**The keyboard already scrolls**: `Shift`+arrow reveals the far corner with `revealCell()` and
-`scrollIntoView({ block: 'nearest' })`. One gap to check, not assumed: going *up*, a cell under the
-sticky header probably counts as on screen to the browser and is not scrolled to. If so, a
-`scroll-margin-top` on the cells equal to the header's height is the fix. It is one CSS line and
-plain arrow-up focus would get it too. Confirm with a test before adding it.
+**The keyboard already scrolls**: `Shift`+arrow reveals the far corner with `revealCell()`. Going
+*up* it used to leave the cell under the sticky header, which the browser counts as on screen. Fixed
+in `revealCell()` itself rather than with a `scroll-margin-top`: it scrolls the page until the cell
+clears `.table-chrome`'s bottom edge, measured, because the header strip has no height variable to
+put in a margin. The same call reveals a cell as it opens, so F2 on an anchor scrolled away by the
+range brings it back before the caret arrives.
 
 ### 6.1 What it does
 

@@ -126,7 +126,7 @@ test('a range does not wrap at the end of a row', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('a plain arrow, Escape, a press elsewhere and opening a cell each end the range', async ({ page }) => {
+test('a plain arrow, Escape and a press elsewhere end the range; opening its anchor does not', async ({ page }) => {
   await openTable(page);
   // From a cell focus is not already in: a press on the focused cell is the second press, and opens it.
   const makeRange = async () => {
@@ -149,8 +149,15 @@ test('a plain arrow, Escape, a press elsewhere and opening a cell each end the r
   await cellAt(page, 5, 'c').click();
   expect(await marks(page)).toEqual([]);
 
+  // The open anchor is where a value for the whole range will be typed, so the range stays — and
+  // Escape steps back one level at a time: the cell first, then the range.
   await makeRange();
-  await page.keyboard.press('Enter');
+  await page.keyboard.press('F2');
   await expect(cellAt(page, 1, 'a')).toHaveClass(/is-expanded/);
+  expect(await marks(page)).toHaveLength(2);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.note-table-cell.is-expanded')).toHaveCount(0);
+  expect(await marks(page)).toHaveLength(2);
+  await page.keyboard.press('Escape');
   expect(await marks(page)).toEqual([]);
 });

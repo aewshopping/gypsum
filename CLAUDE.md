@@ -271,8 +271,21 @@ A rectangle of table cells, made by dragging from one cell to another or by `Shi
 
 - **The anchor is the focused cell, and nothing that makes a range moves focus.** A drag and
   `Shift`+arrow move only the far corner, `appState.tableRange.extent`. So *selection follows focus*
-  is untouched, and every focus move can end a range with no exemptions — one `clearRange()` in
-  `handleCellFocusIn`, beside the ones for Escape, opening a cell and every render.
+  is untouched, and focus moving on ends a range — one `clearRange()` in `handleCellFocusIn`, beside
+  the ones for Escape and a press outside the table.
+- **Opening the anchor keeps the range**, because the open cell is where a value for the whole range
+  will be typed. So the redraw after it is written keeps it too: `renderFiles` clears a range only on a
+  full render or when the rows drawn change (`nothingMoved`, the view transition's question), and
+  otherwise repaints it; focus put back on the anchor by that redraw is not focus moving on. Escape
+  steps back one level at a time — the open cell, then the range — and an open cell does not wear
+  the range's marks, keeping its own shadow.
+- **A cell is revealed clear of the sticky header, not just of the sticky columns.** A row scrolled up
+  under `.table-chrome` counts as on screen to the browser, so `revealCell()` in
+  `table-focus-scroll.js` also scrolls the page, measuring the header's bottom edge
+  (`tableChromeBottom()`, shared with the drag's autoscroll) since the header strip has no height
+  variable to read. It runs on focus, on a range's far corner moving, and on a cell opening — a cell
+  opened from the keyboard already has focus, so the browser would otherwise scroll to it only once
+  something was typed.
 - **`Shift`+arrow continues the range there is**, from its far corner, whether it was made by keys
   or a drag and however many times `Shift` has been let go since. It shares the arrow keys' arithmetic
   (`targetIndex()` in `keyboard-navigate.js`), except that a range does not wrap past a row's end.

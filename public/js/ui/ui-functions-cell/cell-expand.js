@@ -1,6 +1,7 @@
 import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
 import { releaseRowMove } from '../ui-functions-table/pending-row-move.js';
-import { clearRange } from './cell-range.js';
+import { clearRange, rangeAnchor } from './cell-range.js';
+import { revealCell } from '../ui-functions-table/table-focus-scroll.js';
 import { pressCrossedCells } from './cell-range-drag.js';
 
 /**
@@ -83,8 +84,9 @@ export function handleCellFocusIn(evt) {
     cell?.classList.add(SELECTED);
 
     // A range grows away from the focused cell, so focus moving on is the range ending. Nothing that
-    // makes a range moves focus, which is why nothing needs exempting here.
-    clearRange();
+    // makes a range moves focus. Focus arriving back on the anchor is not moving on: that is a redraw
+    // putting focus back where it was, after a cell of the range was written.
+    if (cell !== rangeAnchor()) clearRange();
 
     releaseRowMove();
 }
@@ -162,7 +164,13 @@ function expand(cell) {
         sibling.style.gridColumn = `${i + 1} / ${i + 2}`;
     });
 
-    clearRange();
+    // Onto the screen before the caret arrives, clear of the sticky header. A cell opened from the
+    // keyboard already has focus, so the browser scrolls to it only once something is typed — and a
+    // range's anchor is the cell most likely to have been scrolled away, by growing the range.
+    //
+    // The range stays: the open cell is its anchor, and what is typed there is what a range-wide
+    // commit would write.
+    revealCell(cell);
     cell.classList.add(EXPANDED);
     openEditor(cell);
 }
@@ -212,5 +220,8 @@ export function handleCellExpandClickOutside(evt) {
     if (evt.detail !== 0 && pressCrossedCells()) return;
     if (!evt.target.closest('.note-table-cell, .ac-picker-popup')) {
         clearExpandedCells();
+        // Focus does not always move for this: a press on a part of the page that cannot take it
+        // blurs to the body, and no focusin arrives to end the range.
+        clearRange();
     }
 }
