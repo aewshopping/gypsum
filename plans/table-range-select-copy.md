@@ -107,9 +107,10 @@ by decision.
   uses to turn any column — front matter, core or linked — into text. Pure and tested; the range copy
   gets the same answer the column copy does. A front matter list comes out comma-joined, as its cell
   shows it.
-- **Decide the file column (`internalId`).** Its value is an id nobody sees. Copy the filename in its
-  place, or leave the column's cells empty — "copy column…" refuses it outright (`NOT_COPYABLE`),
-  which a range cannot do without breaking its rectangle.
+- **The file column (`internalId`) copies what it shows: `open`.** Decided. Its value is an id nobody
+  sees, and `sourceValue()` would hand that over, so this column is the one special case beside the
+  reused functions. ("Copy column…" refuses the column outright — `NOT_COPYABLE` — which a range
+  cannot do without breaking its rectangle.)
 - **Anything else can be copied**: info, locked, mismatched and linked cells alike. Reading is safe;
   paste decides what it will write.
 
@@ -128,30 +129,59 @@ by decision.
   exactly, or a custom type — is paste's question as much as copy's. Decide it with
   `plans/table-range-paste.md` rather than here; `text/plain` alone is enough to ship copy.
 
-### 3.3 Keys and feedback
+### 3.3 Keys
 
-- **`Ctrl/Cmd+C` only from a closed table cell**, the same guard `Ctrl+A` has
-  (`.list-table .note-table-cell:not(.is-expanded)`), so an open cell, the search box and the rest of
-  the page keep the browser's copy. With the anchor open and the range still standing, `Ctrl+C` copies
-  the open cell's selected text, not the range.
-- **Say it was copied.** Nothing on screen changes otherwise. The report line (`#output-report`) can
-  say "copied 12 cells" the way undo reports there; a brief flash of the copied cells could reuse
-  `table-undo-flash.css`. Pick one — the report line is the smaller.
-- **Size.** `Ctrl+A` then `Ctrl+C` on a full 1,000 × 40 page is 40,000 values. Reading them from the
-  file objects touches no layout; measure once, but it should be well under a frame's worth per
-  thousand.
+- **`Ctrl/Cmd+C` copies the range only from a closed table cell**, the same guard `Ctrl+A` has
+  (`.list-table .note-table-cell:not(.is-expanded)`), so the search box and the rest of the page keep
+  the browser's copy.
+- **With a cell open, `Ctrl+C` is the browser's own copy of the text selected in that cell**, and the
+  range is not copied — even though it is still standing around the open cell. Decided.
+- **Values only.** Headers are the copy button's option (§3.4): `Ctrl+Shift+C` cannot carry it, being
+  Chrome's inspect-element shortcut.
 
-### 3.4 Where it goes
+### 3.4 The mouse: a copy button
+
+Right-click is not offered — it would mean a context menu of the app's own, which is more rewiring
+than this is worth. **A copy button in the table's control row** stands in for it, beside undo and
+redo, and says the shortcut in its tooltip.
+
+- **In the control row, not beside the range.** A button floating at the range's corner has to be
+  placed against the range's cells — anchor positioning, or geometry — and moving anything inside
+  `.list-table` is what step 1 measured at 55ms a move on a 1,000-row page (§2.3). The control row is
+  fixed and already there (`.output-controls`, drawn by the table's renderer).
+- **Enabled only while there is a range.** A single cell is `Ctrl+C`'s job.
+- **Its options: "copy" and "copy with headers"**, as a small menu off the button. With headers, the
+  first line is the columns' headings as the header draws them.
+- **It must not take focus.** A press on a button focuses it, focus leaving the table ends the range,
+  and the range would be gone before the copy ran. The button cancels its `mousedown`, exactly as the
+  note-link picker's items do (`autocomplete/popup.js`), so focus stays in the cell.
+- **It is exempt from the press-outside-the-table rule** (`handleCellExpandClickOutside`), so the range
+  is still selected after copying, as a spreadsheet keeps its selection.
+- **One code path.** The button calls `document.execCommand('copy')`, which fires the same `copy`
+  event `Ctrl+C` does, so the TSV is built in one place.
+- **Feedback for both:** the report line says what was copied ("copied 12 cells"), since nothing else
+  on screen changes. While a range stands it can also say "12 cells selected", which is where a
+  keyboard user learns the range exists to be copied.
+
+### 3.5 Size
+
+`Ctrl+A` then `Ctrl+C` on a full 1,000 × 40 page is 40,000 values. Reading them from the file objects
+touches no layout; measure once, but it should be well under a frame's worth per thousand.
+
+### 3.6 Where it goes
 
 One new file, `ui/ui-functions-cell/cell-range-copy.js`: the rectangle's cells, their values through
 `copy-source-value.js`, the TSV, and the `copy` handler — registered in `event-listeners-add.js`
-beside the other document listeners. `cell-range.js` exports the rectangle it already works out for
+beside the other document listeners. The button is drawn by `render-table-controls.js` beside undo
+and redo, with its click in `ui-functions-click/` as every click action is, and its enabled state set
+by hand when the range changes — the way `markUndoState()` moves undo and redo — never by a render. `cell-range.js` exports the rectangle it already works out for
 the paint (top, bottom, left, right), so the copy and the marks cannot disagree about which cells are
 in the range. The TSV quoting is small and pure; if paste needs to read it back, it moves to
 `services/` then, not before.
 
-### 3.5 Tests
+### 3.7 Tests
 
 Level 2, in `59-table-range-select.spec.js`: a range including a tags cell and a list cell copies
 their items rather than their pills; select-all copies from the top-left whatever cell holds focus;
-`Ctrl+C` in an open cell copies text, not the range.
+`Ctrl+C` in an open cell copies text, not the range; the copy button copies with and without
+headers and leaves the range selected.
