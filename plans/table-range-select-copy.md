@@ -108,9 +108,9 @@ by decision.
   gets the same answer the column copy does. A front matter list comes out comma-joined, as its cell
   shows it.
 - **The file column (`internalId`) copies a row number: 1, 2, 3…** Decided (in place of an earlier
-  "copy `open`"). The number is the row's position on the page as drawn, counted from 1 on every
-  page — the same position the paint already reads — so copying rows 5–7 gives 5, 6, 7, and the
-  number says which row each line came from. Its value is an id nobody sees, and `sourceValue()`
+  "copy `open`"). The count starts at 1 on the first copied row, whatever row that is — copying
+  rows 5–7 gives 1, 2, 3 — so the number is the line's place in what was copied, not in the table.
+  Its value is an id nobody sees, and `sourceValue()`
   would hand that over, so this column is the one special case beside the reused functions. ("Copy
   column…" refuses the column outright — `NOT_COPYABLE` — which a range cannot do without breaking
   its rectangle.) With headers, its heading is the header's own label.
