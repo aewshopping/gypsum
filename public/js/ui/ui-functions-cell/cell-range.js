@@ -4,8 +4,9 @@ import { addressOf, elementAt } from '../ui-functions-render/keep-cell-state.js'
 /**
  * @file A rectangular range of table cells: making it, ending it, and marking it.
  *
- * **The anchor is the focused cell, and the range grows away from it.** Nothing here moves focus,
- * so "selection follows focus" is untouched: the anchor keeps its selected outline inside the range,
+ * **The anchor is the focused cell, and the range grows away from it.** Nothing here moves focus
+ * except select-all, which has to start from the top-left corner, so "selection follows focus" is
+ * untouched: the anchor keeps its selected outline inside the range,
  * and a plain arrow moves from it as it always did. The far corner, the extent, is the one new fact,
  * and it is what a drag and Shift+arrow move. A range ends whenever focus moves on, Escape is pressed
  * with no cell open, or a redraw changes which rows are drawn — every one of those through
@@ -94,6 +95,27 @@ export function rangeAnchor() {
  */
 export function rangeExtent() {
     return elementAt(appState.tableRange?.extent);
+}
+
+/**
+ * Selects every cell the table has drawn: this page's rows, and no headings.
+ *
+ * The one place a range moves focus, because a range grows from the focused cell and the whole
+ * table grows from its top-left corner. The view is put back where it was, so selecting everything
+ * does not also scroll to the top.
+ * @returns {void}
+ */
+export function selectAllCells() {
+    const scroller = document.querySelector('.list-table');
+    const first = scroller.firstElementChild?.firstElementChild;
+    const last = scroller.lastElementChild?.lastElementChild;
+    if (!first) return;
+
+    const [x, y] = [scroller.scrollLeft, window.scrollY];
+    first.focus({ preventScroll: true });
+    scroller.scrollLeft = x;
+    window.scrollTo(window.scrollX, y);
+    extendRange(first, last);
 }
 
 /**

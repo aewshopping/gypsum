@@ -292,11 +292,19 @@ A rectangle of table cells, made by dragging from one cell to another or by `Shi
 - **A drag is a press that reaches another cell before release**; the cell grid is the threshold.
   Opening a cell stays on `click`, which the browser only fires where press and release land on the
   same element — so the one case needing code is a drag that comes back to its start
-  (`pressCrossedCells()`, asked by `handleCellExpand` and the click-outside handler). The press is a
+  (`pressMadeRange()`, asked by `handleCellExpand` and the click-outside handler). The press is a
   document listener beside `handleCellPointerDown`, **not** `expand-cell` in
   `pointerDownActionHandlers`: a link or tag pill inside a cell carries its own `data-action`, which is
   the one the delegate finds, so a drag begun on one would never start. The move, up and cancel
   listeners sit with the table's other drags and return unless one is under way.
+- **Shift+press grows the range from the focused cell** — a shift-click, and a shift-drag that picks
+  up an existing range and re-sizes it from the same anchor. Focus must stay on the anchor, so
+  `handleRangeShiftMouseDown()` cancels the `mousedown` default, which is what would move it; the
+  click that follows is a range gesture too (`pressMadeRange()`), so it opens nothing.
+- **`Ctrl/Cmd+A` selects every cell drawn** — this page's rows, no headings — and only when focus is
+  on a closed table cell, so text boxes, an open cell and the rest of the page keep the browser's
+  select-all. It is the one range command that moves focus, to the top-left cell the range must
+  grow from, and it puts the view back where it was.
 - **The marks are paint-only, and must stay so.** Edge cells draw inset `box-shadow`s and every cell
   in the range a `background-image` tint (`css/note-table-range.css`). One element drawn round the
   range was measured: moving anything inside `.list-table` lays the whole grid out again, 55ms a move

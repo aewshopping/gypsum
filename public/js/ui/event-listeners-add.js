@@ -20,7 +20,7 @@ import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/col
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
-import { handleRangeDragStart, handleRangeDragMove, handleRangeDragEnd } from './ui-functions-cell/cell-range-drag.js';
+import { handleRangeDragStart, handleRangeDragMove, handleRangeDragEnd, handleRangeShiftMouseDown } from './ui-functions-cell/cell-range-drag.js';
 import { handleScrollbarTrackPress } from './ui-functions-table/table-scrollbar-page.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleColumnDeleteProperty } from './ui-functions-click/column-delete-property.js';
@@ -129,6 +129,7 @@ export function addActionHandlers() {
     // its own data-action, which is the one the delegate would find, so this is not in
     // pointerDownActionHandlers. The rest of the drag is with the other drags below.
     document.addEventListener('pointerdown', handleRangeDragStart);
+    document.addEventListener('mousedown', handleRangeShiftMouseDown); // a shift-click keeps focus on the anchor
 
     // A click is the second door onto "has focus left the row that is holding its move". The first
     // is the focusin above, which never fires when a click lands on a part of the page that cannot

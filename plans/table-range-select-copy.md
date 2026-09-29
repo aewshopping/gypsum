@@ -26,7 +26,8 @@ first stands on its own:
 gesture for a scroll. Anything else a touch screen gets is a bonus.
 
 **Out of scope:** paste (`plans/table-range-paste.md`), non-rectangular or multiple selections,
-selecting by row or column header, a fill handle, shift-click.
+selecting by row or column header, a fill handle. (Shift-click, shift-drag and `Ctrl+A` were added
+after step 1 was built — see CLAUDE.md, *Range selection*.)
 
 The undo stack came first because the selection is what paste will write through, and a fifty-cell
 paste with no way back is not shippable.

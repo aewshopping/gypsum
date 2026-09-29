@@ -2,7 +2,7 @@ import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
 import { releaseRowMove } from '../ui-functions-table/pending-row-move.js';
 import { clearRange, rangeAnchor } from './cell-range.js';
 import { revealCell } from '../ui-functions-table/table-focus-scroll.js';
-import { pressCrossedCells } from './cell-range-drag.js';
+import { pressMadeRange } from './cell-range-drag.js';
 
 /**
  * @file Which cell is selected, which is open, and what opens one.
@@ -191,8 +191,9 @@ export function handleCellExpand(evt, cell) {
     // elsewhere closes it.
     if (cell.classList.contains(EXPANDED)) return;
 
-    // A drag that came back to the cell it began in: the browser calls that a click, the user did not.
-    if (evt.detail !== 0 && pressCrossedCells()) return;
+    // A drag that came back to the cell it began in, or a shift-click: the browser calls either a
+    // click on this cell, and neither was meant to open it.
+    if (evt.detail !== 0 && pressMadeRange()) return;
 
     // A click the app made itself carries no press — detail is 0 — and only Enter, Space and F2
     // make one, each of them on the cell that already has focus.
@@ -217,7 +218,7 @@ export function handleCellExpandClickOutside(evt) {
     //
     // And a drag from one cell to another is clicked on the row they share — outside every cell, but
     // not a press outside the table, and collapsing here would take the mark off the range's anchor.
-    if (evt.detail !== 0 && pressCrossedCells()) return;
+    if (evt.detail !== 0 && pressMadeRange()) return;
     if (!evt.target.closest('.note-table-cell, .ac-picker-popup')) {
         clearExpandedCells();
         // Focus does not always move for this: a press on a part of the page that cannot take it

@@ -14,7 +14,7 @@ import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
 import { toggleWrapSelection } from '../../editing/wrap-selection.js';
 import { finishOpenCell } from '../ui-functions-cell/cell-expand.js';
-import { clearRange } from '../ui-functions-cell/cell-range.js';
+import { clearRange, selectAllCells } from '../ui-functions-cell/cell-range.js';
 import { clearHeaderSelection } from './column-menu.js';
 import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
@@ -109,6 +109,13 @@ export function handleKeyboardShortcuts(evt) {
         const key = evt.key?.toLowerCase();
         if (key === 'z') undoTableKey(evt, evt.shiftKey ? 'redo' : 'undo');
         if (key === 'y' && evt.ctrlKey && !evt.shiftKey) undoTableKey(evt, 'redo');
+
+        // Select every cell of the table — only from a closed cell, so an open one, a text box and the
+        // rest of the page keep the browser's own select-all.
+        if (key === 'a' && !evt.shiftKey && document.activeElement?.matches('.list-table .note-table-cell:not(.is-expanded)')) {
+            evt.preventDefault();
+            selectAllCells();
+        }
     }
 
     const noModalAltActions = {

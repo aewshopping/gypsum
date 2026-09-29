@@ -10,7 +10,7 @@ import { followPointer, cellUnderPointer, startAutoscroll, stopAutoscroll } from
  * Opening a cell stays on click, which needs no help to tell the two apart: the browser fires a
  * click only where the press and the release land on the same element, so a press in one cell let go
  * in another clicks their row, which carries no data-action. The one case it does not cover is a
- * drag that comes back to where it began — see pressCrossedCells().
+ * drag that comes back to where it began — see pressMadeRange().
  *
  * **Focus does not move during a drag.** The press focuses the start cell, as any press does, and
  * that cell is the range's anchor. Focusing each cell crossed would also have the table scrolled to
@@ -20,12 +20,18 @@ import { followPointer, cellUnderPointer, startAutoscroll, stopAutoscroll } from
  * which also answers which cell is under the pointer, for a move here and a scroll there alike.
  * Not before the first crossing: a click near the bottom of the window must not scroll the page.
  *
+ * **Shift+press grows the range from the focused cell** to the cell pressed, and a drag from there
+ * goes on growing it — a shift-click, and a shift-drag that picks up an existing range, as a
+ * spreadsheet has them. The anchor is still the focused cell, so the press must not move focus: that
+ * is the browser's mousedown default, and handleRangeShiftMouseDown() cancels it.
+ *
  * A finger is left alone: on a touch screen a drag across the table is how it scrolls.
  */
 
-let start = null;   // the cell the press landed on, while a drag may be under way
+let start = null;   // the range's anchor while a drag may be under way: the pressed cell, or the focused one under Shift
 let over = null;    // the cell the pointer was over last
 let crossed = false;
+let shifted = false;
 
 /**
  * Pointerdown anywhere: a drag may start here, if the press is on a table cell — or on anything
@@ -34,11 +40,32 @@ let crossed = false;
  * @returns {void}
  */
 export function handleRangeDragStart(evt) {
-    crossed = false;
+    crossed = shifted = false;
     const cell = evt.target.closest?.('.list-table .note-table-cell');
     // A press inside an open cell belongs to its caret, and to the text it selects.
     if (!cell || evt.button !== 0 || evt.pointerType === 'touch' || cell.classList.contains('is-expanded')) return;
+
+    // Only from a closed cell: with one open, the press is leaving it, as any press elsewhere is.
+    const focused = document.activeElement?.closest?.('.list-table .note-table-cell:not(.is-expanded)');
+    if (evt.shiftKey && focused) {
+        shifted = true;
+        start = focused;
+        over = cell;
+        extendRange(focused, cell);
+        return;
+    }
     start = over = cell;
+}
+
+/**
+ * Mousedown anywhere: keeps focus where it is for a Shift+press that grew a range, since focus is
+ * the range's anchor and moving it would end the range. Cancelling the mousedown is what stops the
+ * browser focusing the pressed cell; the click that follows still arrives.
+ * @param {MouseEvent} evt
+ * @returns {void}
+ */
+export function handleRangeShiftMouseDown(evt) {
+    if (shifted) evt.preventDefault();
 }
 
 /**
@@ -78,13 +105,14 @@ export function handleRangeDragEnd() {
 }
 
 /**
- * Whether the last press reached another cell before it was released.
+ * Whether the last press made a range: it reached another cell before it was released, or it was a
+ * Shift+press.
  *
  * Asked by the click that follows it. Pressed in one cell, dragged to another and let go back where
  * it began, the press and the release are on the same cell and the browser clicks it — which would
- * open a cell the user was only dragging from.
+ * open a cell the user was only dragging from. A shift-click is a click on the cell it extends to.
  * @returns {boolean}
  */
-export function pressCrossedCells() {
-    return crossed;
+export function pressMadeRange() {
+    return crossed || shifted;
 }
