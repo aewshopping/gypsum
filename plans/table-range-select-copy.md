@@ -145,15 +145,19 @@ Right-click is not offered — it would mean a context menu of the app's own, wh
 than this is worth. **A copy button in the table's control row** stands in for it, and says `Ctrl+C`
 in its tooltip.
 
-- **Placed to the left of the layout name button.** Decided. It is always drawn — disabled while
-  there is no range — so nothing in the row moves when a range appears or goes. Drawn by
+- **Placed to the left of the layout name button, and invisible unless there is a range.** Decided.
+  It is always drawn, and its space is always kept, so nothing in the row moves when a range appears
+  or goes; but with no range it is not seen at all. That is `visibility: hidden`, which keeps the
+  box, and — unlike a disabled or transparent button — also takes it out of the tab order, out of
+  the reach of a press, and out of what a screen reader announces. Drawn by
   `render-table-controls.js` with the rest of the row.
 - **In the control row, not beside the range.** A button floating at the range's corner has to be
   placed against the range's cells, and moving anything inside `.list-table` is what step 1 measured
   at 55ms a move on a 1,000-row page (§2.3).
-- **Enabled only while there is a range.** A single cell is `Ctrl+C`'s job. Its enabled state is set
-  by hand when the range changes, the way `markUndoState()` sets undo and redo — never by waiting for
-  a render.
+- **Shown only while there is a range.** A single cell is `Ctrl+C`'s job. Whether it shows is set by
+  hand when the range changes — one attribute on the button, flipped in `extendRange()` and
+  `clearRange()`, the two places a range starts and ends — the way `markUndoState()` sets undo and
+  redo, never by waiting for a render. Hiding it also closes its popover if that is open.
 - **The button opens a popover with two items: "copy" and "copy with headers".** Decided. Built the
   way the undo history list is (`ui-functions-click/undo-list.js`, `css/undo-list.css`): a
   `popover` element with `.app-menu`'s look and small-screen sheet from `menu.css`, hanging from the
