@@ -269,14 +269,15 @@ A rectangle of table cells, made by dragging from one cell to another or by `Shi
 (`Ctrl+Shift`+arrow to the end of a row or column). Nothing is copied or written yet. See
 `ui-functions-cell/cell-range.js` and `plans/table-range-select-copy.md`.
 
-- **The anchor is the focused cell, and nothing that makes a range moves focus.** A drag and
-  `Shift`+arrow move only the far corner, `appState.tableRange.extent`. So *selection follows focus*
-  is untouched, and focus moving on ends a range — one `clearRange()` in `handleCellFocusIn`, beside
-  the ones for Escape and a press outside the table.
+- **Nothing that makes a range moves focus.** A drag, a shift-click and `Shift`+arrow anchor the
+  range at the focused cell and move only the far corner, `appState.tableRange.extent`; select-all
+  anchors it at the top-left and leaves focus where it was, inside the range. So *selection follows
+  focus* is untouched, and focus moving on ends a range — one `clearRange()` in `handleCellFocusIn`,
+  with no exemptions, beside the ones for Escape and a press outside the table.
 - **Opening the anchor keeps the range**, because the open cell is where a value for the whole range
   will be typed. So the redraw after it is written keeps it too: `renderFiles` clears a range only on a
   full render or when the rows drawn change (`nothingMoved`, the view transition's question), and
-  otherwise repaints it; focus put back on the anchor by that redraw is not focus moving on. Escape
+  otherwise repaints it, holding the range across the focus it puts back. Escape
   steps back one level at a time — the open cell, then the range — and an open cell does not wear
   the range's marks, keeping its own shadow.
 - **A cell is revealed clear of the sticky header, not just of the sticky columns.** A row scrolled up
@@ -303,8 +304,9 @@ A rectangle of table cells, made by dragging from one cell to another or by `Shi
   click that follows is a range gesture too (`pressMadeRange()`), so it opens nothing.
 - **`Ctrl/Cmd+A` selects every cell drawn** — this page's rows, no headings — and only when focus is
   on a closed table cell, so text boxes, an open cell and the rest of the page keep the browser's
-  select-all. It is the one range command that moves focus, to the top-left cell the range must
-  grow from, and it puts the view back where it was.
+  select-all. Focus stays on the cell it was on; the range is anchored at the top-left instead, so
+  `Shift`+arrow grows it from `rangeAnchor()` rather than from focus — the same cell in every other
+  case.
 - **The marks are paint-only, and must stay so.** Edge cells draw inset `box-shadow`s and every cell
   in the range a `background-image` tint (`css/note-table-range.css`). One element drawn round the
   range was measured: moving anything inside `.list-table` lays the whole grid out again, 55ms a move

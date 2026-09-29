@@ -151,7 +151,11 @@ export function renderFiles(fullRender = true, keepPage = false) {
 
         applyHighlights(); // need to apply again because we have a complete refresh of output html
 
+        // Putting focus back is a focus move, and a focus move ends a range — so a range this redraw
+        // kept is held across it and marked on the new rows after.
+        const range = appState.tableRange;
         restoreCellState(cellState);
+        appState.tableRange = range;
         paintRange();
     };
 

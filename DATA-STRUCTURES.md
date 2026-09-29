@@ -488,7 +488,7 @@ the same notes in the same order — every cell edit, every autosave — starts 
 ```js
 appState.tableRange = null;   // or:
 appState.tableRange = {
-  anchor: { vtId: 'id-7', prop: 'status' },   // the focused cell — the range grows away from it
+  anchor: { vtId: 'id-7', prop: 'status' },   // where the range grows from: the focused cell, or the top-left after select-all
   extent: { vtId: 'id-12', prop: 'due' },     // the corner a drag or Shift+arrow moves
 }
 ```

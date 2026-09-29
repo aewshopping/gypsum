@@ -10,7 +10,7 @@
  * corner instead, with the same arithmetic.
  */
 
-import { extendRange, rangeExtent, clearRange } from '../ui-functions-cell/cell-range.js';
+import { extendRange, rangeAnchor, rangeExtent, clearRange } from '../ui-functions-cell/cell-range.js';
 import { revealCell } from '../ui-functions-table/table-focus-scroll.js';
 
 let _cachedCols = 0;
@@ -93,7 +93,8 @@ export function handleKeyboardNavigate(evt) {
         // A range does not wrap: past the end of a row there is nothing further right.
         if ((key === 'ArrowRight' || key === 'ArrowLeft') && rowOf(target, cols) !== rowOf(from, cols)) return;
 
-        extendRange(focused, target);
+        // From the range's own anchor, which is the focused cell except after select-all.
+        extendRange(rangeAnchor() ?? focused, target);
         revealCell(target);
         return;
     }

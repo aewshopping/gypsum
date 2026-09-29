@@ -4,11 +4,11 @@ import { addressOf, elementAt } from '../ui-functions-render/keep-cell-state.js'
 /**
  * @file A rectangular range of table cells: making it, ending it, and marking it.
  *
- * **The anchor is the focused cell, and the range grows away from it.** Nothing here moves focus
- * except select-all, which has to start from the top-left corner, so "selection follows focus" is
- * untouched: the anchor keeps its selected outline inside the range,
- * and a plain arrow moves from it as it always did. The far corner, the extent, is the one new fact,
- * and it is what a drag and Shift+arrow move. A range ends whenever focus moves on, Escape is pressed
+ * **The range grows from its anchor, and nothing here moves focus.** A drag, a shift-click and
+ * Shift+arrow anchor it at the focused cell; select-all anchors it at the top-left corner and leaves
+ * focus wherever it was, inside the range. So "selection follows focus" is untouched: the focused
+ * cell keeps its selected outline inside the range, and a plain arrow moves from it as it always
+ * did. The far corner, the extent, is what a drag and Shift+arrow move. A range ends whenever focus moves on, Escape is pressed
  * with no cell open, or a redraw changes which rows are drawn — every one of those through
  * clearRange(). **Opening the anchor does not end it**, and nor does the redraw that writes it: the
  * open cell is where a value for the whole range will be typed.
@@ -82,7 +82,7 @@ export function extendRange(anchor, extent) {
 }
 
 /**
- * The cell the range grows from, which is the focused cell.
+ * The cell the range grows from: the focused cell, except after select-all.
  * @returns {HTMLElement|null} Null when there is no range.
  */
 export function rangeAnchor() {
@@ -100,22 +100,15 @@ export function rangeExtent() {
 /**
  * Selects every cell the table has drawn: this page's rows, and no headings.
  *
- * The one place a range moves focus, because a range grows from the focused cell and the whole
- * table grows from its top-left corner. The view is put back where it was, so selecting everything
- * does not also scroll to the top.
+ * Anchored at the top-left corner rather than at the focused cell, which stays where it is — somewhere
+ * inside the range, like the active cell of a spreadsheet's select-all. Shift+arrow then moves the
+ * bottom-right corner.
  * @returns {void}
  */
 export function selectAllCells() {
     const scroller = document.querySelector('.list-table');
     const first = scroller.firstElementChild?.firstElementChild;
-    const last = scroller.lastElementChild?.lastElementChild;
-    if (!first) return;
-
-    const [x, y] = [scroller.scrollLeft, window.scrollY];
-    first.focus({ preventScroll: true });
-    scroller.scrollLeft = x;
-    window.scrollTo(window.scrollX, y);
-    extendRange(first, last);
+    if (first) extendRange(first, scroller.lastElementChild.lastElementChild);
 }
 
 /**

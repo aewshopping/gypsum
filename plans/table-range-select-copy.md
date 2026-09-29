@@ -53,8 +53,9 @@ corner, the *extent*, is the only new fact.
 
 **Stored as `appState.tableRange`**: `null`, or `{ anchor, extent }`, each a cell address
 `{ vtId, prop }` — the shape `keep-cell-state.js` already uses, so its `addressOf()` and
-`elementAt()` are exported and reused rather than written again. The anchor is stored even though it
-is always the focused cell, so that copy (and later paste) read one place.
+`elementAt()` are exported and reused rather than written again. The anchor is stored because it is
+not always the focused cell: select-all anchors at the top-left and leaves focus where it was (added
+after step 1 was built).
 
 **What ends a range**, all through one `clearRange()`:
 

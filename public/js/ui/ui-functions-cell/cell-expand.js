@@ -1,6 +1,6 @@
 import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
 import { releaseRowMove } from '../ui-functions-table/pending-row-move.js';
-import { clearRange, rangeAnchor } from './cell-range.js';
+import { clearRange } from './cell-range.js';
 import { revealCell } from '../ui-functions-table/table-focus-scroll.js';
 import { pressMadeRange } from './cell-range-drag.js';
 
@@ -83,10 +83,9 @@ export function handleCellFocusIn(evt) {
 
     cell?.classList.add(SELECTED);
 
-    // A range grows away from the focused cell, so focus moving on is the range ending. Nothing that
-    // makes a range moves focus. Focus arriving back on the anchor is not moving on: that is a redraw
-    // putting focus back where it was, after a cell of the range was written.
-    if (cell !== rangeAnchor()) clearRange();
+    // Focus moving on is the range ending. Nothing that makes a range moves focus, and the redraw that
+    // puts focus back after a cell of the range is written holds the range across it itself.
+    clearRange();
 
     releaseRowMove();
 }
