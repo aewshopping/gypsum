@@ -136,32 +136,42 @@ by decision.
   the browser's copy.
 - **With a cell open, `Ctrl+C` is the browser's own copy of the text selected in that cell**, and the
   range is not copied — even though it is still standing around the open cell. Decided.
-- **Values only.** Headers are the copy button's option (§3.4): `Ctrl+Shift+C` cannot carry it, being
-  Chrome's inspect-element shortcut.
+- **`Ctrl+C` only, and values only.** Decided: no `Ctrl+Shift+C` (Chrome's inspect-element shortcut
+  anyway). Copying with headers is reached from the copy button's popover (§3.4) and nowhere else.
 
 ### 3.4 The mouse: a copy button
 
 Right-click is not offered — it would mean a context menu of the app's own, which is more rewiring
-than this is worth. **A copy button in the table's control row** stands in for it, beside undo and
-redo, and says the shortcut in its tooltip.
+than this is worth. **A copy button in the table's control row** stands in for it, and says `Ctrl+C`
+in its tooltip.
 
+- **Placed to the left of the layout name button.** Decided. It is always drawn — disabled while
+  there is no range — so nothing in the row moves when a range appears or goes. Drawn by
+  `render-table-controls.js` with the rest of the row.
 - **In the control row, not beside the range.** A button floating at the range's corner has to be
-  placed against the range's cells — anchor positioning, or geometry — and moving anything inside
-  `.list-table` is what step 1 measured at 55ms a move on a 1,000-row page (§2.3). The control row is
-  fixed and already there (`.output-controls`, drawn by the table's renderer).
-- **Enabled only while there is a range.** A single cell is `Ctrl+C`'s job.
-- **Its options: "copy" and "copy with headers"**, as a small menu off the button. With headers, the
-  first line is the columns' headings as the header draws them.
-- **It must not take focus.** A press on a button focuses it, focus leaving the table ends the range,
-  and the range would be gone before the copy ran. The button cancels its `mousedown`, exactly as the
-  note-link picker's items do (`autocomplete/popup.js`), so focus stays in the cell.
-- **It is exempt from the press-outside-the-table rule** (`handleCellExpandClickOutside`), so the range
-  is still selected after copying, as a spreadsheet keeps its selection.
-- **One code path.** The button calls `document.execCommand('copy')`, which fires the same `copy`
-  event `Ctrl+C` does, so the TSV is built in one place.
-- **Feedback for both:** the report line says what was copied ("copied 12 cells"), since nothing else
-  on screen changes. While a range stands it can also say "12 cells selected", which is where a
-  keyboard user learns the range exists to be copied.
+  placed against the range's cells, and moving anything inside `.list-table` is what step 1 measured
+  at 55ms a move on a 1,000-row page (§2.3).
+- **Enabled only while there is a range.** A single cell is `Ctrl+C`'s job. Its enabled state is set
+  by hand when the range changes, the way `markUndoState()` sets undo and redo — never by waiting for
+  a render.
+- **The button opens a popover with two items: "copy" and "copy with headers".** Decided. Built the
+  way the undo history list is (`ui-functions-click/undo-list.js`, `css/undo-list.css`): a
+  `popover` element with `.app-menu`'s look and small-screen sheet from `menu.css`, hanging from the
+  button by `position-anchor`, opened with `showPopover()`. With headers, the first line is the
+  columns' headings as the header draws them.
+- **Nothing in it may take focus.** A press on a button focuses it, focus leaving the table ends the
+  range, and the range would be gone before the copy ran. So the copy button and both popover items
+  cancel their `mousedown`, exactly as the note-link picker's items do (`autocomplete/popup.js`), and
+  focus stays in the cell throughout. Opening a popover does not move focus by itself.
+- **Exempt from the press-outside-the-table rule** (`handleCellExpandClickOutside`), the button and
+  the popover both, so the range is still selected after copying — as a spreadsheet keeps its
+  selection — and choosing an item does not end the range it is about to copy.
+- **One code path.** Each item calls `document.execCommand('copy')` with a flag saying whether to
+  include headers; that fires the same `copy` event `Ctrl+C` does, so the TSV is built in one place.
+  The popover closes after either item.
+- **Feedback for both:** the report line says what was copied ("copied 12 cells", "copied 12 cells
+  with headers"), since nothing else on screen changes. While a range stands it can also say
+  "12 cells selected", which is where a keyboard user learns the range exists to be copied.
 
 ### 3.5 Size
 
@@ -172,9 +182,10 @@ touches no layout; measure once, but it should be well under a frame's worth per
 
 One new file, `ui/ui-functions-cell/cell-range-copy.js`: the rectangle's cells, their values through
 `copy-source-value.js`, the TSV, and the `copy` handler — registered in `event-listeners-add.js`
-beside the other document listeners. The button is drawn by `render-table-controls.js` beside undo
-and redo, with its click in `ui-functions-click/` as every click action is, and its enabled state set
-by hand when the range changes — the way `markUndoState()` moves undo and redo — never by a render. `cell-range.js` exports the rectangle it already works out for
+beside the other document listeners. The button is drawn by `render-table-controls.js`, left of the
+layout name; its click and the popover's two items are one file in `ui-functions-click/`
+(`range-copy-menu.js`), registered in the click action map as every click action is; the popover's
+CSS is its own file beside `undo-list.css`, sharing `.app-menu` from `menu.css`. `cell-range.js` exports the rectangle it already works out for
 the paint (top, bottom, left, right), so the copy and the marks cannot disagree about which cells are
 in the range. The TSV quoting is small and pure; if paste needs to read it back, it moves to
 `services/` then, not before.
@@ -183,5 +194,5 @@ in the range. The TSV quoting is small and pure; if paste needs to read it back,
 
 Level 2, in `59-table-range-select.spec.js`: a range including a tags cell and a list cell copies
 their items rather than their pills; select-all copies from the top-left whatever cell holds focus;
-`Ctrl+C` in an open cell copies text, not the range; the copy button copies with and without
-headers and leaves the range selected.
+`Ctrl+C` in an open cell copies text, not the range; the copy button's popover copies with and without
+headers, and the range is still selected afterwards.
