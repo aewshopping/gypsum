@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
 const { loadFolder } = require('../helpers');
 
-// Ten notes with three short front matter values each, and a [[link]] in one more, so a drag can
-// start on a link.
+// Ten notes with three short front matter values each, a date (whose editor puts focus on an input of
+// its own inside the cell), and a [[link]], so a drag can start on a link.
 async function openTable(page) {
-  await page.setViewportSize({ width: 1400, height: 800 });
+  // Wide enough for every column, so no drag in these tests has to leave the window.
+  await page.setViewportSize({ width: 1800, height: 800 });
   await page.addInitScript(() => {
     window.showDirectoryPicker = async () => {
       const mk = (name, content) => ({ kind: 'file', name,
@@ -12,7 +13,7 @@ async function openTable(page) {
       return { kind: 'directory', name: 'root', values: async function* () {
         for (let i = 1; i <= 10; i++) {
           const n = String(i).padStart(2, '0');
-          yield mk(`note-${n}.md`, `---\na: a${n}\nb: b${n}\nc: c${n}\nrelated: "[[note-01.md]]"\n---\n# Note ${n}\n`);
+          yield mk(`note-${n}.md`, `---\ndate: 2026-01-${n}\na: a${n}\nb: b${n}\nc: c${n}\nrelated: "[[note-01.md]]"\n---\n# Note ${n}\n`);
         }
       } };
     };
@@ -161,3 +162,15 @@ test('a plain arrow, Escape and a press elsewhere end the range; opening its anc
   await page.keyboard.press('Escape');
   expect(await marks(page)).toEqual([]);
 });
+
+// The date editor moves focus onto its own input, inside the cell. That is not focus moving on, so it
+// must not end the range the way a move to another cell does.
+test('opening a date cell with F2 keeps the range, as any other cell does', async ({ page }) => {
+  await openTable(page);
+  await cellAt(page, 1, 'date').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('F2');
+  await expect(cellAt(page, 1, 'date')).toHaveClass(/is-expanded/);
+  expect(await marks(page)).toHaveLength(2);
+});
+

@@ -76,6 +76,9 @@ export function clearExpandedCells() {
  */
 export function handleCellFocusIn(evt) {
     const cell = evt.target.closest?.('.note-table-cell');
+    // Focus that was already in this cell has moved within it — a date cell's own input and picker
+    // button are inside it — which is not moving on.
+    const withinCell = Boolean(cell?.classList.contains(SELECTED));
 
     for (const other of document.querySelectorAll(`.note-table-cell.${SELECTED}, .note-table-cell.${EXPANDED}`)) {
         if (other !== cell) collapse(other);
@@ -85,7 +88,7 @@ export function handleCellFocusIn(evt) {
 
     // Focus moving on is the range ending. Nothing that makes a range moves focus, and the redraw that
     // puts focus back after a cell of the range is written holds the range across it itself.
-    clearRange();
+    if (!withinCell) clearRange();
 
     releaseRowMove();
 }
