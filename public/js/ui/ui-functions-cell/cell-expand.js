@@ -221,7 +221,10 @@ export function handleCellExpandClickOutside(evt) {
     // And a drag from one cell to another is clicked on the row they share — outside every cell, but
     // not a press outside the table, and collapsing here would take the mark off the range's anchor.
     if (evt.detail !== 0 && pressMadeRange()) return;
-    if (!evt.target.closest('.note-table-cell, .ac-picker-popup')) {
+
+    // The copy button and its menu count as inside too: pressing them must leave the range they copy
+    // standing, and an open cell open.
+    if (!evt.target.closest('.note-table-cell, .ac-picker-popup, #range-copy-btn, #range-copy-menu')) {
         clearExpandedCells();
         // Focus does not always move for this: a press on a part of the page that cannot take it
         // blurs to the body, and no focusin arrives to end the range.

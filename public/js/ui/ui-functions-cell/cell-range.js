@@ -44,11 +44,32 @@ function gridPosition(cell) {
  */
 export function paintRange() {
     for (const cell of document.querySelectorAll('.list-table .in-range')) cell.classList.remove(...MARKS);
+    showCopyButton(Boolean(appState.tableRange));
 
+    const grid = rangeGrid();
+    if (!grid) return;
+
+    const last = grid.length - 1;
+    grid.forEach((cells, r) => cells.forEach((cell, c) => {
+        const marks = cell.classList;
+        marks.add('in-range');
+        if (r === 0) marks.add('range-top');
+        if (r === last) marks.add('range-bottom');
+        if (c === 0) marks.add('range-left');
+        if (c === cells.length - 1) marks.add('range-right');
+    }));
+}
+
+/**
+ * The range's cells, row by row as drawn — the one answer to "which cells are in it", shared by the
+ * marks and the copy so the two cannot disagree.
+ * @returns {HTMLElement[][]|null} Null when there is no range, or its corners are not on screen.
+ */
+export function rangeGrid() {
     const range = appState.tableRange;
     const anchor = elementAt(range?.anchor);
     const extent = elementAt(range?.extent);
-    if (!anchor || !extent) return;
+    if (!anchor || !extent) return null;
 
     const a = gridPosition(anchor);
     const b = gridPosition(extent);
@@ -56,17 +77,21 @@ export function paintRange() {
     const left = Math.min(a.col, b.col), right = Math.max(a.col, b.col);
     const rows = anchor.parentElement.parentElement.children;
 
-    for (let r = top; r <= bottom; r++) {
-        const cells = rows[r].children;
-        for (let c = left; c <= right; c++) {
-            const marks = cells[c].classList;
-            marks.add('in-range');
-            if (r === top) marks.add('range-top');
-            if (r === bottom) marks.add('range-bottom');
-            if (c === left) marks.add('range-left');
-            if (c === right) marks.add('range-right');
-        }
-    }
+    const grid = [];
+    for (let r = top; r <= bottom; r++) grid.push([...rows[r].children].slice(left, right + 1));
+    return grid;
+}
+
+/**
+ * The copy button is there only while a range is: its space is always kept, so the control row never
+ * moves, but with no range it cannot be seen or reached. Its menu goes with it.
+ * @param {boolean} shown
+ * @returns {void}
+ */
+function showCopyButton(shown) {
+    document.getElementById('range-copy-btn')?.toggleAttribute('data-shown', shown);
+    const menu = document.getElementById('range-copy-menu');
+    if (!shown && menu?.matches(':popover-open')) menu.hidePopover();
 }
 
 /**

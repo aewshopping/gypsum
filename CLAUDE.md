@@ -266,8 +266,8 @@ table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-t
 ### Range selection
 
 A rectangle of table cells, made by dragging from one cell to another or by `Shift`+arrow
-(`Ctrl+Shift`+arrow to the end of a row or column). Nothing is copied or written yet. See
-`ui-functions-cell/cell-range.js` and `plans/table-range-select-copy.md`.
+(`Ctrl+Shift`+arrow to the end of a row or column), and copied with `Ctrl+C` or the copy button.
+Nothing is written yet. See `ui-functions-cell/cell-range.js` and `plans/table-range-select-copy.md`.
 
 - **Nothing that makes a range moves focus.** A drag, a shift-click and `Shift`+arrow anchor the
   range at the focused cell and move only the far corner, `appState.tableRange.extent`; select-all
@@ -321,6 +321,23 @@ A rectangle of table cells, made by dragging from one cell to another or by `Shi
   hit test after any scroll, the loop's and the wheel's alike, and the hit test clamps the pointer
   into the visible rows so a pointer off the table still means the edge row or column. The left
   strip starts where the sticky columns end: pointing at a sticky cell means that cell.
+- **Copying is the browser's `copy` event**, which `Ctrl+C` fires from a closed cell with nothing
+  selected, and which the copy button fires with `execCommand('copy')` — one handler,
+  `handleRangeCopy()` in `cell-range-copy.js`, writing TSV synchronously with no permission needed
+  (the app may run from `file://`). It acts only from a closed table cell or when the button asked;
+  an open cell, a text box and the rest of the page keep the browser's copy. With no range the
+  focused cell is copied alone.
+- **A cell copies what it shows** — its `textContent`, since the renderer already writes every cell as
+  the note's own text or the app's formatted text — **except two columns**: tags, drawn as pills
+  with nothing between them, copy as a comma-joined list; the file column copies a count, 1 on the
+  first copied row. Not `copy-source-value.js`: its values are right for writing into a note, but a
+  `Date` (`lastModified`, or a date reached through a linked column) comes out raw.
+- **The copy button is always drawn and only seen with a range** — `visibility: hidden` otherwise, so
+  its space is kept and the control row never moves; `paintRange()` sets `data-shown`. It opens a
+  popover of "copy" and "copy with headers", the one place headers are offered. Neither the button
+  nor its items may take focus (their `mousedown` is cancelled), and both are exempt from the
+  press-outside-the-table rule, so the range survives being copied.
+- **The copy and the marks walk one rectangle**, `rangeGrid()` in `cell-range.js`.
 - **Closed cells are `user-select: none`, and links in the table `-webkit-user-drag: none`** — the
   first so a drag does not also select text, the second because the browser's own link drag
   cancels the pointer and would end a range begun on a `[[link]]`.
@@ -1080,7 +1097,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`) |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`) |
 | `public/js/ui/ui-functions-flowchart/` | The flowchart's control row and its options modal's rows |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |

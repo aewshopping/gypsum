@@ -35,6 +35,8 @@ import { handleColumnCopyOpen, handleColumnCopyInput, handleColumnCopyKeydown, h
          handleColumnCopyClose } from './ui-functions-click/column-copy-dialog.js';
 import { handleColumnCopyConfirm } from './ui-functions-click/column-copy-property.js';
 import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
+import { handleRangeCopyMenuOpen, handleRangeCopyItem, handleRangeCopyMouseDown } from './ui-functions-click/range-copy-menu.js';
+import { handleRangeCopy } from './ui-functions-cell/cell-range-copy.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
@@ -130,6 +132,10 @@ export function addActionHandlers() {
     // pointerDownActionHandlers. The rest of the drag is with the other drags below.
     document.addEventListener('pointerdown', handleRangeDragStart);
     document.addEventListener('mousedown', handleRangeShiftMouseDown); // a shift-click keeps focus on the anchor
+    document.addEventListener('mousedown', handleRangeCopyMouseDown);  // and so does the copy button
+
+    // Ctrl+C, and the copy button through execCommand, both arrive here as the browser's copy event.
+    document.addEventListener('copy', handleRangeCopy);
 
     // A click is the second door onto "has focus left the row that is holding its move". The first
     // is the focusin above, which never fires when a click lands on a part of the page that cannot
@@ -249,6 +255,8 @@ const clickActionHandlers = {
     'linked-column-delete': handleLinkedColumnDelete,
     'linked-column-cancel': handleLinkedColumnCancel,
     'undo-list': handleUndoListOpen,
+    'range-copy-menu': handleRangeCopyMenuOpen,
+    'range-copy': handleRangeCopyItem,
     'undo-list-item': handleUndoListItem,
     'undo-list-clear': handleUndoListClear,
     'column-change-type': handleColumnChangeType,

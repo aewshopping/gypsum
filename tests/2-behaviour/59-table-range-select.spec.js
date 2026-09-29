@@ -13,10 +13,15 @@ async function openTable(page) {
       return { kind: 'directory', name: 'root', values: async function* () {
         for (let i = 1; i <= 10; i++) {
           const n = String(i).padStart(2, '0');
-          yield mk(`note-${n}.md`, `---\ndate: 2026-01-${n}\na: a${n}\nb: b${n}\nc: c${n}\nrelated: "[[note-01.md]]"\n---\n# Note ${n}\n`);
+          yield mk(`note-${n}.md`, `---\ndate: 2026-01-${n}\ntags: [x, y]\na: a${n}\nb: b${n}\nc: c${n}\nrelated: "[[note-01.md]]"\n---\n# Note ${n}\n`);
         }
       } };
     };
+  });
+  // What the app puts on the clipboard, read back without clipboard permissions.
+  await page.addInitScript(() => {
+    const set = DataTransfer.prototype.setData;
+    DataTransfer.prototype.setData = function (type, value) { window.__copied = value; return set.call(this, type, value); };
   });
   await page.goto('/');
   await loadFolder(page);
@@ -174,3 +179,48 @@ test('opening a date cell with F2 keeps the range, as any other cell does', asyn
   expect(await marks(page)).toHaveLength(2);
 });
 
+
+const copied = page => page.evaluate(() => window.__copied ?? null);
+
+test('Ctrl+C copies the range as TSV of what each cell shows, counting rows in the file column', async ({ page }) => {
+  await openTable(page);
+  await cellAt(page, 3, 'filename').click();
+  await page.keyboard.press('ArrowLeft'); // onto the file column's cell, not its link
+  await page.keyboard.press('Shift+ArrowDown');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Control+c');
+
+  const [first, second] = (await copied(page)).split('\n');
+  const [count, filename, , tags] = first.split('\t');
+  expect(count).toBe('1');                      // the file column counts copied rows, from 1
+  expect(filename).toMatch(/^note-\d\d\.md$/);
+  expect(tags).toBe('x, y');                    // a list, not pills run together
+  expect(second.startsWith('2\t')).toBe(true);
+  await expect(page.locator('#output-report')).toContainText('copied 8 cells');
+});
+
+test('the copy button shows only with a range, and copies with headers leaving the range', async ({ page }) => {
+  await openTable(page);
+  const button = page.locator('#range-copy-btn');
+  await cellAt(page, 1, 'a').click();
+  await expect(button).toBeHidden();
+
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(button).toBeVisible();
+  await button.click();
+  await page.click('#range-copy-menu [data-headers="true"]');
+
+  const [a, b] = [await cellAt(page, 1, 'a').textContent(), await cellAt(page, 1, 'b').textContent()];
+  expect(await copied(page)).toBe(`a\tb\n${a}\t${b}`);
+  expect(await marks(page)).toHaveLength(2);    // the range is still selected
+  expect(await focusedAt(page)).toBe('1:a');
+});
+
+test('Ctrl+C in an open cell is the browser\'s own copy, not the range', async ({ page }) => {
+  await openTable(page);
+  await cellAt(page, 1, 'a').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('F2');
+  await page.keyboard.press('Control+c');
+  expect(await copied(page)).toBeNull();
+});

@@ -1,6 +1,7 @@
 # Plan: range select and copy in table view
 
-Status: **step 1 (selecting a range) built. Step 2 (copy) not started — §3 is its plan.**
+Status: **built — step 1 (selecting a range) and step 2 (copy).** §3 is step 2's plan, with what
+changed in the building noted where it did.
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
 Depends on: `plans/completed/table-undo-stack.md`, **built**
 Related: `plans/table-range-paste.md`, which depends on this
@@ -100,7 +101,13 @@ by decision.
 - **In on-screen order**: rows as drawn on this page, columns as drawn, hidden columns absent. That is
   the order the paint already walks (row position in `.list-table`, cell position in its row), so the
   copy walks the same way rather than re-deriving it from the layout.
-- **Not the cells' on-screen text.** That was the plan's first thought, and it is wrong for every
+- **As built: each cell's own text, with two exceptions** — which reverses the bullet below. Reading
+  the renderer showed that every cell but two is already written as the note's own text or the app's
+  formatted text, and that `sourceValue()` would copy a `Date` raw: `lastModified`, and a date reached
+  through a linked column, as `Sun Mar 01 2026 00:00:00 GMT…`. So `cellText()` in
+  `cell-range-copy.js` takes `textContent`, and special-cases tags (a comma-joined list of the pills'
+  names) and the file column (the count below). The bullet is kept for the reason it gives.
+- **~~Not the cells' on-screen text.~~** That was the plan's first thought, and it is wrong for every
   column that draws markup: a tags cell is a row of pills with no separator, so its text reads
   `workproject`; the file column reads `open`; `internalLink` draws targets without brackets. **Reuse
   `sourceValue()` and `copyText()` from `editing/copy-source-value.js`**, which "copy column…" already
@@ -119,6 +126,8 @@ by decision.
 
 ### 3.2 The clipboard
 
+- **Proved:** `Ctrl+C` does fire `copy` from a closed cell with nothing selected, and
+  `execCommand('copy')` from the button fires it too; the fallback was not needed.
 - **Use the `copy` event, not `navigator.clipboard`.** A `copy` listener can set several flavours
   synchronously through `clipboardData.setData()`, with no permission prompt and no promise. The
   async API asks for a secure context, and the app also ships as a single HTML file that may be opened
@@ -177,13 +186,14 @@ in its tooltip.
   include headers; that fires the same `copy` event `Ctrl+C` does, so the TSV is built in one place.
   The popover closes after either item.
 - **Feedback for both:** the report line says what was copied ("copied 12 cells", "copied 12 cells
-  with headers"), since nothing else on screen changes. While a range stands it can also say
-  "12 cells selected", which is where a keyboard user learns the range exists to be copied.
+  with headers"), since nothing else on screen changes. *"12 cells selected" while a range stands
+  was not built:* it would rewrite the report line on every cell a drag crosses, and rewriting that
+  line costs a layout of the page each time (CLAUDE.md, *Progress is a bar*).
 
 ### 3.5 Size
 
-`Ctrl+A` then `Ctrl+C` on a full 1,000 × 40 page is 40,000 values. Reading them from the file objects
-touches no layout; measure once, but it should be well under a frame's worth per thousand.
+`Ctrl+A` then `Ctrl+C` on a full 1,000 × 40 page is 40,000 values. Reading `textContent` touches no
+layout. Measured on a 50 × 18 page: 3ms.
 
 ### 3.6 Where it goes
 

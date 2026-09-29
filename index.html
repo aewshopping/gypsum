@@ -213,6 +213,8 @@
     <symbol id="icon-export-files" viewBox="0 0 40 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M10.295 28.118c4.13.05 20.67.23 24.81.28m-24.81-.28c4.13.05 20.67.23 24.81.28"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M10.295 44.285c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4m-.56 34.29c-.05-2.65-.37-10.17-.28-15.89.09-5.71.7-15.33.84-18.4M26.462 14.181c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55m-1.11-27.6c1.72 2.51 10.13 10.45 10.31 15.05.19 4.6-7.66 10.45-9.2 12.55"/></symbol>
     <!-- Which columns the table shows. Drawn by render-table-controls.js rather than written in
          this page, which is no reason for a second copy of a drawing. -->
+    <!-- Copy: two sheets, the front one whole. The table's copy button, shown while a range is. -->
+    <symbol id="icon-copy" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><rect x="18" y="17" width="23" height="26" rx="4"/><path d="M32 17v-5a4 4 0 0 0-4-4H13a4 4 0 0 0-4 4v19a4 4 0 0 0 4 4h5"/></g></symbol>
     <symbol id="icon-columns" viewBox="0 0 50 50"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4" d="M11.474 18.79c.03 4.09.16 20.45.19 24.54m-.19-24.54c.03 4.09.16 20.45.19 24.54M26.415 18.347c.01 4.1.03 20.5.03 24.6m-.03-24.6c.01 4.1.03 20.5.03 24.6M39.254 18.078v25.96m0-25.96v25.96M10 10.17c.71.01 3.53.04 4.23.05M10 10.17c.71.01 3.53.04 4.23.05M23.879 10.17c.6-.03 2.98-.14 3.58-.17m-3.58.17c.6-.03 2.98-.14 3.58-.17M36.665 10.17c.69-.03 3.43-.14 4.12-.17m-4.12.17c.69-.03 3.43-.14 4.12-.17"/></symbol>
     <!-- The flowchart's options. Three boxes and the lines between them: the one drawing in the
          sprite that is a picture of what the view makes. Drawn by render-flowchart-controls.js. -->
@@ -999,6 +1001,14 @@
        rows are drawn by render-undo-list.js each time it opens; a popover for the same reasons as
        the column menu — top layer, light dismiss, Escape. plans/completed/table-delete-column.md §17.6. -->
   <div id="undo-list" class="app-menu" popover></div>
+
+  <!-- The copy button's menu, at the start of the table's control row. Neither item takes focus
+       (range-copy-menu.js cancels their mousedown), since focus leaving the table ends the range they
+       copy. plans/table-range-select-copy.md §3.4. -->
+  <div id="range-copy-menu" class="app-menu" popover>
+    <button type="button" class="app-menu-item" data-action="range-copy" data-headers="false">copy</button>
+    <button type="button" class="app-menu-item" data-action="range-copy" data-headers="true">copy with headers</button>
+  </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the
        right edge of that column's header cell by table-col-resize.js — fixed rather than a
