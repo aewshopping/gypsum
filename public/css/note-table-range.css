@@ -4,7 +4,7 @@
    outside, so the four sides join into one rectangle around the cells. Paint-only on purpose: an
    inset box-shadow and a background image change no box, so marking a range lays nothing out,
    however many rows the page holds. One element drawn around the range was measured and dropped —
-   see plans/table-range-select-copy.md §5.
+   see plans/completed/table-range-select-copy.md §2.3.
 
    The border is the selected cell's colour and width, so a range reads as the selection grown. */
 

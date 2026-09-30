@@ -14,7 +14,7 @@ import { reportCopied } from '../ui-functions-render/output-report.js';
  * as the app's formatted text for the values it owns (a date and time, a size), so a cell's
  * textContent is right for every column but two: tags, drawn as pills with nothing between them, and
  * the file column, whose link says "open". Tags copy as one comma-joined line, as a list cell shows
- * one; the file column copies a count, 1 on the first copied row. See plans/table-range-select-copy.md §3.
+ * one; the file column copies a count, 1 on the first copied row. See plans/completed/table-range-select-copy.md §3.
  */
 
 // Set while the copy button's menu is asking for a copy, which it may do with a cell open.

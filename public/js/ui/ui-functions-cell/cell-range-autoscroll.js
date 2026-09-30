@@ -16,7 +16,7 @@ import { tableChromeBottom } from '../ui-functions-table/table-focus-scroll.js';
  * **One owner for "the pointer is over a different cell now"**: a scroll listener, alive only for
  * the drag. It fires for this loop's scrolling and for the wheel alike, so neither runs the hit test
  * itself. Nothing here is registered in event-listeners-add.js — it all lives and dies with a drag,
- * started and stopped by cell-range-drag.js. See plans/table-range-select-copy.md §6.
+ * started and stopped by cell-range-drag.js. See plans/completed/table-range-select-copy.md §2.3.
  */
 
 const STRIP = 40;       // px inside an edge where scrolling starts

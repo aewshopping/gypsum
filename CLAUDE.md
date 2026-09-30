@@ -267,7 +267,7 @@ table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-t
 
 A rectangle of table cells, made by dragging from one cell to another or by `Shift`+arrow
 (`Ctrl+Shift`+arrow to the end of a row or column), and copied with `Ctrl+C` or the copy button.
-Nothing is written yet. See `ui-functions-cell/cell-range.js` and `plans/table-range-select-copy.md`.
+Nothing is written yet. See `ui-functions-cell/cell-range.js` and `plans/completed/table-range-select-copy.md`.
 
 - **Nothing that makes a range moves focus.** A drag, a shift-click and `Shift`+arrow anchor the
   range at the focused cell and move only the far corner, `appState.tableRange.extent`; select-all

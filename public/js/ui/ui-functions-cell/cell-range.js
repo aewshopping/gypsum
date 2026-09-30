@@ -16,7 +16,7 @@ import { addressOf, elementAt } from '../ui-functions-render/keep-cell-state.js'
  * **The marks are paint-only**: an inset box-shadow on each outside edge and a tinted background
  * image (note-table-range.css), so no layout runs however many rows the page holds. One element
  * drawn around the range was tried first and measured — moving anything inside .list-table has the
- * whole table grid laid out again, 55ms a move at 1,000 rows. See plans/table-range-select-copy.md §5.
+ * whole table grid laid out again, 55ms a move at 1,000 rows. See plans/completed/table-range-select-copy.md §2.3.
  */
 
 const MARKS = ['in-range', 'range-top', 'range-bottom', 'range-left', 'range-right'];
