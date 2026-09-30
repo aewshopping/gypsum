@@ -12,6 +12,7 @@
 @import url("css/note-table.css");
 @import url("css/note-table-cell.css");
 @import url("css/note-table-sticky.css");
+@import url("css/note-table-range.css");
 @import url("css/cell-date-editor.css");
 @import url("css/note-table-scrollbar.css");
 @import url("css/note-list.css");
@@ -64,6 +65,7 @@
 @import url("css/menu.css");
 @import url("css/column-menu.css");
 @import url("css/undo-list.css");
+@import url("css/range-copy-menu.css");
 @import url("css/table-layouts.css");
 @import url("css/output-controls.css");
 @import url("css/table-undo-flash.css");

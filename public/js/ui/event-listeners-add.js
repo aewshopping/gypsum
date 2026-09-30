@@ -20,6 +20,7 @@ import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/col
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
 import { handleColumnResizeActivate, handleColumnResizeStart, handleColumnResizeMove, handleColumnResizeEnd } from './ui-functions-table/table-col-resize.js';
 import { handleScrollbarDragStart, handleScrollbarDragMove, handleScrollbarDragEnd } from './ui-functions-table/table-scrollbar-drag.js';
+import { handleRangeDragStart, handleRangeDragMove, handleRangeDragEnd, handleRangeShiftMouseDown } from './ui-functions-cell/cell-range-drag.js';
 import { handleScrollbarTrackPress } from './ui-functions-table/table-scrollbar-page.js';
 import { handleColumnAutoSize } from './ui-functions-table/table-col-auto-size.js';
 import { handleColumnDeleteProperty } from './ui-functions-click/column-delete-property.js';
@@ -34,6 +35,8 @@ import { handleColumnCopyOpen, handleColumnCopyInput, handleColumnCopyKeydown, h
          handleColumnCopyClose } from './ui-functions-click/column-copy-dialog.js';
 import { handleColumnCopyConfirm } from './ui-functions-click/column-copy-property.js';
 import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
+import { handleRangeCopyMenuOpen, handleRangeCopyItem, handleRangeCopyMouseDown } from './ui-functions-click/range-copy-menu.js';
+import { handleRangeCopy } from './ui-functions-cell/cell-range-copy.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
@@ -123,6 +126,17 @@ export function addActionHandlers() {
     document.addEventListener('focusin', handleCellFocusIn);
     document.addEventListener('pointerdown', handleCellPointerDown);
 
+    // A press on a cell may start a range, and like the handler above it has to see a press on
+    // anything inside the cell — a [[link]], a tag pill, the open-file link. Each of those carries
+    // its own data-action, which is the one the delegate would find, so this is not in
+    // pointerDownActionHandlers. The rest of the drag is with the other drags below.
+    document.addEventListener('pointerdown', handleRangeDragStart);
+    document.addEventListener('mousedown', handleRangeShiftMouseDown); // a shift-click keeps focus on the anchor
+    document.addEventListener('mousedown', handleRangeCopyMouseDown);  // and so does the copy button
+
+    // Ctrl+C, and the copy button through execCommand, both arrive here as the browser's copy event.
+    document.addEventListener('copy', handleRangeCopy);
+
     // A click is the second door onto "has focus left the row that is holding its move". The first
     // is the focusin above, which never fires when a click lands on a part of the page that cannot
     // take focus — the cell is blurred to the body and nothing arrives anywhere. Registered after
@@ -146,6 +160,9 @@ export function addActionHandlers() {
     document.addEventListener('pointermove', handleScrollbarDragMove);
     document.addEventListener('pointerup', handleScrollbarDragEnd);
     document.addEventListener('pointercancel', handleScrollbarDragEnd);
+    document.addEventListener('pointermove', handleRangeDragMove);
+    document.addEventListener('pointerup', handleRangeDragEnd);
+    document.addEventListener('pointercancel', handleRangeDragEnd);
 
     // Escape, clicking outside and the close button are all valid ways to finish with the column
     // picker, and all three have to apply what it was used to change. close is the one event they
@@ -238,6 +255,8 @@ const clickActionHandlers = {
     'linked-column-delete': handleLinkedColumnDelete,
     'linked-column-cancel': handleLinkedColumnCancel,
     'undo-list': handleUndoListOpen,
+    'range-copy-menu': handleRangeCopyMenuOpen,
+    'range-copy': handleRangeCopyItem,
     'undo-list-item': handleUndoListItem,
     'undo-list-clear': handleUndoListClear,
     'column-change-type': handleColumnChangeType,

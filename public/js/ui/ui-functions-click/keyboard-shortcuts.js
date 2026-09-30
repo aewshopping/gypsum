@@ -14,6 +14,7 @@ import { handleShowTagTaxonomy } from './tag-taxonomy-toggle.js';
 import { handleInsertDateShortcut } from './insert-date-shortcut.js';
 import { toggleWrapSelection } from '../../editing/wrap-selection.js';
 import { finishOpenCell } from '../ui-functions-cell/cell-expand.js';
+import { clearRange, selectAllCells } from '../ui-functions-cell/cell-range.js';
 import { clearHeaderSelection } from './column-menu.js';
 import { handleOpenSettings } from './settings-modal.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
@@ -108,6 +109,13 @@ export function handleKeyboardShortcuts(evt) {
         const key = evt.key?.toLowerCase();
         if (key === 'z') undoTableKey(evt, evt.shiftKey ? 'redo' : 'undo');
         if (key === 'y' && evt.ctrlKey && !evt.shiftKey) undoTableKey(evt, 'redo');
+
+        // Select every cell of the table — only from a closed cell, so an open one, a text box and the
+        // rest of the page keep the browser's own select-all.
+        if (key === 'a' && !evt.shiftKey && document.activeElement?.matches('.list-table .note-table-cell:not(.is-expanded)')) {
+            evt.preventDefault();
+            selectAllCells();
+        }
     }
 
     const noModalAltActions = {
@@ -204,7 +212,9 @@ export function handleKeyboardShortcuts(evt) {
         // An open cell closes and stays selected, writing nothing — the only exit that does not,
         // which is what makes it safe to open a cell just to look at it. It does not go on to let
         // go of the cell: the mark follows focus, and Escape does not move that.
-        finishOpenCell(true);
+        //
+        // A range around that cell stays with it, one level at a time: the Escape after ends it.
+        if (!finishOpenCell(true)) clearRange();
         clearHeaderSelection();
     }
 

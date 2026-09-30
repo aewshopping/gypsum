@@ -263,6 +263,85 @@ table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-t
   `isolation: isolate` on `.table-wrapper`; `container-type` does not make a stacking context, and
   without the isolation the sticky cells painted over the app's search row (z-index 1).
 
+### Range selection
+
+A rectangle of table cells, made by dragging from one cell to another or by `Shift`+arrow
+(`Ctrl+Shift`+arrow to the end of a row or column), and copied with `Ctrl+C` or the copy button.
+Nothing is written yet. See `ui-functions-cell/cell-range.js` and `plans/completed/table-range-select-copy.md`.
+
+- **Nothing that makes a range moves focus.** A drag, a shift-click and `Shift`+arrow anchor the
+  range at the focused cell and move only the far corner, `appState.tableRange.extent`; select-all
+  anchors it at the top-left and leaves focus where it was, inside the range. So *selection follows
+  focus* is untouched, and focus moving on ends a range — one `clearRange()` in `handleCellFocusIn`,
+  with no exemptions, beside the ones for Escape and a press outside the table.
+- **Opening the anchor keeps the range**, because the open cell is where a value for the whole range
+  will be typed. So the redraw after it is written keeps it too: `renderFiles` clears a range only on a
+  full render or when the rows drawn change (`nothingMoved`, the view transition's question), and
+  otherwise repaints it, holding the range across the focus it puts back. Escape
+  steps back one level at a time — the open cell, then the range — and an open cell does not wear
+  the range's marks, keeping its own shadow.
+- **A cell is revealed clear of the sticky header, not just of the sticky columns.** A row scrolled up
+  under `.table-chrome` counts as on screen to the browser, so `revealCell()` in
+  `table-focus-scroll.js` also scrolls the page, measuring the header's bottom edge
+  (`tableChromeBottom()`, shared with the drag's autoscroll) since the header strip has no height
+  variable to read. It runs on focus, on a range's far corner moving, and on a cell opening — a cell
+  opened from the keyboard already has focus, so the browser would otherwise scroll to it only once
+  something was typed.
+- **`Shift`+arrow continues the range there is**, from its far corner, whether it was made by keys
+  or a drag and however many times `Shift` has been let go since. It shares the arrow keys' arithmetic
+  (`targetIndex()` in `keyboard-navigate.js`), except that a range does not wrap past a row's end.
+- **A drag is a press that reaches another cell before release**; the cell grid is the threshold.
+  Opening a cell stays on `click`, which the browser only fires where press and release land on the
+  same element — so the one case needing code is a drag that comes back to its start
+  (`pressMadeRange()`, asked by `handleCellExpand` and the click-outside handler). The press is a
+  document listener beside `handleCellPointerDown`, **not** `expand-cell` in
+  `pointerDownActionHandlers`: a link or tag pill inside a cell carries its own `data-action`, which is
+  the one the delegate finds, so a drag begun on one would never start. The move, up and cancel
+  listeners sit with the table's other drags and return unless one is under way.
+- **Shift+press grows the range from the focused cell** — a shift-click, and a shift-drag that picks
+  up an existing range and re-sizes it from the same anchor. Focus must stay on the anchor, so
+  `handleRangeShiftMouseDown()` cancels the `mousedown` default, which is what would move it; the
+  click that follows is a range gesture too (`pressMadeRange()`), so it opens nothing.
+- **`Ctrl/Cmd+A` selects every cell drawn** — this page's rows, no headings — and only when focus is
+  on a closed table cell, so text boxes, an open cell and the rest of the page keep the browser's
+  select-all. Focus stays on the cell it was on; the range is anchored at the top-left instead, so
+  `Shift`+arrow grows it from `rangeAnchor()` rather than from focus — the same cell in every other
+  case.
+- **The marks are paint-only, and must stay so.** Edge cells draw inset `box-shadow`s and every cell
+  in the range a `background-image` tint (`css/note-table-range.css`). One element drawn round the
+  range was measured: moving anything inside `.list-table` lays the whole grid out again, 55ms a move
+  on a 1,000-row page.
+- **A cell has one shadow list, so a cell's other shadows are named layers.** The sticky columns'
+  edge line is `--sticky-edge`, and the range appends it to its own list; a new shadow on a table
+  cell has to be added the same way or a range will erase it.
+- **A drag scrolls the table at its edges** (`cell-range-autoscroll.js`), once it has crossed a
+  cell — a click near the bottom of the window must not scroll the page. The browser's own edge
+  scrolling belongs to text selection, which the range turns off, and a scroll under a still pointer
+  fires no `pointermove`, so both are done here. A scroll listener alive only for the drag owns the
+  hit test after any scroll, the loop's and the wheel's alike, and the hit test clamps the pointer
+  into the visible rows so a pointer off the table still means the edge row or column. The left
+  strip starts where the sticky columns end: pointing at a sticky cell means that cell.
+- **Copying is the browser's `copy` event**, which `Ctrl+C` fires from a closed cell with nothing
+  selected, and which the copy button fires with `execCommand('copy')` — one handler,
+  `handleRangeCopy()` in `cell-range-copy.js`, writing TSV synchronously with no permission needed
+  (the app may run from `file://`). It acts only from a closed table cell or when the button asked;
+  an open cell, a text box and the rest of the page keep the browser's copy. With no range the
+  focused cell is copied alone.
+- **A cell copies what it shows** — its `textContent`, since the renderer already writes every cell as
+  the note's own text or the app's formatted text — **except two columns**: tags, drawn as pills
+  with nothing between them, copy as a comma-joined list; the file column copies a count, 1 on the
+  first copied row. Not `copy-source-value.js`: its values are right for writing into a note, but a
+  `Date` (`lastModified`, or a date reached through a linked column) comes out raw.
+- **The copy button is always drawn and only seen with a range** — `visibility: hidden` otherwise, so
+  its space is kept and the control row never moves; `paintRange()` sets `data-shown`. It opens a
+  popover of "copy" and "copy with headers", the one place headers are offered. Neither the button
+  nor its items may take focus (their `mousedown` is cancelled), and both are exempt from the
+  press-outside-the-table rule, so the range survives being copied.
+- **The copy and the marks walk one rectangle**, `rangeGrid()` in `cell-range.js`.
+- **Closed cells are `user-select: none`, and links in the table `-webkit-user-drag: none`** — the
+  first so a drag does not also select text, the second because the browser's own link drag
+  cancels the pointer and would end a range begun on a `[[link]]`.
+
 ### Deleting a property from every note
 
 "delete column", last in the column menu below a rule and in the warning colour, takes the column's
@@ -1018,7 +1097,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`) |
 | `public/js/ui/ui-functions-flowchart/` | The flowchart's control row and its options modal's rows |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |

@@ -14,6 +14,7 @@ import { renderPagination } from "../pagination/render-pagination.js";
 import { fileTransitionName } from "./file-transition-name.js";
 import { viewTransitionsWanted } from "./view-transition.js";
 import { captureCellState, restoreCellState } from "./keep-cell-state.js";
+import { clearRange, paintRange } from "../ui-functions-cell/cell-range.js";
 import { renderSidebarRecent } from "../render-sidebar-recent.js";
 import { reparkColumnResizer } from "../ui-functions-table/table-col-resize.js";
 import { reportFileCount } from "./output-report.js";
@@ -74,6 +75,12 @@ export function renderFiles(fullRender = true, keepPage = false) {
         // Read before anything is replaced and put back after, so the cell you were in is still the
         // one the arrow keys move from and still one click from opening again.
         const cellState = captureCellState();
+
+        // A range outlives a redraw only when the rows are the ones it was drawn over — the rows'
+        // own redraw after a cell of it is written, with the same notes in the same order. Anything
+        // else (a sort, a filter, a page, a change of columns) ends it. nothingMoved is the question
+        // the view transition below asks, answered before this runs.
+        if (fullRender || !nothingMoved) clearRange();
 
         // Remove stale pagination nav (required for the table fullRender=false path)
         document.querySelector('.pagination')?.remove();
@@ -144,7 +151,12 @@ export function renderFiles(fullRender = true, keepPage = false) {
 
         applyHighlights(); // need to apply again because we have a complete refresh of output html
 
+        // Putting focus back is a focus move, and a focus move ends a range — so a range this redraw
+        // kept is held across it and marked on the new rows after.
+        const range = appState.tableRange;
         restoreCellState(cellState);
+        appState.tableRange = range;
+        paintRange();
     };
 
     // The panel is not part of the filtered output, so it renders outside doRender — which sits

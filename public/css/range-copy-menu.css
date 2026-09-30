@@ -1,0 +1,33 @@
+/* The copy button at the start of the table's control row, and the menu hanging under it.
+
+   The button is only there while a range is — but its space is always kept, so nothing in the row
+   moves when a range appears or goes. visibility rather than opacity or disabled: it also takes the
+   button out of the tab order, out of reach of a press, and out of what a screen reader reads.
+   cell-range.js sets data-shown.
+
+   The menu's look, and its bottom sheet on a small screen, are .app-menu's, in menu.css; what is here
+   is where it hangs from — the same arrangement as the undo list. */
+
+#range-copy-btn:not([data-shown]) {
+    visibility: hidden;
+}
+
+#range-copy-btn {
+    anchor-name: --range-copy-anchor;
+}
+
+#range-copy-menu {
+    position: fixed;
+}
+
+/* Above the small-screen breakpoint only, as menu.css requires of every menu: below it the menu is a
+   sheet across the bottom, and an id-level rule here would outrank the sheet's insets. */
+@media (min-width: 601px) {
+    #range-copy-menu {
+        position-anchor: --range-copy-anchor;
+        inset: auto;
+        top: anchor(bottom);
+        left: anchor(left);
+        margin: 4px 0 0;
+    }
+}

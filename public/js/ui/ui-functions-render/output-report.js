@@ -164,6 +164,16 @@ export function reportCopy(source, target, { copied, overwritten, matched, skipp
 }
 
 /**
+ * Says a range of cells was copied — the one sign of it, since copying changes nothing on screen.
+ * @param {number} cells - How many cells went onto the clipboard.
+ * @param {boolean} headers - Whether the columns' headings went with them.
+ * @returns {void}
+ */
+export function reportCopied(cells, headers) {
+    say([`copied ${cells} cell${cells === 1 ? '' : 's'}${headers ? ' with headers' : ''}`], false, true);
+}
+
+/**
  * Says something went wrong, in the same place and the same warning colour.
  * @param {string} text
  * @returns {void}

@@ -1,5 +1,8 @@
 import { openEditor, closeEditor, cancelEdit } from './cell-editor.js';
 import { releaseRowMove } from '../ui-functions-table/pending-row-move.js';
+import { clearRange } from './cell-range.js';
+import { revealCell } from '../ui-functions-table/table-focus-scroll.js';
+import { pressMadeRange } from './cell-range-drag.js';
 
 /**
  * @file Which cell is selected, which is open, and what opens one.
@@ -73,12 +76,19 @@ export function clearExpandedCells() {
  */
 export function handleCellFocusIn(evt) {
     const cell = evt.target.closest?.('.note-table-cell');
+    // Focus that was already in this cell has moved within it — a date cell's own input and picker
+    // button are inside it — which is not moving on.
+    const withinCell = Boolean(cell?.classList.contains(SELECTED));
 
     for (const other of document.querySelectorAll(`.note-table-cell.${SELECTED}, .note-table-cell.${EXPANDED}`)) {
         if (other !== cell) collapse(other);
     }
 
     cell?.classList.add(SELECTED);
+
+    // Focus moving on is the range ending. Nothing that makes a range moves focus, and the redraw that
+    // puts focus back after a cell of the range is written holds the range across it itself.
+    if (!withinCell) clearRange();
 
     releaseRowMove();
 }
@@ -156,6 +166,13 @@ function expand(cell) {
         sibling.style.gridColumn = `${i + 1} / ${i + 2}`;
     });
 
+    // Onto the screen before the caret arrives, clear of the sticky header. A cell opened from the
+    // keyboard already has focus, so the browser scrolls to it only once something is typed — and a
+    // range's anchor is the cell most likely to have been scrolled away, by growing the range.
+    //
+    // The range stays: the open cell is its anchor, and what is typed there is what a range-wide
+    // commit would write.
+    revealCell(cell);
     cell.classList.add(EXPANDED);
     openEditor(cell);
 }
@@ -175,6 +192,10 @@ export function handleCellExpand(evt, cell) {
     // Clicks inside an already-open cell belong to the caret, not to us. Escape, Tab, or a click
     // elsewhere closes it.
     if (cell.classList.contains(EXPANDED)) return;
+
+    // A drag that came back to the cell it began in, or a shift-click: the browser calls either a
+    // click on this cell, and neither was meant to open it.
+    if (evt.detail !== 0 && pressMadeRange()) return;
 
     // A click the app made itself carries no press — detail is 0 — and only Enter, Space and F2
     // make one, each of them on the cell that already has focus.
@@ -196,7 +217,17 @@ export function handleCellExpandClickOutside(evt) {
     // the completion is already in and would be committed correctly. What the exemption buys is
     // the cell staying open for a second one. Cancelling the press instead would not work, because
     // cancelling a press suppresses focus, not the click that follows it.
-    if (!evt.target.closest('.note-table-cell, .ac-picker-popup')) {
+    //
+    // And a drag from one cell to another is clicked on the row they share — outside every cell, but
+    // not a press outside the table, and collapsing here would take the mark off the range's anchor.
+    if (evt.detail !== 0 && pressMadeRange()) return;
+
+    // The copy button and its menu count as inside too: pressing them must leave the range they copy
+    // standing, and an open cell open.
+    if (!evt.target.closest('.note-table-cell, .ac-picker-popup, #range-copy-btn, #range-copy-menu')) {
         clearExpandedCells();
+        // Focus does not always move for this: a press on a part of the page that cannot take it
+        // blurs to the body, and no focusin arrives to end the range.
+        clearRange();
     }
 }
