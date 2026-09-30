@@ -1,6 +1,6 @@
 # Plan: paste into a range in table view
 
-Status: **not started — ready to start.** Its dependencies are built.
+Status: **not started.** Its dependencies are built; one decision is open — the warning (§3.2).
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
 Depends on: `plans/completed/table-range-select-copy.md`, **built** (and through it
 `plans/completed/table-undo-stack.md`, **built**). Read its §2.3 and §3 first, and CLAUDE.md's
@@ -50,10 +50,9 @@ Building range select and copy answered them.
   (`.list-table .note-table-cell:not(.is-expanded)`). An open cell, a text box and the rest of the
   page keep the browser's paste — so pasting into an open anchor pastes text into that cell, and
   never across the range standing around it.
-- **There can be no paste button to match the copy button.** `execCommand('paste')` is refused to web
-  pages, and `navigator.clipboard.readText()` asks for a permission and a secure context, which
-  `file://` may not be. So paste is keyboard-only unless that is judged worth its prompt — **decide
-  this** (§3). The copy menu is not the place for it either way.
+- **A paste button cannot work the way the copy button does.** `execCommand('paste')` is refused to
+  web pages; the only read is `navigator.clipboard.readText()`, which asks for a permission and a
+  secure context. Decided to have one anyway, on those terms (§3.1).
 
 ### 2.3 What arrives
 
@@ -72,9 +71,8 @@ Building range select and copy answered them.
     typed cell would, and marks it unreadable;
   - the file column arrives as 1, 2, 3…; tags as `x, y`;
   - **"copy with headers" puts the headings on the first line**, and nothing marks that line as
-    headings. Pasted back, it would be written as values. Decide whether the popover's "copy with
-    headers" is only for leaving gypsum, or whether paste offers to skip a first line that matches
-    the target columns' headings (§3).
+    headings. Decided: a paste that starts with one is refused whole (§3.1) — "copy with headers" is
+    for leaving gypsum.
 
 ### 2.4 Writing it
 
@@ -101,33 +99,78 @@ Building range select and copy answered them.
 ### 2.5 Saying what happened
 
 - **The report line** says it, as copy's "copied 8 cells" does: "pasted 12 cells", and "…, 2 skipped"
-  as a nudge when any refused — `output-report.js`, beside `reportCopied()`.
+  when any refused — `output-report.js`, beside `reportCopied()`. It also carries the two refusals of
+  the whole paste: a headings line, and a clipboard permission the paste button was denied.
 - **Not "12 cells selected" while a range stands**: rewriting that line on every cell a drag crosses
   costs a layout of the page each time. The copy plan found this and left it out.
 
 ---
 
-## 3. Decisions still open
+## 3. Decisions
 
-- **All-or-nothing, or write what you can.** The central decision. The likely answer is: write what is
-  writable, skip the refusals **in place** — keeping the rectangle's alignment, so the rest lands
-  where it was aimed — and say afterwards exactly what was skipped and why.
-- **What the warning says and when it appears.** The threshold (any multi-cell paste, or only above
-  some count), and whether the dialog names the skipped cells — "12 cells, 2 of them locked" is worth
-  more than "are you sure". `showWarningModal()` is the dialog; the counts come from `appState` and
-  `isEditable()`, so it opens at once, as the column delete's does.
-- **A `'shape'` arrival.** A pasted list landing in a column of single values (or the reverse) would
-  add or destroy the note's brackets, which a cell edit is not allowed to do. Skip it in place with
-  the other refusals, or write it and leave it marked. Skipping matches what a cell's caret does.
-- **Clipboard smaller than the range.** Fill the range once and leave the rest, or tile the clipboard
-  to fill it (what a spreadsheet does for exact multiples). One copied cell pasted over a whole
-  selected column is the case that makes tiling worth it.
-- **Clipboard larger than the range.** Truncate to the range, or grow past it — and if it grows, what
-  happens at the bottom of the page or the last column, where there is nothing more to write into.
-  A single focused cell (no range) must grow, or pasting a block from a spreadsheet does nothing.
-- **A paste button**, needing clipboard permission (§2.2), or keyboard only.
-- **A headings line** from "copy with headers" (§2.3): skip it when it matches, or leave that to the
-  user.
+### 3.1 Decided
+
+- **Refusals are skipped in place, and the rest is written.** A cell that refuses keeps the
+  rectangle's alignment, so everything else lands where it was aimed; the report line says how many
+  were skipped (§2.5).
+- **A wrong shape is written anyway.** A list landing in a column of single values, or the reverse, is
+  written and left for the user to deal with — the user has control. **This means the refusal test is
+  not quite `isEditable()`**: that also refuses a cell whose value is the wrong shape
+  (`mismatchRefusesCaret`), which is right for a caret and wrong here. So paste asks the other two of
+  its three questions — the column can be typed into (`isPropertyEditable`), and the note's front
+  matter read cleanly — and not the shape one. Put that as an option on the one function
+  (`isEditable(cell, { anyShape: true })`) rather than a second copy of the other two checks, so the
+  caret and the paste still share one answer for them. **To prove first:** what `applyCellEdits()`
+  writes when the text for a single-value column lands on a key holding a list — it keeps "the
+  note's own style" at a key, and a flow list's style must not wrap the text back into brackets.
+- **A smaller clipboard repeats to fill the range.** Cell (r, c) of the range takes clipboard cell
+  (r mod rows, c mod columns), so one copied cell fills a whole range, a copied row fills every row,
+  and a 2-row clipboard over 5 rows gives 1, 2, 1, 2, 1. Always by modulo — including a partial last
+  repeat, which is where this differs from a spreadsheet (those tile only exact multiples). Easy to
+  narrow to exact multiples later if the partial repeat surprises.
+- **A paste button**, in the copy button's popover as a third item — "paste" under "copy" and "copy
+  with headers" — so there is one clipboard button, shown while a range is. It reads the clipboard
+  with `navigator.clipboard.readText()`, the only way a page can read it without a key press, which
+  **asks the user for clipboard permission the first time** and needs a secure context (`localhost`
+  and `https`; **prove** whether Chrome counts the single-file app on `file://` as one). When it is
+  refused, the report line says so and names `Ctrl+V`. Everything after the read is the `Ctrl+V` path:
+  one function takes the text, whichever way it arrived. Like the other items, it must not take focus
+  (its `mousedown` is cancelled), and the permission prompt must be checked not to move focus off the
+  cell either — if it does, the range ends before the paste can land.
+- **A clipboard that starts with a headings line refuses the whole paste.** No attempt to skip the
+  line. Detected when every field on the first line is a heading of a column in the table as drawn
+  (`.header-label`, the text "copy with headers" writes). The report line says why: the clipboard
+  starts with column headings — copy without headers to paste. That also catches a spreadsheet's
+  header row when its names match the table's, which is the same mistake.
+
+### 3.2 Still open: the warning
+
+Undo already reverses a whole paste in one step, and every refusal is safe. The question is how
+much stands in front of a paste as well. The options:
+
+- **A. No confirmation.** Paste writes at once; the report line says what it did, and one `Ctrl+Z`
+  reverses it. What a spreadsheet does. Fastest, and undo is a real safety net here — journalled,
+  and refused only where a note has changed since.
+- **B. Confirm above a size.** A dialog when the paste reaches more than one cell (or more than some
+  number of cells or notes), with counts from `appState` so it opens at once: "Paste into 12 cells
+  in 6 notes? 2 cells are locked and will be skipped." `Cancel` has focus, as in the column delete's.
+  The price is a dialog on every multi-cell paste — the ordinary case for a range.
+- **C. Confirm only when values would be lost.** A dialog only when the paste overwrites cells that
+  hold something (filling empty cells goes straight through). Needs a pre-pass comparing each target
+  cell's current value with its new text — cheap, from `appState`. Closer to the risk, but the rule
+  is harder to predict.
+- **D. Confirm only when something will be skipped or a shape is wrong.** The ordinary paste goes
+  straight through; the dialog appears when the result will not be what the rectangle suggests.
+
+A reasonable pairing is **A for a paste within the visible cells and B above a threshold** — for
+instance, more notes than fit on screen, where the user cannot see everything being written.
+
+### 3.3 Still to settle when building
+
+- **A clipboard larger than the range.** With no range (one focused cell), the paste must grow from
+  that cell, or pasting a block from a spreadsheet does nothing; it stops at the page's last row and
+  the last column, and whatever falls off is counted as skipped. With a range, the proposal is to
+  truncate to it — the range is then what the user chose to write. Confirm when building.
 
 ---
 
@@ -139,7 +182,9 @@ Building range select and copy answered them.
 - `services/tsv.js` — **new**: parsing TSV, and copy's `field()` moved in beside it, so the quoting
   rule is written once for both directions. Pure, and tested in node (`appModule()` in
   `tests/helpers.js`) — quoted tabs, quoted newlines, doubled quotes, a trailing newline.
-- `cell-editor.js` — export `isEditable()`.
+- `cell-editor.js` — export `isEditable()`, with the `anyShape` option (§3.1).
+- `ui-functions-click/range-copy-menu.js` — the "paste" item, reading the clipboard and handing the
+  text to the same function `Ctrl+V` uses.
 - `table-undo/describe-batch.js` — the `paste` kind's name.
 - `output-report.js` — `reportPasted()`.
 
@@ -148,7 +193,8 @@ Building range select and copy answered them.
 ## 5. Tests, and how to write them
 
 - **The write is level 1**: pasted text reaches the right key of the right note, refusals are skipped
-  in place, one undo reverses the whole paste. That is a user's notes, so it runs on every change.
+  in place, a wrong shape is written, a repeat fills the range, a headings line writes nothing, one
+  undo reverses the whole paste. That is a user's notes, so it runs on every change.
 - **What the table does is level 2**, in `tests/2-behaviour/59-table-range-select.spec.js`.
 - **A test can make a paste without the clipboard**: dispatch
   `new ClipboardEvent('paste', { clipboardData: dt })` with a `DataTransfer` holding the text, on
