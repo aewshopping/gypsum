@@ -334,9 +334,9 @@ Pasting into one is *Pasting into a range*, below. See `ui-functions-cell/cell-r
   `Date` (`lastModified`, or a date reached through a linked column) comes out raw.
 - **The copy button is always drawn and only seen with a range** — `visibility: hidden` otherwise, so
   its space is kept and the control row never moves; `paintRange()` sets `data-shown`. It opens a
-  popover of "copy" and "copy with headers", the one place headers are offered. Neither the button
-  nor its items may take focus (their `mousedown` is cancelled), and both are exempt from the
-  press-outside-the-table rule, so the range survives being copied.
+  popover of "copy", "copy with headers" — the one place headers are offered — and "paste". Neither
+  the button nor its items may take focus (their `mousedown` is cancelled), and both are exempt from
+  the press-outside-the-table rule, so the range survives being copied or pasted into.
 - **The copy and the marks walk one rectangle**, `rangeGrid()` in `cell-range.js`.
 - **Closed cells are `user-select: none`, and links in the table `-webkit-user-drag: none`** — the
   first so a drag does not also select text, the second because the browser's own link drag
