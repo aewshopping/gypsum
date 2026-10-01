@@ -109,6 +109,9 @@ export function clearCopiedCells() {
     markCopied();
 }
 
+const ROW_MARKS = ['has-copied', 'copied-box', 'copied-continues'];
+const CELL_MARKS = ['copied-stuck', 'copied-start', 'copied-end'];
+
 /**
  * Puts the copy outline on the drawn rows appState.copiedCells names, and takes it off every other —
  * for the render already done; the next one draws it from state. The copy button says there is
@@ -120,27 +123,49 @@ function markCopied() {
     document.getElementById('range-copy-btn')?.toggleAttribute('data-copied', Boolean(copied));
 
     for (const row of document.querySelectorAll('.list-table > .note-table')) {
-        const style = copied?.ids.has(row.dataset.vtId)
-            ? copiedColumnsStyle([...row.children].map(cell => cell.dataset.prop))
-            : '';
-        row.classList.toggle('has-copied', Boolean(style));
+        const cells = [...row.children];
+        row.classList.remove(...ROW_MARKS);
         row.style.removeProperty('--copied-from');
         row.style.removeProperty('--copied-to');
-        if (style) row.style.cssText += style;
+        for (const cell of cells) cell.classList.remove(...CELL_MARKS);
+        if (!copied?.ids.has(row.dataset.vtId)) continue;
+
+        const marks = copiedMarks(cells.map(cell => cell.dataset.prop), cells.filter(cell => cell.classList.contains('is-sticky')).length);
+        row.classList.add(...marks.rowClass.split(' ').filter(Boolean));
+        row.style.cssText += marks.rowStyle;
+        cells.forEach((cell, index) => cell.classList.add(...marks.cellClass(index).split(' ').filter(Boolean)));
     }
 }
 
 /**
- * Where the copy outline sits in a row: the grid lines either side of the first and last copied
- * column. A row is a subgrid of the table's columns, so one box placed on those lines covers the
- * copied cells, drawn as the held row move's is — see note-table-copied.css.
+ * How a copied row is marked: one dashed box over its copied columns, as the held row move draws its
+ * row — and, for copied columns that stick, a box drawn by those cells themselves, since a box placed
+ * on the grid scrolls away from cells that do not. See note-table-copied.css.
+ *
+ * The scrolling columns' box sits on the grid lines either side of the first and last of them (a row
+ * is a subgrid of the table's columns). The stuck cells draw their top and bottom, the first its left
+ * and the last its right — unless the copy carries on past them, when that side is left to the
+ * scrolling box, which then leaves off its own left: no divide where the two meet.
+ *
  * @param {string[]} columns - The row's columns, in the order drawn.
- * @returns {string} `--copied-from: 5; --copied-to: 7`, or '' when nothing in these columns is copied.
+ * @param {number} stickyCount - How many of them, from the left, stick.
+ * @returns {{rowClass: string, rowStyle: string, cellClass: (index: number) => string}} Classes are
+ *   space-led, ready to append to a class list in markup; all empty when nothing here is copied.
  */
-export function copiedColumnsStyle(columns) {
+export function copiedMarks(columns, stickyCount) {
     const props = appState.copiedCells?.props;
     const at = columns.flatMap((name, index) => props?.has(name) ? [index] : []);
-    return at.length ? `--copied-from: ${at[0] + 1}; --copied-to: ${at.at(-1) + 2}` : '';
+    const stuck = at.filter(index => index < stickyCount);
+    const free = at.filter(index => index >= stickyCount);
+
+    return {
+        rowClass: (at.length ? ' has-copied' : '') + (free.length ? ' copied-box' : '')
+            + (free.length && stuck.length ? ' copied-continues' : ''),
+        rowStyle: free.length ? `--copied-from: ${free[0] + 1}; --copied-to: ${free.at(-1) + 2};` : '',
+        cellClass: (index) => !stuck.includes(index) ? '' : ' copied-stuck'
+            + (index === stuck[0] ? ' copied-start' : '')
+            + (index === stuck.at(-1) && !free.length ? ' copied-end' : ''),
+    };
 }
 
 /**

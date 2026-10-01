@@ -249,10 +249,11 @@ test('copy and paste show while a closed cell is selected, and copy with headers
   expect(await copied(page)).toBe('');
 });
 
-test('the copy outline follows its notes through a sort', async ({ page }) => {
+test('the copy outline follows its notes through a sort, and stuck copied cells draw their own part', async ({ page }) => {
   await openTable(page);
   await cellAt(page, 2, 'a').click();
   await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowRight');
   await page.keyboard.press('Control+c');
   const notes = await page.$$eval('.list-table > .note-table.has-copied', rows =>
     rows.map(row => row.querySelector('[data-prop="filename"]').textContent.trim()).sort());
@@ -268,6 +269,29 @@ test('the copy outline follows its notes through a sort', async ({ page }) => {
   });
   expect(await page.$$eval('.list-table > .note-table.has-copied', rows =>
     rows.map(row => row.querySelector('[data-prop="filename"]').textContent.trim()).sort())).toEqual(notes);
+
+  // Stick the columns up to a: a's cells draw their own part, open on the right where b's box carries
+  // on, and the row's box covers b alone, open on the left — no divide where the two meet.
+  const marks = await page.evaluate(async () => {
+    const { TABLE_VIEW_COLUMNS } = await import('/public/js/services/store.js');
+    const { renderFiles } = await import('/public/js/ui/ui-functions-render/a-render-all-files.js');
+    const row = document.querySelector('.list-table > .note-table');
+    TABLE_VIEW_COLUMNS.stickyCount = [...row.children].findIndex(cell => cell.dataset.prop === 'a') + 1;
+    renderFiles();
+    const copiedRow = document.querySelector('.list-table > .note-table.has-copied');
+    const at = name => [...copiedRow.children].findIndex(cell => cell.dataset.prop === name);
+    return {
+      a: copiedRow.querySelector('[data-prop="a"]').className.match(/copied-\w+/g),
+      b: copiedRow.querySelector('[data-prop="b"]').className.match(/copied-\w+/g),
+      row: copiedRow.className.match(/copied-\w+/g),
+      from: copiedRow.style.getPropertyValue('--copied-from').trim(),
+      expectedFrom: String(at('b') + 1),
+    };
+  });
+  expect(marks.a).toEqual(['copied-stuck', 'copied-start']);
+  expect(marks.b).toBeNull();
+  expect(marks.row).toEqual(['copied-box', 'copied-continues']);
+  expect(marks.from).toBe(marks.expectedFrom);
 });
 
 test('Ctrl+C in an open cell is the browser\'s own copy, not the range', async ({ page }) => {

@@ -355,12 +355,14 @@ What was copied from the table is outlined, dashed, **for as long as it is on th
   from `appState.copiedCells` (`{ ids, props }`), and `markCopied()` puts the same on for the render
   already done. A row is a subgrid of the table's columns, so a `::after` placed on those lines covers
   exactly the copied cells — **absolutely positioned**, since one in the flow is laid out first and the
-  row's own cells wrap round it — at the sticky cells' `z-index`, or a stuck cell's background hides it.
-  Held as notes and columns rather than a rectangle, so it follows its notes through a sort, a filter
-  and a page. An outline, so it never meets the range's shadows and tint.
-- **Two accepted costs.** A selected cell inside the box shows its solid ring under the dashes. And the
-  box scrolls with the grid, so a copy from a stuck column slides away from its cells when the table
-  scrolls sideways.
+  row's own cells wrap round it. Held as notes and columns rather than a rectangle, so it follows its
+  notes through a sort, a filter and a page. Paint-only, and never meets the range's shadows and tint.
+- **Copied cells that stick draw their own part**, with `::before`, because a box on the grid scrolls
+  away from cells that stay put; the row's box then covers only the scrolling columns, below the sticky
+  cells so it scrolls under them. Borders, not an outline, so a side can be left off: the stuck part's
+  last cell has no right edge when the copy carries on, and the box no left edge — no divide where the
+  two meet. `copiedMarks()` says which classes go where, for the renderer and `markCopied()` alike.
+- **One accepted cost:** a selected cell inside the box shows its solid ring under the dashes.
 - **What ends it**: "clear copied cells" in the copy button's menu, which also empties the clipboard
   (`clearCopied()`, a copy of `''` through the same `copy` event, synchronous inside the click); another
   copy, here or anywhere in the page; a folder load; and **a held row move appearing** — one dashed mark
