@@ -221,11 +221,18 @@ test('copy and paste show while a closed cell is selected, and copy with headers
   expect(await focusedAt(page)).toBe('1:a');
 
   // What was copied is outlined, and stays so when the selection moves on.
-  const copiedCells = page.locator('.list-table .is-copied');
-  await expect(copiedCells).toHaveCount(2);
+  const copiedCells = page.locator('.list-table > .note-table.has-copied');
+  await expect(copiedCells).toHaveCount(1);
+  // One box over exactly the copied columns: a and b are the copied ones, in the order drawn.
+  const lines = await copiedCells.evaluate(row => {
+    const at = name => [...row.children].findIndex(cell => cell.dataset.prop === name);
+    return { from: row.style.getPropertyValue('--copied-from').trim(), to: row.style.getPropertyValue('--copied-to').trim(),
+      expected: [String(at('a') + 1), String(at('b') + 2)] };
+  });
+  expect([lines.from, lines.to]).toEqual(lines.expected);
   await expect(buttons.first()).toHaveAttribute('data-copied', '');
   await page.keyboard.press('ArrowDown');
-  await expect(copiedCells).toHaveCount(2);
+  await expect(copiedCells).toHaveCount(1);
 
   // An open cell's copy and paste are the browser's, so neither button is offered — except that the
   // copy button stays while there is an outline to clear.
@@ -247,8 +254,8 @@ test('the copy outline follows its notes through a sort', async ({ page }) => {
   await cellAt(page, 2, 'a').click();
   await page.keyboard.press('Shift+ArrowDown');
   await page.keyboard.press('Control+c');
-  const notes = await page.$$eval('.list-table .is-copied', cells =>
-    cells.map(cell => cell.parentElement.querySelector('[data-prop="filename"]').textContent.trim()).sort());
+  const notes = await page.$$eval('.list-table > .note-table.has-copied', rows =>
+    rows.map(row => row.querySelector('[data-prop="filename"]').textContent.trim()).sort());
   expect(notes).toHaveLength(2);
 
   await page.evaluate(async () => {
@@ -259,8 +266,8 @@ test('the copy outline follows its notes through a sort', async ({ page }) => {
     sortAppStateFiles('filename', 'string', 'desc');
     renderFiles();
   });
-  expect(await page.$$eval('.list-table .is-copied', cells =>
-    cells.map(cell => cell.parentElement.querySelector('[data-prop="filename"]').textContent.trim()).sort())).toEqual(notes);
+  expect(await page.$$eval('.list-table > .note-table.has-copied', rows =>
+    rows.map(row => row.querySelector('[data-prop="filename"]').textContent.trim()).sort())).toEqual(notes);
 });
 
 test('Ctrl+C in an open cell is the browser\'s own copy, not the range', async ({ page }) => {
@@ -318,7 +325,7 @@ test('Ctrl+V pastes into the range, which stays selected, and its rows hold thei
   await cellAt(page, 6, 'b').click();
   // Something copied first, so the held move can be seen to take its outline away.
   await page.keyboard.press('Control+c');
-  await expect(page.locator('.list-table .is-copied')).toHaveCount(1);
+  await expect(page.locator('.list-table > .note-table.has-copied')).toHaveCount(1);
   await page.evaluate(() => navigator.clipboard.writeText('X\tY\nZ'));
 
   await page.keyboard.press('Shift+ArrowDown');
@@ -337,7 +344,7 @@ test('Ctrl+V pastes into the range, which stays selected, and its rows hold thei
   // Both written rows now belong at the top, and say so — but stay put. One dashed mark at a time.
   expect(await rowNames(page)).toEqual(before);
   await expect(page.locator('.list-table > .note-table.move-pending')).toHaveCount(2);
-  await expect(page.locator('.list-table .is-copied')).toHaveCount(0);
+  await expect(page.locator('.list-table > .note-table.has-copied')).toHaveCount(0);
 
   // Moving within the pasted rows ends the range, not the hold.
   await page.keyboard.press('ArrowDown');

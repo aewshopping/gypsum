@@ -1,15 +1,28 @@
-/* What is on the clipboard from the table: each copied cell outlined, dashed, as a row waiting to
-   move is (note-table.css, .move-pending), and the copy button's badge and menu item that clear it.
-   cell-range-copy.js and the row renderer put .is-copied on; nothing here knows how.
+/* What is on the clipboard from the table: one dashed box per copied row, over the copied columns, as
+   a row waiting to move is outlined (note-table.css, .move-pending) — and the copy button's badge and
+   menu item that clear it. cell-range-copy.js and the row renderer put .has-copied and the two column
+   lines on; nothing here knows how.
 
-   An outline rather than a shadow, so it never meets the range's marks, which are shadows and a
-   background; and paint-only, like them. A selected or open cell keeps its own solid ring, and the
-   dashes come back when focus moves on. Each cell draws its own, so a copied block reads as a dashed
-   grid rather than one box — which needs no arithmetic about edges. */
+   A row is a subgrid of the table's columns, so a pseudo-element placed on the row's grid lines covers
+   exactly the copied cells. Absolutely positioned against the row (already relative, for an expanded
+   cell), which keeps the grid lines as its box but takes no
+   slot: placed in the flow, it was laid out first and the row's own cells wrapped round it. An outline, so it
+   never meets the range's marks, which are shadows and a background; pointer-events none, so a press
+   reaches the cell beneath. It scrolls with the grid, so a copy from a stuck column slides away from
+   its cells when the table scrolls sideways — accepted, as the price of not marking cells one by one. */
 
-.note-table-cell.is-copied:not(.is-selected, .is-expanded) {
+.note-table.has-copied::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /* The sticky cells' layer (note-table-sticky.css), and later in the row, so a stuck copied cell's
+       opaque background does not hide it; below an opened sticky cell (5) and the chrome (6). */
+    z-index: 4;
+    grid-row: 1;
+    grid-column: var(--copied-from) / var(--copied-to);
     outline: 2px dashed color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt));
     outline-offset: -2px;
+    pointer-events: none;
 }
 
 /* The badge sits in the corner the copy drawing gives up, as the padlock does on a locked column's

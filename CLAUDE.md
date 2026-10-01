@@ -350,11 +350,17 @@ Pasting into one is *Pasting into a range*, below. See `ui-functions-cell/cell-r
 What was copied from the table is outlined, dashed, **for as long as it is on the clipboard**. See
 `ui-functions-cell/cell-range-copy.js` and `css/note-table-copied.css`.
 
-- **The held row move's mechanism, on a cell**: a class the row renderer draws from
-  `appState.copiedCells` (`{ ids, props }`), put straight on by `markCopied()` for the render already
-  done, and one dashed `outline` rule. Held as notes and columns rather than a rectangle, so it follows
-  its notes through a sort, a filter and a page; each cell draws its own, so a block reads as a dashed
-  grid, and no edge arithmetic is needed. An outline, so it never meets the range's shadows and tint.
+- **The held row move's mechanism, and its look**: one dashed box per copied row. The row renderer
+  draws `has-copied` and two column lines (`--copied-from`, `--copied-to`, from `copiedColumnsStyle()`)
+  from `appState.copiedCells` (`{ ids, props }`), and `markCopied()` puts the same on for the render
+  already done. A row is a subgrid of the table's columns, so a `::after` placed on those lines covers
+  exactly the copied cells — **absolutely positioned**, since one in the flow is laid out first and the
+  row's own cells wrap round it — at the sticky cells' `z-index`, or a stuck cell's background hides it.
+  Held as notes and columns rather than a rectangle, so it follows its notes through a sort, a filter
+  and a page. An outline, so it never meets the range's shadows and tint.
+- **Two accepted costs.** A selected cell inside the box shows its solid ring under the dashes. And the
+  box scrolls with the grid, so a copy from a stuck column slides away from its cells when the table
+  scrolls sideways.
 - **What ends it**: "clear copied cells" in the copy button's menu, which also empties the clipboard
   (`clearCopied()`, a copy of `''` through the same `copy` event, synchronous inside the click); another
   copy, here or anywhere in the page; a folder load; and **a held row move appearing** — one dashed mark
@@ -1168,7 +1174,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |
 | `public/css/` | Component-scoped CSS modules |
-| `public/css/note-table-copied.css` | The dashed outline on copied cells, and the copy button's badge and clear item |
+| `public/css/note-table-copied.css` | The dashed box over each copied row's copied columns, and the copy button's badge and clear item |
 | `tests/1-data/` | Tests of what reaches the disk — run on every change |
 | `tests/2-behaviour/` | Tests of what the app does on screen |
 | `tests/3-occasional/` | Appearance and slow end-to-end tests |

@@ -23,7 +23,7 @@ import { tsvField as field } from '../../services/tsv.js';
  * empty the clipboard. It goes with "clear copied cells", which empties it, with another copy here or
  * anywhere in the page, with a held row move appearing (pending-row-move.js), and with a folder load.
  * The mechanism is the held row move's: a class the renderer draws from appState, put straight on for
- * the render already done.
+ * the render already done, and one dashed box per row.
  */
 
 // Set while the copy button's menu is asking for a copy, which it may do with a cell open — or for the
@@ -110,23 +110,37 @@ export function clearCopiedCells() {
 }
 
 /**
- * Puts the copied mark on the drawn cells appState.copiedCells names, and takes it off every other —
+ * Puts the copy outline on the drawn rows appState.copiedCells names, and takes it off every other —
  * for the render already done; the next one draws it from state. The copy button says there is
- * something to clear even when those cells are on another page.
+ * something to clear even when those rows are on another page.
  * @returns {void}
  */
 function markCopied() {
     const copied = appState.copiedCells;
-    for (const cell of document.querySelectorAll('.list-table .is-copied')) cell.classList.remove('is-copied');
     document.getElementById('range-copy-btn')?.toggleAttribute('data-copied', Boolean(copied));
-    if (!copied) return;
 
     for (const row of document.querySelectorAll('.list-table > .note-table')) {
-        if (!copied.ids.has(row.dataset.vtId)) continue;
-        for (const cell of row.children) {
-            if (copied.props.has(cell.dataset.prop)) cell.classList.add('is-copied');
-        }
+        const style = copied?.ids.has(row.dataset.vtId)
+            ? copiedColumnsStyle([...row.children].map(cell => cell.dataset.prop))
+            : '';
+        row.classList.toggle('has-copied', Boolean(style));
+        row.style.removeProperty('--copied-from');
+        row.style.removeProperty('--copied-to');
+        if (style) row.style.cssText += style;
     }
+}
+
+/**
+ * Where the copy outline sits in a row: the grid lines either side of the first and last copied
+ * column. A row is a subgrid of the table's columns, so one box placed on those lines covers the
+ * copied cells, drawn as the held row move's is — see note-table-copied.css.
+ * @param {string[]} columns - The row's columns, in the order drawn.
+ * @returns {string} `--copied-from: 5; --copied-to: 7`, or '' when nothing in these columns is copied.
+ */
+export function copiedColumnsStyle(columns) {
+    const props = appState.copiedCells?.props;
+    const at = columns.flatMap((name, index) => props?.has(name) ? [index] : []);
+    return at.length ? `--copied-from: ${at[0] + 1}; --copied-to: ${at.at(-1) + 2}` : '';
 }
 
 /**

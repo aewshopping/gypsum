@@ -6,6 +6,7 @@ import { renderCellValue, mismatchMessage, rendersAsList } from './render-cell-v
 import { stickyColumnCount } from './apply-column-widths.js';
 import { isLinkedKey, linkedProperty } from '../../services/linked-properties.js';
 import { filesById, linkedValue } from '../../services/internal-links/linked-value.js';
+import { copiedColumnsStyle } from '../ui-functions-cell/cell-range-copy.js';
 
 // Said to whoever opens a cell of a note whose front matter did not read cleanly. Every value in
 // that block is a guess, so the fix is the note rather than anything the table can offer.
@@ -30,6 +31,9 @@ export function renderTableRows(current_props, renderEverything) {
     // object, and a kept Map would show a linked column the value from before it. Only when a linked
     // column is on screen to ask. plans/completed/table-linked-properties.md §2.3.
     const byId = current_props.some(prop => isLinkedKey(prop.name)) ? filesById(appState.myFiles) : null;
+
+    // Where the copy outline sits on a copied row: the same columns on every one, so worked out once.
+    const copiedStyle = copiedColumnsStyle(current_props.map(prop => prop.name));
 
     for (const file of appState.myFiles) {
         if (checkFileOnPage(file.internalId)) {
@@ -98,11 +102,7 @@ export function renderTableRows(current_props, renderEverything) {
                 const sticky = isSticky ? ` is-sticky${column === stickyCount - 1 ? ' is-sticky-last' : ''}` : '';
                 const stickyLeft = isSticky ? ` style="--sticky-left: var(--sticky-left-${column})"` : '';
 
-                // Drawn from state, like the row's pending mark below, so it outlives a redraw.
-                const copied = appState.copiedCells?.ids.has(file.internalId) && appState.copiedCells.props.has(prop.name)
-                    ? ' is-copied' : '';
-
-                return `<div class="note-table-cell keyboard-navigable${fade}${sticky}${copied}"${stickyLeft} data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
+                return `<div class="note-table-cell keyboard-navigable${fade}${sticky}"${stickyLeft} data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above
@@ -113,8 +113,11 @@ export function renderTableRows(current_props, renderEverything) {
             // row, an autosave. pending-row-move.js puts the same class on directly for the render
             // that has already happened by the time it is asked.
             const pending = appState.pendingRowMove?.moving.has(file.internalId) ? ' move-pending' : '';
+            // The copy outline is drawn the same way, from state, as one box over the copied columns.
+            const copied = copiedStyle && appState.copiedCells.ids.has(file.internalId)
+                ? ` has-copied" style="${copiedStyle}` : '';
             rowsHtml += `
-                <div class="note-table ${tagList} color-dynamic-transparent-fallback${pending}" data-color="${file.color}" data-vt-id="${file.internalId}">
+                <div class="note-table ${tagList} color-dynamic-transparent-fallback${pending}${copied}" data-color="${file.color}" data-vt-id="${file.internalId}">
                     ${cellsHtml}
                 </div>
             `;
