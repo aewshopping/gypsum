@@ -332,11 +332,14 @@ Pasting into one is *Pasting into a range*, below. See `ui-functions-cell/cell-r
   with nothing between them, copy as a comma-joined list; the file column copies a count, 1 on the
   first copied row. Not `copy-source-value.js`: its values are right for writing into a note, but a
   `Date` (`lastModified`, or a date reached through a linked column) comes out raw.
-- **The copy button is always drawn and only seen with a range** — `visibility: hidden` otherwise, so
-  its space is kept and the control row never moves; `paintRange()` sets `data-shown`. It opens a
-  popover of "copy", "copy with headers" — the one place headers are offered — and "paste". Neither
-  the button nor its items may take focus (their `mousedown` is cancelled), and both are exempt from
-  the press-outside-the-table rule, so the range survives being copied or pasted into.
+- **The copy and paste buttons are always drawn and only seen while a closed cell has focus** — one
+  cell or a range. One CSS rule says so (`css/range-buttons.css`, a `body:has(…:focus-within)`), which
+  is the question both handlers ask before acting, so neither shows when pressing it would be refused,
+  and no code keeps it in step. `visibility: hidden` otherwise, so the control row never moves. Paste
+  cannot show only when the clipboard holds something: a page cannot look without permission. The
+  copy button opens a popover of "copy" and "copy with headers", the one place headers are offered.
+  Neither button nor the menu's items may take focus (their `mousedown` is cancelled), and all are
+  exempt from the press-outside-the-table rule, so the range survives being copied or pasted into.
 - **The copy and the marks walk one rectangle**, `rangeGrid()` in `cell-range.js`.
 - **Closed cells are `user-select: none`, and links in the table `-webkit-user-drag: none`** — the
   first so a drag does not also select text, the second because the browser's own link drag
@@ -344,7 +347,7 @@ Pasting into one is *Pasting into a range*, below. See `ui-functions-cell/cell-r
 
 ### Pasting into a range
 
-`Ctrl/Cmd+V` on a closed table cell, or "paste" in the copy button's menu, writes the clipboard into
+`Ctrl/Cmd+V` on a closed table cell, or the paste button beside the copy button, writes the clipboard into
 the cells it covers, as one batch that one undo puts back. See `ui-functions-cell/cell-range-paste.js`
 and `plans/completed/table-range-paste.md`.
 

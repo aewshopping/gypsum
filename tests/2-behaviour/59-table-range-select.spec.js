@@ -200,21 +200,30 @@ test('Ctrl+C copies the range as TSV of what each cell shows, counting rows in t
   await expect(page.locator('#output-report')).toContainText('copied 8 cells');
 });
 
-test('the copy button shows only with a range, and copies with headers leaving the range', async ({ page }) => {
+test('copy and paste show while a closed cell is selected, and copy with headers leaves the range', async ({ page }) => {
   await openTable(page);
-  const button = page.locator('#range-copy-btn');
+  const buttons = page.locator('#range-copy-btn, #range-paste-btn');
+  await expect(buttons.first()).toBeHidden();
+  await expect(buttons.last()).toBeHidden();
+
   await cellAt(page, 1, 'a').click();
-  await expect(button).toBeHidden();
+  await expect(buttons.first()).toBeVisible();
+  await expect(buttons.last()).toBeVisible();
 
   await page.keyboard.press('Shift+ArrowRight');
-  await expect(button).toBeVisible();
-  await button.click();
+  await expect(buttons.last()).toBeVisible();
+  await buttons.first().click();
   await page.click('#range-copy-menu [data-headers="true"]');
 
   const [a, b] = [await cellAt(page, 1, 'a').textContent(), await cellAt(page, 1, 'b').textContent()];
   expect(await copied(page)).toBe(`a\tb\n${a}\t${b}`);
   expect(await marks(page)).toHaveLength(2);    // the range is still selected
   expect(await focusedAt(page)).toBe('1:a');
+
+  // An open cell's copy and paste are the browser's, so neither button is offered.
+  await page.keyboard.press('F2');
+  await expect(buttons.first()).toBeHidden();
+  await expect(buttons.last()).toBeHidden();
 });
 
 test('Ctrl+C in an open cell is the browser\'s own copy, not the range', async ({ page }) => {
@@ -257,8 +266,7 @@ test('the paste button reads the clipboard, keeps focus, and pastes like Ctrl+V'
 
   await cellAt(page, 4, 'b').click();
   await page.keyboard.press('Shift+ArrowDown');
-  await page.locator('#range-copy-btn').click();
-  await page.click('#range-copy-menu [data-action="range-paste"]');
+  await page.locator('#range-paste-btn').click();
   await page.click('#modal-unsaved-warning-proceed');
 
   await expect(page.locator('#output-report')).toContainText('pasted 2 cells');

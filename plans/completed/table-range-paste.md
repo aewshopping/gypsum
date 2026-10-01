@@ -305,3 +305,7 @@ jumps under you.
   `planFileEdits` and is proved in node, many cases in milliseconds. Only which cells the fields land
   on and the journal-first order need the app. Undoing a key added to a note with no front matter
   leaves an empty `---` block: an undo's answer for any edit, not only a paste's, held by the node test.
+- **The paste button became a button of its own**, beside the copy button, rather than an item in
+  its menu. Both show while a closed cell has focus, by one CSS rule; the copy button's JS show and
+  hide (`data-shown`) went. A paste button cannot wait for the clipboard to hold something, since a
+  page cannot look without permission.

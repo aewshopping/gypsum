@@ -1,13 +1,12 @@
-// The copy button in the table's control row, and its menu: copy, copy with headers, and paste.
+// The copy button in the table's control row, and its menu: copy, and copy with headers.
 
 import { copyRange } from '../ui-functions-cell/cell-range-copy.js';
-import { pasteFromClipboard } from '../ui-functions-cell/cell-range-paste.js';
 
 /** @returns {HTMLElement|null} */
 const menuElement = () => document.getElementById('range-copy-menu');
 
 /**
- * Opens the menu under the copy button. The button is only there while a range is.
+ * Opens the menu under the copy button.
  * @returns {void}
  */
 export function handleRangeCopyMenuOpen() {
@@ -26,23 +25,14 @@ export function handleRangeCopyItem(evt, item) {
 }
 
 /**
- * Pastes the clipboard into the range, through the same path Ctrl+V takes once the text is read, and
- * closes the menu. plans/completed/table-range-paste.md §3.1.
- * @returns {void}
- */
-export function handleRangePasteItem() {
-    menuElement()?.hidePopover();
-    pasteFromClipboard();
-}
-
-/**
- * Mousedown anywhere: a press on the copy button or its menu must not take focus. Focus is the range's
- * anchor, and focus leaving the table ends the range — before the copy it was pressed for could run.
+ * Mousedown anywhere: a press on the copy or paste button, or the copy menu, must not take focus. Focus
+ * is the range's anchor, and focus leaving the table would end the range before the copy or paste it
+ * was pressed for could run — and hide the buttons themselves, which show only while a cell has focus.
  * Cancelling the mousedown keeps focus in the cell, as the note picker's items do; the click still
  * arrives.
  * @param {MouseEvent} evt
  * @returns {void}
  */
 export function handleRangeCopyMouseDown(evt) {
-    if (evt.target.closest?.('#range-copy-btn, #range-copy-menu')) evt.preventDefault();
+    if (evt.target.closest?.('#range-copy-btn, #range-paste-btn, #range-copy-menu')) evt.preventDefault();
 }

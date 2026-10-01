@@ -44,7 +44,6 @@ function gridPosition(cell) {
  */
 export function paintRange() {
     for (const cell of document.querySelectorAll('.list-table .in-range')) cell.classList.remove(...MARKS);
-    showCopyButton(Boolean(appState.tableRange));
 
     const grid = rangeGrid();
     if (!grid) return;
@@ -80,18 +79,6 @@ export function rangeGrid() {
     const grid = [];
     for (let r = top; r <= bottom; r++) grid.push([...rows[r].children].slice(left, right + 1));
     return grid;
-}
-
-/**
- * The copy button is there only while a range is: its space is always kept, so the control row never
- * moves, but with no range it cannot be seen or reached. Its menu goes with it.
- * @param {boolean} shown
- * @returns {void}
- */
-function showCopyButton(shown) {
-    document.getElementById('range-copy-btn')?.toggleAttribute('data-shown', shown);
-    const menu = document.getElementById('range-copy-menu');
-    if (!shown && menu?.matches(':popover-open')) menu.hidePopover();
 }
 
 /**
