@@ -300,3 +300,8 @@ jumps under you.
 - **The paste button needs a closed cell**, as Ctrl+V does; with the anchor open it says so on the
   report line.
 
+- **Level 1 is two node tests and two page loads.** What a note's bytes become — shape changes, a kept
+  comment, a new or cleared key, the replay of the plan by the write pass, and undo — is
+  `planFileEdits` and is proved in node, many cases in milliseconds. Only which cells the fields land
+  on and the journal-first order need the app. Undoing a key added to a note with no front matter
+  leaves an empty `---` block: an undo's answer for any edit, not only a paste's, held by the node test.

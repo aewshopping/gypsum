@@ -251,25 +251,6 @@ async function openWritableTable(page) {
 const rowNames = page => page.$$eval('.list-table > .note-table',
   rows => rows.map(row => row.querySelector('[data-prop="filename"]').textContent.trim()));
 
-test('Ctrl+V pastes the clipboard into the range, which stays selected with focus where it was', async ({ page }) => {
-  await openWritableTable(page);
-  await page.evaluate(() => navigator.clipboard.writeText('X\tY\nZ'));
-
-  await cellAt(page, 2, 'a').click();
-  await page.keyboard.press('Shift+ArrowDown');
-  await page.keyboard.press('Shift+ArrowRight');
-  await page.keyboard.press('Control+v');
-  await page.click('#modal-unsaved-warning-proceed');
-
-  await expect(page.locator('#output-report')).toContainText('pasted 3 cells');
-  // Sorted by last modified, but nothing moves while focus is in the pasted rows.
-  await expect(cellAt(page, 2, 'a')).toHaveText('X');
-  await expect(cellAt(page, 2, 'b')).toHaveText('Y');
-  await expect(cellAt(page, 3, 'a')).toHaveText('Z');
-  expect(await marks(page)).toHaveLength(4);
-  expect(await focusedAt(page)).toBe('2:a');
-});
-
 test('the paste button reads the clipboard, keeps focus, and pastes like Ctrl+V', async ({ page }) => {
   await openWritableTable(page);
   await page.evaluate(() => navigator.clipboard.writeText('same'));
@@ -286,24 +267,32 @@ test('the paste button reads the clipboard, keeps focus, and pastes like Ctrl+V'
   expect(await focusedAt(page)).toBe('4:b');
 });
 
-test('pasted rows hold their place while focus is in any of them, and move once it leaves', async ({ page }) => {
+test('Ctrl+V pastes into the range, which stays selected, and its rows hold their place until focus leaves them', async ({ page }) => {
   await openWritableTable(page);
   const before = await rowNames(page);
-  await page.evaluate(() => navigator.clipboard.writeText('new'));
+  await page.evaluate(() => navigator.clipboard.writeText('X\tY\nZ'));
 
-  await cellAt(page, 6, 'c').click();
+  await cellAt(page, 6, 'b').click();
   await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowRight');
   await page.keyboard.press('Control+v');
   await page.click('#modal-unsaved-warning-proceed');
-  await expect(page.locator('#output-report')).toContainText('pasted 2 cells');
+  await expect(page.locator('#output-report')).toContainText('pasted 3 cells');
 
-  // Both written rows now belong at the top, and say so.
+  // Written where aimed, the range still selected and focus where it was.
+  await expect(cellAt(page, 6, 'b')).toHaveText('X');
+  await expect(cellAt(page, 6, 'c')).toHaveText('Y');
+  await expect(cellAt(page, 7, 'b')).toHaveText('Z');
+  expect(await marks(page)).toHaveLength(4);
+  expect(await focusedAt(page)).toBe('6:b');
+
+  // Both written rows now belong at the top, and say so — but stay put.
   expect(await rowNames(page)).toEqual(before);
   await expect(page.locator('.list-table > .note-table.move-pending')).toHaveCount(2);
 
   // Moving within the pasted rows ends the range, not the hold.
   await page.keyboard.press('ArrowDown');
-  expect(await focusedAt(page)).toBe('7:c');
+  expect(await focusedAt(page)).toBe('7:b');
   expect(await rowNames(page)).toEqual(before);
 
   await page.click('#searchbox');
