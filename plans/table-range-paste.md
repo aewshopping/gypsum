@@ -1,7 +1,7 @@
 # Plan: paste into a range in table view
 
 Status: **not started.** Its dependencies are built, and every decision is made (§3).
-Branch: `ccr-fde5a3a7-c57w1r`
+Branch: `claude/table-range-paste`
 Depends on: `plans/completed/table-range-select-copy.md`, **built** (and through it
 `plans/completed/table-undo-stack.md`, **built**). Read its §2.3 and §3 first, and CLAUDE.md's
 *Range selection* — this plan leans on both.
