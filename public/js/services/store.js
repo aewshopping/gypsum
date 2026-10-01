@@ -40,7 +40,8 @@ export const appState = {
   viewState: VIEWS.PEEK.value, // sets initial view state
   sortState: { property: 'lastModified', direction: 'desc'},
 
-  // The row whose move is waiting for you to finish with it — see ui-functions-table/pending-row-move.js.
+  // The rows whose move is waiting for you to finish with them — see ui-functions-table/pending-row-move.js.
+  // Null, or { written, moving }: Sets of file ids, the rows that hold it and the ones that will move.
   pendingRowMove: null,
 
   // The table's selected range — see ui-functions-cell/cell-range.js. Null, or two cell addresses:

@@ -1,6 +1,6 @@
 # Plan: paste into a range in table view
 
-Status: **not started.** Its dependencies are built, and every decision is made (§3).
+Status: **built.** Where the build differed from what is written below, §6 says so.
 Branch: `claude/table-range-paste`
 Depends on: `plans/completed/table-range-select-copy.md`, **built** (and through it
 `plans/completed/table-undo-stack.md`, **built**). Read its §2.3 and §3 first, and CLAUDE.md's
@@ -275,3 +275,28 @@ jumps under you.
 - **Keep every pointer move inside the window** — headless Chromium delivers none outside it, so a
   drag through an off-screen column never crosses a cell. That read as an app bug twice while
   building range select. The range spec's window is 1,800px wide for this reason.
+
+---
+
+## 6. As built
+
+- **`Ctrl+V` fires `paste` on a closed, `user-select: none` cell with nothing selected** — proved, as
+  §2.2 asked, and held by the level 2 test that presses the real keys.
+- **No new dialog.** The confirmation is the shared warning modal (`showWarningModal()`), which is what
+  the column delete uses too — so no new HTML, CSS or handler file. §3.2 and §4 expected one.
+- **`appState.pendingRowMove` is `{ written, moving }`**, two Sets, rather than one Set: the hold asks
+  about every written row and the outline about only the ones that will move (§3.3). A hold already
+  waiting is added to rather than replaced.
+- **Two helpers came out of code that already existed**, so paste would not be a third copy:
+  `keepRangeAcross()` in `cell-range.js` — the redraw's "hold the range across a focus move" — and
+  `whileWriting()` in `bulk-write-busy.js` — undo's "bar and inert table across many notes, the flag
+  for one". `undo-cell-edit.js` and `a-render-all-files.js` now use them.
+- **A cell already showing the pasted text is not written or counted**, as a cell opened and left alone
+  writes nothing. A paste that wrote nothing does not redraw: unlike a closed editor, nothing was taken
+  down.
+- **An empty clipboard pastes nothing** (an image, or no text at all) rather than clearing the range.
+- **A list pasted over a single value with no list style to copy is written as a block list** — the
+  one style the writer chooses when the note has none.
+- **The paste button needs a closed cell**, as Ctrl+V does; with the anchor open it says so on the
+  report line.
+

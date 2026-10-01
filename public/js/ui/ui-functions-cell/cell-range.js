@@ -137,6 +137,20 @@ export function selectAllCells() {
 }
 
 /**
+ * Moves focus without ending the range. A focus move ends a range, so it is held across the move and
+ * marked again after — for a redraw putting focus back, and a paste putting it back after a dialog or
+ * an inert table took it away. A range whose corners are no longer drawn is not put back.
+ * @param {() => void} focusMove
+ * @param {object|null} [range] - The range to keep; the current one unless given.
+ * @returns {void}
+ */
+export function keepRangeAcross(focusMove, range = appState.tableRange) {
+    focusMove();
+    appState.tableRange = range && elementAt(range.anchor) && elementAt(range.extent) ? range : null;
+    paintRange();
+}
+
+/**
  * Ends the range, if there is one.
  * @returns {void}
  */

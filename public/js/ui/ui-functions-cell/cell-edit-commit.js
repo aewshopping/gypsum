@@ -81,7 +81,7 @@ export function commitCellEdit(cell) {
             if (records.length === 0) return renderFiles(false, true);
 
             markUndoState();
-            holdRowMove(internalId);
+            holdRowMove([internalId]);
         })
         .catch(error => console.error('Failed to write a cell edit:', error));
 }

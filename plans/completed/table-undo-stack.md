@@ -10,7 +10,7 @@ cell mark and the report line together — the interface of §10 as decided. **S
 `plans/completed/table-delete-column.md`** rather than waiting for paste: a column delete is a batch
 across hundreds of notes, it needed the depth (100, not 20), and it needed a removed key to come
 back where it was. Undoing a created key now takes the key out (§7, §13.1). Paste itself is its own
-plan, `plans/table-range-paste.md`, and needs nothing more from this one.
+plan, `plans/completed/table-range-paste.md`, and needs nothing more from this one.
 Covered by `tests/1-data/52-table-undo-stack.spec.js`.
 **Ctrl+Z was in scope from the start**, not a later addition — and so were both redo bindings,
 `Ctrl/Cmd+Shift+Z` and `Ctrl+Y` (§10.5). Taking the keys seriously changed both the write's signature
@@ -332,7 +332,7 @@ Two reasons to keep the write path clear of it, and they compound:
 - **Speed, and this is the one that bites later.** `saveBackupEntry` rewrites the entire history file
   per call. A pasted range across fifty rows would be fifty whole-file rewrites of `history.gypsum`
   on top of the writes it actually came to do — sitting in the path of the operation with the least
-  headroom in the app. `plans/table-range-paste.md` inherits a fast write path only if it is kept
+  headroom in the app. `plans/completed/table-range-paste.md` inherits a fast write path only if it is kept
   fast now.
 
 Which is also why §9's scaffold row reads the way it does: a snapshot before the first edit was worth
@@ -493,7 +493,7 @@ used to carry, which was "on a batch, yes".
   gesture; the commonest case, the typo noticed immediately, is the one the friction lands on
   hardest. That argument was already here and is unchanged.
 - **A batch undo would be the second modal in a row.** A pasted range will have its own confirmation
-  in front of it when `plans/table-range-paste.md` is built, so an undo modal behind it is death by a
+  in front of it when `plans/completed/table-range-paste.md` is built, so an undo modal behind it is death by a
   thousand warnings for one `Ctrl+V` and one `Ctrl+Z`.
 - **Redo is the recovery** (§10.5). It covers the accidental press *and* the press you meant at the
   time and regretted afterwards, which no confirmation can.

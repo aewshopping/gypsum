@@ -39,7 +39,23 @@ import { pushUndoBatch } from '../table-undo/undo-stacks.js';
  * @returns {Promise<Array<object>>} One record per edit that changed a file — see applyRawEdits.
  */
 export async function applyCellEdits(edits, options) {
-    const rawEdits = edits.map(edit => {
+    const rawEdits = toRawEdits(edits);
+
+    const records = await applyRawEdits(rawEdits, options);
+    const properties = new Set(edits.map(edit => edit.property));
+    pushUndoBatch(records, { kind: 'edit', property: properties.size === 1 ? edits[0].property : null });
+    return records;
+}
+
+/**
+ * What typed text becomes for applyRawEdits: the column's type and the quoting rule, deferred until
+ * the write knows the note's own style at that key. Shared with a paste, so text pasted into a cell
+ * is written exactly as the same text typed into it — plans/completed/table-range-paste.md §2.4.
+ * @param {Array<{internalId: string, property: string, text: string}>} edits
+ * @returns {Array<{internalId: string, property: string, raw: Function, items?: string[]}>}
+ */
+export function toRawEdits(edits) {
+    return edits.map(edit => {
         const type = propertyType(edit.property);
         return {
             internalId: edit.internalId,
@@ -53,9 +69,4 @@ export async function applyCellEdits(edits, options) {
             ...(type === VALUE_TYPES.ARRAY.value && { items: splitFlowItems(edit.text) }),
         };
     });
-
-    const records = await applyRawEdits(rawEdits, options);
-    const properties = new Set(edits.map(edit => edit.property));
-    pushUndoBatch(records, { kind: 'edit', property: properties.size === 1 ? edits[0].property : null });
-    return records;
 }

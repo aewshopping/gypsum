@@ -34,7 +34,7 @@ import { followPropertyRename } from '../table-layouts/follow-property-rename.js
  *
  * @param {Array<object>} records - What applyRawEdits reported it changed.
  * @param {{kind?: string, property?: string|null, to?: string, dirHandle?: FileSystemDirectoryHandle}} [facts] -
- *   What the batch was, for its name: 'edit', 'delete-property', 'rename-property' or
+ *   What the batch was, for its name: 'edit', 'paste', 'delete-property', 'rename-property' or
  *   'copy-property', the column when there is one, and for a rename or a copy the name it went to (see describe-batch.js). `dirHandle`
  *   is the folder to save into, for a batch that fixed its folder when it began.
  * @returns {{batch: object|null, saved: Promise<boolean>}} The entry pushed — null for a batch of

@@ -4,7 +4,7 @@ Status: **built — step 1 (selecting a range) and step 2 (copy).** §3 is step 
 changed in the building noted where it did.
 Branch: `claude/table-range-select-copy-paste-iq6tcf`
 Depends on: `plans/completed/table-undo-stack.md`, **built**
-Related: `plans/table-range-paste.md`, which depends on this
+Related: `plans/completed/table-range-paste.md`, which depends on this
 
 ---
 
@@ -16,7 +16,7 @@ Selecting a rectangular range of table cells, and copying it with `Ctrl/Cmd+C`.
    are in CLAUDE.md, *Range selection*, and that is where to read them.
 2. **Copying it** — §3.
 
-**Out of scope:** paste (`plans/table-range-paste.md`), non-rectangular or multiple selections,
+**Out of scope:** paste (`plans/completed/table-range-paste.md`), non-rectangular or multiple selections,
 selecting by row or column header, a fill handle. **Not designed for touch**: a finger drag scrolls
 the table, and the range handlers ignore `pointerType === 'touch'`.
 
@@ -139,7 +139,7 @@ by decision.
   doubled, as Excel writes it.
 - **Whether to write a second flavour for gypsum's own paste** — `text/html` carrying the values
   exactly, or a custom type — is paste's question as much as copy's. Decide it with
-  `plans/table-range-paste.md` rather than here; `text/plain` alone is enough to ship copy.
+  `plans/completed/table-range-paste.md` rather than here; `text/plain` alone is enough to ship copy.
 
 ### 3.3 Keys
 

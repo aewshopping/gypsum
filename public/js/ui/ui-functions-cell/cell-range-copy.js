@@ -1,6 +1,7 @@
 import { rangeGrid } from './cell-range.js';
 import { joinFlowItems } from '../../services/file-parsing/flow-list.js';
 import { reportCopied } from '../ui-functions-render/output-report.js';
+import { tsvField as field } from '../../services/tsv.js';
 
 /**
  * @file Copying a range of table cells to the clipboard, as TSV — what a spreadsheet reads.
@@ -78,14 +79,4 @@ function cellText(cell, row) {
 function heading(cell) {
     const header = document.querySelector(`.note-table-cell-header[data-property="${CSS.escape(cell.dataset.prop)}"] .header-label`);
     return header?.textContent ?? cell.dataset.prop;
-}
-
-/**
- * One TSV field. A value holding a tab, a line break or a double quote is quoted, its quotes doubled,
- * as a spreadsheet writes it — anything else goes as it is.
- * @param {string} text
- * @returns {string}
- */
-function field(text) {
-    return /[\t\n\r"]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }

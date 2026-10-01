@@ -267,7 +267,7 @@ table scrolls sideways. See `ui-functions-click/column-stick.js` and `css/note-t
 
 A rectangle of table cells, made by dragging from one cell to another or by `Shift`+arrow
 (`Ctrl+Shift`+arrow to the end of a row or column), and copied with `Ctrl+C` or the copy button.
-Nothing is written yet. See `ui-functions-cell/cell-range.js` and `plans/completed/table-range-select-copy.md`.
+Pasting into one is *Pasting into a range*, below. See `ui-functions-cell/cell-range.js` and `plans/completed/table-range-select-copy.md`.
 
 - **Nothing that makes a range moves focus.** A drag, a shift-click and `Shift`+arrow anchor the
   range at the focused cell and move only the far corner, `appState.tableRange.extent`; select-all
@@ -341,6 +341,37 @@ Nothing is written yet. See `ui-functions-cell/cell-range.js` and `plans/complet
 - **Closed cells are `user-select: none`, and links in the table `-webkit-user-drag: none`** — the
   first so a drag does not also select text, the second because the browser's own link drag
   cancels the pointer and would end a range begun on a `[[link]]`.
+
+### Pasting into a range
+
+`Ctrl/Cmd+V` on a closed table cell, or "paste" in the copy button's menu, writes the clipboard into
+the cells it covers, as one batch that one undo puts back. See `ui-functions-cell/cell-range-paste.js`
+and `plans/completed/table-range-paste.md`.
+
+- **Where it lands**: one copied cell fills the whole range; anything larger is pasted at its own size
+  from the range's top-left and cut to the range, uncounted. With no range it grows from the focused
+  cell to the page's edge, and what falls off is reported as "didn't fit". **Nothing is written
+  outside the range.** A field *missing* from a short row leaves its cell alone; an *empty* field
+  clears the cell, key and all, as clearing it by hand does.
+- **The clipboard is TSV, read by `parseTsv()` in `services/tsv.js`**, beside copy's `tsvField()` —
+  one quoting rule for both directions. Any line ending (`\r\n`, `\n`, `\r`), one trailing one dropped,
+  rows never padded. There is no guard against a headings line: any test for one refuses something real.
+- **Pasted text is written the way typing writes it** — through `toRawEdits()`, split out of
+  `applyCellEdits()` so the two cannot drift. **`isPasteable()`** in `cell-editor.js` is `isEditable()`
+  without the shape question: a paste writes over a list in a single-value column (or the reverse) in
+  the column's shape, because the user aimed it there and undo puts it back.
+- **Journalled before any note is written** — `editing/paste-cells.js` is the column delete's two
+  passes. A one-cell paste goes the same way, without the dialog.
+- **More than one changed cell asks first**, through the shared warning modal, counting the cells that
+  will change, are locked, change shape, or didn't fit — from the drawn cells, since a paste never
+  leaves the page. A cell already showing the pasted text is not written.
+- **Focus is put back on the cell it began from, and the range with it** (`keepRangeAcross()` in
+  `cell-range.js`, shared with the redraw): the dialog and the inert table both take focus out of the
+  table, and without it the held rows below would move at once.
+- **The written rows hold their place while focus is in any of them** — the cell edit's held move,
+  widened: `appState.pendingRowMove` is `{ written, moving }`, and only `moving` wears the outline.
+- **The busy table is `whileWriting()`** in `bulk-write-busy.js`, shared with undo and redo: the bar
+  and an inert table across more than one note, only the flag for one.
 
 ### Deleting a property from every note
 
@@ -1088,8 +1119,10 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/delete-property.js` | Deleting a property from every note: the two-pass journalled write |
 | `public/js/editing/rename-property.js` | Renaming a property in every note: the three-pass journalled write |
 | `public/js/editing/copy-property.js` | Copying a column into every note: the journalled write |
+| `public/js/editing/paste-cells.js` | Pasting into cells: the journalled two-pass write |
 | `public/js/editing/copy-source-value.js` | What one note has to copy, and the text a linked or core value becomes |
 | `public/js/editing/property-forecast.js` | Which notes a delete, a rename or a copy reaches, counted from `appState`, and how a dialog says so |
+| `public/js/services/tsv.js` | Tab-separated text, both directions: copy's field quoting and paste's parser |
 | `public/js/services/property-name.js` | Whether a name can be given to a property: the rename dialog's question, all pure |
 | `public/js/table-layouts/follow-property-rename.js` | What follows a renamed property outside the notes: columns, type, flowchart roles, sort |
 | `public/js/table-layouts/follow-property-copy.js` | What follows a copy outside the notes: the target's type and column, a linked column's `copyTo` |
@@ -1097,7 +1130,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`) |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`, `cell-range-paste.js`) |
 | `public/js/ui/ui-functions-flowchart/` | The flowchart's control row and its options modal's rows |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |

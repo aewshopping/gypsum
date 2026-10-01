@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { loadFolder } = require('../helpers');
+const { setupPropertyFolder } = require('../fixtures/property-notes');
 
 // Ten notes with three short front matter values each, a date (whose editor puts focus on an input of
 // its own inside the cell), and a [[link]], so a drag can start on a link.
@@ -223,4 +224,103 @@ test('Ctrl+C in an open cell is the browser\'s own copy, not the range', async (
   await page.keyboard.press('F2');
   await page.keyboard.press('Control+c');
   expect(await copied(page)).toBeNull();
+});
+
+// ---- Paste: plans/completed/table-range-paste.md. What reaches the disk is level 1's
+// (tests/1-data/60-table-paste.spec.js); these are the gestures and what the table does after.
+
+/**
+ * The same ten notes behind a folder that can be written, with the real clipboard allowed. Sorted by
+ * last modified, newest first, as the app starts — so a written row belongs at the top.
+ */
+async function openWritableTable(page) {
+  await page.setViewportSize({ width: 1800, height: 800 });
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  const notes = {};
+  for (let i = 1; i <= 10; i++) {
+    const n = String(i).padStart(2, '0');
+    notes[`note-${n}.md`] = `---\na: a${n}\nb: b${n}\nc: c${n}\n---\n# Note ${n}\n`;
+  }
+  await setupPropertyFolder(page, notes);
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+}
+
+const rowNames = page => page.$$eval('.list-table > .note-table',
+  rows => rows.map(row => row.querySelector('[data-prop="filename"]').textContent.trim()));
+
+test('Ctrl+V pastes the clipboard into the range, which stays selected with focus where it was', async ({ page }) => {
+  await openWritableTable(page);
+  await page.evaluate(() => navigator.clipboard.writeText('X\tY\nZ'));
+
+  await cellAt(page, 2, 'a').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Control+v');
+  await page.click('#modal-unsaved-warning-proceed');
+
+  await expect(page.locator('#output-report')).toContainText('pasted 3 cells');
+  // Sorted by last modified, but nothing moves while focus is in the pasted rows.
+  await expect(cellAt(page, 2, 'a')).toHaveText('X');
+  await expect(cellAt(page, 2, 'b')).toHaveText('Y');
+  await expect(cellAt(page, 3, 'a')).toHaveText('Z');
+  expect(await marks(page)).toHaveLength(4);
+  expect(await focusedAt(page)).toBe('2:a');
+});
+
+test('the paste button reads the clipboard, keeps focus, and pastes like Ctrl+V', async ({ page }) => {
+  await openWritableTable(page);
+  await page.evaluate(() => navigator.clipboard.writeText('same'));
+
+  await cellAt(page, 4, 'b').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.locator('#range-copy-btn').click();
+  await page.click('#range-copy-menu [data-action="range-paste"]');
+  await page.click('#modal-unsaved-warning-proceed');
+
+  await expect(page.locator('#output-report')).toContainText('pasted 2 cells');
+  await expect(cellAt(page, 4, 'b')).toHaveText('same');
+  await expect(cellAt(page, 5, 'b')).toHaveText('same');
+  expect(await focusedAt(page)).toBe('4:b');
+});
+
+test('pasted rows hold their place while focus is in any of them, and move once it leaves', async ({ page }) => {
+  await openWritableTable(page);
+  const before = await rowNames(page);
+  await page.evaluate(() => navigator.clipboard.writeText('new'));
+
+  await cellAt(page, 6, 'c').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Control+v');
+  await page.click('#modal-unsaved-warning-proceed');
+  await expect(page.locator('#output-report')).toContainText('pasted 2 cells');
+
+  // Both written rows now belong at the top, and say so.
+  expect(await rowNames(page)).toEqual(before);
+  await expect(page.locator('.list-table > .note-table.move-pending')).toHaveCount(2);
+
+  // Moving within the pasted rows ends the range, not the hold.
+  await page.keyboard.press('ArrowDown');
+  expect(await focusedAt(page)).toBe('7:c');
+  expect(await rowNames(page)).toEqual(before);
+
+  await page.click('#searchbox');
+  await expect(page.locator('.list-table > .note-table.move-pending')).toHaveCount(0);
+  const after = await rowNames(page);
+  expect(after.slice(0, 2).sort()).toEqual([before[6], before[7]].sort());
+});
+
+test('Ctrl+V in an open cell is the browser\'s own paste, not the range', async ({ page }) => {
+  await openWritableTable(page);
+  await page.evaluate(() => navigator.clipboard.writeText('typed'));
+  await cellAt(page, 1, 'a').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('F2');
+  await page.keyboard.press('Control+v');
+
+  await expect(page.locator('#modal-unsaved-warning')).toBeHidden();
+  await expect(cellAt(page, 1, 'a')).toContainText('typed');
+  await expect(cellAt(page, 2, 'a')).not.toContainText('typed');
 });

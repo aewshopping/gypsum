@@ -108,7 +108,7 @@ export function renderTableRows(current_props, renderEverything) {
             // outline through the renders that happen while it waits — another edit in the same
             // row, an autosave. pending-row-move.js puts the same class on directly for the render
             // that has already happened by the time it is asked.
-            const pending = file.internalId === appState.pendingRowMove ? ' move-pending' : '';
+            const pending = appState.pendingRowMove?.moving.has(file.internalId) ? ' move-pending' : '';
             rowsHtml += `
                 <div class="note-table ${tagList} color-dynamic-transparent-fallback${pending}" data-color="${file.color}" data-vt-id="${file.internalId}">
                     ${cellsHtml}
