@@ -1,3 +1,4 @@
+import { appState } from '../../services/store.js';
 import { rangeGrid } from './cell-range.js';
 import { joinFlowItems } from '../../services/file-parsing/flow-list.js';
 import { reportCopied } from '../ui-functions-render/output-report.js';
@@ -16,9 +17,17 @@ import { tsvField as field } from '../../services/tsv.js';
  * textContent is right for every column but two: tags, drawn as pills with nothing between them, and
  * the file column, whose link says "open". Tags copy as one comma-joined line, as a list cell shows
  * one; the file column copies a count, 1 on the first copied row. See plans/completed/table-range-select-copy.md §3.
+ *
+ * **What was copied stays outlined while it is on the clipboard** — through sorts, filters and new
+ * selections, since it is held as notes and columns, and not cleared by Escape, which cannot safely
+ * empty the clipboard. It goes with "clear copied cells", which empties it, with another copy here or
+ * anywhere in the page, with a held row move appearing (pending-row-move.js), and with a folder load.
+ * The mechanism is the held row move's: a class the renderer draws from appState, put straight on for
+ * the render already done.
  */
 
-// Set while the copy button's menu is asking for a copy, which it may do with a cell open.
+// Set while the copy button's menu is asking for a copy, which it may do with a cell open — or for the
+// clipboard to be emptied, which is a copy of nothing.
 let requested = null;
 
 /**
@@ -29,8 +38,19 @@ let requested = null;
  * @returns {void}
  */
 export function handleRangeCopy(evt) {
+    if (requested?.clear) {
+        evt.clipboardData.setData('text/plain', '');
+        evt.preventDefault();
+        clearCopiedCells();
+        return;
+    }
+
     const focused = document.activeElement?.closest?.('.list-table .note-table-cell');
-    if (!requested && (!focused || focused.classList.contains('is-expanded'))) return;
+    if (!requested && (!focused || focused.classList.contains('is-expanded'))) {
+        // Someone else's copy: what is on the clipboard is no longer these cells.
+        clearCopiedCells();
+        return;
+    }
 
     // With no range, the focused cell alone: a range of one.
     const grid = rangeGrid() ?? (focused ? [[focused]] : null);
@@ -43,6 +63,12 @@ export function handleRangeCopy(evt) {
     evt.clipboardData.setData('text/plain', lines.join('\n'));
     evt.preventDefault();
     reportCopied(grid.length * grid[0].length, headers);
+
+    appState.copiedCells = {
+        ids: new Set(grid.map(cells => cells[0].closest('.note-table').dataset.vtId)),
+        props: new Set(grid[0].map(cell => cell.dataset.prop)),
+    };
+    markCopied();
 }
 
 /**
@@ -56,6 +82,50 @@ export function copyRange(headers) {
         document.execCommand('copy');
     } finally {
         requested = null;
+    }
+}
+
+/**
+ * Empties the clipboard and takes the outline off, through the same copy event — synchronous inside
+ * the click that asked, so it needs no permission and works from file://.
+ * @returns {void}
+ */
+export function clearCopied() {
+    requested = { clear: true };
+    try {
+        document.execCommand('copy');
+    } finally {
+        requested = null;
+    }
+}
+
+/**
+ * Takes the outline off what was copied, leaving the clipboard as it is.
+ * @returns {void}
+ */
+export function clearCopiedCells() {
+    if (!appState.copiedCells) return;
+    appState.copiedCells = null;
+    markCopied();
+}
+
+/**
+ * Puts the copied mark on the drawn cells appState.copiedCells names, and takes it off every other —
+ * for the render already done; the next one draws it from state. The copy button says there is
+ * something to clear even when those cells are on another page.
+ * @returns {void}
+ */
+function markCopied() {
+    const copied = appState.copiedCells;
+    for (const cell of document.querySelectorAll('.list-table .is-copied')) cell.classList.remove('is-copied');
+    document.getElementById('range-copy-btn')?.toggleAttribute('data-copied', Boolean(copied));
+    if (!copied) return;
+
+    for (const row of document.querySelectorAll('.list-table > .note-table')) {
+        if (!copied.ids.has(row.dataset.vtId)) continue;
+        for (const cell of row.children) {
+            if (copied.props.has(cell.dataset.prop)) cell.classList.add('is-copied');
+        }
     }
 }
 

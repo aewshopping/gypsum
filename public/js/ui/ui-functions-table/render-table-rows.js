@@ -98,7 +98,11 @@ export function renderTableRows(current_props, renderEverything) {
                 const sticky = isSticky ? ` is-sticky${column === stickyCount - 1 ? ' is-sticky-last' : ''}` : '';
                 const stickyLeft = isSticky ? ` style="--sticky-left: var(--sticky-left-${column})"` : '';
 
-                return `<div class="note-table-cell keyboard-navigable${fade}${sticky}"${stickyLeft} data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
+                // Drawn from state, like the row's pending mark below, so it outlives a redraw.
+                const copied = appState.copiedCells?.ids.has(file.internalId) && appState.copiedCells.props.has(prop.name)
+                    ? ' is-copied' : '';
+
+                return `<div class="note-table-cell keyboard-navigable${fade}${sticky}${copied}"${stickyLeft} data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
             }).join('');
 
             // this is the "wrapper" div that contains the table row elements rendered above

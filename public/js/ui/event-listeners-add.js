@@ -35,7 +35,7 @@ import { handleColumnCopyOpen, handleColumnCopyInput, handleColumnCopyKeydown, h
          handleColumnCopyClose } from './ui-functions-click/column-copy-dialog.js';
 import { handleColumnCopyConfirm } from './ui-functions-click/column-copy-property.js';
 import { handleUndoListOpen, handleUndoListItem, handleUndoListClear } from './ui-functions-click/undo-list.js';
-import { handleRangeCopyMenuOpen, handleRangeCopyItem, handleRangeCopyMouseDown } from './ui-functions-click/range-copy-menu.js';
+import { handleRangeCopyMenuOpen, handleRangeCopyItem, handleRangeCopyClear, handleRangeCopyMouseDown } from './ui-functions-click/range-copy-menu.js';
 import { handleRangePasteButton } from './ui-functions-click/range-paste-button.js';
 import { handleRangeCopy } from './ui-functions-cell/cell-range-copy.js';
 import { handleRangePaste } from './ui-functions-cell/cell-range-paste.js';
@@ -261,6 +261,7 @@ const clickActionHandlers = {
     'undo-list': handleUndoListOpen,
     'range-copy-menu': handleRangeCopyMenuOpen,
     'range-copy': handleRangeCopyItem,
+    'range-copy-clear': handleRangeCopyClear,
     'range-paste': handleRangePasteButton,
     'undo-list-item': handleUndoListItem,
     'undo-list-clear': handleUndoListClear,

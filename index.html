@@ -134,6 +134,12 @@
          which the type drawing is moved out of to make room. Its own symbol rather than one combined
          symbol per type — the header lays it over the plain type glyph with a second <use>, so this
          path exists once instead of five times and a type's drawing keeps its single definition. -->
+    <!-- The copy button's mark while cells are copied: a cross in the corner the lock badge uses. -->
+    <symbol id="icon-clear-badge" viewBox="0 0 50 50">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
+        <path d="M36 36l11 11M47 36L36 47"/>
+      </g>
+    </symbol>
     <symbol id="icon-lock-badge" viewBox="0 0 50 50">
       <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.6">
         <path d="M33 37h15v11H33zM36.5 37v-3.5a4 4 0 0 1 8 0V37"/>
@@ -1003,12 +1009,14 @@
        the column menu — top layer, light dismiss, Escape. plans/completed/table-delete-column.md §17.6. -->
   <div id="undo-list" class="app-menu" popover></div>
 
-  <!-- The copy button's menu, at the start of the table's control row. Neither item takes focus
+  <!-- The copy button's menu, at the start of the table's control row. "clear copied cells" shows
+       only while cells are copied (note-table-copied.css). No item takes focus
        (range-copy-menu.js cancels their mousedown), since focus leaving the table ends the range they
        copy. plans/completed/table-range-select-copy.md §3.4. -->
   <div id="range-copy-menu" class="app-menu" popover>
     <button type="button" class="app-menu-item" data-action="range-copy" data-headers="false">copy</button>
     <button type="button" class="app-menu-item" data-action="range-copy" data-headers="true">copy with headers</button>
+    <button type="button" class="app-menu-item" data-action="range-copy-clear" data-tip="remove the outline and empty the clipboard">clear copied cells</button>
   </div>
 
   <!-- The column resize bar, shown by "resize column" in the menu above. Parked over the

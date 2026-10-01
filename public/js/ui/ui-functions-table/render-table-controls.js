@@ -55,8 +55,8 @@ export function renderTableControls() {
 
     return `
             <div class="output-controls">
-                <button type="button" id="range-copy-btn" class="svg-wrapper-style" data-action="range-copy-menu" data-tip="copy the selected cells (Ctrl+C)">
-                    <svg viewBox="0 0 50 50"><use href="#icon-copy"></use></svg>
+                <button type="button" id="range-copy-btn" class="svg-wrapper-style" data-action="range-copy-menu" data-tip="copy the selected cells (Ctrl+C)"${appState.copiedCells ? ' data-copied' : ''}>
+                    <svg viewBox="0 0 50 50"><use class="copy-mark" href="#icon-copy"></use><use class="copied-badge" href="#icon-clear-badge"></use></svg>
                 </button>
                 <button type="button" id="range-paste-btn" class="svg-wrapper-style" data-action="range-paste" data-tip="paste into the selected cells (Ctrl+V)">
                     <svg viewBox="0 0 50 50"><use href="#icon-paste"></use></svg>

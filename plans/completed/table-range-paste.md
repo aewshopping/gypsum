@@ -309,3 +309,6 @@ jumps under you.
   its menu. Both show while a closed cell has focus, by one CSS rule; the copy button's JS show and
   hide (`data-shown`) went. A paste button cannot wait for the clipboard to hold something, since a
   page cannot look without permission.
+- **What was copied is outlined while it is on the clipboard** — CLAUDE.md, *The copy outline*. Cleared
+  from the copy button's menu, which empties the clipboard too; not by Escape; and by a held row move,
+  which leaves the clipboard as it was.

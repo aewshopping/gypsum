@@ -345,6 +345,27 @@ Pasting into one is *Pasting into a range*, below. See `ui-functions-cell/cell-r
   first so a drag does not also select text, the second because the browser's own link drag
   cancels the pointer and would end a range begun on a `[[link]]`.
 
+### The copy outline
+
+What was copied from the table is outlined, dashed, **for as long as it is on the clipboard**. See
+`ui-functions-cell/cell-range-copy.js` and `css/note-table-copied.css`.
+
+- **The held row move's mechanism, on a cell**: a class the row renderer draws from
+  `appState.copiedCells` (`{ ids, props }`), put straight on by `markCopied()` for the render already
+  done, and one dashed `outline` rule. Held as notes and columns rather than a rectangle, so it follows
+  its notes through a sort, a filter and a page; each cell draws its own, so a block reads as a dashed
+  grid, and no edge arithmetic is needed. An outline, so it never meets the range's shadows and tint.
+- **What ends it**: "clear copied cells" in the copy button's menu, which also empties the clipboard
+  (`clearCopied()`, a copy of `''` through the same `copy` event, synchronous inside the click); another
+  copy, here or anywhere in the page; a folder load; and **a held row move appearing** — one dashed mark
+  at a time — which is the one case that leaves the clipboard holding the copy, since emptying it needs
+  a press and the hold follows an asynchronous write.
+- **Not Escape.** Escape cannot safely empty the clipboard — gypsum cannot see whether another app has
+  replaced its copy — and an outline left off while the copy is still there would be untrue.
+- **The copy button wears a × badge while cells are copied** (`data-copied`, from state, since the
+  cells may be on another page), stays visible without a selected cell, and its menu gains the clear
+  item. The badge is composed as the lock badge is: the copy drawing moved aside, never scaled.
+
 ### Pasting into a range
 
 `Ctrl/Cmd+V` on a closed table cell, or the paste button beside the copy button, writes the clipboard into
@@ -1147,6 +1168,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/pagination/` | Pagination: page-ID check, button renderer, click handler |
 | `public/js/history/` | Version snapshots: writing, reading, summarising `history.gypsum` |
 | `public/css/` | Component-scoped CSS modules |
+| `public/css/note-table-copied.css` | The dashed outline on copied cells, and the copy button's badge and clear item |
 | `tests/1-data/` | Tests of what reaches the disk — run on every change |
 | `tests/2-behaviour/` | Tests of what the app does on screen |
 | `tests/3-occasional/` | Appearance and slow end-to-end tests |

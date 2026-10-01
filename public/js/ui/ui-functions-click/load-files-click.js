@@ -108,6 +108,8 @@ async function postLoad() {
     await loadUndoStacks();
     // A folder just opened is a visit that has not done anything yet. §10.4.
     appState.undoHorizon = Date.now();
+    // Copied cells belonged to the folder before; the clipboard still holds their text.
+    appState.copiedCells = null;
     if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     const sortProp = appState.sortState.property;
     sortAppStateFiles(sortProp, propertyType(sortProp), appState.sortState.direction);

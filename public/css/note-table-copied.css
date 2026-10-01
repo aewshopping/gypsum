@@ -1,0 +1,35 @@
+/* What is on the clipboard from the table: each copied cell outlined, dashed, as a row waiting to
+   move is (note-table.css, .move-pending), and the copy button's badge and menu item that clear it.
+   cell-range-copy.js and the row renderer put .is-copied on; nothing here knows how.
+
+   An outline rather than a shadow, so it never meets the range's marks, which are shadows and a
+   background; and paint-only, like them. A selected or open cell keeps its own solid ring, and the
+   dashes come back when focus moves on. Each cell draws its own, so a copied block reads as a dashed
+   grid rather than one box — which needs no arithmetic about edges. */
+
+.note-table-cell.is-copied:not(.is-selected, .is-expanded) {
+    outline: 2px dashed color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt));
+    outline-offset: -2px;
+}
+
+/* The badge sits in the corner the copy drawing gives up, as the padlock does on a locked column's
+   type glyph — moved, never scaled. */
+#range-copy-btn .copied-badge {
+    display: none;
+}
+
+#range-copy-btn[data-copied] .copied-badge {
+    display: inline;
+}
+
+#range-copy-btn[data-copied] .copy-mark {
+    transform: translate(-4px, -4px);
+}
+
+#range-copy-menu [data-action="range-copy-clear"] {
+    display: none;
+}
+
+body:has(#range-copy-btn[data-copied]) #range-copy-menu [data-action="range-copy-clear"] {
+    display: block;
+}

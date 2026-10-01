@@ -16,6 +16,7 @@ import { appState } from '../../services/store.js';
 import { propertyType } from '../../services/property-type.js';
 import { compareByProperty, sortAppStateFiles } from '../../services/file-object-sort.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { clearCopiedCells } from '../ui-functions-cell/cell-range-copy.js';
 
 /** The class the row wears while its move is waiting. Drawn by table row CSS in note-table.css. */
 const PENDING = 'move-pending';
@@ -55,6 +56,9 @@ export function holdRowMove(internalIds) {
 
     if (focusIsIn(written)) {
         appState.pendingRowMove = { written, moving };
+        // One dashed mark at a time: the copy outline gives way to the move. The clipboard keeps
+        // the copy — emptying it needs a press, and this comes after an asynchronous write.
+        clearCopiedCells();
         for (const id of moving) rowFor(id)?.classList.add(PENDING);
         return;
     }

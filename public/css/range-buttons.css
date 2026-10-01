@@ -9,13 +9,17 @@
 
    Their space is always kept, so nothing in the row moves as they come and go. visibility rather than
    opacity or disabled: it also takes them out of the tab order, out of reach of a press, and out of
-   what a screen reader reads. */
+   what a screen reader reads.
+
+   The copy button also stays while cells are copied (data-copied), since its menu is the one way to
+   clear the outline — and those cells may be on another page. */
 
 #range-copy-btn,
 #range-paste-btn {
     visibility: hidden;
 }
 
-body:has(.list-table .note-table-cell:not(.is-expanded):focus-within) :is(#range-copy-btn, #range-paste-btn) {
+body:has(.list-table .note-table-cell:not(.is-expanded):focus-within) :is(#range-copy-btn, #range-paste-btn),
+#range-copy-btn[data-copied] {
     visibility: visible;
 }

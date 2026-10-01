@@ -1,6 +1,6 @@
-// The copy button in the table's control row, and its menu: copy, and copy with headers.
+// The copy button in the table's control row, and its menu: copy, copy with headers, and clear copied cells.
 
-import { copyRange } from '../ui-functions-cell/cell-range-copy.js';
+import { copyRange, clearCopied } from '../ui-functions-cell/cell-range-copy.js';
 
 /** @returns {HTMLElement|null} */
 const menuElement = () => document.getElementById('range-copy-menu');
@@ -21,6 +21,16 @@ export function handleRangeCopyMenuOpen() {
  */
 export function handleRangeCopyItem(evt, item) {
     copyRange(item.dataset.headers === 'true');
+    menuElement()?.hidePopover();
+}
+
+/**
+ * Takes the outline off the copied cells and empties the clipboard, so the two never disagree, and
+ * closes the menu. Shown only while cells are copied.
+ * @returns {void}
+ */
+export function handleRangeCopyClear() {
+    clearCopied();
     menuElement()?.hidePopover();
 }
 
