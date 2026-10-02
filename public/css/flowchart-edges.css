@@ -54,3 +54,15 @@
     vector-effect: non-scaling-stroke;
     pointer-events: none;
 }
+
+/* The stub with a + that rides on a drag's end over empty chart (flowchart-drag-ghost.js). A stub
+   otherwise, a little stronger so it reads as the thing about to happen; like the line it takes no
+   pointer events, so the drag's hit test sees the chart beneath it. */
+.flowchart-drag-ghost {
+    pointer-events: none;
+    opacity: 0.8;
+    /* Doubled to outweigh the stub's own font rule in flowchart.css. */
+    &.flowchart-stub text {
+        font-size: 28px;
+    }
+}

@@ -21,6 +21,13 @@ async function openFlowchart(page) {
   await expect(page.locator('.flowchart-code')).toBeVisible();
 }
 
+/** Switches from the code to the chart and turns pan off — it starts on — so a press reaches the notes. */
+async function showChart(page) {
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.pz-panzoom-check')).toBeChecked();
+  await page.click('.pz-panzoom-check');
+}
+
 /** Points a role at a property — or back at its default with '' — and closes the dialog. */
 async function setRole(page, role, property) {
   await page.click('[data-action="open-flowchart-options"]');
@@ -224,6 +231,8 @@ test('a mouse drag pans only with pan on, and a re-render keeps the zoom and pan
   };
 
   await page.locator('.pz-zoom-input').fill('3');
+  // Pan starts on; off, a drag moves nothing.
+  await page.click('.pz-panzoom-check');
   await drag();
   expect(await transform()).toBe('scale(3 3) translate(0 0)');
 
@@ -244,7 +253,7 @@ test('a press on a box opens its note, and does nothing while pan is on', async 
   await page.click('label[for="flowchart_render_toggle"]');
   const modal = page.locator('#file-content-modal');
 
-  await page.click('.pz-panzoom-check');
+  await expect(page.locator('.pz-panzoom-check')).toBeChecked();
   await page.locator('.flowchart-node[aria-label="The cave"]').click({ force: true });
   await expect(modal).not.toBeVisible();
 
@@ -286,7 +295,7 @@ test('the chart draws node text and node shape from the options', async ({ page 
 test('the chart draws links, and a press on one opens the note it is written in', async ({ page }) => {
   await openFlowchart(page);
   await setRole(page, 'connectorText', 'why');
-  await page.click('label[for="flowchart_render_toggle"]');
+  await showChart(page);
 
   await expect(page.locator('.flowchart-edge')).toHaveCount(4);
   await expect(page.locator('.flowchart-stub')).toHaveAttribute('aria-label', 'missing.md');
@@ -328,6 +337,7 @@ test.describe('touch', () => {
     await page.goto('/');
     await loadFolder(page);
     await page.selectOption('#view-select', 'flowchart');
+    await page.locator('.pz-panzoom-check').tap();
     await page.locator('.pz-container').evaluate(el => el.scrollIntoView({ block: 'end' }));
     await page.evaluate(() => {
       window.__prevented = [];

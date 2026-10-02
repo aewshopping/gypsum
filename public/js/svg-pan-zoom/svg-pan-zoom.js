@@ -80,7 +80,7 @@ const tpCache = [];
 let rectsvg, rectcont;
 // if this checkbox is checked allows pan and mousewheel zoom
 const panzoomcheck = container.querySelector('.pz-panzoom-check');
-var panzoomon = false;
+var panzoomon = panzoomcheck.checked; // the markup says where it starts
 panzoomcheck.addEventListener("input", (event) => {
   if (panzoomcheck.checked == true){
     panzoomon = true;

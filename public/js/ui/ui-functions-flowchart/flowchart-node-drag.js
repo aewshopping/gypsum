@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { svgElement } from './svg-element.js';
 import { linkNotes } from './flowchart-link-add.js';
 import { offerNewLinkedNote } from './flowchart-note-create.js';
+import { placeDragGhost, removeDragGhost } from './flowchart-drag-ghost.js';
 
 /**
  * @file Dragging from one note's box to another's draws a link between them.
@@ -11,7 +12,8 @@ import { offerNewLinkedNote } from './flowchart-note-create.js';
  * from the box, the box under the pointer marked as where it would land. Released over another
  * note's box — or a stub that names a loaded note, since the link is written into the note the drag
  * began on and not into the one it lands on — the link is offered (flowchart-link-add.js). Released on
- * the chart's empty background, a new note linked from it is offered (flowchart-note-create.js). On a
+ * the chart's empty background — where a stub with a `+` rides on the line's end to say so
+ * (flowchart-drag-ghost.js) — a new note linked from it is offered (flowchart-note-create.js). On a
  * link, a stub naming nothing, or off the chart, nothing happens.
  *
  * **Mouse and touch events, on the chart's own `<svg>`, as the pan and zoom code listens on its map**
@@ -33,13 +35,24 @@ const TOUCH_THRESHOLD = 10; // a finger wobbles more than a mouse, and a wobble 
 const boxAt = (x, y) => document.elementFromPoint(x, y)?.closest('.flowchart-node, .flowchart-stub[data-file-id]') ?? null;
 
 /**
+ * Whether a point on screen is the chart's empty background — the `<svg>` itself, since a box, a link
+ * and its text are all elements inside it, and the drag's line and ghost take no pointer events.
+ * @param {SVGSVGElement} svg
+ * @param {number} x - Client coordinates.
+ * @param {number} y
+ * @returns {boolean}
+ */
+const onBackground = (svg, x, y) => document.elementFromPoint(x, y) === svg;
+
+/**
  * Takes the drag's line and its landing mark off the chart.
  * @param {SVGSVGElement} svg
  * @returns {void}
  */
 function clearDragMarks(svg) {
     svg.querySelector('.flowchart-drag-line')?.remove();
-    svg.querySelector('.flowchart-node.is-drop-target')?.classList.remove('is-drop-target');
+    removeDragGhost(svg);
+    svg.querySelector('.is-drop-target')?.classList.remove('is-drop-target');
 }
 
 /**
@@ -67,7 +80,11 @@ function moveDrag(svg, x, y, threshold) {
     const toDrawing = drawing.getScreenCTM().inverse();
     const box = source.getBoundingClientRect();
     const from = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(toDrawing);
-    const to = new DOMPoint(x, y).matrixTransform(toDrawing);
+    let to = new DOMPoint(x, y).matrixTransform(toDrawing);
+
+    // Over the background, letting go makes a note: the ghost says so, and the line ends on it.
+    if (onBackground(svg, x, y)) to = placeDragGhost(drawing, to, from);
+    else removeDragGhost(drawing);
 
     let line = drawing.querySelector('.flowchart-drag-line');
     if (!line) {
@@ -107,8 +124,7 @@ function endDrag(svg, x, y) {
     clearDragMarks(svg);
     appState.flowchartView.press = null;
     if (x === null) return;
-    // The background is the <svg> itself: a box, a link and its text are all elements inside it.
-    if (document.elementFromPoint(x, y) === svg) {
+    if (onBackground(svg, x, y)) {
         offerNewLinkedNote(press.fileId);
         return;
     }

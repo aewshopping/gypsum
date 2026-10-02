@@ -8,6 +8,10 @@
  * invisible checkbox stretched over the whole button, so a press anywhere on it counts, not just on
  * the drawing. Fullscreen swaps maximise for minimise as the note modal's toggle does.
  *
+ * **Pan starts on.** The chart cannot scroll the page anyway, and with it off a mouse drag from a
+ * box meant for scrolling ends on empty chart and offers a new note. Turning it off is a deliberate
+ * step into editing; a re-render keeps whichever it was (readPanZoomState).
+ *
  * @returns {string} HTML string.
  */
 export function renderFlowchartViewer() {
@@ -20,7 +24,7 @@ export function renderFlowchartViewer() {
             </label>
             <label class="svg-wrapper-style pz-icon pz-panzoom" data-tip="pan and zoom: on to move the chart, off to work on the notes">
                 <svg viewBox="0 0 50 50"><use href="#icon-pan"></use></svg>
-                <input type="checkbox" class="pz-panzoom-check" aria-label="pan and zoom">
+                <input type="checkbox" class="pz-panzoom-check" aria-label="pan and zoom" checked>
             </label>
             <div class="pz-zoom">
                 <button type="button" class="pz-reset svg-wrapper-style" data-tip="reset zoom and position">

@@ -256,6 +256,12 @@ As built:
 - **It opens on the next free `note-N.txt` in the source note's folder** — the new-note button's
   convention, `findUnusedFilename()` now shared in `services/create-note.js` — with the stem selected,
   so typing replaces it and keeps `.txt`.
+- **While the drag is over empty chart, a stub with a `+` rides on the line's end** — the size a new
+  note's box will be, the line ending at its edge — to say that letting go makes a note
+  (`flowchart-drag-ghost.js`). Over a box, a link or off the chart it goes.
+- **Pan starts on.** The chart cannot scroll the page anyway, and with it off a drag meant as a
+  scroll ended on empty chart and offered a note. Turning it off is the step into editing; a
+  re-render keeps whichever it was.
 - **A name a loaded note has is refused**, not linked to: dragging onto that note's box does that.
 - **Refused before the dialog** when the connectors option names a property the chart cannot write,
   so a note is never made for a link that could not then be written (`linkProperty()` in

@@ -25,6 +25,8 @@ async function openChart(page, roles = {}) {
     await page.keyboard.press('Escape');
   }
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  // Pan starts on; off, a press and a drag reach the notes.
+  await page.click('.pz-panzoom-check');
 }
 
 /** Drags from one box to another with the mouse, and waits for the dialog. */
@@ -133,7 +135,10 @@ async function dragToEmpty(page, fromLabel) {
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
   await page.mouse.down();
   await page.mouse.move(...to, { steps: 8 });
+  // Over empty chart a stub with a + rides on the line's end; letting go takes it away.
+  await expect(page.locator('.flowchart-drag-ghost')).toHaveCount(1);
   await page.mouse.up();
+  await expect(page.locator('.flowchart-drag-ghost')).toHaveCount(0);
   await expect(page.locator('#modal-flowchart-new-note')).toBeVisible();
 }
 
@@ -187,8 +192,11 @@ test('filtered out, a new note is still on the chart as a stub, and a stub opens
   // one.md is filtered out: a stub, which takes a dragged link — refused here only because Start
   // already links to it.
   const stub = page.locator('.flowchart-stub[aria-label="one.md"]');
-  const a = await box(page, 'Start').boundingBox();
+  // The filter's row grows in above the chart a moment later, and the drawing scales with the
+  // viewer: a drag aimed before that ends is aimed at where the boxes were.
+  await page.evaluate(() => Promise.all(document.getAnimations().map(animation => animation.finished)));
   const b = await stub.boundingBox();
+  const a = await box(page, 'Start').boundingBox();
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
   await page.mouse.down();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
