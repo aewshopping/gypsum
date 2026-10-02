@@ -1,7 +1,7 @@
 # Plan: the flowchart view
 
-Status: **the mermaid code block and the flowchart options are built.** Everything from step 1 below
-is unbuilt.
+Status: **steps 1 and 2 are built** (manifest `1.347.0`), on top of the mermaid code block and the
+flowchart options. Everything from step 3 below is unbuilt.
 Branch: `claude/flowchart-svg-first-plan`. Bump the manifest's minor version with each step that
 changes code.
 
@@ -33,7 +33,7 @@ from it). See *Later*.
 
 ---
 
-## Step 1 — the SVG viewer, with notes at placeholder positions
+## Step 1 — the SVG viewer, with notes at placeholder positions *(built)*
 
 Get the rendering and the pan and zoom right before anything else.
 
@@ -98,7 +98,22 @@ mouse and by finger with the toggle on; page scroll and no pan with it off; rese
 should survive a re-render of the view (closing the options dialog re-renders) — carry it across the
 way `keep-cell-state.js` carries the table's scroll position.
 
-## Step 2 — the code / chart toggle
+**What building it settled** — beyond the above:
+
+- **The viewBox starts at 0 0 and the notes are moved into it.** The ported code zooms about
+  `transform-origin: 50% 50%`, which SVG measures from the user-space origin, not the viewBox's
+  corner — a viewBox with a negative origin zoomed off-centre.
+- **The viewBox is never smaller than the SVG on screen**, so five notes draw at their own size rather
+  than swelling to fill the viewer. Many notes shrink to fit; zoom brings them back. 100% still shows
+  every note on the page.
+- **The zoom strip runs from the left**, reset first: the app's floating new-note button sits at the
+  bottom right and covered the slider's end on a phone.
+- **`icon-pan`** (four arrows) is a new symbol; `icon-drag` is a grip and read wrongly.
+- **Each box carries `aria-label` with its whole label**, since the drawn lines may be cut short.
+- **Simulated touches cannot test a pan**: CDP touch events report `screenX` as 0, and the ported
+  code pans by `screenX`. Checked instead with synthetic `TouchEvent`s carrying it; real devices do.
+
+## Step 2 — the code / chart toggle *(built, default: code)*
 
 A switch in the flowchart's control row between the mermaid code block and the SVG, styled and wired
 like the html / text switch in the note modal (`render_toggle`, `toggle-render-text.js`,

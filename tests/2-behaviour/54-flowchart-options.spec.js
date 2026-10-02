@@ -186,3 +186,50 @@ test('nodeShapeFor reads a name, both marks, or the opening mark alone', async (
     expect(nodeShapeFor(nothing).value).toBe(NODE_SHAPES.ROUND.value);
   }
 });
+
+// The SVG: one box per note on the page, behind a switch that outlives a trip to another view.
+test('the chart switch draws a box per note, and is remembered across views', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+
+  await expect(page.locator('.flowchart-code')).toHaveCount(0);
+  expect(await page.locator('.flowchart-node').evaluateAll(nodes => nodes.map(n => n.getAttribute('aria-label')))).toEqual([
+    'The crossroads', 'The cave', 'The long road', 'Deeper still', 'A note with no chapter',
+  ]);
+
+  await page.selectOption('#view-select', 'table');
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node')).toHaveCount(5);
+
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.flowchart-code')).toBeVisible();
+});
+
+// The pan-zoom toggle gates the mouse as well as touch — off, a drag belongs to the notes — and a
+// re-render leaves the chart where it was.
+test('a mouse drag pans only with pan on, and a re-render keeps the zoom and pan', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+  const transform = () => page.locator('.pz-group').getAttribute('transform');
+
+  const drag = async () => {
+    const box = await page.locator('.pz-svg').boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30, { steps: 4 });
+    await page.mouse.up();
+  };
+
+  await page.locator('.pz-zoom-input').fill('3');
+  await drag();
+  expect(await transform()).toBe('scale(3 3) translate(0 0)');
+
+  await page.click('.pz-panzoom-check');
+  await drag();
+  const panned = await transform();
+  expect(panned).not.toContain('translate(0 0)');
+
+  await setRole(page, 'nodeText', 'chapter');
+  expect(await transform()).toBe(panned);
+  await expect(page.locator('.pz-panzoom-check')).toBeChecked();
+});

@@ -12,3 +12,32 @@
    It used to be padded to line its button up with the code block's text below, which stopped
    meaning anything once the row moved to the right-hand end of .output-header — the left edge it
    was aligning with is no longer the edge the button sits at. */
+
+/* The chart fills the window below the control row, so it can be used without going full screen. */
+.flowchart-viewer {
+    /* Scrolled to, it fits exactly under the sticky search row. */
+    height: max(300px, calc(100dvh - var(--stick-top-height) - 1em));
+    user-select: none;
+}
+.flowchart-viewer:fullscreen {
+    height: 100%;
+    border: none;
+    border-radius: 0;
+}
+
+.flowchart-node {
+    rect {
+        fill: var(--colour-neutral-alt);
+        stroke: var(--colour-neutral-alt);
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+    }
+    text {
+        /* FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
+        font: 16px var(--fontfam-app-label);
+        fill: var(--colour-contr);
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+    &:hover rect { stroke: var(--colour-contr); }
+}

@@ -15,6 +15,7 @@ import { handleToggleRecentPanel, handleCloseRecentPanel } from './ui-functions-
 import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/warning-modal.js';
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
+import { handleToggleFlowchartRender } from './ui-functions-click/toggle-flowchart-render.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -326,6 +327,7 @@ const changeActionHandlers = {
     'history-sort': handleHistorySort,
     'sort-select': handleSortSelectChange,
     'flowchart-option-select': handleFlowchartOptionChange,
+    'toggle-flowchart-render': handleToggleFlowchartRender,
     'sort-direction-toggle': handleSortDirectionChange,
     'font-style-app-label-change': handleFontStyleAppLabelChange,
     'font-style-app-input-change': handleFontStyleAppInputChange,
