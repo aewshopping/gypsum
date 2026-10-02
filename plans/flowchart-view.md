@@ -73,7 +73,7 @@ The only changes from the original are the ones a module forces, and the bugs it
 drag to pan and gated only the wheel and the finger. Here:
 
 - **On — moving the chart.** A drag (mouse or finger) pans, the wheel and a pinch zoom. Nothing
-  drags out of a note box.
+  drags out of a note box, and a press on one opens nothing — the modes stay separate.
 - **Off — working on the notes.** A finger scrolls the page past the chart and the wheel scrolls the
   page, as in the original. A press on a box opens it (step 3) and a drag from a box makes a link
   (steps 5 and 6); a drag on empty space does nothing with a mouse and scrolls the page with a finger.
