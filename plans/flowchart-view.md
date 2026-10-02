@@ -249,9 +249,10 @@ As built — the plan below held, with these decisions:
   mode that hides delete and offers one create button. Name and folder are validated the way rename
   and move already validate them (`editing/rename-file.js`).
 - **Then**: `createEmptyNote(folder, filename)` (`services/create-note.js`), and the link written into
-  the starting note exactly as step 5 writes one — the link alone, no link text. If the node
-  text property is writable (the default, `title`, is), the new note gets a placeholder value for it
-  so its box reads as a placeholder rather than a filename.
+  the starting note exactly as step 5 writes one — the link alone, no link text. **Nothing else is
+  written: no placeholder link text and no placeholder title.** The new note's box reads as its
+  filename, by the fallback `nodeLabel()` already has for an empty node text property — an empty
+  note's title is `''`.
 - **The new note does not open.** It appears on the chart; pressing it opens it.
 
 ---
