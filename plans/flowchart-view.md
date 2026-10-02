@@ -5,7 +5,7 @@ is unbuilt.
 Branch: `claude/flowchart-svg-first-plan`. Bump the manifest's minor version with each step that
 changes code.
 
-The view draws the in-filter notes as an SVG map of the links between them: one box per note, one
+The view draws the current page's notes as an SVG map of the links between them: one box per note, one
 arrow per link. Clicking a box opens the note; dragging from a box makes a link, or a new linked note.
 
 **The order is UI first, layout last.** The look and the behaviour of the SVG are built and tested
@@ -47,9 +47,7 @@ fullscreen.
 
 **What matters is how it behaves and how the controls sit over the SVG**: fullscreen and the pan-zoom
 toggle as icon buttons at the top right, the reset button and zoom slider along the bottom, all
-half-faded until hovered. **The pan-zoom toggle is for touch**: off, a finger scrolls the page past
-the chart; on, a finger pans and pinches *within* it. (A mouse can always drag to pan; only the
-wheel is gated.) Use the app's own icons (`<symbol>`s in `index.html`) and colours (its custom
+half-faded until hovered. Use the app's own icons (`<symbol>`s in `index.html`) and colours (its custom
 properties) rather than the map's.
 
 **One new module, as stand-alone as possible** — `public/js/svg-pan-zoom/svg-pan-zoom.js` exporting
@@ -68,9 +66,25 @@ The only changes from the original are the ones a module forces, and the bugs it
 - **`tpCache = []` reassigns a `const`** and throws when a pinch loses its starting touches. Use
   `tpCache.length = 0`.
 - Drop the map-only parts: the country hover box, `txtshow`, `updateinfo`.
+- **The pan-zoom toggle gates the mouse as well as touch** — drop `|| evt.type==="mousedown"` from
+  `startDrag`. See below.
+
+**The pan-zoom toggle is a mode switch, for mouse and touch alike.** The original let a mouse always
+drag to pan and gated only the wheel and the finger. Here:
+
+- **On — moving the chart.** A drag (mouse or finger) pans, the wheel and a pinch zoom. Nothing
+  drags out of a note box.
+- **Off — working on the notes.** A finger scrolls the page past the chart and the wheel scrolls the
+  page, as in the original. A press on a box opens it (step 3) and a drag from a box makes a link
+  (steps 5 and 6); a drag on empty space does nothing with a mouse and scrolls the page with a finger.
+
+That is why the presses never collide: a pan and a drag from a note can no longer start from the same
+press, so the ported code needs no guard for note boxes and the note code needs no "was that a pan?"
+test. Fullscreen still switches pan on, as the original does, and puts it back on exit. The note boxes
+carry `touch-action: none` so a finger drag from one is not taken as a page scroll while pan is off.
 
 **Notes are drawn by the flowchart, not by the module.** `ui-functions-flowchart/render-svg.js` builds
-the `<svg>` with `createElementNS`, one `<g data-file-id="…">` per in-filter note holding a box and
+the `<svg>` with `createElementNS`, one `<g data-file-id="…">` per note on the page holding a box and
 its label (title for now), set with `textContent` so nothing needs escaping. Positions come from
 `services/flowchart/placeholder-layout.js`, a pure function: notes in a grid, roughly square,
 a small gap between boxes. It exists to test pan and zoom and is thrown away when layout arrives.
@@ -80,7 +94,7 @@ Box size and text: a fixed width, the label wrapped to it by measuring with a ca
 this looking right here — it is the bit this step is for.
 
 **Check by screenshot**, desktop and a phone-sized viewport: zoom by slider, wheel and pinch; pan by
-mouse and by finger with the toggle on; page scroll with it off; reset; fullscreen. The transform
+mouse and by finger with the toggle on; page scroll and no pan with it off; reset; fullscreen. The transform
 should survive a re-render of the view (closing the options dialog re-renders) — carry it across the
 way `keep-cell-state.js` carries the table's scroll position.
 
@@ -95,20 +109,18 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
 - `ui-functions-click/toggle-flowchart-render.js` sets it from the checkbox and re-renders.
   `render-file-list-flowchart.js` reads it and draws one or the other.
 
-## Step 3 — the notes from the filter, the options, and click to open
+## Step 3 — the options, and click to open
 
-- **Draw every in-filter note, not the page.** The renderer currently asks `checkFileOnPage`; the SVG
-  should draw the whole filtered set, and `renderFiles` should not append the pagination nav for this
-  view. A map of one page shows a fragment that looks whole.
+- **Draw the current page's notes**, as every other view does (`checkFileOnPage`), with the usual
+  pagination nav below.
 - **The options decide what a box shows**: node text from `flowchartProperty(NODE_TEXT)`, shape from
   `nodeShapeFor()` on the node shape property, and the note's `color` as its fill, as the cards do.
   Subgraphs wait for layout.
 - **A press on a box opens the note in the file content modal, on `mouseup`** — `mouseup` so that a
-  drag can start from the same press in step 5. Two things to get right:
-  - The pan code starts a pan on any `mousedown`, so **a mouseup after the pointer has moved is a pan,
-    not a click**. Open only if it moved less than a few pixels.
-  - Open through the existing path (`openFileContent` / `handleOpenFileContent` in
-    `open-file-content-view-trans.js`) with the box as the element it animates from.
+  drag can start from the same press in step 5. Only while pan is off; a mouseup that is the end of
+  a drag belongs to step 5, not to opening. Open through the existing path (`openFileContent` /
+  `handleOpenFileContent` in `open-file-content-view-trans.js`) with the box as the element it
+  animates from.
 
 **Stop here and test.**
 
@@ -116,21 +128,19 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
 
 - **An arrow per link**, from the connectors property of each note (`toList()` + `linkTarget()`, the
   target resolved to a file as `mermaid-source.js` does). A straight line from box to box, clipped at
-  the box edges, with an SVG `marker` arrowhead. A link to a note that is not drawn — filtered out, or
-  not yet written — gets a faded stub box that does nothing when pressed. Looks do not matter yet;
+  the box edges, with an SVG `marker` arrowhead. A link to a note that is not drawn — on another page,
+  filtered out, or not yet written — gets a faded stub box that does nothing when pressed. Looks do not matter yet;
   getting the arrows on the page does.
 - **The link text sits in a small box at the arrow's midpoint**, read by index from the connector
   text property. A missing entry means no box.
 - **A press on the link text opens the note that holds the link** — the arrow's source — same
-  mouseup rule as a box. That is the easy way to edit a label, since the label may come from a
+  rule as a box. That is the easy way to edit a label, since the label may come from a
   property that cannot be written directly (`internalLinkText`).
 
 ## Step 5 — drag from a note to a note makes a link
 
-- **The gesture**: press on a box, drag (mouse or finger), release on another box. A line follows
-  the pointer while dragging. A press that starts on a box must not start a pan — one guard in the
-  ported `startDrag` (skip a press whose target is inside a note box) is the only change step 5 makes
-  to that code. The note under the release point is found with `document.elementFromPoint()`
+- **The gesture**, with pan off: press on a box, drag (mouse or finger), release on another box. A
+  line follows the pointer while dragging. The note under the release point is found with `document.elementFromPoint()`
   (`changedTouches[0]` for a finger).
 - **The write goes through `applyCellEdits`**, exactly as a table cell edit does — so it is a
   verified, span-preserving front matter splice, one undo takes it back, and the refresh redraws the
