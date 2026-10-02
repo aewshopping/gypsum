@@ -16,41 +16,32 @@
     height: 100%;
 }
 
-/* Fullscreen and pan-zoom, top right. Each is a checkbox laid exactly over its icon: the icon is
-   what is seen, the invisible checkbox what is pressed. */
+/* Fullscreen and pan-zoom, top right. Each is a .svg-wrapper-style label — the app's icon toggle,
+   whose checkbox covers the whole button — on a translucent plate so it reads over the chart. */
 .pz-icon {
     position: absolute;
     right: 10px;
-    height: 44px;
-    width: 44px;
-    margin: 0;
     z-index: 1;
-    cursor: pointer;
-    opacity: 0.5;
-}
-svg.pz-icon {
-    padding: 8px;
-    border: 2px solid transparent;
+    width: calc(var(--btn-size) + 12px);
+    height: calc(var(--btn-size) + 12px);
+    padding: 6px;
     border-radius: 10px;
-    background-color: var(--colour-neutral-alt);
+    background-color: color-mix(in srgb, var(--colour-neutral-alt) 70%, transparent);
     color: var(--colour-contr);
 }
-input.pz-icon {
-    z-index: 2;
-    opacity: 0;
-}
-.pz-fullscreen-check, .pz-fullscreen-icon { top: 10px; }
-.pz-panzoom-check, .pz-panzoom-icon { top: 64px; }
+.pz-fullscreen { top: 10px; }
+.pz-panzoom { top: calc(var(--btn-size) + 32px); }
 
-input.pz-icon:hover + .pz-icon { opacity: 0.9; }
-input.pz-icon:checked + .pz-icon {
-    opacity: 0.9;
+.pz-icon:has(input:checked) {
     border-color: var(--colour-contr-emph);
     color: var(--colour-contr-emph);
+    > svg { opacity: 1; }
 }
-input.pz-icon:focus-visible + .pz-icon {
-    outline: 2px solid var(--colour-contr);
-    outline-offset: 2px;
+
+/* Maximise while not full screen, minimise while it is — the note modal's toggle (checkbox-minmax.css). */
+.pz-fullscreen:has(input:checked) > svg:nth-child(1),
+.pz-fullscreen:not(:has(input:checked)) > svg:nth-child(2) {
+    display: none;
 }
 
 /* Reset and the zoom slider, along the bottom from the left — the right is left clear, since the

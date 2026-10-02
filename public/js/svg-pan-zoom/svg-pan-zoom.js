@@ -8,6 +8,8 @@
  * - elements are found inside the container passed in rather than by id, so two can share a page;
  * - `panzoomstate` is declared, which a module (always strict) requires;
  * - `tpCache` is emptied with `length = 0`, since it is a const;
+ * - leaving full screen by Escape unticks the toggle, as the button does — otherwise its icon and the
+ *   pan setting stayed as if still full screen;
  * - **the pan-zoom toggle gates the mouse as well as touch.** Off, nothing pans; the press belongs to
  *   whatever is drawn in the SVG. On, a drag pans and nothing in the SVG is pressable.
  *
@@ -108,6 +110,16 @@ function toggleFullscreen() {
     }
   }
 }
+// leaving full screen some other way (Escape) undoes what the button would have: not in the original
+svgcontainer.addEventListener("fullscreenchange", (event) => {
+  if (!document.fullscreenElement && fullscreencheck.checked) {
+    fullscreencheck.checked = false;
+    if (panzoomstate == false) {
+      panzoomcheck.checked = false;
+      panzoomon = false;
+    }
+  }
+});
 // add a reset back to initial values option
 var mapreset = container.querySelector('.pz-reset');
 mapreset.addEventListener("click", (event) => {
