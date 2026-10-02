@@ -53,10 +53,15 @@ import { escapeHtml } from '../ui-functions-render/escape-html.js';
 export function renderTableControls() {
     const { active } = appState.tableLayouts;
 
+    // Paste before copy: copy can show without paste (while cells are copied), never the reverse, so
+    // the hidden one's kept space falls at the row's outer end rather than between copy and the rest.
     return `
             <div class="output-controls">
-                <button type="button" id="range-copy-btn" class="svg-wrapper-style" data-action="range-copy-menu" data-tip="copy the selected cells (Ctrl+C)"${appState.tableRange ? ' data-shown' : ''}>
-                    <svg viewBox="0 0 50 50"><use href="#icon-copy"></use></svg>
+                <button type="button" id="range-paste-btn" class="svg-wrapper-style" data-action="range-paste" data-tip="paste into the selected cells (Ctrl+V)">
+                    <svg viewBox="0 0 50 50"><use href="#icon-paste"></use></svg>
+                </button>
+                <button type="button" id="range-copy-btn" class="svg-wrapper-style" data-action="range-copy-menu" data-tip="copy the selected cells (Ctrl+C)"${appState.copiedCells ? ' data-copied' : ''}>
+                    <svg viewBox="0 0 50 50"><use class="copy-mark" href="#icon-copy"></use><use class="copied-badge" href="#icon-clear-badge"></use></svg>
                 </button>
                 <button type="button" id="layout-name" class="btn-menu" data-action="open-layouts-modal" data-tip="switch, save and edit table layouts">${active ?? DEFAULT_LAYOUT_LABEL}</button>
                 <button type="button" class="svg-wrapper-style" data-action="open-column-picker" data-tip="show and hide columns">

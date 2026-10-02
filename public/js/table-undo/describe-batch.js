@@ -23,7 +23,8 @@ export function describeBatch(batch) {
 }
 
 /**
- * What a batch did, without where: `people column delete`, `status edit`, `edit of 6 values`. The
+ * What a batch did, without where: `people column delete`, `status edit`, `edit of 6 values`,
+ * `paste of 12 values`. The
  * name a refused note's issues give the undo that left it alone, where a file count would be about
  * other notes. plans/completed/table-delete-column.md §10.5.
  *
@@ -37,8 +38,10 @@ export function describeAction(batch) {
     if (batch.kind === 'delete-property') return `${batch.property} column delete`;
     if (batch.kind === 'rename-property') return `${batch.property} column rename to ${batch.to}`;
     if (batch.kind === 'copy-property') return `${batch.property} column copy to ${batch.to}`;
-    if (batch.property) return `${batch.property} edit`;
+    // A paste is named the way an edit is — by its column when it had one — so the two read alike.
+    const verb = batch.kind === 'paste' ? 'paste' : 'edit';
+    if (batch.property) return `${batch.property} ${verb}`;
 
     const values = batch.values ?? batch.edits.length;
-    return `edit of ${values} value${values === 1 ? '' : 's'}`;
+    return `${verb} of ${values} value${values === 1 ? '' : 's'}`;
 }

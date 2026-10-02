@@ -174,6 +174,22 @@ export function reportCopied(cells, headers) {
 }
 
 /**
+ * Says what a paste wrote, and the two kinds of cell it did not, counted apart because they mean
+ * different things: a locked cell refused the value, and a cell that didn't fit was past the page's
+ * edge. Each is said only when it is not zero. plans/completed/table-range-paste.md §2.5.
+ * @param {number} pasted - Cells whose value changed.
+ * @param {number} locked - Cells that refuse a paste.
+ * @param {number} didNotFit - Clipboard cells past the last row or column.
+ * @returns {void}
+ */
+export function reportPasted(pasted, locked, didNotFit) {
+    const parts = [`pasted ${pasted} cell${pasted === 1 ? '' : 's'}`];
+    if (locked > 0) parts.push(`, ${locked} locked`);
+    if (didNotFit > 0) parts.push(`, ${didNotFit} didn't fit`);
+    say(parts, false, true);
+}
+
+/**
  * Says something went wrong, in the same place and the same warning colour.
  * @param {string} text
  * @returns {void}

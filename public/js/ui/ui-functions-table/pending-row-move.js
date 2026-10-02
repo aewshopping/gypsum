@@ -16,39 +16,50 @@ import { appState } from '../../services/store.js';
 import { propertyType } from '../../services/property-type.js';
 import { compareByProperty, sortAppStateFiles } from '../../services/file-object-sort.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { clearCopiedCells } from '../ui-functions-cell/cell-range-copy.js';
 
 /** The class the row wears while its move is waiting. Drawn by table row CSS in note-table.css. */
 const PENDING = 'move-pending';
 
 /**
- * Says a row has been written to, and holds its move if sorting would now put it elsewhere.
+ * Says rows have been written to, and holds their move if sorting would now put any elsewhere.
  *
- * **Asked after the write's own render**, because that render is what draws the row this marks —
- * and because the file has to have been re-read before the question can be answered at all.
+ * **Asked after the write's own render**, because that render is what draws the rows this marks —
+ * and because the files have to have been re-read before the question can be answered at all.
  *
- * A sort that would leave the row where it is holds nothing: editing a note while the table is
+ * A sort that would leave a row where it is holds nothing for it: editing a note while the table is
  * sorted by title moves nothing, and an outline there would be promising a move that never comes.
  * The test is the sorted position against the current one, on a copy, so asking does not reorder
  * anything.
  *
- * **And the hold is only for a row focus is still in.** Leaving a cell by clicking the searchbox is
- * a write and a departure in one gesture, and the write lands after the departure — so by the time
- * this is asked, nobody is in the row and there is nothing to protect. It moves at once instead,
- * which is what the click asked for.
+ * **And the hold is only while focus is in a written row.** Leaving a cell by clicking the searchbox
+ * is a write and a departure in one gesture, and the write lands after the departure — so by the
+ * time this is asked, nobody is in the rows and there is nothing to protect. They move at once
+ * instead, which is what the click asked for.
  *
- * @param {string} internalId - The file whose row was written.
+ * **Any written row, not only the outlined ones**: a paste writes many rows and only some may need to
+ * move, and arrowing from one pasted row to the next is still looking at what was pasted. A hold
+ * already waiting is added to rather than replaced, or its rows would wait for a sort nobody makes.
+ * See plans/completed/table-range-paste.md §3.3.
+ *
+ * @param {Iterable<string>} internalIds - The files whose rows were written.
  * @returns {void}
  */
-export function holdRowMove(internalId) {
+export function holdRowMove(internalIds) {
+    const written = new Set([...(appState.pendingRowMove?.written ?? []), ...internalIds]);
     const { property, direction } = appState.sortState;
     const sorted = [...appState.myFiles].sort(compareByProperty(property, propertyType(property), direction));
-    const at = (files) => files.findIndex(file => file.internalId === internalId);
+    const at = (files, id) => files.findIndex(file => file.internalId === id);
+    const moving = new Set([...written].filter(id => at(sorted, id) !== at(appState.myFiles, id)));
 
-    if (at(sorted) === at(appState.myFiles)) return;
+    if (moving.size === 0) return;
 
-    if (rowFor(internalId)?.contains(document.activeElement)) {
-        appState.pendingRowMove = internalId;
-        rowFor(internalId)?.classList.add(PENDING);
+    if (focusIsIn(written)) {
+        appState.pendingRowMove = { written, moving };
+        // One dashed mark at a time: the copy outline gives way to the move. The clipboard keeps
+        // the copy — emptying it needs a press, and this comes after an asynchronous write.
+        clearCopiedCells();
+        for (const id of moving) rowFor(id)?.classList.add(PENDING);
         return;
     }
 
@@ -56,7 +67,7 @@ export function holdRowMove(internalId) {
 }
 
 /**
- * Lets a held move happen, unless focus is still inside the row holding it.
+ * Lets a held move happen, unless focus is still inside a row holding it.
  *
  * **The question is where focus is now, not where it has just arrived.** Asking about an arrival
  * answers nothing when focus arrives nowhere: clicking a part of the page that cannot take focus
@@ -74,10 +85,19 @@ export function holdRowMove(internalId) {
 export function releaseRowMove() {
     const held = appState.pendingRowMove;
     if (held === null) return;
-    if (rowFor(held)?.contains(document.activeElement)) return;
+    if (focusIsIn(held.written)) return;
 
-    rowFor(held)?.classList.remove(PENDING);
+    for (const id of held.moving) rowFor(id)?.classList.remove(PENDING);
     moveRows();
+}
+
+/**
+ * @param {Set<string>} internalIds
+ * @returns {boolean} Whether focus is inside one of these files' rows.
+ */
+function focusIsIn(internalIds) {
+    const row = document.activeElement?.closest?.('#output .note-table[data-vt-id]');
+    return Boolean(row) && internalIds.has(row.dataset.vtId);
 }
 
 /**

@@ -14,7 +14,7 @@ import { renderPagination } from "../pagination/render-pagination.js";
 import { fileTransitionName } from "./file-transition-name.js";
 import { viewTransitionsWanted } from "./view-transition.js";
 import { captureCellState, restoreCellState } from "./keep-cell-state.js";
-import { clearRange, paintRange } from "../ui-functions-cell/cell-range.js";
+import { clearRange, keepRangeAcross } from "../ui-functions-cell/cell-range.js";
 import { renderSidebarRecent } from "../render-sidebar-recent.js";
 import { reparkColumnResizer } from "../ui-functions-table/table-col-resize.js";
 import { reportFileCount } from "./output-report.js";
@@ -153,10 +153,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
 
         // Putting focus back is a focus move, and a focus move ends a range — so a range this redraw
         // kept is held across it and marked on the new rows after.
-        const range = appState.tableRange;
-        restoreCellState(cellState);
-        appState.tableRange = range;
-        paintRange();
+        keepRangeAcross(() => restoreCellState(cellState));
     };
 
     // The panel is not part of the filtered output, so it renders outside doRender — which sits

@@ -44,7 +44,6 @@ function gridPosition(cell) {
  */
 export function paintRange() {
     for (const cell of document.querySelectorAll('.list-table .in-range')) cell.classList.remove(...MARKS);
-    showCopyButton(Boolean(appState.tableRange));
 
     const grid = rangeGrid();
     if (!grid) return;
@@ -80,18 +79,6 @@ export function rangeGrid() {
     const grid = [];
     for (let r = top; r <= bottom; r++) grid.push([...rows[r].children].slice(left, right + 1));
     return grid;
-}
-
-/**
- * The copy button is there only while a range is: its space is always kept, so the control row never
- * moves, but with no range it cannot be seen or reached. Its menu goes with it.
- * @param {boolean} shown
- * @returns {void}
- */
-function showCopyButton(shown) {
-    document.getElementById('range-copy-btn')?.toggleAttribute('data-shown', shown);
-    const menu = document.getElementById('range-copy-menu');
-    if (!shown && menu?.matches(':popover-open')) menu.hidePopover();
 }
 
 /**
@@ -134,6 +121,20 @@ export function selectAllCells() {
     const scroller = document.querySelector('.list-table');
     const first = scroller.firstElementChild?.firstElementChild;
     if (first) extendRange(first, scroller.lastElementChild.lastElementChild);
+}
+
+/**
+ * Moves focus without ending the range. A focus move ends a range, so it is held across the move and
+ * marked again after — for a redraw putting focus back, and a paste putting it back after a dialog or
+ * an inert table took it away. A range whose corners are no longer drawn is not put back.
+ * @param {() => void} focusMove
+ * @param {object|null} [range] - The range to keep; the current one unless given.
+ * @returns {void}
+ */
+export function keepRangeAcross(focusMove, range = appState.tableRange) {
+    focusMove();
+    appState.tableRange = range && elementAt(range.anchor) && elementAt(range.extent) ? range : null;
+    paintRange();
 }
 
 /**

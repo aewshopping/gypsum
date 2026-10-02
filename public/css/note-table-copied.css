@@ -1,0 +1,70 @@
+/* What is on the clipboard from the table: one dashed box per copied row, over the copied columns, as
+   a row waiting to move is outlined (note-table.css, .move-pending) — and the copy button's badge and
+   menu item that clear it. cell-range-copy.js's copiedMarks() says which classes go where; the row
+   renderer and markCopied() put them on.
+
+   The scrolling columns' box is the row's ::after, placed on the row's grid lines — a row is a subgrid
+   of the table's columns, so those lines are exactly the copied cells' edges. Absolutely positioned
+   against the row (already relative, for an expanded cell): that keeps the grid lines as its box but
+   takes no slot, where one in the flow was laid out first and the row's own cells wrapped round it. In
+   the positioned layer but below the sticky cells (4), so it scrolls underneath them as the cells do.
+
+   Copied cells that stick draw their own part, with ::before, since a box on the grid scrolls away
+   from cells that stay put. Borders rather than an outline, on both, so a side can be left off: the
+   stuck part's last cell has no right edge when the copy carries on, and the box no left edge.
+
+   Paint-only, like the range's marks, which are shadows and a background and so never meet these;
+   pointer-events none, so a press reaches the cell beneath. */
+
+.note-table.copied-box::after,
+.note-table-cell.copied-stuck::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px dashed color-mix(in srgb, var(--colour-contr) 60%, var(--colour-neutral-alt));
+    pointer-events: none;
+}
+
+.note-table.copied-box::after {
+    grid-row: 1;
+    grid-column: var(--copied-from) / var(--copied-to);
+}
+
+/* Sides switched off by width, so each keeps the colour and style set above. */
+.note-table.copied-continues::after {
+    border-left-width: 0;
+}
+
+.note-table-cell.copied-stuck::before {
+    border-inline-width: 0;
+}
+
+.note-table-cell.copied-start::before {
+    border-left-width: 2px;
+}
+
+.note-table-cell.copied-end::before {
+    border-right-width: 2px;
+}
+
+/* The badge sits in the corner the copy drawing gives up, as the padlock does on a locked column's
+   type glyph — moved, never scaled. */
+#range-copy-btn .copied-badge {
+    display: none;
+}
+
+#range-copy-btn[data-copied] .copied-badge {
+    display: inline;
+}
+
+#range-copy-btn[data-copied] .copy-mark {
+    transform: translate(-4px, -4px);
+}
+
+#range-copy-menu [data-action="range-copy-clear"] {
+    display: none;
+}
+
+body:has(#range-copy-btn[data-copied]) #range-copy-menu [data-action="range-copy-clear"] {
+    display: block;
+}

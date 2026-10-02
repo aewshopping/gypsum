@@ -44,10 +44,30 @@ const READONLY = 'is-readonly';
  * @returns {boolean}
  */
 function isEditable(cell) {
+    return isWritable(cell) && !mismatchRefusesCaret(cell.dataset.mismatch);
+}
+
+/**
+ * Whether pasted text may be written into a cell: isEditable() without the shape question. A paste
+ * writes over a list in a column of single values — or the reverse — in the column's shape, because
+ * the user aimed it there and one undo puts it back; a caret does not, because typing over a word
+ * should not destroy a list. plans/completed/table-range-paste.md §3.1.
+ * @param {HTMLElement} cell
+ * @returns {boolean}
+ */
+export function isPasteable(cell) {
+    return isWritable(cell);
+}
+
+/**
+ * The two reasons a caret and a paste share: the column can be typed into, and the note's front
+ * matter read cleanly.
+ * @param {HTMLElement} cell
+ * @returns {boolean}
+ */
+function isWritable(cell) {
     // `in` rather than a truth test: the yaml marker is a bare attribute, so its value is ''.
-    return !mismatchRefusesCaret(cell.dataset.mismatch)
-        && !('yamlError' in cell.dataset)
-        && isPropertyEditable(cell.dataset.prop);
+    return !('yamlError' in cell.dataset) && isPropertyEditable(cell.dataset.prop);
 }
 
 /**
