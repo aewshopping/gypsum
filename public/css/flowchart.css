@@ -27,16 +27,18 @@
 }
 
 .flowchart-node {
+    /* .color-dynamic (colors.css) reads data-color into --colour-bg and the contrasting text colour
+       into `color`, as a card's does; a box paints with them. */
     rect {
-        fill: var(--colour-neutral-alt);
-        stroke: var(--colour-neutral-alt);
+        fill: var(--colour-bg);
+        stroke: var(--colour-bg);
         stroke-width: 2;
         vector-effect: non-scaling-stroke;
     }
     text {
         /* FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
         font: 16px var(--fontfam-app-label);
-        fill: var(--colour-contr);
+        fill: currentColor;
         text-anchor: middle;
         dominant-baseline: central;
     }

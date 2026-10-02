@@ -8,6 +8,8 @@
  * - elements are found inside the container passed in rather than by id, so two can share a page;
  * - `panzoomstate` is declared, which a module (always strict) requires;
  * - `tpCache` is emptied with `length = 0`, since it is a const;
+ * - the pan limit is the far edge — a drag stops only when just a sliver of the drawing is left in
+ *   view — where the original stopped at the near edge, which held a zoomed-out drawing still;
  * - a drag's end hands the cursor back to the stylesheet rather than setting `default`, so pan on
  *   shows `move` over the chart before any drag as well as during one;
  * - leaving full screen by Escape unticks the toggle, as the button does — otherwise its icon and the
@@ -219,13 +221,13 @@ function startDrag(evt) {
       // get shapes to find edges for boundary detectoin
       rectsvg = svg.getBoundingClientRect();
       rectcont = svgcontainer.getBoundingClientRect();
-      // calc the limits of the pan drag. Easier to do this directly with screen units. Also allow a bit of margin so zooming out at the edge of the map doesn't mess things up too much
-      const mapMarginX = rectcont.width / 5;
-      const mapMarginY = rectcont.height / 3;
-      maxLeft = rectcont.left - rectsvg.left + mapMarginX;
-      maxBottom = rectcont.bottom - rectsvg.bottom - mapMarginY;
-      maxRight = rectcont.right - rectsvg.right - mapMarginX;
-      maxTop = rectcont.top - rectsvg.top + mapMarginY;
+      // calc the limits of the pan drag. Easier to do this directly with screen units. The limit is the far edge: the drawing may be dragged until only a sliver of it is left inside the container — not the original's near-edge limit, which stopped a zoomed-out drawing smaller than the container from moving at all
+      const keepX = Math.min(rectsvg.width, 40);
+      const keepY = Math.min(rectsvg.height, 40);
+      maxLeft = rectcont.right - rectsvg.left - keepX;
+      maxBottom = rectcont.top - rectsvg.bottom + keepY;
+      maxRight = rectcont.left - rectsvg.right + keepX;
+      maxTop = rectcont.bottom - rectsvg.top - keepY;
     }
   }
   function drag(evt) {

@@ -70,7 +70,7 @@ export function drawFlowchartNodes(svg, files) {
         const x = positions[i].x + offsetX;
         const y = positions[i].y + offsetY;
         const group = svgElement('g', {
-            class: 'flowchart-node', 'data-action': 'open-flowchart-note', 'data-file-id': file.internalId,
+            class: 'flowchart-node color-dynamic', 'data-action': 'open-flowchart-note', 'data-file-id': file.internalId,
             'data-color': file.color ?? '', transform: `translate(${x} ${y})`, 'aria-label': label,
         });
         group.append(svgElement('rect', { width: w, height: h, rx: 8 }));
