@@ -44,9 +44,8 @@
     display: none;
 }
 
-/* Reset and the zoom slider, along the bottom from the left — the right is left clear, since the
-   app's floating new-note button sits there. The strip lets presses through to the chart except on
-   its own controls. */
+/* Reset and the zoom slider, centred along the bottom. The strip lets presses through to the chart
+   except on its own controls. */
 .pz-zoom {
     position: absolute;
     left: 10px;
@@ -55,6 +54,7 @@
     z-index: 1;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     opacity: 0.5;
     pointer-events: none;
@@ -73,7 +73,7 @@
 }
 .pz-zoom-input {
     pointer-events: auto;
-    width: min(320px, 100% - 12rem);
+    width: min(320px, 100% - 8rem);
     margin: 0;
     cursor: pointer;
     accent-color: var(--colour-contr-emph);
