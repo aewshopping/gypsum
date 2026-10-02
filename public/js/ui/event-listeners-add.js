@@ -16,6 +16,7 @@ import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleToggleFlowchartRender } from './ui-functions-click/toggle-flowchart-render.js';
+import { handleFlowchartNoteOpen, handleFlowchartPointerDown } from './ui-functions-click/flowchart-note-open.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -115,6 +116,7 @@ export function addActionHandlers() {
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
     document.addEventListener("pointerdown", pointerDownDelegate);
+    document.addEventListener("mouseup", mouseUpDelegate);
     document.addEventListener('mouseover', handleTableColHover);
 
     // The undo mark takes itself off when it has played, so the next one starts from nothing.
@@ -128,6 +130,10 @@ export function addActionHandlers() {
     // on a cell be told from a second — see cell-expand.js.
     document.addEventListener('focusin', handleCellFocusIn);
     document.addEventListener('pointerdown', handleCellPointerDown);
+
+    // A flowchart box opens on release, but only the box the press began on — and every press is
+    // watched, so one that began anywhere else leaves nothing behind. See flowchart-note-open.js.
+    document.addEventListener('pointerdown', handleFlowchartPointerDown);
 
     // A press on a cell may start a range, and like the handler above it has to see a press on
     // anything inside the cell — a [[link]], a tag pill, the open-file link. Each of those carries
@@ -353,6 +359,12 @@ const pointerDownActionHandlers = {
     'table-scroll-page': handleScrollbarTrackPress,
 };
 
+const mouseUpActionHandlers = {
+    // On release rather than click, so that a drag can later begin from the same press. A tap
+    // reaches here too, as the mouseup the browser fires after it.
+    'open-flowchart-note': handleFlowchartNoteOpen,
+};
+
 const keyUpActionHandlers = {
     // Only elements that emit a change event should use these data-actions
     'search-files': handleSearchBoxEnterPress,
@@ -424,6 +436,20 @@ function pointerDownDelegate(evt) {
         if (handler) {
             handler(evt, actionElement);
         }
+    }
+}
+
+/**
+ * Handles all mouseup events on the document and delegates them to the appropriate handler.
+ * It looks for a `data-action` attribute on the element released over or its ancestors.
+ * @param {MouseEvent} evt The mouseup event.
+ */
+function mouseUpDelegate(evt) {
+    const actionElement = evt.target.closest('[data-action]');
+
+    if (actionElement) {
+        const handler = mouseUpActionHandlers[actionElement.dataset.action];
+        if (handler) handler(evt, actionElement);
     }
 }
 

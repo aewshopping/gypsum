@@ -39,8 +39,9 @@ function svgElement(tag, attributes) {
  * The viewBox is never smaller than the SVG is on screen, so a handful of notes draw at their own
  * size rather than swelling to fill the viewer; many notes shrink to fit, and zoom brings them back.
  *
- * Each box is a `<g class="flowchart-node" data-file-id="…">`, so a press can name the note it
- * landed on, labelled with the whole text — the lines drawn may be cut short.
+ * Each box is a `<g class="flowchart-node" data-action="open-flowchart-note" data-file-id="…">`,
+ * which is what opens the note on release, labelled with the whole text — the lines drawn may be
+ * cut short.
  *
  * @param {SVGSVGElement} svg - Empty and already in the page, so its size on screen can be read.
  * @param {object[]} files - The file objects to draw, in order.
@@ -68,7 +69,10 @@ export function drawFlowchartNodes(svg, files) {
     nodes.forEach(({ file, label, lines, width: w, height: h }, i) => {
         const x = positions[i].x + offsetX;
         const y = positions[i].y + offsetY;
-        const group = svgElement('g', { class: 'flowchart-node', 'data-file-id': file.internalId, transform: `translate(${x} ${y})`, 'aria-label': label });
+        const group = svgElement('g', {
+            class: 'flowchart-node', 'data-action': 'open-flowchart-note', 'data-file-id': file.internalId,
+            'data-color': file.color ?? '', transform: `translate(${x} ${y})`, 'aria-label': label,
+        });
         group.append(svgElement('rect', { width: w, height: h, rx: 8 }));
 
         const text = svgElement('text', { x: w / 2, y: PADDING });

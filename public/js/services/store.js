@@ -57,6 +57,7 @@ export const appState = {
 
   editState: false,   // true = txt mode, false = html mode; drives the modal render toggle
   flowchartSvgState: false, // true = the flowchart view draws its SVG, false = its mermaid code
+  flowchartPressedId: null, // the note whose flowchart box the current press began on, or null
 
   editSession: {
     activeRaw:      '',   // content currently displayed (current or historical)

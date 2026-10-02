@@ -233,3 +233,29 @@ test('a mouse drag pans only with pan on, and a re-render keeps the zoom and pan
   expect(await transform()).toBe(panned);
   await expect(page.locator('.pz-panzoom-check')).toBeChecked();
 });
+
+// A box opens its note on release, by data-action like every other open in the app — and only while
+// pan is off, since pan on means the chart is for moving.
+test('a press on a box opens its note, and does nothing while pan is on', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+  const modal = page.locator('#file-content-modal');
+
+  await page.click('.pz-panzoom-check');
+  await page.locator('.flowchart-node[aria-label="The cave"]').click({ force: true });
+  await expect(modal).not.toBeVisible();
+
+  await page.click('.pz-panzoom-check');
+
+  // A press that began on empty chart opens nothing where it is let go.
+  const box = await page.locator('.flowchart-node[aria-label="The cave"]').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y - 10);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+  await page.mouse.up();
+  await expect(modal).not.toBeVisible();
+
+  await page.locator('.flowchart-node[aria-label="The cave"]').click();
+  await expect(modal).toBeVisible();
+  await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', /cave/);
+});

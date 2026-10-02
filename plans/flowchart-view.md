@@ -1,7 +1,7 @@
 # Plan: the flowchart view
 
-Status: **steps 1 and 2 are built** (manifest `1.347.0`), on top of the mermaid code block and the
-flowchart options. Everything from step 3 below is unbuilt.
+Status: **steps 1 and 2 are built, and step 3's click to open** (manifest `1.348.0`), on top of the
+mermaid code block and the flowchart options. Step 3's options, and everything after, are unbuilt.
 Branch: `claude/flowchart-svg-first-plan`. Bump the manifest's minor version with each step that
 changes code.
 
@@ -131,11 +131,20 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
 - **The options decide what a box shows**: node text from `flowchartProperty(NODE_TEXT)`, shape from
   `nodeShapeFor()` on the node shape property, and the note's `color` as its fill, as the cards do.
   Subgraphs wait for layout.
-- **A press on a box opens the note in the file content modal, on `mouseup`** — `mouseup` so that a
-  drag can start from the same press in step 5. Only while pan is off; a mouseup that is the end of
-  a drag belongs to step 5, not to opening. Open through the existing path (`openFileContent` /
-  `handleOpenFileContent` in `open-file-content-view-trans.js`) with the box as the element it
-  animates from.
+- **A press on a box opens the note in the file content modal, on `mouseup`** *(built)* — `mouseup`
+  so that a drag can start from the same press in step 5. As built:
+  - **`data-action="open-flowchart-note"`** on each box, through a new `mouseup` delegate and
+    `mouseUpActionHandlers` map in `event-listeners-add.js` — the click and pointerdown delegates'
+    pattern. Handler: `ui-functions-click/flowchart-note-open.js`, opening through
+    `handleOpenFileContent`.
+  - **Only the box the press began on opens.** Without it, pressing on empty chart and letting go
+    over a box opened it. A document `pointerdown` listener records the box in
+    `appState.flowchartPressedId` (or `null`), as `handleCellPointerDown` does for cells. Step 5's
+    drag starts from the same record: released over a *different* box is a link.
+  - **Pan on is handled by CSS**: the boxes get `pointer-events: none`, so no press reaches them.
+  - **The modal does not grow out of the box.** A view transition cannot capture a shape inside an
+    SVG, so it opens and closes as it does for a note with no card on screen. `findFileCard()` does
+    find the box, so it will work if that changes.
 
 **Stop here and test.**
 

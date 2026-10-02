@@ -227,7 +227,7 @@ export function handeCloseModalOutside(event, target) {
  */
 export function findFileCard(fileId) {
     return animationSource(
-        document.querySelector(`[data-action="open-file-content-modal"][data-file-id="${CSS.escape(fileId)}"]`));
+        document.querySelector(`:is([data-action="open-file-content-modal"], [data-action="open-flowchart-note"])[data-file-id="${CSS.escape(fileId)}"]`));
 }
 
 

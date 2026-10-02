@@ -39,5 +39,12 @@
         text-anchor: middle;
         dominant-baseline: central;
     }
+    cursor: pointer;
     &:hover rect { stroke: var(--colour-contr); }
+}
+
+/* While pan is on the chart is for moving, so a press on a box must not open it: the box takes no
+   pointer events, and the release lands on the chart instead (ui-functions-click/flowchart-note-open.js). */
+.pz-container:has(.pz-panzoom-check:checked) .flowchart-node {
+    pointer-events: none;
 }
