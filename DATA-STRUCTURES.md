@@ -507,15 +507,17 @@ opening its anchor and the redraw that writes it.
 ```js
 appState.flowchartView = {
   showSvg: false,   // the code / chart switch: the SVG when true, the mermaid code when false
-  pressedId: null,  // the note whose box the current press began on, or null
+  press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
 }
 ```
 
 Not saved, and separate from `flowchartOptions`, which is. `showSvg` is written only by
 `ui-functions-flowchart/toggle-flowchart-render.js`, and outlives a trip to another view.
-`pressedId` is written by `ui-functions-flowchart/flowchart-note-open.js` on every press in the
-chart — a box's id, or `null` on empty chart — and cleared by every release over a box, which opens
-the note only when it is that box's id.
+`press` is written by `ui-functions-flowchart/flowchart-note-open.js` on every press in the chart —
+the note a box or a link stands for, or `null` on empty chart — and marked `moved` by
+`flowchart-node-drag.js` once a press from a box has gone far enough to be a drag. A release opens
+the note only when it is the same note and the press never moved; a drag released over another box
+offers a link instead.
 
 ---
 

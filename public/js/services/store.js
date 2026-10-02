@@ -59,7 +59,7 @@ export const appState = {
   // The flowchart view's session state. Not saved: the options it draws with are flowchartOptions.
   flowchartView: {
     showSvg: false,   // true = the view draws its SVG, false = its mermaid code; the code / chart switch
-    pressedId: null,  // the note whose box the current press began on, or null
+    press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
   },
 
   editSession: {
@@ -205,6 +205,9 @@ export const FILE_PROPERTIES = new Map([
   ['filepath', { type: 'string', column_width: 300, display_order: 13 }],
   ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 14 }],
   ['fileIssues', { label: 'issues', type: 'string', column_width: 200, display_order: 15 }],
+  // FLOWCHART_LINK_PROPERTY: where a link drawn on the flowchart goes. A list by default, as people
+  // and phone are, so it reads as one in the table as soon as the first link is drawn.
+  ['flowChartLink', { type: 'array', column_width: 250, display_order: 16 }],
 ]);
 
 /**

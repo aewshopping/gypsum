@@ -297,3 +297,20 @@ test('the chart draws links, and a press on one opens the note it is written in'
   await label.click();
   await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'crossroads.md');
 });
+
+// The connector roles are what a drawn link writes into, so they offer only what it can write: the
+// user's own properties and the role's default. Other roles offer everything.
+test('the connector roles offer only properties a drawn link can write to', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('[data-action="open-flowchart-options"]');
+  const offered = role => page.locator(`#flowchart-role-${role} option`).evaluateAll(o => o.map(x => x.value));
+
+  const connectors = await offered('connectors');
+  expect(connectors).toContain('related');
+  expect(connectors).toContain('internalLink');
+  expect(connectors).not.toContain('tags');
+  expect(connectors).not.toContain('title');
+  expect(await offered('connectorText')).toContain('internalLinkText');
+  expect(await offered('connectorText')).not.toContain('filename');
+  expect(await offered('nodeText')).toContain('tags');
+});

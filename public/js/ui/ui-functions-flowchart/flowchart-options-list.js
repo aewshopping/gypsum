@@ -2,6 +2,7 @@ import { appState } from '../../services/store.js';
 import { propertyOptions } from '../../services/property-options.js';
 import { FLOWCHART_ROLES, NODE_SHAPES } from '../../constants.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
+import { isPropertyUserOwned } from '../../services/property-type.js';
 
 /**
  * @file The rows of the flowchart options modal: one per part of the chart a property can fill.
@@ -27,6 +28,25 @@ function shapeTip() {
 }
 
 /**
+ * Whether a role may be pointed at a property.
+ *
+ * The two connector roles are what a link drawn on the chart writes into, so they offer only what it
+ * can write: a property the user owns, or the role's own default (`internalLink`, written through
+ * flowChartLink, and `internalLinkText`, written after each link's pipe). Anything else could be
+ * chosen and then never drawn into. A choice already made is kept whatever it is — propertyOptions'
+ * reason, a select must not silently blank.
+ *
+ * @param {object} role - A FLOWCHART_ROLES entry.
+ * @param {string} name - A property name.
+ * @param {string} chosen - What the role is pointed at now, or ''.
+ * @returns {boolean}
+ */
+function offered(role, name, chosen) {
+    const connectorRole = role === FLOWCHART_ROLES.CONNECTORS || role === FLOWCHART_ROLES.CONNECTOR_TEXT;
+    return !connectorRole || name === chosen || name === role.defaultProperty || isPropertyUserOwned(name);
+}
+
+/**
  * Renders the flowchart options modal's rows.
  *
  * The first option of every select is the role's default, and it carries the empty value — so
@@ -47,7 +67,7 @@ export function renderFlowchartOptionsList() {
         const id = `flowchart-role-${role.value}`;
 
         const choices = [`<option value=""${chosen === '' ? ' selected' : ''}>(default: ${escapeHtml(role.defaultLabel)})</option>`]
-            .concat(options.map(option =>
+            .concat(options.filter(option => offered(role, option.name, chosen)).map(option =>
                 `<option value="${escapeHtml(option.name)}"${option.name === chosen ? ' selected' : ''}>` +
                 `${escapeHtml(option.label)}</option>`))
             .join('');

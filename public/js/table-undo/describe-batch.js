@@ -38,6 +38,7 @@ export function describeAction(batch) {
     if (batch.kind === 'delete-property') return `${batch.property} column delete`;
     if (batch.kind === 'rename-property') return `${batch.property} column rename to ${batch.to}`;
     if (batch.kind === 'copy-property') return `${batch.property} column copy to ${batch.to}`;
+    if (batch.kind === 'add-link') return `link to ${batch.to} added`;
     // A paste is named the way an edit is — by its column when it had one — so the two read alike.
     const verb = batch.kind === 'paste' ? 'paste' : 'edit';
     if (batch.property) return `${batch.property} ${verb}`;

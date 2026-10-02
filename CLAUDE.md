@@ -1137,6 +1137,8 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
 | `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links — shared by the mermaid source and the SVG |
 | `public/js/services/flowchart/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), and a grid that keeps it until a real layout replaces it |
+| `public/js/services/flowchart/plan-flowchart-link.js` | What a link drawn on the flowchart writes into its note, or why it cannot — pure |
+| `public/js/editing/add-flowchart-link.js` | A drawn link into its note: always a list, through `applyRawEdits`, one undo entry |
 | `public/js/services/flowchart/node-content.js` | A note's label and shape, read through the flowchart options — shared by the mermaid source and the SVG |
 | `public/js/services/linked-properties.js` | What each linked column is, and the one writer for it |
 | `public/js/services/internal-links/linked-value.js` | What a linked column shows for a row, and the per-render `id → file` Map |

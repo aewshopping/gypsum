@@ -1,7 +1,7 @@
 # Plan: the flowchart view
 
-Status: **steps 1–4 are built** (manifest `1.357.0`), on top of the mermaid code block and the
-flowchart options. Step 5 onwards is unbuilt.
+Status: **steps 1–5 are built** (manifest `1.358.0`), on top of the mermaid code block and the
+flowchart options. Step 6 is unbuilt.
 Branch: `claude/flowchart-svg-first-plan`. Bump the manifest's minor version with each step that
 changes code.
 
@@ -143,10 +143,9 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
     pattern. Handler: `ui-functions-flowchart/flowchart-note-open.js`, opening through
     `handleOpenFileContent`.
   - **Only the box the press began on opens.** Without it, pressing on empty chart and letting go
-    over a box opened it. A press in the chart records the box in `appState.flowchartView.pressedId`
-    (or `null` on empty chart), through the pointerdown map: a box's own `open-flowchart-note` and
-    the chart's `flowchart-press`. Step 5's drag starts from the same record: released over a
-    *different* box is a link.
+    over a box opened it. A press in the chart is recorded in `appState.flowchartView.press`,
+    through the pointerdown map: a box's own `open-flowchart-note`, a link's `open-flowchart-link`
+    and the chart's `flowchart-press`. Step 5's drag marks the same record `moved`.
   - **Pan on is handled by CSS**: the boxes get `pointer-events: none`, so no press reaches them.
   - **The modal fades in and out, and is not asked to grow out of the box.** A view transition
     cannot capture a shape inside an SVG — and a fade suits a note whose box is in plain sight better
@@ -192,7 +191,33 @@ As built — the plan below held, with these decisions:
   rule as a box. That is the easy way to edit a label, since the label may come from a
   property that cannot be written directly (`internalLinkText`).
 
-## Step 5 — drag from a note to a note makes a link
+## Step 5 — drag from a note to a note makes a link *(built)*
+
+As built — the plan below held, with these decisions:
+
+- **A dialog before anything is written** — the shared warning modal, listing each property and the
+  item that will be added to it. Only "add link" writes; cancel and Escape write nothing.
+- **The connector roles offer only what a drag can write to**: the user's own properties and the
+  role's default (`internalLink` via flowChartLink, `internalLinkText` via the pipe). The options
+  dialog filters them (`flowchart-options-list.js`); a choice already saved is kept in its select.
+- **Link text goes after the link's pipe whenever there is no separate text list to keep in step** —
+  flowChartLink always, and the user's connectors property when connector text is
+  `internalLinkText`: `[[two.md|link text here]]`. A separate user-owned text list gets the
+  placeholder appended instead, and the link goes in bare.
+- **Always written as a list** (`editing/add-flowchart-link.js`, through `applyRawEdits` with
+  `toYamlList`), whatever the property's type: a single value becomes a list. flowChartLink is typed a
+  list in `FILE_PROPERTIES`. Links are named by path, as the note picker names them.
+- **Refused with a reason in the report line, nothing written**: a link that already exists, and a
+  connectors property the chart cannot write. A drag back to its own box, or onto empty chart, does
+  nothing (empty chart is step 6).
+- **One undo entry**, named `link to two.md added`. The undo list reaches it; Ctrl+Z and the undo
+  buttons are the table's.
+- **The drag**: past 6px a press from a box becomes a drag, a dashed line follows the pointer and the
+  box under it is outlined (`flowchart-node-drag.js`, document listeners beside the table's drags).
+  A finger on a box drags rather than scrolls — `touch-action: none` on the box's shape and text,
+  since Chrome ignores it on a `<g>`.
+- `services/flowchart/plan-flowchart-link.js` is the pure plan; `ui-functions-flowchart/flowchart-link-add.js`
+  asks and writes. Level 1: `tests/1-data/61-flowchart-link.spec.js`.
 
 - **The gesture**, with pan off: press on a box, drag (mouse or finger), release on another box. A
   line follows the pointer while dragging. The note under the release point is found with `document.elementFromPoint()`

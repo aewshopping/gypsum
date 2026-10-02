@@ -59,6 +59,7 @@ export function drawFlowchart(svg, files) {
     const viewWidth = Math.max(layout.width + 2 * MARGIN, svg.clientWidth);
     const viewHeight = Math.max(layout.height + 2 * MARGIN, svg.clientHeight);
     const drawing = svgElement('g', {
+        class: 'flowchart-drawing',
         transform: `translate(${(viewWidth - layout.width) / 2} ${(viewHeight - layout.height) / 2})`,
     });
 

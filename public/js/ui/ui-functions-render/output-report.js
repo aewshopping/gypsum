@@ -190,6 +190,15 @@ export function reportPasted(pasted, locked, didNotFit) {
 }
 
 /**
+ * Says something was done, for an action with no report of its own — a link drawn on the flowchart.
+ * @param {string} text
+ * @returns {void}
+ */
+export function reportAction(text) {
+    say([text], false, true);
+}
+
+/**
  * Says something went wrong, in the same place and the same warning colour.
  * @param {string} text
  * @returns {void}

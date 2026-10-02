@@ -134,6 +134,17 @@ export function labelFor(group, value) {
  * VIEWS from it — so it cannot reach for FILE_PROPERTIES to look a label up, and tidying these
  * into an import would make the cycle.
  */
+/**
+ * Where a link drawn on the flowchart is written when the connectors role is `internalLink` — which
+ * the app fills from every link it finds and nothing can write. A front matter list, so the new link
+ * simply joins internalLink, its `|text` joining internalLinkText at the same index. Typed a list in
+ * FILE_PROPERTIES (store.js). See plans/flowchart-view.md step 5.
+ */
+export const FLOWCHART_LINK_PROPERTY = 'flowChartLink';
+
+/** The link text a drawn link is given, to be replaced by opening the note. */
+export const LINK_TEXT_PLACEHOLDER = 'link text here';
+
 export const FLOWCHART_ROLES = {
     NODE_TEXT:      { value: "nodeText",      label: "node text",      defaultProperty: "title",            defaultLabel: "title"     },
     CONNECTORS:     { value: "connectors",    label: "connectors",     defaultProperty: "internalLink",     defaultLabel: "links"     },
