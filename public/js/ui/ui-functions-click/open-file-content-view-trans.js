@@ -263,8 +263,12 @@ export function doClose() {
 
   // Sweep back off-screen when the file has no card, so the modal moves instead of popping.
   // A null openedFileId means the caller cleared it deliberately — delete does this — and
-  // there really is nothing to animate back to.
-  const animateTo = openedFileId ? (file_box ?? offscreenNoteTarget) : null;
+  // there really is nothing to animate back to. Nor is there for a note whose box is on the
+  // flowchart: a view transition cannot reach a shape inside an SVG, and sweeping off the page a
+  // note that is in plain sight looks wrong, so the modal simply fades, as it opened.
+  const onFlowchart = openedFileId
+    && document.querySelector(`.flowchart-node[data-file-id="${CSS.escape(openedFileId)}"]`);
+  const animateTo = openedFileId && !onFlowchart ? (file_box ?? offscreenNoteTarget) : null;
 
   const transition = withViewTransition(function () {
 
