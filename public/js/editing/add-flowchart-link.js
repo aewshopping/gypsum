@@ -3,7 +3,7 @@ import { applyRawEdits } from './apply-raw-edits.js';
 import { pushUndoBatch } from '../table-undo/undo-stacks.js';
 
 /**
- * Writes a drawn link into its note: each property in the plan gets its whole new list, through the
+ * Writes a drawn link into its note: the property in the plan gets its whole new list, through the
  * one writer every table edit goes through — a verified, span-preserving front matter splice, the
  * refresh that redraws the chart, and one undo entry.
  *

@@ -15,8 +15,8 @@ const REFUSALS = {
 /**
  * Offers the link a drag drew, and writes it if the person says so.
  *
- * The dialog shows exactly what will be written, property by property, because a drag writes into a
- * note without the note being open — nothing reaches the file until "add link" is pressed. A plan
+ * The dialog shows exactly what will be written, because a drag writes into a note without the note
+ * being open — nothing reaches the file until "add link" is pressed. A plan
  * that refuses says why in the report line instead, and writes nothing.
  *
  * @param {string} fromId - internalId of the note the drag began on.
@@ -36,9 +36,9 @@ export async function linkNotes(fromId, toId) {
         return;
     }
 
-    const lines = plan.edits.map(edit => `${edit.property}: ${edit.items.at(-1)}`).join('\n');
+    const [edit] = plan.edits;
     const ok = await showWarningModal(
-        `Add a link from “${from}” to “${to}”?\n\nThis adds to ${source.filepath}:\n${lines}`,
+        `Add a link from “${from}” to “${to}”?\n\nThis adds to ${source.filepath}:\n${edit.property}: ${edit.items.at(-1)}`,
         'add link', 'cancel');
     if (!ok) return;
 

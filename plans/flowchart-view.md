@@ -197,13 +197,14 @@ As built — the plan below held, with these decisions:
 
 - **A dialog before anything is written** — the shared warning modal, listing each property and the
   item that will be added to it. Only "add link" writes; cancel and Escape write nothing.
-- **The connector roles offer only what a drag can write to**: the user's own properties and the
-  role's default (`internalLink` via flowChartLink, `internalLinkText` via the pipe). The options
-  dialog filters them (`flowchart-options-list.js`); a choice already saved is kept in its select.
-- **Link text goes after the link's pipe whenever there is no separate text list to keep in step** —
-  flowChartLink always, and the user's connectors property when connector text is
-  `internalLinkText`: `[[two.md|link text here]]`. A separate user-owned text list gets the
-  placeholder appended instead, and the link goes in bare.
+- **The connectors role offers only what a drag can write to**: the user's own properties and its
+  default, `internalLink`, written through flowChartLink. The options dialog filters it (`flowchart-options-list.js`); a choice already saved is kept in its select.
+- **A drag writes the link and no link text** — `[[two.md]]`, into flowChartLink or the user's own
+  connectors property. Text written by a drag could only be read back correctly in some arrangements
+  of the options: a pipe's text reaches the chart through internalLinkText, which lines up with
+  internalLink and not with a property of the user's own, and a separate text list is only in step
+  if it already was. The person adds the text in the note, where they want it — a press on the
+  arrow opens that note. (Built first with a `link text here` placeholder, then taken out.)
 - **Always written as a list** (`editing/add-flowchart-link.js`, through `applyRawEdits` with
   `toYamlList`), whatever the property's type: a single value becomes a list. flowChartLink is typed a
   list in `FILE_PROPERTIES`. Links are named by path, as the note picker names them.
@@ -229,17 +230,10 @@ As built — the plan below held, with these decisions:
 - **The write goes through `applyCellEdits`**, exactly as a table cell edit does — so it is a
   verified, span-preserving front matter splice, one undo takes it back, and the refresh redraws the
   chart.
-- **Where the link goes depends on the connectors property:**
-  - **A front matter property the user owns** (`isPropertyEditable()`): append `[[target.md]]` to its
-    list. If the connector text property is another such list, append the placeholder text to it as
-    well so the two stay index-aligned.
-  - **`internalLink`** (the default, which the app fills and nothing can write): append
-    `[[target.md|link text here]]` to a front matter list called **`flowChartLink`**, created if the
-    note does not have it. `internalLink` collects links from the body and every property, so the new
-    one simply joins it, and its `|link text here` fills `internalLinkText` at the same index.
-    The rare catch: if the connector text role points at some *other* property, the new link's
-    position in `internalLink` and that property's list may not line up — accept that.
-- **`link text here` is the placeholder**, meant to be replaced by opening the note (step 4's press).
+- **Where the link goes depends on the connectors property:** appended to the user's own property it
+  names, or — for `internalLink`, which the app fills and nothing can write — to a front matter list
+  called **`flowChartLink`**, created if the note does not have it. `internalLink` collects links from
+  the body and every property, so the new one simply joins it.
 - A link that already exists draws no second arrow — `internalLink` keeps one entry per target — so
   say so in the report line rather than writing a duplicate.
 
@@ -251,7 +245,7 @@ As built — the plan below held, with these decisions:
   mode that hides delete and offers one create button. Name and folder are validated the way rename
   and move already validate them (`editing/rename-file.js`).
 - **Then**: `createEmptyNote(folder, filename)` (`services/create-note.js`), and the link written into
-  the starting note exactly as step 5 writes one, with the same placeholder link text. If the node
+  the starting note exactly as step 5 writes one — the link alone, no link text. If the node
   text property is writable (the default, `title`, is), the new note gets a placeholder value for it
   so its box reads as a placeholder rather than a filename.
 - **The new note does not open.** It appears on the chart; pressing it opens it.

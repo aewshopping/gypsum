@@ -38,13 +38,13 @@ async function drag(page, fromLabel, toLabel) {
 
 const dialog = page => page.locator('#modal-unsaved-warning');
 
-test('with the default connectors, a drag writes link and text into flowChartLink — after the dialog', async ({ page }) => {
+test('with the default connectors, a drag writes the link into flowChartLink — after the dialog', async ({ page }) => {
   await openChart(page);
   const before = await note(page, 'start.md');
 
   await drag(page, 'Start', 'Two');
   await expect(dialog(page)).toBeVisible();
-  await expect(page.locator('#modal-unsaved-warning-text')).toContainText('flowChartLink: [[two.md|link text here]]');
+  await expect(page.locator('#modal-unsaved-warning-text')).toContainText('flowChartLink: [[two.md]]');
   // Nothing reaches the file until the dialog says so; cancel leaves it untouched and opens nothing.
   await page.click('#modal-unsaved-warning-cancel');
   expect(await note(page, 'start.md')).toBe(before);
@@ -53,10 +53,12 @@ test('with the default connectors, a drag writes link and text into flowChartLin
   await drag(page, 'Start', 'Two');
   await page.click('#modal-unsaved-warning-proceed');
   await expect.poll(() => note(page, 'start.md')).toBe(
-    '---\nrelated: "[[one.md]]"\nwhy: [go left]\nflowChartLink:\n  - "[[two.md|link text here]]"\n---\n# Start\n\nBody with [[one.md]].\n');
+    '---\nrelated: "[[one.md]]"\nwhy: [go left]\nflowChartLink:\n  - "[[two.md]]"\n---\n# Start\n\nBody with [[one.md]].\n');
 
-  // The redraw reads the new link back out of the note: a new arrow, labelled with the placeholder.
-  await expect(page.locator('.flowchart-edge-label')).toHaveText(['link text here']);
+  // The redraw reads the new link back out of the note: a new arrow, and no text — the person adds
+  // that in the note.
+  await expect(page.locator('.flowchart-edge')).toHaveCount(2);
+  await expect(page.locator('.flowchart-edge-label')).toHaveCount(0);
 
   // One undo puts the note back exactly.
   await page.evaluate(async () => {
@@ -67,22 +69,13 @@ test('with the default connectors, a drag writes link and text into flowChartLin
   await expect.poll(() => note(page, 'start.md')).toBe(before);
 });
 
-test('a property of the user\'s own: a single value becomes a list, and its text list keeps in step', async ({ page }) => {
+test('a property of the user\'s own: a single value becomes a list, and no text list is touched', async ({ page }) => {
   await openChart(page, { connectors: 'related', connectorText: 'why' });
 
   await drag(page, 'Start', 'Two');
   await page.click('#modal-unsaved-warning-proceed');
   await expect.poll(() => note(page, 'start.md')).toBe(
-    '---\nrelated:\n  - "[[one.md]]"\n  - "[[two.md]]"\nwhy: [go left, link text here]\n---\n# Start\n\nBody with [[one.md]].\n');
-});
-
-test('with no text property to keep in step, the text goes after the link\'s own pipe', async ({ page }) => {
-  await openChart(page, { connectors: 'related' });
-
-  await drag(page, 'Start', 'Two');
-  await page.click('#modal-unsaved-warning-proceed');
-  await expect.poll(() => note(page, 'start.md')).toBe(
-    '---\nrelated:\n  - "[[one.md]]"\n  - "[[two.md|link text here]]"\nwhy: [go left]\n---\n# Start\n\nBody with [[one.md]].\n');
+    '---\nrelated:\n  - "[[one.md]]"\n  - "[[two.md]]"\nwhy: [go left]\n---\n# Start\n\nBody with [[one.md]].\n');
 });
 
 test('a link that already exists is refused with a reason, and nothing is written', async ({ page }) => {
