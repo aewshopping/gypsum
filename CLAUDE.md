@@ -1017,7 +1017,7 @@ remember to save. **One object, overwritten.** There are no named flowcharts the
 layouts, and adding them would be a new plan rather than a new key.
 
 - **Nothing asks `appState.flowchartOptions` directly, and nothing writes it except
-  `setFlowchartOption()`.** `services/flowchart-options.js` owns the order — the user's choice, then
+  `setFlowchartOption()`.** `services/flowchart/flowchart-options.js` owns the order — the user's choice, then
   the role's default — the same shape and the same argument as `property-type.js`. **`null` is a
   real answer**: it is what `subgraph` and `nodeShape` mean before anyone points them anywhere.
 - **Adding a top-level key to the layouts file means adding it to `readLayouts()`.** That function
@@ -1133,7 +1133,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/file-parsing/front-matter-links.js` | The `[[links]]` written into front matter values |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
-| `public/js/services/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
+| `public/js/services/flowchart/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
 | `public/js/services/linked-properties.js` | What each linked column is, and the one writer for it |
 | `public/js/services/internal-links/linked-value.js` | What a linked column shows for a row, and the per-render `id → file` Map |
@@ -1163,7 +1163,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`, `cell-range-paste.js`) |
-| `public/js/ui/ui-functions-flowchart/` | The flowchart's control row, its options modal's rows, and the SVG's boxes and viewer markup |
+| `public/js/ui/ui-functions-flowchart/` | Everything the flowchart view draws and handles — control row, options modal, the SVG's boxes and viewer markup, and its click handlers — kept together rather than in `ui-functions-click/` |
 | `public/js/svg-pan-zoom/svg-pan-zoom.js` | Pan and zoom for an SVG, ported near word for word — knows nothing of notes; see `plans/flowchart-view.md` step 1 |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |

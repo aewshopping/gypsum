@@ -30,6 +30,6 @@ export function renderFlowchartViewer() {
                 <input type="range" class="pz-zoom-input" aria-label="zoom" min="1" max="20" value="1" step="0.1">
                 <span class="pz-zoom-label" aria-hidden="true">+</span>
             </div>
-            <svg class="pz-svg flowchart-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            <svg class="pz-svg flowchart-svg" data-action="flowchart-press" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>`;
 }

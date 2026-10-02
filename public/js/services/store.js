@@ -56,8 +56,11 @@ export const appState = {
   },
 
   editState: false,   // true = txt mode, false = html mode; drives the modal render toggle
-  flowchartSvgState: false, // true = the flowchart view draws its SVG, false = its mermaid code
-  flowchartPressedId: null, // the note whose flowchart box the current press began on, or null
+  // The flowchart view's session state. Not saved: the options it draws with are flowchartOptions.
+  flowchartView: {
+    showSvg: false,   // true = the view draws its SVG, false = its mermaid code; the code / chart switch
+    pressedId: null,  // the note whose box the current press began on, or null
+  },
 
   editSession: {
     activeRaw:      '',   // content currently displayed (current or historical)
@@ -113,7 +116,7 @@ export const appState = {
   //
   // One object per folder, overwritten — there are no named flowcharts the way there are named
   // layouts. Session-scoped, cleared and refilled on folder load. Ask flowchartProperty() in
-  // services/flowchart-options.js rather than reading this directly; the role's default is the
+  // services/flowchart/flowchart-options.js rather than reading this directly; the role's default is the
   // other half of the answer.
   flowchartOptions: new Map(),
 

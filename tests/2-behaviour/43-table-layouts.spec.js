@@ -776,7 +776,7 @@ test('a flowchart choice and a property type survive each other, and survive sav
   await setTypeFromPicker(page, 'date', 'string');
 
   await page.evaluate(async () => {
-    const options = await import('/public/js/services/flowchart-options.js');
+    const options = await import('/public/js/services/flowchart/flowchart-options.js');
     const file = await import('/public/js/table-layouts/layout-file.js');
     options.setFlowchartOption('subgraph', 'date');
     await file.saveFlowchartOptions();
@@ -807,7 +807,7 @@ test('a flowchart choice comes back when the folder is reloaded, and an unknown 
   await loadFolder(page);
 
   const resolved = await page.evaluate(async () => {
-    const m = await import('/public/js/services/flowchart-options.js');
+    const m = await import('/public/js/services/flowchart/flowchart-options.js');
     const store = await import('/public/js/services/store.js');
     return {
       subgraph: m.flowchartProperty('subgraph'),
@@ -827,7 +827,7 @@ test('a flowchart choice comes back when the folder is reloaded, and an unknown 
 test('delete all layouts forgets the flowchart choices too', async ({ page }) => {
   await openTable(page);
   await page.evaluate(async () => {
-    const options = await import('/public/js/services/flowchart-options.js');
+    const options = await import('/public/js/services/flowchart/flowchart-options.js');
     const file = await import('/public/js/table-layouts/layout-file.js');
     options.setFlowchartOption('subgraph', 'date');
     await file.saveFlowchartOptions();
@@ -840,7 +840,7 @@ test('delete all layouts forgets the flowchart choices too', async ({ page }) =>
 
   await expect.poll(() => page.evaluate(() => window.__layoutsFileContent)).toBe('');
   expect(await page.evaluate(async () => {
-    const m = await import('/public/js/services/flowchart-options.js');
+    const m = await import('/public/js/services/flowchart/flowchart-options.js');
     return m.flowchartProperty('subgraph');
   })).toBeNull();
 });
@@ -868,7 +868,7 @@ test('a rename carries the column, type, flowchart role and sort with it, and it
   await page.evaluate(async () => {
     const { appState } = await import('/public/js/services/store.js');
     const { setPropertyType } = await import('/public/js/services/property-type.js');
-    const { setFlowchartOption } = await import('/public/js/services/flowchart-options.js');
+    const { setFlowchartOption } = await import('/public/js/services/flowchart/flowchart-options.js');
     const { savePropertyTypes, saveFlowchartOptions, saveLayout } = await import('/public/js/table-layouts/layout-file.js');
     setPropertyType('people', 'array');
     setFlowchartOption('subgraph', 'people');

@@ -1,5 +1,5 @@
-import { FLOWCHART_ROLES, NODE_SHAPES, DEFAULT_NODE_SHAPE } from '../constants.js';
-import { appState } from './store.js';
+import { FLOWCHART_ROLES, NODE_SHAPES, DEFAULT_NODE_SHAPE } from '../../constants.js';
+import { appState } from '../store.js';
 
 /**
  * @file The one answer to "which property fills this part of the flowchart?", and the one writer

@@ -1,5 +1,5 @@
 import { FLOWCHART_ROLES } from '../../constants.js';
-import { flowchartProperty, nodeShapeFor } from '../flowchart-options.js';
+import { flowchartProperty, nodeShapeFor } from './flowchart-options.js';
 import { resolveNoteName } from '../internal-links/note-name-index.js';
 import { toList, linkTarget } from '../internal-links/link-targets.js';
 

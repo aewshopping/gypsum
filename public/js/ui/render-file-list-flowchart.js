@@ -10,7 +10,7 @@ import { attachPanZoom, readPanZoomState } from '../svg-pan-zoom/svg-pan-zoom.js
 /**
  * @file Renders the file list as a flowchart: mermaid source in a copyable code block, or an SVG.
  *
- * Which one is `appState.flowchartSvgState`, set by the switch in the view's control row. The two are
+ * Which one is `appState.flowchartView.showSvg`, set by the switch in the view's control row. The two are
  * not connected yet: the SVG is drawn from the files, not from the source, with notes at placeholder
  * positions (plans/flowchart-view.md). The code block is contenteditable purely so it can be
  * selected, copied and tweaked in place — nothing is read back out of it and no note is written.
@@ -42,7 +42,7 @@ export function renderFileList_flowchart(renderEverything) {
     // does — one line above the output instead of two.
     document.getElementById('output-controls').innerHTML = renderFlowchartControls();
 
-    if (!appState.flowchartSvgState) {
+    if (!appState.flowchartView.showSvg) {
         output.innerHTML =
             `<pre class="flowchart-code" contenteditable="true" spellcheck="false">${escapeHtml(buildMermaidSource(drawnFiles))}</pre>`;
         return;

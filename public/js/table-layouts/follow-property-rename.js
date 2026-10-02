@@ -1,6 +1,6 @@
 import { appState, TABLE_VIEW_COLUMNS } from '../services/store.js';
 import { setPropertyType, propertyType, propertySearchType } from '../services/property-type.js';
-import { setFlowchartOption } from '../services/flowchart-options.js';
+import { setFlowchartOption } from '../services/flowchart/flowchart-options.js';
 import { setLinkedProperty } from '../services/linked-properties.js';
 import { renameInColumns } from './layout-apply.js';
 import { renamePropertyInLayouts } from './layout-file.js';

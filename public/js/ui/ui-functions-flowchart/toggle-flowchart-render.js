@@ -12,7 +12,7 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
  * @returns {void}
  */
 export function handleToggleFlowchartRender(event, target) {
-    appState.flowchartSvgState = target.checked;
+    appState.flowchartView.showSvg = target.checked;
     renderFiles(true, true);
     document.querySelector('[data-action="toggle-flowchart-render"]')?.focus();
 }

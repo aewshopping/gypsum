@@ -16,7 +16,7 @@
 
 import { appState, TABLE_VIEW_COLUMNS, defaultColumnEntry } from '../services/store.js';
 import { setPropertyType } from '../services/property-type.js';
-import { setFlowchartOption } from '../services/flowchart-options.js';
+import { setFlowchartOption } from '../services/flowchart/flowchart-options.js';
 import { setLinkedProperty } from '../services/linked-properties.js';
 
 /**

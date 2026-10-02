@@ -23,7 +23,7 @@ from it). See *Later*.
 - **The flowchart options** — five roles (node text, connectors, connector text, subgraph, node shape)
   in `FLOWCHART_ROLES` in `constants.js`, stored in the `flowchart` object of
   `.gypsum/table_layouts.gypsum`. Read with `flowchartProperty(role)` and written only by
-  `setFlowchartOption()`, both in `services/flowchart-options.js`. `nodeShapeFor()` maps a value to a
+  `setFlowchartOption()`, both in `services/flowchart/flowchart-options.js`. `nodeShapeFor()` maps a value to a
   shape in `NODE_SHAPES`. The SVG reads these exactly as the mermaid source does.
 - **Reading links out of a property** — `toList()` and `linkTarget()` in
   `services/internal-links/link-targets.js`, so a connector item may be `cave.md` or `"[[cave.md]]"`.
@@ -119,9 +119,9 @@ A switch in the flowchart's control row between the mermaid code block and the S
 like the html / text switch in the note modal (`render_toggle`, `toggle-render-text.js`,
 `appState.editState`):
 
-- `appState.flowchartSvgState` — `true` for the SVG, `false` for the code. Being in `appState`, the
+- `appState.flowchartView.showSvg` — `true` for the SVG, `false` for the code. Being in `appState`, the
   position is remembered across view switches for the session.
-- `ui-functions-click/toggle-flowchart-render.js` sets it from the checkbox and re-renders.
+- `ui-functions-flowchart/toggle-flowchart-render.js` sets it from the checkbox and re-renders.
   `render-file-list-flowchart.js` reads it and draws one or the other.
 
 ## Step 3 — the options, and click to open
@@ -135,16 +135,19 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
   so that a drag can start from the same press in step 5. As built:
   - **`data-action="open-flowchart-note"`** on each box, through a new `mouseup` delegate and
     `mouseUpActionHandlers` map in `event-listeners-add.js` — the click and pointerdown delegates'
-    pattern. Handler: `ui-functions-click/flowchart-note-open.js`, opening through
+    pattern. Handler: `ui-functions-flowchart/flowchart-note-open.js`, opening through
     `handleOpenFileContent`.
   - **Only the box the press began on opens.** Without it, pressing on empty chart and letting go
-    over a box opened it. A document `pointerdown` listener records the box in
-    `appState.flowchartPressedId` (or `null`), as `handleCellPointerDown` does for cells. Step 5's
-    drag starts from the same record: released over a *different* box is a link.
+    over a box opened it. A press in the chart records the box in `appState.flowchartView.pressedId`
+    (or `null` on empty chart), through the pointerdown map: a box's own `open-flowchart-note` and
+    the chart's `flowchart-press`. Step 5's drag starts from the same record: released over a
+    *different* box is a link.
   - **Pan on is handled by CSS**: the boxes get `pointer-events: none`, so no press reaches them.
   - **The modal fades in and out, and is not asked to grow out of the box.** A view transition
     cannot capture a shape inside an SVG — and a fade suits a note whose box is in plain sight better
-    than a sweep from off the page. So the handler passes no element to animate from.
+    than a sweep from off the page. So the handler passes no element to animate from, and the modal
+    closes the way it opened: `openFileContent` remembers a fade-in, and `doClose` fades out
+    (the history list's open does the same). Nothing in the modal's code names the flowchart.
   - **The viewer is sized to the window** at each render: as tall as the window leaves below its top
     edge (`--viewer-height`, at least 300px), so the chart and its zoom controls are on screen without
     scrolling. A window resize takes effect at the next render.
@@ -227,8 +230,8 @@ Not to be designed for now — listed so nothing above closes them off.
 | `public/css/svg-pan-zoom.css` | step 1 — the viewer's controls overlaid on the SVG |
 | `public/js/services/flowchart/placeholder-layout.js` | step 1 — grid positions, pure, temporary |
 | `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 3, 4 — boxes, labels, arrows |
-| `public/js/ui/ui-functions-click/toggle-flowchart-render.js` | step 2 |
-| `public/js/ui/ui-functions-click/flowchart-*.js` | steps 3–6 — one file per action |
+| `public/js/ui/ui-functions-flowchart/toggle-flowchart-render.js` | step 2 |
+| `public/js/ui/ui-functions-flowchart/flowchart-*.js` | steps 3–6 — one file per action, beside the flowchart's renderers |
 | `public/js/ui/ui-functions-flowchart/node-drag.js` | steps 5–6 — the drag line and where it ends |
 | `public/js/editing/add-flowchart-link.js` | steps 5–6 — which property gets the link, via `applyCellEdits` |
 | `public/css/flowchart.css` | built — extend for boxes, arrows, labels |

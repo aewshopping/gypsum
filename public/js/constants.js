@@ -149,7 +149,7 @@ export const FLOWCHART_ROLES = {
  * slant is `[/` ... `/]` — so nothing here may collapse to a single token.
  *
  * A note names one of these in whichever property the node shape role points at, and
- * nodeShapeFor() in services/flowchart-options.js is what reads it: by name, by both marks written
+ * nodeShapeFor() in services/flowchart/flowchart-options.js is what reads it: by name, by both marks written
  * together (`{}`), or by the opening mark alone (`{`). Those spellings are derived there from the
  * two fields below, so adding a shape here gives it its symbol forms for free — keep a new one's
  * marks distinct from every existing spelling.

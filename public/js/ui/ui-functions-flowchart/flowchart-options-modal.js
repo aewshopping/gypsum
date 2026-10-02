@@ -1,9 +1,9 @@
 // Open, close and change for the flowchart options modal: which property fills each part of the
 // chart.
 
-import { renderFlowchartOptionsList, flowchartOptionsNote } from '../ui-functions-flowchart/flowchart-options-list.js';
+import { renderFlowchartOptionsList, flowchartOptionsNote } from './flowchart-options-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
-import { setFlowchartOption } from '../../services/flowchart-options.js';
+import { setFlowchartOption } from '../../services/flowchart/flowchart-options.js';
 import { saveFlowchartOptions } from '../../table-layouts/layout-file.js';
 
 const dialog = document.getElementById('modal-flowchart-options');

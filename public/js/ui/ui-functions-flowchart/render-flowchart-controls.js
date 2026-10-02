@@ -20,7 +20,7 @@ import { appState } from '../../services/store.js';
  * @returns {string} HTML string for the control row.
  */
 export function renderFlowchartControls() {
-    const checked = appState.flowchartSvgState ? ' checked' : '';
+    const checked = appState.flowchartView.showSvg ? ' checked' : '';
     return `
             <div class="output-controls">
                 <div class="flex-row label_group_text_toggle">

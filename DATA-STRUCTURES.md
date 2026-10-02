@@ -306,7 +306,7 @@ Which property fills each part of the flowchart: `nodeText`, `connectors`, `conn
 it lives at the top of the same file and works with the app's default columns in use. Unlike a
 layout there is only ever one set, overwritten — there are no named flowcharts.
 
-**Never read this directly.** Ask `flowchartProperty(role)` in `services/flowchart-options.js`,
+**Never read this directly.** Ask `flowchartProperty(role)` in `services/flowchart/flowchart-options.js`,
 which knows the order — the user's choice, then the role's default from `FLOWCHART_ROLES` in
 `constants.js`. It can answer `null`, which is a real answer: it is what `subgraph` and `nodeShape`
 mean before anyone has pointed them anywhere. `setFlowchartOption()` is the one writer, so a
@@ -502,6 +502,23 @@ opening its anchor and the redraw that writes it.
 
 ---
 
+## The flowchart view's session state (`appState.flowchartView`)
+
+```js
+appState.flowchartView = {
+  showSvg: false,   // the code / chart switch: the SVG when true, the mermaid code when false
+  pressedId: null,  // the note whose box the current press began on, or null
+}
+```
+
+Not saved, and separate from `flowchartOptions`, which is. `showSvg` is written only by
+`ui-functions-flowchart/toggle-flowchart-render.js`, and outlives a trip to another view.
+`pressedId` is written by `ui-functions-flowchart/flowchart-note-open.js` on every press in the
+chart — a box's id, or `null` on empty chart — and cleared by every release over a box, which opens
+the note only when it is that box's id.
+
+---
+
 ## Where the structures are built
 
 | Structure | Built in | Called from |
@@ -516,3 +533,4 @@ opening its anchor and the redraw that writes it.
 | value spans | `file-parsing/yaml-parse.js` → `parseYaml(…, spans)` | Only in `editing/plan-file-edits.js`, on a fresh read |
 | `appState.paginationState` | `ui-functions-render/a-render-all-files.js` | Every render |
 | `appState.tableRange` | `ui-functions-cell/cell-range.js` | On a drag across cells, and on Shift+arrow in the table |
+| `appState.flowchartView` | `ui-functions-flowchart/` — the switch and the press handlers | On the switch, and on each press and release in the chart |

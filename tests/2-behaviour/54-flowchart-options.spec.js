@@ -170,7 +170,7 @@ test('a stored property the folder does not carry is still in the select', async
 
 // A pure function, so it needs no browser — the arrangement the yaml specs use.
 test('nodeShapeFor reads a name, both marks, or the opening mark alone', async () => {
-  const { nodeShapeFor } = await appModule('services/flowchart-options.js');
+  const { nodeShapeFor } = await appModule('services/flowchart/flowchart-options.js');
   const { NODE_SHAPES } = await appModule('constants.js');
 
   for (const shape of Object.values(NODE_SHAPES)) {

@@ -15,8 +15,8 @@ import { handleToggleRecentPanel, handleCloseRecentPanel } from './ui-functions-
 import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/warning-modal.js';
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
-import { handleToggleFlowchartRender } from './ui-functions-click/toggle-flowchart-render.js';
-import { handleFlowchartNoteOpen, handleFlowchartPointerDown } from './ui-functions-click/flowchart-note-open.js';
+import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flowchart-render.js';
+import { handleFlowchartNoteOpen, handleFlowchartPress } from './ui-functions-flowchart/flowchart-note-open.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -45,7 +45,7 @@ import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, ha
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
 import { handleOpenFlowchartOptions, handleCloseFlowchartOptions, handleFlowchartOptionChange,
-         handleFlowchartOptionsClose } from './ui-functions-click/flowchart-options.js';
+         handleFlowchartOptionsClose } from './ui-functions-flowchart/flowchart-options-modal.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
@@ -130,10 +130,6 @@ export function addActionHandlers() {
     // on a cell be told from a second — see cell-expand.js.
     document.addEventListener('focusin', handleCellFocusIn);
     document.addEventListener('pointerdown', handleCellPointerDown);
-
-    // A flowchart box opens on release, but only the box the press began on — and every press is
-    // watched, so one that began anywhere else leaves nothing behind. See flowchart-note-open.js.
-    document.addEventListener('pointerdown', handleFlowchartPointerDown);
 
     // A press on a cell may start a range, and like the handler above it has to see a press on
     // anything inside the cell — a [[link]], a tag pill, the open-file link. Each of those carries
@@ -357,6 +353,9 @@ const pointerDownActionHandlers = {
     'column-resize-start': handleColumnResizeStart,
     'table-scroll-drag': handleScrollbarDragStart,
     'table-scroll-page': handleScrollbarTrackPress,
+    // Which flowchart box a press began on — a box, or the chart around them, which records none.
+    'open-flowchart-note': handleFlowchartPress,
+    'flowchart-press': handleFlowchartPress,
 };
 
 const mouseUpActionHandlers = {
