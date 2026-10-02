@@ -8,6 +8,8 @@
  * - elements are found inside the container passed in rather than by id, so two can share a page;
  * - `panzoomstate` is declared, which a module (always strict) requires;
  * - `tpCache` is emptied with `length = 0`, since it is a const;
+ * - a drag's end hands the cursor back to the stylesheet rather than setting `default`, so pan on
+ *   shows `move` over the chart before any drag as well as during one;
  * - leaving full screen by Escape unticks the toggle, as the button does — otherwise its icon and the
  *   pan setting stayed as if still full screen;
  * - **the pan-zoom toggle gates the mouse as well as touch.** Off, nothing pans; the press belongs to
@@ -288,7 +290,7 @@ let zoomvaluetemp = startScale*scaleDiff; // zoom pre ceiling and floor... then 
   function endDrag(evt) {
 selectedElement = null;
 // reset pointer options
-    svgroot.style.cursor = "default";
+    svgroot.style.cursor = ""; // back to the stylesheet's, which is move while pan is on
   }
 }
 }

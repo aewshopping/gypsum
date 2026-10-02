@@ -15,6 +15,10 @@
     width: 100%;
     height: 100%;
 }
+/* While pan is on, the whole chart is something to drag. */
+.pz-container:has(.pz-panzoom-check:checked) .pz-svg {
+    cursor: move;
+}
 
 /* Fullscreen and pan-zoom, top right. Each is a .svg-wrapper-style label — the app's icon toggle,
    whose checkbox covers the whole button — on a translucent plate so it reads over the chart. */
