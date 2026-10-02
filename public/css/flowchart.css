@@ -29,7 +29,7 @@
 .flowchart-node {
     /* .color-dynamic (colors.css) reads data-color into --colour-bg and the contrasting text colour
        into `color`, as a card's does; a box paints with them. */
-    rect {
+    .flowchart-shape {
         fill: var(--colour-bg);
         stroke: var(--colour-bg);
         stroke-width: 2;
@@ -43,7 +43,7 @@
         dominant-baseline: central;
     }
     cursor: pointer;
-    &:hover rect { stroke: var(--colour-contr); }
+    &:hover .flowchart-shape { stroke: var(--colour-contr); }
 }
 
 /* While pan is on the chart is for moving, so a press on a box must not open it: the box takes no

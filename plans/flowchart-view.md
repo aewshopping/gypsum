@@ -1,7 +1,7 @@
 # Plan: the flowchart view
 
-Status: **steps 1 and 2 are built, and step 3's click to open** (manifest `1.348.0`), on top of the
-mermaid code block and the flowchart options. Step 3's options, and everything after, are unbuilt.
+Status: **steps 1–3 are built** (manifest `1.356.0`), on top of the mermaid code block and the
+flowchart options. Step 4 onwards is unbuilt.
 Branch: `claude/flowchart-svg-first-plan`. Bump the manifest's minor version with each step that
 changes code.
 
@@ -124,13 +124,18 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
 - `ui-functions-flowchart/toggle-flowchart-render.js` sets it from the checkbox and re-renders.
   `render-file-list-flowchart.js` reads it and draws one or the other.
 
-## Step 3 — the options, and click to open
+## Step 3 — the options, and click to open *(built)*
 
 - **Draw the current page's notes**, as every other view does (`checkFileOnPage`), with the usual
   pagination nav below.
-- **The options decide what a box shows**: node text from `flowchartProperty(NODE_TEXT)`, shape from
-  `nodeShapeFor()` on the node shape property, and the note's `color` as its fill, as the cards do.
-  Subgraphs wait for layout.
+- **The options decide what a box shows** *(built)*: node text and node shape through
+  `services/flowchart/node-content.js` — `readRoles()`, `nodeLabel()`, `nodeShape()`, moved out of
+  `mermaid-source.js` so the code view and the chart cannot disagree — and the note's `color` as
+  its fill through `.color-dynamic`, as the cards do. Subgraphs wait for layout.
+  - **All eight shapes** are drawn by `ui-functions-flowchart/node-shape.js`, each grown to fit its
+    text. Circle and diamond wrap narrower and are sized from their widest line, since they grow both
+    ways; the rest keep one width so a grid of them stays tidy. The placeholder grid centres each
+    shape in its cell.
 - **A press on a box opens the note in the file content modal, on `mouseup`** *(built)* — `mouseup`
   so that a drag can start from the same press in step 5. As built:
   - **`data-action="open-flowchart-note"`** on each box, through a new `mouseup` delegate and
@@ -229,6 +234,8 @@ Not to be designed for now — listed so nothing above closes them off.
 | `public/js/svg-pan-zoom/svg-pan-zoom.js` | step 1 — the ported viewer; knows nothing of notes |
 | `public/css/svg-pan-zoom.css` | step 1 — the viewer's controls overlaid on the SVG |
 | `public/js/services/flowchart/placeholder-layout.js` | step 1 — grid positions, pure, temporary |
+| `public/js/services/flowchart/node-content.js` | step 3 — a note's label and shape from the options, shared with the mermaid source |
+| `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — the eight shapes as SVG outlines |
 | `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 3, 4 — boxes, labels, arrows |
 | `public/js/ui/ui-functions-flowchart/toggle-flowchart-render.js` | step 2 |
 | `public/js/ui/ui-functions-flowchart/flowchart-*.js` | steps 3–6 — one file per action, beside the flowchart's renderers |

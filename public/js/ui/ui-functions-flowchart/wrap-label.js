@@ -16,7 +16,8 @@ let context = null;
  * @param {string} font - A CSS font shorthand, the one the SVG draws the text in.
  * @param {number} maxWidth - The widest a line may be, in the font's px.
  * @param {number} maxLines - The most lines to return.
- * @returns {string[]} At least one line, possibly empty.
+ * @returns {{lines: string[], width: number}} At least one line, possibly empty, and the width of
+ *   the widest — what a shape that fits its text, rather than a fixed width, is sized from.
  */
 export function wrapLabel(text, font, maxWidth, maxLines) {
     context ??= document.createElement('canvas').getContext('2d');
@@ -39,11 +40,11 @@ export function wrapLabel(text, font, maxWidth, maxLines) {
     }
     lines.push(line);
 
-    if (lines.length <= maxLines) return lines;
-
     const kept = lines.slice(0, maxLines);
-    let last = kept[maxLines - 1];
-    while (last && !fits(`${last}…`)) last = last.slice(0, -1);
-    kept[maxLines - 1] = `${last.trimEnd()}…`;
-    return kept;
+    if (lines.length > maxLines) {
+        let last = kept[maxLines - 1];
+        while (last && !fits(`${last}…`)) last = last.slice(0, -1);
+        kept[maxLines - 1] = `${last.trimEnd()}…`;
+    }
+    return { lines: kept, width: Math.max(...kept.map(line => context.measureText(line).width)) };
 }

@@ -9,7 +9,8 @@
 /**
  * Places boxes in rows, left to right, as many columns as rows give or take one.
  *
- * Each row is as tall as its tallest box, so boxes of different heights never overlap.
+ * Each row is as tall as its tallest box, so boxes of different heights never overlap, and each box
+ * is centred in its cell, so a narrow shape beside a wide one does not leave the gaps uneven.
  *
  * @param {{width: number, height: number}[]} sizes - One per box, in drawing order.
  * @param {number} gap - Space between neighbouring boxes, in the same units.
@@ -24,8 +25,12 @@ export function placeholderLayout(sizes, gap) {
     let y = 0;
     for (let start = 0; start < sizes.length; start += columns) {
         const row = sizes.slice(start, start + columns);
-        row.forEach((size, i) => positions.push({ x: i * (columnWidth + gap), y }));
-        y += Math.max(...row.map(size => size.height)) + gap;
+        const rowHeight = Math.max(...row.map(size => size.height));
+        row.forEach((size, i) => positions.push({
+            x: i * (columnWidth + gap) + (columnWidth - size.width) / 2,
+            y: y + (rowHeight - size.height) / 2,
+        }));
+        y += rowHeight + gap;
     }
 
     const usedColumns = Math.min(columns, sizes.length);

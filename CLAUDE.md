@@ -1033,7 +1033,7 @@ layouts, and adding them would be a new plan rather than a new key.
   quoted** — bare `{}` is an empty YAML map and bare `[` can make the block unreadable, the same
   rule a hex colour follows. Anything unrecognised draws round.
 - **A role pointed at the wrong sort of property is the user's business**, exactly as a column type
-  is. Every read goes through one `toList()` in `mermaid-source.js`, which turns a Map into **its
+  is. Every read goes through one `toList()` (`internal-links/link-targets.js`), which turns a Map into **its
   keys** — `tags` is `Map<tagName, {count, parents}>`, so the values are counting metadata and the
   table already answers this with `.keys()`. That branch is also what stops `Map.forEach` yielding
   `(value, key)` where the code wants `(item, index)`.
@@ -1135,6 +1135,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/services/flowchart/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
+| `public/js/services/flowchart/node-content.js` | A note's label and shape, read through the flowchart options — shared by the mermaid source and the SVG |
 | `public/js/services/linked-properties.js` | What each linked column is, and the one writer for it |
 | `public/js/services/internal-links/linked-value.js` | What a linked column shows for a row, and the per-render `id → file` Map |
 | `public/js/services/internal-links/link-targets.js` | The links a property holds: `toList` and `linkTarget`, shared with the flowchart |

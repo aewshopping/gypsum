@@ -259,3 +259,21 @@ test('a press on a box opens its note, and does nothing while pan is on', async 
   await expect(modal).toBeVisible();
   await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', /cave/);
 });
+
+// The chart reads the same options the mermaid source does: what a box says, and what shape it is.
+test('the chart draws node text and node shape from the options', async ({ page }) => {
+  await openFlowchart(page);
+  await setRole(page, 'nodeText', 'chapter');
+  await setRole(page, 'nodeShape', 'shape');
+  await page.click('label[for="flowchart_render_toggle"]');
+
+  const nodes = page.locator('.flowchart-node');
+  // A list joins with commas; no value at all falls back to the filename.
+  expect(await nodes.evaluateAll(n => n.map(g => g.getAttribute('aria-label')))).toEqual([
+    'one, draft', 'one', 'two', 'two', 'loose.md',
+  ]);
+  // diamond by name, by both marks and with a space between them; nonsense draws round.
+  expect(await nodes.evaluateAll(n => n.map(g => g.querySelector('.flowchart-shape').tagName))).toEqual([
+    'polygon', 'polygon', 'polygon', 'rect', 'circle',
+  ]);
+});

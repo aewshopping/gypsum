@@ -1,5 +1,4 @@
-import { FLOWCHART_ROLES } from '../../constants.js';
-import { flowchartProperty, nodeShapeFor } from './flowchart-options.js';
+import { readRoles, valueFor, nodeLabel, nodeShape } from './node-content.js';
 import { resolveNoteName } from '../internal-links/note-name-index.js';
 import { toList, linkTarget } from '../internal-links/link-targets.js';
 
@@ -10,7 +9,7 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
  * nothing here names a property: it asks for the role and reads whatever comes back. That is also
  * why every read is defensive — a role can be pointed at a property holding anything at all, and
  * plans/flowchart-view.md §2 is explicit that a badly-pointed picker makes an odd-looking chart
- * rather than an error.
+ * rather than an error. Roles, labels and shapes are read in node-content.js, shared with the SVG.
  *
  * **Two passes over the files, and the order is the whole point.** Mermaid puts a node in the first
  * subgraph it is *mentioned* in — so an edge `1 --> 2` written inside subgraph s1 drags node 2 into
@@ -24,7 +23,7 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
  * Two limits it does not try to fix: the files are one *page* of the folder, so a subgraph spanning
  * a pagination boundary draws as two partial charts — the same limitation the edges already have,
  * and §13.3/§14.3 of the plan own it. And nothing keeps the connectors list and the connector text
- * list in step; see readRoles below.
+ * list in step; see readRoles in node-content.js.
  */
 
 /**
@@ -35,39 +34,6 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
  */
 function mermaidLabel(text) {
     return String(text).replace(/"/g, '#quot;');
-}
-
-/**
- * Which property fills each role, resolved once for the whole render.
- *
- * A role can come back null — subgraph and node shape do until someone points them somewhere —
- * and null means the role is off rather than missing.
- *
- * **Index alignment is no longer guaranteed by construction.** CLAUDE.md's invariant, that index i
- * of internalLink and of internalLinkText are the same link, holds because those two are one Map
- * read twice. Point the two roles at unrelated properties and the lists can be different lengths,
- * so the text is read by index and `undefined` is simply an unlabelled edge.
- *
- * @returns {{nodeText: ?string, connectors: ?string, connectorText: ?string, subgraph: ?string, nodeShape: ?string}}
- */
-function readRoles() {
-    return {
-        nodeText:      flowchartProperty(FLOWCHART_ROLES.NODE_TEXT.value),
-        connectors:    flowchartProperty(FLOWCHART_ROLES.CONNECTORS.value),
-        connectorText: flowchartProperty(FLOWCHART_ROLES.CONNECTOR_TEXT.value),
-        subgraph:      flowchartProperty(FLOWCHART_ROLES.SUBGRAPH.value),
-        nodeShape:     flowchartProperty(FLOWCHART_ROLES.NODE_SHAPE.value),
-    };
-}
-
-/**
- * One file's value for a role, or undefined when the role is off.
- * @param {object} file - A file object.
- * @param {?string} property - The property the role resolved to.
- * @returns {*}
- */
-function valueFor(file, property) {
-    return property ? file[property] : undefined;
 }
 
 /**
@@ -90,10 +56,7 @@ function groupKey(file, property) {
 }
 
 /**
- * One node, with its label and its shape.
- *
- * The label falls back to the filename when the chosen property is empty, which is what `title`
- * has always done — a node with no text at all is worse than one named after its file.
+ * One node, with its label and its shape — both from node-content.js, which the SVG shares.
  *
  * @param {object} file - A file object.
  * @param {number} number - The file's node id.
@@ -101,8 +64,8 @@ function groupKey(file, property) {
  * @returns {string} The declaration, without indentation.
  */
 function nodeDeclaration(file, number, roles) {
-    const label = toList(valueFor(file, roles.nodeText)).join(', ') || file.filename;
-    const shape = nodeShapeFor(toList(valueFor(file, roles.nodeShape))[0]);
+    const label = nodeLabel(file, roles);
+    const shape = nodeShape(file, roles);
 
     return `${number}${shape.open}"${mermaidLabel(label)}"${shape.close}`;
 }
