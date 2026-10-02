@@ -17,6 +17,7 @@ import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flowchart-render.js';
 import { handleFlowchartNoteOpen, handleFlowchartPress } from './ui-functions-flowchart/flowchart-note-open.js';
+import { handleFlowchartLinkHover } from './ui-functions-flowchart/flowchart-link-hover.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -118,6 +119,7 @@ export function addActionHandlers() {
     document.addEventListener("pointerdown", pointerDownDelegate);
     document.addEventListener("mouseup", mouseUpDelegate);
     document.addEventListener('mouseover', handleTableColHover);
+    document.addEventListener('mouseover', handleFlowchartLinkHover);
 
     // The undo mark takes itself off when it has played, so the next one starts from nothing.
     // animationend does bubble, so one listener covers every cell.
@@ -355,6 +357,7 @@ const pointerDownActionHandlers = {
     'table-scroll-page': handleScrollbarTrackPress,
     // Which flowchart box a press began on — a box, or the chart around them, which records none.
     'open-flowchart-note': handleFlowchartPress,
+    'open-flowchart-link': handleFlowchartPress,
     'flowchart-press': handleFlowchartPress,
 };
 
@@ -362,6 +365,7 @@ const mouseUpActionHandlers = {
     // On release rather than click, so that a drag can later begin from the same press. A tap
     // reaches here too, as the mouseup the browser fires after it.
     'open-flowchart-note': handleFlowchartNoteOpen,
+    'open-flowchart-link': handleFlowchartNoteOpen, // the note the link is written in
 };
 
 const keyUpActionHandlers = {

@@ -277,3 +277,23 @@ test('the chart draws node text and node shape from the options', async ({ page 
     'polygon', 'polygon', 'polygon', 'rect', 'circle',
   ]);
 });
+
+// Links: an arrow per link, a faded stub for a target that is not drawn, text from the connector
+// text role. Hovering a link marks the note it is written in, and a press opens that note.
+test('the chart draws links, and a press on one opens the note it is written in', async ({ page }) => {
+  await openFlowchart(page);
+  await setRole(page, 'connectorText', 'why');
+  await page.click('label[for="flowchart_render_toggle"]');
+
+  await expect(page.locator('.flowchart-edge')).toHaveCount(4);
+  await expect(page.locator('.flowchart-stub')).toHaveAttribute('aria-label', 'missing.md');
+  await expect(page.locator('.flowchart-edge-label')).toHaveText(['push the heavy door', 'walk on down the road']);
+
+  const label = page.locator('.flowchart-edge-label').first();
+  await label.hover();
+  await expect(page.locator('.flowchart-node.is-link-source')).toHaveAttribute('aria-label', 'The crossroads');
+  await expect(page.locator('.flowchart-edge.is-hovered')).toHaveCount(1);
+
+  await label.click();
+  await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'crossroads.md');
+});

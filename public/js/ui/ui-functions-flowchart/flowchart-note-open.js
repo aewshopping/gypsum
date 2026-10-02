@@ -2,7 +2,8 @@ import { appState } from '../../services/store.js';
 import { openFileContent } from '../ui-functions-click/open-file-content-view-trans.js';
 
 /**
- * @file Opening a note from its box in the flowchart's SVG.
+ * @file Opening a note from its box in the flowchart's SVG — or from a link, which opens the note the
+ * link is written in: both carry that note's `data-file-id`, so one pair of handlers serves both.
  *
  * On release rather than on click, so that a drag can later begin from the same press. A release
  * is not enough on its own, though: pressing on empty chart and letting go over a box would open

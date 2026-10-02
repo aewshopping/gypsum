@@ -1,0 +1,47 @@
+/* The flowchart's links (ui-functions-flowchart/draw-flowchart-edge.js): a line and arrowhead under
+   the boxes, and the link's text in a small box over them. Hovering either marks both .is-hovered
+   (flowchart-link-hover.js) — the line thickens, the text is outlined — and outlines the note the
+   link is written in, in flowchart.css. */
+
+.flowchart-edge, .flowchart-edge-label {
+    cursor: pointer;
+    color: var(--colour-contr);
+}
+
+.flowchart-edge-line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+}
+
+/* Invisible and wide, under the drawn line, so a thin line is easy to hit. */
+.flowchart-edge-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 14;
+    pointer-events: stroke;
+}
+
+.flowchart-arrowhead {
+    fill: var(--colour-contr);
+}
+
+.flowchart-edge-label {
+    rect {
+        fill: var(--colour-neutral);
+        stroke: var(--colour-neutral-alt);
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+    }
+    text {
+        /* LABEL_FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
+        font: 13px var(--fontfam-app-label);
+        fill: currentColor;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+}
+
+.flowchart-edge.is-hovered .flowchart-edge-line { stroke-width: 3.5; }
+.flowchart-edge-label.is-hovered rect { stroke: var(--colour-contr); stroke-width: 2; }

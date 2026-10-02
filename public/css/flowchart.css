@@ -35,19 +35,38 @@
         stroke-width: 2;
         vector-effect: non-scaling-stroke;
     }
+    cursor: pointer;
+    /* Hovered, or the note a hovered link is written in (flowchart-link-hover.js) — one look for both. */
+    &:hover .flowchart-shape, &.is-link-source .flowchart-shape { stroke: var(--colour-contr); }
+}
+
+.flowchart-node, .flowchart-stub {
     text {
-        /* FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
+        /* NODE_FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
         font: 16px var(--fontfam-app-label);
         fill: currentColor;
         text-anchor: middle;
         dominant-baseline: central;
     }
-    cursor: pointer;
-    &:hover .flowchart-shape { stroke: var(--colour-contr); }
 }
 
-/* While pan is on the chart is for moving, so a press on a box must not open it: the box takes no
-   pointer events, and the release lands on the chart instead (ui-functions-flowchart/flowchart-note-open.js). */
-.pz-container:has(.pz-panzoom-check:checked) .flowchart-node {
+/* A link target that is not drawn — filtered out, on another page, or not written yet. Faded, and
+   dashed so it reads as a placeholder rather than a note; it opens nothing. */
+.flowchart-stub {
+    opacity: 0.5;
+    color: var(--colour-contr);
+    .flowchart-shape {
+        fill: var(--colour-neutral-alt);
+        stroke: var(--colour-contr);
+        stroke-width: 1;
+        stroke-dasharray: 4 3;
+        vector-effect: non-scaling-stroke;
+    }
+}
+
+/* While pan is on the chart is for moving, so a press on a box or a link must not open it: they take
+   no pointer events, and the release lands on the chart instead (flowchart-note-open.js). Stated on
+   a link's children too, since its hit line asks for pointer events of its own. */
+.pz-container:has(.pz-panzoom-check:checked) :is(.flowchart-node, .flowchart-edge, .flowchart-edge *, .flowchart-edge-label) {
     pointer-events: none;
 }

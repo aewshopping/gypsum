@@ -1,7 +1,7 @@
 # Plan: the flowchart view
 
-Status: **steps 1–3 are built** (manifest `1.356.0`), on top of the mermaid code block and the
-flowchart options. Step 4 onwards is unbuilt.
+Status: **steps 1–4 are built** (manifest `1.357.0`), on top of the mermaid code block and the
+flowchart options. Step 5 onwards is unbuilt.
 Branch: `claude/flowchart-svg-first-plan`. Bump the manifest's minor version with each step that
 changes code.
 
@@ -159,7 +159,27 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
 
 **Stop here and test.**
 
-## Step 4 — connectors
+## Step 4 — connectors *(built)*
+
+As built — the plan below held, with these decisions:
+
+- **The links are a graph, shared with the mermaid source.** `services/flowchart/flowchart-graph.js`
+  turns the files into nodes (notes, then stubs) and edges (`{from, to, text, file}`); the mermaid
+  source's edges are now written from it, unchanged, so the code view and the chart agree.
+- **The layout is pluggable.** `placeholder-layout.js` states the contract any layout keeps: boxes
+  (`{key, width, height}`) and edges (`{from, to}`) in; box positions, one route per edge
+  (`{points, labelAt}`, a polyline ending where the arrowhead goes) and the drawing's size out. The
+  drawing only paints what comes back, so a real engine replaces that one module. The placeholder
+  routes straight, offsets A→B from B→A, and loops a note's link to itself over its box.
+- **Three layers**: link lines under the boxes, link text over them, so a box never hides a label.
+- **Hover marks three elements** — the line thickens, the text is outlined, and the note the link is
+  written in wears its own hover outline (`.is-link-source`, the same rule as `:hover`). They are
+  separate elements, so `flowchart-link-hover.js` moves the classes on mouseover, as the table's
+  column hover does.
+- **A press on the line or the text opens the note the link is written in**:
+  `data-action="open-flowchart-link"`, through the same press and release handlers as a box.
+- **Known placeholder weakness**: a link between two boxes with a third in line passes behind it,
+  and its text lands on it. Layout's job, not this step's.
 
 - **An arrow per link**, from the connectors property of each note (`toList()` + `linkTarget()`, the
   target resolved to a file as `mermaid-source.js` does). A straight line from box to box, clipped at
@@ -233,10 +253,14 @@ Not to be designed for now — listed so nothing above closes them off.
 |---|---|
 | `public/js/svg-pan-zoom/svg-pan-zoom.js` | step 1 — the ported viewer; knows nothing of notes |
 | `public/css/svg-pan-zoom.css` | step 1 — the viewer's controls overlaid on the SVG |
-| `public/js/services/flowchart/placeholder-layout.js` | step 1 — grid positions, pure, temporary |
+| `public/js/services/flowchart/placeholder-layout.js` | steps 1, 4 — the layout contract, and a grid with straight routes; pure, temporary |
+| `public/js/services/flowchart/flowchart-graph.js` | step 4 — notes, stubs and links as a graph, shared with the mermaid source |
 | `public/js/services/flowchart/node-content.js` | step 3 — a note's label and shape from the options, shared with the mermaid source |
 | `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — the eight shapes as SVG outlines |
-| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 3, 4 — boxes, labels, arrows |
+| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 3, 4 — graph, measure, layout, draw in three layers |
+| `public/js/ui/ui-functions-flowchart/draw-flowchart-node.js`, `draw-flowchart-edge.js` | step 4 — one node; one link's line and its text |
+| `public/js/ui/ui-functions-flowchart/flowchart-link-hover.js` | step 4 — a hovered link's line, text and source note |
+| `public/css/flowchart-edges.css` | step 4 — lines, arrowheads, link text |
 | `public/js/ui/ui-functions-flowchart/toggle-flowchart-render.js` | step 2 |
 | `public/js/ui/ui-functions-flowchart/flowchart-*.js` | steps 3–6 — one file per action, beside the flowchart's renderers |
 | `public/js/ui/ui-functions-flowchart/node-drag.js` | steps 5–6 — the drag line and where it ends |

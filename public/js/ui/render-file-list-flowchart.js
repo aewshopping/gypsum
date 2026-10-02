@@ -4,7 +4,7 @@ import { buildMermaidSource } from '../services/flowchart/mermaid-source.js';
 import { renderFlowchartControls } from './ui-functions-flowchart/render-flowchart-controls.js';
 import { escapeHtml } from './ui-functions-render/escape-html.js';
 import { renderFlowchartViewer } from './ui-functions-flowchart/render-flowchart-viewer.js';
-import { drawFlowchartNodes } from './ui-functions-flowchart/render-svg.js';
+import { drawFlowchart } from './ui-functions-flowchart/render-svg.js';
 import { attachPanZoom, readPanZoomState } from '../svg-pan-zoom/svg-pan-zoom.js';
 
 /**
@@ -59,6 +59,6 @@ export function renderFileList_flowchart(renderEverything) {
     // sits above it; set before drawing, since the viewBox is sized from the viewer.
     const top = container.getBoundingClientRect().top + window.scrollY;
     container.style.setProperty('--viewer-height', `${Math.max(300, window.innerHeight - top - 16)}px`);
-    drawFlowchartNodes(container.querySelector('svg.pz-svg'), drawnFiles);
+    drawFlowchart(container.querySelector('svg.pz-svg'), drawnFiles);
     attachPanZoom(container, panZoomState);
 }
