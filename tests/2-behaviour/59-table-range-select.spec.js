@@ -202,17 +202,18 @@ test('Ctrl+C copies the range as TSV of what each cell shows, counting rows in t
 
 test('copy and paste show while a closed cell is selected, and copy with headers leaves the range', async ({ page }) => {
   await openTable(page);
-  const buttons = page.locator('#range-copy-btn, #range-paste-btn');
-  await expect(buttons.first()).toBeHidden();
-  await expect(buttons.last()).toBeHidden();
+  const copyBtn = page.locator('#range-copy-btn');
+  const pasteBtn = page.locator('#range-paste-btn');
+  await expect(copyBtn).toBeHidden();
+  await expect(pasteBtn).toBeHidden();
 
   await cellAt(page, 1, 'a').click();
-  await expect(buttons.first()).toBeVisible();
-  await expect(buttons.last()).toBeVisible();
+  await expect(copyBtn).toBeVisible();
+  await expect(pasteBtn).toBeVisible();
 
   await page.keyboard.press('Shift+ArrowRight');
-  await expect(buttons.last()).toBeVisible();
-  await buttons.first().click();
+  await expect(pasteBtn).toBeVisible();
+  await copyBtn.click();
   await page.click('#range-copy-menu [data-headers="true"]');
 
   const [a, b] = [await cellAt(page, 1, 'a').textContent(), await cellAt(page, 1, 'b').textContent()];
@@ -230,22 +231,22 @@ test('copy and paste show while a closed cell is selected, and copy with headers
       expected: [String(at('a') + 1), String(at('b') + 2)] };
   });
   expect([lines.from, lines.to]).toEqual(lines.expected);
-  await expect(buttons.first()).toHaveAttribute('data-copied', '');
+  await expect(copyBtn).toHaveAttribute('data-copied', '');
   await page.keyboard.press('ArrowDown');
   await expect(copiedCells).toHaveCount(1);
 
   // An open cell's copy and paste are the browser's, so neither button is offered — except that the
   // copy button stays while there is an outline to clear.
   await page.keyboard.press('F2');
-  await expect(buttons.last()).toBeHidden();
-  await expect(buttons.first()).toBeVisible();
+  await expect(pasteBtn).toBeHidden();
+  await expect(copyBtn).toBeVisible();
   await page.keyboard.press('Escape');
 
   // Clearing takes the outline off and empties the clipboard.
-  await buttons.first().click();
+  await copyBtn.click();
   await page.click('#range-copy-menu [data-action="range-copy-clear"]');
   await expect(copiedCells).toHaveCount(0);
-  await expect(buttons.first()).not.toHaveAttribute('data-copied', '');
+  await expect(copyBtn).not.toHaveAttribute('data-copied', '');
   expect(await copied(page)).toBe('');
 });
 
