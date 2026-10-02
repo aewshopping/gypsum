@@ -58,7 +58,7 @@ export const appState = {
   editState: false,   // true = txt mode, false = html mode; drives the modal render toggle
   // The flowchart view's session state. Not saved: the options it draws with are flowchartOptions.
   flowchartView: {
-    showSvg: false,   // true = the view draws its SVG, false = its mermaid code; the code / chart switch
+    showSvg: true,    // true = the view draws its SVG, false = its mermaid code; the code / chart switch
     press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
   },
 

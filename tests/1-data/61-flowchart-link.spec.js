@@ -23,7 +23,7 @@ async function openChart(page, roles = {}) {
     for (const [role, property] of Object.entries(roles)) await page.selectOption(`#flowchart-role-${role}`, property);
     await page.keyboard.press('Escape');
   }
-  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
 }
 
 /** Drags from one box to another with the mouse, and waits for the dialog. */

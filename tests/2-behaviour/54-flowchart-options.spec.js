@@ -15,6 +15,9 @@ async function openFlowchart(page) {
   await page.goto('/');
   await loadFolder(page);
   await page.selectOption('#view-select', 'flowchart');
+  // The chart is the default; these tests read the mermaid source, and the chart tests switch back.
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('label[for="flowchart_render_toggle"]');
   await expect(page.locator('.flowchart-code')).toBeVisible();
 }
 
@@ -325,7 +328,6 @@ test.describe('touch', () => {
     await page.goto('/');
     await loadFolder(page);
     await page.selectOption('#view-select', 'flowchart');
-    await page.click('label[for="flowchart_render_toggle"]');
     await page.locator('.pz-container').evaluate(el => el.scrollIntoView({ block: 'end' }));
     await page.evaluate(() => {
       window.__prevented = [];

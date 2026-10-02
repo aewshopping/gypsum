@@ -14,10 +14,28 @@
    was aligning with is no longer the edge the button sits at. */
 
 /* The chart fills the window below the control row, so it can be used without going full screen. */
+/* While the chart is drawn, the page is a column the chart grows to the bottom of: body, main and
+   #output each pass the height left over down to the viewer. So the chart always ends at the foot of
+   the window, however much sits above it and whatever moves there — a filter removed, the panel
+   opened — with no measuring in JS. Every other view lays the page out as before. The body's
+   margins become padding, which looks the same and lets min-height include them. */
+body:has(.flowchart-viewer) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    margin-block: 0;
+    padding-block: 8px;
+}
+body:has(.flowchart-viewer) main,
+#output:has(> .flowchart-viewer) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 .flowchart-viewer {
-    /* --viewer-height is set by render-file-list-flowchart.js: what the window leaves below the
-       viewer. The fallback fits it under the sticky search row once scrolled to. */
-    height: var(--viewer-height, max(300px, calc(100dvh - var(--stick-top-height) - 1em)));
+    flex: 1;
+    min-height: 300px;
     user-select: none;
 }
 .flowchart-viewer:fullscreen {

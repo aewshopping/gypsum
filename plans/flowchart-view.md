@@ -113,7 +113,7 @@ way `keep-cell-state.js` carries the table's scroll position.
 - **Simulated touches cannot test a pan**: CDP touch events report `screenX` as 0, and the ported
   code pans by `screenX`. Checked instead with synthetic `TouchEvent`s carrying it; real devices do.
 
-## Step 2 — the code / chart toggle *(built, default: code)*
+## Step 2 — the code / chart toggle *(built, default: chart)*
 
 A switch in the flowchart's control row between the mermaid code block and the SVG, styled and wired
 like the html / text switch in the note modal (`render_toggle`, `toggle-render-text.js`,
@@ -152,9 +152,13 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
     than a sweep from off the page. So the handler passes no element to animate from, and the modal
     closes the way it opened: `openFileContent` remembers a fade-in, and `doClose` fades out
     (the history list's open does the same). Nothing in the modal's code names the flowchart.
-  - **The viewer is sized to the window** at each render: as tall as the window leaves below its top
-    edge (`--viewer-height`, at least 300px), so the chart and its zoom controls are on screen without
-    scrolling. A window resize takes effect at the next render.
+  - **The viewer fills the window below it, by CSS alone**: while the chart is drawn
+    (`body:has(.flowchart-viewer)`) the page is a flex column — body, main and `#output` pass the
+    height left over down to the viewer, at least 300px — so the chart ends at the window's foot
+    however the content above it changes (a filter removed, the panel opened, a resize). The SVG is
+    pinned to its container with `position: absolute; inset: 0`, since a percentage height has
+    nothing definite to resolve against in a flex-sized box. An earlier version measured the height
+    in JS at each render, and left a gap whenever something above it moved afterwards.
 
 **Stop here and test.**
 

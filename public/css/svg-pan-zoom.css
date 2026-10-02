@@ -10,8 +10,12 @@
     border-radius: 8px;
 }
 
+/* Pinned to the container rather than 100% tall, so it fills a container whose height comes from
+   flex or grid, where a percentage height has nothing definite to resolve against. The container's
+   height is the caller's to give. */
 .pz-svg {
-    display: block;
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
 }
