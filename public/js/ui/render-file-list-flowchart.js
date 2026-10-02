@@ -53,6 +53,12 @@ export function renderFileList_flowchart(renderEverything) {
     const panZoomState = readPanZoomState(output.querySelector('.pz-container'));
     output.innerHTML = renderFlowchartViewer();
     const container = output.querySelector('.pz-container');
+
+    // As tall as the window leaves below the viewer's top edge, so the whole chart and its zoom
+    // controls are on screen without scrolling. Measured here because only the page knows how much
+    // sits above it; set before drawing, since the viewBox is sized from the viewer.
+    const top = container.getBoundingClientRect().top + window.scrollY;
+    container.style.setProperty('--viewer-height', `${Math.max(300, window.innerHeight - top - 16)}px`);
     drawFlowchartNodes(container.querySelector('svg.pz-svg'), drawnFiles);
     attachPanZoom(container, panZoomState);
 }

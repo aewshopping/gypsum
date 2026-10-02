@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { handleOpenFileContent } from './open-file-content-view-trans.js';
+import { openFileContent } from './open-file-content-view-trans.js';
 
 /**
  * @file Opening a note from its box in the flowchart's SVG.
@@ -8,6 +8,10 @@ import { handleOpenFileContent } from './open-file-content-view-trans.js';
  * is not enough on its own, though: pressing on empty chart and letting go over a box would open it.
  * So every press records which box it began on, and a release opens only that one —
  * the same arrangement the table's cells use to tell a first press from a second.
+ *
+ * **The modal is not grown out of the box**, and is not asked to be: a view transition cannot
+ * capture a shape inside an SVG, so it opens and closes with a plain fade — which suits a note
+ * whose box is in plain sight better than sweeping it in from off the page would.
  *
  * Nothing here asks whether pan is on: while it is, the boxes take no pointer events
  * (flowchart.css), so a press never lands on one and this action is never reached.
@@ -34,5 +38,5 @@ export function handleFlowchartNoteOpen(event, target) {
     const pressedHere = appState.flowchartPressedId === target.dataset.fileId;
     appState.flowchartPressedId = null;
     if (event.button !== 0 || !pressedHere) return;
-    handleOpenFileContent(event, target);
+    openFileContent(target.dataset.fileId, target.dataset.color, null);
 }

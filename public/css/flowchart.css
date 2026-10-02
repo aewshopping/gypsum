@@ -15,8 +15,9 @@
 
 /* The chart fills the window below the control row, so it can be used without going full screen. */
 .flowchart-viewer {
-    /* Scrolled to, it fits exactly under the sticky search row. */
-    height: max(300px, calc(100dvh - var(--stick-top-height) - 1em));
+    /* --viewer-height is set by render-file-list-flowchart.js: what the window leaves below the
+       viewer. The fallback fits it under the sticky search row once scrolled to. */
+    height: var(--viewer-height, max(300px, calc(100dvh - var(--stick-top-height) - 1em)));
     user-select: none;
 }
 .flowchart-viewer:fullscreen {

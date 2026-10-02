@@ -142,9 +142,12 @@ like the html / text switch in the note modal (`render_toggle`, `toggle-render-t
     `appState.flowchartPressedId` (or `null`), as `handleCellPointerDown` does for cells. Step 5's
     drag starts from the same record: released over a *different* box is a link.
   - **Pan on is handled by CSS**: the boxes get `pointer-events: none`, so no press reaches them.
-  - **The modal does not grow out of the box.** A view transition cannot capture a shape inside an
-    SVG, so it opens and closes as it does for a note with no card on screen. `findFileCard()` does
-    find the box, so it will work if that changes.
+  - **The modal fades in and out, and is not asked to grow out of the box.** A view transition
+    cannot capture a shape inside an SVG — and a fade suits a note whose box is in plain sight better
+    than a sweep from off the page. So the handler passes no element to animate from.
+  - **The viewer is sized to the window** at each render: as tall as the window leaves below its top
+    edge (`--viewer-height`, at least 300px), so the chart and its zoom controls are on screen without
+    scrolling. A window resize takes effect at the next render.
 
 **Stop here and test.**
 
