@@ -1273,6 +1273,14 @@ async function setupMockCellWritingFolder(page, extra = {}) {
     window.showDirectoryPicker = async () => ({
       kind: 'directory', name: 'root',
       values: async function* () { for (const name of Object.keys(window.__files)) yield mk(name); },
+      // A note made in the app (the flowchart's new linked note) is created at the root.
+      getFileHandle: async (name, options) => {
+        if (!(name in window.__files)) {
+          if (!options?.create) throw new Error(`NotFoundError: ${name}`);
+          window.__files[name] = '';
+        }
+        return mk(name);
+      },
       getDirectoryHandle: async (name) => {
         if (name === '.gypsum') return gypsumDir;
         throw new Error(`Unexpected getDirectoryHandle call for: ${name}`);

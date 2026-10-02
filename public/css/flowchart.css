@@ -72,7 +72,8 @@ body:has(.flowchart-viewer) main,
 }
 
 /* A link target that is not drawn — filtered out, on another page, or not written yet. Faded, and
-   dashed so it reads as a placeholder rather than a note; it opens nothing. */
+   dashed so it reads as a placeholder rather than a note. One naming a loaded note opens it and takes
+   a dragged link, and says so as a box does: a solid stroke on hover or as a drop target. */
 .flowchart-stub {
     opacity: 0.5;
     color: var(--colour-contr);
@@ -83,11 +84,21 @@ body:has(.flowchart-viewer) main,
         stroke-dasharray: 4 3;
         vector-effect: non-scaling-stroke;
     }
+    &[data-file-id] {
+        cursor: pointer;
+    }
+    &[data-file-id]:hover, &.is-drop-target {
+        opacity: 0.8;
+        .flowchart-shape {
+            stroke-width: 2;
+            stroke-dasharray: none;
+        }
+    }
 }
 
 /* While pan is on the chart is for moving, so a press on a box or a link must not open it: they take
    no pointer events, and the release lands on the chart instead (flowchart-note-open.js). Stated on
    a link's children too, since its hit line asks for pointer events of its own. */
-.pz-container:has(.pz-panzoom-check:checked) :is(.flowchart-node, .flowchart-edge, .flowchart-edge *, .flowchart-edge-label) {
+.pz-container:has(.pz-panzoom-check:checked) :is(.flowchart-node, .flowchart-stub, .flowchart-edge, .flowchart-edge *, .flowchart-edge-label) {
     pointer-events: none;
 }

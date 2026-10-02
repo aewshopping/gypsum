@@ -1,7 +1,10 @@
 import { appState } from '../../services/store.js';
+import { renderUndoButtons } from '../ui-functions-render/render-undo-buttons.js';
 
 /**
- * Renders the flowchart's control row: the code / chart switch, and the button onto the options dialog.
+ * Renders the flowchart's control row: the code / chart switch, the button onto the options dialog,
+ * and undo, redo and the history — the table's own three, since a link drawn on the chart goes on the
+ * same stack as a cell edit.
  *
  * A sibling of ui-functions-table/render-table-controls.js, and it shares that row's shape through
  * `.output-controls` — the class both views' rows carry, which is what stops the two drifting apart
@@ -31,5 +34,6 @@ export function renderFlowchartControls() {
                 <button type="button" class="svg-wrapper-style" data-action="open-flowchart-options" data-tip="choose which properties the flowchart uses">
                     <svg viewBox="0 0 50 50"><use href="#icon-flowchart"></use></svg>
                 </button>
+                ${renderUndoButtons()}
             </div>`;
 }

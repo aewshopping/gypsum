@@ -18,6 +18,8 @@ import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.
 import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flowchart-render.js';
 import { handleFlowchartNoteOpen, handleFlowchartPress } from './ui-functions-flowchart/flowchart-note-open.js';
 import { handleFlowchartLinkHover } from './ui-functions-flowchart/flowchart-link-hover.js';
+import { handleFlowchartNewNoteInput, handleFlowchartNewNoteKeydown, handleFlowchartNewNoteCancel,
+         handleFlowchartNewNoteConfirm } from './ui-functions-flowchart/flowchart-note-create.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -155,6 +157,7 @@ export function addActionHandlers() {
     document.addEventListener('keydown', handleColumnRenameKeydown);
     document.addEventListener('keydown', handleColumnCopyKeydown);
     document.addEventListener('keydown', handleLinkedColumnKeydown);
+    document.addEventListener('keydown', handleFlowchartNewNoteKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is
     // over whatever the list has shuffled beneath it, not over the grip that started it. So these
@@ -239,6 +242,8 @@ const clickActionHandlers = {
     'close-property-types': handleClosePropertyTypes,
     'open-flowchart-options': handleOpenFlowchartOptions,
     'close-flowchart-options': handleCloseFlowchartOptions,
+    'flowchart-new-note-confirm': handleFlowchartNewNoteConfirm,
+    'flowchart-new-note-cancel': handleFlowchartNewNoteCancel,
     'close-column-picker': handleCloseColumnPicker,
     'reset-columns': handleResetColumns,
     'show-all-columns': handleShowAllColumns,
@@ -358,6 +363,7 @@ const pointerDownActionHandlers = {
     // Which flowchart box a press began on — a box, or the chart around them, which records none.
     'open-flowchart-note': handleFlowchartPress,
     'open-flowchart-link': handleFlowchartPress,
+    'open-flowchart-stub': handleFlowchartPress,
     'flowchart-press': handleFlowchartPress,
 };
 
@@ -366,6 +372,7 @@ const mouseUpActionHandlers = {
     // reaches here too, as the mouseup the browser fires after it.
     'open-flowchart-note': handleFlowchartNoteOpen,
     'open-flowchart-link': handleFlowchartNoteOpen, // the note the link is written in
+    'open-flowchart-stub': handleFlowchartNoteOpen, // a note the chart does not draw in full
 };
 
 const keyUpActionHandlers = {
@@ -381,6 +388,7 @@ const inputActionHandlers = {
     'expand-cell': handleCellAutocomplete,
     'column-rename-input': handleColumnRenameInput,
     'column-copy-input': handleColumnCopyInput,
+    'flowchart-new-note-input': handleFlowchartNewNoteInput,
     'linked-column-name': handleLinkedColumnNameInput,
 };
 

@@ -28,6 +28,18 @@
     border: none;
 }
 
+/* Undo, redo and the undo history say when there is nothing to press, because otherwise a dead
+   button and a live one look identical — the glyph *is* the button here, as it is on a column
+   picker row, so the fade is the only thing left to say it with. The same 0.25
+   .info-modal-row-btn:disabled uses, and the cursor back to default from the pointer
+   .svg-wrapper-style hands every icon button. */
+#table-undo-btn:disabled,
+#table-redo-btn:disabled,
+#table-undo-list-btn:disabled {
+    opacity: 0.25;
+    cursor: default;
+}
+
 /* While a column delete runs, the table and its control row are inert. Inert on its own is
    invisible, and a table that looks usable but ignores every click reads as a hang — so both fade.
    The report line above sits outside both and stays readable. plans/completed/table-delete-column.md §17.5. */

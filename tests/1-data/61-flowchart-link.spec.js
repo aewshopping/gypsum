@@ -2,7 +2,8 @@ const { test, expect } = require('@playwright/test');
 const { loadFolder, setupMockCellWritingFolder } = require('../helpers');
 
 // A link drawn on the flowchart is written into the note it is dragged from, after a dialog that
-// says exactly what will be written. See plans/flowchart-view.md step 5.
+// says exactly what will be written; drawn onto empty chart it makes a new note to link to. See
+// plans/flowchart-view.md steps 5 and 6.
 const LINKED = {
   'start.md': '---\nrelated: "[[one.md]]"\nwhy: [go left]\n---\n# Start\n\nBody with [[one.md]].\n',
   'one.md': '# One\n',
@@ -88,7 +89,7 @@ test('a link that already exists is refused with a reason, and nothing is writte
   expect(await note(page, 'start.md')).toBe(before);
 });
 
-test('a drag that comes back to its own box, or ends on empty chart, writes nothing and opens nothing', async ({ page }) => {
+test('a drag that comes back to its own box, or ends off the chart, writes nothing and opens nothing', async ({ page }) => {
   await openChart(page);
   const before = await note(page, 'start.md');
   const a = await box(page, 'Start').boundingBox();
@@ -109,4 +110,95 @@ test('a drag that comes back to its own box, or ends on empty chart, writes noth
   await expect(page.locator('#file-content-modal')).not.toBeVisible();
   await expect(page.locator('.flowchart-drag-line')).toHaveCount(0);
   expect(await note(page, 'start.md')).toBe(before);
+});
+
+/** A point on the chart's empty background: the <svg> itself, not anything drawn in it. */
+async function emptyPoint(page) {
+  return page.evaluate(() => {
+    const svg = document.querySelector('.flowchart-svg');
+    const r = svg.getBoundingClientRect();
+    for (let y = r.bottom - 30; y > r.top; y -= 20) {
+      for (let x = r.right - 30; x > r.left; x -= 20) {
+        if (document.elementFromPoint(x, y) === svg) return [x, y];
+      }
+    }
+    return null;
+  });
+}
+
+/** Drags from a box to empty chart, and waits for the new note dialog. */
+async function dragToEmpty(page, fromLabel) {
+  const a = await box(page, fromLabel).boundingBox();
+  const to = await emptyPoint(page);
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(...to, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('#modal-flowchart-new-note')).toBeVisible();
+}
+
+test('a drag to empty chart makes the next note-N.txt, links it, and opens nothing', async ({ page }) => {
+  await openChart(page);
+  const before = await note(page, 'start.md');
+
+  await dragToEmpty(page, 'Start');
+  const name = page.locator('#flowchart-new-note-name');
+  await expect(name).toHaveValue('note-1.txt');
+  // The stem is selected, so typing replaces it and keeps the extension.
+  expect(await name.evaluate(input => input.value.slice(input.selectionStart, input.selectionEnd))).toBe('note-1');
+  await expect(page.locator('#flowchart-new-note-forecast')).toContainText('[[note-1.txt]] to flowChartLink in start.md');
+
+  // Cancel creates nothing and writes nothing.
+  await page.click('#modal-flowchart-new-note .btn-action[data-action="flowchart-new-note-cancel"]');
+  expect(await note(page, 'note-1.txt')).toBeUndefined();
+  expect(await note(page, 'start.md')).toBe(before);
+
+  await dragToEmpty(page, 'Start');
+  await page.keyboard.type('idea');
+  await page.click('#flowchart-new-note-confirm');
+
+  await expect.poll(() => note(page, 'idea.txt')).toBe('');
+  await expect.poll(() => note(page, 'start.md')).toBe(
+    '---\nrelated: "[[one.md]]"\nwhy: [go left]\nflowChartLink:\n  - "[[idea.txt]]"\n---\n# Start\n\nBody with [[one.md]].\n');
+  // Drawn under its filename, the node text's fallback — no title was written into it.
+  await expect(box(page, 'idea.txt')).toBeVisible();
+  await expect(page.locator('#file-content-modal')).not.toBeVisible();
+
+  // Undo takes the link back out; the note stays.
+  await page.click('#table-undo-btn');
+  await expect.poll(() => note(page, 'start.md')).toBe(before);
+  expect(await note(page, 'idea.txt')).toBe('');
+});
+
+test('a name a loaded note has is refused in the new note dialog', async ({ page }) => {
+  await openChart(page);
+  await dragToEmpty(page, 'Start');
+  await page.fill('#flowchart-new-note-name', 'Two.md');
+  await expect(page.locator('#flowchart-new-note-problem')).toContainText('already exists');
+  await expect(page.locator('#flowchart-new-note-confirm')).toBeDisabled();
+});
+
+test('filtered out, a new note is still on the chart as a stub, and a stub opens its note', async ({ page }) => {
+  await openChart(page);
+  await page.fill('#searchbox', 'Start');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('.flowchart-node')).toHaveCount(1);
+
+  // one.md is filtered out: a stub, which takes a dragged link — refused here only because Start
+  // already links to it.
+  const stub = page.locator('.flowchart-stub[aria-label="one.md"]');
+  const a = await box(page, 'Start').boundingBox();
+  const b = await stub.boundingBox();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('#output-report')).toContainText('Start already links to');
+
+  await dragToEmpty(page, 'Start');
+  await page.click('#flowchart-new-note-confirm');
+  await expect(page.locator('.flowchart-stub[aria-label="note-1.txt"]')).toBeVisible();
+
+  await stub.click();
+  await expect(page.locator('#file-content-modal')).toBeVisible();
 });

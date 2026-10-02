@@ -1,5 +1,5 @@
 import { applyCellEdits } from '../../editing/save-cell-edit.js';
-import { markUndoState } from '../ui-functions-table/render-table-controls.js';
+import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 import { holdRowMove } from '../ui-functions-table/pending-row-move.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 

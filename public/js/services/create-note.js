@@ -41,3 +41,24 @@ export async function createEmptyNote(folder, filename) {
 
     return newFile;
 }
+
+/**
+ * Finds the first available note-N.txt filename by querying the real filesystem.
+ * Checking the filesystem (not just appState.myFiles) prevents overwriting files
+ * created externally since the folder was loaded.
+ * Shared by the new-note button and by a note made from the flowchart.
+ * @param {FileSystemDirectoryHandle} dirHandle
+ * @returns {Promise<string>}
+ */
+export async function findUnusedFilename(dirHandle) {
+    let n = 1;
+    while (true) {
+        const name = `note-${n}.txt`;
+        try {
+            await dirHandle.getFileHandle(name, { create: false });
+            n++;
+        } catch {
+            return name;
+        }
+    }
+}

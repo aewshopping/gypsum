@@ -4,9 +4,10 @@ import { planFlowchartLink } from '../../services/flowchart/plan-flowchart-link.
 import { addFlowchartLink } from '../../editing/add-flowchart-link.js';
 import { showWarningModal } from '../ui-functions-click/warning-modal.js';
 import { reportAction, reportFailure } from '../ui-functions-render/output-report.js';
+import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 
 /** What the report line says when a plan refuses, by its reason. */
-const REFUSALS = {
+export const REFUSALS = {
     exists: (from, to) => `${from} already links to ${to}`,
     unwritable: () => 'the connectors option names a property the chart cannot write to',
     self: () => 'a note cannot be linked to itself by dragging',
@@ -44,6 +45,7 @@ export async function linkNotes(fromId, toId) {
 
     try {
         const records = await addFlowchartLink(source, target, plan.edits);
+        markUndoState();
         if (records.length) reportAction(`linked ${from} → ${to}`);
         else reportFailure(`${source.filepath} could not be written`);
     } catch (error) {

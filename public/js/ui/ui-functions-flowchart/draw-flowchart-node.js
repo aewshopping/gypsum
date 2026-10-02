@@ -5,7 +5,9 @@ import { svgElement, centredText } from './svg-element.js';
  *
  * A note is `<g class="flowchart-node color-dynamic" data-action="open-flowchart-note">`, which is
  * what opens it on release and paints it in its colour. A stub — a link target that is not drawn —
- * is `.flowchart-stub`, faded and pressable for nothing.
+ * is `.flowchart-stub`, faded. One that names a loaded note — filtered out, or on another page —
+ * carries `data-action="open-flowchart-stub"` and the note's id, so a press opens it and a link can
+ * be dragged onto it; one that names nothing is pressable for nothing.
  *
  * @param {object} node - A graph node (flowchart-graph.js).
  * @param {{lines: string[], width: number, height: number, textX: number, tag: string, attributes: object}} box
@@ -20,7 +22,12 @@ export function drawFlowchartNode(node, box, position, lineHeight) {
             class: 'flowchart-node color-dynamic', 'data-action': 'open-flowchart-note',
             'data-file-id': node.file.internalId, 'data-color': node.file.color ?? '',
         }
-        : { class: 'flowchart-stub' };
+        : node.file
+            ? {
+                class: 'flowchart-stub', 'data-action': 'open-flowchart-stub',
+                'data-file-id': node.file.internalId, 'data-color': node.file.color ?? '',
+            }
+            : { class: 'flowchart-stub' };
 
     const group = svgElement('g', {
         ...attributes, transform: `translate(${position.x} ${position.y})`, 'aria-label': node.label,

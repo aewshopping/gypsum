@@ -50,10 +50,11 @@ function refreshFolderDatalist() {
 
 /**
  * Selects the stem portion (text before the final '.') of the filename input,
- * so typing replaces the stem but preserves the extension.
+ * so typing replaces the stem but preserves the extension. Shared with the flowchart's new-note dialog.
  * @param {HTMLInputElement} input
+ * @returns {void}
  */
-function selectStem(input) {
+export function selectStem(input) {
     const value = input.value;
     const dot = value.lastIndexOf('.');
     input.focus();

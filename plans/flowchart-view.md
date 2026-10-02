@@ -215,8 +215,8 @@ As built — the plan below held, with these decisions:
 - **Refused with a reason in the report line, nothing written**: a link that already exists, and a
   connectors property the chart cannot write. A drag back to its own box, or onto empty chart, does
   nothing (empty chart is step 6).
-- **One undo entry**, named `link to two.md added`. The undo list reaches it; Ctrl+Z and the undo
-  buttons are the table's.
+- **One undo entry**, named `link to two.md added`. The undo list reaches it, and since step 6 the
+  undo buttons and Ctrl+Z work in the flowchart too.
 - **The drag**: past 6px (10px for a finger) a press from a box becomes a drag, a dashed line
   follows the pointer and the box under it is outlined (`flowchart-node-drag.js`).
 - **Touch follows the pan and zoom original** (`plans/reference/svg-pan-zoom-original.html`): mouse
@@ -241,19 +241,38 @@ As built — the plan below held, with these decisions:
 - A link that already exists draws no second arrow — `internalLink` keeps one entry per target — so
   say so in the report line rather than writing a duplicate.
 
-## Step 6 — drag from a note to empty space makes a new linked note
+## Step 6 — drag from a note to empty space makes a new linked note *(built)*
 
-- **Release over no box** means "create a new note, linked from the one the drag started on".
-- **A dialog asks for the name and folder.** Reuse `#modal-file-options` — it already has the folder
-  field with the `gypsum-folders` datalist, the filename field and an error slot — in a "new note"
-  mode that hides delete and offers one create button. Name and folder are validated the way rename
-  and move already validate them (`editing/rename-file.js`).
-- **Then**: `createEmptyNote(folder, filename)` (`services/create-note.js`), and the link written into
-  the starting note exactly as step 5 writes one — the link alone, no link text. **Nothing else is
-  written: no placeholder link text and no placeholder title.** The new note's box reads as its
-  filename, by the fallback `nodeLabel()` already has for an empty node text property — an empty
-  note's title is `''`.
-- **The new note does not open.** It appears on the chart; pressing it opens it.
+As built:
+
+- **Release on the chart's background** — the `<svg>` itself, not a box, a link or its text, and not
+  off the chart — opens a dialog for a new note linked from the one the drag started on
+  (`ui-functions-flowchart/flowchart-note-create.js`). Released on a link or off the chart, nothing
+  happens.
+- **Its own small dialog, `#modal-flowchart-new-note`**, not a mode of `#modal-file-options`: folder
+  and filename, and the rename dialog's arrangement — the line under the boxes says what will be
+  created and written, or why the name cannot be used, and "create and link" is pressable only when
+  it can be done. So it is also the confirmation. Validated by `validateRenameInputs`.
+- **It opens on the next free `note-N.txt` in the source note's folder** — the new-note button's
+  convention, `findUnusedFilename()` now shared in `services/create-note.js` — with the stem selected,
+  so typing replaces it and keeps `.txt`.
+- **A name a loaded note has is refused**, not linked to: dragging onto that note's box does that.
+- **Refused before the dialog** when the connectors option names a property the chart cannot write,
+  so a note is never made for a link that could not then be written (`linkProperty()` in
+  `plan-flowchart-link.js`).
+- **The note first, then the link**, through step 5's plan and writer: one undo entry for the link;
+  the note itself stays. Nothing else is written — no link text, no title. Its box reads as its
+  filename, `nodeLabel()`'s fallback. **The note does not open.**
+- **A note the filter hides is still on the chart, as a stub** — its source links to it, and every
+  link target not drawn is a stub. So nothing created from the chart vanishes, with no pinning and no
+  state. **A stub that names a loaded note opens it on a press**, like a box
+  (`data-action="open-flowchart-stub"`), **and takes a dragged link**, since the link is written into
+  the note the drag began on. A link cannot be dragged *from* a stub: that would write into a note the
+  filter hides. A stub naming nothing stays inert. Stubs are keyed by the note they name, so two
+  spellings of one target are one stub.
+- **Undo, redo and the history are in the flowchart's control row** — the table's three buttons,
+  drawn by `ui-functions-render/render-undo-buttons.js` for both rows — and Ctrl+Z reaches the
+  flowchart as it reaches the table.
 
 ---
 
@@ -291,8 +310,10 @@ Not to be designed for now — listed so nothing above closes them off.
 | `public/css/flowchart-edges.css` | step 4 — lines, arrowheads, link text |
 | `public/js/ui/ui-functions-flowchart/toggle-flowchart-render.js` | step 2 |
 | `public/js/ui/ui-functions-flowchart/flowchart-*.js` | steps 3–6 — one file per action, beside the flowchart's renderers |
-| `public/js/ui/ui-functions-flowchart/node-drag.js` | steps 5–6 — the drag line and where it ends |
-| `public/js/editing/add-flowchart-link.js` | steps 5–6 — which property gets the link, via `applyCellEdits` |
+| `public/js/ui/ui-functions-flowchart/flowchart-node-drag.js` | steps 5–6 — the drag line and where it ends |
+| `public/js/ui/ui-functions-flowchart/flowchart-note-create.js` | step 6 — the new note dialog, then the note and its link |
+| `public/js/editing/add-flowchart-link.js` | steps 5–6 — the link into its note, via `applyRawEdits` |
+| `public/js/ui/ui-functions-render/render-undo-buttons.js` | step 6 — undo, redo and history, shared with the table's row |
 | `public/css/flowchart.css` | built — extend for boxes, arrows, labels |
 
 **Tests**: the writes of steps 5 and 6 go in `tests/1-data/` (what lands in the note, `flowChartLink`

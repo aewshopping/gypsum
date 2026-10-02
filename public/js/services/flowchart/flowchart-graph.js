@@ -1,3 +1,4 @@
+import { appState } from '../store.js';
 import { nodeLabel, nodeShape, valueFor } from './node-content.js';
 import { resolveNoteName } from '../internal-links/note-name-index.js';
 import { toList, linkTarget } from '../internal-links/link-targets.js';
@@ -23,8 +24,10 @@ const nodeKey = (kind, id) => `${kind}:${id}`;
  * The files as nodes and edges.
  *
  * A link whose target is not one of these files — it names no loaded note, or one filtered out or
- * on another page — points at a **stub**, labelled with the target as written. Two links to the same
- * missing target share one stub, and stubs come in the order they are first linked to.
+ * on another page — points at a **stub**, labelled with the target as written. A stub naming a
+ * loaded note carries that note as `file`, which is what lets it be pressed open and dragged onto.
+ * Links to the same target share one stub — keyed by the note when there is one, so two spellings of
+ * it are one stub — and stubs come in the order they are first linked to.
  *
  * A link's own `|label` is ignored: labels come from the connector text role and nowhere else. The
  * text is read by index, and the two lists need not line up (see readRoles), so a missing entry is
@@ -32,12 +35,14 @@ const nodeKey = (kind, id) => `${kind}:${id}`;
  *
  * @param {object[]} files - The files being drawn, in order.
  * @param {object} roles - What readRoles returned.
- * @returns {{nodes: object[], edges: object[]}} Nodes `{key, kind, file?, label, shape?}`, notes
+ * @returns {{nodes: object[], edges: object[]}} Nodes `{key, kind, file?, label, shape?}` — a stub's
+ *   `file` is null when it names no loaded note — notes
  *   first in file order and then stubs; edges `{from, to, text, file}`, keys of nodes, in link order,
  *   `file` being the note the link is written in.
  */
 export function buildFlowchartGraph(files, roles) {
     const drawn = new Set(files.map(file => file.internalId));
+    const filesById = new Map(appState.myFiles.map(file => [file.internalId, file]));
     const nodes = files.map(file => ({
         key: nodeKey('note', file.internalId), kind: 'note', file,
         label: nodeLabel(file, roles), shape: nodeShape(file, roles),
@@ -54,8 +59,8 @@ export function buildFlowchartGraph(files, roles) {
             if (drawn.has(resolved)) {
                 to = nodeKey('note', resolved);
             } else {
-                to = nodeKey('stub', target);
-                if (!stubs.has(to)) stubs.set(to, { key: to, kind: 'stub', label: target });
+                to = nodeKey('stub', resolved ?? target);
+                if (!stubs.has(to)) stubs.set(to, { key: to, kind: 'stub', label: target, file: filesById.get(resolved) ?? null });
             }
             edges.push({ from: nodeKey('note', file.internalId), to, text: texts[index] ?? '', file });
         });

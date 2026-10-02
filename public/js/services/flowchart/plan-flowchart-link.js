@@ -21,6 +21,19 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
  */
 
 /**
+ * The property a drawn link is written into, or null when the connectors role names one the chart
+ * cannot write. Asked on its own before a new note is made for a link, so a note is never created for
+ * a link that could not then be written.
+ * @param {object} roles - What readRoles returned.
+ * @returns {string|null}
+ */
+export function linkProperty(roles) {
+    const connectors = roles.connectors;
+    if (connectors === 'internalLink') return FLOWCHART_LINK_PROPERTY;
+    return isPropertyUserOwned(connectors) ? connectors : null;
+}
+
+/**
  * The plan for one drawn link.
  *
  * @param {object} source - The note the link is written in.
@@ -32,15 +45,13 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
 export function planFlowchartLink(source, target, roles) {
     if (source.internalId === target.internalId) return { edits: [], problem: 'self' };
 
-    const connectors = roles.connectors;
-    const toInternalLink = connectors === 'internalLink';
-    if (!toInternalLink && !isPropertyUserOwned(connectors)) return { edits: [], problem: 'unwritable' };
+    const property = linkProperty(roles);
+    if (property === null) return { edits: [], problem: 'unwritable' };
 
-    const linked = toList(valueFor(source, connectors))
+    const linked = toList(valueFor(source, roles.connectors))
         .some(item => resolveNoteName(linkTarget(item)) === target.internalId);
     if (linked) return { edits: [], problem: 'exists' };
 
-    const property = toInternalLink ? FLOWCHART_LINK_PROPERTY : connectors;
     return {
         edits: [{ property, items: [...toList(source[property]).map(String), `[[${target.filepath}]]`] }],
         problem: null,

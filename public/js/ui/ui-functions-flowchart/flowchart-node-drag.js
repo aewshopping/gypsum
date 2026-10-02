@@ -1,6 +1,7 @@
 import { appState } from '../../services/store.js';
 import { svgElement } from './svg-element.js';
 import { linkNotes } from './flowchart-link-add.js';
+import { offerNewLinkedNote } from './flowchart-note-create.js';
 
 /**
  * @file Dragging from one note's box to another's draws a link between them.
@@ -8,7 +9,10 @@ import { linkNotes } from './flowchart-link-add.js';
  * The press is recorded by flowchart-note-open.js; this carries it on. Once the pointer has moved
  * past a few pixels the press is a drag — it will not open the note — and a line follows the pointer
  * from the box, the box under the pointer marked as where it would land. Released over another
- * note's box, the link is offered (flowchart-link-add.js); anywhere else, nothing happens.
+ * note's box — or a stub that names a loaded note, since the link is written into the note the drag
+ * began on and not into the one it lands on — the link is offered (flowchart-link-add.js). Released on
+ * the chart's empty background, a new note linked from it is offered (flowchart-note-create.js). On a
+ * link, a stub naming nothing, or off the chart, nothing happens.
  *
  * **Mouse and touch events, on the chart's own `<svg>`, as the pan and zoom code listens on its map**
  * (plans/reference/svg-pan-zoom-original.html) — and for the same reason. A touch that is only a tap
@@ -25,8 +29,8 @@ import { linkNotes } from './flowchart-link-add.js';
 const MOUSE_THRESHOLD = 6;  // px a mouse moves before a press is a drag
 const TOUCH_THRESHOLD = 10; // a finger wobbles more than a mouse, and a wobble must still be a tap
 
-/** The note's box, if any, at a point on screen. */
-const boxAt = (x, y) => document.elementFromPoint(x, y)?.closest('.flowchart-node') ?? null;
+/** The box at a point on screen a link can be dragged onto, if any: a note's, or a stub's that names one. */
+const boxAt = (x, y) => document.elementFromPoint(x, y)?.closest('.flowchart-node, .flowchart-stub[data-file-id]') ?? null;
 
 /**
  * Takes the drag's line and its landing mark off the chart.
@@ -81,8 +85,8 @@ function moveDrag(svg, x, y, threshold) {
 }
 
 /**
- * Ends a drag, if the press became one: released over another note's box it offers the link, and
- * anywhere else draws nothing. A press that never moved is left for the release to open its note
+ * Ends a drag, if the press became one: released over another note's box it offers the link, on the
+ * chart's background a new linked note, and anywhere else nothing. A press that never moved is left for the release to open its note
  * through the mouseup action map — these listeners are on the chart, so they run first — unless it
  * was let go somewhere that opens nothing, when it is forgotten here.
  *
@@ -102,7 +106,13 @@ function endDrag(svg, x, y) {
 
     clearDragMarks(svg);
     appState.flowchartView.press = null;
-    const over = x === null ? null : boxAt(x, y);
+    if (x === null) return;
+    // The background is the <svg> itself: a box, a link and its text are all elements inside it.
+    if (document.elementFromPoint(x, y) === svg) {
+        offerNewLinkedNote(press.fileId);
+        return;
+    }
+    const over = boxAt(x, y);
     if (!over || over.dataset.fileId === press.fileId) return;
     linkNotes(press.fileId, over.dataset.fileId);
 }

@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { markUndoState } from './render-table-controls.js';
+import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 import { reportProgress, reportProgressEnd } from '../ui-functions-render/output-report.js';
 
 /**
