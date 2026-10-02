@@ -6,6 +6,7 @@ import { escapeHtml } from './ui-functions-render/escape-html.js';
 import { renderFlowchartViewer } from './ui-functions-flowchart/render-flowchart-viewer.js';
 import { drawFlowchart } from './ui-functions-flowchart/render-svg.js';
 import { attachPanZoom, readPanZoomState } from '../svg-pan-zoom/svg-pan-zoom.js';
+import { attachFlowchartDrag } from './ui-functions-flowchart/flowchart-node-drag.js';
 
 /**
  * @file Renders the file list as a flowchart: mermaid source in a copyable code block, or an SVG.
@@ -61,4 +62,5 @@ export function renderFileList_flowchart(renderEverything) {
     container.style.setProperty('--viewer-height', `${Math.max(300, window.innerHeight - top - 16)}px`);
     drawFlowchart(container.querySelector('svg.pz-svg'), drawnFiles);
     attachPanZoom(container, panZoomState);
+    attachFlowchartDrag(container.querySelector('svg.pz-svg'));
 }

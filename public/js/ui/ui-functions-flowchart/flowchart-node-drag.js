@@ -5,54 +5,65 @@ import { linkNotes } from './flowchart-link-add.js';
 /**
  * @file Dragging from one note's box to another's draws a link between them.
  *
- * The press is recorded by flowchart-note-open.js; these are the document listeners that carry it
- * on, beside the table's other drags. Once the pointer has moved past a few pixels the press is a
- * drag — it will not open the note — and a line follows the pointer from the box, the box under the
- * pointer marked as where it would land. Released over another note's box, the link is offered
- * (flowchart-link-add.js); anywhere else, nothing happens.
+ * The press is recorded by flowchart-note-open.js; this carries it on. Once the pointer has moved
+ * past a few pixels the press is a drag — it will not open the note — and a line follows the pointer
+ * from the box, the box under the pointer marked as where it would land. Released over another
+ * note's box, the link is offered (flowchart-link-add.js); anywhere else, nothing happens.
  *
- * The box under the pointer is found with elementFromPoint rather than the event's target, because a
- * finger's pointer is captured by the element it pressed: its events go on naming the first box.
+ * **Mouse and touch events, on the chart's own `<svg>`, as the pan and zoom code listens on its map**
+ * (plans/reference/svg-pan-zoom-original.html) — and for the same reason. A touch that is only a tap
+ * must be left entirely alone: cancelling any part of it stops the browser making the mouse events a
+ * tap becomes, and every data-action in the chart opens on those. So nothing here cancels a
+ * touchstart, nothing sets `touch-action`, and a touchmove is cancelled only once a press from a box
+ * has moved far enough to be a drag — which is what keeps the page from scrolling under it, and is
+ * what the original's drag() does. A touch anywhere else on the chart scrolls the page as ever.
+ *
+ * The listeners are on the element itself, which also makes the touchmove one cancellable: the
+ * browser treats a touch listener on the document as passive.
  */
 
-const DRAG_THRESHOLD = 6; // px the pointer moves before a press is a drag
+const MOUSE_THRESHOLD = 6;  // px a mouse moves before a press is a drag
+const TOUCH_THRESHOLD = 10; // a finger wobbles more than a mouse, and a wobble must still be a tap
 
 /** The note's box, if any, at a point on screen. */
 const boxAt = (x, y) => document.elementFromPoint(x, y)?.closest('.flowchart-node') ?? null;
 
 /**
  * Takes the drag's line and its landing mark off the chart.
+ * @param {SVGSVGElement} svg
  * @returns {void}
  */
-function clearDragMarks() {
-    document.querySelector('.flowchart-drag-line')?.remove();
-    document.querySelector('.flowchart-node.is-drop-target')?.classList.remove('is-drop-target');
+function clearDragMarks(svg) {
+    svg.querySelector('.flowchart-drag-line')?.remove();
+    svg.querySelector('.flowchart-node.is-drop-target')?.classList.remove('is-drop-target');
 }
 
 /**
- * Carries a press from a note's box on: past the threshold it becomes a drag, drawn as a line from
- * the box's centre to the pointer.
+ * Carries a press from a note's box to a point on screen: past the threshold it becomes a drag,
+ * drawn as a line from the box's centre to the point.
  *
- * @param {PointerEvent} event - Any pointermove in the document.
- * @returns {void}
+ * @param {SVGSVGElement} svg - The chart.
+ * @param {number} x - Client coordinates.
+ * @param {number} y
+ * @param {number} threshold - How far it must move to be a drag.
+ * @returns {boolean} Whether the press is a drag.
  */
-export function handleFlowchartDragMove(event) {
+function moveDrag(svg, x, y, threshold) {
     const press = appState.flowchartView.press;
-    if (!press?.fromNote) return;
+    if (!press?.fromNote) return false;
     if (!press.moved) {
-        if (Math.hypot(event.clientX - press.x, event.clientY - press.y) < DRAG_THRESHOLD) return;
+        if (Math.hypot(x - press.x, y - press.y) < threshold) return false;
         press.moved = true;
     }
 
-    const drawing = document.querySelector('.flowchart-drawing');
-    const source = drawing?.querySelector(`.flowchart-node[data-file-id="${CSS.escape(press.fileId)}"]`);
-    if (!source) return;
+    const drawing = svg.querySelector('.flowchart-drawing');
+    const source = drawing.querySelector(`.flowchart-node[data-file-id="${CSS.escape(press.fileId)}"]`);
 
     // Both ends in the drawing's own units, which pan and zoom have moved away from the screen's.
     const toDrawing = drawing.getScreenCTM().inverse();
     const box = source.getBoundingClientRect();
     const from = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(toDrawing);
-    const to = new DOMPoint(event.clientX, event.clientY).matrixTransform(toDrawing);
+    const to = new DOMPoint(x, y).matrixTransform(toDrawing);
 
     let line = drawing.querySelector('.flowchart-drag-line');
     if (!line) {
@@ -62,34 +73,60 @@ export function handleFlowchartDragMove(event) {
     line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
     line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
 
-    const over = boxAt(event.clientX, event.clientY);
+    const over = boxAt(x, y);
     const marked = drawing.querySelector('.is-drop-target');
     if (marked !== over) marked?.classList.remove('is-drop-target');
     if (over && over !== source) over.classList.add('is-drop-target');
+    return true;
 }
 
 /**
- * Ends a press. A drag released over another note's box offers the link; any other end of a drag
- * draws nothing. A press that never moved is left for the release to open its note — unless it was
- * let go somewhere that will not, in which case it is forgotten here.
+ * Ends a drag, if the press became one: released over another note's box it offers the link, and
+ * anywhere else draws nothing. A press that never moved is left for the release to open its note
+ * through the mouseup action map — these listeners are on the chart, so they run first — unless it
+ * was let go somewhere that opens nothing, when it is forgotten here.
  *
- * @param {PointerEvent} event - Any pointerup or pointercancel in the document.
+ * @param {SVGSVGElement} svg - The chart.
+ * @param {number|null} x - Client coordinates of the release, or null for a drag abandoned.
+ * @param {number|null} y
  * @returns {void}
  */
-export function handleFlowchartDragEnd(event) {
+function endDrag(svg, x, y) {
     const press = appState.flowchartView.press;
     if (!press) return;
-    const over = boxAt(event.clientX, event.clientY);
-
     if (!press.moved) {
-        if (!document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-action^="open-flowchart"]')) {
-            appState.flowchartView.press = null;
-        }
+        const opener = x !== null && document.elementFromPoint(x, y)?.closest('[data-action^="open-flowchart"]');
+        if (!opener) appState.flowchartView.press = null;
         return;
     }
 
-    clearDragMarks();
+    clearDragMarks(svg);
     appState.flowchartView.press = null;
-    if (event.type === 'pointercancel' || !over || over.dataset.fileId === press.fileId) return;
+    const over = x === null ? null : boxAt(x, y);
+    if (!over || over.dataset.fileId === press.fileId) return;
     linkNotes(press.fileId, over.dataset.fileId);
+}
+
+/**
+ * Listens on the chart for the drag, with the mouse and with one finger. Called each time the chart
+ * is drawn; the listeners go with the element when the next render replaces it.
+ *
+ * @param {SVGSVGElement} svg - The chart's `<svg>`.
+ * @returns {void}
+ */
+export function attachFlowchartDrag(svg) {
+    svg.addEventListener('mousemove', event => moveDrag(svg, event.clientX, event.clientY, MOUSE_THRESHOLD));
+    svg.addEventListener('mouseup', event => endDrag(svg, event.clientX, event.clientY));
+    svg.addEventListener('mouseleave', () => endDrag(svg, null, null));
+
+    svg.addEventListener('touchmove', event => {
+        if (event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        if (moveDrag(svg, touch.clientX, touch.clientY, TOUCH_THRESHOLD)) event.preventDefault();
+    });
+    svg.addEventListener('touchend', event => {
+        const touch = event.changedTouches[0];
+        endDrag(svg, touch.clientX, touch.clientY);
+    });
+    svg.addEventListener('touchcancel', () => endDrag(svg, null, null));
 }

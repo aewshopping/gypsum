@@ -314,3 +314,52 @@ test('the connector roles offer only properties a drawn link can write to', asyn
   expect(await offered('connectorText')).not.toContain('filename');
   expect(await offered('nodeText')).toContain('tags');
 });
+
+// A finger: every data-action in the chart opens on the mouse events the browser makes from a tap,
+// so nothing may cancel a touch that is only a tap. A drag from a box holds the page still; a swipe
+// anywhere else on the chart is left to the page. Simulated touches, through the browser's own input.
+test.describe('touch', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 800 } });
+
+  async function openTouchChart(page) {
+    await setupMockDirectoryWithFlowchart(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await page.selectOption('#view-select', 'flowchart');
+    await page.click('label[for="flowchart_render_toggle"]');
+    await page.locator('.pz-container').evaluate(el => el.scrollIntoView({ block: 'end' }));
+    await page.evaluate(() => {
+      window.__prevented = [];
+      window.addEventListener('touchmove', e => window.__prevented.push(e.defaultPrevented));
+    });
+  }
+
+  async function finger(page, from, to) {
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(([x, y]) => ({ x, y, id: 1 })) });
+    await touch('touchStart', [from]);
+    for (let i = 1; i <= 10; i++) await touch('touchMove', [[from[0] + (to[0] - from[0]) * i / 10, from[1] + (to[1] - from[1]) * i / 10]]);
+    await touch('touchEnd', []);
+  }
+
+  const centre = async locator => { const b = await locator.boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+
+  test('a tap on a box or on link text opens its note', async ({ page }) => {
+    await openTouchChart(page);
+    await page.locator('.flowchart-node[aria-label="The cave"]').tap();
+    await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'cave.md');
+  });
+
+  test('a finger drag from a box offers a link and holds the page still; a swipe elsewhere does not', async ({ page }) => {
+    await openTouchChart(page);
+    const chart = await page.locator('.pz-svg').boundingBox();
+    await finger(page, [chart.x + 20, chart.y + 40], [chart.x + 20, chart.y + 200]);
+    expect(await page.evaluate(() => window.__prevented)).not.toContain(true);
+
+    await page.evaluate(() => { window.__prevented = []; });
+    await finger(page, await centre(page.locator('.flowchart-node[aria-label="Deeper still"]')),
+                       await centre(page.locator('.flowchart-node[aria-label="A note with no chapter"]')));
+    await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+    expect(await page.evaluate(() => window.__prevented)).toContain(true);
+  });
+});

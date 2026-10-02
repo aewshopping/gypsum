@@ -6,7 +6,8 @@ import { openFileContent } from '../ui-functions-click/open-file-content-view-tr
  * link is written in: both carry that note's `data-file-id`, so one pair of handlers serves both.
  *
  * On release rather than on click, because a press on a box can also begin a drag
- * (flowchart-node-drag.js). So every press in the chart is recorded — a box carries
+ * (flowchart-node-drag.js). A finger's tap reaches here as the mouseup the browser makes from it,
+ * which is why nothing in the chart may cancel a touch that is only a tap. So every press in the chart is recorded — a box carries
  * `data-action="open-flowchart-note"`, a link `"open-flowchart-link"` and the chart itself
  * `"flowchart-press"`, all in the pointerdown map — and a release opens only the note the press
  * began on, and only if it did not move far enough to be a drag.
@@ -44,6 +45,8 @@ export function handleFlowchartPress(event, target) {
 export function handleFlowchartNoteOpen(event, target) {
     const press = appState.flowchartView.press;
     appState.flowchartView.press = null;
+    // A press that became a drag was already ended by flowchart-node-drag.js, which listens on the
+    // chart and so hears the release first; it leaves nothing here to open.
     if (event.button !== 0 || !press || press.moved || press.fileId !== target.dataset.fileId) return;
     openFileContent(target.dataset.fileId, target.dataset.color, null);
 }

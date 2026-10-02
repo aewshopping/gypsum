@@ -212,10 +212,14 @@ As built — the plan below held, with these decisions:
   nothing (empty chart is step 6).
 - **One undo entry**, named `link to two.md added`. The undo list reaches it; Ctrl+Z and the undo
   buttons are the table's.
-- **The drag**: past 6px a press from a box becomes a drag, a dashed line follows the pointer and the
-  box under it is outlined (`flowchart-node-drag.js`, document listeners beside the table's drags).
-  A finger on a box drags rather than scrolls — `touch-action: none` on the box's shape and text,
-  since Chrome ignores it on a `<g>`.
+- **The drag**: past 6px (10px for a finger) a press from a box becomes a drag, a dashed line
+  follows the pointer and the box under it is outlined (`flowchart-node-drag.js`).
+- **Touch follows the pan and zoom original** (`plans/reference/svg-pan-zoom-original.html`): mouse
+  and touch events on the chart's own `<svg>`, a touchmove cancelled only once the press is a drag,
+  and never a touchstart or `touch-action`. A tap must reach the browser untouched, because every
+  data-action in the chart opens on the mouse events it makes from one — an earlier attempt with
+  `touch-action: none` on the boxes broke exactly that. A swipe anywhere but a box scrolls the page.
+  Level 2 holds it, with simulated touches.
 - `services/flowchart/plan-flowchart-link.js` is the pure plan; `ui-functions-flowchart/flowchart-link-add.js`
   asks and writes. Level 1: `tests/1-data/61-flowchart-link.spec.js`.
 

@@ -36,10 +36,6 @@
         vector-effect: non-scaling-stroke;
     }
     cursor: pointer;
-    /* A finger pressed on a box drags a link from it (flowchart-node-drag.js) rather than scrolling
-       the page; pressed anywhere else on the chart it still scrolls, while pan is off. On the shape
-       and the text, not the group: Chrome ignores touch-action on a <g>, which has no box of its own. */
-    * { touch-action: none; }
     /* Hovered, the note a hovered link is written in (flowchart-link-hover.js), or where a link being
        dragged would land (flowchart-node-drag.js) — one look for all three. */
     &:hover .flowchart-shape, &.is-link-source .flowchart-shape, &.is-drop-target .flowchart-shape {

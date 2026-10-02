@@ -18,7 +18,6 @@ import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.
 import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flowchart-render.js';
 import { handleFlowchartNoteOpen, handleFlowchartPress } from './ui-functions-flowchart/flowchart-note-open.js';
 import { handleFlowchartLinkHover } from './ui-functions-flowchart/flowchart-link-hover.js';
-import { handleFlowchartDragMove, handleFlowchartDragEnd } from './ui-functions-flowchart/flowchart-node-drag.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -173,9 +172,6 @@ export function addActionHandlers() {
     document.addEventListener('pointermove', handleRangeDragMove);
     document.addEventListener('pointerup', handleRangeDragEnd);
     document.addEventListener('pointercancel', handleRangeDragEnd);
-    document.addEventListener('pointermove', handleFlowchartDragMove);
-    document.addEventListener('pointerup', handleFlowchartDragEnd);
-    document.addEventListener('pointercancel', handleFlowchartDragEnd);
 
     // Escape, clicking outside and the close button are all valid ways to finish with the column
     // picker, and all three have to apply what it was used to change. close is the one event they
