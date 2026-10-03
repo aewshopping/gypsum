@@ -1,7 +1,7 @@
 import { svgElement } from './svg-element.js';
 
 /**
- * @file A subgraph, drawn: a box round its notes with its name in the strip along its top edge.
+ * @file A subgraph, drawn: a box round its notes with its name centred in the strip along its top edge.
  *
  * Where the box goes is the layout's (layout/dagre-layout.js keeps the strip clear), so nothing here
  * decides anything. It is drawn first, under the links and the notes, and takes no presses
@@ -21,7 +21,7 @@ const NAME_PADDING_X = 8;
 export function drawFlowchartGroup(group, name, nameHeight) {
     const element = svgElement('g', { class: 'flowchart-group' });
     element.append(svgElement('rect', { x: group.x, y: group.y, width: group.width, height: group.height, rx: 6 }));
-    const text = svgElement('text', { x: group.x + NAME_PADDING_X, y: group.y + nameHeight / 2 + 2 });
+    const text = svgElement('text', { x: group.x + group.width / 2, y: group.y + nameHeight / 2 + 2 });
     text.textContent = name;
     element.append(text);
     return element;

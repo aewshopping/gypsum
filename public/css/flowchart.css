@@ -72,7 +72,6 @@ body:has(.flowchart-viewer) main,
         fill: var(--colour-bg);
         stroke: var(--colour-bg);
         stroke-width: 2;
-        vector-effect: non-scaling-stroke;
     }
     cursor: pointer;
     /* Hovered, the note a hovered link is written in (flowchart-link-hover.js), or where a link being
@@ -103,7 +102,6 @@ body:has(.flowchart-viewer) main,
         stroke: var(--colour-contr);
         stroke-width: 1;
         stroke-dasharray: 4 3;
-        vector-effect: non-scaling-stroke;
     }
     &.is-filtered .flowchart-shape {
         /* --colour-bg from .color-dynamic, as a box's fill. */
