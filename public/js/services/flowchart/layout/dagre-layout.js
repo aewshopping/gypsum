@@ -2,6 +2,7 @@ import { placeWithDagre, byText, NODE_SPACING, RANK_SPACING } from './dagre-plac
 import { loopRoute } from './placeholder-layout.js';
 import { rankBands, rowShifts } from './ranks.js';
 import { assignPorts } from './ports.js';
+import { straightenLinks } from './straighten.js';
 import { assignTracks } from './tracks.js';
 import { linkWaypoints, linkJogs, routePoints, routeMidpoint } from './orthogonal-routes.js';
 import { compactColumns } from './compact-columns.js';
@@ -17,7 +18,8 @@ import { atOrigin, withNamesAbove } from './chart-frame.js';
  * run in:
  *
  * 1. **dagre places** the linked boxes, the groups, each link's lanes and its label (dagre-place.js).
- * 2. **Ports** spread each box's arrows along its top and bottom (ports.js).
+ * 2. **Ports** spread each box's arrows along its top and bottom (ports.js), and a link that runs in one
+ *    straight column has the column slid onto its port where that is safe (straighten.js).
  * 3. Each link's **jogs** — where it turns sideways between two rows — are found, and given **tracks**
  *    in their gap, ordered to cross as little as possible (orthogonal-routes.js, tracks.js).
  * 4. A gap with more tracks than room is **widened**, every row below moving down (ranks.js).
@@ -81,6 +83,7 @@ function chartInRanks(charted, edges, merge, nameHeight) {
     const placement = placeWithDagre(charted, edges);
     const { bands, rankOf } = rankBands(placement, nameHeight);
     const ports = assignPorts(placement, new Map(charted.map(box => [box.key, box.portWidth ?? box.width])), merge);
+    if (!merge) straightenLinks(placement, ports);
 
     const waypoints = new Map(placement.links.map(link => [link.i, linkWaypoints(link, ports.get(link.i), placement.boxes, rankOf)]));
     const jogs = placement.links.flatMap(link => linkJogs(waypoints.get(link.i))

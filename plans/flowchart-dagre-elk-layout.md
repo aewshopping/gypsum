@@ -294,6 +294,21 @@ What stage 2 turned out to be, where it settled something the steps above left o
 - **Tracks** (`TRACK_SPACING` 18) are spaced evenly in their gap; a gap with too little room is widened
   and every row below moves down. 18 rather than 12 because the last run is also where the arrowhead
   lands, and 12 left it cramped against a corner.
+- **Bends along a row share a height — added after the first try by hand.** Jogs are ordered to cross
+  as little as possible, then each goes on the highest track it can without lying along a jog above it
+  in that order, so jogs that do not overlap side to side bend at the same height, as the reference
+  picture's do. Two jogs that do not overlap cannot cross, so this loses nothing the order won.
+- **Straight lines where a link can have one — added then too** (`straighten.js`). dagre often runs a
+  long link's lane right along a box's edge, too close for an arrow to meet, so the route stepped aside
+  a few units at each end. A link whose lanes form one straight column has the column, label and all,
+  slid onto one of its ports and the other port moved to match, when nothing in its rows comes within
+  10, the port stays inside its box clear of the corners and its neighbours, and no group edge is
+  crossed. Ports are also put in line with their lanes when that fits (`ports.js`), and spread evenly
+  only when it does not. Not with merging on, whose trunks are their own alignment.
+- **The arrowhead is 13 units, not 10**, and the last corner before it leaves it a straight run of its
+  own length, so it never points along a curve (`edge-path.js`).
+- **Boxes are narrower**: text wraps at 128 rather than 156, so a longer title takes two lines, as in
+  the reference picture. Ports may use 85% of a rectangle's side.
 - **Closing gaps** is `compact-columns.js`, last before the unlinked block: a strip empty from the top
   of the drawing to the bottom is narrowed to 40, everything right of it moving left. So nothing changes
   order, no straight line gains a bend, and nothing comes closer to anything than 40.
@@ -477,6 +492,7 @@ folder as svg-pan-zoom has — a library that knows nothing of notes, with its l
 | `public/js/services/flowchart/layout/tracks.js` | step 4 — the order of the runs in each gap; pure |
 | `public/js/services/flowchart/layout/line-jumps.js` | step 5 — where routes cross; pure |
 | `public/js/services/flowchart/layout/ports.js` | step 6 — where on a side each arrow meets a box, and merged trunks; pure |
+| `public/js/services/flowchart/layout/straighten.js` | stage 2 — a straight link's lanes slid onto its port; pure |
 | `public/js/services/flowchart/layout/held-positions.js` | step 8 — held positions laid over a fresh layout; pure |
 | `public/js/services/flowchart/flowchart-graph.js` | step 2b — each node's group, moved here from `mermaid-source.js` so the source and the SVG share one answer |
 | `public/js/services/flowchart/flowchart-layout-settings.js` | stage 2 — direction and merging: the reader and the one writer |

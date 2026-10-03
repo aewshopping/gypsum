@@ -9,6 +9,9 @@
 const RADIUS = 8; // a corner's radius, less where the runs either side are short
 const HOP = 5;    // a hop's radius
 
+/** The arrowhead's length, in drawing units: a little larger than the line needs, so it stands out. */
+export const ARROWHEAD = 13;
+
 /**
  * The path's `d`.
  *
@@ -33,12 +36,17 @@ export function edgePath(points, hops = []) {
     return parts.join(' ');
 }
 
-/** How far back from point k its corner starts: 0 at the ends and where the route goes straight on. */
+/**
+ * How far back from point k its corner starts: 0 at the ends and where the route goes straight on. The
+ * last corner leaves the arrowhead a straight run of its own length to sit on, or the head would point
+ * along the curve.
+ */
 function cornerCut(points, k) {
     if (k === 0 || k === points.length - 1) return 0;
     const before = Math.hypot(points[k][0] - points[k - 1][0], points[k][1] - points[k - 1][1]);
     const after = Math.hypot(points[k + 1][0] - points[k][0], points[k + 1][1] - points[k][1]);
-    return Math.min(RADIUS, before / 2, after / 2);
+    const room = k === points.length - 2 ? after - ARROWHEAD : after / 2;
+    return Math.max(0, Math.min(RADIUS, before / 2, room));
 }
 
 /** The point `distance` from `point` towards `toward`. */

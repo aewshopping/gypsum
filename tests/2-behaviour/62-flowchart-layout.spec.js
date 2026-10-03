@@ -208,6 +208,18 @@ for (const [variant, options] of Object.entries(VARIANTS)) {
   }
 }
 
+test('tracks: runs that do not overlap share a height, and overlapping ones do not', async () => {
+  const { assignTracks } = await appModule('services/flowchart/layout/tracks.js');
+  const tracks = assignTracks([
+    { gap: 0, x1: 0, x2: 50, unit: 'a' }, { gap: 0, x1: 200, x2: 300, unit: 'b' },
+    { gap: 0, x1: 20, x2: 100, unit: 'c' }, { gap: 1, x1: 20, x2: 100, unit: 'd' },
+  ]);
+  expect(tracks[0].index).not.toBe(tracks[2].index); // a and c overlap
+  expect(tracks[1].index).toBe(0);                   // b overlaps nothing, so takes the top track
+  expect(tracks[0].count).toBe(2);
+  expect(tracks[3]).toEqual({ index: 0, count: 1 }); // another gap starts again
+});
+
 test('dagre: the mockup routes with no crossings, as the reference draws it', async () => {
   const layout = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges);
   expect(crossings(layout)).toBe(0);

@@ -10,7 +10,8 @@
  */
 
 const PADDING = 12;
-const WIDE = 156;   // text width for the shapes that are roughly a rectangle
+const WIDE = 128;   // text width for the shapes that are roughly a rectangle — narrow enough that a
+                    // longer title wraps, as the reference picture's boxes do
 const NARROW = 120; // and for the two that need far more room than their text
 
 /** A point list for a polygon. */
@@ -24,15 +25,15 @@ const points = list => list.map(([x, y]) => `${x},${y}`).join(' ');
  * to the edge of its bounding box.
  */
 const SHAPES = {
-    round: { ports: 0.7, textWidth: WIDE, outline(tw, th) {
+    round: { ports: 0.85, textWidth: WIDE, outline(tw, th) {
         const width = tw + 2 * PADDING, height = th + 2 * PADDING;
         return { width, height, tag: 'rect', attributes: { width, height, rx: 8 } };
     } },
-    box: { ports: 0.7, textWidth: WIDE, outline(tw, th) {
+    box: { ports: 0.85, textWidth: WIDE, outline(tw, th) {
         const width = tw + 2 * PADDING, height = th + 2 * PADDING;
         return { width, height, tag: 'rect', attributes: { width, height, rx: 0 } };
     } },
-    stadium: { ports: 0.6, textWidth: WIDE, outline(tw, th) {
+    stadium: { ports: 0.75, textWidth: WIDE, outline(tw, th) {
         const height = th + 2 * PADDING, width = tw + 2 * PADDING + height / 2;
         return { width, height, tag: 'rect', attributes: { width, height, rx: height / 2 } };
     } },
@@ -52,7 +53,7 @@ const SHAPES = {
             [inset, 0], [width - inset, 0], [width, height / 2], [width - inset, height], [inset, height], [0, height / 2]]) } };
     } },
     // Mermaid's `>text]`: a notch cut into the left-hand end, so the text sits right of centre.
-    flag: { ports: 0.7, textWidth: WIDE, outline(tw, th) {
+    flag: { ports: 0.85, textWidth: WIDE, outline(tw, th) {
         const height = th + 2 * PADDING, inset = height / 3, width = tw + 2 * PADDING + inset;
         return { width, height, textX: (width + inset) / 2, tag: 'polygon', attributes: { points: points([
             [0, 0], [width, 0], [width, height], [0, height], [inset, height / 2]]) } };

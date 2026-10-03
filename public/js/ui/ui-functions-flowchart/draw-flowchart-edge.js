@@ -1,5 +1,5 @@
 import { svgElement, centredText } from './svg-element.js';
-import { edgePath } from './edge-path.js';
+import { edgePath, ARROWHEAD } from './edge-path.js';
 
 /**
  * @file A link, drawn: its line, its arrowhead, and its text in a small box.
@@ -26,7 +26,7 @@ const LABEL_PADDING_Y = 3;
 export function arrowheadDefs() {
     const marker = svgElement('marker', {
         id: 'flowchart-arrowhead', viewBox: '0 0 10 10', refX: 10, refY: 5,
-        markerWidth: 10, markerHeight: 10, markerUnits: 'userSpaceOnUse', orient: 'auto',
+        markerWidth: ARROWHEAD, markerHeight: ARROWHEAD, markerUnits: 'userSpaceOnUse', orient: 'auto',
     });
     marker.append(svgElement('path', { class: 'flowchart-arrowhead', d: 'M0,0 L10,5 L0,10 z' }));
     const defs = svgElement('defs');

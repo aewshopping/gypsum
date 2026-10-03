@@ -36,12 +36,12 @@ const EDGE_SPACING = 20;
  *   lays out, sorted by key.
  * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - All of them.
  * @returns {{
- *   boxes: Map<string, {x: number, y: number, width: number, height: number, rankY: number, top: number, bottom: number}>,
+ *   boxes: Map<string, {x: number, y: number, width: number, height: number, rankY: number, top: number, bottom: number, right: number}>,
  *   links: {i: number, upper: string, lower: string, turned: boolean, lanes: number[][], label: ?{x: number, y: number, width: number, height: number}}[],
  *   loops: {i: number, key: string, reach: number}[],
  *   groups: {name: string, x: number, y: number, width: number, height: number}[]
- * }} `boxes` are the real boxes' top-left and size, with the centre and extent dagre gave the grown
- *   box; each link runs `upper` to `lower`, down, through `lanes`, one `[x, y]` per row between.
+ * }} `boxes` are the real boxes' top-left and size, with the centre, extent and right edge dagre gave
+ *   the grown box (`right` reaches over a loop's room); each link runs `upper` to `lower`, down, through `lanes`, one `[x, y]` per row between.
  */
 export function placeWithDagre(charted, edges) {
     const rooms = loopRooms(edges);
@@ -76,7 +76,7 @@ export function placeWithDagre(charted, edges) {
         const top = rooms.get(box.key)?.top ?? 0;
         return [box.key, {
             x: x - width / 2, y: y - height / 2 + top, width: box.width, height: box.height,
-            rankY: y, top: y - height / 2, bottom: y + height / 2,
+            rankY: y, top: y - height / 2, bottom: y + height / 2, right: x + width / 2,
         }];
     }));
 
