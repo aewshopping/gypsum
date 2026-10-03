@@ -67,17 +67,18 @@ body:has(.flowchart-viewer) main,
 
 .flowchart-node {
     /* .color-dynamic (colors.css) reads data-color into --colour-bg and the contrasting text colour
-       into `color`, as a card's does; a box paints with them. */
+       into `color`, as a card's does; a box fills with them. Its border is a link's line, in colour
+       and width (flowchart-edges.css). */
     .flowchart-shape {
         fill: var(--colour-bg);
-        stroke: var(--colour-bg);
-        stroke-width: 2;
+        stroke: var(--colour-contr);
+        stroke-width: var(--flowchart-line);
     }
     cursor: pointer;
     /* Hovered, the note a hovered link is written in (flowchart-link-hover.js), or where a link being
-       dragged would land (flowchart-node-drag.js) — one look for all three. */
+       dragged would land (flowchart-node-drag.js) — one look for all three, the hovered link's width. */
     &:hover .flowchart-shape, &.is-link-source .flowchart-shape, &.is-drop-target .flowchart-shape {
-        stroke: var(--colour-contr);
+        stroke-width: var(--flowchart-line-hover);
     }
 }
 
