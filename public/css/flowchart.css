@@ -56,18 +56,24 @@ body:has(.flowchart-viewer, .flowchart-code-block) main,
     display: flex;
     flex-direction: column;
 }
-/* The chart reaches the foot of the window, so its frame can. */
+/* The chart reaches the foot of the window, so its frame can — and the right edge too: the page
+   keeps a strip for a scrollbar (modal-backdrop.css), which nothing can paint into, and the flowchart
+   view does not scroll while the chart fills the window. Released for the code view as well, so the
+   switch between the two moves nothing. */
 body:has(.flowchart-viewer) {
     padding-bottom: 0;
 }
+html:has(.flowchart-viewer, .flowchart-code-block) {
+    scrollbar-gutter: auto;
+}
 
-/* A plate of the alternate colour from the column's left edge to its right and down to the foot of
-   the window; the viewer sits inside it, rounded and in the page's own colour, so the plate frames
-   it. Square at the bottom, where it meets the window's edge. */
+/* A plate of the alternate colour reaching the page's edges — out over the body's inline margin to
+   either side, and down to the foot of the window. Square: the viewer inside it, rounded and in the
+   page's own colour, is what has corners, and the plate frames it. */
 .flowchart-frame {
     background-color: var(--colour-neutral-alt);
-    border-radius: 8px 8px 0 0;
-    padding: 12px 12px 12px;
+    margin-inline: calc(-1 * var(--page-inline-margin));
+    padding: 12px;
 }
 
 .flowchart-viewer {
