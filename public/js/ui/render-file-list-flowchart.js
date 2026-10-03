@@ -7,6 +7,7 @@ import { renderFlowchartViewer } from './ui-functions-flowchart/render-flowchart
 import { drawFlowchart } from './ui-functions-flowchart/render-svg.js';
 import { attachPanZoom, readPanZoomState } from '../svg-pan-zoom/svg-pan-zoom.js';
 import { attachFlowchartDrag } from './ui-functions-flowchart/flowchart-node-drag.js';
+import { snapshotChart, heldZoom, settleChart } from './ui-functions-flowchart/flowchart-settle.js';
 
 /**
  * @file Renders the file list as a flowchart: mermaid source in a copyable code block, or an SVG.
@@ -43,6 +44,12 @@ export function renderFileList_flowchart(renderEverything) {
     // does — one line above the output instead of two.
     document.getElementById('output-controls').innerHTML = renderFlowchartControls();
 
+    // A render after a write settles from the chart on screen (flowchart-settle.js); any other lays it
+    // out afresh. Read once and forgotten, whichever this render is.
+    const { settle, arrival } = appState.flowchartView;
+    appState.flowchartView.settle = false;
+    appState.flowchartView.arrival = null;
+
     if (!appState.flowchartView.showSvg) {
         output.innerHTML =
             `<div class="flowchart-code-block">
@@ -57,10 +64,13 @@ export function renderFileList_flowchart(renderEverything) {
     // Read before the render replaces the viewer, so a re-render — closing the options dialog, say —
     // leaves the chart zoomed and panned where it was, and the pan toggle as it was.
     const panZoomState = readPanZoomState(output.querySelector('.pz-container'));
+    const before = settle ? snapshotChart(output.querySelector('svg.pz-svg')) : null;
     output.innerHTML = renderFlowchartViewer();
     const container = output.querySelector('.pz-container');
+    const svg = container.querySelector('svg.pz-svg');
 
-    drawFlowchart(container.querySelector('svg.pz-svg'), drawnFiles);
-    attachPanZoom(container, panZoomState);
-    attachFlowchartDrag(container.querySelector('svg.pz-svg'));
+    drawFlowchart(svg, drawnFiles);
+    attachPanZoom(container, before ? heldZoom(svg, before, panZoomState, container.querySelector('.pz-zoom-input')) : panZoomState);
+    if (before) settleChart(svg, before, arrival);
+    attachFlowchartDrag(svg);
 }

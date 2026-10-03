@@ -20,7 +20,7 @@ import { svgElement, centredText } from './svg-element.js';
  */
 export function drawFlowchartNode(node, box, position, lineHeight) {
     const group = svgElement('g', {
-        ...attributesFor(node), transform: `translate(${position.x} ${position.y})`, 'aria-label': node.label,
+        ...attributesFor(node), 'data-key': node.key, transform: `translate(${position.x} ${position.y})`, 'aria-label': node.label,
     });
     const tip = tipFor(node);
     if (tip) group.append(Object.assign(svgElement('title'), { textContent: tip }));

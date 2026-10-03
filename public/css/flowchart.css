@@ -128,6 +128,12 @@ body:has(.flowchart-viewer, .flowchart-code-block) main,
     }
 }
 
+/* The chart before a write, fading out over the one after it (flowchart-settle.js): there to be seen
+   going, never to be pressed. */
+.flowchart-leaving {
+    pointer-events: none;
+}
+
 /* While pan is on the chart is for moving, so a press on a box or a link must not open it: they take
    no pointer events, and the release lands on the chart instead (flowchart-note-open.js). Stated on
    a link's children too, since its hit line asks for pointer events of its own. */

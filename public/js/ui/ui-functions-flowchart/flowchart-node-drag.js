@@ -125,7 +125,7 @@ function endDrag(svg, x, y) {
     appState.flowchartView.press = null;
     if (x === null) return;
     if (onBackground(svg, x, y)) {
-        offerNewLinkedNote(press.fileId);
+        offerNewLinkedNote(press.fileId, { x, y });
         return;
     }
     const over = boxAt(x, y);

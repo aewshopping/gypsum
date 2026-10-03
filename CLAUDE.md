@@ -1113,6 +1113,12 @@ to bottom, left to right and merged through one checker.
   out on its side and mirrored (`transpose.js`), so there is one router, not two.
 - **Merging is one port per side, in and out together** (`ports.js`), and every jog meeting it on one
   track — a two-way trunk, as mermaid's elk drawing has; each link keeps its own branch and label.
+- **After a write the chart settles rather than jumps** (`ui-functions-flowchart/flowchart-settle.js`):
+  every render lays it out afresh, since the router cannot route around held boxes, so a render that
+  follows a write (`flowchartView.settle`) keeps the note nearest the middle where it was on screen,
+  at the same size, and glides every note from its old place — a new one from where it was dropped.
+  Web Animations, not a view transition, which would crossfade the SVG as one picture. A filter, a
+  sort, a view change or the options dialog lays out afresh with nothing held.
 - **Corners and hops are drawing**, in `edge-path.js`, in drawing units so they zoom; the layout only
   says where a route hops (`line-jumps.js`: the horizontal run bridges the vertical one).
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
@@ -1223,6 +1229,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |
 | `public/js/ui/ui-functions-flowchart/edge-path.js` | A route as a path: rounded corners and hops |
 | `public/js/ui/ui-functions-flowchart/fit-routes-to-shapes.js` | Route ends moved onto a shape's real outline |
+| `public/js/ui/ui-functions-flowchart/flowchart-settle.js` | A chart redrawn after a write: the view held still, notes glided from where they were |
 | `public/js/services/flowchart/layout/upward-links.js` | Which links of a loop point back up the chart |
 | `public/js/services/flowchart/layout/unlinked-block.js` | Notes with no links, set in a block above the chart |
 | `public/js/dagre/` | dagre, copied in with its licence — knows nothing of notes |

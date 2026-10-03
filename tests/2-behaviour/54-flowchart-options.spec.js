@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule, setupMockDirectoryWithFlowchart } = require('../helpers');
+const { loadFolder, appModule, setupMockDirectoryWithFlowchart, setupMockCellWritingFolder } = require('../helpers');
 
 // The chart is one block of text, so the assertions here are the text itself rather than a count of
 // things on screen. Pinning it whole is what makes the two-pass ordering — every node declared
@@ -401,4 +401,46 @@ test.describe('touch', () => {
     await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
     expect(await page.evaluate(() => window.__prevented)).toContain(true);
   });
+});
+
+// Stage 3 of plans/flowchart-dagre-elk-layout.md: a chart redrawn after a write settles from the one
+// before — the note nearest the middle holds its place and size on screen, and the rest glide — while
+// any other render lays it out afresh.
+test('after a link is drawn the chart settles from where it was; a fresh render does not animate', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await setupMockCellWritingFolder(page, {
+    'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n\n[[c.md|to c]]\n', 'c.md': '# Cherry\n', 'd.md': '# Date\n\n[[a.md|to a]]\n',
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-panzoom-check');
+  await page.evaluate(() => { document.getElementById('view-transitions-enabled').checked = true; });
+
+  const chartAnimations = () => page.evaluate(() =>
+    document.getAnimations().filter(a => a.effect?.target?.closest?.('.flowchart-svg')).length);
+  const boxOf = label => page.locator(`.flowchart-node[aria-label="${label}"]`).boundingBox();
+  const apple = await boxOf('Apple');
+  const [date, cherry] = [await boxOf('Date'), await boxOf('Cherry')];
+  await page.mouse.move(date.x + date.width / 2, date.y + date.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(cherry.x + cherry.width / 2, cherry.y + cherry.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#modal-unsaved-warning-proceed');
+
+  // The old drawing fades out over the new one while the notes glide, and is gone after.
+  await expect(page.locator('.flowchart-leaving')).toHaveCount(1);
+  expect(await chartAnimations()).toBeGreaterThan(0);
+  await expect(page.locator('.flowchart-leaving')).toHaveCount(0);
+  const after = await boxOf('Apple');
+  expect(Math.abs(after.x - apple.x)).toBeLessThan(1);
+  expect(Math.abs(after.y - apple.y)).toBeLessThan(1);
+  expect(Math.abs(after.width - apple.width)).toBeLessThan(1);
+
+  // Closing the options dialog lays the chart out afresh: nothing glides.
+  await page.click('[data-action="open-flowchart-options"]');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  expect(await chartAnimations()).toBe(0);
 });

@@ -60,6 +60,8 @@ export const appState = {
   flowchartView: {
     showSvg: true,    // true = the view draws its SVG, false = its mermaid code; the code / chart switch
     press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
+    settle: false,    // the next chart render follows a write: it glides from the last (flowchart-settle.js)
+    arrival: null,    // where a note just made came from on screen: {fileId, x, y} in client units, or null
   },
 
   editSession: {

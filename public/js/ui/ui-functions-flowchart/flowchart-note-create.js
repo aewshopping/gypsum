@@ -41,6 +41,7 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 let _source = null;
 let _missing = null;  // where the note a link names goes, while the dialog is creating one
 let _linkers = [];    // the notes whose links name it
+let _from = null;     // where on screen the note comes from: the drop, or the stub pressed
 
 const elements = () => ({
     dialog: document.getElementById('modal-flowchart-new-note'),
@@ -57,9 +58,11 @@ const elements = () => ({
  * would only be clutter.
  *
  * @param {string} fromId - internalId of the note the drag began on.
+ * @param {{x: number, y: number}} at - Where the drag was let go, in client units: the new note's box
+ *   glides from there to its place.
  * @returns {Promise<void>}
  */
-export async function offerNewLinkedNote(fromId) {
+export async function offerNewLinkedNote(fromId, at) {
     const source = appState.myFiles.find(file => file.internalId === fromId);
     if (!source || appState.bulkWriteInFlight) return;
     if (linkProperty(readRoles()) === null) {
@@ -72,6 +75,7 @@ export async function offerNewLinkedNote(fromId) {
 
     _source = source;
     _missing = null;
+    _from = at;
     const els = showDialog('New linked note', 'create and link', folder, filename);
     selectStem(els.name);
 }
@@ -81,9 +85,10 @@ export async function offerNewLinkedNote(fromId) {
  * nothing, when no note could be made there (the stub then has no action, so this is a backstop).
  *
  * @param {string} target - The link as written, from the stub's `data-target`.
+ * @param {?{x: number, y: number}} [at] - The stub's centre on screen, which the new note glides from.
  * @returns {void}
  */
-export function offerMissingNote(target) {
+export function offerMissingNote(target, at = null) {
     const path = linkTargetToFilepath(target);
     if (!path || appState.bulkWriteInFlight) return;
 
@@ -93,6 +98,7 @@ export function offerMissingNote(target) {
         .some(item => linkTargetToFilepath(linkTarget(item))?.filepath.toLowerCase() === lower));
     _source = null;
     _missing = path;
+    _from = at;
     showDialog('Create linked note', 'create note', path.folder, path.filename).confirm.focus();
 }
 
@@ -110,7 +116,8 @@ export function offerMissingNote(target) {
  * @returns {void}
  */
 export function handleMissingNoteClick(event, target) {
-    offerMissingNote(target.dataset.target);
+    const box = target.getBoundingClientRect();
+    offerMissingNote(target.dataset.target, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
 }
 
 /**
@@ -183,6 +190,9 @@ export async function handleFlowchartNewNoteConfirm() {
         reportFailure(`${filepath} could not be created: ${error.message}`);
         return;
     }
+    // The chart redrawn after this glides from the one on screen, and the new box from where it came.
+    appState.flowchartView.settle = true;
+    if (_from) appState.flowchartView.arrival = { fileId: note.internalId, ..._from };
 
     if (_missing) {
         // Their links resolve now: re-checked, so the broken-link marks go with the stub.

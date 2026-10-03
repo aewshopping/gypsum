@@ -522,6 +522,8 @@ opening its anchor and the redraw that writes it.
 appState.flowchartView = {
   showSvg: false,   // the code / chart switch: the SVG when true, the mermaid code when false
   press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
+  settle: false,    // the next chart render follows a write, and glides from the chart on screen
+  arrival: null,    // where a note just made came from on screen: {fileId, x, y} in client units
 }
 ```
 
@@ -532,6 +534,12 @@ the note a box or a link stands for, or `null` on empty chart — and marked `mo
 `flowchart-node-drag.js` once a press from a box has gone far enough to be a drag. A release opens
 the note only when it is the same note and the press never moved; a drag released over another box
 offers a link instead.
+
+`settle` is set by the write's refresh (`editing/refresh-file-state.js`) and by
+`flowchart-note-create.js`, and `arrival` by the latter alone — the drop point, or the centre of the
+missing note's stub that was pressed. The flowchart renderer reads both and clears them on every
+render, whichever it is, so a filter, a sort or a view change after a write still lays the chart out
+afresh. See `ui-functions-flowchart/flowchart-settle.js`.
 
 ---
 
@@ -549,4 +557,4 @@ offers a link instead.
 | value spans | `file-parsing/yaml-parse.js` → `parseYaml(…, spans)` | Only in `editing/plan-file-edits.js`, on a fresh read |
 | `appState.paginationState` | `ui-functions-render/a-render-all-files.js` | Every render |
 | `appState.tableRange` | `ui-functions-cell/cell-range.js` | On a drag across cells, and on Shift+arrow in the table |
-| `appState.flowchartView` | `ui-functions-flowchart/` — the switch and the press handlers | On the switch, and on each press and release in the chart |
+| `appState.flowchartView` | `ui-functions-flowchart/` — the switch and the press handlers; `settle` also by the write's refresh | On the switch, on each press and release in the chart, and after a write |

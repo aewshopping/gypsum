@@ -1,6 +1,6 @@
 # Plan: flowchart layout — dagre, then elk-like routing of our own
 
-Status: **stages 1 and 2 built (steps 1–7, direction and merging), stage 2 waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
+Status: **stages 1, 2 and 3 built (steps 1–8, direction and merging); stage 3 waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
 interactions and drawing links, all against placeholder positions.
 Bump the manifest's minor version with each step that changes code.
 
@@ -391,6 +391,28 @@ shuffle the whole chart under the person who just did it. Instead:
   as full — it does already, being the close of the options dialog.
 - **A box can change size where it stands.** An edit to the node text property re-measures the box;
   held boxes may then overlap or leave a gap, until the next full render. Accepted, but say so.
+
+### As built — option A: lay out afresh, and animate
+
+Step 8 as planned held every box and re-routed around it, which assumed stage 2's router could take
+fixed positions. As built it cannot: it routes inside dagre's rows — a reserved lane per link per row,
+a label's slot, turns only between rows — and a new link has no lane, a dropped note no row. A second,
+free-form router for held charts was the cost, so the chart is laid out afresh every time and the
+change is made followable instead (`ui-functions-flowchart/flowchart-settle.js`):
+
+- **Which renders settle.** After a write — a link drawn, a note made, a link added in a note, an
+  undo, a title that changes a box's size: `appState.flowchartView.settle`, set by the write's refresh
+  and by note creation, read and cleared by the renderer. A filter, a sort, a page, a view switch, the
+  code / chart switch, closing the options dialog and a folder load lay out afresh with nothing held.
+- **The view holds still.** Zoom makes up for a viewBox the new drawing grew or shrank, so boxes keep
+  their size on screen, and pan keeps the note nearest the middle of the viewer exactly where it was.
+- **Notes glide** for 900ms with the Web Animations API, each from where it was on screen. A view
+  transition was not used: it captures boxes on the page, and the shapes inside one SVG would only
+  crossfade as one picture. Lines change shape and cannot be morphed, so the old drawing fades out
+  over the new one as the notes set off and the new lines fade in as they arrive. A new note glides
+  from where it was dropped, or from the missing note's stub it was made from (`arrival`).
+- **"Animate view changes" off** means no glide; the view still holds still, which is not animation.
+  A render that moves nothing animates nothing, so an autosave does not flicker the lines.
 
 **Pause: stage 3 is tried by hand.**
 
