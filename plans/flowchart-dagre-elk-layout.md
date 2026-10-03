@@ -1,6 +1,6 @@
 # Plan: flowchart layout — dagre, then elk-like routing of our own
 
-Status: **unbuilt.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
+Status: **stage 1 built (steps 1 and 2), waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
 interactions and drawing links, all against placeholder positions.
 Bump the manifest's minor version with each step that changes code.
 
@@ -101,8 +101,13 @@ features of its routing, which can be built over dagre's placement for far less.
   are not copied.
 - **A multigraph, every edge named by its index.** `buildFlowchartGraph` keeps a note's two links to the
   same target as two edges; a plain graph merges them silently and `routes[i]` stops being edge *i*'s.
-- **A link to itself**: dagre's points for one came back doubled back on themselves when tried. The
-  placeholder's `loopRoute` is the fallback if they look wrong on screen.
+- **A link to itself — decided when built**: dagre 3.1.1's points for one are nowhere near its box. It
+  is left out of the graph and drawn as the placeholder's `loopRoute` (the *k*th on a note reaching *k*
+  times as far), and the room for it and its label is reserved by handing dagre the box grown to the
+  right and upwards; the box goes back in the bottom-left of that space, and the other edges at it are
+  ended on the real box with `edgeOfBox`.
+- **Two links from one note to another** arrive only through a property the connectors role is pointed
+  at: `internalLink` keeps each target once, so a note body linking the same note twice is one edge.
 - **Label sizes go in padded** — the 6 × 3 the drawn label box adds (`draw-flowchart-edge.js`) — or
   dagre leaves too little room for them.
 - **Deterministic as checked**: the same graph twice gives identical points, and the file never calls
@@ -342,7 +347,7 @@ as `npm test tests/2-behaviour/62-flowchart-layout.spec.js`.
   label lands on a box or another label, every route starts at its source and ends at its target, and
   — from step 3 — every segment is horizontal or vertical and none passes through a box. It is a
   function in the spec, not app code. Each step adds a line to it rather than a test of its own.
-- **Fixtures, not folders**: the mockup's chart as a graph literal (six notes, nine links, two cycles),
+- **Fixtures, not folders**: the mockup's chart as a graph literal (six notes, eight links, two cycles),
   plus a few small hand-written ones that each make one hard case — a link to itself, two links between
   the same notes, an arrow spanning two rows, a subgraph. The same fixtures go through every stage.
 - **Determinism**: the same fixture laid out twice is identical — one assertion, on the mockup fixture.

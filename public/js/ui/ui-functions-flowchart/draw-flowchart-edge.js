@@ -3,7 +3,7 @@ import { svgElement, centredText } from './svg-element.js';
 /**
  * @file A link, drawn: its line, its arrowhead, and its text in a small box.
  *
- * The route is the layout's (placeholder-layout.js says what one is), so nothing here decides where
+ * The route is the layout's (layout/placeholder-layout.js says what one is), so nothing here decides where
  * a line goes — a different layout draws through the same code.
  *
  * **Two elements, not one**: the line is drawn under the boxes and the text over them, so a box
@@ -64,6 +64,17 @@ export function drawFlowchartEdge(edge, index, route) {
 }
 
 /**
+ * The size of the box an edge's text is drawn in: its measured text and the padding round it. The
+ * layout is handed this, so the room it leaves is the room the box takes.
+ * @param {{lines: string[], width: number}} label - Its text, measured.
+ * @param {number} lineHeight
+ * @returns {{width: number, height: number}}
+ */
+export function labelBoxSize(label, lineHeight) {
+    return { width: label.width + 2 * LABEL_PADDING_X, height: label.lines.length * lineHeight + 2 * LABEL_PADDING_Y };
+}
+
+/**
  * An edge's text in its box, for the layer over the boxes.
  *
  * @param {object} edge - A graph edge.
@@ -74,8 +85,7 @@ export function drawFlowchartEdge(edge, index, route) {
  * @returns {SVGGElement}
  */
 export function drawFlowchartEdgeLabel(edge, index, route, label, lineHeight) {
-    const width = label.width + 2 * LABEL_PADDING_X;
-    const height = label.lines.length * lineHeight + 2 * LABEL_PADDING_Y;
+    const { width, height } = labelBoxSize(label, lineHeight);
     const [x, y] = route.labelAt;
     const group = svgElement('g', { class: 'flowchart-edge-label', ...linkAttributes(edge, index) });
     group.append(svgElement('rect', { x: x - width / 2, y: y - height / 2, width, height, rx: 4 }));

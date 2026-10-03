@@ -1,19 +1,19 @@
-import { placeholderLayout } from '../../services/flowchart/placeholder-layout.js';
+import { dagreLayout } from '../../services/flowchart/layout/dagre-layout.js';
 import { readRoles } from '../../services/flowchart/node-content.js';
 import { buildFlowchartGraph } from '../../services/flowchart/flowchart-graph.js';
 import { wrapLabel } from './wrap-label.js';
 import { shapeTextWidth, shapeOutline } from './node-shape.js';
 import { svgElement } from './svg-element.js';
 import { drawFlowchartNode } from './draw-flowchart-node.js';
-import { drawFlowchartEdge, drawFlowchartEdgeLabel, arrowheadDefs } from './draw-flowchart-edge.js';
+import { drawFlowchartEdge, drawFlowchartEdgeLabel, arrowheadDefs, labelBoxSize } from './draw-flowchart-edge.js';
 
 /**
  * @file The flowchart as SVG, in the SVG the pan and zoom viewer is given.
  *
  * Four steps, and only the second knows where anything goes: the files become a graph
  * (flowchart-graph.js, shared with the mermaid source); each node and label is measured; the layout
- * places the boxes and routes the edges (placeholder-layout.js, which says what any layout must
- * return); and the result is drawn in three layers — the links' lines, then the boxes, then the
+ * places the boxes and routes the edges (layout/dagre-layout.js; layout/placeholder-layout.js says
+ * what any layout must return); and the result is drawn in three layers — the links' lines, then the boxes, then the
  * links' text, so a line passes under a box and a box never hides a link's text.
  */
 
@@ -26,7 +26,6 @@ const LABEL_FONT_SIZE = 13;
 const LABEL_LINE_HEIGHT = 16;
 const LABEL_WIDTH = 140;
 const LABEL_MAX_LINES = 2;
-const GAP = 96;
 const MARGIN = 24;
 
 /**
@@ -53,7 +52,9 @@ export function drawFlowchart(svg, files) {
     const labels = graph.edges.map(edge => !edge.text ? null
         : wrapLabel(String(edge.text), `${LABEL_FONT_SIZE}px ${fontFamily}`, LABEL_WIDTH, LABEL_MAX_LINES));
 
-    const layout = placeholderLayout(boxes, graph.edges, GAP);
+    const layout = dagreLayout(boxes, graph.edges.map((edge, i) => ({
+        from: edge.from, to: edge.to, label: labels[i] && labelBoxSize(labels[i], LABEL_LINE_HEIGHT),
+    })));
 
     // The viewBox starts at 0 0 and the drawing is moved to its middle, rather than the box being
     // moved to the drawing: the pan and zoom code scales about 50% 50%, which SVG measures from the

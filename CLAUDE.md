@@ -1051,6 +1051,25 @@ layouts, and adding them would be a new plan rather than a new key.
   length. Read the text by index and treat `undefined` as an unlabelled edge.
 - **Open a dialog or popover from a `click`, never a `mouseup`** — the click that follows lands outside it and a `closedby="any"` dialog shuts unseen (`flowchart-note-open.js`).
 
+### The flowchart's layout
+
+**dagre places the boxes and the plan's own routing has the last word.** See
+`plans/flowchart-dagre-elk-layout.md`, which is built in stages with a pause for trying each by hand.
+
+- **The contract is the seam**, stated at the top of `layout/placeholder-layout.js`: boxes and edges
+  (with each label's size) in, positions, routes, width and height out. Drawing, hover, press, drag
+  and the link writing know nothing else, so a better layout changes none of them.
+- **One drawing style, and it is the elk-inspired one** — there is no dagre-or-elk switch, and the
+  inspiration for every feature here is [mermaid.live/edit](https://mermaid.live/edit), the first place
+  to look before inventing an answer.
+- **dagre is copied in, minified, at `public/js/dagre/`**, as svg-pan-zoom has its own folder. Its
+  version is in the header comment; replacing it is replacing that one file.
+- **A link to itself is not dagre's.** dagre 3.1.1 routes one to points nowhere near its box, so
+  `dagre-layout.js` leaves it out of the graph, reserves room for it by growing the box it hands dagre,
+  and draws the placeholder's loop.
+- **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
+  used to draw the box and to ask the layout for room for it.
+
 ### A view's own control row
 
 **`.output-controls` is the row a view draws above its output**, shared by the table and the
@@ -1137,7 +1156,10 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
 | `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links — shared by the mermaid source and the SVG |
-| `public/js/services/flowchart/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), and a grid that keeps it until a real layout replaces it |
+| `public/js/services/flowchart/layout/` | Where the flowchart's boxes and lines go — pure; see *The flowchart's layout* |
+| `public/js/services/flowchart/layout/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), stated, and a grid that keeps it — the fallback |
+| `public/js/services/flowchart/layout/dagre-layout.js` | The contract on top of dagre: what the chart draws |
+| `public/js/dagre/` | dagre, copied in with its licence — knows nothing of notes |
 | `public/js/services/flowchart/plan-flowchart-link.js` | What a link drawn on the flowchart writes into its note, or why it cannot — pure |
 | `public/js/editing/add-flowchart-link.js` | A drawn link into its note: always a list, through `applyRawEdits`, one undo entry |
 | `public/js/services/flowchart/node-content.js` | A note's label and shape, read through the flowchart options — shared by the mermaid source and the SVG |
