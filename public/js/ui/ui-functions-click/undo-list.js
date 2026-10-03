@@ -3,7 +3,7 @@
 import { appState } from '../../services/store.js';
 import { clearUndoStacks } from '../../table-undo/undo-stacks.js';
 import { renderUndoList } from '../ui-functions-table/render-undo-list.js';
-import { markUndoState } from '../ui-functions-table/render-table-controls.js';
+import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 import { reverseCellEdits } from './undo-cell-edit.js';
 import { showWarningModal } from './warning-modal.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';

@@ -17,9 +17,9 @@ import { describeBatch } from '../../table-undo/describe-batch.js';
 /**
  * Whether an undo or redo can be asked for at all.
  *
- * **Table view only.** The stack records edits made in the table, and in any other view there is
- * nothing for the result to be seen against. The buttons are scoped by not being drawn; the keys are
- * scoped by this. §10.4.
+ * **The table and the flowchart only.** The stack records edits made in those two — cells, and links
+ * drawn on the chart — and in any other view there is nothing for the result to be seen against. The
+ * buttons are scoped by not being drawn; the keys are scoped by this. §10.4.
  *
  * @param {'undo'|'redo'} direction
  * @returns {boolean}
@@ -41,12 +41,13 @@ export function canReverse(direction) {
 }
 
 /**
- * Whether a reversal can start at all, whichever entry it is for: the table is showing and nothing
- * is being written. The undo list asks this, and reaches every entry.
+ * Whether a reversal can start at all, whichever entry it is for: the table or the flowchart is
+ * showing and nothing is being written. The undo list asks this, and reaches every entry.
  * @returns {boolean}
  */
 function canReach() {
-    return !appState.bulkWriteInFlight && appState.viewState === VIEWS.TABLE.value;
+    return !appState.bulkWriteInFlight
+        && (appState.viewState === VIEWS.TABLE.value || appState.viewState === VIEWS.FLOWCHART.value);
 }
 
 /**

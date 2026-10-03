@@ -15,7 +15,17 @@ async function openFlowchart(page) {
   await page.goto('/');
   await loadFolder(page);
   await page.selectOption('#view-select', 'flowchart');
+  // The chart is the default; these tests read the mermaid source, and the chart tests switch back.
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('label[for="flowchart_render_toggle"]');
   await expect(page.locator('.flowchart-code')).toBeVisible();
+}
+
+/** Switches from the code to the chart and turns pan off — it starts on — so a press reaches the notes. */
+async function showChart(page) {
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.pz-panzoom-check')).toBeChecked();
+  await page.click('.pz-panzoom-check');
 }
 
 /** Points a role at a property — or back at its default with '' — and closes the dialog. */
@@ -170,7 +180,7 @@ test('a stored property the folder does not carry is still in the select', async
 
 // A pure function, so it needs no browser — the arrangement the yaml specs use.
 test('nodeShapeFor reads a name, both marks, or the opening mark alone', async () => {
-  const { nodeShapeFor } = await appModule('services/flowchart-options.js');
+  const { nodeShapeFor } = await appModule('services/flowchart/flowchart-options.js');
   const { NODE_SHAPES } = await appModule('constants.js');
 
   for (const shape of Object.values(NODE_SHAPES)) {
@@ -185,4 +195,182 @@ test('nodeShapeFor reads a name, both marks, or the opening mark alone', async (
   for (const nothing of ['', '   ', null, undefined, 'nonsense', 42, new Map()]) {
     expect(nodeShapeFor(nothing).value).toBe(NODE_SHAPES.ROUND.value);
   }
+});
+
+// The SVG: one box per note on the page, behind a switch that outlives a trip to another view.
+test('the chart switch draws a box per note, and is remembered across views', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+
+  await expect(page.locator('.flowchart-code')).toHaveCount(0);
+  expect(await page.locator('.flowchart-node').evaluateAll(nodes => nodes.map(n => n.getAttribute('aria-label')))).toEqual([
+    'The crossroads', 'The cave', 'The long road', 'Deeper still', 'A note with no chapter',
+  ]);
+
+  await page.selectOption('#view-select', 'table');
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node')).toHaveCount(5);
+
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.flowchart-code')).toBeVisible();
+});
+
+// The pan-zoom toggle gates the mouse as well as touch — off, a drag belongs to the notes — and a
+// re-render leaves the chart where it was.
+test('a mouse drag pans only with pan on, and a re-render keeps the zoom and pan', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+  const transform = () => page.locator('.pz-group').getAttribute('transform');
+
+  const drag = async () => {
+    const box = await page.locator('.pz-svg').boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30, { steps: 4 });
+    await page.mouse.up();
+  };
+
+  await page.locator('.pz-zoom-input').fill('3');
+  // Pan starts on; off, a drag moves nothing.
+  await page.click('.pz-panzoom-check');
+  await drag();
+  expect(await transform()).toBe('scale(3 3) translate(0 0)');
+
+  await page.click('.pz-panzoom-check');
+  await drag();
+  const panned = await transform();
+  expect(panned).not.toContain('translate(0 0)');
+
+  await setRole(page, 'nodeText', 'chapter');
+  expect(await transform()).toBe(panned);
+  await expect(page.locator('.pz-panzoom-check')).toBeChecked();
+});
+
+// A box opens its note on release, by data-action like every other open in the app — and only while
+// pan is off, since pan on means the chart is for moving.
+test('a press on a box opens its note, and does nothing while pan is on', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+  const modal = page.locator('#file-content-modal');
+
+  await expect(page.locator('.pz-panzoom-check')).toBeChecked();
+  await page.locator('.flowchart-node[aria-label="The cave"]').click({ force: true });
+  await expect(modal).not.toBeVisible();
+
+  await page.click('.pz-panzoom-check');
+
+  // A press that began on empty chart opens nothing where it is let go.
+  const box = await page.locator('.flowchart-node[aria-label="The cave"]').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y - 10);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+  await page.mouse.up();
+  await expect(modal).not.toBeVisible();
+
+  await page.locator('.flowchart-node[aria-label="The cave"]').click();
+  await expect(modal).toBeVisible();
+  await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', /cave/);
+});
+
+// The chart reads the same options the mermaid source does: what a box says, and what shape it is.
+test('the chart draws node text and node shape from the options', async ({ page }) => {
+  await openFlowchart(page);
+  await setRole(page, 'nodeText', 'chapter');
+  await setRole(page, 'nodeShape', 'shape');
+  await page.click('label[for="flowchart_render_toggle"]');
+
+  const nodes = page.locator('.flowchart-node');
+  // A list joins with commas; no value at all falls back to the filename.
+  expect(await nodes.evaluateAll(n => n.map(g => g.getAttribute('aria-label')))).toEqual([
+    'one, draft', 'one', 'two', 'two', 'loose.md',
+  ]);
+  // diamond by name, by both marks and with a space between them; nonsense draws round.
+  expect(await nodes.evaluateAll(n => n.map(g => g.querySelector('.flowchart-shape').tagName))).toEqual([
+    'polygon', 'polygon', 'polygon', 'rect', 'circle',
+  ]);
+});
+
+// Links: an arrow per link, a faded stub for a target that is not drawn, text from the connector
+// text role. Hovering a link marks the note it is written in, and a press opens that note.
+test('the chart draws links, and a press on one opens the note it is written in', async ({ page }) => {
+  await openFlowchart(page);
+  await setRole(page, 'connectorText', 'why');
+  await showChart(page);
+
+  await expect(page.locator('.flowchart-edge')).toHaveCount(4);
+  await expect(page.locator('.flowchart-stub')).toHaveAttribute('aria-label', 'missing.md');
+  await expect(page.locator('.flowchart-edge-label')).toHaveText(['push the heavy door', 'walk on down the road']);
+
+  const label = page.locator('.flowchart-edge-label').first();
+  await label.hover();
+  await expect(page.locator('.flowchart-node.is-link-source')).toHaveAttribute('aria-label', 'The crossroads');
+  await expect(page.locator('.flowchart-edge.is-hovered')).toHaveCount(1);
+
+  await label.click();
+  await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'crossroads.md');
+});
+
+// The connectors role is what a drawn link writes into, so it offers only what a drag can write: the
+// user's own properties and its default. Other roles offer everything.
+test('the connectors role offers only properties a drawn link can write to', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('[data-action="open-flowchart-options"]');
+  const offered = role => page.locator(`#flowchart-role-${role} option`).evaluateAll(o => o.map(x => x.value));
+
+  const connectors = await offered('connectors');
+  expect(connectors).toContain('related');
+  expect(connectors).toContain('internalLink');
+  expect(connectors).not.toContain('tags');
+  expect(connectors).not.toContain('title');
+  expect(await offered('connectorText')).toContain('filename');
+  expect(await offered('nodeText')).toContain('tags');
+});
+
+// A finger: every data-action in the chart opens on the mouse events the browser makes from a tap,
+// so nothing may cancel a touch that is only a tap. A drag from a box holds the page still; a swipe
+// anywhere else on the chart is left to the page. Simulated touches, through the browser's own input.
+test.describe('touch', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 800 } });
+
+  async function openTouchChart(page) {
+    await setupMockDirectoryWithFlowchart(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await page.selectOption('#view-select', 'flowchart');
+    await page.locator('.pz-panzoom-check').tap();
+    await page.locator('.pz-container').evaluate(el => el.scrollIntoView({ block: 'end' }));
+    await page.evaluate(() => {
+      window.__prevented = [];
+      window.addEventListener('touchmove', e => window.__prevented.push(e.defaultPrevented));
+    });
+  }
+
+  async function finger(page, from, to) {
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(([x, y]) => ({ x, y, id: 1 })) });
+    await touch('touchStart', [from]);
+    for (let i = 1; i <= 10; i++) await touch('touchMove', [[from[0] + (to[0] - from[0]) * i / 10, from[1] + (to[1] - from[1]) * i / 10]]);
+    await touch('touchEnd', []);
+  }
+
+  const centre = async locator => { const b = await locator.boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+
+  test('a tap on a box or on link text opens its note', async ({ page }) => {
+    await openTouchChart(page);
+    await page.locator('.flowchart-node[aria-label="The cave"]').tap();
+    await expect(page.locator('#file-content-modal')).toHaveAttribute('data-file-id', 'cave.md');
+  });
+
+  test('a finger drag from a box offers a link and holds the page still; a swipe elsewhere does not', async ({ page }) => {
+    await openTouchChart(page);
+    const chart = await page.locator('.pz-svg').boundingBox();
+    await finger(page, [chart.x + 20, chart.y + 40], [chart.x + 20, chart.y + 200]);
+    expect(await page.evaluate(() => window.__prevented)).not.toContain(true);
+
+    await page.evaluate(() => { window.__prevented = []; });
+    await finger(page, await centre(page.locator('.flowchart-node[aria-label="Deeper still"]')),
+                       await centre(page.locator('.flowchart-node[aria-label="A note with no chapter"]')));
+    await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
+    expect(await page.evaluate(() => window.__prevented)).toContain(true);
+  });
 });

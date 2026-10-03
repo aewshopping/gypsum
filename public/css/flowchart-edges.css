@@ -1,0 +1,73 @@
+/* The flowchart's links (ui-functions-flowchart/draw-flowchart-edge.js): a line and arrowhead under
+   the boxes, and the link's text in a small box over them. Hovering either marks both .is-hovered
+   (flowchart-link-hover.js) — the line thickens, the text is outlined — and outlines the note the
+   link is written in, in flowchart.css. */
+
+.flowchart-edge, .flowchart-edge-label {
+    cursor: pointer;
+    color: var(--colour-contr);
+}
+
+.flowchart-edge-line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+}
+
+/* A link to a note that does not exist: the chart's broken link. */
+.flowchart-edge.is-missing .flowchart-edge-line {
+    stroke-dasharray: 4 3;
+}
+
+/* Invisible and wide, under the drawn line, so a thin line is easy to hit. */
+.flowchart-edge-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 14;
+    pointer-events: stroke;
+}
+
+.flowchart-arrowhead {
+    fill: var(--colour-contr);
+}
+
+.flowchart-edge-label {
+    rect {
+        fill: var(--colour-neutral);
+        stroke: var(--colour-neutral-alt);
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+    }
+    text {
+        /* LABEL_FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
+        font: 13px var(--fontfam-app-label);
+        fill: currentColor;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+}
+
+.flowchart-edge.is-hovered .flowchart-edge-line { stroke-width: 3.5; }
+.flowchart-edge-label.is-hovered rect { stroke: var(--colour-contr); stroke-width: 2; }
+
+/* The line a drag from a note's box draws to the pointer, before it is a link. */
+.flowchart-drag-line {
+    stroke: var(--colour-contr);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+}
+
+/* The stub with a + that rides on a drag's end over empty chart (flowchart-drag-ghost.js). A stub
+   otherwise, a little stronger so it reads as the thing about to happen; like the line it takes no
+   pointer events, so the drag's hit test sees the chart beneath it. */
+.flowchart-drag-ghost {
+    pointer-events: none;
+    opacity: 0.8;
+    /* Doubled to outweigh the stub's own font rule in flowchart.css. */
+    &.flowchart-stub text {
+        font-size: 28px;
+    }
+}

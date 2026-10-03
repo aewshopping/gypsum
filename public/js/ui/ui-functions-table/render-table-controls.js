@@ -1,8 +1,6 @@
 import { appState } from '../../services/store.js';
 import { DEFAULT_LAYOUT_LABEL } from '../ui-functions-render/render-layout-list.js';
-import { canReverse } from '../ui-functions-click/undo-cell-edit.js';
-import { describeBatch } from '../../table-undo/describe-batch.js';
-import { escapeHtml } from '../ui-functions-render/escape-html.js';
+import { renderUndoButtons } from '../ui-functions-render/render-undo-buttons.js';
 
 /**
  * Renders the table's control row: the layout in use, the column picker, and undo, redo and the
@@ -26,10 +24,8 @@ import { escapeHtml } from '../ui-functions-render/escape-html.js';
  * modal's own undo and redo, reached from the shared sprite so that one drawing serves both
  * places — see plans/completed/table-undo-stack.md §10.1.
  *
- * **Both start disabled**, and become live only when the matching stack has something on it. The
- * state is read from appState here and moved by hand by markUndoState below, because a cell edit
- * re-renders the rows only, so a button waiting for the next full render would go live at some
- * unrelated moment.
+ * The three buttons are render-undo-buttons.js, shared with the flowchart's row, whose links are on
+ * the same stack.
  *
  * **What an undo did is not said here.** It is said in #output-report, which belongs to every view
  * rather than to the table — see ui-functions-render/output-report.js. The two now share a line,
@@ -67,73 +63,6 @@ export function renderTableControls() {
                 <button type="button" class="svg-wrapper-style" data-action="open-column-picker" data-tip="show and hide columns">
                     <svg viewBox="0 0 50 50"><use href="#icon-columns"></use></svg>
                 </button>
-                <button type="button" id="table-undo-btn" class="svg-wrapper-style" data-action="table-undo" data-tip="${escapeHtml(undoTip('undo'))}"${canReverse('undo') ? '' : ' disabled'}>
-                    <svg viewBox="0 0 45 48"><use href="#icon-undo"></use></svg>
-                </button>
-                <button type="button" id="table-redo-btn" class="svg-wrapper-style" data-action="table-redo" data-tip="${escapeHtml(undoTip('redo'))}"${canReverse('redo') ? '' : ' disabled'}>
-                    <svg viewBox="0 0 45 48"><use href="#icon-redo"></use></svg>
-                </button>
-                <button type="button" id="table-undo-list-btn" class="svg-wrapper-style" data-action="undo-list" data-tip="undo history"${canOpenList() ? '' : ' disabled'}>
-                    <svg viewBox="0 0 45 48"><use href="#icon-undo-history"></use></svg>
-                </button>
+                ${renderUndoButtons()}
             </div>`;
-}
-
-/**
- * Lights the undo, redo and history buttons, or puts them out.
- *
- * Called after every push, pop and clear, and either side of a reversal — the write is asynchronous,
- * so a button left live during it would take a second press against bytes the first has not written.
- * A render that has not drawn the row yet simply finds nothing, which is the same no-op the layout
- * save helpers rely on — see ui/layout-save-state.js.
- * @returns {void}
- */
-export function markUndoState() {
-    const undo = document.getElementById('table-undo-btn');
-    const redo = document.getElementById('table-redo-btn');
-
-    if (undo) {
-        undo.disabled = !canReverse('undo');
-        undo.dataset.tip = undoTip('undo');
-    }
-    if (redo) {
-        redo.disabled = !canReverse('redo');
-        redo.dataset.tip = undoTip('redo');
-    }
-
-    const list = document.getElementById('table-undo-list-btn');
-    if (list) list.disabled = !canOpenList();
-}
-
-/**
- * The history button is lit whenever the undo stack holds anything, including when undo itself is
- * dark after a view change: that pairing is how the table says "nothing from this visit, but there
- * is history". plans/completed/table-delete-column.md §17.2. It stays lit while refused undos are
- * kept, with nothing left to undo, because "clear undo history" is the one way to be rid of them.
- * @returns {boolean}
- */
-function canOpenList() {
-    return (appState.undoStack.length > 0 || appState.undoRefusals.length > 0) && !appState.bulkWriteInFlight;
-}
-
-/** The fallback tooltips, for a stack with nothing on it — a disabled button shows none anyway. */
-const IDLE_TIPS = { undo: 'undo last cell edit | Ctrl+Z', redo: 'redo cell edit | Ctrl+Y' };
-const SHORTCUTS = { undo: 'Ctrl+Z', redo: 'Ctrl+Y' };
-
-/**
- * What pressing undo or redo will do, named after the batch on top of its stack — so the tooltip
- * says `undo people column delete in 35 files | Ctrl+Z` rather than only that something will be
- * undone. plans/completed/table-delete-column.md §7.2.
- *
- * Plain text: the renderer escapes it into its attribute, since a property name comes from a note.
- *
- * @param {'undo'|'redo'} direction
- * @returns {string}
- */
-function undoTip(direction) {
-    const stack = direction === 'undo' ? appState.undoStack : appState.redoStack;
-    const top = stack.at(-1);
-    return top
-        ? `${direction} ${describeBatch(top)} | ${SHORTCUTS[direction]}`
-        : IDLE_TIPS[direction];
 }

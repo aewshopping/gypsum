@@ -247,6 +247,12 @@
           <path d="M15.2 17.3c5.2-.6 14.4-.7 19.6-.1m-19.6.1c5.2-.6 14.4-.7 19.6-.1M15 25.1c5.2-.6 14.4-.7 19.8-.1m-19.8.1c5.2-.6 14.4-.7 19.8-.1M15.2 32.9c5.2-.6 14.4-.7 19.6-.1m-19.6.1c5.2-.6 14.4-.7 19.6-.1"/>
         </g>
       </symbol>
+    <!-- Pan and zoom, on or off: four arrows out from the middle. -->
+      <symbol id="icon-pan" viewBox="0 0 50 50">
+        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+          <path d="M25 9v32M9 25h32M20 14l5-5 5 5M20 36l5 5 5-5M14 20l-5 5 5 5M36 20l5 5-5 5"/>
+        </g>
+      </symbol>
 </svg>
 
   <dialog id="file-content-modal" data-action="close-file-content-outside">
@@ -880,6 +886,36 @@
     <div class="info-modal-btn-row">
       <button type="button" id="column-rename-confirm" class="btn-action" data-action="column-rename-confirm">rename</button>
       <button type="button" class="btn-action" data-action="column-rename-cancel">cancel</button>
+    </div>
+  </dialog>
+
+  <!-- A new note linked from the one a flowchart drag began on, from a drag released on empty chart
+       — or the note a link already names, from a press on its stub, when the name is fixed
+       (ui-functions-flowchart/flowchart-note-create.js). The rename dialog's arrangement: the dialog
+       is its own confirmation, the line under the boxes saying what will be created and written, or
+       why the name cannot be used, and the button pressable only when it can be done. The new note
+       does not open. -->
+  <dialog id="modal-flowchart-new-note" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="flowchart-new-note-cancel" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title" id="flowchart-new-note-title">New linked note</h2>
+
+    <div class="info-modal-field">
+      <label for="flowchart-new-note-folder">folder</label>
+      <input id="flowchart-new-note-folder" type="text" autocomplete="off" spellcheck="false" placeholder="(root)" data-action="flowchart-new-note-input">
+    </div>
+    <div class="info-modal-field">
+      <label for="flowchart-new-note-name">filename</label>
+      <input id="flowchart-new-note-name" type="text" autocomplete="off" spellcheck="false" data-action="flowchart-new-note-input">
+      <div class="info-modal-message-stack">
+        <p id="flowchart-new-note-forecast" class="info-modal-message is-prose"></p>
+        <p id="flowchart-new-note-problem" class="info-modal-message is-prose is-warning" hidden></p>
+      </div>
+    </div>
+
+    <div class="info-modal-btn-row">
+      <button type="button" id="flowchart-new-note-confirm" class="btn-action" data-action="flowchart-new-note-confirm">create and link</button>
+      <button type="button" class="btn-action" data-action="flowchart-new-note-cancel">cancel</button>
     </div>
   </dialog>
 

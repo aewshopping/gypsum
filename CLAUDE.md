@@ -1017,7 +1017,7 @@ remember to save. **One object, overwritten.** There are no named flowcharts the
 layouts, and adding them would be a new plan rather than a new key.
 
 - **Nothing asks `appState.flowchartOptions` directly, and nothing writes it except
-  `setFlowchartOption()`.** `services/flowchart-options.js` owns the order — the user's choice, then
+  `setFlowchartOption()`.** `services/flowchart/flowchart-options.js` owns the order — the user's choice, then
   the role's default — the same shape and the same argument as `property-type.js`. **`null` is a
   real answer**: it is what `subgraph` and `nodeShape` mean before anyone points them anywhere.
 - **Adding a top-level key to the layouts file means adding it to `readLayouts()`.** That function
@@ -1033,7 +1033,7 @@ layouts, and adding them would be a new plan rather than a new key.
   quoted** — bare `{}` is an empty YAML map and bare `[` can make the block unreadable, the same
   rule a hex colour follows. Anything unrecognised draws round.
 - **A role pointed at the wrong sort of property is the user's business**, exactly as a column type
-  is. Every read goes through one `toList()` in `mermaid-source.js`, which turns a Map into **its
+  is. Every read goes through one `toList()` (`internal-links/link-targets.js`), which turns a Map into **its
   keys** — `tags` is `Map<tagName, {count, parents}>`, so the values are counting metadata and the
   table already answers this with `.keys()`. That branch is also what stops `Map.forEach` yielding
   `(value, key)` where the code wants `(item, index)`.
@@ -1049,6 +1049,7 @@ layouts, and adding them would be a new plan rather than a new key.
 - **Index alignment is no longer guaranteed by construction.** `internalLink` and `internalLinkText`
   are one Map read twice; two properties the user picks are not, and need not even be the same
   length. Read the text by index and treat `undefined` as an unlabelled edge.
+- **Open a dialog or popover from a `click`, never a `mouseup`** — the click that follows lands outside it and a `closedby="any"` dialog shuts unseen (`flowchart-note-open.js`).
 
 ### A view's own control row
 
@@ -1133,8 +1134,13 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/file-parsing/front-matter-links.js` | The `[[links]]` written into front matter values |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
-| `public/js/services/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
+| `public/js/services/flowchart/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
+| `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links — shared by the mermaid source and the SVG |
+| `public/js/services/flowchart/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), and a grid that keeps it until a real layout replaces it |
+| `public/js/services/flowchart/plan-flowchart-link.js` | What a link drawn on the flowchart writes into its note, or why it cannot — pure |
+| `public/js/editing/add-flowchart-link.js` | A drawn link into its note: always a list, through `applyRawEdits`, one undo entry |
+| `public/js/services/flowchart/node-content.js` | A note's label and shape, read through the flowchart options — shared by the mermaid source and the SVG |
 | `public/js/services/linked-properties.js` | What each linked column is, and the one writer for it |
 | `public/js/services/internal-links/linked-value.js` | What a linked column shows for a row, and the per-render `id → file` Map |
 | `public/js/services/internal-links/link-targets.js` | The links a property holds: `toList` and `linkTarget`, shared with the flowchart |
@@ -1163,13 +1169,15 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`, `cell-range-paste.js`) |
-| `public/js/ui/ui-functions-flowchart/` | The flowchart's control row and its options modal's rows |
+| `public/js/ui/ui-functions-flowchart/` | Everything the flowchart view draws and handles — control row, options modal, the SVG's boxes and viewer markup, and its click handlers — kept together rather than in `ui-functions-click/` |
+| `public/js/svg-pan-zoom/svg-pan-zoom.js` | Pan and zoom for an SVG, ported near word for word — knows nothing of notes; see `plans/completed/flowchart-view.md` step 1 |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/autocomplete/` | The completion popup: one session, three hosts — the editor, a table cell, the searchbox |
 | `public/js/ui/ui-functions-render/render-internal-link.js` | A `[[link]]` as HTML: the anchor, and the scan that finds them in a value |
 | `public/js/ui/ui-functions-click/column-stick.js` | How many leading columns stick left while the table scrolls sideways |
 | `public/js/ui/ui-functions-click/linked-column-*.js` | The linked column dialog: keeping it up to date, save, delete |
+| `public/js/ui/ui-functions-render/render-undo-buttons.js` | Undo, redo and the undo history buttons, shared by the table's and the flowchart's control rows |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

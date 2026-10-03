@@ -26,6 +26,7 @@ export const offscreenNoteTarget = document.getElementById("offscreen-note-targe
 const sidebarRecent = document.getElementById("sidebar-recent");
 
 let openedFileId; // look up the live DOM element by file id on close, since a save can re-render and replace the original node
+let openedWithFade = false; // opened with nothing to grow out of, so it closes the same way, with a fade
 let closeInFlight = null; // the close already running, so a second click joins it rather than starting another
 
 // Re-apply search highlights automatically whenever modal content changes.
@@ -105,9 +106,8 @@ window.addEventListener('beforeunload', (evt) => {
  * @param {string} file_to_open - internalId of the file to open.
  * @param {string} color - Colour to tint the modal header and content with.
  * @param {HTMLElement|null} [animateFrom=null] - Element to animate the modal out of, normally
- *   the file's card. Null when the file has no card on screen — an internal link can point at a
- *   file that the active filters or the current pagination page exclude from the list. The modal
- *   then simply fades in, and doClose() already tolerates the card being absent on the way back.
+ *   the file's card, or offscreenNoteTarget when it has none on screen. Null means nothing to grow
+ *   out of: the modal simply fades in, and doClose() fades it out again.
  * @param {Function|null} [postLoad=null] - Optional callback invoked inside the transition
  *   after the file content has loaded. Used by create-new-note-click to activate txt mode.
  * @returns {ViewTransition|undefined}
@@ -115,6 +115,7 @@ window.addEventListener('beforeunload', (evt) => {
 export function openFileContent(file_to_open, color, animateFrom = null, postLoad = null) {
 
   openedFileId = file_to_open;
+  openedWithFade = !animateFrom;
   if (animateFrom) animateFrom.classList.add("moving-file-content-view"); // animate *from* this element
 
   // 3. Animate the move (State 1 -> State 2)
@@ -263,8 +264,10 @@ export function doClose() {
 
   // Sweep back off-screen when the file has no card, so the modal moves instead of popping.
   // A null openedFileId means the caller cleared it deliberately — delete does this — and
-  // there really is nothing to animate back to.
-  const animateTo = openedFileId ? (file_box ?? offscreenNoteTarget) : null;
+  // there really is nothing to animate back to. A note that opened with nothing to grow out of
+  // closes with a fade too, as it opened — the flowchart, whose boxes are shapes inside an SVG a
+  // view transition cannot reach, and a note opened from the history list.
+  const animateTo = openedFileId && !openedWithFade ? (file_box ?? offscreenNoteTarget) : null;
 
   const transition = withViewTransition(function () {
 

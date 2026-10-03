@@ -134,6 +134,14 @@ export function labelFor(group, value) {
  * VIEWS from it — so it cannot reach for FILE_PROPERTIES to look a label up, and tidying these
  * into an import would make the cycle.
  */
+/**
+ * Where a link drawn on the flowchart is written when the connectors role is `internalLink` — which
+ * the app fills from every link it finds and nothing can write. A front matter list, so the new link
+ * simply joins internalLink. Typed a list in FILE_PROPERTIES (store.js). See plans/completed/flowchart-view.md
+ * step 5.
+ */
+export const FLOWCHART_LINK_PROPERTY = 'flowChartLink';
+
 export const FLOWCHART_ROLES = {
     NODE_TEXT:      { value: "nodeText",      label: "node text",      defaultProperty: "title",            defaultLabel: "title"     },
     CONNECTORS:     { value: "connectors",    label: "connectors",     defaultProperty: "internalLink",     defaultLabel: "links"     },
@@ -149,7 +157,7 @@ export const FLOWCHART_ROLES = {
  * slant is `[/` ... `/]` — so nothing here may collapse to a single token.
  *
  * A note names one of these in whichever property the node shape role points at, and
- * nodeShapeFor() in services/flowchart-options.js is what reads it: by name, by both marks written
+ * nodeShapeFor() in services/flowchart/flowchart-options.js is what reads it: by name, by both marks written
  * together (`{}`), or by the opening mark alone (`{`). Those spellings are derived there from the
  * two fields below, so adding a shape here gives it its symbol forms for free — keep a new one's
  * marks distinct from every existing spelling.

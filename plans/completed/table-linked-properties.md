@@ -2,7 +2,7 @@
 
 Status: **v1 built** (§1–§8). V2, sorting (§9), is not started.
 Related: `plans/completed/table-saved-layouts.md` and `plans/completed/property-type-store.md`,
-both **built**; `plans/flowchart-view.md`, whose connector role already follows a property's links
+both **built**; `plans/completed/flowchart-view.md`, whose connector role already follows a property's links
 V2: sorting by a linked property (§9), designed here and deferred
 Later: writing a linked value back into the note (§10, now `plans/table-copy-column.md`), and searching by a linked property (§11),
 each a separate plan

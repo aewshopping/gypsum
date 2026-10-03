@@ -56,6 +56,11 @@ export const appState = {
   },
 
   editState: false,   // true = txt mode, false = html mode; drives the modal render toggle
+  // The flowchart view's session state. Not saved: the options it draws with are flowchartOptions.
+  flowchartView: {
+    showSvg: true,    // true = the view draws its SVG, false = its mermaid code; the code / chart switch
+    press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
+  },
 
   editSession: {
     activeRaw:      '',   // content currently displayed (current or historical)
@@ -111,7 +116,7 @@ export const appState = {
   //
   // One object per folder, overwritten — there are no named flowcharts the way there are named
   // layouts. Session-scoped, cleared and refilled on folder load. Ask flowchartProperty() in
-  // services/flowchart-options.js rather than reading this directly; the role's default is the
+  // services/flowchart/flowchart-options.js rather than reading this directly; the role's default is the
   // other half of the answer.
   flowchartOptions: new Map(),
 
@@ -200,6 +205,9 @@ export const FILE_PROPERTIES = new Map([
   ['filepath', { type: 'string', column_width: 300, display_order: 13 }],
   ['contentPeek', { label: 'preview', type: 'string', column_width: 400, display_order: 14 }],
   ['fileIssues', { label: 'issues', type: 'string', column_width: 200, display_order: 15 }],
+  // FLOWCHART_LINK_PROPERTY: where a link drawn on the flowchart goes. A list by default, as people
+  // and phone are, so it reads as one in the table as soon as the first link is drawn.
+  ['flowChartLink', { type: 'array', column_width: 250, display_order: 16 }],
 ]);
 
 /**

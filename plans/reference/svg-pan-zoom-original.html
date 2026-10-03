@@ -1,0 +1,396 @@
+<!--
+  Reference copy of the pan / zoom SVG viewer from
+  https://popularhistorybooks.com/posts/reviews/2024-02-27-review-one-fine-day/ (the world map),
+  taken 2026-10-02. Kept verbatim — map paths and the page's other styles removed — because
+  plans/completed/flowchart-view.md step 1 ports this code "pretty much word for word" and the live page
+  may change. Not loaded by the app.
+-->
+<style>
+#mapcontainer {
+  --color-svgbg: LightSeaGreen;
+  --max-w:1000px;
+  --cont-w:100vw;
+  --parent-w:100%;
+  position:relative;
+  outline: 2px solid black;
+  background-color: var(--color-svgbg);
+  width:var(--cont-w);
+  max-width:var(--max-w);
+  margin-left:calc((min(var(--cont-w), var(--max-w)) - var(--parent-w)) / -2 );
+  overflow:hidden;
+}
+#svgmap {
+  min-height:200px;
+  max-height:60vh;
+  background-color:var(--color-svgbg);
+  fill:#dadada;
+  stroke:black;
+  }
+#svgmap path:hover, #svgmap > g > g:hover > path {
+  stroke-width: 0.4;
+/*  filter: brightness(180%); */
+  fill: #f7f7f7;/* render bug in ios 17+ unfortunately so can't use filter brightness and need to hardcode highlight colour (https://stackoverflow.com/questions/77343409/filter-css-property-not-working-on-svg-in-ios-17) */
+  }
+
+.svgmapicon {
+  height: 50px;
+  width: 50px;
+  position:absolute;
+  right:10px;
+  z-index:1;
+  cursor: pointer;
+  opacity:0.5;
+}
+#fullscreencheck, #fullscreenicon {
+  top:10px;
+}
+#panzoomcheck, #panzoomicon {
+  top:75px;
+}
+input[type='checkbox'] {
+  z-index:2;
+  opacity:0;
+}
+.svgmapicon { 
+  background: white;
+  border-radius: 10px;
+  fill:var(--color-accent);
+}
+
+/* using requestfullscreen now in js */
+#fullscreencheck:checked ~ #svgmap {
+  height:90vh;
+  max-height:100vh;
+}
+input[type='checkbox']:hover + .svgmapicon {
+  opacity:0.9;
+}
+input[type='checkbox']:checked + .svgmapicon {
+  border: 4px solid var(--color-accent);
+}
+input[type='checkbox']:focus + .svgmapicon {
+  outline: 2px solid black;
+  outline-offset: -4px;
+}
+input[type="checkbox"]:focus:not(:focus-visible) + .svgmapicon {
+    outline: none; /*don't apply focus style if selected with a mouse*/
+}
+
+#zoomdiv {
+  --slider-w:400px;
+  --zmlbl-w:24px;
+  position:absolute;
+  left:10px; /*calc(50% - var(--slider-w) / 2); */
+  width:calc(100% - 20px);
+  bottom:10px;
+  opacity:0.5;
+  display: flex;
+  flex-direction:row;
+  justify-content:space-between;
+  pointer-events:none;
+  z-index:1;
+}
+.flexs {width:50px;flex-shrink:1;}
+.zoomlabel {
+  width:var(--zmlbl-w);
+  padding:0px;
+  margin:0px;
+  flex-shrink:0;
+}
+#btnreset{all:revert;pointer-events: auto;margin-right:10px;}
+#zoomlabelminus {margin-left:auto;}
+#zoomlabelplus {margin-right:auto;}
+#zoominput {
+  margin:0px;
+  padding:0px;
+  width:calc(var(--slider-w) - var(--zmlbl-w) * 2);
+  cursor:pointer;
+  accent-color:var(--color-accent);
+  flex-shrink:0.5;
+  pointer-events: auto;
+}
+#zoomdiv:hover {
+  opacity:0.9;
+}
+
+#hoverbox {
+  visibility: hidden;
+  pointer-events: none;
+  position:absolute;
+  top: 10px;
+  left: 10px;
+  width: 100px;
+  min-width:150px;
+  padding: 8px;
+  text-align:center;
+  border-radius: 6px;
+  background-color: rgba(255,255,255,0.85); /*rgba(255,105,180,0.8);*/
+}
+
+#hoverbox:has(+ svg path:hover) {
+  visibility: visible;
+  display: block;
+  z-index:1;
+}
+</style>
+
+<div id="mapcontainer">
+<input type="checkbox" class="svgmapicon" id="fullscreencheck" name="fullscreen" value="fullscreenon" title="full screen toggle">  
+<svg id="fullscreenicon" class="svgmapicon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+  <path d="M120-120v-200h80v120h120v80H120Zm520 0v-80h120v-120h80v200H640ZM120-640v-200h200v80H200v120h-80Zm640 0v-120H640v-80h200v200h-80Z"></path></svg>
+<input type="checkbox" class="svgmapicon" id="panzoomcheck" name="panzoom" value="panzoomon" title="Pan and zoom toggle">
+<svg id=panzoomicon class="svgmapicon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M419-80q-28 0-52.5-12T325-126L107-403l19-20q20-21 48-25t52 11l74 45v-328q0-17 11.5-28.5T340-760q17 0 29 11.5t12 28.5v472l-97-60 104 133q6 7 14 11t17 4h221q33 0 56.5-23.5T720-240v-160q0-17-11.5-28.5T680-440H461v-80h219q50 0 85 35t35 85v160q0 66-47 113T640-80H419ZM167-620q-13-22-20-47.5t-7-52.5q0-83 58.5-141.5T340-920q83 0 141.5 58.5T540-720q0 27-7 52.5T513-620l-69-40q8-14 12-28.5t4-31.5q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 17 4 31.5t12 28.5l-69 40Zm335 280Z"/></svg>
+<div id="zoomdiv">
+<button id="btnreset">reset</button>
+<svg class="zoomlabel" id="zoomlabelminus" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-440v-80h560v80H200Z"/></svg>
+<input type="range" title="zoom in out" id="zoominput" name="zoom" min="1" max="20" value="1" step="0.1" />
+<svg class="zoomlabel" id="zoomlabelplus" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+<div class="flexs"></div>
+</div>
+<div id="hoverbox">Hover over a country to see the name 👉</div>
+<svg id="svgmap" baseprofile="tiny" fill="#ccccca" stroke-linecap="round" stroke-linejoin="round" stroke-width=".2" version="1.2" width="100%" height="100%" viewbox="0 0 2000 857" transform="scale(1.5,1.5) translate(0,0)" xmlns="http://www.w3.org/2000/svg" onload="makeDraggable(evt)" >
+  <!-- ...map paths... -->
+</svg>
+</div>
+
+<script>
+// get the svg element we are interested in
+var svgroot = document.getElementById('svgmap'); // to register mouse and touch events, act as a canvas for grabbing oordinates
+// create group item to wrap around svg content. We will need this to apply transformations to as can't apply transformations to svg root on ios :-(
+var ns = "http://www.w3.org/2000/svg";
+const svggroup = document.createElementNS(ns,"g");
+svggroup.setAttribute("id","svggrp");
+svggroup.setAttribute("transform","scale(1,1) translate(0,0)");
+svggroup.setAttribute("transform-origin","50% 50%");
+// wrap the the new group around svgroot content
+const range = document.createRange();
+range.selectNodeContents(svgroot);
+range.surroundContents(svggroup);
+var svg = svggroup;
+var svgcontainer = document.getElementById('mapcontainer');
+// get the input range zoom slider and set it to the scale transform applied to the svg + initialise the zoomvalue variable
+const zoominput = document.querySelector("#zoominput");
+const initScaleValue = svg.transform.baseVal.getItem(0).matrix.a;
+let wheelscale = initScaleValue;
+zoominput.value = initScaleValue;
+var zoomvalue = initScaleValue;
+const zoomvalueMin = zoominput.min;
+const zoomvalueMax = zoominput.max;
+// get translate and zoom transforms
+const transfScale = svg.transform.baseVal[0];
+const transfTranslate = svg.transform.baseVal[1];
+// Touch Point cache
+const tpCache = [];
+// variables used later in boundary collision detection
+let rectsvg, rectcont;
+// get some optional info output element
+var txtshow = document.getElementById('showtext');
+// add a mouseover event to the svg map, so that if you mouse over a path element in that svg with a name attribute this is shown in the hoverbox
+svg.addEventListener("mouseover", updateCountryName);
+function updateCountryName(e) {
+  let countryName = e.target.getAttribute("name");
+const elem = document.getElementById("hoverbox");
+    if (countryName) {
+      elem.innerText = countryName;
+      } else {
+      elem.innerText = "Terra Incognito";
+      }
+}
+// if this checkbox is checked allows touch pan and mousewheel zoom
+const panzoomcheck = document.getElementById('panzoomcheck');
+var panzoomon = false;
+panzoomcheck.addEventListener("input", (event) => {
+  if (panzoomcheck.checked == true){
+    panzoomon = true;
+  } else {
+    panzoomon = false;
+  }
+});
+// toggle fullscreen on and off where supported
+let fullscreencheck = document.getElementById("fullscreencheck");
+fullscreencheck.addEventListener("input", (event) => {
+  let panzoomstate; // to record state of checkbox 
+  toggleFullscreen();
+});
+// function targets the map container
+function toggleFullscreen() {
+  let elem = document.getElementById("mapcontainer");
+  if (!document.fullscreenElement) {    elem.requestFullscreen().catch((err) => {
+      console.log(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
+    });
+    // turn on checkboxes to enable panning and represent full screen
+    panzoomstate = panzoomcheck.checked; // record state
+    panzoomcheck.checked = true;
+    panzoomon = true;    fullscreencheck.checked = true;
+  } else {
+ document.exitFullscreen();
+    // turn off those checkboxes
+    fullscreencheck.checked = false;
+    if (panzoomstate == false) {
+      panzoomcheck.checked = false; //only turn off if was off before
+      panzoomon = false;
+    }
+  }
+}
+// add a reset back to initial values option
+var mapreset = document.getElementById('btnreset');
+mapreset.addEventListener("click", (event) => {
+// revert to initial scale
+transfScale.setScale(initScaleValue, initScaleValue);
+// revert to initial translate of zero
+transfTranslate.setTranslate(0,0);
+ zoominput.value = initScaleValue;
+  zoomvalue = initScaleValue;
+  wheelscale = initScaleValue;
+});
+// add slider zoom functionality
+zoominput.addEventListener("input", zoominout);
+function zoominout(event) {
+// get zoom level from input range
+  zoomvalue = zoominput.value
+transfScale.setScale(zoomvalue,zoomvalue);
+  wheelscale = parseInt(zoomvalue); //otherwise not in line with step on zoom range input
+}
+// add mouse wheel zoom functionality
+svgroot.addEventListener("wheel", wheelzoom);
+function wheelzoom(evt) {
+  if (panzoomon == true) {
+    evt.preventDefault();
+// change constant for scroll sensitivity
+    // only zooming out on Chrome not zooming in, fine on Edge... odd! 
+    wheelscale += evt.deltaY * -0.01; 
+    // constrain wheelscale to range input max and min
+    wheelscale = Math.min(Math.max(zoominput.min, wheelscale), zoominput.max);
+zoominput.value = wheelscale;
+zoominout();
+  }
+}
+// add draggability to svg - mouse and touch
+function makeDraggable(evt) {   
+  svgroot.addEventListener('mousedown', startDrag);
+  svgroot.addEventListener('mousemove', drag);
+  svgroot.addEventListener('mouseup', endDrag);
+  svgroot.addEventListener('mouseleave', endDrag);
+  svgroot.addEventListener('touchstart', startDrag);
+  svgroot.addEventListener('touchmove', drag);
+  svgroot.addEventListener('touchend', endDrag);
+  svgroot.addEventListener('touchcancel', endDrag);
+ function getMousePosition(evt) {
+    var CTM = svgroot.getScreenCTM(); // translate on this one
+    var CTMgrp = svg.getScreenCTM(); // scale on this div
+    // needed to extract single touch point for panning
+    if (evt.touches) { evt = evt.touches[0]; }
+    // turn screen co-ordinates into svg co-ordinates
+    return {
+        x: (evt.screenX - CTM.e)/ (CTMgrp.a),
+        y: (evt.screenY - CTM.f)/ (CTMgrp.d),
+        xscr: evt.screenX, // for use in collision detection later
+        yscr: evt.screenY,
+      };
+    }
+  var selectedElement, startposition, moveposition, startScale, maxLeft, maxBottom, maxTop, maxRight;
+  let dxOld = 0, dyOld = 0;
+function startDrag(evt) {
+    if (panzoomon == true || evt.type==="mousedown") {
+  if (evt.touches) {
+        if (evt.touches.length === 2) {
+          evt.preventDefault(); //only want to prevent when pinch zooming, otherwise we stop mouseover event working!
+          // stick all the touch points into a cache. Later we will use this to get the start and end point of each touch
+          for (let i = 0; i < evt.touches.length; i++) {
+            tpCache.push(evt.touches[i]);
+          }
+        }
+      }
+      // for later use in pinchzoom function
+      startScale = zoomvalue;
+      svgroot.style.cursor = "move";
+      selectedElement = svg;
+      // get initial mouse postion
+      startposition = getMousePosition(evt);
+      // adjust start position with existing translate values
+      startposition.x -= transfTranslate.matrix.e;
+      startposition.y -= transfTranslate.matrix.f;
+      // set moveposition to null in case a previous moveposition messes things up!
+      moveposition = null;
+      // get shapes to find edges for boundary detectoin
+      rectsvg = svg.getBoundingClientRect();
+      rectcont = mapcontainer.getBoundingClientRect();
+      // calc the limits of the pan drag. Easier to do this directly with screen units. Also allow a bit of margin so zooming out at the edge of the map doesn't mess things up too much
+      const mapMarginX = rectcont.width / 5;
+      const mapMarginY = rectcont.height / 3;
+      maxLeft = rectcont.left - rectsvg.left + mapMarginX;
+      maxBottom = rectcont.bottom - rectsvg.bottom - mapMarginY;
+      maxRight = rectcont.right - rectsvg.right - mapMarginX;
+      maxTop = rectcont.top - rectsvg.top + mapMarginY;      
+    }
+  }
+  function drag(evt) {
+if (selectedElement) {
+ if (evt.touches && evt.touches.length>=2) {
+// Check this event for 2-touch Move/Pinch/Zoom gesture
+          handle_pinch_zoom(evt);
+        } else {        
+// to stop accidentally selecting text, that sort of thing
+        evt.preventDefault();
+        // get current mouse position
+        moveposition = getMousePosition(evt);
+        let dx = moveposition.x - startposition.x;
+        let dy = moveposition.y - startposition.y;
+          // for use in detecting whether border of svg is within border of container - easier to do this using screen units
+        let dxscr = moveposition.xscr - startposition.xscr;
+        let dyscr = moveposition.yscr - startposition.yscr;
+    // limit movement of svg if initial svg shape tries to move beyond the border of the constraining container/ This collision detection is pretty approximate due to zooming. Added margins as a safety measure! 
+        if (dxscr > maxLeft || dxscr < maxRight)
+          {dx = dxOld;} else {dxOld = dx;}
+        if (dyscr > maxTop || dyscr < maxBottom)
+          {dy = dyOld;} else {dyOld = dy;}
+        transfTranslate.setTranslate(dx, dy);
+        }
+      }
+    }
+  function handle_pinch_zoom(ev) {
+      if (ev.touches.length === 2 && ev.touches.length === 2) {
+  // Check if the two target touches are the same ones that started the 2-touch
+        const point1 = tpCache.findLastIndex(
+          (tp) => tp.identifier === ev.touches[0].identifier,
+        );
+        const point2 = tpCache.findLastIndex(
+          (tp) => tp.identifier === ev.touches[1].identifier,
+        );
+if (point1 >= 0 && point2 >= 0) {
+          const startTouch1 = tpCache[point1];
+          const endTouch1 = ev.touches[0];
+          const startTouch2 = tpCache[point2];
+          const endTouch2 =ev.touches[1];
+  // Calculate the distance between the two touch point starts
+          const startDiffX = Math.abs(startTouch1.clientX - startTouch2.clientX);
+          const startDiffY = Math.abs(startTouch1.clientY - startTouch2.clientY);
+          const startDiffHyp = Math.sqrt(startDiffX**2 + startDiffY**2);
+// Calculate the distance between the two touch point ends          
+          const moveDiffX = Math.abs(endTouch1.clientX - endTouch2.clientX);
+          const moveDiffY = Math.abs(endTouch1.clientY - endTouch2.clientY);
+          const moveDiffHyp = Math.sqrt(moveDiffX**2 + moveDiffY**2);
+    // the ratio between the difference at the start of the pinch and at the end of the pinch
+          let scaleDiff = moveDiffHyp / startDiffHyp;
+let zoomvaluetemp = startScale*scaleDiff; // zoom pre ceiling and floor... then apply max and min
+          zoomvalue = Math.min(Math.max(zoomvalueMin, zoomvaluetemp), zoomvalueMax);
+ transfScale.setScale(zoomvalue,zoomvalue);
+          wheelscale = parseInt(zoomvalue);
+          zoominput.value = wheelscale;
+   // ev.target.style.background = "green";
+        } else {
+          // empty tpCache
+          tpCache = [];
+        }
+    }
+  }
+  function endDrag(evt) {
+selectedElement = null;
+// reset pointer options
+    svgroot.style.cursor = "default";
+  }  
+}
+  function updateinfo(elem, value) {
+  elem.innerText = `value ${value}`
+}
+</script>

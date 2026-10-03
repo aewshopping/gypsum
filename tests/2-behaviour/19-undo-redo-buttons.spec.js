@@ -84,7 +84,7 @@ async function openTable(page) {
 async function edit(page, internalId, property, text) {
   await page.evaluate(async ([internalId, property, text]) => {
     const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
-    const { markUndoState } = await import('/public/js/ui/ui-functions-table/render-table-controls.js');
+    const { markUndoState } = await import('/public/js/ui/ui-functions-render/render-undo-buttons.js');
     await applyCellEdits([{ internalId, property, text }]);
     markUndoState();
   }, [internalId, property, text]);
@@ -215,7 +215,7 @@ test('the buttons name their batch, and a multi-file undo and redo show the bar 
   await openTable(page);
   await page.evaluate(async () => {
     const { applyCellEdits } = await import('/public/js/editing/save-cell-edit.js');
-    const { markUndoState } = await import('/public/js/ui/ui-functions-table/render-table-controls.js');
+    const { markUndoState } = await import('/public/js/ui/ui-functions-render/render-undo-buttons.js');
     await applyCellEdits(['alpha.md', 'beta.md'].map(internalId => ({ internalId, property: 'status', text: 'done' })));
     markUndoState();
   });

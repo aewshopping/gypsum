@@ -8,7 +8,7 @@ import { isPasteable } from './cell-editor.js';
 import { addressOf, elementAt } from '../ui-functions-render/keep-cell-state.js';
 import { showWarningModal } from '../ui-functions-click/warning-modal.js';
 import { whileWriting } from '../ui-functions-table/bulk-write-busy.js';
-import { markUndoState } from '../ui-functions-table/render-table-controls.js';
+import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 import { holdRowMove } from '../ui-functions-table/pending-row-move.js';
 import { reportPasted, reportFailure } from '../ui-functions-render/output-report.js';
 

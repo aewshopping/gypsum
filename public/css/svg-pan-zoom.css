@@ -1,0 +1,88 @@
+/* The pan and zoom viewer (js/svg-pan-zoom/svg-pan-zoom.js): an SVG with its controls laid over it.
+   Ported from the original's styles (plans/reference/svg-pan-zoom-original.html) — the same
+   arrangement, the app's colours. Its height is the caller's to set. */
+
+.pz-container {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--colour-neutral);
+    border: 2px solid var(--colour-neutral-alt);
+    border-radius: 8px;
+}
+
+/* Pinned to the container rather than 100% tall, so it fills a container whose height comes from
+   flex or grid, where a percentage height has nothing definite to resolve against. The container's
+   height is the caller's to give. */
+.pz-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+/* While pan is on, the whole chart is something to drag. */
+.pz-container:has(.pz-panzoom-check:checked) .pz-svg {
+    cursor: move;
+}
+
+/* Fullscreen and pan-zoom, top right. Each is a .svg-wrapper-style label — the app's icon toggle,
+   whose checkbox covers the whole button — on a translucent plate so it reads over the chart. */
+.pz-icon {
+    position: absolute;
+    right: 10px;
+    z-index: 1;
+    width: calc(var(--btn-size) + 12px);
+    height: calc(var(--btn-size) + 12px);
+    padding: 6px;
+    border-radius: 10px;
+    background-color: color-mix(in srgb, var(--colour-neutral-alt) 70%, transparent);
+    color: var(--colour-contr);
+}
+.pz-fullscreen { top: 10px; }
+.pz-panzoom { top: calc(var(--btn-size) + 32px); }
+
+.pz-icon:has(input:checked) {
+    border-color: var(--colour-contr-emph);
+    color: var(--colour-contr-emph);
+    > svg { opacity: 1; }
+}
+
+/* Maximise while not full screen, minimise while it is — the note modal's toggle (checkbox-minmax.css). */
+.pz-fullscreen:has(input:checked) > svg:nth-child(1),
+.pz-fullscreen:not(:has(input:checked)) > svg:nth-child(2) {
+    display: none;
+}
+
+/* Reset and the zoom slider, centred along the bottom. The strip lets presses through to the chart
+   except on its own controls. */
+.pz-zoom {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    opacity: 0.5;
+    pointer-events: none;
+    color: var(--colour-contr);
+
+    &:hover, &:has(:focus-visible) { opacity: 0.9; }
+}
+.pz-reset {
+    pointer-events: auto;
+    margin-right: 6px;
+    background-color: var(--colour-neutral-alt);
+}
+.pz-zoom-label {
+    font-size: 1.25em;
+    line-height: 1;
+}
+.pz-zoom-input {
+    pointer-events: auto;
+    width: min(320px, 100% - 8rem);
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--colour-contr-emph);
+}

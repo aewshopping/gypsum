@@ -15,6 +15,11 @@ import { handleToggleRecentPanel, handleCloseRecentPanel } from './ui-functions-
 import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/warning-modal.js';
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
+import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flowchart-render.js';
+import { handleFlowchartNoteOpen, handleFlowchartPress } from './ui-functions-flowchart/flowchart-note-open.js';
+import { handleFlowchartLinkHover } from './ui-functions-flowchart/flowchart-link-hover.js';
+import { handleFlowchartNewNoteInput, handleFlowchartNewNoteKeydown, handleFlowchartNewNoteCancel,
+         handleFlowchartNewNoteConfirm, handleMissingNoteClick } from './ui-functions-flowchart/flowchart-note-create.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -43,7 +48,7 @@ import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, ha
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
 import { handleOpenFlowchartOptions, handleCloseFlowchartOptions, handleFlowchartOptionChange,
-         handleFlowchartOptionsClose } from './ui-functions-click/flowchart-options.js';
+         handleFlowchartOptionsClose } from './ui-functions-flowchart/flowchart-options-modal.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
@@ -114,7 +119,9 @@ export function addActionHandlers() {
     document.addEventListener("keyup", keyUpDelegate);
     document.addEventListener("input", inputDelegate);
     document.addEventListener("pointerdown", pointerDownDelegate);
+    document.addEventListener("mouseup", mouseUpDelegate);
     document.addEventListener('mouseover', handleTableColHover);
+    document.addEventListener('mouseover', handleFlowchartLinkHover);
 
     // The undo mark takes itself off when it has played, so the next one starts from nothing.
     // animationend does bubble, so one listener covers every cell.
@@ -150,6 +157,7 @@ export function addActionHandlers() {
     document.addEventListener('keydown', handleColumnRenameKeydown);
     document.addEventListener('keydown', handleColumnCopyKeydown);
     document.addEventListener('keydown', handleLinkedColumnKeydown);
+    document.addEventListener('keydown', handleFlowchartNewNoteKeydown);
 
     // The rest of a drag cannot be reached by data-action: once it is under way the pointer is
     // over whatever the list has shuffled beneath it, not over the grip that started it. So these
@@ -234,6 +242,10 @@ const clickActionHandlers = {
     'close-property-types': handleClosePropertyTypes,
     'open-flowchart-options': handleOpenFlowchartOptions,
     'close-flowchart-options': handleCloseFlowchartOptions,
+    // A click, not a release: the dialog it opens would be shut by the click that follows a mouseup.
+    'create-flowchart-note': handleMissingNoteClick,
+    'flowchart-new-note-confirm': handleFlowchartNewNoteConfirm,
+    'flowchart-new-note-cancel': handleFlowchartNewNoteCancel,
     'close-column-picker': handleCloseColumnPicker,
     'reset-columns': handleResetColumns,
     'show-all-columns': handleShowAllColumns,
@@ -326,6 +338,7 @@ const changeActionHandlers = {
     'history-sort': handleHistorySort,
     'sort-select': handleSortSelectChange,
     'flowchart-option-select': handleFlowchartOptionChange,
+    'toggle-flowchart-render': handleToggleFlowchartRender,
     'sort-direction-toggle': handleSortDirectionChange,
     'font-style-app-label-change': handleFontStyleAppLabelChange,
     'font-style-app-input-change': handleFontStyleAppInputChange,
@@ -349,6 +362,19 @@ const pointerDownActionHandlers = {
     'column-resize-start': handleColumnResizeStart,
     'table-scroll-drag': handleScrollbarDragStart,
     'table-scroll-page': handleScrollbarTrackPress,
+    // Which flowchart box a press began on — a box, or the chart around them, which records none.
+    'open-flowchart-note': handleFlowchartPress,
+    'open-flowchart-link': handleFlowchartPress,
+    'open-flowchart-stub': handleFlowchartPress,
+    'flowchart-press': handleFlowchartPress,
+};
+
+const mouseUpActionHandlers = {
+    // On release rather than click, so that a drag can later begin from the same press. A tap
+    // reaches here too, as the mouseup the browser fires after it.
+    'open-flowchart-note': handleFlowchartNoteOpen,
+    'open-flowchart-link': handleFlowchartNoteOpen, // the note the link is written in
+    'open-flowchart-stub': handleFlowchartNoteOpen, // a note the chart does not draw in full
 };
 
 const keyUpActionHandlers = {
@@ -364,6 +390,7 @@ const inputActionHandlers = {
     'expand-cell': handleCellAutocomplete,
     'column-rename-input': handleColumnRenameInput,
     'column-copy-input': handleColumnCopyInput,
+    'flowchart-new-note-input': handleFlowchartNewNoteInput,
     'linked-column-name': handleLinkedColumnNameInput,
 };
 
@@ -422,6 +449,20 @@ function pointerDownDelegate(evt) {
         if (handler) {
             handler(evt, actionElement);
         }
+    }
+}
+
+/**
+ * Handles all mouseup events on the document and delegates them to the appropriate handler.
+ * It looks for a `data-action` attribute on the element released over or its ancestors.
+ * @param {MouseEvent} evt The mouseup event.
+ */
+function mouseUpDelegate(evt) {
+    const actionElement = evt.target.closest('[data-action]');
+
+    if (actionElement) {
+        const handler = mouseUpActionHandlers[actionElement.dataset.action];
+        if (handler) handler(evt, actionElement);
     }
 }
 

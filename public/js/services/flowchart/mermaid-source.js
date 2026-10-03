@@ -1,7 +1,6 @@
-import { FLOWCHART_ROLES } from '../../constants.js';
-import { flowchartProperty, nodeShapeFor } from '../flowchart-options.js';
-import { resolveNoteName } from '../internal-links/note-name-index.js';
-import { toList, linkTarget } from '../internal-links/link-targets.js';
+import { readRoles, valueFor, nodeLabel, nodeShape } from './node-content.js';
+import { buildFlowchartGraph } from './flowchart-graph.js';
+import { toList } from '../internal-links/link-targets.js';
 
 /**
  * @file The visible files as mermaid flowchart source.
@@ -9,8 +8,8 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
  * Which property fills each part of the chart is the user's, through flowchart-options.js, so
  * nothing here names a property: it asks for the role and reads whatever comes back. That is also
  * why every read is defensive — a role can be pointed at a property holding anything at all, and
- * plans/flowchart-view.md §2 is explicit that a badly-pointed picker makes an odd-looking chart
- * rather than an error.
+ * plans/completed/flowchart-view.md §2 is explicit that a badly-pointed picker makes an odd-looking chart
+ * rather than an error. Roles, labels and shapes are read in node-content.js, shared with the SVG.
  *
  * **Two passes over the files, and the order is the whole point.** Mermaid puts a node in the first
  * subgraph it is *mentioned* in — so an edge `1 --> 2` written inside subgraph s1 drags node 2 into
@@ -24,7 +23,7 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
  * Two limits it does not try to fix: the files are one *page* of the folder, so a subgraph spanning
  * a pagination boundary draws as two partial charts — the same limitation the edges already have,
  * and §13.3/§14.3 of the plan own it. And nothing keeps the connectors list and the connector text
- * list in step; see readRoles below.
+ * list in step; see readRoles in node-content.js.
  */
 
 /**
@@ -35,39 +34,6 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
  */
 function mermaidLabel(text) {
     return String(text).replace(/"/g, '#quot;');
-}
-
-/**
- * Which property fills each role, resolved once for the whole render.
- *
- * A role can come back null — subgraph and node shape do until someone points them somewhere —
- * and null means the role is off rather than missing.
- *
- * **Index alignment is no longer guaranteed by construction.** CLAUDE.md's invariant, that index i
- * of internalLink and of internalLinkText are the same link, holds because those two are one Map
- * read twice. Point the two roles at unrelated properties and the lists can be different lengths,
- * so the text is read by index and `undefined` is simply an unlabelled edge.
- *
- * @returns {{nodeText: ?string, connectors: ?string, connectorText: ?string, subgraph: ?string, nodeShape: ?string}}
- */
-function readRoles() {
-    return {
-        nodeText:      flowchartProperty(FLOWCHART_ROLES.NODE_TEXT.value),
-        connectors:    flowchartProperty(FLOWCHART_ROLES.CONNECTORS.value),
-        connectorText: flowchartProperty(FLOWCHART_ROLES.CONNECTOR_TEXT.value),
-        subgraph:      flowchartProperty(FLOWCHART_ROLES.SUBGRAPH.value),
-        nodeShape:     flowchartProperty(FLOWCHART_ROLES.NODE_SHAPE.value),
-    };
-}
-
-/**
- * One file's value for a role, or undefined when the role is off.
- * @param {object} file - A file object.
- * @param {?string} property - The property the role resolved to.
- * @returns {*}
- */
-function valueFor(file, property) {
-    return property ? file[property] : undefined;
 }
 
 /**
@@ -90,10 +56,7 @@ function groupKey(file, property) {
 }
 
 /**
- * One node, with its label and its shape.
- *
- * The label falls back to the filename when the chosen property is empty, which is what `title`
- * has always done — a node with no text at all is worse than one named after its file.
+ * One node, with its label and its shape — both from node-content.js, which the SVG shares.
  *
  * @param {object} file - A file object.
  * @param {number} number - The file's node id.
@@ -101,8 +64,8 @@ function groupKey(file, property) {
  * @returns {string} The declaration, without indentation.
  */
 function nodeDeclaration(file, number, roles) {
-    const label = toList(valueFor(file, roles.nodeText)).join(', ') || file.filename;
-    const shape = nodeShapeFor(toList(valueFor(file, roles.nodeShape))[0]);
+    const label = nodeLabel(file, roles);
+    const shape = nodeShape(file, roles);
 
     return `${number}${shape.open}"${mermaidLabel(label)}"${shape.close}`;
 }
@@ -151,51 +114,35 @@ function declarationLines(files, fileNumbers, roles) {
 }
 
 /**
- * Pass two: every edge.
+ * Pass two: every edge, from the graph the SVG is drawn from too (flowchart-graph.js).
  *
- * A target that names no loaded file, or one filtered out or sitting on another page, has no number
- * and gets its own inline node instead — labelled on its first appearance only, after which the
- * bare id refers back to it, which is how mermaid reads a node it has already seen. Two notes
- * linking to the same missing file share one node. Declaring it inline here is safe precisely
- * because every one of these lines sits after every `end`.
+ * A stub — a target that names no loaded file, or one filtered out or sitting on another page — has
+ * no number and is declared inline instead: labelled on its first appearance only, after which the
+ * bare id refers back to it, which is how mermaid reads a node it has already seen. Declaring it
+ * inline here is safe precisely because every one of these lines sits after every `end`.
  *
- * @param {Array<object>} files - The files being drawn.
+ * @param {{nodes: object[], edges: object[]}} graph - What buildFlowchartGraph returned.
  * @param {Map<string, number>} fileNumbers - internalId to node id.
- * @param {object} roles - What readRoles returned.
  * @returns {string[]} The lines.
  */
-function edgeLines(files, fileNumbers, roles) {
-    const unresolvedNodes = new Map(); // raw target -> node id
-    const lines = [];
-
-    for (const file of files) {
-        const number = fileNumbers.get(file.internalId);
-        const targets = toList(valueFor(file, roles.connectors));
-        const texts = toList(valueFor(file, roles.connectorText));
-
-        targets.forEach((item, index) => {
-            // A link's own `|label` is dropped here on purpose: labels come from the connector text
-            // role and nowhere else, so there is one labelling story rather than two.
-            const target = linkTarget(item);
-            let targetNode = fileNumbers.get(resolveNoteName(target));
-
-            if (targetNode === undefined) {
-                if (unresolvedNodes.has(target)) {
-                    targetNode = unresolvedNodes.get(target);
-                } else {
-                    const nodeId = `u${unresolvedNodes.size + 1}`;
-                    unresolvedNodes.set(target, nodeId);
-                    targetNode = `${nodeId}("${mermaidLabel(target)}")`;
-                }
-            }
-
-            const linkText = texts[index];
-            const arrow = linkText ? `-->|"${mermaidLabel(linkText)}"|` : '-->';
-            lines.push(`  ${number} ${arrow} ${targetNode}`);
-        });
+function edgeLines(graph, fileNumbers) {
+    const byKey = new Map(graph.nodes.map(node => [node.key, node]));
+    const ids = new Map(); // node key -> mermaid id
+    for (const node of graph.nodes) {
+        if (node.kind === 'note') ids.set(node.key, fileNumbers.get(node.file.internalId));
     }
+    let stubCount = 0;
 
-    return lines;
+    return graph.edges.map(edge => {
+        let target = ids.get(edge.to);
+        if (target === undefined) {
+            stubCount += 1;
+            ids.set(edge.to, `u${stubCount}`);
+            target = `u${stubCount}("${mermaidLabel(byKey.get(edge.to).label)}")`;
+        }
+        const arrow = edge.text ? `-->|"${mermaidLabel(edge.text)}"|` : '-->';
+        return `  ${ids.get(edge.from)} ${arrow} ${target}`;
+    });
 }
 
 /**
@@ -218,6 +165,6 @@ export function buildMermaidSource(files) {
         '',
         ...declarationLines(files, fileNumbers, roles),
         '',
-        ...edgeLines(files, fileNumbers, roles),
+        ...edgeLines(buildFlowchartGraph(files, roles), fileNumbers),
     ].join('\n');
 }

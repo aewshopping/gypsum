@@ -12,3 +12,111 @@
    It used to be padded to line its button up with the code block's text below, which stopped
    meaning anything once the row moved to the right-hand end of .output-header — the left edge it
    was aligning with is no longer the edge the button sits at. */
+
+/* The chart fills the window below the control row, so it can be used without going full screen. */
+/* While the chart is drawn, the page is a column the chart grows to the bottom of: body, main and
+   #output each pass the height left over down to the viewer. So the chart always ends at the foot of
+   the window, however much sits above it and whatever moves there — a filter removed, the panel
+   opened — with no measuring in JS. Every other view lays the page out as before. The body's
+   margins become padding, which looks the same and lets min-height include them. */
+body:has(.flowchart-viewer) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    margin-block: 0;
+    padding-block: 8px;
+}
+body:has(.flowchart-viewer) main,
+#output:has(> .flowchart-viewer) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.flowchart-viewer {
+    flex: 1;
+    min-height: 300px;
+    user-select: none;
+}
+.flowchart-viewer:fullscreen {
+    height: 100%;
+    border: none;
+    border-radius: 0;
+}
+
+.flowchart-node {
+    /* .color-dynamic (colors.css) reads data-color into --colour-bg and the contrasting text colour
+       into `color`, as a card's does; a box paints with them. */
+    .flowchart-shape {
+        fill: var(--colour-bg);
+        stroke: var(--colour-bg);
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+    }
+    cursor: pointer;
+    /* Hovered, the note a hovered link is written in (flowchart-link-hover.js), or where a link being
+       dragged would land (flowchart-node-drag.js) — one look for all three. */
+    &:hover .flowchart-shape, &.is-link-source .flowchart-shape, &.is-drop-target .flowchart-shape {
+        stroke: var(--colour-contr);
+    }
+}
+
+.flowchart-node, .flowchart-stub {
+    text {
+        /* NODE_FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
+        font: 16px var(--fontfam-app-label);
+        fill: currentColor;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+}
+
+/* A link target that is not drawn. Both kinds are faded and dashed, which is what says "not here":
+   a note outside the filter or the page (.is-filtered) is painted in its own colour, like a dimmed
+   box, and a note that does not exist (.is-missing) is an empty outline. Either one a press can act
+   on — open the note, or create it — says so as a box does: a solid stroke on hover, or where a
+   dragged link would land. */
+.flowchart-stub {
+    opacity: 0.5;
+    .flowchart-shape {
+        stroke: var(--colour-contr);
+        stroke-width: 1;
+        stroke-dasharray: 4 3;
+        vector-effect: non-scaling-stroke;
+    }
+    &.is-filtered .flowchart-shape {
+        /* --colour-bg from .color-dynamic, as a box's fill. */
+        fill: var(--colour-bg);
+    }
+    &.is-missing {
+        color: var(--colour-contr);
+        .flowchart-shape {
+            fill: transparent;
+        }
+    }
+    &[data-action] {
+        cursor: pointer;
+    }
+    &[data-action]:hover, &.is-drop-target {
+        opacity: 0.8;
+        .flowchart-shape {
+            stroke-width: 2;
+            stroke-dasharray: none;
+        }
+    }
+}
+
+/* While pan is on the chart is for moving, so a press on a box or a link must not open it: they take
+   no pointer events, and the release lands on the chart instead (flowchart-note-open.js). Stated on
+   a link's children too, since its hit line asks for pointer events of its own. */
+.pz-container:has(.pz-panzoom-check:checked) :is(.flowchart-node, .flowchart-stub, .flowchart-edge, .flowchart-edge *, .flowchart-edge-label) {
+    pointer-events: none;
+}
+
+/* The new note dialog creating the note a link already names: the name is the link's, so the boxes
+   are read-only, and look it — no fill, a dashed edge, the stub's own way of saying "fixed". */
+#modal-flowchart-new-note input:read-only {
+    background: transparent;
+    border-style: dashed;
+    cursor: default;
+}

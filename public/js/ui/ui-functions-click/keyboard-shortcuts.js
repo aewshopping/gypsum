@@ -42,8 +42,8 @@ export function isTypingTarget() {
 /**
  * Undo or redo a table cell edit, if the key is ours to take.
  *
- * Three conditions, two of which are idioms the file already uses: the table view is current, no
- * dialog is open, and focus is not in something with its own undo. An open dialog does not stop a
+ * Three conditions, two of which are idioms the file already uses: the table or the flowchart is
+ * showing, no dialog is open, and focus is not in something with its own undo. An open dialog does not stop a
  * key reaching here — showModal makes everything outside it inert for the pointer and for focus, but
  * a key pressed inside the dialog bubbles to the document like any other event, which is why the
  * number-key shortcut below tests for one by hand too.

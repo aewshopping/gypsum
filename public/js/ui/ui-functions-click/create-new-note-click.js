@@ -1,30 +1,10 @@
 import { appState } from '../../services/store.js';
 import { propertyType } from '../../services/property-type.js';
-import { createEmptyNote } from '../../services/create-note.js';
+import { createEmptyNote, findUnusedFilename } from '../../services/create-note.js';
 import { handleOpenFileContent } from './open-file-content-view-trans.js';
 import { activateTextMode } from '../../editing/activate-text-mode.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
-
-/**
- * Finds the first available note-N.txt filename by querying the real filesystem.
- * Checking the filesystem (not just appState.myFiles) prevents overwriting files
- * created externally since the folder was loaded.
- * @param {FileSystemDirectoryHandle} dirHandle
- * @returns {Promise<string>}
- */
-async function findUnusedFilename(dirHandle) {
-    let n = 1;
-    while (true) {
-        const name = `note-${n}.txt`;
-        try {
-            await dirHandle.getFileHandle(name, { create: false });
-            n++;
-        } catch {
-            return name;
-        }
-    }
-}
 
 /**
  * Creates a new empty .txt file in the loaded folder, adds it to appState, then
