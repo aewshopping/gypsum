@@ -98,7 +98,8 @@ export function hasIssue(file, kind) {
  */
 function linkSegment(file) {
     let broken = 0;
-    for (const target of file.internalLink) {
+    // A target linked with two texts is two links but one broken target.
+    for (const target of new Set(file.internalLink)) {
         if (resolveNoteName(target) === null) broken++;
     }
     return broken === 0 ? null : `links: ${broken} broken`;

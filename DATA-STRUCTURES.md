@@ -20,7 +20,7 @@ Each entry in `appState.myFiles` is a plain object. Most of it is written by `ge
 | `contentPeek` | `string` | Body preview, ~100 chars, front matter and title excluded |
 | `tags` | `Map<string, {count: number, parents: Set<string>}>` | See below |
 | `color` | `string \| null` | The front matter `color:` value, used as a CSS colour verbatim, or `null` |
-| `internalLink` | `string[]` | Link targets found in the body, deduped. `[]` when there are none — never absent |
+| `internalLink` | `string[]` | Link targets found in the body and front matter values, one per link: a target appears once per distinct link text (CLAUDE.md, *Front matter is data, not prose*). `[]` when there are none — never absent |
 | `lastModified` | `Date` | File modification date |
 | `fileIssues` | `string \| null` | What is wrong with the file, one ` \| `-joined segment per check (`yaml:`, `links:`, `undo:`), or `null`. Column label "issues" |
 | `internalId` | `string` | Internal unique ID, currently equal to `filepath`. Named `internalId` (not `id`) so it never clashes with a user's own YAML `id:` frontmatter property |

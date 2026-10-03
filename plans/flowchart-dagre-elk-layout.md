@@ -106,8 +106,9 @@ features of its routing, which can be built over dagre's placement for far less.
   times as far), and the room for it and its label is reserved by handing dagre the box grown to the
   right and upwards; the box goes back in the bottom-left of that space, and the other edges at it are
   ended on the real box with `edgeOfBox`.
-- **Two links from one note to another** arrive only through a property the connectors role is pointed
-  at: `internalLink` keeps each target once, so a note body linking the same note twice is one edge.
+- **Two links from one note to another are two arrows** when their texts differ: `internalLink` holds
+  one entry per distinct link text (CLAUDE.md, *Front matter is data, not prose*), so
+  `[[b|open the door]]` and `[[b|walk away]]` are two edges. A repeated mention with no text adds none.
 - **Label sizes go in padded** — the 6 × 3 the drawn label box adds (`draw-flowchart-edge.js`) — or
   dagre leaves too little room for them.
 - **Deterministic as checked**: the same graph twice gives identical points, and the file never calls

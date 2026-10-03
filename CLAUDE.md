@@ -599,14 +599,21 @@ never meet, which is the point: reading text would make `related: [[a, b]]` a br
   free.
 
 **`internalLink` and `internalLinkText` are one Map read twice, and that is what aligns them.**
-`tagState.links` is a `Map<target, text>`; the file object takes its `keys()` and its `values()`, so
-index *i* of each array is the same link and no code path has to keep them in step. `addLink()` in
-`file-info.js` is the only writer, called from all three places links are found — the body scan, the
-H1 re-scan and the front matter merge.
+`tagState.links` is a `Map<target, text[]>`; the file object takes both arrays from it in one pass
+(`linkLists()`), each target once per link to it, so index *i* of each array is the same link and no
+code path has to keep them in step. `addLink()` in `file-info.js` is the only writer, called from all
+three places links are found — the body scan, the H1 re-scan and the front matter merge.
 
-- **A target linked twice keeps its first position, and the first non-empty text fills the slot.**
-  `[[shopping.txt]]` and later `[[shopping.txt|groceries]]` is one link, labelled; text already
-  given is never overwritten.
+- **One link per distinct text.** `[[b|open the door]]` and `[[b|walk away]]` are two links to `b`,
+  and the flowchart draws two arrows. A mention with no text is never a link of its own once `b` has
+  one: `[[shopping.txt]]` and later `[[shopping.txt|groceries]]` is one link, labelled, and a target
+  written in front matter and again in the body does not double up. A later text fills an empty slot
+  before it adds one; text already given is never overwritten. A target's links keep the position
+  of its first mention.
+- **So `internalLink` can name a target twice.** The broken-link count asks of the distinct targets,
+  so a broken target linked two ways is still `links: 1 broken`. Dragging a link on the flowchart
+  onto a note already linked is still refused: a second, differently labelled arrow is made by
+  writing its text in the note.
 - **No `|` means `''`, never the target** — even though the target is what such a link renders as.
   `''` is falsy, which is what `render-file-list-flowchart.js` tests to decide whether an edge is
   labelled.

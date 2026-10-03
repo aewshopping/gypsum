@@ -182,6 +182,7 @@ test.describe('internal links — internalLink property', () => {
           .find(f => f.internalId === 'front-matter-links.md').title,
         frontMatterTags: [...window.appState.myFiles
           .find(f => f.internalId === 'front-matter-links.md').tags.keys()],
+        bothFaults: [linksFor('both-faults.md'), textFor('both-faults.md')],
         hubTitle: hub.title,
         nestedTitle: nested.title,
         nestedTags: [...nested.tags.keys()],
@@ -204,6 +205,14 @@ test.describe('internal links — internalLink property', () => {
     expect(collected.hubText).toHaveLength(collected.hub.length);
     expect(collected.hubText).toEqual(['groceries', '', '', '']);
     expect(collected.noLinksText).toEqual([]);
+
+    // One link per distinct text: [[also-missing.md]], then the same with 'one way' and with
+    // 'another way', is two links — the plain mention takes the first text rather than standing
+    // alone — so the flowchart draws two arrows, each labelled.
+    expect(collected.bothFaults).toEqual([
+      ['also-missing.md', 'also-missing.md'],
+      ['one way', 'another way'],
+    ]);
 
     // Guards the appended capture group: inserting it would shift the destructuring.
     expect(collected.hubTitle).toBe('Hub');

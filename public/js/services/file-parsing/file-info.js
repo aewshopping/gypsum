@@ -86,8 +86,7 @@ export async function getFileDataAndMetadata(handle, loadOrder, knownText) {
         // Always present, [] when the file has no links: properties are registered from
         // myFiles[0] alone, so omitting the key would unregister it for the whole session.
         // One Map read twice, so index i of each array is the same link — see addLink.
-        internalLink: [...tagData.links.keys()],
-        internalLinkText: [...tagData.links.values()],
+        ...linkLists(tagData.links),
         lastModified: new Date(file.lastModified),
         ...(yamlData),
         // Null rather than absent when the front matter read cleanly, for the same reason as above.
@@ -129,12 +128,12 @@ function frontMatterSpan(fileContent, indices) {
  *
  * @param {string} fileContent - The text content of the file.
  * @param {{start: number, end: number} | null} frontMatterIndices - Pre-computed YAML block line indices, or null if absent.
- * @returns {{titleFirst: string, contentPeek: string, tagMap: Map<string, {count: number, parents: Set<string>}>, links: Map<string, string>}} - Extracted data.
+ * @returns {{titleFirst: string, contentPeek: string, tagMap: Map<string, {count: number, parents: Set<string>}>, links: Map<string, string[]>}} - Extracted data.
  */
 function parseFileContent(fileContent, frontMatterIndices) {
     let tagState = {
         tagMap: new Map(),  // Map<childTagName, {count: number, parents: Set<string>}>
-        links: new Map(),   // target -> display text; see addLink
+        links: new Map(),   // target -> its links' display texts; see addLink
     };
 
     // The front matter block joins the markup and code spans, so nothing inside it is read as prose.
@@ -160,17 +159,19 @@ function parseFileContent(fileContent, frontMatterIndices) {
 /**
  * Records one internal link.
  *
- * The Map's key order is the order links are met and its values are those same links' display
- * text, so internalLink and internalLinkText are aligned by construction rather than by two code
- * paths agreeing to stay in step. It is also the dedupe a note linking twice to the same file
- * needs: one entry, in the position of the first mention.
+ * The Map's key order is the order targets are met, and each holds the texts of that target's
+ * links. internalLink and internalLinkText are both read off it (linkLists), so they are aligned by
+ * construction rather than by two code paths agreeing to stay in step.
  *
- * **The first non-empty text fills the slot.** A note saying [[shopping.txt]] and later
- * [[shopping.txt|groceries]] means one link, labelled — a later mention can fill an empty slot but
- * never overwrite text already given. A link with no '|' has the text '', never its own target,
- * even though the target is what such a link renders as.
+ * **One link per distinct text.** [[b|open the door]] and [[b|walk away]] are two links to b, and
+ * the flowchart draws two arrows. A mention with no text is never a link of its own once b has
+ * one: [[b]] twice is one link, and [[b]] beside [[b|open the door]] is that one link, labelled — so
+ * a target written in front matter and again in the body does not double up. A later text fills an
+ * empty slot before it adds one, and never overwrites text already given. A target's links keep the
+ * position of its first mention. A link with no '|' has the text '', never its own target, even
+ * though the target is what such a link renders as.
  *
- * @param {Map<string, string>} links - The link Map being filled.
+ * @param {Map<string, string[]>} links - The link Map being filled.
  * @param {string} target - The text inside [[...]], before any '|'.
  * @param {string} text - The display text after '|', already trimmed, or ''.
  */
@@ -178,8 +179,22 @@ function addLink(links, target, text) {
     const key = target.trim();
     if (!key) return; // '[[ ]]' is a link to nothing, not a broken link to ''
 
-    const existing = links.get(key);
-    if (existing === undefined || (existing === '' && text)) links.set(key, text);
+    const texts = links.get(key);
+    if (!texts) return void links.set(key, [text]);
+    if (!text || texts.includes(text)) return;
+    const empty = texts.indexOf('');
+    if (empty === -1) texts.push(text);
+    else texts[empty] = text;
+}
+
+/**
+ * The link Map as the file object's two aligned arrays: each target once per link to it.
+ * @param {Map<string, string[]>} links - As addLink fills it.
+ * @returns {{internalLink: string[], internalLinkText: string[]}}
+ */
+function linkLists(links) {
+    const entries = [...links].flatMap(([target, texts]) => texts.map(text => [target, text]));
+    return { internalLink: entries.map(([target]) => target), internalLinkText: entries.map(([, text]) => text) };
 }
 
 /**
