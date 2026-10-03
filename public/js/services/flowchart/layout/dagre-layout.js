@@ -49,7 +49,7 @@ export const GROUP_NAME_HEIGHT = 20;
  * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - Node keys,
  *   and the size of the box the edge's text is drawn in, or null when it has none.
  * @param {{direction?: 'TB'|'LR', merge?: boolean}} [options] - `direction`: top to bottom (the
- *   default) or left to right; `merge`: arrows into one box join before it, as do arrows out.
+ *   default) or left to right; `merge`: every arrow on one side of a box, in or out, joins one trunk before it.
  * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[], hops: number[][]}[], groups: {name: string, x: number, y: number, width: number, height: number}[], width: number, height: number}}
  */
 export function dagreLayout(boxes, edges, options = {}) {
@@ -115,13 +115,15 @@ function chartInRanks(charted, edges, merge, nameHeight) {
 }
 
 /**
- * Which merged trunk a jog belongs to: its last jog into the port its arrowhead shares, or its first
- * out of the port its tail shares. A jog elsewhere is its own.
+ * Which merged trunk a jog belongs to: the side of a box it meets — its first jog the upper box's
+ * bottom, its last the lower box's top — so every line in and out of that port runs on one track, a
+ * bus, as mermaid's elk drawing has. A link that jogs once meets both, and goes with its arrowhead's
+ * side. A jog in between is its own.
  */
 function mergeUnit(link, jog, { xs }) {
-    const last = jog.step === xs.length - 2, first = jog.step === 0;
-    const head = link.turned ? 'upper' : 'lower';
-    if (head === 'lower' ? last : first) return `head:${link[head]}`;
-    if (head === 'lower' ? first : last) return `tail:${link[head === 'lower' ? 'upper' : 'lower']}`;
+    const first = jog.step === 0, last = jog.step === xs.length - 2;
+    if (first && last) return link.turned ? `bottom:${link.upper}` : `top:${link.lower}`;
+    if (first) return `bottom:${link.upper}`;
+    if (last) return `top:${link.lower}`;
     return `${link.i}`;
 }

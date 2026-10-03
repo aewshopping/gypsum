@@ -9,8 +9,9 @@
  * meet its port bends in the gap rather than the port moving to meet it. Step 6 of
  * plans/flowchart-dagre-elk-layout.md.
  *
- * **Merging** gives every arrowhead on a side one port, and every arrow tail another, so they join into
- * a trunk before the box rather than each meeting it on its own.
+ * **Merging** gives every arrow on a side one port, at its middle — arrowheads and tails together, as
+ * mermaid's elk drawing does — so they join into one trunk before the box, a line running both ways,
+ * rather than each meeting it on its own. A port so shared is marked, and is never nudged onto a lane.
  *
  * Ports divide `portWidth`, centred — the part of a side a shape can take an arrow on: all of a
  * rectangle's, less of a diamond's. node-shape.js knows which, and the layout does not.
@@ -21,8 +22,9 @@
  *
  * @param {{boxes: Map, links: object[]}} placement - From placeWithDagre.
  * @param {Map<string, number>} portWidths - Box key to the width its ports divide.
- * @param {boolean} merge - Arrows into one box share one port, and arrows out of it another.
- * @returns {Map<number, {upper: number, lower: number}>} Link index to the two ports' x.
+ * @param {boolean} merge - Every arrow on one side of a box shares one port.
+ * @returns {Map<number, {upper: number, lower: number, upperShared?: boolean, lowerShared?: boolean}>}
+ *   Link index to the two ports' x, and whether each is shared with another link.
  */
 export function assignPorts(placement, portWidths, merge) {
     const centre = key => placement.boxes.get(key).x + placement.boxes.get(key).width / 2;
@@ -33,19 +35,22 @@ export function assignPorts(placement, portWidths, merge) {
         sides.get(id).ends.push(end);
     };
     for (const link of placement.links) {
-        addEnd(link.upper, 'bottom', { link, which: 'upper', head: link.turned,
+        addEnd(link.upper, 'bottom', { link, which: 'upper',
             toward: link.lanes[0]?.[0] ?? centre(link.lower) });
-        addEnd(link.lower, 'top', { link, which: 'lower', head: !link.turned,
+        addEnd(link.lower, 'top', { link, which: 'lower',
             toward: link.lanes.at(-1)?.[0] ?? centre(link.upper) });
     }
 
     const ports = new Map(placement.links.map(link => [link.i, {}]));
     for (const { box, ends } of sides.values()) {
-        const units = merge ? mergedUnits(ends) : ends.map(end => [end]);
+        const units = merge ? [ends] : ends.map(end => [end]);
         units.sort((a, b) => mean(a) - mean(b) || a[0].link.i - b[0].link.i);
         const width = portWidths.get(box) ?? placement.boxes.get(box).width;
         const xs = divided(units.length, centre(box), width);
-        units.forEach((unit, j) => unit.forEach(end => { ports.get(end.link.i)[end.which] = xs[j]; }));
+        units.forEach((unit, j) => unit.forEach(end => {
+            ports.get(end.link.i)[end.which] = xs[j];
+            ports.get(end.link.i)[`${end.which}Shared`] = unit.length > 1;
+        }));
     }
     return ports;
 }
@@ -60,11 +65,6 @@ export function assignPorts(placement, portWidths, merge) {
  */
 function divided(n, centre, width) {
     return Array.from({ length: n }, (_, j) => centre - width / 2 + width * (j + 1) / (n + 1));
-}
-
-/** Arrowheads in one unit, tails in another. */
-function mergedUnits(ends) {
-    return [ends.filter(end => end.head), ends.filter(end => !end.head)].filter(unit => unit.length);
 }
 
 /** Where a unit's arrows are heading, on average. */

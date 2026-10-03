@@ -332,9 +332,11 @@ What stage 2 turned out to be, where it settled something the steps above left o
   name gets a strip above the group, since the strip top to bottom keeps is, mirrored, its left side. The
   separate rank spacing step *Direction* expected was not needed: a turned label is as tall as its text
   is wide, so dagre already leaves room for it.
-- **Merging** gives every arrowhead on a side one port and every tail another, and the jogs into or out
-  of that port one track, so they join in a trunk. It adds crossings where tails leave past the heads'
-  trunk (four in the mockup); each is bridged.
+- **Merging** gives every arrow on a side one port at its middle — arrowheads and tails together, as
+  mermaid's elk drawing does — and every jog meeting that port one track, so they join in one trunk
+  that runs both ways: under 003 in the mockup one bus carries the arrows up into 003 and the lines
+  out of it to 004, 005 and 006. A link jogging once goes with its arrowhead's side. A shared port is
+  never nudged onto a lane, or the trunk would split. The mockup merged has no crossings.
 - **Step 7 holds by construction**: dagre keeps lanes for links that are not a group's out of it, and
   routes only turn in gaps, so the layout test's rule — a route crosses a group's border only to reach
   or leave a member, and once — passed on every fixture without code of its own.

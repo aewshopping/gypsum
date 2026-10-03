@@ -1108,6 +1108,8 @@ to bottom, left to right and merged through one checker.
   `flowchartLayout` key of the layouts file, `setFlowchartLayoutSetting()` the one writer
   (`services/flowchart/flowchart-layout-settings.js`). Left to right is the top to bottom chart laid
   out on its side and mirrored (`transpose.js`), so there is one router, not two.
+- **Merging is one port per side, in and out together** (`ports.js`), and every jog meeting it on one
+  track — a two-way trunk, as mermaid's elk drawing has; each link keeps its own branch and label.
 - **Corners and hops are drawing**, in `edge-path.js`, in drawing units so they zoom; the layout only
   says where a route hops (`line-jumps.js`: the horizontal run bridges the vertical one).
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,

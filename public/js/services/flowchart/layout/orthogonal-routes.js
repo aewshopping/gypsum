@@ -15,7 +15,8 @@ const NUDGE = 5; // how far a port may move to meet the lane beside it
  * Where a link goes: the x it holds in each row from its upper box to its lower one, and those rows.
  *
  * @param {{upper: string, lower: string, lanes: number[][]}} link - From placeWithDagre.
- * @param {{upper: number, lower: number}} port - Its ports' x (ports.js).
+ * @param {{upper: number, lower: number, upperShared?: boolean, lowerShared?: boolean}} port - Its
+ *   ports' x (ports.js); a shared one stays put, or the trunk it holds would split.
  * @param {Map<string, {rankY: number}>} boxes - The placement's boxes.
  * @param {function(number): number} rankOf - Row index of a y (ranks.js).
  * @returns {{xs: number[], rows: number[]}}
@@ -29,8 +30,8 @@ export function linkWaypoints(link, port, boxes, rankOf) {
     // not a bend, and nobody sees a port that far off a side's even division. Only a port moves, never
     // a lane, which may carry a label.
     const n = xs.length - 1;
-    if (Math.abs(xs[0] - xs[1]) <= NUDGE) xs[0] = xs[1];
-    if (Math.abs(xs[n] - xs[n - 1]) <= NUDGE) xs[n] = xs[n - 1];
+    if (!port.upperShared && Math.abs(xs[0] - xs[1]) <= NUDGE) xs[0] = xs[1];
+    if (!port.lowerShared && Math.abs(xs[n] - xs[n - 1]) <= NUDGE) xs[n] = xs[n - 1];
     return {
         xs,
         rows: [rankOf(boxes.get(link.upper).rankY), ...link.lanes.map(([, y]) => rankOf(y)), rankOf(boxes.get(link.lower).rankY)],
