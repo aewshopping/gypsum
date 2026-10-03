@@ -18,6 +18,11 @@ each arrow's text sits — in three stages:
 **Work stops after each stage for manual testing** — after step 2 (dagre), after step 7 (elk-like
 routing and subgraphs) and after step 8 (positions held). The next stage starts only once the last has been tried.
 
+**The inspiration for the whole feature is [mermaid.live/edit](https://mermaid.live/edit)** — mermaid's own
+editor, which draws a chart live from its source and can switch between its dagre and elk renderers.
+When working out how a feature here should look or behave, open it, paste in a chart like ours and
+inspect what it draws; it is the first place to look, before inventing an answer.
+
 **The look to aim for** is `plans/reference/flowchart-layout-mockup.png`: mermaid's drawing of a chart
 like ours with its elk renderer, which is where stage 2 is headed. What it shows:
 
@@ -119,9 +124,8 @@ how the arrows are drawn between the boxes, and may move the boxes to make room 
 
 ### Who has the last word
 
-**Stage 2 is the refinement layer, and where it disagrees with dagre, stage 2 wins.** The open question
-is how much it is allowed to change, because each power costs differently. The proposed line, to be
-confirmed before step 3 is built:
+**Stage 2 is the refinement layer, and where it disagrees with dagre, stage 2 wins.** How much it is
+allowed to change is decided, because each power costs differently:
 
 - **Free**: moving labels; widening a gap — pushing every row below down, or every box beside one
   across — so tracks (step 4), ports (step 6) or a lane fit. That is stretching space, and everything
@@ -155,6 +159,11 @@ corner.
   **entering** cannot do the same, because its arrowhead would be hidden too: its last segment is cut
   where it meets the real outline (a vertical line against a polygon or a circle, a short calculation
   in `node-shape.js`, which already knows each outline).
+- **The way out if this gets complicated: rectangles only.** If placing where lines leave or where
+  arrowheads land on these shapes grows complicated, the preference is to stop offering non-rectangular
+  shapes at all rather than carry the complication — to be judged when step 3 is built. That would mean
+  taking circle, diamond and hexagon (and any other shape the router cannot treat as its box) out of
+  `NODE_SHAPES`, which the option, the mermaid source and `node-shape.js` all read.
 - **Corners** are a drawing concern: the route stays a list of points, and `draw-flowchart-edge.js`
   turns each bend into a short arc, smaller where two bends are close together. The radius is in
   drawing units, so corners **grow and shrink with zoom** like everything else.
