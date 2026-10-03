@@ -17,9 +17,18 @@ each arrow's text sits — in three stages:
 **Work stops after each stage for manual testing** — after step 2 (dagre), after step 6 (elk-like
 routing) and after step 7 (positions held). The next stage starts only once the last has been tried.
 
-**The look to aim for** is mermaid's own drawing of a chart like ours: `plans/reference/flowchart-layout-mockup.mmd`
-holds the source, and the mermaid.live link at its top draws it — top to bottom, rounded boxes, text on
-the arrows.
+**The look to aim for** is `plans/reference/flowchart-layout-mockup.png`: mermaid's drawing of a chart
+like ours with its elk renderer, which is where stage 2 is headed. What it shows:
+
+- top to bottom, rounded boxes, each arrow's text in a small box on the arrow;
+- every arrow right-angled with rounded corners, leaving the bottom of its source and entering the top
+  of its target — an arrow going back up the chart included (005 → 003, 004 → 003), which leaves its
+  box's top and climbs to the underside of 003, rather than out of a side;
+- **separate ports**: the three arrows out of 003's bottom and the two arrows into its underside each
+  meet the box at their own point, and so do the two arrows into 003's top;
+- each arrow's text on a vertical run of that arrow, between the rows of boxes;
+- separate horizontal runs in the same gap at different heights (the tracks of step 4), so in this
+  chart no two arrows cross.
 
 ---
 
@@ -199,4 +208,4 @@ noted here instead.
 | `public/js/ui/ui-functions-flowchart/draw-flowchart-edge.js` | steps 3, 5 — rounded corners and hops drawn into the path |
 | `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 7 — hands label sizes in; held positions |
 | `public/js/ui/ui-functions-flowchart/flowchart-note-create.js` | step 7 — hands the drop point on to the new note |
-| `plans/reference/flowchart-layout-mockup.mmd` | the look aimed at |
+| `plans/reference/flowchart-layout-mockup.png` | the look aimed at |
