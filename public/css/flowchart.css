@@ -35,8 +35,8 @@
    was aligning with is no longer the edge the button sits at. */
 
 /* The chart fills the window below the control row, so it can be used without going full screen. */
-/* While the chart is drawn, the page is a column the chart grows to the bottom of: body, main and
-   #output each pass the height left over down to the viewer. So the chart always ends at the foot of
+/* While the chart is drawn, the page is a column the chart grows to the bottom of: body, main,
+   #output and the frame each pass the height left over down to the viewer. So the chart always ends at the foot of
    the window, however much sits above it and whatever moves there — a filter removed, the panel
    opened — with no measuring in JS. Every other view lays the page out as before. The body's
    margins become padding, which looks the same and lets min-height include them. The code view takes
@@ -50,10 +50,24 @@ body:has(.flowchart-viewer, .flowchart-code-block) {
     padding-block: 8px;
 }
 body:has(.flowchart-viewer, .flowchart-code-block) main,
-#output:has(> .flowchart-viewer) {
+#output:has(> .flowchart-frame),
+.flowchart-frame {
     flex: 1;
     display: flex;
     flex-direction: column;
+}
+/* The chart reaches the foot of the window, so its frame can. */
+body:has(.flowchart-viewer) {
+    padding-bottom: 0;
+}
+
+/* A plate of the alternate colour from the column's left edge to its right and down to the foot of
+   the window; the viewer sits inside it, rounded and in the page's own colour, so the plate frames
+   it. Square at the bottom, where it meets the window's edge. */
+.flowchart-frame {
+    background-color: var(--colour-neutral-alt);
+    border-radius: 8px 8px 0 0;
+    padding: 12px 12px 12px;
 }
 
 .flowchart-viewer {

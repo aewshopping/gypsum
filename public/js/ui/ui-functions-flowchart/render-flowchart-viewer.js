@@ -12,10 +12,14 @@
  * box meant for scrolling ends on empty chart and offers a new note. Turning it off is a deliberate
  * step into editing; a re-render keeps whichever it was (readPanZoomState).
  *
+ * The viewer sits in `.flowchart-frame`, a plate of the page's alternate colour reaching the column's
+ * sides and the foot of the window, so the chart is framed by it.
+ *
  * @returns {string} HTML string.
  */
 export function renderFlowchartViewer() {
     return `
+        <div class="flowchart-frame">
         <div class="pz-container flowchart-viewer">
             <label class="svg-wrapper-style pz-icon pz-fullscreen" data-tip="full screen">
                 <svg viewBox="0 0 73.6 70.2" width="73.6" height="70.2"><use href="#icon-maximise"></use></svg>
@@ -35,5 +39,6 @@ export function renderFlowchartViewer() {
                 <span class="pz-zoom-label" aria-hidden="true">+</span>
             </div>
             <svg class="pz-svg flowchart-svg" data-action="flowchart-press" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
         </div>`;
 }
