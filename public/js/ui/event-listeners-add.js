@@ -16,6 +16,7 @@ import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flowchart-render.js';
+import { handleCopyFlowchartCode } from './ui-functions-flowchart/copy-flowchart-code.js';
 import { handleFlowchartNoteOpen, handleFlowchartPress } from './ui-functions-flowchart/flowchart-note-open.js';
 import { handleFlowchartLinkHover } from './ui-functions-flowchart/flowchart-link-hover.js';
 import { handleFlowchartNewNoteInput, handleFlowchartNewNoteKeydown, handleFlowchartNewNoteCancel,
@@ -242,6 +243,7 @@ const clickActionHandlers = {
     'close-property-types': handleClosePropertyTypes,
     'open-flowchart-options': handleOpenFlowchartOptions,
     'close-flowchart-options': handleCloseFlowchartOptions,
+    'copy-flowchart-code': handleCopyFlowchartCode,
     // A click, not a release: the dialog it opens would be shut by the click that follows a mouseup.
     'create-flowchart-note': handleMissingNoteClick,
     'flowchart-new-note-confirm': handleFlowchartNewNoteConfirm,

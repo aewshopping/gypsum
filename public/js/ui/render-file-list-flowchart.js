@@ -13,8 +13,8 @@ import { attachFlowchartDrag } from './ui-functions-flowchart/flowchart-node-dra
  *
  * Which one is `appState.flowchartView.showSvg`, set by the switch in the view's control row. The two are
  * not connected yet: the SVG is drawn from the files, not from the source, with notes at placeholder
- * positions (plans/completed/flowchart-view.md). The code block is contenteditable purely so it can be
- * selected, copied and tweaked in place — nothing is read back out of it and no note is written.
+ * positions (plans/completed/flowchart-view.md). The code block is output only — the chart is drawn from
+ * the same files, never from it — so it is not editable, and its copy button takes the source whole.
  *
  * What goes into the source is services/flowchart/mermaid-source.js; this is the layer that decides
  * which files it is asked about and puts the result on the page.
@@ -45,7 +45,12 @@ export function renderFileList_flowchart(renderEverything) {
 
     if (!appState.flowchartView.showSvg) {
         output.innerHTML =
-            `<pre class="flowchart-code" contenteditable="true" spellcheck="false">${escapeHtml(buildMermaidSource(drawnFiles))}</pre>`;
+            `<div class="flowchart-code-block">
+                <pre class="flowchart-code">${escapeHtml(buildMermaidSource(drawnFiles))}</pre>
+                <button type="button" class="svg-wrapper-style flowchart-code-copy" data-action="copy-flowchart-code" data-tip="copy the mermaid code">
+                    <svg viewBox="0 0 50 50"><use href="#icon-copy"></use></svg>
+                </button>
+            </div>`;
         return;
     }
 

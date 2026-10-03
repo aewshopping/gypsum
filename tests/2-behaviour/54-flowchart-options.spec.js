@@ -63,6 +63,14 @@ test('the default chart draws from title and links, and writes nothing', async (
 // The reason the source is built in two passes at all. Mermaid puts a node in the first subgraph it
 // is *mentioned* in, so with the edges interleaved "Deeper still" — linked to from inside s1 before
 // its own group is reached — would be drawn inside s1 instead of s2.
+test('the code view is read only, and its button copies the mermaid source', async ({ page }) => {
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openFlowchart(page);
+  await expect(page.locator('.flowchart-code')).not.toHaveAttribute('contenteditable');
+  await page.click('[data-action="copy-flowchart-code"]');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await source(page));
+});
+
 test('a subgraph groups its nodes, and a link from another group does not steal one', async ({ page }) => {
   await openFlowchart(page);
   await setRole(page, 'subgraph', 'chapter');

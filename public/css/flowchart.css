@@ -1,3 +1,13 @@
+/* The copy button sits over the code block's top right corner. */
+.flowchart-code-block {
+    position: relative;
+}
+.flowchart-code-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
 .flowchart-code {
     background-color: var(--colour-neutral-alt);
     color: var(--colour-contr);
