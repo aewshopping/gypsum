@@ -324,6 +324,11 @@ What stage 2 turned out to be, where it settled something the steps above left o
 - **Closing gaps** is `compact-columns.js`, last before the unlinked block: a strip empty from the top
   of the drawing to the bottom is narrowed to 40, everything right of it moving left. So nothing changes
   order, no straight line gains a bend, and nothing comes closer to anything than 40.
+- **Closing gaps along a row** is `close-row-gaps.js`, first after dagre: in a chart all in one
+  subgraph no strip is empty top to bottom, and dagre had spread the second row's note and the line
+  beside it to the group's two edges. Each box and each lane is pulled towards the middle of what it
+  links to above and below, never past a neighbour, never closer than dagre's own spacing, never across
+  a group's edge; a straight run of lanes moves as one, and groups are fitted to what they hold after.
 - **Shapes stay.** The pragmatic fix worked: ports spread over only the part of a side a shape can take
   an arrow on (`ports` in node-shape.js), and `fit-routes-to-shapes.js` moves each end along its last
   run onto the real outline. The way out (rectangles only) was not needed.
@@ -498,6 +503,7 @@ folder as svg-pan-zoom has — a library that knows nothing of notes, with its l
 | `public/js/services/flowchart/layout/dagre-place.js` | step 2 — dagre's placement: boxes, groups, each link's lanes and label; pure |
 | `public/js/services/flowchart/layout/ranks.js` | step 4 — the rows and the gaps between them, and widening a gap; pure |
 | `public/js/services/flowchart/layout/compact-columns.js` | stage 2 — strips empty top to bottom, narrowed; pure |
+| `public/js/services/flowchart/layout/close-row-gaps.js` | stage 2 — each row drawn closer to what it links to; pure |
 | `public/js/services/flowchart/layout/transpose.js` | stage 2 — left to right, as top to bottom on its side; pure |
 | `public/js/services/flowchart/layout/chart-frame.js` | stage 2 — the chart moved to 0 0, and name strips above groups left to right; pure |
 | `public/js/services/flowchart/layout/upward-links.js` | step 2 — which links of a loop point back up; pure |

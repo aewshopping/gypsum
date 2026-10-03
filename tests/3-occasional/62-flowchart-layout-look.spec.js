@@ -24,6 +24,10 @@ const CHAPTERS = { '001.md': 'birthday', '002.md': 'birthday', '003.md': 'the ro
 const GROUPED = Object.fromEntries(Object.entries(MOCKUP).map(([name, text]) =>
   [name, CHAPTERS[name] ? `---\nchapter: ${CHAPTERS[name]}\n---\n${text}` : text]));
 
+// The same chart all in one subgraph, 006 linking twice to a note that does not exist.
+const ONE_GROUP = Object.fromEntries(Object.entries(MOCKUP).map(([name, text]) =>
+  [name, `---\nchapter: part1\n---\n${text}${name === '006.md' ? '\n[[gone.md]] [[gone.md|again]]\n' : ''}`]));
+
 // Most notes in no subgraph, linking to each other and into and out of the two that exist.
 const MIXED = {
   'start.md': '# Start here\n\n[[plan.md|make a plan]] [[shop.md|go shopping]]\n',
@@ -71,6 +75,10 @@ test('a link to itself, two links to one note, a diamond and a missing note', as
 
 test('the mockup chart in two subgraphs', async ({ page }, testInfo) => {
   await screenshotChart(page, GROUPED, testInfo, { subgraph: 'chapter' });
+});
+
+test('the mockup chart all in one subgraph', async ({ page }, testInfo) => {
+  await screenshotChart(page, ONE_GROUP, testInfo, { subgraph: 'chapter' });
 });
 
 test('most notes in no subgraph, linking into and out of two', async ({ page }, testInfo) => {

@@ -1090,6 +1090,9 @@ to bottom, left to right and merged through one checker.
   (`ranks.js`). So nothing in a row — box, label, group name — is ever crossed sideways, and a label
   stays where dagre kept its place, on its own route. Do not move labels or boxes in a way that breaks
   this: it is what the "no run through a box" and "label on its own route" rules rest on.
+- **Rows are drawn together after dagre** (`close-row-gaps.js`): dagre spaces a row to suit every row
+  at once, so a sparse row inside one wide subgraph was spread to the group's edges. Each box and lane
+  slides towards what it links to — order, dagre's spacing and group edges all kept.
 - **Bends along a row share a height**: `tracks.js` orders a gap's jogs to cross least, then packs
   each onto the highest track where it overlaps nothing above it, so jogs that do not overlap bend
   together and the chart scans in rows. `jog-heights.js` puts the tracks between two margins, the
@@ -1214,6 +1217,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | A link as a right-angled route through its lanes |
 | `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `jog-heights.js`, `ranks.js` | Where arrows meet a box; the order of sideways runs in a gap, and their heights; the rows and widening a gap |
 | `public/js/services/flowchart/layout/straighten.js` | A straight link's lanes slid onto one of its ports, saving a bend |
+| `public/js/services/flowchart/layout/close-row-gaps.js` | Each row's boxes and lanes pulled towards what they link to, never past a neighbour or a group's edge |
 | `public/js/services/flowchart/layout/compact-columns.js`, `transpose.js`, `chart-frame.js` | Narrowing empty strips; left to right; the drawing's frame |
 | `public/js/services/flowchart/layout/line-jumps.js` | Where routes cross, so the drawing can bridge |
 | `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |

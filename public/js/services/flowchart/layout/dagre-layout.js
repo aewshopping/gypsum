@@ -1,6 +1,7 @@
 import { placeWithDagre, byText, NODE_SPACING, RANK_SPACING } from './dagre-place.js';
 import { loopRoute } from './placeholder-layout.js';
 import { rankBands, rowShifts } from './ranks.js';
+import { closeRowGaps } from './close-row-gaps.js';
 import { assignPorts } from './ports.js';
 import { straightenLinks } from './straighten.js';
 import { assignTracks } from './tracks.js';
@@ -18,7 +19,8 @@ import { atOrigin, withNamesAbove } from './chart-frame.js';
  * plans/flowchart-dagre-elk-layout.md. Each step is a module of its own, and this is the order they
  * run in:
  *
- * 1. **dagre places** the linked boxes, the groups, each link's lanes and its label (dagre-place.js).
+ * 1. **dagre places** the linked boxes, the groups, each link's lanes and its label (dagre-place.js),
+ *    and each row is then **drawn together**, every box and lane nearer what it links to (close-row-gaps.js).
  * 2. **Ports** spread each box's arrows along its top and bottom (ports.js), and a link that runs in one
  *    straight column has the column slid onto its port where that is safe (straighten.js).
  * 3. Each link's **jogs** — where it turns sideways between two rows — are found, and given **tracks**
@@ -78,6 +80,7 @@ export function dagreLayout(boxes, edges, options = {}) {
 function chartInRanks(charted, edges, merge, nameHeight) {
     const placement = placeWithDagre(charted, edges);
     const { bands, rankOf } = rankBands(placement, nameHeight);
+    closeRowGaps(placement, rankOf);
     const ports = assignPorts(placement, new Map(charted.map(box => [box.key, box.portWidth ?? box.width])), merge);
     if (!merge) straightenLinks(placement, ports);
 

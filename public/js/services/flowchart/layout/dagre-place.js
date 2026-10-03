@@ -27,7 +27,7 @@ import { upwardLinks } from './upward-links.js';
 // Mermaid's defaults for a flowchart, which is the look being aimed at.
 export const NODE_SPACING = 50;
 export const RANK_SPACING = 50;
-const EDGE_SPACING = 20;
+export const EDGE_SPACING = 20;
 
 /**
  * dagre's placement of the linked boxes, in dagre's own coordinates.

@@ -50,6 +50,9 @@ const CASES = {
   // The mockup in two subgraphs and one note outside both, linked back and forth across the borders.
   'the mockup in groups': fixture(MOCKUP_NOTES, MOCKUP_LINKS,
     { '001': 'birthday', '002': 'birthday', '003': 'robot', '004': 'robot', '005': 'robot' }),
+  // The mockup all in one subgraph, and a missing note outside it: no strip is empty top to bottom.
+  'the mockup in one group': fixture([...MOCKUP_NOTES, 'gone'], [...MOCKUP_LINKS, ['006', 'gone'], ['006', 'gone', 'again']],
+    Object.fromEntries(MOCKUP_NOTES.map(key => [key, 'part1']))),
   'two groups linked across their borders, and a link to itself in one': fixture(['a', 'b', 'c', 'd', 'e', 'f'], [
     ['a', 'b', 'over'], ['b', 'c', 'back'], ['c', 'd'], ['d', 'e', 'over again'], ['a', 'e'], ['f', 'a', 'in'],
     ['e', 'a', 'up'], ['c', 'c', 'round'],

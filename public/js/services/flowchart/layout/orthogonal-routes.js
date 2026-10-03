@@ -22,16 +22,17 @@ const NUDGE = 5; // how far a port may move to meet the lane beside it
  * @returns {{xs: number[], rows: number[]}}
  */
 export function linkWaypoints(link, port, boxes, rankOf) {
-    // An x within half a unit of the one before is taken as the same, or the run between them would
-    // lean by that much rather than jog.
-    const xs = [port.upper, ...link.lanes.map(([x]) => x), port.lower];
-    xs.forEach((x, j) => { if (j && Math.abs(x - xs[j - 1]) <= 0.5) xs[j] = xs[j - 1]; });
     // A port a few units from the lane beside it moves onto it: a step that small reads as a glitch,
     // not a bend, and nobody sees a port that far off a side's even division. Only a port moves, never
-    // a lane, which may carry a label.
+    // a lane, which may carry a label. A shared port moves only the half unit that would otherwise
+    // lean the run, since the trunk it holds would split.
+    const xs = [port.upper, ...link.lanes.map(([x]) => x), port.lower];
     const n = xs.length - 1;
-    if (!port.upperShared && Math.abs(xs[0] - xs[1]) <= NUDGE) xs[0] = xs[1];
-    if (!port.lowerShared && Math.abs(xs[n] - xs[n - 1]) <= NUDGE) xs[n] = xs[n - 1];
+    if (Math.abs(xs[0] - xs[1]) <= (port.upperShared ? 0.5 : NUDGE)) xs[0] = xs[1];
+    if (Math.abs(xs[n] - xs[n - 1]) <= (port.lowerShared ? 0.5 : NUDGE)) xs[n] = xs[n - 1];
+    // A lane within half a unit of the one before is taken as the same, or the run between them would
+    // lean by that much rather than jog.
+    xs.forEach((x, j) => { if (j > 1 && j < n && Math.abs(x - xs[j - 1]) <= 0.5) xs[j] = xs[j - 1]; });
     return {
         xs,
         rows: [rankOf(boxes.get(link.upper).rankY), ...link.lanes.map(([, y]) => rankOf(y)), rankOf(boxes.get(link.lower).rankY)],
