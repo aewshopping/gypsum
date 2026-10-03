@@ -7,7 +7,7 @@
  */
 
 const RADIUS = 8; // a corner's radius, less where the runs either side are short
-const HOP = 5;    // a hop's radius
+const HOP = 7.5;  // a hop's radius
 
 /** The arrowhead's length, in drawing units: a little larger than the line needs, so it stands out. */
 export const ARROWHEAD = 13;
