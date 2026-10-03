@@ -21,7 +21,12 @@ routing and subgraphs) and after step 8 (positions held). The next stage starts 
 **The inspiration for the whole feature is [mermaid.live/edit](https://mermaid.live/edit)** — mermaid's own
 editor, which draws a chart live from its source and can switch between its dagre and elk renderers.
 When working out how a feature here should look or behave, open it, paste in a chart like ours and
-inspect what it draws; it is the first place to look, before inventing an answer.
+inspect what it draws (with its elk renderer); it is the first place to look, before inventing an answer.
+
+**Gypsum has one drawing style, and it is the elk-inspired one.** mermaid.live offering both renderers is
+not a feature to copy: there is no dagre-or-elk switch here. dagre is only where stage 2 starts — what
+places the boxes before the routing refines them — and stage 1's straight-from-dagre picture is a
+stepping stone to be tried by hand, not a style anyone keeps.
 
 **The look to aim for** is `plans/reference/flowchart-layout-mockup.png`: mermaid's drawing of a chart
 like ours with its elk renderer, which is where stage 2 is headed. What it shows:
