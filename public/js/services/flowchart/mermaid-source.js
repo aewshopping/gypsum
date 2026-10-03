@@ -1,5 +1,6 @@
 import { readRoles, nodeLabel, nodeShape } from './node-content.js';
 import { buildFlowchartGraph } from './flowchart-graph.js';
+import { flowchartLayoutSetting } from './flowchart-layout-settings.js';
 
 /**
  * @file The visible files as mermaid flowchart source.
@@ -142,7 +143,8 @@ export function buildMermaidSource(files) {
 
     const graph = buildFlowchartGraph(files, roles);
     return [
-        'flowchart TD',
+        // The direction the chart is drawn in, so the code describes the same chart.
+        `flowchart ${flowchartLayoutSetting('direction') === 'LR' ? 'LR' : 'TD'}`,
         '',
         ...declarationLines(graph.nodes.filter(node => node.kind === 'note'), fileNumbers, roles),
         '',

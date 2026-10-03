@@ -232,7 +232,6 @@ test('a press on a note that does not exist creates it where its link looks, and
 
   await expect.poll(() => note(page, 'idea.txt')).toBe('');
   expect(await note(page, 'two.md')).toBe(before);
-  await expect(page.locator('#output-report')).toContainText('created idea.txt');
   // The link now finds a note: drawn as a box, nothing missing, and nothing opened.
   await expect(box(page, 'idea.txt')).toBeVisible();
   await expect(page.locator('.flowchart-edge.is-missing')).toHaveCount(0);

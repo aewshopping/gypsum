@@ -522,3 +522,36 @@ test('a link taken away keeps both its notes in view', async ({ page }) => {
     expect(note.y + note.height).toBeLessThanOrEqual(viewer.y + viewer.height);
   }
 });
+
+test('the code says the direction the chart is drawn in', async ({ page }) => {
+  await openFlowchart(page);
+  expect((await source(page)).split('\n')[0]).toBe('flowchart TD');
+  await page.click('[data-action="open-flowchart-options"]');
+  await page.selectOption('#flowchart-layout-direction', 'LR');
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => (await source(page)).split('\n')[0]).toBe('flowchart LR');
+});
+
+test('the chart stays full screen when a note is made by dragging', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 750 });
+  await setupMockCellWritingFolder(page, { 'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n' });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-fullscreen');
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement?.className)).toContain('pz-container');
+  await page.click('.pz-panzoom');  // full screen turns pan on; off, a drag reaches the notes
+
+  const apple = await page.locator('.flowchart-node[aria-label="Apple"]').boundingBox();
+  await page.mouse.move(apple.x + apple.width / 2, apple.y + apple.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(apple.x + 400, apple.y + 20, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#flowchart-new-note-confirm');
+
+  await expect(page.locator('.flowchart-node[aria-label="note-1.txt"]')).toBeVisible();
+  expect(await page.evaluate(() => document.fullscreenElement?.className)).toContain('pz-container');
+  await expect(page.locator('.pz-fullscreen-check')).toBeChecked();
+  await expect(page.locator('#output-report')).not.toContainText('created');
+});

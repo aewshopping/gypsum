@@ -11,7 +11,7 @@ import { validateRenameInputs } from '../../editing/rename-validate.js';
 import { extractDirFromFilepath } from '../../services/file-save.js';
 import { selectStem } from '../ui-functions-click/file-options-click.js';
 import { REFUSALS } from './flowchart-link-add.js';
-import { reportAction, reportFailure } from '../ui-functions-render/output-report.js';
+import { reportFailure } from '../ui-functions-render/output-report.js';
 import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
@@ -198,18 +198,15 @@ export async function handleFlowchartNewNoteConfirm() {
         // Their links resolve now: re-checked, so the broken-link marks go with the stub.
         _linkers.forEach(checkFileErrors);
         renderFiles();
-        reportAction(`created ${filepath}`);
         return;
     }
 
     const roles = readRoles();
-    const from = nodeLabel(source, roles);
     const plan = planFlowchartLink(source, note, roles);
     // Only 'exists' can be left by now: the source already held a link naming this path, which the
     // new note has just made good. Nothing more to write.
     if (plan.problem) {
         renderFiles();
-        reportAction(`created ${filepath}, which ${from} already links to`);
         return;
     }
 
@@ -220,9 +217,8 @@ export async function handleFlowchartNewNoteConfirm() {
         // Reported below, as a write that changed nothing.
     }
     markUndoState();
-    if (records.length) {
-        reportAction(`created ${filepath}, linked from ${from}`);
-    } else {
+    // Nothing is said when it worked: the new box gliding into place says it.
+    if (!records.length) {
         renderFiles();
         reportFailure(`created ${filepath}, but ${source.filepath} could not be written`);
     }

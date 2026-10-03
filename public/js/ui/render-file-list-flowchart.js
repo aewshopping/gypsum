@@ -65,10 +65,18 @@ export function renderFileList_flowchart(renderEverything) {
 
     // Read before the render replaces the viewer, so a re-render — closing the options dialog, say —
     // leaves the chart zoomed and panned where it was, and the pan toggle as it was.
-    const panZoomState = readPanZoomState(output.querySelector('.pz-container'));
+    const kept = output.querySelector('.pz-container');
+    const panZoomState = readPanZoomState(kept);
     const before = settle ? snapshotChart(output.querySelector('svg.pz-svg')) : null;
-    output.innerHTML = renderFlowchartViewer();
-    const container = output.querySelector('.pz-container');
+    // A chart already drawn keeps its container and has what is inside it replaced: the container is
+    // what full screen shows, and taking it off the page ends full screen — on every link drawn and
+    // every note made.
+    const container = kept ?? (output.innerHTML = renderFlowchartViewer(), output.querySelector('.pz-container'));
+    if (kept) {
+        const fresh = document.createElement('template');
+        fresh.innerHTML = renderFlowchartViewer();
+        kept.replaceChildren(...fresh.content.firstElementChild.childNodes);
+    }
     const svg = container.querySelector('svg.pz-svg');
 
     drawFlowchart(svg, drawnFiles);
@@ -76,4 +84,5 @@ export function renderFileList_flowchart(renderEverything) {
     attachPanZoom(container, view ? view.final : panZoomState ?? recalledView(svg));
     if (view) settleChart(svg, before, arrival, view);
     attachFlowchartDrag(svg);
+    if (document.fullscreenElement === container) container.querySelector('.pz-fullscreen-check').checked = true;
 }
