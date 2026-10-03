@@ -444,3 +444,29 @@ test('after a link is drawn the chart settles from where it was; a fresh render 
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
   expect(await chartAnimations()).toBe(0);
 });
+
+test('a note made where it lands out of sight is brought into view', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await setupMockCellWritingFolder(page, {
+    'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n\n[[c.md|to c]]\n', 'c.md': '# Cherry\n', 'd.md': '# Date\n\n[[a.md|to a]]\n',
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-panzoom-check');
+
+  // Cherry is the bottom row, so a note linked from it is laid out below the bottom of the viewer.
+  const cherry = await page.locator('.flowchart-node[aria-label="Cherry"]').boundingBox();
+  await page.mouse.move(cherry.x + cherry.width / 2, cherry.y + cherry.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(1000, 300, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#flowchart-new-note-confirm');
+
+  const made = page.locator('.flowchart-node[aria-label="note-1.txt"]');
+  await expect(made).toBeVisible();
+  const [note, viewer] = [await made.boundingBox(), await page.locator('svg.pz-svg').boundingBox()];
+  expect(note.y).toBeGreaterThanOrEqual(viewer.y);
+  expect(note.y + note.height).toBeLessThanOrEqual(viewer.y + viewer.height);
+});

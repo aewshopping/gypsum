@@ -7,7 +7,8 @@ import { renderFlowchartViewer } from './ui-functions-flowchart/render-flowchart
 import { drawFlowchart } from './ui-functions-flowchart/render-svg.js';
 import { attachPanZoom, readPanZoomState } from '../svg-pan-zoom/svg-pan-zoom.js';
 import { attachFlowchartDrag } from './ui-functions-flowchart/flowchart-node-drag.js';
-import { snapshotChart, heldZoom, settleChart } from './ui-functions-flowchart/flowchart-settle.js';
+import { snapshotChart, settleChart } from './ui-functions-flowchart/flowchart-settle.js';
+import { settledView } from './ui-functions-flowchart/flowchart-settle-view.js';
 
 /**
  * @file Renders the file list as a flowchart: mermaid source in a copyable code block, or an SVG.
@@ -70,7 +71,8 @@ export function renderFileList_flowchart(renderEverything) {
     const svg = container.querySelector('svg.pz-svg');
 
     drawFlowchart(svg, drawnFiles);
-    attachPanZoom(container, before ? heldZoom(svg, before, panZoomState, container.querySelector('.pz-zoom-input')) : panZoomState);
-    if (before) settleChart(svg, before, arrival);
+    const view = before && settledView(svg, before, panZoomState, container.querySelector('.pz-zoom-input'), arrival);
+    attachPanZoom(container, view ? view.final : panZoomState);
+    if (view) settleChart(svg, before, arrival, view);
     attachFlowchartDrag(svg);
 }

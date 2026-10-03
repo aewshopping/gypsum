@@ -1116,7 +1116,9 @@ to bottom, left to right and merged through one checker.
 - **After a write the chart settles rather than jumps** (`ui-functions-flowchart/flowchart-settle.js`):
   every render lays it out afresh, since the router cannot route around held boxes, so a render that
   follows a write (`flowchartView.settle`) keeps the note nearest the middle where it was on screen,
-  at the same size, and glides every note from its old place — a new one from where it was dropped.
+  at the same size, and glides every note and link text from its old place — a new note from where
+  it was dropped, the view zooming out to show it if it lands out of sight. Where the view goes is
+  `flowchart-settle-view.js`, worked out before pan and zoom are attached so the slider agrees.
   Web Animations, not a view transition, which would crossfade the SVG as one picture. A filter, a
   sort, a view change or the options dialog lays out afresh with nothing held.
 - **Corners and hops are drawing**, in `edge-path.js`, in drawing units so they zoom; the layout only
@@ -1229,7 +1231,8 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |
 | `public/js/ui/ui-functions-flowchart/edge-path.js` | A route as a path: rounded corners and hops |
 | `public/js/ui/ui-functions-flowchart/fit-routes-to-shapes.js` | Route ends moved onto a shape's real outline |
-| `public/js/ui/ui-functions-flowchart/flowchart-settle.js` | A chart redrawn after a write: the view held still, notes glided from where they were |
+| `public/js/ui/ui-functions-flowchart/flowchart-settle.js` | A chart redrawn after a write: notes and link texts glided from where they were, the lines faded |
+| `public/js/ui/ui-functions-flowchart/flowchart-settle-view.js` | Where the view goes after a write: held still, or zoomed out to show a note just made |
 | `public/js/services/flowchart/layout/upward-links.js` | Which links of a loop point back up the chart |
 | `public/js/services/flowchart/layout/unlinked-block.js` | Notes with no links, set in a block above the chart |
 | `public/js/dagre/` | dagre, copied in with its licence — knows nothing of notes |

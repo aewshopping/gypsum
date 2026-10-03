@@ -89,7 +89,11 @@ export function labelBoxSize(label, lineHeight) {
 export function drawFlowchartEdgeLabel(edge, index, route, label, lineHeight) {
     const { width, height } = labelBoxSize(label, lineHeight);
     const [x, y] = route.labelAt;
-    const group = svgElement('g', { class: 'flowchart-edge-label', ...linkAttributes(edge, index) });
+    // Named by its two notes and its words, which is what a redraw can find it by again
+    // (flowchart-settle.js): the index moves when links are added before it.
+    const group = svgElement('g', {
+        class: 'flowchart-edge-label', ...linkAttributes(edge, index), 'data-link-key': `${edge.from}>${edge.to}>${edge.text}`,
+    });
     group.append(svgElement('rect', { x: x - width / 2, y: y - height / 2, width, height, rx: 4 }));
     group.append(centredText(label.lines, x, y, lineHeight));
     return group;
