@@ -10,12 +10,13 @@ each arrow's text sits — in three stages:
 
 1. **dagre**, copied into the codebase as an ES module with its licence, places the boxes and the labels.
 2. **elk-like routing, written here** — not elk itself, and not a port of it: the handful of elk's
-   features we actually want, each built on top of dagre's placement as far as is practical.
+   features we actually want, subgraphs among them, built on top of dagre's placement and free to
+   adjust it where the routing needs room (see *Who has the last word*).
 3. **Boxes stay where they are until a full re-render** — a note made by dragging to empty chart appears
    where it was dropped, and adding a link moves nothing; the layout tidies up only on a full re-render.
 
-**Work stops after each stage for manual testing** — after step 2 (dagre), after step 6 (elk-like
-routing) and after step 7 (positions held). The next stage starts only once the last has been tried.
+**Work stops after each stage for manual testing** — after step 2 (dagre), after step 7 (elk-like
+routing and subgraphs) and after step 8 (positions held). The next stage starts only once the last has been tried.
 
 **The look to aim for** is `plans/reference/flowchart-layout-mockup.png`: mermaid's drawing of a chart
 like ours with its elk renderer, which is where stage 2 is headed. What it shows:
@@ -76,14 +77,27 @@ features of its routing, which can be built over dagre's placement for far less.
 
 - **Edges in carry their label's size**: `{from, to, label: {width, height} | null}`. `render-svg.js`
   already measures them; it passes them in instead of only drawing them.
-- **Routes out carry what the drawing needs for steps 3–6**: the polyline as now, plus — added as each
+- **Routes out carry what the drawing needs for steps 3–7**: the polyline as now, plus — added as each
   step needs it — which side of each box an arrow leaves and enters, and where it crosses another arrow.
 - The placeholder fills the new fields in its simple way. Nothing in drawing, hover, press or drag
   changes; the level 2 flowchart spec runs unchanged.
 
 ### Step 2 — dagre
 
-- Copy `dagre.esm.js` into `public/js/services/flowchart/` with its licence file.
+- Copy `dagre.esm.js` into `public/js/services/flowchart/` with the package's `LICENSE` beside it, and
+  the version in a comment at its top. As checked: `@dagrejs/dagre` 3.1.1, 48.5 KB, no imports
+  (graphlib is bundled in), and it imports into node, so `appModule()` tests work. **It is minified** —
+  the one source file nobody can read, as `marked.eos.js` already is. The `.map` files (~300 KB each)
+  are not copied.
+- **A multigraph, every edge named by its index.** `buildFlowchartGraph` keeps a note's two links to the
+  same target as two edges; a plain graph merges them silently and `routes[i]` stops being edge *i*'s.
+- **A link to itself**: dagre's points for one came back doubled back on themselves when tried. The
+  placeholder's `loopRoute` is the fallback if they look wrong on screen.
+- **Label sizes go in padded** — the 6 × 3 the drawn label box adds (`draw-flowchart-edge.js`) — or
+  dagre leaves too little room for them.
+- **Deterministic as checked**: the same graph twice gives identical points, and the file never calls
+  `Math.random`. *Same order* is part of *same input*: a sort is a different picture, and a full render
+  anyway.
 - `services/flowchart/dagre-layout.js`: pure, the contract on top of dagre — box centres converted to the
   contract's top-left, edge points and label positions passed through. Labels go in with their sizes, so
   dagre keeps them clear of the boxes.
@@ -100,8 +114,28 @@ features of its routing, which can be built over dagre's placement for far less.
 
 ## Stage 2 — elk-like routing
 
-From here on, dagre still decides **where the boxes go and in what order**; steps 3–6 replace how the
-arrows are drawn between them.
+From here on, dagre's placement is where the routing **starts**, not the final word; steps 3–7 replace
+how the arrows are drawn between the boxes, and may move the boxes to make room for them.
+
+### Who has the last word
+
+**Stage 2 is the refinement layer, and where it disagrees with dagre, stage 2 wins.** The open question
+is how much it is allowed to change, because each power costs differently. The proposed line, to be
+confirmed before step 3 is built:
+
+- **Free**: moving labels; widening a gap — pushing every row below down, or every box beside one
+  across — so tracks (step 4), ports (step 6) or a lane fit. That is stretching space, and everything
+  dagre decided still holds in the stretched picture.
+- **Free, as a hint only**: dagre's own bend points. dagre spaces each row around a lane for every arrow
+  that passes through it and for every label, so its points say where a route *can* go without hitting a
+  box. The router may use them or discard them; discarding one means finding or making a lane itself.
+- **Not taken on lightly**: changing **which row** a box is in, or its **order** within the row. That
+  is dagre's crossing reduction — the large, hard part of a layered layout — and redoing it is writing
+  the layout rather than refining it. If a real chart shows it to be needed, it is a step of its own
+  with its own measurement, not something the router does in passing.
+
+Whatever the final line is, the step 2 node test (no box overlaps, no label on a box) runs again on the
+router's output, since that is now the picture drawn.
 
 ### Step 3 — (a) right-angled arrows with rounded corners
 
@@ -111,7 +145,16 @@ corner.
 - **Routing** (`services/flowchart/orthogonal-routes.js`, pure): an arrow leaves the bottom of its source
   and enters the top of its target; between ranks it runs down, across in the gap between the two rows
   of boxes, and down again. An arrow that goes back up the chart — a cycle, which notes linking to each
-  other always make — leaves by a side and travels up a channel beside the boxes, never through one.
+  other always make — does what the mockup does: 005 → 003 leaves its box's top and climbs into the
+  underside of 003, in the gap between the rows, never through a box. An arrow that passes rows on the
+  way runs in a lane through each (see *Who has the last word*).
+- **Shapes that are not rectangles** — circle, diamond, hexagon. A route is worked out against the
+  bounding box, which on a diamond leaves a line ending in empty space. Pragmatic, and to be settled
+  here: an arrow **leaving** can start inside the box's outline — from its own port, so ports still
+  spread — and the box, filled and drawn over the lines already, hides it until it emerges. An arrow
+  **entering** cannot do the same, because its arrowhead would be hidden too: its last segment is cut
+  where it meets the real outline (a vertical line against a polygon or a circle, a short calculation
+  in `node-shape.js`, which already knows each outline).
 - **Corners** are a drawing concern: the route stays a list of points, and `draw-flowchart-edge.js`
   turns each bend into a short arc, smaller where two bends are close together. The radius is in
   drawing units, so corners **grow and shrink with zoom** like everything else.
@@ -123,6 +166,8 @@ corner.
 - dagre already orders each row of boxes to keep crossings down; step 3 must not undo that.
 - What routing adds: in each gap between rows, the horizontal runs are given **tracks** — separate
   heights — ordered so that runs which would cross can avoid it where an order exists that allows it.
+- **Tracks take height**, so a gap with many of them is widened and the rows below move down: the first
+  use of the stretching *Who has the last word* allows.
 - Measured as a count of crossings on a few real folders before and after, not judged by eye alone.
 
 ### Step 5 — (c) bridges where arrows cross
@@ -131,7 +176,9 @@ Where two arrows must cross, one hops over the other with a small arc, so neithe
 
 - **Finding crossings** (`services/flowchart/line-jumps.js`, pure): with right-angled routes, a crossing
   is always a horizontal segment meeting a vertical one, so it is a simple test per pair of segments.
-- **One rule decides who hops**: the horizontal segment hops over the vertical one. The hop is drawn into
+- **One rule decides who hops**: the horizontal segment hops over the vertical one. Two cases the rule
+  does not cover need a tie-break: a crossing that lands exactly on a corner, and two horizontal runs on
+  the same height (tracks should prevent it; the code must still not draw nonsense). The hop is drawn into
   the path by `draw-flowchart-edge.js`, in drawing units so it **zooms with the chart**; the arrow
   underneath is drawn unbroken.
 - Hover still thickens the whole arrow, hop included.
@@ -142,11 +189,28 @@ Where two arrows must cross, one hops over the other with a small arc, so neithe
   each gets its own **port** — attachment points spread along that side, with a gap between neighbours —
   so no two arrows share a segment.
 - **Option: merge.** Arrows into the same box join into one trunk before it, entering at a single point
-  (and, likewise, arrows out of one box share a trunk before they split). A flowchart option, stored with
-  the others in the `flowchart` object of `.gypsum/table_layouts.gypsum` and written only through
-  `setFlowchartOption()`; off unless chosen.
+  (and, likewise, arrows out of one box share a trunk before they split). A layout setting — see
+  *Layout settings* below; off unless chosen.
 - With merging on, each arrow's text stays on its own branch, never on the shared trunk, so a label still
-  says which link it belongs to.
+  says which link it belongs to. A branch can be too short to hold its text when neighbours are close;
+  the gap is widened then, as for tracks.
+
+### Step 7 — subgraphs
+
+The subgraph option groups notes in the mermaid source today, and the SVG ignores it. It belongs here,
+where the routing that would have to respect a group's border is being written.
+
+- **dagre places the groups**: a compound graph, each group a parent node, so its members are kept
+  together and dagre sizes a box round them.
+- **The router keeps out of a group's border** except to cross it: an arrow between two notes in the
+  same group stays inside, and one leaving the group crosses the border once.
+- **Drawn as a box behind the notes**, with the group's name — under the lines layer, so nothing it
+  holds is hidden.
+- **The order matters as it does in the mermaid source**: mermaid puts a node in the first group it is
+  mentioned in, and the SVG must agree with the code view, since both are drawn from
+  `buildFlowchartGraph`. The group belongs in that graph, not worked out twice.
+- What a stub (a note not drawn, or not yet made) belongs to is a question to answer when built — most
+  simply, nothing.
 
 ---
 
@@ -156,7 +220,7 @@ Where two arrows must cross, one hops over the other with a small arc, so neithe
 
 ## Stage 3 — positions held until a full re-render
 
-### Step 7 — a new note where it was dropped, and nothing moves for a link
+### Step 8 — a new note where it was dropped, and nothing moves for a link
 
 A real layout recomputes every position each time it runs, so making a note or adding a link would
 shuffle the whole chart under the person who just did it. Instead:
@@ -177,6 +241,23 @@ shuffle the whole chart under the person who just did it. Instead:
 - **Tests**: level 2 — after a drag-made note and after an added link, every other box is exactly where
   it was; after a filter change, the layout is fresh.
 
+### Things to think about before step 8
+
+- **Holding positions is not enough to stop the picture moving.** `render-svg.js` centres the drawing in
+  the viewBox (`translate((viewWidth - width) / 2 …)`) and recomputes the viewBox every render, and
+  `readPanZoomState` restores zoom and pan in viewBox units. So a note dropped outside the drawing's
+  bounds widens it, the centring changes, and every box moves on screen though none moved in the
+  drawing. The centring offset and the viewBox have to be held too, or the stored positions taken to
+  include them.
+- **Keys change under a held position.** A position is held by box key, and a note created from a
+  missing-note stub changes from `stub:<target>` to `note:<path>`; a note filtered out is a `stub:` box
+  too. The stub's position should carry over to the note it becomes.
+- **Which renders are full.** `renderFileList_flowchart` takes no `fullRender` today, so it has to be
+  handed one. Changing an option role (connectors, node text) changes the graph itself and should count
+  as full — it does already, being the close of the options dialog.
+- **A box can change size where it stands.** An edit to the node text property re-measures the box;
+  held boxes may then overlap or leave a gap, until the next full render. Accepted, but say so.
+
 **Pause: stage 3 is tried by hand.**
 
 ---
@@ -189,10 +270,28 @@ To be built **in stages 1 and 2, as part of them, if it costs little** — and i
 - **Stage 2's routing**: written in terms of *along the ranks* and *across them* rather than x and y, then
   turned into x and y at the end — so left to right is the same routing with the two axes swapped, and
   which side an arrow leaves (bottom, or right) follows from the same swap.
-- **The option**: a flowchart option, stored and written as merging is.
+- **The option**: a layout setting, as merging is — see *Layout settings*.
+- **Spacing is not symmetrical**: labels are wider than tall, so left to right needs a different gap
+  between ranks. One more setting, still small.
 
 If either stage shows this to be more than a small, contained change, it is dropped from that stage and
 noted here instead.
+
+---
+
+## Layout settings
+
+Direction and merging are not roles. `setFlowchartOption()` and `appState.flowchartOptions` are built
+round *role → property name*: `LEGAL_ROLES` refuses any other key, the options dialog draws one property
+select per role, and `follow-property-rename.js` renames whatever value matches a renamed property.
+`'LR'` and `true` are a different kind of value and must not go through any of that.
+
+- **A sibling object in the layouts file**, `flowchart.layout: {direction, merge}` (or a top-level key
+  beside `flowchart` — decide when built), with its own small reader and one writer of its own, in the
+  shape `flowchart-options.js` already has: an unknown value dropped rather than corrected, absent
+  meaning the default.
+- **`readLayouts()` must name it**, and `emptyDocument()` carry it, or it is dropped on the next write
+  (see CLAUDE.md, *The flowchart's options*). `LAYOUT_VERSION` does not move: it is additive.
 
 ---
 
@@ -203,9 +302,11 @@ noted here instead.
 | `public/js/services/flowchart/placeholder-layout.js` | stays — the contract's statement, and the fallback |
 | `public/js/services/flowchart/dagre.esm.js` (+ licence) | step 2 — copied in |
 | `public/js/services/flowchart/dagre-layout.js` | step 2 — the contract on top of dagre; pure |
-| `public/js/services/flowchart/orthogonal-routes.js` | steps 3, 4, 6 — right-angled routes, tracks, ports; pure |
+| `public/js/services/flowchart/orthogonal-routes.js` | steps 3, 4, 6, 7 — right-angled routes, tracks, ports, group borders; pure |
 | `public/js/services/flowchart/line-jumps.js` | step 5 — where routes cross; pure |
 | `public/js/ui/ui-functions-flowchart/draw-flowchart-edge.js` | steps 3, 5 — rounded corners and hops drawn into the path |
-| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 7 — hands label sizes in; held positions |
-| `public/js/ui/ui-functions-flowchart/flowchart-note-create.js` | step 7 — hands the drop point on to the new note |
+| `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — where a line meets each shape's outline |
+| `public/js/services/flowchart/flowchart-graph.js` | step 7 — each node's group |
+| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 7, 8 — hands label sizes in; group boxes; held positions |
+| `public/js/ui/ui-functions-flowchart/flowchart-note-create.js` | step 8 — hands the drop point on to the new note |
 | `plans/reference/flowchart-layout-mockup.png` | the look aimed at |
