@@ -13,7 +13,7 @@ const HOP = 5;    // a hop's radius
 export const ARROWHEAD = 13;
 
 /** How far short of the box an arrowhead stops. A line leaving a box starts right on it. */
-const ARROW_GAP = 4;
+const ARROW_GAP = 7;
 
 /**
  * The path's `d`.

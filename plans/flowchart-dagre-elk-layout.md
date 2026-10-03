@@ -313,9 +313,10 @@ What stage 2 turned out to be, where it settled something the steps above left o
   move for it. Not with merging on, whose trunks are their own alignment.
 - **The arrowhead is 13 units, not 10**, and the last corner before it leaves it a straight run of its
   own length, so it never points along a curve (`edge-path.js`).
-- **An arrowhead stops 4 short of its box; a line leaving a box starts on it** — after the third try by
-  hand (`ARROW_GAP` in `edge-path.js`, so every shape gets it).
-- **A gap's margin is larger where an arrowhead lands on it** (`jog-heights.js`): 30 rather than 18,
+- **An arrowhead stops 7 short of its box; a line leaving a box starts on it** — after the third try by
+  hand, widened from 4 after the fourth (`ARROW_GAP` in `edge-path.js`, so every shape gets it). The
+  head is an equilateral triangle, 13 long and 2/√3 of that across.
+- **A gap's margin is larger where an arrowhead lands on it** (`jog-heights.js`): 32 rather than 18,
   room for the head, its gap and a corner. Bends in a gap share their height, so the margin moves the
   bends of lines leaving the box beside it too, as asked; gaps grow where they need the room.
 - **Boxes are narrower**: text wraps at 128 rather than 156, so a longer title takes two lines, as in

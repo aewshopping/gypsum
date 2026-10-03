@@ -19,16 +19,17 @@ const LABEL_PADDING_X = 6;
 const LABEL_PADDING_Y = 3;
 
 /**
- * The arrowhead every edge's line ends in, sized in the drawing's own units so a line thickened on
- * hover keeps the same head.
+ * The arrowhead every edge's line ends in: an equilateral triangle, `ARROWHEAD` long and so 2/√3 of
+ * that across, sized in the drawing's own units so a line thickened on hover keeps the same head.
  * @returns {SVGDefsElement}
  */
 export function arrowheadDefs() {
+    const length = ARROWHEAD, base = ARROWHEAD * 2 / Math.sqrt(3);
     const marker = svgElement('marker', {
-        id: 'flowchart-arrowhead', viewBox: '0 0 10 10', refX: 10, refY: 5,
-        markerWidth: ARROWHEAD, markerHeight: ARROWHEAD, markerUnits: 'userSpaceOnUse', orient: 'auto',
+        id: 'flowchart-arrowhead', viewBox: `0 0 ${length} ${base}`, refX: length, refY: base / 2,
+        markerWidth: length, markerHeight: base, markerUnits: 'userSpaceOnUse', orient: 'auto',
     });
-    marker.append(svgElement('path', { class: 'flowchart-arrowhead', d: 'M0,0 L10,5 L0,10 z' }));
+    marker.append(svgElement('path', { class: 'flowchart-arrowhead', d: `M0,0 L${length},${base / 2} L0,${base} z` }));
     const defs = svgElement('defs');
     defs.append(marker);
     return defs;

@@ -13,7 +13,7 @@
 const TRACK_SPACING = 18;
 
 /** The least room between a track and a row an arrowhead lands on: head, gap and corner, and air. */
-const ARROW_ROOM = 30;
+const ARROW_ROOM = 32;
 
 /**
  * Each gap's margins: the larger one on a side where some jog's arrowhead lands.
