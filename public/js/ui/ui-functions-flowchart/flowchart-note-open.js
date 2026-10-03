@@ -12,6 +12,9 @@ import { openFileContent } from '../ui-functions-click/open-file-content-view-tr
  * `"flowchart-press"`, all in the pointerdown map — and a release opens only the note the press
  * began on, and only if it did not move far enough to be a drag.
  *
+ * **Only the note window opens on release.** A `closedby="any"` dialog opened in a mouseup is shut
+ * at once by the click that follows, so anything else opens on `click`.
+ *
  * **The modal fades in and out rather than growing out of the box**: a view transition cannot
  * capture a shape inside an SVG, and a fade suits a note in plain sight better than a sweep from
  * off the page. Opening with nothing to grow out of is what makes the close fade too.

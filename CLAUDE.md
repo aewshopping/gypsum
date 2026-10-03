@@ -1049,6 +1049,7 @@ layouts, and adding them would be a new plan rather than a new key.
 - **Index alignment is no longer guaranteed by construction.** `internalLink` and `internalLinkText`
   are one Map read twice; two properties the user picks are not, and need not even be the same
   length. Read the text by index and treat `undefined` as an unlabelled edge.
+- **Open a dialog or popover from a `click`, never a `mouseup`** — the click that follows lands outside it and a `closedby="any"` dialog shuts unseen (`flowchart-note-open.js`).
 
 ### A view's own control row
 
