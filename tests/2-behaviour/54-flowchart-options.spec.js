@@ -405,9 +405,10 @@ test.describe('touch', () => {
 
 // Stage 3 of plans/flowchart-dagre-elk-layout.md: a chart redrawn after a write settles from the one
 // before — the note nearest the middle holds its place and size on screen, and the rest glide — while
-// any other render lays it out afresh.
+// any other render lays it out afresh. The window is tall enough that the new link's two notes are in
+// view already, so nothing has to move to show them.
 test('after a link is drawn the chart settles from where it was; a fresh render does not animate', async ({ page }) => {
-  await page.setViewportSize({ width: 1200, height: 800 });
+  await page.setViewportSize({ width: 1200, height: 1000 });
   await setupMockCellWritingFolder(page, {
     'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n\n[[c.md|to c]]\n', 'c.md': '# Cherry\n', 'd.md': '# Date\n\n[[a.md|to a]]\n',
   });
@@ -486,4 +487,38 @@ test('the chart keeps its zoom and pan across the code view and another view, wh
   await page.selectOption('#view-select', 'table');
   await page.selectOption('#view-select', 'flowchart');
   await expect(page.locator('.pz-zoom-input')).toHaveValue('2.5');
+});
+
+test('a link taken away keeps both its notes in view', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 750 });
+  await setupMockCellWritingFolder(page, {
+    'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n\n[[c.md|to c]]\n', 'c.md': '# Cherry\n', 'd.md': '# Date\n\n[[a.md|to a]]\n',
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-panzoom-check');
+  const boxOf = label => page.locator(`.flowchart-node[aria-label="${label}"]`).boundingBox();
+
+  const [date, cherry] = [await boxOf('Date'), await boxOf('Cherry')];
+  await page.mouse.move(date.x + date.width / 2, date.y + date.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(cherry.x + cherry.width / 2, cherry.y + cherry.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#modal-unsaved-warning-proceed');
+  await expect(page.locator('.flowchart-edge')).toHaveCount(4);
+
+  // Zoomed in so far that Date and Cherry cannot both be seen, then the link undone.
+  await page.locator('.pz-zoom-input').fill('3');
+  await page.click('#table-undo-list-btn');
+  await page.locator('#undo-list .undo-list-row').first().click();
+  await expect(page.locator('.flowchart-edge')).toHaveCount(3);
+
+  const viewer = await page.locator('svg.pz-svg').boundingBox();
+  for (const label of ['Date', 'Cherry']) {
+    const note = await boxOf(label);
+    expect(note.y).toBeGreaterThanOrEqual(viewer.y);
+    expect(note.y + note.height).toBeLessThanOrEqual(viewer.y + viewer.height);
+  }
 });

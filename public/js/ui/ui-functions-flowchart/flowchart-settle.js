@@ -1,5 +1,5 @@
 import { viewTransitionsWanted } from '../ui-functions-render/view-transition.js';
-import { viewMatrix } from './flowchart-settle-view.js';
+import { viewMatrix, linksOf } from './flowchart-settle-view.js';
 
 /**
  * @file A chart redrawn after a write, settled from the one before it rather than jumping to it.
@@ -34,8 +34,9 @@ const keyOf = element => element.dataset.key ?? `link:${element.dataset.linkKey}
  * drawing itself, kept to fade out over the new one.
  *
  * @param {?SVGSVGElement} svg - The chart about to be replaced, or null when none is drawn.
- * @returns {?{centres: Map<string, DOMPoint>, texts: Map<string, DOMPoint>, drawing: SVGGElement, matrix: DOMMatrix, middle: DOMPoint, viewScale: number}}
- *   `centres` holds the boxes alone, which are what the view is held by.
+ * @returns {?{centres: Map<string, DOMPoint>, texts: Map<string, DOMPoint>, links: Map<string, string[]>, drawing: SVGGElement, matrix: DOMMatrix, middle: DOMPoint, viewScale: number}}
+ *   `centres` holds the boxes alone, which are what the view is held by; `links` each link's two
+ *   ends, by the link.
  */
 export function snapshotChart(svg) {
     const drawing = svg?.querySelector('.flowchart-drawing');
@@ -43,7 +44,7 @@ export function snapshotChart(svg) {
     const at = selector => new Map([...drawing.querySelectorAll(selector)].map(element => [keyOf(element), centreOf(element)]));
     const view = svg.getBoundingClientRect();
     return {
-        centres: at('[data-key]'), texts: at('[data-link-key]'), drawing,
+        centres: at('[data-key]'), texts: at('[data-link-key]'), links: linksOf(drawing), drawing,
         matrix: DOMMatrix.fromMatrix(drawing.getScreenCTM()),
         middle: new DOMPoint(view.left + view.width / 2, view.top + view.height / 2),
         viewScale: svg.getScreenCTM().a,

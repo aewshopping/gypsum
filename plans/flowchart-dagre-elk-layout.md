@@ -406,8 +406,9 @@ change is made followable instead (`ui-functions-flowchart/flowchart-settle.js`)
   code / chart switch, closing the options dialog and a folder load lay out afresh with nothing held.
 - **The view holds still.** Zoom makes up for a viewBox the new drawing grew or shrank, so boxes keep
   their size on screen, and pan keeps the note nearest the middle of the viewer exactly where it was.
-- **A note made out of sight is brought into view**: the view then zooms out about its middle as far
-  as it must to take the note in with everything already in sight, and pans as little as it must —
+- **The notes a change was about are kept in view** — both ends of every link the redraw gained or
+  lost, and a note just made: the view zooms out about its middle as far as it must to take them in
+  with everything already in sight, and pans as little as it must —
   animated alongside the glide. Worked out before pan and zoom are attached
   (`flowchart-settle-view.js`), so the zoom slider and the view never disagree.
 - **Notes and link texts glide** for 900ms with the Web Animations API, each from where it was on
