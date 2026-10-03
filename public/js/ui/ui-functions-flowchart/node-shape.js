@@ -20,20 +20,20 @@ const points = list => list.map(([x, y]) => `${x},${y}`).join(' ');
 /**
  * Each shape: `textWidth`, and `outline(tw, th)` giving the outer size, the element that draws it,
  * and where the text's centre sits across (`textX`; the text is always centred down). `ports` is the
- * share of a side that arrows meet, centred — its top and bottom, or, left to right, its sides: a box
- * takes them along most of an edge, a diamond only near its points, where the outline is still close
- * to the edge of its bounding box.
+ * share of a side the arrows meeting it divide evenly, centred — its top and bottom, or, left to
+ * right, its sides: all of a rectangle's edge, so two arrows meet it at its thirds, but only the middle
+ * of a diamond's, near its point, where the outline is still close to its bounding box.
  */
 const SHAPES = {
-    round: { ports: 0.85, textWidth: WIDE, outline(tw, th) {
+    round: { ports: 1, textWidth: WIDE, outline(tw, th) {
         const width = tw + 2 * PADDING, height = th + 2 * PADDING;
         return { width, height, tag: 'rect', attributes: { width, height, rx: 8 } };
     } },
-    box: { ports: 0.85, textWidth: WIDE, outline(tw, th) {
+    box: { ports: 1, textWidth: WIDE, outline(tw, th) {
         const width = tw + 2 * PADDING, height = th + 2 * PADDING;
         return { width, height, tag: 'rect', attributes: { width, height, rx: 0 } };
     } },
-    stadium: { ports: 0.75, textWidth: WIDE, outline(tw, th) {
+    stadium: { ports: 1, textWidth: WIDE, outline(tw, th) {
         const height = th + 2 * PADDING, width = tw + 2 * PADDING + height / 2;
         return { width, height, tag: 'rect', attributes: { width, height, rx: height / 2 } };
     } },
@@ -53,7 +53,7 @@ const SHAPES = {
             [inset, 0], [width - inset, 0], [width, height / 2], [width - inset, height], [inset, height], [0, height / 2]]) } };
     } },
     // Mermaid's `>text]`: a notch cut into the left-hand end, so the text sits right of centre.
-    flag: { ports: 0.85, textWidth: WIDE, outline(tw, th) {
+    flag: { ports: 1, textWidth: WIDE, outline(tw, th) {
         const height = th + 2 * PADDING, inset = height / 3, width = tw + 2 * PADDING + inset;
         return { width, height, textX: (width + inset) / 2, tag: 'polygon', attributes: { points: points([
             [0, 0], [width, 0], [width, height], [0, height], [inset, height / 2]]) } };

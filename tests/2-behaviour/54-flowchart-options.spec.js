@@ -130,8 +130,10 @@ test('connectors can be pointed at a property holding the links as written', asy
   await setRole(page, 'connectors', 'related');
   await setRole(page, 'connectorText', 'why');
 
+  // Polled: the code is redrawn by the dialog's close, which a busy machine can finish after Escape
+  // returns — read at once, it was sometimes the text from before the second choice.
+  await expect.poll(() => source(page)).toContain('  1 -->|"push the heavy door"| 2');
   const text = await source(page);
-  expect(text).toContain('  1 -->|"push the heavy door"| 2');
   expect(text).toContain('  1 -->|"walk on down the road"| 3');
   // a target naming no loaded file is still its own node, declared where it is first met
   expect(text).toContain('  3 --> u1("missing.md")');

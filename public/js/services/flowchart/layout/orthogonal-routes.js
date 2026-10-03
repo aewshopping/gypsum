@@ -9,6 +9,8 @@
  * sideways, and nothing in a row — a box, a label, a group's name — is ever crossed by one.
  */
 
+const NUDGE = 5; // how far a port may move to meet the lane beside it
+
 /**
  * Where a link goes: the x it holds in each row from its upper box to its lower one, and those rows.
  *
@@ -23,6 +25,12 @@ export function linkWaypoints(link, port, boxes, rankOf) {
     // lean by that much rather than jog.
     const xs = [port.upper, ...link.lanes.map(([x]) => x), port.lower];
     xs.forEach((x, j) => { if (j && Math.abs(x - xs[j - 1]) <= 0.5) xs[j] = xs[j - 1]; });
+    // A port a few units from the lane beside it moves onto it: a step that small reads as a glitch,
+    // not a bend, and nobody sees a port that far off a side's even division. Only a port moves, never
+    // a lane, which may carry a label.
+    const n = xs.length - 1;
+    if (Math.abs(xs[0] - xs[1]) <= NUDGE) xs[0] = xs[1];
+    if (Math.abs(xs[n] - xs[n - 1]) <= NUDGE) xs[n] = xs[n - 1];
     return {
         xs,
         rows: [rankOf(boxes.get(link.upper).rankY), ...link.lanes.map(([, y]) => rankOf(y)), rankOf(boxes.get(link.lower).rankY)],

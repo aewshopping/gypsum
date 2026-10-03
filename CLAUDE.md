@@ -1093,11 +1093,14 @@ to bottom, left to right and merged through one checker.
 - **Bends along a row share a height**: `tracks.js` orders a gap's jogs to cross least, then packs
   each onto the highest track where it overlaps nothing above it, so jogs that do not overlap bend
   together and the chart scans in rows.
-- **Ports** (`ports.js`) sit in line with the lane their arrow heads for when that fits, spread over
-  the share of a side the shape can take (`portWidth`/`portHeight` from `node-shape.js`), and evenly
-  when it does not; `straighten.js` slides a straight link's lanes onto its port where that is safe, so
-  it runs box to box without a step. `fit-routes-to-shapes.js` then moves each end onto the real
-  outline. The layout never learns about shapes.
+- **Ports divide a side evenly, and that comes before a straight line** (`ports.js`): one arrow at a
+  side's middle, two at its thirds, three at its quarters, out or in, as in the reference picture —
+  over the share of the side the shape can take (`portWidth`/`portHeight` from `node-shape.js`), all of
+  a rectangle's. Do not move a port to save a bend; the one exception is `NUDGE` in
+  `orthogonal-routes.js`, a port within 5 of its lane meeting it, since a step that small reads as a
+  glitch. `straighten.js` slides a straight link's lanes onto one of its ports where that is safe, never
+  the other way. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
+  learns about shapes.
 - **Direction and merging are layout settings, not roles**: `appState.flowchartLayout`, the
   `flowchartLayout` key of the layouts file, `setFlowchartLayoutSetting()` the one writer
   (`services/flowchart/flowchart-layout-settings.js`). Left to right is the top to bottom chart laid
@@ -1205,7 +1208,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/layout/dagre-place.js` | dagre's placement: boxes, groups, each link's lanes and label |
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | A link as a right-angled route through its lanes |
 | `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `ranks.js` | Where arrows meet a box; the heights of sideways runs in a gap; the rows and widening a gap |
-| `public/js/services/flowchart/layout/straighten.js` | A straight link's lanes slid onto its port, so it runs box to box |
+| `public/js/services/flowchart/layout/straighten.js` | A straight link's lanes slid onto one of its ports, saving a bend |
 | `public/js/services/flowchart/layout/compact-columns.js`, `transpose.js`, `chart-frame.js` | Narrowing empty strips; left to right; the drawing's frame |
 | `public/js/services/flowchart/layout/line-jumps.js` | Where routes cross, so the drawing can bridge |
 | `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |

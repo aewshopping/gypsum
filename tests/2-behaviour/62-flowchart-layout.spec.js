@@ -220,6 +220,17 @@ test('tracks: runs that do not overlap share a height, and overlapping ones do n
   expect(tracks[3]).toEqual({ index: 0, count: 1 }); // another gap starts again
 });
 
+test('dagre: arrows divide a side evenly — two at its thirds, three at its quarters', async () => {
+  const graph = fixture(['a', 'b', 'c', 'd', 'e'], [['a', 'b'], ['a', 'c'], ['b', 'e'], ['c', 'e'], ['d', 'e']]);
+  const layout = (await dagreLayout())(graph.boxes, graph.edges);
+  const along = (key, x) => (x - layout.positions.get(key).x) / BOX.width;
+  const out = [0, 1].map(i => along('a', layout.routes[i].points[0][0])).sort();
+  expect(out[0]).toBeCloseTo(1 / 3);
+  expect(out[1]).toBeCloseTo(2 / 3);
+  const into = [2, 3, 4].map(i => along('e', layout.routes[i].points.at(-1)[0])).sort();
+  [1 / 4, 2 / 4, 3 / 4].forEach((share, n) => expect(into[n]).toBeCloseTo(share));
+});
+
 test('dagre: the mockup routes with no crossings, as the reference draws it', async () => {
   const layout = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges);
   expect(crossings(layout)).toBe(0);
