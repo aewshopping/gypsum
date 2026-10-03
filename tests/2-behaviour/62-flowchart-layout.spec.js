@@ -19,14 +19,16 @@ const label = text => ({ width: text.length * 7 + 12, height: 22 });
  * A graph literal as the layout is handed one: boxes in order, and edges with their label sizes.
  * @param {string[]} keys
  * @param {Array<[string, string, string?]>} links - from, to, and the link's text if it has one.
+ * @param {Object<string, string>} [groups] - key to the subgraph it is in; absent for none.
  */
-const fixture = (keys, links) => ({
-  boxes: keys.map(key => ({ key, ...BOX })),
+const fixture = (keys, links, groups = {}) => ({
+  boxes: keys.map(key => ({ key, ...BOX, group: groups[key] ?? '' })),
   edges: links.map(([from, to, text]) => ({ from, to, label: text ? label(text) : null })),
 });
 
 /** The chart in plans/reference/flowchart-layout-mockup.png: six notes, eight links, two cycles. */
-const MOCKUP = fixture(['006', '004', '001', '005', '003', '002'], [
+const MOCKUP_NOTES = ['006', '004', '001', '005', '003', '002'];
+const MOCKUP_LINKS = [
   ['004', '003', 'try to fix robot'],
   ['001', '002', 'other presents first'],
   ['001', '003', 'try to fix'],
@@ -35,7 +37,8 @@ const MOCKUP = fixture(['006', '004', '001', '005', '003', '002'], [
   ['003', '006', 'press silver button'],
   ['003', '004', 'screwdriver in belly button'],
   ['002', '003', 'try to fix the robot'],
-]);
+];
+const MOCKUP = fixture(MOCKUP_NOTES, MOCKUP_LINKS);
 
 // Each one makes a single awkward case.
 const CASES = {
@@ -44,6 +47,13 @@ const CASES = {
   'two links between the same notes': fixture(['a', 'b'], [['a', 'b', 'first'], ['a', 'b', 'second'], ['b', 'a']]),
   'a link spanning two rows': fixture(['a', 'b', 'c'], [['a', 'b'], ['b', 'c'], ['a', 'c', 'the long way']]),
   'notes with no links': fixture(['a', 'b', 'c'], []),
+  // The mockup in two subgraphs and one note outside both, linked back and forth across the borders.
+  'the mockup in groups': fixture(MOCKUP_NOTES, MOCKUP_LINKS,
+    { '001': 'birthday', '002': 'birthday', '003': 'robot', '004': 'robot', '005': 'robot' }),
+  'two groups linked across their borders, and a link to itself in one': fixture(['a', 'b', 'c', 'd', 'e', 'f'], [
+    ['a', 'b', 'over'], ['b', 'c', 'back'], ['c', 'd'], ['d', 'e', 'over again'], ['a', 'e'], ['f', 'a', 'in'],
+    ['e', 'a', 'up'], ['c', 'c', 'round'],
+  ], { a: 'one', c: 'one', e: 'one', b: 'two', d: 'two' }),
 };
 
 const overlaps = (p, q) => p.x < q.x + q.width && q.x < p.x + p.width && p.y < q.y + q.height && q.y < p.y + p.height;
@@ -81,14 +91,33 @@ function checkLayout({ boxes, edges }, layout) {
     expect(offEdge(points.at(-1), byKey.get(edge.to)), `edge ${i} ends on ${edge.to}`).toBeLessThan(1);
   });
 
+  // Each group holds its own members and nothing else; groups do not overlap; and nothing at all
+  // lands in the strip along a group's top edge, where its name is drawn.
+  const groupNames = [...new Set(boxes.map(box => box.group).filter(Boolean))];
+  expect(layout.groups.map(group => group.name)).toEqual(groupNames);
+  const contains = (g, b) => b.x >= g.x && b.y >= g.y && b.x + b.width <= g.x + g.width && b.y + b.height <= g.y + g.height;
+  layout.groups.forEach((group, i) => {
+    boxes.forEach((box, j) => {
+      if (box.group === group.name) expect(contains(group, placed[j]), `${box.key} inside ${group.name}`).toBe(true);
+      else expect(overlaps(group, placed[j]), `${box.key} outside ${group.name}`).toBe(false);
+    });
+    layout.groups.slice(i + 1).forEach(other => expect(overlaps(group, other), `${group.name} overlaps ${other.name}`).toBe(false));
+    const nameStrip = { x: group.x, y: group.y, width: group.width, height: GROUP_NAME_HEIGHT };
+    [...placed, ...labels].forEach(b => expect(overlaps(nameStrip, b), `something lands on ${group.name}'s name`).toBe(false));
+  });
+
   const inside = (x, y) => x >= -0.01 && y >= -0.01 && x <= layout.width + 0.01 && y <= layout.height + 0.01;
-  [...placed, ...labels].forEach(b => {
+  [...placed, ...labels, ...layout.groups].forEach(b => {
     expect(inside(b.x, b.y) && inside(b.x + b.width, b.y + b.height), 'inside the drawing').toBe(true);
   });
   layout.routes.forEach(route => route.points.forEach(([x, y]) => expect(inside(x, y), 'route inside the drawing').toBe(true)));
 }
 
 const dagreLayout = async () => (await appModule('services/flowchart/layout/dagre-layout.js')).dagreLayout;
+let GROUP_NAME_HEIGHT;
+test.beforeAll(async () => {
+  ({ GROUP_NAME_HEIGHT } = await appModule('services/flowchart/layout/dagre-layout.js'));
+});
 
 for (const [name, graph] of Object.entries(CASES)) {
   test(`dagre: ${name} — nothing overlaps, every route joins its own boxes`, async () => {
@@ -114,7 +143,7 @@ test('dagre: the mockup is drawn top to bottom, each link from its row to a lowe
 });
 
 test('dagre: no boxes at all is an empty drawing', async () => {
-  expect((await dagreLayout())([], [])).toEqual({ positions: new Map(), routes: [], width: 0, height: 0 });
+  expect((await dagreLayout())([], [])).toEqual({ positions: new Map(), routes: [], groups: [], width: 0, height: 0 });
 });
 
 test('placeholder: keeps the contract too, as the fallback', async () => {

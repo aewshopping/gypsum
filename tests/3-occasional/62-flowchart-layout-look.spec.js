@@ -19,6 +19,11 @@ const MOCKUP = {
   '006.md': '# 006 The robot\n',
 };
 
+// The same chart in two subgraphs, with 006 in neither: links cross both borders, both ways.
+const CHAPTERS = { '001.md': 'birthday', '002.md': 'birthday', '003.md': 'the robot', '004.md': 'the robot', '005.md': 'the robot' };
+const GROUPED = Object.fromEntries(Object.entries(MOCKUP).map(([name, text]) =>
+  [name, CHAPTERS[name] ? `---\nchapter: ${CHAPTERS[name]}\n---\n${text}` : text]));
+
 // The awkward cases together: a link to itself, two links to one note, a diamond, a missing note.
 const AWKWARD = {
   'loop.md': '---\nshape: diamond\n---\n# Goes round\n\n[[loop.md|again]] [[next.md|once]] [[next.md|twice]]\n',
@@ -49,4 +54,8 @@ test('the mockup chart', async ({ page }, testInfo) => {
 
 test('a link to itself, two links to one note, a diamond and a missing note', async ({ page }, testInfo) => {
   await screenshotChart(page, AWKWARD, testInfo, { nodeShape: 'shape' });
+});
+
+test('the mockup chart in two subgraphs', async ({ page }, testInfo) => {
+  await screenshotChart(page, GROUPED, testInfo, { subgraph: 'chapter' });
 });

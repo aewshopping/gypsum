@@ -1,10 +1,11 @@
-import { dagreLayout } from '../../services/flowchart/layout/dagre-layout.js';
+import { dagreLayout, GROUP_NAME_HEIGHT } from '../../services/flowchart/layout/dagre-layout.js';
 import { readRoles } from '../../services/flowchart/node-content.js';
 import { buildFlowchartGraph } from '../../services/flowchart/flowchart-graph.js';
 import { wrapLabel } from './wrap-label.js';
 import { shapeTextWidth, shapeOutline } from './node-shape.js';
 import { svgElement } from './svg-element.js';
 import { drawFlowchartNode } from './draw-flowchart-node.js';
+import { drawFlowchartGroup, groupNameWidth } from './draw-flowchart-group.js';
 import { drawFlowchartEdge, drawFlowchartEdgeLabel, arrowheadDefs, labelBoxSize } from './draw-flowchart-edge.js';
 
 /**
@@ -13,8 +14,9 @@ import { drawFlowchartEdge, drawFlowchartEdgeLabel, arrowheadDefs, labelBoxSize 
  * Four steps, and only the second knows where anything goes: the files become a graph
  * (flowchart-graph.js, shared with the mermaid source); each node and label is measured; the layout
  * places the boxes and routes the edges (layout/dagre-layout.js; layout/placeholder-layout.js says
- * what any layout must return); and the result is drawn in three layers — the links' lines, then the boxes, then the
- * links' text, so a line passes under a box and a box never hides a link's text.
+ * what any layout must return); and the result is drawn in four layers — the subgraphs' boxes, the
+ * links' lines, then the notes' boxes, then the links' text, so a line passes under a box and a box
+ * never hides a link's text.
  */
 
 // In SVG user units. The viewBox fits the drawing to the viewer, so these are proportions rather
@@ -26,6 +28,7 @@ const LABEL_FONT_SIZE = 13;
 const LABEL_LINE_HEIGHT = 16;
 const LABEL_WIDTH = 140;
 const LABEL_MAX_LINES = 2;
+const GROUP_FONT_SIZE = 13;
 const MARGIN = 24;
 
 /**
@@ -47,7 +50,7 @@ export function drawFlowchart(svg, files) {
         // A note that does not exist yet reads `+ name`: a press makes it, as the + on a drag does.
         const text = node.kind === 'stub' && !node.file ? `+ ${node.label}` : node.label;
         const { lines, width } = wrapLabel(text, `${NODE_FONT_SIZE}px ${fontFamily}`, shapeTextWidth(shape), NODE_MAX_LINES);
-        return { key: node.key, lines, ...shapeOutline(shape, width, lines.length * NODE_LINE_HEIGHT) };
+        return { key: node.key, group: node.group, lines, ...shapeOutline(shape, width, lines.length * NODE_LINE_HEIGHT) };
     });
     const labels = graph.edges.map(edge => !edge.text ? null
         : wrapLabel(String(edge.text), `${LABEL_FONT_SIZE}px ${fontFamily}`, LABEL_WIDTH, LABEL_MAX_LINES));
@@ -66,6 +69,10 @@ export function drawFlowchart(svg, files) {
         transform: `translate(${(viewWidth - layout.width) / 2} ${(viewHeight - layout.height) / 2})`,
     });
 
+    layout.groups.forEach(group => {
+        const [name] = wrapLabel(group.name, `${GROUP_FONT_SIZE}px ${fontFamily}`, groupNameWidth(group), 1).lines;
+        drawing.append(drawFlowchartGroup(group, name, GROUP_NAME_HEIGHT));
+    });
     graph.edges.forEach((edge, i) => drawing.append(drawFlowchartEdge(edge, i, layout.routes[i])));
     graph.nodes.forEach((node, i) => drawing.append(drawFlowchartNode(node, boxes[i], layout.positions.get(node.key), NODE_LINE_HEIGHT)));
     graph.edges.forEach((edge, i) => {

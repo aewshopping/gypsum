@@ -1,6 +1,6 @@
 # Plan: flowchart layout — dagre, then elk-like routing of our own
 
-Status: **stage 1 built (steps 1 and 2), waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
+Status: **stage 1 built (steps 1, 2 and 2b), waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
 interactions and drawing links, all against placeholder positions.
 Bump the manifest's minor version with each step that changes code.
 
@@ -15,8 +15,9 @@ each arrow's text sits — in three stages:
 3. **Boxes stay where they are until a full re-render** — a note made by dragging to empty chart appears
    where it was dropped, and adding a link moves nothing; the layout tidies up only on a full re-render.
 
-**Work stops after each stage for manual testing** — after step 2 (dagre), after step 7 (elk-like
-routing and subgraphs) and after step 8 (positions held). The next stage starts only once the last has been tried.
+**Work stops after each stage for manual testing** — after step 2b (dagre, with subgraphs), after
+step 7 (elk-like routing) and after step 8 (positions held). The next stage starts only once the
+last has been tried.
 
 **The inspiration for the whole feature is [mermaid.live/edit](https://mermaid.live/edit)** — mermaid's own
 editor, which draws a chart live from its source and can switch between its dagre and elk renderers.
@@ -94,7 +95,7 @@ features of its routing, which can be built over dagre's placement for far less.
 
 ### Step 2 — dagre
 
-- Copy `dagre.esm.js` into `public/js/services/flowchart/` with the package's `LICENSE` beside it, and
+- Copy `dagre.esm.js` into `public/js/dagre/` with the package's `LICENSE` beside it, and
   the version in a comment at its top. As checked: `@dagrejs/dagre` 3.1.1, 48.5 KB, no imports
   (graphlib is bundled in), and it imports into node, so `appModule()` tests work. **It is minified** —
   the one source file nobody can read, as `marked.eos.js` already is. The `.map` files (~300 KB each)
@@ -114,7 +115,7 @@ features of its routing, which can be built over dagre's placement for far less.
 - **Deterministic as checked**: the same graph twice gives identical points, and the file never calls
   `Math.random`. *Same order* is part of *same input*: a sort is a different picture, and a full render
   anyway.
-- `services/flowchart/dagre-layout.js`: pure, the contract on top of dagre — box centres converted to the
+- `services/flowchart/layout/dagre-layout.js`: pure, the contract on top of dagre — box centres converted to the
   contract's top-left, edge points and label positions passed through. Labels go in with their sizes, so
   dagre keeps them clear of the boxes.
 - **Top to bottom by default**, as the mockup is, **and left to right as an option** — see *Direction*
@@ -123,6 +124,34 @@ features of its routing, which can be built over dagre's placement for far less.
   rank); revisit only if a real chart shows it to be wrong.
 - **Tests**: a node test of the adapter (`appModule`, no browser) — boxes never overlap, no label lands
   on a box, the same input gives the same output. Screenshots of a real folder for the look.
+
+### Step 2b — subgraphs placed by dagre
+
+**Which group a note is in decides where it goes, so groups are placed here, in stage 1** — not left
+for stage 2. Under *Who has the last word* stage 2 may stretch space but never moves a box to another
+row or reorders one, so a step there would need exactly the power ruled out.
+
+- **One dagre run, made compound** — each group a parent node, each member its child — **not one run
+  per group.** Mermaid lays a subgraph out on its own only when no link crosses its border; ours are
+  linked to each other, which is the point of the chart, and separate runs would leave every link
+  between groups unplanned: no rank, no lane through the rows it passes, no crossing reduction. In one
+  run dagre does all of that for links inside and between groups alike. The graph is only made
+  compound when some note has a group, so a chart without subgraphs lays out exactly as before.
+- **The group is in the graph**: `groupOf()` moved from `mermaid-source.js` into `flowchart-graph.js`,
+  and every node carries `group` — so the code view and the chart cannot disagree. **A stub belongs to
+  no group**: it stands for a link's far end, not a note drawn here. **Groups never nest**: the subgraph
+  role reads one value per note, a list's first item.
+- **The contract gains `group`** on each box in, and **`groups`** out — `{name, x, y, width, height}` in
+  the order first met. The placeholder returns none.
+- **The name sits in the strip dagre already leaves** inside a group's top edge — its border is a rank
+  of its own — `GROUP_NAME_HEIGHT` (20) tall, cut to the box's width with an ellipsis. Nothing grows:
+  the layout test holds that no box and no label lands in that strip.
+- **Drawn first, under everything**, as a faint box with the name at its top-left
+  (`draw-flowchart-group.js`, `flowchart-groups.css`). It takes no presses, so a link dragged onto the
+  space inside a group is still dropped on empty chart.
+- **As built, a link's label can sit inside a group it only passes through** — dagre places labels on
+  the link's own path, which may cross a group. Stage 2's routing, which keeps lines out of borders
+  they do not need to cross (step 7), is where that is answered.
 
 **Pause: stage 1 is tried by hand before stage 2 begins.**
 
@@ -215,22 +244,15 @@ Where two arrows must cross, one hops over the other with a small arc, so neithe
   says which link it belongs to. A branch can be too short to hold its text when neighbours are close;
   the gap is widened then, as for tracks.
 
-### Step 7 — subgraphs
+### Step 7 — routing round subgraphs
 
-The subgraph option groups notes in the mermaid source today, and the SVG ignores it. It belongs here,
-where the routing that would have to respect a group's border is being written.
+The groups are placed in step 2b; this is the routing that respects them.
 
-- **dagre places the groups**: a compound graph, each group a parent node, so its members are kept
-  together and dagre sizes a box round them.
 - **The router keeps out of a group's border** except to cross it: an arrow between two notes in the
   same group stays inside, and one leaving the group crosses the border once.
-- **Drawn as a box behind the notes**, with the group's name — under the lines layer, so nothing it
-  holds is hidden.
-- **The order matters as it does in the mermaid source**: mermaid puts a node in the first group it is
-  mentioned in, and the SVG must agree with the code view, since both are drawn from
-  `buildFlowchartGraph`. The group belongs in that graph, not worked out twice.
-- What a stub (a note not drawn, or not yet made) belongs to is a question to answer when built — most
-  simply, nothing.
+- **A label goes on the part of its link outside any group it only passes through**, where there is one.
+- The layout test gains the rule: a route crosses a group's border only where it enters or leaves a
+  member, and only once each way.
 
 ---
 
@@ -361,7 +383,6 @@ as `npm test tests/2-behaviour/62-flowchart-layout.spec.js`.
 Browser tests are few, added to `54-flowchart-options.spec.js` where that area is already covered:
 
 - the layout settings are written at once and read back (one test, as the roles have);
-- a subgraph is drawn as a box round its notes (one test);
 - step 8: after an added link and after a drag-made note every other box is where it was, and after a
   filter change the layout is fresh (two tests — the only behaviour here no node test can reach).
 
@@ -392,16 +413,16 @@ folder as svg-pan-zoom has — a library that knows nothing of notes, with its l
 | `public/js/services/flowchart/layout/line-jumps.js` | step 5 — where routes cross; pure |
 | `public/js/services/flowchart/layout/ports.js` | step 6 — where on a side each arrow meets a box, and merged trunks; pure |
 | `public/js/services/flowchart/layout/held-positions.js` | step 8 — held positions laid over a fresh layout; pure |
-| `public/js/services/flowchart/flowchart-graph.js` | step 7 — each node's group, moved here from `mermaid-source.js` so the source and the SVG share one answer |
+| `public/js/services/flowchart/flowchart-graph.js` | step 2b — each node's group, moved here from `mermaid-source.js` so the source and the SVG share one answer |
 | `public/js/services/flowchart/flowchart-layout-settings.js` | stage 2 — direction and merging: the reader and the one writer |
 | `public/js/table-layouts/layout-file.js`, `layout-apply.js` | stage 2 — `flowchartLayout` read, written, and in `emptyDocument()` |
 | `public/js/ui/ui-functions-flowchart/edge-path.js` | steps 3, 5 — a route as a path `d`: rounded corners and hops; pure, split out of `draw-flowchart-edge.js` |
 | `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — where a vertical line meets each shape's outline, beside the outlines themselves |
-| `public/js/ui/ui-functions-flowchart/draw-flowchart-group.js` | step 7 — a subgraph's box and name |
-| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 3, 7, 8 — label sizes in; arrows into a shape cut at its outline; groups drawn; held positions |
+| `public/js/ui/ui-functions-flowchart/draw-flowchart-group.js` | step 2b — a subgraph's box and name |
+| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 2b, 3, 8 — label sizes in; groups drawn; arrows into a shape cut at its outline; held positions |
 | `public/js/ui/ui-functions-flowchart/flowchart-options-list.js` | stage 2 — direction and merging in the options dialog, in the rows it already draws |
 | `public/js/ui/ui-functions-flowchart/flowchart-note-create.js` | step 8 — hands the drop point on to the new note |
-| `public/css/flowchart-groups.css` | step 7 — the subgraph box; a new component, so a new file |
+| `public/css/flowchart-groups.css` | step 2b — the subgraph box; a new component, so a new file |
 | `plans/reference/flowchart-layout-mockup.png` | the look aimed at |
 
 **Not duplicated, by decision:**

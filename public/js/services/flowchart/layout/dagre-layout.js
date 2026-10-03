@@ -18,6 +18,13 @@ import { LOOP, loopRoute, edgeOfBox } from './placeholder-layout.js';
  *   reaching *k* times as far. The room for the loops and their text is reserved by handing dagre the
  *   box grown to the right and upwards, and the box is then put back in the bottom-left of that space;
  *   the other edges at it, which dagre ended on the grown box, are ended on the real one.
+ * - **Groups are dagre's too, in the same run.** A box with a `group` is made a child of that group's
+ *   node, so dagre keeps the members together and lays the whole chart out round the groups — links
+ *   between groups included, which separate runs per group would leave unplanned. The graph is only
+ *   made compound when some box has a group, so a chart without subgraphs is laid out as before.
+ *   dagre leaves a strip inside a group's top edge before its first row (its border is a rank of its
+ *   own), and the group's name is drawn there: `GROUP_NAME_HEIGHT` says how tall the name may be, and
+ *   the layout tests hold that nothing else lands in that strip.
  * - **The drawing is moved so its top-left is 0 0**, measured over the boxes, the routes and the
  *   labels together: dagre can route a link to itself, or a label, outside the boxes' own bounds.
  */
@@ -27,21 +34,32 @@ const NODE_SPACING = 50;
 const RANK_SPACING = 50;
 const EDGE_SPACING = 20;
 
+/** How tall a group's name may be, drawn in the strip inside its top edge. */
+export const GROUP_NAME_HEIGHT = 20;
+
 /**
  * Lays the boxes out top to bottom, in ranks, and routes every edge.
  *
- * @param {{key: string, width: number, height: number}[]} boxes - One per node, in drawing order.
+ * @param {{key: string, width: number, height: number, group?: string}[]} boxes - One per node, in
+ *   drawing order; `group` names the subgraph it is in, '' or absent for none.
  * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - Node keys,
  *   and the size of the box the edge's text is drawn in, or null when it has none.
- * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[]}[], width: number, height: number}}
+ * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[]}[], groups: {name: string, x: number, y: number, width: number, height: number}[], width: number, height: number}}
  */
 export function dagreLayout(boxes, edges) {
     const loops = loopsByBox(edges);
-    const graph = new dagre.graphlib.Graph({ multigraph: true });
+    const groupKeys = new Map(); // group name -> its node's key, in the order groups are first met
+    boxes.forEach(box => {
+        if (box.group && !groupKeys.has(box.group)) groupKeys.set(box.group, `group:${groupKeys.size}`);
+    });
+
+    const graph = new dagre.graphlib.Graph({ multigraph: true, compound: groupKeys.size > 0 });
     graph.setGraph({ rankdir: 'TB', nodesep: NODE_SPACING, ranksep: RANK_SPACING, edgesep: EDGE_SPACING });
+    groupKeys.forEach(key => graph.setNode(key, {}));
     boxes.forEach(box => {
         const room = loops.get(box.key) ?? { right: 0, top: 0 };
         graph.setNode(box.key, { width: box.width + room.right, height: box.height + room.top });
+        if (box.group) graph.setParent(box.key, groupKeys.get(box.group));
     });
     edges.forEach((edge, i) => {
         if (edge.from === edge.to) return;
@@ -70,8 +88,13 @@ export function dagreLayout(boxes, edges) {
         return { points, labelAt: edge.label ? [laid.x, laid.y] : midpoint(points) };
     });
 
+    const groups = [...groupKeys].map(([name, key]) => {
+        const { x, y, width, height } = graph.node(key);
+        return { name, x: x - width / 2, y: y - height / 2, width, height };
+    });
+
     const extents = [
-        ...[...placed.values()].map(box => [box.x, box.y, box.x + box.width, box.y + box.height]),
+        ...[...placed.values(), ...groups].map(box => [box.x, box.y, box.x + box.width, box.y + box.height]),
         ...routes.flatMap(route => route.points.map(([x, y]) => [x, y, x, y])),
         ...edges.flatMap((edge, i) => {
             if (!edge.label) return [];
@@ -79,7 +102,7 @@ export function dagreLayout(boxes, edges) {
             return [[x - edge.label.width / 2, y - edge.label.height / 2, x + edge.label.width / 2, y + edge.label.height / 2]];
         }),
     ];
-    if (extents.length === 0) return { positions: new Map(), routes, width: 0, height: 0 };
+    if (extents.length === 0) return { positions: new Map(), routes, groups, width: 0, height: 0 };
 
     const left = Math.min(...extents.map(e => e[0])), top = Math.min(...extents.map(e => e[1]));
     const right = Math.max(...extents.map(e => e[2])), bottom = Math.max(...extents.map(e => e[3]));
@@ -88,6 +111,7 @@ export function dagreLayout(boxes, edges) {
     return {
         positions: new Map([...placed.values()].map(box => [box.key, { x: box.x - left, y: box.y - top }])),
         routes: routes.map(route => ({ points: route.points.map(shift), labelAt: shift(route.labelAt) })),
+        groups: groups.map(group => ({ ...group, x: group.x - left, y: group.y - top })),
         width: right - left,
         height: bottom - top,
     };

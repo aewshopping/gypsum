@@ -1,0 +1,21 @@
+/* A subgraph on the flowchart (ui-functions-flowchart/draw-flowchart-group.js): a box behind its
+   notes, its name in the strip along its top edge. It takes no presses, so a link dragged onto the
+   space inside a group is dropped on empty chart, as it would be anywhere else. */
+
+.flowchart-group {
+    pointer-events: none;
+    color: var(--colour-contr);
+    rect {
+        fill: color-mix(in srgb, var(--colour-neutral) 50%, transparent);
+        stroke: var(--colour-neutral-alt);
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+    }
+    text {
+        /* GROUP_FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the name in this font. */
+        font: 13px var(--fontfam-app-label);
+        fill: currentColor;
+        opacity: 0.7;
+        dominant-baseline: central;
+    }
+}

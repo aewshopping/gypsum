@@ -9,13 +9,17 @@
  *
  * **The contract is what a layout has to keep**, and it is all the drawing code knows:
  *
- * - in: `boxes` — `{key, width, height}` per node — and `edges` — `{from, to, label}`, node keys and
- *   the size of the box the edge's text is drawn in, `{width, height}`, or null when it has none;
+ * - in: `boxes` — `{key, width, height, group}` per node, `group` naming its subgraph or '' — and
+ *   `edges` — `{from, to, label}`, node keys and the size of the box the edge's text is drawn in,
+ *   `{width, height}`, or null when it has none;
  * - out: `positions`, a Map of key to the box's top-left `{x, y}`; `routes`, one per edge in the
  *   same order, each `{points, labelAt}` — a polyline as `[x, y]` pairs, ending where the arrowhead
- *   goes, and where its text sits; and the `width` and `height` of the whole drawing.
+ *   goes, and where its text sits; `groups`, one box per subgraph, `{name, x, y, width, height}`,
+ *   holding its members with its name in a strip along its top edge; and the `width` and `height` of
+ *   the whole drawing.
  *
- * This one ignores a label's size: its straight lines put the text at their middle whatever its size.
+ * This one ignores a label's size and draws no groups: its straight lines put the text at their
+ * middle whatever its size, and a grid has no way to keep a group's members together.
  */
 
 const REVERSE_OFFSET = 10; // how far apart A→B and B→A are drawn, so they do not overlap
@@ -74,7 +78,7 @@ export function loopRoute(box, size = LOOP) {
  * @param {{key: string, width: number, height: number}[]} boxes - One per node, in drawing order.
  * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - Node keys; the label's size is ignored.
  * @param {number} gap - Space between neighbouring boxes.
- * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[]}[], width: number, height: number}}
+ * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[]}[], groups: [], width: number, height: number}}
  */
 export function placeholderLayout(boxes, edges, gap) {
     const columns = Math.max(1, Math.ceil(Math.sqrt(boxes.length)));
@@ -108,6 +112,7 @@ export function placeholderLayout(boxes, edges, gap) {
     return {
         positions,
         routes,
+        groups: [],
         width: Math.max(0, usedColumns * (columnWidth + gap) - gap),
         height: Math.max(0, y - gap),
     };

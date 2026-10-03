@@ -1076,6 +1076,12 @@ layouts, and adding them would be a new plan rather than a new key.
   and draws the placeholder's loop.
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
   used to draw the box and to ask the layout for room for it.
+- **Subgraphs are placed by dagre, in the same run** — a compound graph, each group a parent node —
+  because which group a note is in decides where it goes, and stage 2 never moves a box between rows.
+  One run, never one per group: links between groups would go unplanned. The group is in the graph
+  (`groupOf()` in `flowchart-graph.js`), read by the mermaid source and the SVG alike; a stub is in
+  none. The name sits in the strip dagre leaves inside a group's top edge, `GROUP_NAME_HEIGHT` tall,
+  and the box takes no presses, so a drop inside a group is a drop on empty chart.
 
 ### A view's own control row
 
@@ -1162,7 +1168,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/services/flowchart/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
-| `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links — shared by the mermaid source and the SVG |
+| `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links, and each note's subgraph — shared by the mermaid source and the SVG |
 | `public/js/services/flowchart/layout/` | Where the flowchart's boxes and lines go — pure; see *The flowchart's layout* |
 | `public/js/services/flowchart/layout/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), stated, and a grid that keeps it — the fallback |
 | `public/js/services/flowchart/layout/dagre-layout.js` | The contract on top of dagre: what the chart draws |

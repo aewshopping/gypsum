@@ -1,6 +1,5 @@
-import { readRoles, valueFor, nodeLabel, nodeShape } from './node-content.js';
+import { readRoles, nodeLabel, nodeShape } from './node-content.js';
 import { buildFlowchartGraph } from './flowchart-graph.js';
-import { toList } from '../internal-links/link-targets.js';
 
 /**
  * @file The visible files as mermaid flowchart source.
@@ -37,25 +36,6 @@ function mermaidLabel(text) {
 }
 
 /**
- * The subgraph a file belongs to, as the text of its group.
- *
- * A list uses its first item, because mermaid puts a node in one subgraph and no more — so
- * `tags: [chapter-one, draft]` means chapter-one. Empty, absent and blank all come back as '',
- * which is the ungrouped bucket, so one predicate covers null, undefined, [], [''] and '   '.
- *
- * Groups are matched exactly after trimming, so `Chapter 1` and `chapter 1` are two groups. That is
- * decided rather than left to fall out: the alternative is a chart that silently merges two names
- * somebody meant to keep apart.
- *
- * @param {object} file - A file object.
- * @param {?string} property - The property the subgraph role resolved to.
- * @returns {string} The group's text, or '' for ungrouped.
- */
-function groupKey(file, property) {
-    return String(toList(valueFor(file, property))[0] ?? '').trim();
-}
-
-/**
  * One node, with its label and its shape — both from node-content.js, which the SVG shares.
  *
  * @param {object} file - A file object.
@@ -71,7 +51,8 @@ function nodeDeclaration(file, number, roles) {
 }
 
 /**
- * Pass one: every node, declared, grouped into its subgraph.
+ * Pass one: every node, declared, grouped into its subgraph — the group each note's graph node
+ * carries, the same answer the SVG draws.
  *
  * Groups are kept in the order their value is first met, which is the order the files are sorted
  * in — so the chart follows the sort the user chose, and the text is stable enough to diff, which
@@ -80,17 +61,16 @@ function nodeDeclaration(file, number, roles) {
  * With no subgraph property every file lands in the ungrouped bucket and not one `subgraph` line is
  * written, which is the default chart.
  *
- * @param {Array<object>} files - The files being drawn.
+ * @param {object[]} notes - The graph's note nodes, in file order.
  * @param {Map<string, number>} fileNumbers - internalId to node id.
  * @param {object} roles - What readRoles returned.
  * @returns {string[]} The lines.
  */
-function declarationLines(files, fileNumbers, roles) {
+function declarationLines(notes, fileNumbers, roles) {
     const groups = new Map();
-    for (const file of files) {
-        const key = groupKey(file, roles.subgraph);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(file);
+    for (const node of notes) {
+        if (!groups.has(node.group)) groups.set(node.group, []);
+        groups.get(node.group).push(node.file);
     }
 
     const lines = [];
@@ -160,11 +140,12 @@ export function buildMermaidSource(files) {
     const fileNumbers = new Map();
     files.forEach((file, index) => fileNumbers.set(file.internalId, index + 1));
 
+    const graph = buildFlowchartGraph(files, roles);
     return [
         'flowchart TD',
         '',
-        ...declarationLines(files, fileNumbers, roles),
+        ...declarationLines(graph.nodes.filter(node => node.kind === 'note'), fileNumbers, roles),
         '',
-        ...edgeLines(buildFlowchartGraph(files, roles), fileNumbers),
+        ...edgeLines(graph, fileNumbers),
     ].join('\n');
 }
