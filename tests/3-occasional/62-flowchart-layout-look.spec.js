@@ -24,6 +24,17 @@ const CHAPTERS = { '001.md': 'birthday', '002.md': 'birthday', '003.md': 'the ro
 const GROUPED = Object.fromEntries(Object.entries(MOCKUP).map(([name, text]) =>
   [name, CHAPTERS[name] ? `---\nchapter: ${CHAPTERS[name]}\n---\n${text}` : text]));
 
+// Most notes in no subgraph, linking to each other and into and out of the two that exist.
+const MIXED = {
+  'start.md': '# Start here\n\n[[plan.md|make a plan]] [[shop.md|go shopping]]\n',
+  'plan.md': '# The plan\n\n[[chop.md|first chop]] [[weed.md|then weed]]\n',
+  'shop.md': '# Shopping\n\n[[cook.md|bring it home]]\n',
+  'chop.md': '---\nchapter: kitchen\n---\n# Chop onions\n\n[[cook.md|then]]\n',
+  'cook.md': '---\nchapter: kitchen\n---\n# Cook dinner\n\n[[eat.md|serve]]\n',
+  'weed.md': '---\nchapter: garden\n---\n# Weed the beds\n\n[[eat.md|come in]]\n',
+  'eat.md': '# Eat\n\n[[start.md|tomorrow]]\n',
+};
+
 // The awkward cases together: a link to itself, two links to one note, a diamond, a missing note.
 const AWKWARD = {
   'loop.md': '---\nshape: diamond\n---\n# Goes round\n\n[[loop.md|again]] [[next.md|once]] [[next.md|twice]]\n',
@@ -31,7 +42,7 @@ const AWKWARD = {
   'alone.md': '# On its own\n',
 };
 
-async function screenshotChart(page, files, testInfo, roles = {}) {
+async function screenshotChart(page, files, testInfo, roles = {}, theme = null) {
   await page.setViewportSize({ width: 1200, height: 900 });
   await setupMockCellWritingFolder(page, files);
   await page.goto('/');
@@ -43,6 +54,7 @@ async function screenshotChart(page, files, testInfo, roles = {}) {
     await page.keyboard.press('Escape');
   }
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  if (theme) await page.evaluate(id => { document.getElementById(id).checked = true; }, theme);
   const path = testInfo.outputPath('chart.png');
   await page.locator('#output').screenshot({ path });
   await testInfo.attach('chart', { path, contentType: 'image/png' });
@@ -59,3 +71,13 @@ test('a link to itself, two links to one note, a diamond and a missing note', as
 test('the mockup chart in two subgraphs', async ({ page }, testInfo) => {
   await screenshotChart(page, GROUPED, testInfo, { subgraph: 'chapter' });
 });
+
+test('most notes in no subgraph, linking into and out of two', async ({ page }, testInfo) => {
+  await screenshotChart(page, MIXED, testInfo, { subgraph: 'chapter' });
+});
+
+for (const theme of ['glow', 'calm']) {
+  test(`subgraphs in the ${theme} theme`, async ({ page }, testInfo) => {
+    await screenshotChart(page, MIXED, testInfo, { subgraph: 'chapter' }, theme);
+  });
+}

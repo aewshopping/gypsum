@@ -133,6 +133,36 @@ test('dagre: the same graph gives the same picture every time', async () => {
   expect(again.routes).toEqual(once.routes);
 });
 
+test('dagre: the order notes and links arrive in changes nothing', async () => {
+  const layout = await dagreLayout();
+  const graph = CASES['two groups linked across their borders, and a link to itself in one'];
+  const once = layout(graph.boxes, graph.edges);
+  const order = graph.edges.map((edge, i) => i).reverse();
+  const again = layout([...graph.boxes].reverse(), order.map(i => graph.edges[i]));
+  expect([...again.positions].sort()).toEqual([...once.positions].sort());
+  order.forEach((i, j) => expect(again.routes[j]).toEqual(once.routes[i]));
+});
+
+test('dagre: notes with no links sit in a block above the chart, a subgraph keeping its own', async () => {
+  const graph = fixture(['a', 'b', 'c', 'lone1', 'lone2', 'kept'], [['a', 'b'], ['b', 'c']], { kept: 'g' });
+  const { positions } = (await dagreLayout())(graph.boxes, graph.edges);
+  const top = key => positions.get(key).y;
+  for (const lone of ['lone1', 'lone2']) {
+    for (const key of ['a', 'b', 'c', 'kept']) expect(top(lone) + BOX.height, `${lone} above ${key}`).toBeLessThan(top(key));
+  }
+});
+
+test('dagre: a loop turns as few links upward as it can', async () => {
+  // Two loops through one link, eat → start: turning that one round breaks both.
+  const graph = fixture(['chop', 'cook', 'eat', 'plan', 'shop', 'start', 'weed'], [
+    ['start', 'plan'], ['start', 'shop'], ['plan', 'chop'], ['plan', 'weed'], ['shop', 'cook'],
+    ['chop', 'cook'], ['cook', 'eat'], ['weed', 'eat'], ['eat', 'start'],
+  ]);
+  const { positions } = (await dagreLayout())(graph.boxes, graph.edges);
+  const upward = graph.edges.filter(edge => positions.get(edge.from).y > positions.get(edge.to).y);
+  expect(upward.map(edge => `${edge.from}→${edge.to}`)).toEqual(['eat→start']);
+});
+
 test('dagre: the mockup is drawn top to bottom, each link from its row to a lower one or back up', async () => {
   const { positions } = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges);
   const y = key => positions.get(key).y;
@@ -140,6 +170,9 @@ test('dagre: the mockup is drawn top to bottom, each link from its row to a lowe
   expect(y('001')).toBeLessThan(y('002'));
   expect(y('002')).toBeLessThan(y('003'));
   expect(y('003')).toBeLessThan(y('006'));
+  // 003 ↔ 004 and 003 ↔ 005 are loops; as in the mockup, 003 is above both.
+  expect(y('003')).toBeLessThan(y('004'));
+  expect(y('003')).toBeLessThan(y('005'));
 });
 
 test('dagre: no boxes at all is an empty drawing', async () => {

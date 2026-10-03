@@ -68,8 +68,10 @@ like ours with its elk renderer, which is where stage 2 is headed. What it shows
 - **The contract stays the seam.** Drawing, hover, press, drag and the link-writing code do not change
   for a new layout. What a better layout needs is added to the contract, and the placeholder keeps
   conforming as the fallback.
-- **Deterministic.** The same notes in the same order give the same picture on every render — a box
-  must not jump because a cell elsewhere was edited.
+- **Deterministic, and blind to the sort.** The same notes and links give the same picture on every
+  render, whatever order they arrive in — a box must not jump because a cell elsewhere was edited.
+  The files come in the table's sort, newest first by default, so editing a note would otherwise
+  reorder the input and reshuffle the chart (decided after stage 1's first screenshots).
 
 ---
 
@@ -120,8 +122,20 @@ features of its routing, which can be built over dagre's placement for far less.
   dagre keeps them clear of the boxes.
 - **Top to bottom by default**, as the mockup is, **and left to right as an option** — see *Direction*
   below. Spacing starts at mermaid's defaults.
-- **Stubs** take part like any node. **Notes with no links** sit wherever dagre puts them (its first
-  rank); revisit only if a real chart shows it to be wrong.
+- **Stubs** take part like any node.
+- **Filename order, whatever the sort — decided when built.** dagre's picture depends on the order nodes
+  and edges are added, so they are handed to it sorted by key (a note's key is its path, so 001, 002…
+  come in their numbered order). The layout test holds that reversing the input changes nothing.
+- **Which links point back up is ours — decided when built.** Where links make a loop one has to point
+  up, and dagre picks by walking the nodes in the order added, which is arbitrary. `upward-links.js`
+  walks the links depth-first from each note in turn and keeps the walk that turns the fewest round,
+  ties going to filename order; those links go into dagre already turned, and their points are
+  turned back. dagre's `greedy` option was tried first and did worse: it put 004 and 005 above 003 in
+  the mockup, and turned two links up in a loop where one would do.
+- **Notes with no links sit in a tidy block above the chart — decided when built.** Left to dagre they
+  filled its first row and stretched the drawing. `unlinked-block.js` sets them in rows as wide as the
+  chart (about square when there is none), each row centred, a rank's gap above it. A note in a
+  subgraph stays in dagre, since its group needs it.
 - **Tests**: a node test of the adapter (`appModule`, no browser) — boxes never overlap, no label lands
   on a box, the same input gives the same output. Screenshots of a real folder for the look.
 
@@ -146,8 +160,9 @@ row or reorders one, so a step there would need exactly the power ruled out.
 - **The name sits in the strip dagre already leaves** inside a group's top edge — its border is a rank
   of its own — `GROUP_NAME_HEIGHT` (20) tall, cut to the box's width with an ellipsis. Nothing grows:
   the layout test holds that no box and no label lands in that strip.
-- **Drawn first, under everything**, as a faint box with the name at its top-left
-  (`draw-flowchart-group.js`, `flowchart-groups.css`). It takes no presses, so a link dragged onto the
+- **Drawn first, under everything**, as a box with the name at its top-left
+  (`draw-flowchart-group.js`, `flowchart-groups.css`), filled with the chart's background mixed a tenth of
+  the way to the text colour — checked by screenshot in all three themes. It takes no presses, so a link dragged onto the
   space inside a group is still dropped on empty chart.
 - **As built, a link's label can sit inside a group it only passes through** — dagre places labels on
   the link's own path, which may cross a group. Stage 2's routing, which keeps lines out of borders
@@ -170,6 +185,11 @@ allowed to change is decided, because each power costs differently:
 - **Free**: moving labels; widening a gap — pushing every row below down, or every box beside one
   across — so tracks (step 4), ports (step 6) or a lane fit. That is stretching space, and everything
   dagre decided still holds in the stretched picture.
+- **Free, added after stage 1**: **closing a gap** — sliding a box sideways along its row towards its
+  neighbours, never past one, so its row and its order are kept. dagre's rows can come out wider than
+  they need to be, mostly where the lanes it keeps for labels and long links have been left loose; once
+  stage 2 has routed the lines its own way, it may take that space back. Where this goes among steps
+  3–6 is decided when stage 2 is built.
 - **Free, as a hint only**: dagre's own bend points. dagre spaces each row around a lane for every arrow
   that passes through it and for every label, so its points say where a route *can* go without hitting a
   box. The router may use them or discard them; discarding one means finding or making a lane itself.
@@ -408,6 +428,8 @@ folder as svg-pan-zoom has — a library that knows nothing of notes, with its l
 | `public/js/dagre/dagre.esm.js`, `public/js/dagre/LICENSE` | step 2 — copied in, version noted at the top |
 | `public/js/services/flowchart/layout/placeholder-layout.js` | moved here at step 2 — still the contract's statement, and the fallback |
 | `public/js/services/flowchart/layout/dagre-layout.js` | step 2 — the contract on top of dagre; pure |
+| `public/js/services/flowchart/layout/upward-links.js` | step 2 — which links of a loop point back up; pure |
+| `public/js/services/flowchart/layout/unlinked-block.js` | step 2 — notes with no links, in a block above the chart; pure |
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | step 3 — right-angled routes over dagre's placement; pure |
 | `public/js/services/flowchart/layout/tracks.js` | step 4 — heights for the runs in each gap, and the gaps widened; pure |
 | `public/js/services/flowchart/layout/line-jumps.js` | step 5 — where routes cross; pure |

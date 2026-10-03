@@ -1,5 +1,7 @@
 import dagre from '../../../dagre/dagre.esm.js';
 import { LOOP, loopRoute, edgeOfBox } from './placeholder-layout.js';
+import { withUnlinkedAbove } from './unlinked-block.js';
+import { upwardLinks } from './upward-links.js';
 
 /**
  * @file The layout contract (placeholder-layout.js states it) on top of dagre: dagre places the boxes
@@ -25,6 +27,17 @@ import { LOOP, loopRoute, edgeOfBox } from './placeholder-layout.js';
  *   dagre leaves a strip inside a group's top edge before its first row (its border is a rank of its
  *   own), and the group's name is drawn there: `GROUP_NAME_HEIGHT` says how tall the name may be, and
  *   the layout tests hold that nothing else lands in that strip.
+ * - **The order the boxes and edges arrive in does not matter.** dagre's answer depends on the order
+ *   nodes and edges are added — which link of a cycle it turns round, which box goes left — and the
+ *   files come in the table's sort, which is newest first by default. So editing one note, which makes
+ *   it the newest, would reshuffle the whole chart. They are handed to dagre sorted by key instead —
+ *   a note's key is its path, so numbered notes (001, 002…) come in their numbered order — and the
+ *   picture depends on the notes and their links and on nothing else.
+ * - **Which links point back up the chart is chosen before dagre sees them** (upward-links.js: as few
+ *   as it can find). Those links go into the graph turned round, so dagre has no loop of its own to
+ *   break, and their points are turned back afterwards, so each arrow still ends at its target.
+ * - **A note with no links is not dagre's** (unless its subgraph needs it): it is set in a block above
+ *   the chart by unlinked-block.js, rather than stretching dagre's first row.
  * - **The drawing is moved so its top-left is 0 0**, measured over the boxes, the routes and the
  *   labels together: dagre can route a link to itself, or a label, outside the boxes' own bounds.
  */
@@ -53,23 +66,32 @@ export function dagreLayout(boxes, edges) {
         if (box.group && !groupKeys.has(box.group)) groupKeys.set(box.group, `group:${groupKeys.size}`);
     });
 
+    const linked = new Set(edges.flatMap(edge => [edge.from, edge.to]));
+    const ordered = [...boxes].sort((a, b) => byText(a.key, b.key));
+    const charted = ordered.filter(box => linked.has(box.key) || box.group);
+    const unlinked = ordered.filter(box => !linked.has(box.key) && !box.group);
+
     const graph = new dagre.graphlib.Graph({ multigraph: true, compound: groupKeys.size > 0 });
     graph.setGraph({ rankdir: 'TB', nodesep: NODE_SPACING, ranksep: RANK_SPACING, edgesep: EDGE_SPACING });
     groupKeys.forEach(key => graph.setNode(key, {}));
-    boxes.forEach(box => {
+    charted.forEach(box => {
         const room = loops.get(box.key) ?? { right: 0, top: 0 };
         graph.setNode(box.key, { width: box.width + room.right, height: box.height + room.top });
         if (box.group) graph.setParent(box.key, groupKeys.get(box.group));
     });
-    edges.forEach((edge, i) => {
-        if (edge.from === edge.to) return;
-        graph.setEdge(edge.from, edge.to,
-            edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}, String(i));
+    const links = edges.map((edge, i) => ({ ...edge, i }))
+        .filter(edge => edge.from !== edge.to)
+        .sort((a, b) => byText(a.from, b.from) || byText(a.to, b.to) || a.i - b.i);
+    const upward = upwardLinks(charted.map(box => box.key), links);
+    links.forEach(edge => {
+        const [from, to] = upward.has(edge.i) ? [edge.to, edge.from] : [edge.from, edge.to];
+        graph.setEdge(from, to,
+            edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}, String(edge.i));
     });
 
     dagre.layout(graph);
 
-    const placed = new Map(boxes.map(box => {
+    const placed = new Map(charted.map(box => {
         const { x, y, width, height } = graph.node(box.key);
         const top = loops.get(box.key)?.top ?? 0;
         return [box.key, { key: box.key, x: x - width / 2, y: y - height / 2 + top, width: box.width, height: box.height }];
@@ -81,8 +103,10 @@ export function dagreLayout(boxes, edges) {
             loopCount.set(edge.from, k);
             return loopRoute(placed.get(edge.from), LOOP * k);
         }
-        const laid = graph.edge({ v: edge.from, w: edge.to, name: String(i) });
+        const turned = upward.has(i);
+        const laid = graph.edge({ v: turned ? edge.to : edge.from, w: turned ? edge.from : edge.to, name: String(i) });
         const points = laid.points.map(point => [point.x, point.y]);
+        if (turned) points.reverse();
         if (loops.has(edge.from)) points[0] = edgeOfBox(placed.get(edge.from), points[1]);
         if (loops.has(edge.to)) points[points.length - 1] = edgeOfBox(placed.get(edge.to), points[points.length - 2]);
         return { points, labelAt: edge.label ? [laid.x, laid.y] : midpoint(points) };
@@ -102,19 +126,20 @@ export function dagreLayout(boxes, edges) {
             return [[x - edge.label.width / 2, y - edge.label.height / 2, x + edge.label.width / 2, y + edge.label.height / 2]];
         }),
     ];
-    if (extents.length === 0) return { positions: new Map(), routes, groups, width: 0, height: 0 };
+    const gap = { across: NODE_SPACING, down: RANK_SPACING };
+    if (extents.length === 0) return withUnlinkedAbove({ positions: new Map(), routes, groups, width: 0, height: 0 }, unlinked, gap);
 
     const left = Math.min(...extents.map(e => e[0])), top = Math.min(...extents.map(e => e[1]));
     const right = Math.max(...extents.map(e => e[2])), bottom = Math.max(...extents.map(e => e[3]));
     const shift = ([x, y]) => [x - left, y - top];
 
-    return {
+    return withUnlinkedAbove({
         positions: new Map([...placed.values()].map(box => [box.key, { x: box.x - left, y: box.y - top }])),
         routes: routes.map(route => ({ points: route.points.map(shift), labelAt: shift(route.labelAt) })),
         groups: groups.map(group => ({ ...group, x: group.x - left, y: group.y - top })),
         width: right - left,
         height: bottom - top,
-    };
+    }, unlinked, gap);
 }
 
 /**
@@ -137,6 +162,16 @@ function loopsByBox(edges) {
         right: LOOP * room.count + room.labelWidth / 2,
         top: LOOP * room.count + room.labelHeight / 2,
     }]));
+}
+
+/**
+ * Compares two strings by code unit, the same everywhere — unlike localeCompare.
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+function byText(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /**

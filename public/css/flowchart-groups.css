@@ -6,7 +6,9 @@
     pointer-events: none;
     color: var(--colour-contr);
     rect {
-        fill: color-mix(in srgb, var(--colour-neutral) 50%, transparent);
+        /* The chart's own background, a tenth of the way to the text colour: a shade darker in the light
+           themes and lighter in glow, so the group reads as a region in every theme. */
+        fill: color-mix(in srgb, var(--colour-neutral) 90%, var(--colour-contr));
         stroke: var(--colour-neutral-alt);
         stroke-width: 1;
         vector-effect: non-scaling-stroke;

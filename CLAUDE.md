@@ -1074,6 +1074,13 @@ layouts, and adding them would be a new plan rather than a new key.
 - **A link to itself is not dagre's.** dagre 3.1.1 routes one to points nowhere near its box, so
   `dagre-layout.js` leaves it out of the graph, reserves room for it by growing the box it hands dagre,
   and draws the placeholder's loop.
+- **The picture does not follow the sort.** The files arrive newest first by default, so a layout
+  that followed their order would reshuffle whenever a note was edited. dagre is handed notes and
+  links sorted by key, and **which links of a loop point back up is chosen before dagre sees them**
+  (`upward-links.js`: the fewest a depth-first walk from each note can find, ties to filename order),
+  turned round going in and turned back after. dagre's own `greedy` option was tried and did worse.
+- **A note with no links is set in a block above the chart** (`unlinked-block.js`), not left to
+  stretch dagre's first row — unless it is in a subgraph, which needs it inside.
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
   used to draw the box and to ask the layout for room for it.
 - **Subgraphs are placed by dagre, in the same run** — a compound graph, each group a parent node —
@@ -1172,6 +1179,8 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/layout/` | Where the flowchart's boxes and lines go — pure; see *The flowchart's layout* |
 | `public/js/services/flowchart/layout/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), stated, and a grid that keeps it — the fallback |
 | `public/js/services/flowchart/layout/dagre-layout.js` | The contract on top of dagre: what the chart draws |
+| `public/js/services/flowchart/layout/upward-links.js` | Which links of a loop point back up the chart |
+| `public/js/services/flowchart/layout/unlinked-block.js` | Notes with no links, set in a block above the chart |
 | `public/js/dagre/` | dagre, copied in with its licence — knows nothing of notes |
 | `public/js/services/flowchart/plan-flowchart-link.js` | What a link drawn on the flowchart writes into its note, or why it cannot — pure |
 | `public/js/editing/add-flowchart-link.js` | A drawn link into its note: always a list, through `applyRawEdits`, one undo entry |
