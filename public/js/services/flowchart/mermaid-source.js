@@ -8,7 +8,7 @@ import { toList } from '../internal-links/link-targets.js';
  * Which property fills each part of the chart is the user's, through flowchart-options.js, so
  * nothing here names a property: it asks for the role and reads whatever comes back. That is also
  * why every read is defensive — a role can be pointed at a property holding anything at all, and
- * plans/flowchart-view.md §2 is explicit that a badly-pointed picker makes an odd-looking chart
+ * plans/completed/flowchart-view.md §2 is explicit that a badly-pointed picker makes an odd-looking chart
  * rather than an error. Roles, labels and shapes are read in node-content.js, shared with the SVG.
  *
  * **Two passes over the files, and the order is the whole point.** Mermaid puts a node in the first

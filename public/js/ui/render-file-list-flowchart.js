@@ -13,7 +13,7 @@ import { attachFlowchartDrag } from './ui-functions-flowchart/flowchart-node-dra
  *
  * Which one is `appState.flowchartView.showSvg`, set by the switch in the view's control row. The two are
  * not connected yet: the SVG is drawn from the files, not from the source, with notes at placeholder
- * positions (plans/flowchart-view.md). The code block is contenteditable purely so it can be
+ * positions (plans/completed/flowchart-view.md). The code block is contenteditable purely so it can be
  * selected, copied and tweaked in place — nothing is read back out of it and no note is written.
  *
  * What goes into the source is services/flowchart/mermaid-source.js; this is the layer that decides

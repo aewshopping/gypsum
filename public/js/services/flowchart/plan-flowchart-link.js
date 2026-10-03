@@ -6,7 +6,7 @@ import { toList, linkTarget } from '../internal-links/link-targets.js';
 
 /**
  * @file What drawing a link from one note to another writes into the first note — or why nothing
- * can be written. Pure: no DOM and no disk. See plans/flowchart-view.md step 5.
+ * can be written. Pure: no DOM and no disk. See plans/completed/flowchart-view.md step 5.
  *
  * **The link and nothing else** — `[[target]]`, no link text. Text written by a drag could only ever
  * be read back correctly in some arrangements of the options: a pipe's text reaches the chart through

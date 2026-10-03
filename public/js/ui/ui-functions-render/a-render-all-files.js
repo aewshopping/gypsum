@@ -182,7 +182,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // The flowchart draws one block of text rather than a row or card per note, so there is nothing
     // for a transition to morph: it captures the whole page twice and then crossfades one <pre> onto
     // another for a second. It reads as "everything moved" only because that renderer emits no
-    // data-vt-id — and this is the opt-out plans/flowchart-view.md §13.6 asks for. Felt most on the
+    // data-vt-id — and this is the opt-out plans/completed/flowchart-view.md §13.6 asks for. Felt most on the
     // options dialog, every close of which re-renders the view.
     const flowchartView = appState.viewState === VIEWS.FLOWCHART.value;
 

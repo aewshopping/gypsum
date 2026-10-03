@@ -3,7 +3,7 @@ const { loadFolder, setupMockCellWritingFolder } = require('../helpers');
 
 // A link drawn on the flowchart is written into the note it is dragged from, after a dialog that
 // says exactly what will be written; drawn onto empty chart it makes a new note to link to. See
-// plans/flowchart-view.md steps 5 and 6.
+// plans/completed/flowchart-view.md steps 5 and 6.
 const LINKED = {
   'start.md': '---\nrelated: "[[one.md]]"\nwhy: [go left]\n---\n# Start\n\nBody with [[one.md]].\n',
   'one.md': '# One\n',

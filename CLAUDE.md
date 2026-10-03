@@ -1170,7 +1170,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/ui-functions-click/` | One file per click action |
 | `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`, `cell-range-paste.js`) |
 | `public/js/ui/ui-functions-flowchart/` | Everything the flowchart view draws and handles — control row, options modal, the SVG's boxes and viewer markup, and its click handlers — kept together rather than in `ui-functions-click/` |
-| `public/js/svg-pan-zoom/svg-pan-zoom.js` | Pan and zoom for an SVG, ported near word for word — knows nothing of notes; see `plans/flowchart-view.md` step 1 |
+| `public/js/svg-pan-zoom/svg-pan-zoom.js` | Pan and zoom for an SVG, ported near word for word — knows nothing of notes; see `plans/completed/flowchart-view.md` step 1 |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |
 | `public/js/ui/ui-functions-render/` | Rendering utilities and orchestrator |
 | `public/js/autocomplete/` | The completion popup: one session, three hosts — the editor, a table cell, the searchbox |

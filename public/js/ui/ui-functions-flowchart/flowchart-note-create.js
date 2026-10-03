@@ -17,7 +17,7 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 
 /**
  * @file A drag from a note's box released on empty chart: a dialog for the new note's folder and
- * name, and then the note made and the link to it written. See plans/flowchart-view.md step 6.
+ * name, and then the note made and the link to it written. See plans/completed/flowchart-view.md step 6.
  *
  * **The dialog is the confirmation**, as the rename dialog is: the line under the boxes says what
  * will be created and what is written into the note the drag began on, or why the name cannot be

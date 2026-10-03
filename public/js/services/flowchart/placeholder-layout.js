@@ -3,7 +3,7 @@
  *
  * Boxes go in a grid and edges are straight lines between them. It exists so the SVG can be got
  * right before anything decides where a note belongs, and is to be replaced. See
- * plans/flowchart-view.md.
+ * plans/completed/flowchart-view.md.
  *
  * **The contract is what a replacement has to keep**, and it is all the drawing code knows:
  *

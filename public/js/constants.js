@@ -137,7 +137,7 @@ export function labelFor(group, value) {
 /**
  * Where a link drawn on the flowchart is written when the connectors role is `internalLink` — which
  * the app fills from every link it finds and nothing can write. A front matter list, so the new link
- * simply joins internalLink. Typed a list in FILE_PROPERTIES (store.js). See plans/flowchart-view.md
+ * simply joins internalLink. Typed a list in FILE_PROPERTIES (store.js). See plans/completed/flowchart-view.md
  * step 5.
  */
 export const FLOWCHART_LINK_PROPERTY = 'flowChartLink';
