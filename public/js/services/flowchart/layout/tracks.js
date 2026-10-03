@@ -1,0 +1,74 @@
+/**
+ * @file The height each sideways run takes in its gap. Pure: no DOM.
+ *
+ * A route turns sideways only in the gap between two rows (orthogonal-routes.js): down at one x, across,
+ * down again at another — a **jog**. Each jog in a gap gets its own **track**, a height of its own, so
+ * no two lie on top of each other; and the order of the tracks decides which jogs cross, so they are
+ * ordered to cross as little as this can find. Step 4 of plans/flowchart-dagre-elk-layout.md.
+ *
+ * Jogs that share a `unit` — merged arrows on their way into one port — share a track, which is what
+ * makes them meet in a trunk.
+ */
+
+/**
+ * The track each jog takes, and how many tracks its gap holds.
+ *
+ * @param {{gap: number, x1: number, x2: number, unit: string}[]} jogs - `x1` where it comes down
+ *   into the gap, `x2` where it leaves.
+ * @returns {{index: number, count: number}[]} One per jog, in the same order: 0 is the top track.
+ */
+export function assignTracks(jogs) {
+    const result = new Array(jogs.length);
+    const gaps = new Map();
+    jogs.forEach((jog, i) => {
+        if (!gaps.has(jog.gap)) gaps.set(jog.gap, new Map());
+        const units = gaps.get(jog.gap);
+        if (!units.has(jog.unit)) units.set(jog.unit, []);
+        units.get(jog.unit).push({ ...jog, i });
+    });
+
+    for (const units of gaps.values()) {
+        const order = fewestCrossings([...units.values()]);
+        order.forEach((unit, index) => unit.forEach(jog => { result[jog.i] = { index, count: order.length }; }));
+    }
+    return result;
+}
+
+/**
+ * The units top to bottom: each time, the one that crosses the fewest of those left if put above them.
+ * @param {object[][]} units
+ * @returns {object[][]}
+ */
+function fewestCrossings(units) {
+    const left = [...units];
+    const order = [];
+    while (left.length) {
+        const costs = left.map(unit => left.reduce((sum, other) => sum + (other === unit ? 0 : crossings(unit, other)), 0));
+        const best = costs.indexOf(Math.min(...costs));
+        order.push(left.splice(best, 1)[0]);
+    }
+    return order;
+}
+
+/**
+ * How many times `above`'s jogs cross `below`'s when put above them: `below` coming down crosses
+ * `above`'s run, or `above` going on down crosses `below`'s run.
+ * @param {{x1: number, x2: number}[]} above
+ * @param {{x1: number, x2: number}[]} below
+ * @returns {number}
+ */
+function crossings(above, below) {
+    let count = 0;
+    for (const a of above) {
+        for (const b of below) {
+            if (between(b.x1, a.x1, a.x2)) count++;
+            if (between(a.x2, b.x1, b.x2)) count++;
+        }
+    }
+    return count;
+}
+
+/** Whether x lies strictly inside the span between two ends, either way round. */
+function between(x, end1, end2) {
+    return x > Math.min(end1, end2) + 0.5 && x < Math.max(end1, end2) - 0.5;
+}

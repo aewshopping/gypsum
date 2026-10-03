@@ -20,6 +20,7 @@ import { layoutFromColumnLayout, applyLayoutToColumnLayout, applyStickyCountFrom
          linkedPropertiesFromState, applyLinkedPropertiesFromFile,
          withLinkedColumn, withoutLinkedColumn, withColumnShown } from './layout-apply.js';
 import { linkedProperty } from '../services/linked-properties.js';
+import { applyFlowchartLayoutFromFile, flowchartLayoutFromState } from '../services/flowchart/flowchart-layout-settings.js';
 
 /**
  * 2 since propertyTypes moved out of the layouts and up to the top of the document.
@@ -61,10 +62,10 @@ function enqueue(task) {
  * for a folder with no file, and a key missing from it would be absent from doc, then absent from
  * the first thing written.
  *
- * @returns {{layoutVersion: number, propertyTypes: object, flowchart: object, linkedProperties: object, active: string|null, layouts: object}}
+ * @returns {{layoutVersion: number, propertyTypes: object, flowchart: object, flowchartLayout: object, linkedProperties: object, active: string|null, layouts: object}}
  */
 function emptyDocument() {
-    return { layoutVersion: LAYOUT_VERSION, propertyTypes: {}, flowchart: {}, linkedProperties: {}, active: null, layouts: {} };
+    return { layoutVersion: LAYOUT_VERSION, propertyTypes: {}, flowchart: {}, flowchartLayout: {}, linkedProperties: {}, active: null, layouts: {} };
 }
 
 /**
@@ -80,7 +81,7 @@ function emptyDocument() {
  * silently vanish the next time a layout was saved.
  *
  * @async
- * @returns {Promise<{layoutVersion: number, propertyTypes: object, flowchart: object, linkedProperties: object, active: string|null, layouts: object}>}
+ * @returns {Promise<{layoutVersion: number, propertyTypes: object, flowchart: object, flowchartLayout: object, linkedProperties: object, active: string|null, layouts: object}>}
  */
 export async function readLayouts() {
     if (!appState.dirHandle) return emptyDocument();
@@ -94,6 +95,8 @@ export async function readLayouts() {
                 ? parsed.propertyTypes : {},
             flowchart: (parsed.flowchart && typeof parsed.flowchart === 'object')
                 ? parsed.flowchart : {},
+            flowchartLayout: (parsed.flowchartLayout && typeof parsed.flowchartLayout === 'object')
+                ? parsed.flowchartLayout : {},
             linkedProperties: (parsed.linkedProperties && typeof parsed.linkedProperties === 'object')
                 ? parsed.linkedProperties : {},
             active: typeof parsed.active === 'string' ? parsed.active : null,
@@ -186,6 +189,7 @@ export function applyActiveLayout() {
         refreshState(doc);
         applyPropertyTypesFromFile(doc.propertyTypes);
         applyFlowchartOptionsFromFile(doc.flowchart);
+        applyFlowchartLayoutFromFile(doc.flowchartLayout);
         applyLinkedPropertiesFromFile(doc.linkedProperties);
 
         const { active } = appState.tableLayouts;
@@ -241,6 +245,22 @@ export function saveFlowchartOptions() {
     return enqueue(async () => {
         const doc = await readLayouts();
         doc.flowchart = flowchart;
+        await writeLayouts(doc);
+    });
+}
+
+/**
+ * Writes the flowchart's layout settings — its direction and whether arrows merge — leaving everything
+ * else as it is, for saveFlowchartOptions' reasons, and like it without refreshState.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export function saveFlowchartLayout() {
+    const flowchartLayout = flowchartLayoutFromState();
+    return enqueue(async () => {
+        const doc = await readLayouts();
+        doc.flowchartLayout = flowchartLayout;
         await writeLayouts(doc);
     });
 }
@@ -406,6 +426,7 @@ export function deleteAllLayouts() {
         applyStickyCountFromLayout(0);
         appState.propertyTypes.clear();
         appState.flowchartOptions.clear();
+        applyFlowchartLayoutFromFile(null);
         appState.linkedProperties.clear();
         refreshState(emptyDocument());
     });

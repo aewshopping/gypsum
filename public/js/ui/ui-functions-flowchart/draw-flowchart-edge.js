@@ -1,4 +1,5 @@
 import { svgElement, centredText } from './svg-element.js';
+import { edgePath } from './edge-path.js';
 
 /**
  * @file A link, drawn: its line, its arrowhead, and its text in a small box.
@@ -51,13 +52,13 @@ function linkAttributes(edge, index) {
  *
  * @param {object} edge - A graph edge.
  * @param {number} index - Its number in the graph.
- * @param {{points: number[][]}} route - From the layout.
+ * @param {{points: number[][], hops?: number[][]}} route - From the layout.
  * @returns {SVGGElement}
  */
 export function drawFlowchartEdge(edge, index, route) {
     // A link to a note that does not exist is dashed: the chart's broken link.
     const group = svgElement('g', { class: `flowchart-edge${edge.missing ? ' is-missing' : ''}`, ...linkAttributes(edge, index) });
-    const d = route.points.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ');
+    const d = edgePath(route.points, route.hops);
     group.append(svgElement('path', { class: 'flowchart-edge-hit', d }));
     group.append(svgElement('path', { class: 'flowchart-edge-line', d, 'marker-end': 'url(#flowchart-arrowhead)' }));
     return group;

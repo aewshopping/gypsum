@@ -157,6 +157,22 @@ test('a choice is written at once, and choosing the default takes it back out', 
   await expect.poll(() => source(page)).not.toContain('subgraph');
 });
 
+// Direction and merging are not roles: they go to their own key, beside `flowchart`, and survive a
+// role being written after them — the trap a key readLayouts() does not name would fall into.
+test('a layout setting is written at once to its own key, and kept when a role is written', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('[data-action="open-flowchart-options"]');
+  await page.selectOption('#flowchart-layout-direction', 'LR');
+  await expect.poll(async () => (await layoutsFile(page)).flowchartLayout).toEqual({ direction: 'LR' });
+
+  await page.selectOption('#flowchart-role-subgraph', 'chapter');
+  await expect.poll(async () => (await layoutsFile(page)).flowchart).toEqual({ subgraph: 'chapter' });
+  expect((await layoutsFile(page)).flowchartLayout).toEqual({ direction: 'LR' });
+
+  await page.selectOption('#flowchart-layout-direction', 'TB');
+  await expect.poll(async () => (await layoutsFile(page)).flowchartLayout).toEqual({});
+});
+
 // Assigning a select a value none of its options carries silently blanks it, which is the trap
 // syncSortControls() documents — so a folder that has lost the property must still offer it.
 test('a stored property the folder does not carry is still in the select', async ({ page }) => {

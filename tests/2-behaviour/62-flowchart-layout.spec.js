@@ -54,6 +54,11 @@ const CASES = {
     ['a', 'b', 'over'], ['b', 'c', 'back'], ['c', 'd'], ['d', 'e', 'over again'], ['a', 'e'], ['f', 'a', 'in'],
     ['e', 'a', 'up'], ['c', 'c', 'round'],
   ], { a: 'one', c: 'one', e: 'one', b: 'two', d: 'two' }),
+  // A long link from top to bottom with a group in the rows between, and links in and out of it.
+  'a link passing a group by': fixture(['top', 'g1', 'g2', 'g3', 'bottom', 'side'], [
+    ['top', 'bottom', 'the long way'], ['top', 'g1', 'in'], ['g1', 'g2'], ['g2', 'g3', 'on'], ['g3', 'bottom', 'out'],
+    ['side', 'g2', 'from the side'], ['g3', 'top', 'back up'],
+  ], { g1: 'middle', g2: 'middle', g3: 'middle' }),
 };
 
 const overlaps = (p, q) => p.x < q.x + q.width && q.x < p.x + p.width && p.y < q.y + q.height && q.y < p.y + p.height;
@@ -93,7 +98,9 @@ function checkLayout({ boxes, edges }, layout) {
 
   // Each group holds its own members and nothing else; groups do not overlap; and nothing at all
   // lands in the strip along a group's top edge, where its name is drawn.
-  const groupNames = [...new Set(boxes.map(box => box.group).filter(Boolean))];
+  // Groups come in the order their first member's key sorts — the layout is blind to the input's order.
+  const keyOrder = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+  const groupNames = [...new Set([...boxes].sort(keyOrder).map(box => box.group).filter(Boolean))];
   expect(layout.groups.map(group => group.name)).toEqual(groupNames);
   const contains = (g, b) => b.x >= g.x && b.y >= g.y && b.x + b.width <= g.x + g.width && b.y + b.height <= g.y + g.height;
   layout.groups.forEach((group, i) => {
@@ -113,18 +120,106 @@ function checkLayout({ boxes, edges }, layout) {
   layout.routes.forEach(route => route.points.forEach(([x, y]) => expect(inside(x, y), 'route inside the drawing').toBe(true)));
 }
 
+/**
+ * Everything stage 2's routing holds on top: every run horizontal or vertical; no run through a box;
+ * no sideways run in a group's name strip; each label on a run of its own route; and a hop for every
+ * crossing.
+ */
+function checkRoutes({ boxes, edges }, layout) {
+  const placed = boxes.map(box => ({ key: box.key, ...layout.positions.get(box.key), width: box.width, height: box.height }));
+  layout.routes.forEach((route, i) => {
+    const runs = route.points.slice(1).map((end, k) => [route.points[k], end]);
+    runs.forEach(([a, b], k) => {
+      const straight = Math.abs(a[0] - b[0]) < 0.01 || Math.abs(a[1] - b[1]) < 0.01;
+      expect(straight, `edge ${i} run ${k} is horizontal or vertical`).toBe(true);
+      const run = { x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), width: Math.abs(a[0] - b[0]), height: Math.abs(a[1] - b[1]) };
+      placed.forEach(box => {
+        const inner = { x: box.x + 0.5, y: box.y + 0.5, width: box.width - 1, height: box.height - 1 };
+        const hit = run.x <= inner.x + inner.width && inner.x <= run.x + run.width && run.y <= inner.y + inner.height && inner.y <= run.y + run.height;
+        expect(hit, `edge ${i} run ${k} goes through ${box.key}`).toBe(false);
+      });
+      if (Math.abs(a[1] - b[1]) < 0.01) layout.groups.forEach(group => {
+        const inStrip = a[1] > group.y && a[1] < group.y + GROUP_NAME_HEIGHT
+          && Math.max(a[0], b[0]) > group.x && Math.min(a[0], b[0]) < group.x + group.width;
+        expect(inStrip, `edge ${i} runs across ${group.name}'s name`).toBe(false);
+      });
+    });
+    if (edges[i].label && edges[i].from !== edges[i].to) {
+      const [lx, ly] = route.labelAt;
+      const onRun = runs.some(([a, b]) => lx >= Math.min(a[0], b[0]) - 0.01 && lx <= Math.max(a[0], b[0]) + 0.01
+        && ly >= Math.min(a[1], b[1]) - 0.01 && ly <= Math.max(a[1], b[1]) + 0.01);
+      expect(onRun, `edge ${i}'s label sits on a run of its own route`).toBe(true);
+    }
+  });
+  expect(layout.routes.reduce((sum, route) => sum + route.hops.length, 0)).toBe(crossings(layout));
+
+  // A route crosses a group's border only to reach or leave a member, and then once: never through a
+  // group neither of its notes is in. Walked in small steps, counting each time it goes in or out.
+  const groupOf = new Map(boxes.map(box => [box.key, box.group]));
+  edges.forEach((edge, i) => {
+    if (edge.from === edge.to) return;
+    layout.groups.forEach(group => {
+      const inside = ([x, y]) => x > group.x + 0.5 && x < group.x + group.width - 0.5 && y > group.y + 0.5 && y < group.y + group.height - 0.5;
+      const points = layout.routes[i].points;
+      let flips = 0, was = inside(points[0]);
+      points.slice(1).forEach((end, k) => {
+        const start = points[k], steps = Math.ceil(Math.hypot(end[0] - start[0], end[1] - start[1]) / 2);
+        for (let n = 1; n <= steps; n++) {
+          const now = inside([start[0] + (end[0] - start[0]) * n / steps, start[1] + (end[1] - start[1]) * n / steps]);
+          if (now !== was) flips++;
+          was = now;
+        }
+      });
+      const expected = (groupOf.get(edge.from) === group.name) !== (groupOf.get(edge.to) === group.name) ? 1 : 0;
+      expect(flips, `edge ${i} (${edge.from}→${edge.to}) crosses ${group.name}'s border`).toBe(expected);
+    });
+  });
+}
+
+/** How many times one route's horizontal run crosses another's vertical one, clear of both ends. */
+function crossings(layout) {
+  const runs = layout.routes.map(route => route.points.slice(1).map((end, k) => [route.points[k], end]));
+  const inside = (v, p, q) => v > Math.min(p, q) + 0.5 && v < Math.max(p, q) - 0.5;
+  let count = 0;
+  runs.forEach((mine, r) => mine.filter(([a, b]) => Math.abs(a[1] - b[1]) < 0.01).forEach(([a, b]) => {
+    runs.forEach((theirs, o) => {
+      if (o === r) return;
+      theirs.filter(([c, d]) => Math.abs(c[0] - d[0]) < 0.01)
+        .forEach(([c, d]) => { if (inside(c[0], a[0], b[0]) && inside(a[1], c[1], d[1])) count++; });
+    });
+  }));
+  return count;
+}
+
 const dagreLayout = async () => (await appModule('services/flowchart/layout/dagre-layout.js')).dagreLayout;
 let GROUP_NAME_HEIGHT;
 test.beforeAll(async () => {
   ({ GROUP_NAME_HEIGHT } = await appModule('services/flowchart/layout/dagre-layout.js'));
 });
 
-for (const [name, graph] of Object.entries(CASES)) {
-  test(`dagre: ${name} — nothing overlaps, every route joins its own boxes`, async () => {
-    const layout = (await dagreLayout())(graph.boxes, graph.edges);
-    checkLayout(graph, layout);
-  });
+const VARIANTS = { '': {}, 'left to right, ': { direction: 'LR' }, 'merged, ': { merge: true } };
+for (const [variant, options] of Object.entries(VARIANTS)) {
+  for (const [name, graph] of Object.entries(CASES)) {
+    test(`dagre: ${variant}${name} — nothing overlaps, every route joins its own boxes`, async () => {
+      const layout = (await dagreLayout())(graph.boxes, graph.edges, options);
+      checkLayout(graph, layout);
+      checkRoutes(graph, layout);
+    });
+  }
 }
+
+test('dagre: the mockup routes with no crossings, as the reference draws it', async () => {
+  const layout = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges);
+  expect(crossings(layout)).toBe(0);
+});
+
+test('dagre: left to right puts each link\'s rows side by side', async () => {
+  const { positions } = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges, { direction: 'LR' });
+  const x = key => positions.get(key).x;
+  expect(x('001')).toBeLessThan(x('002'));
+  expect(x('002')).toBeLessThan(x('003'));
+  expect(x('003')).toBeLessThan(x('004'));
+});
 
 test('dagre: the same graph gives the same picture every time', async () => {
   const layout = await dagreLayout();

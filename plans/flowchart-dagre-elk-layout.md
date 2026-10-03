@@ -1,6 +1,6 @@
 # Plan: flowchart layout — dagre, then elk-like routing of our own
 
-Status: **stage 1 built (steps 1, 2 and 2b), waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
+Status: **stages 1 and 2 built (steps 1–7, direction and merging), stage 2 waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
 interactions and drawing links, all against placeholder positions.
 Bump the manifest's minor version with each step that changes code.
 
@@ -276,6 +276,44 @@ The groups are placed in step 2b; this is the routing that respects them.
 
 ---
 
+### As built
+
+What stage 2 turned out to be, where it settled something the steps above left open.
+
+- **Routes run in dagre's lanes, and turn only in the gaps between rows.** dagre hands back one point
+  for every row a link passes — a lane it has kept clear, the label's own row and a group's border rows
+  among them — so a route goes straight down each lane and jogs sideways only between two rows. That
+  is *Who has the last word*'s "dagre's bend points as a hint", taken all the way: since nothing in a
+  row is ever crossed sideways, no route goes through a box, a label or a group's name.
+- **Labels stay where dagre put them**, on the lane through their own row — not moved to "the longest
+  vertical run" as step 3 first said. dagre already kept that place clear of every box and label, and
+  the route passes through it, so the label is on its own line by construction.
+- **Upward links** are the ones dagre-place.js turned round for dagre; they are routed down like any
+  other and their points reversed, so 005 → 003 leaves 005's top and climbs into 003's underside, as the
+  mockup does.
+- **Tracks** (`TRACK_SPACING` 18) are spaced evenly in their gap; a gap with too little room is widened
+  and every row below moves down. 18 rather than 12 because the last run is also where the arrowhead
+  lands, and 12 left it cramped against a corner.
+- **Closing gaps** is `compact-columns.js`, last before the unlinked block: a strip empty from the top
+  of the drawing to the bottom is narrowed to 40, everything right of it moving left. So nothing changes
+  order, no straight line gains a bend, and nothing comes closer to anything than 40.
+- **Shapes stay.** The pragmatic fix worked: ports spread over only the part of a side a shape can take
+  an arrow on (`ports` in node-shape.js), and `fit-routes-to-shapes.js` moves each end along its last
+  run onto the real outline. The way out (rectangles only) was not needed.
+- **Left to right is the top to bottom chart on its side** (`transpose.js`): boxes and labels go in
+  turned, the picture is mirrored across its diagonal, and labels then sit on horizontal runs. A group's
+  name gets a strip above the group, since the strip top to bottom keeps is, mirrored, its left side. The
+  separate rank spacing step *Direction* expected was not needed: a turned label is as tall as its text
+  is wide, so dagre already leaves room for it.
+- **Merging** gives every arrowhead on a side one port and every tail another, and the jogs into or out
+  of that port one track, so they join in a trunk. It adds crossings where tails leave past the heads'
+  trunk (four in the mockup); each is bridged.
+- **Step 7 holds by construction**: dagre keeps lanes for links that are not a group's out of it, and
+  routes only turn in gaps, so the layout test's rule — a route crosses a group's border only to reach
+  or leave a member, and once — passed on every fixture without code of its own.
+- **Measured**: the mockup routes with no crossings, as the reference does; the mixed chart in the look
+  spec has one, bridged.
+
 **Pause: stage 2 is tried by hand before stage 3 begins.**
 
 ---
@@ -427,19 +465,25 @@ folder as svg-pan-zoom has — a library that knows nothing of notes, with its l
 |---|---|
 | `public/js/dagre/dagre.esm.js`, `public/js/dagre/LICENSE` | step 2 — copied in, version noted at the top |
 | `public/js/services/flowchart/layout/placeholder-layout.js` | moved here at step 2 — still the contract's statement, and the fallback |
-| `public/js/services/flowchart/layout/dagre-layout.js` | step 2 — the contract on top of dagre; pure |
+| `public/js/services/flowchart/layout/dagre-layout.js` | step 2, then stage 2 — the contract: the steps in order, and nothing else; pure |
+| `public/js/services/flowchart/layout/dagre-place.js` | step 2 — dagre's placement: boxes, groups, each link's lanes and label; pure |
+| `public/js/services/flowchart/layout/ranks.js` | step 4 — the rows and the gaps between them, and widening a gap; pure |
+| `public/js/services/flowchart/layout/compact-columns.js` | stage 2 — strips empty top to bottom, narrowed; pure |
+| `public/js/services/flowchart/layout/transpose.js` | stage 2 — left to right, as top to bottom on its side; pure |
+| `public/js/services/flowchart/layout/chart-frame.js` | stage 2 — the chart moved to 0 0, and name strips above groups left to right; pure |
 | `public/js/services/flowchart/layout/upward-links.js` | step 2 — which links of a loop point back up; pure |
 | `public/js/services/flowchart/layout/unlinked-block.js` | step 2 — notes with no links, in a block above the chart; pure |
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | step 3 — right-angled routes over dagre's placement; pure |
-| `public/js/services/flowchart/layout/tracks.js` | step 4 — heights for the runs in each gap, and the gaps widened; pure |
+| `public/js/services/flowchart/layout/tracks.js` | step 4 — the order of the runs in each gap; pure |
 | `public/js/services/flowchart/layout/line-jumps.js` | step 5 — where routes cross; pure |
 | `public/js/services/flowchart/layout/ports.js` | step 6 — where on a side each arrow meets a box, and merged trunks; pure |
 | `public/js/services/flowchart/layout/held-positions.js` | step 8 — held positions laid over a fresh layout; pure |
 | `public/js/services/flowchart/flowchart-graph.js` | step 2b — each node's group, moved here from `mermaid-source.js` so the source and the SVG share one answer |
 | `public/js/services/flowchart/flowchart-layout-settings.js` | stage 2 — direction and merging: the reader and the one writer |
-| `public/js/table-layouts/layout-file.js`, `layout-apply.js` | stage 2 — `flowchartLayout` read, written, and in `emptyDocument()` |
+| `public/js/table-layouts/layout-file.js` | stage 2 — `flowchartLayout` read, written, and in `emptyDocument()` |
 | `public/js/ui/ui-functions-flowchart/edge-path.js` | steps 3, 5 — a route as a path `d`: rounded corners and hops; pure, split out of `draw-flowchart-edge.js` |
-| `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — where a vertical line meets each shape's outline, beside the outlines themselves |
+| `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — the share of a side ports spread over, and where a line meets each outline |
+| `public/js/ui/ui-functions-flowchart/fit-routes-to-shapes.js` | step 3 — each route's ends moved onto its boxes' outlines |
 | `public/js/ui/ui-functions-flowchart/draw-flowchart-group.js` | step 2b — a subgraph's box and name |
 | `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 2b, 3, 8 — label sizes in; groups drawn; arrows into a shape cut at its outline; held positions |
 | `public/js/ui/ui-functions-flowchart/flowchart-options-list.js` | stage 2 — direction and merging in the options dialog, in the rows it already draws |

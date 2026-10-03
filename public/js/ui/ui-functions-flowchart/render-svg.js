@@ -6,6 +6,8 @@ import { shapeTextWidth, shapeOutline } from './node-shape.js';
 import { svgElement } from './svg-element.js';
 import { drawFlowchartNode } from './draw-flowchart-node.js';
 import { drawFlowchartGroup, groupNameWidth } from './draw-flowchart-group.js';
+import { fitRoutesToShapes } from './fit-routes-to-shapes.js';
+import { flowchartLayoutSetting } from '../../services/flowchart/flowchart-layout-settings.js';
 import { drawFlowchartEdge, drawFlowchartEdgeLabel, arrowheadDefs, labelBoxSize } from './draw-flowchart-edge.js';
 
 /**
@@ -57,7 +59,8 @@ export function drawFlowchart(svg, files) {
 
     const layout = dagreLayout(boxes, graph.edges.map((edge, i) => ({
         from: edge.from, to: edge.to, label: labels[i] && labelBoxSize(labels[i], LABEL_LINE_HEIGHT),
-    })));
+    })), { direction: flowchartLayoutSetting('direction'), merge: flowchartLayoutSetting('merge') });
+    const routes = fitRoutesToShapes(layout.routes, graph.edges, new Map(boxes.map(box => [box.key, box])), layout.positions);
 
     // The viewBox starts at 0 0 and the drawing is moved to its middle, rather than the box being
     // moved to the drawing: the pan and zoom code scales about 50% 50%, which SVG measures from the
@@ -73,10 +76,10 @@ export function drawFlowchart(svg, files) {
         const [name] = wrapLabel(group.name, `${GROUP_FONT_SIZE}px ${fontFamily}`, groupNameWidth(group), 1).lines;
         drawing.append(drawFlowchartGroup(group, name, GROUP_NAME_HEIGHT));
     });
-    graph.edges.forEach((edge, i) => drawing.append(drawFlowchartEdge(edge, i, layout.routes[i])));
+    graph.edges.forEach((edge, i) => drawing.append(drawFlowchartEdge(edge, i, routes[i])));
     graph.nodes.forEach((node, i) => drawing.append(drawFlowchartNode(node, boxes[i], layout.positions.get(node.key), NODE_LINE_HEIGHT)));
     graph.edges.forEach((edge, i) => {
-        if (labels[i]) drawing.append(drawFlowchartEdgeLabel(edge, i, layout.routes[i], labels[i], LABEL_LINE_HEIGHT));
+        if (labels[i]) drawing.append(drawFlowchartEdgeLabel(edge, i, routes[i], labels[i], LABEL_LINE_HEIGHT));
     });
 
     svg.append(arrowheadDefs(), drawing);

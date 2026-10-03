@@ -315,6 +315,20 @@ and an empty property deletes the entry rather than storing `''`.
 
 ---
 
+## Flowchart layout settings (`appState.flowchartLayout`)
+
+```js
+{ direction?: 'LR', merge?: true }   // each absent while it is the default: 'TB', false
+```
+
+How the flowchart is laid out: top to bottom or left to right, and whether arrows into one note merge
+into a trunk. Not roles, so not in `flowchartOptions`: they are saved in the layouts file's own
+`flowchartLayout` key. Ask `flowchartLayoutSetting(name)` in
+`services/flowchart/flowchart-layout-settings.js`; `setFlowchartLayoutSetting()` is the one writer, and
+drops a name or value it does not know.
+
+---
+
 ## Saved layouts (`appState.tableLayouts` and `TABLE_VIEW_COLUMNS.columnLayout`)
 
 ```js

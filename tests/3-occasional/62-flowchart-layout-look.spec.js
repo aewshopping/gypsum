@@ -42,15 +42,16 @@ const AWKWARD = {
   'alone.md': '# On its own\n',
 };
 
-async function screenshotChart(page, files, testInfo, roles = {}, theme = null) {
+async function screenshotChart(page, files, testInfo, roles = {}, theme = null, layout = {}) {
   await page.setViewportSize({ width: 1200, height: 900 });
   await setupMockCellWritingFolder(page, files);
   await page.goto('/');
   await loadFolder(page);
   await page.selectOption('#view-select', 'flowchart');
-  if (Object.keys(roles).length) {
+  if (Object.keys(roles).length || Object.keys(layout).length) {
     await page.click('[data-action="open-flowchart-options"]');
     for (const [role, property] of Object.entries(roles)) await page.selectOption(`#flowchart-role-${role}`, property);
+    for (const [setting, value] of Object.entries(layout)) await page.selectOption(`#flowchart-layout-${setting}`, value);
     await page.keyboard.press('Escape');
   }
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
@@ -81,3 +82,15 @@ for (const theme of ['glow', 'calm']) {
     await screenshotChart(page, MIXED, testInfo, { subgraph: 'chapter' }, theme);
   });
 }
+
+test('the mockup chart left to right', async ({ page }, testInfo) => {
+  await screenshotChart(page, MOCKUP, testInfo, {}, null, { direction: 'LR' });
+});
+
+test('the mockup chart with arrows merged', async ({ page }, testInfo) => {
+  await screenshotChart(page, MOCKUP, testInfo, {}, null, { merge: 'true' });
+});
+
+test('subgraphs left to right', async ({ page }, testInfo) => {
+  await screenshotChart(page, MIXED, testInfo, { subgraph: 'chapter' }, null, { direction: 'LR' });
+});

@@ -48,7 +48,7 @@ import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, ha
 import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
          handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
 import { handleOpenFlowchartOptions, handleCloseFlowchartOptions, handleFlowchartOptionChange,
-         handleFlowchartOptionsClose } from './ui-functions-flowchart/flowchart-options-modal.js';
+         handleFlowchartOptionsClose, handleFlowchartLayoutChange } from './ui-functions-flowchart/flowchart-options-modal.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
 import { handleSortSelectChange, handleSortDirectionChange } from './ui-functions-click/sort-select-change.js';
@@ -338,6 +338,7 @@ const changeActionHandlers = {
     'history-sort': handleHistorySort,
     'sort-select': handleSortSelectChange,
     'flowchart-option-select': handleFlowchartOptionChange,
+    'flowchart-layout-select': handleFlowchartLayoutChange,
     'toggle-flowchart-render': handleToggleFlowchartRender,
     'sort-direction-toggle': handleSortDirectionChange,
     'font-style-app-label-change': handleFontStyleAppLabelChange,

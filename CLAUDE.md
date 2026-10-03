@@ -1062,6 +1062,9 @@ layouts, and adding them would be a new plan rather than a new key.
 
 **dagre places the boxes and the plan's own routing has the last word.** See
 `plans/flowchart-dagre-elk-layout.md`, which is built in stages with a pause for trying each by hand.
+`layout/dagre-layout.js` is the order the steps run in and nothing else; each step is a module of its
+own in `layout/`, all pure, and the layout test (`62-flowchart-layout.spec.js`) runs every fixture top
+to bottom, left to right and merged through one checker.
 
 - **The contract is the seam**, stated at the top of `layout/placeholder-layout.js`: boxes and edges
   (with each label's size) in, positions, routes, width and height out. Drawing, hover, press, drag
@@ -1081,6 +1084,21 @@ layouts, and adding them would be a new plan rather than a new key.
   turned round going in and turned back after. dagre's own `greedy` option was tried and did worse.
 - **A note with no links is set in a block above the chart** (`unlinked-block.js`), not left to
   stretch dagre's first row — unless it is in a subgraph, which needs it inside.
+- **Routes run in dagre's lanes and turn only between rows.** dagre gives a link a point in every row
+  it passes, kept clear for it; a route goes straight down each and jogs sideways only in the gap below
+  (`orthogonal-routes.js`), on a track of its own (`tracks.js`), the gap widened when it needs the room
+  (`ranks.js`). So nothing in a row — box, label, group name — is ever crossed sideways, and a label
+  stays where dagre kept its place, on its own route. Do not move labels or boxes in a way that breaks
+  this: it is what the "no run through a box" and "label on its own route" rules rest on.
+- **Ports** (`ports.js`) spread a side's arrows over the share of it the shape can take
+  (`portWidth`/`portHeight` from `node-shape.js`); `fit-routes-to-shapes.js` then moves each end onto
+  the real outline. The layout never learns about shapes.
+- **Direction and merging are layout settings, not roles**: `appState.flowchartLayout`, the
+  `flowchartLayout` key of the layouts file, `setFlowchartLayoutSetting()` the one writer
+  (`services/flowchart/flowchart-layout-settings.js`). Left to right is the top to bottom chart laid
+  out on its side and mirrored (`transpose.js`), so there is one router, not two.
+- **Corners and hops are drawing**, in `edge-path.js`, in drawing units so they zoom; the layout only
+  says where a route hops (`line-jumps.js`: the horizontal run bridges the vertical one).
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
   used to draw the box and to ask the layout for room for it.
 - **Subgraphs are placed by dagre, in the same run** — a compound graph, each group a parent node —
@@ -1178,7 +1196,15 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links, and each note's subgraph — shared by the mermaid source and the SVG |
 | `public/js/services/flowchart/layout/` | Where the flowchart's boxes and lines go — pure; see *The flowchart's layout* |
 | `public/js/services/flowchart/layout/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), stated, and a grid that keeps it — the fallback |
-| `public/js/services/flowchart/layout/dagre-layout.js` | The contract on top of dagre: what the chart draws |
+| `public/js/services/flowchart/layout/dagre-layout.js` | The contract: the layout's steps, in order |
+| `public/js/services/flowchart/layout/dagre-place.js` | dagre's placement: boxes, groups, each link's lanes and label |
+| `public/js/services/flowchart/layout/orthogonal-routes.js` | A link as a right-angled route through its lanes |
+| `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `ranks.js` | Where arrows meet a box; the order of sideways runs in a gap; the rows and widening a gap |
+| `public/js/services/flowchart/layout/compact-columns.js`, `transpose.js`, `chart-frame.js` | Narrowing empty strips; left to right; the drawing's frame |
+| `public/js/services/flowchart/layout/line-jumps.js` | Where routes cross, so the drawing can bridge |
+| `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |
+| `public/js/ui/ui-functions-flowchart/edge-path.js` | A route as a path: rounded corners and hops |
+| `public/js/ui/ui-functions-flowchart/fit-routes-to-shapes.js` | Route ends moved onto a shape's real outline |
 | `public/js/services/flowchart/layout/upward-links.js` | Which links of a loop point back up the chart |
 | `public/js/services/flowchart/layout/unlinked-block.js` | Notes with no links, set in a block above the chart |
 | `public/js/dagre/` | dagre, copied in with its licence — knows nothing of notes |

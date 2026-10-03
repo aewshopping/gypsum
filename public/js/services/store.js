@@ -120,6 +120,12 @@ export const appState = {
   // other half of the answer.
   flowchartOptions: new Map(),
 
+  // How the flowchart is laid out, read from the same file's `flowchartLayout` object: `direction`
+  // ('TB' or 'LR') and `merge` (true or false), each absent while it is the default. Not roles, so not
+  // in flowchartOptions. Ask flowchartLayoutSetting() in services/flowchart/flowchart-layout-settings.js;
+  // setFlowchartLayoutSetting() is the one writer.
+  flowchartLayout: {},
+
   // The table's linked columns, read from the same file's `linkedProperties` object.
   // Map<'linked:<n>', {label: string|null, via: string, read: string}> — "show `read` of the note
   // linked in `via`", headed `label`, or after its two choices when that is null.

@@ -13,8 +13,9 @@
  *   `edges` — `{from, to, label}`, node keys and the size of the box the edge's text is drawn in,
  *   `{width, height}`, or null when it has none;
  * - out: `positions`, a Map of key to the box's top-left `{x, y}`; `routes`, one per edge in the
- *   same order, each `{points, labelAt}` — a polyline as `[x, y]` pairs, ending where the arrowhead
- *   goes, and where its text sits; `groups`, one box per subgraph, `{name, x, y, width, height}`,
+ *   same order, each `{points, labelAt, hops}` — a polyline as `[x, y]` pairs, ending where the
+ *   arrowhead goes; where its text sits; and the points on it where it bridges another route, which
+ *   this layout, drawing straight lines, leaves out; `groups`, one box per subgraph, `{name, x, y, width, height}`,
  *   holding its members with its name in a strip along its top edge; and the `width` and `height` of
  *   the whole drawing.
  *

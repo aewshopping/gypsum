@@ -3,6 +3,7 @@ import { propertyOptions } from '../../services/property-options.js';
 import { FLOWCHART_ROLES, NODE_SHAPES } from '../../constants.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
 import { isPropertyUserOwned } from '../../services/property-type.js';
+import { flowchartLayoutChoices, flowchartLayoutSetting } from '../../services/flowchart/flowchart-layout-settings.js';
 
 /**
  * @file The rows of the flowchart options modal: one per part of the chart a property can fill.
@@ -78,6 +79,26 @@ export function renderFlowchartOptionsList() {
                  `<label class="info-modal-row-label" for="${id}">${escapeHtml(role.label)}</label>` +
                  `<select id="${id}" data-action="flowchart-option-select" data-role="${role.value}">` +
                    choices +
+                 `</select>` +
+               `</div>`;
+    }).join('');
+}
+
+/**
+ * The rows for how the chart is laid out — its direction, and whether arrows merge — below the roles,
+ * in the same row as a role's, since they are the same control. Their values are fixed words, not
+ * properties, so nothing here needs escaping beyond what the module itself wrote.
+ *
+ * @returns {string} HTML string, appended to the roles' rows.
+ */
+export function renderFlowchartLayoutRows() {
+    return flowchartLayoutChoices().map(({ name, label, choices }) => {
+        const chosen = String(flowchartLayoutSetting(name));
+        const id = `flowchart-layout-${name}`;
+        return `<div class="info-modal-row info-modal-select-row">` +
+                 `<label class="info-modal-row-label" for="${id}">${label}</label>` +
+                 `<select id="${id}" data-action="flowchart-layout-select" data-setting="${name}">` +
+                   choices.map(choice => `<option value="${choice.value}"${choice.value === chosen ? ' selected' : ''}>${choice.label}</option>`).join('') +
                  `</select>` +
                `</div>`;
     }).join('');

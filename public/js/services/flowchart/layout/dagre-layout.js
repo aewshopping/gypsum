@@ -1,193 +1,130 @@
-import dagre from '../../../dagre/dagre.esm.js';
-import { LOOP, loopRoute, edgeOfBox } from './placeholder-layout.js';
+import { placeWithDagre, byText, NODE_SPACING, RANK_SPACING } from './dagre-place.js';
+import { loopRoute } from './placeholder-layout.js';
+import { rankBands, rowShifts } from './ranks.js';
+import { assignPorts } from './ports.js';
+import { assignTracks } from './tracks.js';
+import { linkWaypoints, linkJogs, routePoints, routeMidpoint } from './orthogonal-routes.js';
+import { compactColumns } from './compact-columns.js';
 import { withUnlinkedAbove } from './unlinked-block.js';
-import { upwardLinks } from './upward-links.js';
+import { routeHops } from './line-jumps.js';
+import { sidewaysBox, sidewaysEdge, mirrored } from './transpose.js';
+import { atOrigin, withNamesAbove } from './chart-frame.js';
 
 /**
- * @file The layout contract (placeholder-layout.js states it) on top of dagre: dagre places the boxes
- * and routes the edges, and this turns its answer into the contract's shape. Pure: no DOM.
+ * @file The layout contract (placeholder-layout.js states it): dagre places, stage 2 routes. Pure.
  *
- * Stage 1 of plans/flowchart-dagre-elk-layout.md. dagre's routes are what the chart draws for now;
- * stage 2 refines them, and has the last word where the two disagree.
+ * plans/flowchart-dagre-elk-layout.md. Each step is a module of its own, and this is the order they
+ * run in:
  *
- * - **A multigraph, each edge named by its index.** A note can link to the same target twice, and a
- *   plain graph would merge the two, so `routes[i]` would stop being edge *i*'s.
- * - **Labels go in with their sizes**, so dagre makes room for each one between the rows rather than
- *   letting it land on a box. An edge with no label is given none, and its `labelAt` is simply the
- *   middle of its line — nothing is drawn there.
- * - **A link to itself is not dagre's.** dagre 3.1.1 routes one to points nowhere near its box, so it
- *   is left out of the graph and drawn as the placeholder's loop instead — the *k*th loop on a note
- *   reaching *k* times as far. The room for the loops and their text is reserved by handing dagre the
- *   box grown to the right and upwards, and the box is then put back in the bottom-left of that space;
- *   the other edges at it, which dagre ended on the grown box, are ended on the real one.
- * - **Groups are dagre's too, in the same run.** A box with a `group` is made a child of that group's
- *   node, so dagre keeps the members together and lays the whole chart out round the groups — links
- *   between groups included, which separate runs per group would leave unplanned. The graph is only
- *   made compound when some box has a group, so a chart without subgraphs is laid out as before.
- *   dagre leaves a strip inside a group's top edge before its first row (its border is a rank of its
- *   own), and the group's name is drawn there: `GROUP_NAME_HEIGHT` says how tall the name may be, and
- *   the layout tests hold that nothing else lands in that strip.
- * - **The order the boxes and edges arrive in does not matter.** dagre's answer depends on the order
- *   nodes and edges are added — which link of a cycle it turns round, which box goes left — and the
- *   files come in the table's sort, which is newest first by default. So editing one note, which makes
- *   it the newest, would reshuffle the whole chart. They are handed to dagre sorted by key instead —
- *   a note's key is its path, so numbered notes (001, 002…) come in their numbered order — and the
- *   picture depends on the notes and their links and on nothing else.
- * - **Which links point back up the chart is chosen before dagre sees them** (upward-links.js: as few
- *   as it can find). Those links go into the graph turned round, so dagre has no loop of its own to
- *   break, and their points are turned back afterwards, so each arrow still ends at its target.
- * - **A note with no links is not dagre's** (unless its subgraph needs it): it is set in a block above
- *   the chart by unlinked-block.js, rather than stretching dagre's first row.
- * - **The drawing is moved so its top-left is 0 0**, measured over the boxes, the routes and the
- *   labels together: dagre can route a link to itself, or a label, outside the boxes' own bounds.
+ * 1. **dagre places** the linked boxes, the groups, each link's lanes and its label (dagre-place.js).
+ * 2. **Ports** spread each box's arrows along its top and bottom (ports.js).
+ * 3. Each link's **jogs** — where it turns sideways between two rows — are found, and given **tracks**
+ *    in their gap, ordered to cross as little as possible (orthogonal-routes.js, tracks.js).
+ * 4. A gap with more tracks than room is **widened**, every row below moving down (ranks.js).
+ * 5. The **routes** are drawn right-angled from all of that, and links to themselves as loops.
+ * 6. Strips empty from top to bottom are **narrowed** (compact-columns.js).
+ * 7. **Left to right** is the same chart laid out on its side and mirrored (transpose.js), each group
+ *    then given a strip above it for its name, which top to bottom keeps inside its top edge.
+ * 8. Notes with no links go in a **block above** (unlinked-block.js).
+ * 9. Where routes still cross, the horizontal one gets a **hop** (line-jumps.js).
+ *
+ * dagre's answer is where routing starts, not the last word: *Who has the last word* in the plan says
+ * what stage 2 may change — stretch and narrow space, never a box's row or its order in it.
  */
-
-// Mermaid's defaults for a flowchart, which is the look being aimed at.
-const NODE_SPACING = 50;
-const RANK_SPACING = 50;
-const EDGE_SPACING = 20;
 
 /** How tall a group's name may be, drawn in the strip inside its top edge. */
 export const GROUP_NAME_HEIGHT = 20;
 
 /**
- * Lays the boxes out top to bottom, in ranks, and routes every edge.
+ * The least room between two tracks in a gap, and between a track and the rows either side — which is
+ * also the shortest run an arrowhead lands on, so it must leave room for the head and a corner.
+ */
+const TRACK_SPACING = 18;
+
+/**
+ * Lays the boxes out top to bottom and routes every edge.
  *
- * @param {{key: string, width: number, height: number, group?: string}[]} boxes - One per node, in
- *   drawing order; `group` names the subgraph it is in, '' or absent for none.
+ * @param {{key: string, width: number, height: number, group?: string, portWidth?: number, portHeight?: number}[]} boxes -
+ *   One per node; `group` names its subgraph, '' or absent for none; `portWidth` is how much of its
+ *   top and bottom an arrow may meet, its whole width when absent, and `portHeight` the same of its
+ *   sides, used left to right.
  * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - Node keys,
  *   and the size of the box the edge's text is drawn in, or null when it has none.
- * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[]}[], groups: {name: string, x: number, y: number, width: number, height: number}[], width: number, height: number}}
+ * @param {{direction?: 'TB'|'LR', merge?: boolean}} [options] - `direction`: top to bottom (the
+ *   default) or left to right; `merge`: arrows into one box join before it, as do arrows out.
+ * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[], hops: number[][]}[], groups: {name: string, x: number, y: number, width: number, height: number}[], width: number, height: number}}
  */
-export function dagreLayout(boxes, edges) {
-    const loops = loopsByBox(edges);
-    const groupKeys = new Map(); // group name -> its node's key, in the order groups are first met
-    boxes.forEach(box => {
-        if (box.group && !groupKeys.has(box.group)) groupKeys.set(box.group, `group:${groupKeys.size}`);
-    });
-
+export function dagreLayout(boxes, edges, options = {}) {
     const linked = new Set(edges.flatMap(edge => [edge.from, edge.to]));
     const ordered = [...boxes].sort((a, b) => byText(a.key, b.key));
     const charted = ordered.filter(box => linked.has(box.key) || box.group);
     const unlinked = ordered.filter(box => !linked.has(box.key) && !box.group);
 
-    const graph = new dagre.graphlib.Graph({ multigraph: true, compound: groupKeys.size > 0 });
-    graph.setGraph({ rankdir: 'TB', nodesep: NODE_SPACING, ranksep: RANK_SPACING, edgesep: EDGE_SPACING });
-    groupKeys.forEach(key => graph.setNode(key, {}));
-    charted.forEach(box => {
-        const room = loops.get(box.key) ?? { right: 0, top: 0 };
-        graph.setNode(box.key, { width: box.width + room.right, height: box.height + room.top });
-        if (box.group) graph.setParent(box.key, groupKeys.get(box.group));
-    });
-    const links = edges.map((edge, i) => ({ ...edge, i }))
-        .filter(edge => edge.from !== edge.to)
-        .sort((a, b) => byText(a.from, b.from) || byText(a.to, b.to) || a.i - b.i);
-    const upward = upwardLinks(charted.map(box => box.key), links);
-    links.forEach(edge => {
-        const [from, to] = upward.has(edge.i) ? [edge.to, edge.from] : [edge.from, edge.to];
-        graph.setEdge(from, to,
-            edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}, String(edge.i));
-    });
-
-    dagre.layout(graph);
-
-    const placed = new Map(charted.map(box => {
-        const { x, y, width, height } = graph.node(box.key);
-        const top = loops.get(box.key)?.top ?? 0;
-        return [box.key, { key: box.key, x: x - width / 2, y: y - height / 2 + top, width: box.width, height: box.height }];
-    }));
-    const loopCount = new Map();
-    const routes = edges.map((edge, i) => {
-        if (edge.from === edge.to) {
-            const k = (loopCount.get(edge.from) ?? 0) + 1;
-            loopCount.set(edge.from, k);
-            return loopRoute(placed.get(edge.from), LOOP * k);
-        }
-        const turned = upward.has(i);
-        const laid = graph.edge({ v: turned ? edge.to : edge.from, w: turned ? edge.from : edge.to, name: String(i) });
-        const points = laid.points.map(point => [point.x, point.y]);
-        if (turned) points.reverse();
-        if (loops.has(edge.from)) points[0] = edgeOfBox(placed.get(edge.from), points[1]);
-        if (loops.has(edge.to)) points[points.length - 1] = edgeOfBox(placed.get(edge.to), points[points.length - 2]);
-        return { points, labelAt: edge.label ? [laid.x, laid.y] : midpoint(points) };
-    });
-
-    const groups = [...groupKeys].map(([name, key]) => {
-        const { x, y, width, height } = graph.node(key);
-        return { name, x: x - width / 2, y: y - height / 2, width, height };
-    });
-
-    const extents = [
-        ...[...placed.values(), ...groups].map(box => [box.x, box.y, box.x + box.width, box.y + box.height]),
-        ...routes.flatMap(route => route.points.map(([x, y]) => [x, y, x, y])),
-        ...edges.flatMap((edge, i) => {
-            if (!edge.label) return [];
-            const [x, y] = routes[i].labelAt;
-            return [[x - edge.label.width / 2, y - edge.label.height / 2, x + edge.label.width / 2, y + edge.label.height / 2]];
-        }),
-    ];
-    const gap = { across: NODE_SPACING, down: RANK_SPACING };
-    if (extents.length === 0) return withUnlinkedAbove({ positions: new Map(), routes, groups, width: 0, height: 0 }, unlinked, gap);
-
-    const left = Math.min(...extents.map(e => e[0])), top = Math.min(...extents.map(e => e[1]));
-    const right = Math.max(...extents.map(e => e[2])), bottom = Math.max(...extents.map(e => e[3]));
-    const shift = ([x, y]) => [x - left, y - top];
-
-    return withUnlinkedAbove({
-        positions: new Map([...placed.values()].map(box => [box.key, { x: box.x - left, y: box.y - top }])),
-        routes: routes.map(route => ({ points: route.points.map(shift), labelAt: shift(route.labelAt) })),
-        groups: groups.map(group => ({ ...group, x: group.x - left, y: group.y - top })),
-        width: right - left,
-        height: bottom - top,
-    }, unlinked, gap);
+    const chart = options.direction === 'LR'
+        ? withNamesAbove(mirrored(chartInRanks(charted.map(sidewaysBox), edges.map(sidewaysEdge), options.merge, 0)), GROUP_NAME_HEIGHT)
+        : chartInRanks(charted, edges, options.merge, GROUP_NAME_HEIGHT);
+    const whole = withUnlinkedAbove(chart, unlinked, { across: NODE_SPACING, down: RANK_SPACING });
+    const hops = routeHops(whole.routes);
+    return { ...whole, routes: whole.routes.map((route, i) => ({ ...route, hops: hops[i] })) };
 }
 
 /**
- * The room each box's links to itself need beside it: as far as its outermost loop reaches, and half
- * the largest of their labels, which sit centred on a loop's corner.
- * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges
- * @returns {Map<string, {right: number, top: number}>} Only boxes with a loop.
+ * The linked boxes laid out top to bottom and routed, top-left at 0 0: steps 1 to 6.
+ *
+ * @param {object[]} charted - The boxes dagre lays out, sorted by key.
+ * @param {object[]} edges - All of them.
+ * @param {boolean} merge
+ * @param {number} nameHeight - The strip kept for a group's name inside its top edge; 0 for none.
+ * @returns {{positions: Map, routes: object[], groups: object[], width: number, height: number}}
  */
-function loopsByBox(edges) {
-    const loops = new Map();
-    for (const edge of edges) {
-        if (edge.from !== edge.to) continue;
-        const room = loops.get(edge.from) ?? { count: 0, labelWidth: 0, labelHeight: 0 };
-        room.count += 1;
-        room.labelWidth = Math.max(room.labelWidth, edge.label?.width ?? 0);
-        room.labelHeight = Math.max(room.labelHeight, edge.label?.height ?? 0);
-        loops.set(edge.from, room);
+function chartInRanks(charted, edges, merge, nameHeight) {
+    const placement = placeWithDagre(charted, edges);
+    const { bands, rankOf } = rankBands(placement, nameHeight);
+    const ports = assignPorts(placement, new Map(charted.map(box => [box.key, box.portWidth ?? box.width])), merge);
+
+    const waypoints = new Map(placement.links.map(link => [link.i, linkWaypoints(link, ports.get(link.i), placement.boxes, rankOf)]));
+    const jogs = placement.links.flatMap(link => linkJogs(waypoints.get(link.i))
+        .map(jog => ({ ...jog, link, unit: merge ? mergeUnit(link, jog, waypoints.get(link.i)) : `${link.i}` })));
+    const tracks = assignTracks(jogs);
+
+    const needs = [];
+    jogs.forEach((jog, n) => { needs[jog.gap] = Math.max(needs[jog.gap] ?? 0, (tracks[n].count + 1) * TRACK_SPACING); });
+    const shifts = rowShifts(bands, needs);
+    const down = y => y + shifts[rankOf(y)];
+
+    const jogYs = new Map(placement.links.map(link => [link.i, new Map()]));
+    jogs.forEach((jog, n) => {
+        const top = bands[jog.gap].bottom + shifts[jog.gap], bottom = bands[jog.gap + 1].top + shifts[jog.gap + 1];
+        jogYs.get(jog.link.i).set(jog.step, top + (tracks[n].index + 1) * (bottom - top) / (tracks[n].count + 1));
+    });
+
+    const placed = new Map([...placement.boxes].map(([key, box]) => [key, { ...box, y: box.y + shifts[rankOf(box.rankY)] }]));
+    const routes = new Array(edges.length);
+    for (const link of placement.links) {
+        const upper = placed.get(link.upper), lower = placed.get(link.lower);
+        const points = routePoints(waypoints.get(link.i).xs, jogYs.get(link.i), upper.y + upper.height, lower.y, link.turned);
+        const label = link.label;
+        routes[link.i] = { points, labelAt: label ? [label.x + label.width / 2, down(label.y + label.height / 2)] : routeMidpoint(points) };
     }
-    return new Map([...loops].map(([key, room]) => [key, {
-        right: LOOP * room.count + room.labelWidth / 2,
-        top: LOOP * room.count + room.labelHeight / 2,
-    }]));
+    for (const loop of placement.loops) routes[loop.i] = loopRoute(placed.get(loop.key), loop.reach);
+
+    const groups = placement.groups.map(group => {
+        const top = down(group.y), bottom = down(group.y + group.height);
+        return { ...group, y: top, height: bottom - top };
+    });
+
+    const sizes = new Map(charted.map(box => [box.key, box]));
+    return compactColumns(atOrigin(placed, routes, groups, edges), sizes, edges.map(edge => edge.label));
 }
 
 /**
- * Compares two strings by code unit, the same everywhere — unlike localeCompare.
- * @param {string} a
- * @param {string} b
- * @returns {number}
+ * Which merged trunk a jog belongs to: its last jog into the port its arrowhead shares, or its first
+ * out of the port its tail shares. A jog elsewhere is its own.
  */
-function byText(a, b) {
-    return a < b ? -1 : a > b ? 1 : 0;
-}
-
-/**
- * The point halfway along a polyline, by length.
- * @param {number[][]} points - `[x, y]` pairs.
- * @returns {number[]} `[x, y]`.
- */
-function midpoint(points) {
-    const lengths = points.slice(1).map((point, i) => Math.hypot(point[0] - points[i][0], point[1] - points[i][1]));
-    let remaining = lengths.reduce((sum, length) => sum + length, 0) / 2;
-    for (let i = 0; i < lengths.length; i++) {
-        if (remaining <= lengths[i] && lengths[i] > 0) {
-            const t = remaining / lengths[i];
-            return [points[i][0] + (points[i + 1][0] - points[i][0]) * t, points[i][1] + (points[i + 1][1] - points[i][1]) * t];
-        }
-        remaining -= lengths[i];
-    }
-    return points[0];
+function mergeUnit(link, jog, { xs }) {
+    const last = jog.step === xs.length - 2, first = jog.step === 0;
+    const head = link.turned ? 'upper' : 'lower';
+    if (head === 'lower' ? last : first) return `head:${link[head]}`;
+    if (head === 'lower' ? first : last) return `tail:${link[head === 'lower' ? 'upper' : 'lower']}`;
+    return `${link.i}`;
 }
