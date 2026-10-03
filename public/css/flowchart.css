@@ -39,15 +39,17 @@
    #output each pass the height left over down to the viewer. So the chart always ends at the foot of
    the window, however much sits above it and whatever moves there — a filter removed, the panel
    opened — with no measuring in JS. Every other view lays the page out as before. The body's
-   margins become padding, which looks the same and lets min-height include them. */
-body:has(.flowchart-viewer) {
+   margins become padding, which looks the same and lets min-height include them. The code view takes
+   the same column, so switching between code and chart moves nothing above them: a flex column does
+   not collapse margins, and a page laid out one way for each shifted the control row. */
+body:has(.flowchart-viewer, .flowchart-code-block) {
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
     margin-block: 0;
     padding-block: 8px;
 }
-body:has(.flowchart-viewer) main,
+body:has(.flowchart-viewer, .flowchart-code-block) main,
 #output:has(> .flowchart-viewer) {
     flex: 1;
     display: flex;

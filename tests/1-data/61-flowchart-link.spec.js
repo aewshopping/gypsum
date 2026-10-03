@@ -169,8 +169,10 @@ test('a drag to empty chart makes the next note-N.txt, links it, and opens nothi
   await expect(box(page, 'idea.txt')).toBeVisible();
   await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
-  // Undo takes the link back out; the note stays.
-  await page.click('#table-undo-btn');
+  // Undo from the history — the chart's one undo button — takes the link back out; the note stays.
+  await expect(page.locator('#table-undo-btn')).toHaveCount(0);
+  await page.click('#table-undo-list-btn');
+  await page.locator('#undo-list .undo-list-row').first().click();
   await expect.poll(() => note(page, 'start.md')).toBe(before);
   expect(await note(page, 'idea.txt')).toBe('');
 });

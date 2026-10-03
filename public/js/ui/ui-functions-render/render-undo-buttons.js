@@ -4,8 +4,8 @@ import { describeBatch } from '../../table-undo/describe-batch.js';
 import { escapeHtml } from './escape-html.js';
 
 /**
- * @file Undo, redo and the undo history: three buttons at the end of a view's control row, drawn by
- * the table's row and the flowchart's alike, since a link drawn on the chart goes on the same stack
+ * @file Undo, redo and the undo history: three buttons at the end of the table's control row, and the
+ * history alone at the end of the flowchart's, since a link drawn on the chart goes on the same stack
  * as a cell edit. One view shows at a time, so the ids are unique on the page; they keep the table's
  * names, which is where the buttons began.
  *
@@ -26,7 +26,15 @@ export function renderUndoButtons() {
                 <button type="button" id="table-redo-btn" class="svg-wrapper-style" data-action="table-redo" data-tip="${escapeHtml(undoTip('redo'))}"${canReverse('redo') ? '' : ' disabled'}>
                     <svg viewBox="0 0 45 48"><use href="#icon-redo"></use></svg>
                 </button>
-                <button type="button" id="table-undo-list-btn" class="svg-wrapper-style" data-action="undo-list" data-tip="undo history"${canOpenList() ? '' : ' disabled'}>
+                ${renderUndoListButton()}`;
+}
+
+/**
+ * The undo history button on its own: the flowchart's row has this and not undo and redo.
+ * @returns {string} HTML string.
+ */
+export function renderUndoListButton() {
+    return `<button type="button" id="table-undo-list-btn" class="svg-wrapper-style" data-action="undo-list" data-tip="undo history"${canOpenList() ? '' : ' disabled'}>
                     <svg viewBox="0 0 45 48"><use href="#icon-undo-history"></use></svg>
                 </button>`;
 }

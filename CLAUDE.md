@@ -1265,7 +1265,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/ui-functions-render/render-internal-link.js` | A `[[link]]` as HTML: the anchor, and the scan that finds them in a value |
 | `public/js/ui/ui-functions-click/column-stick.js` | How many leading columns stick left while the table scrolls sideways |
 | `public/js/ui/ui-functions-click/linked-column-*.js` | The linked column dialog: keeping it up to date, save, delete |
-| `public/js/ui/ui-functions-render/render-undo-buttons.js` | Undo, redo and the undo history buttons, shared by the table's and the flowchart's control rows |
+| `public/js/ui/ui-functions-render/render-undo-buttons.js` | Undo, redo and the undo history buttons for the table's control row; the history button alone for the flowchart's |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |
