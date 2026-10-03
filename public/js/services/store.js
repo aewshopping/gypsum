@@ -62,6 +62,7 @@ export const appState = {
     press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
     settle: false,    // the next chart render follows a write: it glides from the last (flowchart-settle.js)
     arrival: null,    // where a note just made came from on screen: {fileId, x, y} in client units, or null
+    lastView: null,   // the chart's pan and zoom while it is off screen, and the layout it was for
   },
 
   editSession: {

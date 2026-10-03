@@ -524,6 +524,7 @@ appState.flowchartView = {
   press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
   settle: false,    // the next chart render follows a write, and glides from the chart on screen
   arrival: null,    // where a note just made came from on screen: {fileId, x, y} in client units
+  lastView: null,   // pan and zoom while the chart is off screen: {state, layout}
 }
 ```
 
@@ -540,6 +541,10 @@ offers a link instead.
 missing note's stub that was pressed. The flowchart renderer reads both and clears them on every
 render, whichever it is, so a filter, a sort or a view change after a write still lays the chart out
 afresh. See `ui-functions-flowchart/flowchart-settle.js`.
+
+`lastView` is written by `flowchart-view-memory.js` when the code switch or a view change takes the
+chart off screen, and read when it is drawn again: its pan and zoom come back only if `layout` — each
+box's key and place — matches the new drawing.
 
 ---
 

@@ -1121,6 +1121,8 @@ to bottom, left to right and merged through one checker.
   `flowchart-settle-view.js`, worked out before pan and zoom are attached so the slider agrees.
   Web Animations, not a view transition, which would crossfade the SVG as one picture. A filter, a
   sort, a view change or the options dialog lays out afresh with nothing held.
+- **Pan and zoom outlive the chart going off screen** (`flowchart-view-memory.js`): the code switch
+  and a view change put them by, and the next drawing takes them back if every box is where it was.
 - **Corners and hops are drawing**, in `edge-path.js`, in drawing units so they zoom; the layout only
   says where a route hops (`line-jumps.js`: the horizontal run bridges the vertical one).
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
@@ -1232,6 +1234,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/ui-functions-flowchart/edge-path.js` | A route as a path: rounded corners and hops |
 | `public/js/ui/ui-functions-flowchart/fit-routes-to-shapes.js` | Route ends moved onto a shape's real outline |
 | `public/js/ui/ui-functions-flowchart/flowchart-settle.js` | A chart redrawn after a write: notes and link texts glided from where they were, the lines faded |
+| `public/js/ui/ui-functions-flowchart/flowchart-view-memory.js` | The chart's pan and zoom kept while it is off screen, given back to the same layout |
 | `public/js/ui/ui-functions-flowchart/flowchart-settle-view.js` | Where the view goes after a write: held still, or zoomed out to show a note just made |
 | `public/js/services/flowchart/layout/upward-links.js` | Which links of a loop point back up the chart |
 | `public/js/services/flowchart/layout/unlinked-block.js` | Notes with no links, set in a block above the chart |

@@ -470,3 +470,20 @@ test('a note made where it lands out of sight is brought into view', async ({ pa
   expect(note.y).toBeGreaterThanOrEqual(viewer.y);
   expect(note.y + note.height).toBeLessThanOrEqual(viewer.y + viewer.height);
 });
+
+test('the chart keeps its zoom and pan across the code view and another view, when its layout has not changed', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.locator('.pz-zoom-input').fill('2.5');
+  const zoomed = await page.locator('.flowchart-node').first().boundingBox();
+
+  await page.click('label[for="flowchart_render_toggle"]');
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.pz-zoom-input')).toHaveValue('2.5');
+  expect(await page.locator('.flowchart-node').first().boundingBox()).toEqual(zoomed);
+
+  await page.selectOption('#view-select', 'table');
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.pz-zoom-input')).toHaveValue('2.5');
+});

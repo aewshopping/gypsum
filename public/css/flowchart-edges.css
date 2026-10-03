@@ -55,12 +55,13 @@
 .flowchart-edge.is-hovered .flowchart-edge-line { stroke-width: var(--flowchart-line-hover); }
 .flowchart-edge-label.is-hovered rect { stroke: var(--colour-contr); stroke-width: 2; }
 
-/* The line a drag from a note's box draws to the pointer, before it is a link. */
+/* The line a drag from a note's box draws to the pointer, before it is a link: drawn as one, at a
+   link's width, and dashed because it is not one yet. */
 .flowchart-drag-line {
+    fill: none;
     stroke: var(--colour-contr);
-    stroke-width: 2;
+    stroke-width: var(--flowchart-line);
     stroke-dasharray: 6 4;
-    vector-effect: non-scaling-stroke;
     pointer-events: none;
 }
 
