@@ -48,7 +48,7 @@ export function renderFileList_flowchart(renderEverything) {
             `<div class="flowchart-code-block">
                 <pre class="flowchart-code">${escapeHtml(buildMermaidSource(drawnFiles))}</pre>
                 <button type="button" class="svg-wrapper-style flowchart-code-copy" data-action="copy-flowchart-code" data-tip="copy the mermaid code">
-                    <svg viewBox="0 0 50 50"><use href="#icon-copy"></use></svg>
+                    <svg viewBox="0 0 50 50"><use class="copy-mark" href="#icon-copy"></use><use class="copied-badge" href="#icon-tick-badge"></use></svg>
                 </button>
             </div>`;
         return;

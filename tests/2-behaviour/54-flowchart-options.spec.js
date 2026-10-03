@@ -69,6 +69,8 @@ test('the code view is read only, and its button copies the mermaid source', asy
   await expect(page.locator('.flowchart-code')).not.toHaveAttribute('contenteditable');
   await page.click('[data-action="copy-flowchart-code"]');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await source(page));
+  await expect(page.locator('.flowchart-code-copy .copied-badge')).toBeVisible();
+  await expect(page.locator('.flowchart-code-copy .copied-badge')).toBeHidden();
 });
 
 test('a subgraph groups its nodes, and a link from another group does not steal one', async ({ page }) => {
