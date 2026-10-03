@@ -300,27 +300,120 @@ round *role → property name*: `LEGAL_ROLES` refuses any other key, the options
 select per role, and `follow-property-rename.js` renames whatever value matches a renamed property.
 `'LR'` and `true` are a different kind of value and must not go through any of that.
 
-- **A sibling object in the layouts file**, `flowchart.layout: {direction, merge}` (or a top-level key
-  beside `flowchart` — decide when built), with its own small reader and one writer of its own, in the
-  shape `flowchart-options.js` already has: an unknown value dropped rather than corrected, absent
-  meaning the default.
+- **A top-level key in the layouts file, `flowchartLayout: {direction, merge}`**, beside `flowchart` —
+  not inside it. The `flowchart` object is read entry by entry through `setFlowchartOption()`, which drops
+  any key that is not a role, and written back from `appState.flowchartOptions` alone, so a `layout`
+  nested in it would be lost on the first read and the first write. A key of its own is the
+  `linkedProperties` precedent. Its own small reader and one writer
+  (`services/flowchart/flowchart-layout-settings.js`), in the shape `flowchart-options.js` already has:
+  an unknown value dropped rather than corrected, absent meaning the default.
+- **Built with stage 2, not stage 1**: stage 1 is top to bottom only, and the settings, the direction
+  and merging arrive together.
 - **`readLayouts()` must name it**, and `emptyDocument()` carry it, or it is dropped on the next write
   (see CLAUDE.md, *The flowchart's options*). `LAYOUT_VERSION` does not move: it is additive.
 
 ---
 
+## Testing
+
+The suite runs on every change, so what this feature adds to it has to earn its place. The rule from
+CLAUDE.md decides the level, and for this feature the answer is short.
+
+### Level 1 — nothing new
+
+Level 1 is for what can lose or corrupt a note. **Nothing in this plan writes a note**: layout decides
+where boxes and lines go, and the drag-to-link and drag-to-create writes it draws on already exist and
+are already guarded by `tests/1-data/61-flowchart-link.spec.js`. The layout settings write the layouts
+file, which is a setting rather than a note, and by precedent is tested at level 2 (the flowchart roles
+are, in `54-flowchart-options.spec.js`; the layouts themselves in `43-table-layouts.spec.js`).
+
+One thing to do at level 1, once, at step 2: **`61-flowchart-link.spec.js` drags by fixed offsets** —
+`centre[1] - 400` to mean "off the chart", `+200, +150` to mean "empty chart". Those assumed the grid.
+When dagre moves the boxes, check each still means what it says, and where it does not, work the point
+out from the drawn boxes rather than picking a new number.
+
+### Level 2 — mostly node tests, which cost milliseconds
+
+Every layout module is pure, so it is tested with `appModule()` in node — no browser, no page load. These
+go in one new spec, **`tests/2-behaviour/62-flowchart-layout.spec.js`**, a new area, run while working
+as `npm test tests/2-behaviour/62-flowchart-layout.spec.js`.
+
+- **One invariant checker, written once and run on every stage's output**: no two boxes overlap, no
+  label lands on a box or another label, every route starts at its source and ends at its target, and
+  — from step 3 — every segment is horizontal or vertical and none passes through a box. It is a
+  function in the spec, not app code. Each step adds a line to it rather than a test of its own.
+- **Fixtures, not folders**: the mockup's chart as a graph literal (six notes, nine links, two cycles),
+  plus a few small hand-written ones that each make one hard case — a link to itself, two links between
+  the same notes, an arrow spanning two rows, a subgraph. The same fixtures go through every stage.
+- **Determinism**: the same fixture laid out twice is identical — one assertion, on the mockup fixture.
+- **Crossings are counted, not looked at**: step 4 asserts the mockup fixture has none, as the picture
+  does.
+- **Pure helpers get a test only where they are fiddly**: where a hop sits on a segment (step 5), where a
+  line meets a diamond's outline (step 3), the held positions laid over a fresh layout (step 8). Rounded
+  corners and the `d` string are looked at in the screenshots instead.
+
+Browser tests are few, added to `54-flowchart-options.spec.js` where that area is already covered:
+
+- the layout settings are written at once and read back (one test, as the roles have);
+- a subgraph is drawn as a box round its notes (one test);
+- step 8: after an added link and after a drag-made note every other box is where it was, and after a
+  filter change the layout is fresh (two tests — the only behaviour here no node test can reach).
+
+### Level 3 — the look
+
+One spec, **`tests/3-occasional/62-flowchart-layout-look.spec.js`**, that draws the mockup's chart and takes a screenshot, run at each
+pause for comparing against `plans/reference/flowchart-layout-mockup.png` — never asserting pixels, and
+never on every run.
+
+**While iterating**: level 1 plus `62-flowchart-layout.spec.js`; `54-flowchart-options.spec.js` when a
+step touches the page; the whole suite once, at each pause.
+
+---
+
 ## Where the code goes
+
+The layout is a new concern inside the flowchart, so it gets **a folder of its own**: what the chart says
+(`services/flowchart/`) stays apart from where it goes (`services/flowchart/layout/`). dagre gets its own
+folder as svg-pan-zoom has — a library that knows nothing of notes, with its licence beside it.
 
 | Path | |
 |---|---|
-| `public/js/services/flowchart/placeholder-layout.js` | stays — the contract's statement, and the fallback |
-| `public/js/services/flowchart/dagre.esm.js` (+ licence) | step 2 — copied in |
-| `public/js/services/flowchart/dagre-layout.js` | step 2 — the contract on top of dagre; pure |
-| `public/js/services/flowchart/orthogonal-routes.js` | steps 3, 4, 6, 7 — right-angled routes, tracks, ports, group borders; pure |
-| `public/js/services/flowchart/line-jumps.js` | step 5 — where routes cross; pure |
-| `public/js/ui/ui-functions-flowchart/draw-flowchart-edge.js` | steps 3, 5 — rounded corners and hops drawn into the path |
-| `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — where a line meets each shape's outline |
-| `public/js/services/flowchart/flowchart-graph.js` | step 7 — each node's group |
-| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 7, 8 — hands label sizes in; group boxes; held positions |
+| `public/js/dagre/dagre.esm.js`, `public/js/dagre/LICENSE` | step 2 — copied in, version noted at the top |
+| `public/js/services/flowchart/layout/placeholder-layout.js` | moved here at step 2 — still the contract's statement, and the fallback |
+| `public/js/services/flowchart/layout/dagre-layout.js` | step 2 — the contract on top of dagre; pure |
+| `public/js/services/flowchart/layout/orthogonal-routes.js` | step 3 — right-angled routes over dagre's placement; pure |
+| `public/js/services/flowchart/layout/tracks.js` | step 4 — heights for the runs in each gap, and the gaps widened; pure |
+| `public/js/services/flowchart/layout/line-jumps.js` | step 5 — where routes cross; pure |
+| `public/js/services/flowchart/layout/ports.js` | step 6 — where on a side each arrow meets a box, and merged trunks; pure |
+| `public/js/services/flowchart/layout/held-positions.js` | step 8 — held positions laid over a fresh layout; pure |
+| `public/js/services/flowchart/flowchart-graph.js` | step 7 — each node's group, moved here from `mermaid-source.js` so the source and the SVG share one answer |
+| `public/js/services/flowchart/flowchart-layout-settings.js` | stage 2 — direction and merging: the reader and the one writer |
+| `public/js/table-layouts/layout-file.js`, `layout-apply.js` | stage 2 — `flowchartLayout` read, written, and in `emptyDocument()` |
+| `public/js/ui/ui-functions-flowchart/edge-path.js` | steps 3, 5 — a route as a path `d`: rounded corners and hops; pure, split out of `draw-flowchart-edge.js` |
+| `public/js/ui/ui-functions-flowchart/node-shape.js` | step 3 — where a vertical line meets each shape's outline, beside the outlines themselves |
+| `public/js/ui/ui-functions-flowchart/draw-flowchart-group.js` | step 7 — a subgraph's box and name |
+| `public/js/ui/ui-functions-flowchart/render-svg.js` | steps 1, 3, 7, 8 — label sizes in; arrows into a shape cut at its outline; groups drawn; held positions |
+| `public/js/ui/ui-functions-flowchart/flowchart-options-list.js` | stage 2 — direction and merging in the options dialog, in the rows it already draws |
 | `public/js/ui/ui-functions-flowchart/flowchart-note-create.js` | step 8 — hands the drop point on to the new note |
+| `public/css/flowchart-groups.css` | step 7 — the subgraph box; a new component, so a new file |
 | `plans/reference/flowchart-layout-mockup.png` | the look aimed at |
+
+**Not duplicated, by decision:**
+
+- **The layout never learns about shapes.** It routes against bounding boxes; `render-svg.js` cuts an
+  arrow entering a non-rectangular shape at its outline, asking `node-shape.js`, which already owns every
+  outline. So the services do not import from the UI, and there is one place that knows what a diamond
+  is.
+- **The label's padding is exported from `draw-flowchart-edge.js`** and used by `render-svg.js` to size
+  what goes into the layout, not copied as a second pair of numbers.
+- **The group a note is in is worked out once**, in `flowchart-graph.js`, and read by the mermaid source
+  and the SVG alike — the same reason the graph itself is shared.
+- **The options dialog gains rows, not a second dialog**, and its existing CSS styles them; the layout
+  settings writer follows `flowchart-options.js`'s shape without sharing its code, because the values
+  are of a different kind (see *Layout settings*).
+- **`placeholder-layout.js`'s `edgeOfBox` is not reused for shapes**: it finds a rectangle's edge for a
+  straight line from the centre, a different question from where a vertical line meets an outline.
+
+**When a step lands**, CLAUDE.md's file map gains its rows and a short *Flowchart layout* section takes
+the rules worth keeping — the contract, who has the last word, one style — and DATA-STRUCTURES.md the
+held positions in `appState.flowchartView`.
