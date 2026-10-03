@@ -313,6 +313,11 @@ What stage 2 turned out to be, where it settled something the steps above left o
   move for it. Not with merging on, whose trunks are their own alignment.
 - **The arrowhead is 13 units, not 10**, and the last corner before it leaves it a straight run of its
   own length, so it never points along a curve (`edge-path.js`).
+- **An arrowhead stops 4 short of its box; a line leaving a box starts on it** — after the third try by
+  hand (`ARROW_GAP` in `edge-path.js`, so every shape gets it).
+- **A gap's margin is larger where an arrowhead lands on it** (`jog-heights.js`): 30 rather than 18,
+  room for the head, its gap and a corner. Bends in a gap share their height, so the margin moves the
+  bends of lines leaving the box beside it too, as asked; gaps grow where they need the room.
 - **Boxes are narrower**: text wraps at 128 rather than 156, so a longer title takes two lines, as in
   the reference picture.
 - **Closing gaps** is `compact-columns.js`, last before the unlinked block: a strip empty from the top
@@ -496,6 +501,7 @@ folder as svg-pan-zoom has — a library that knows nothing of notes, with its l
 | `public/js/services/flowchart/layout/unlinked-block.js` | step 2 — notes with no links, in a block above the chart; pure |
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | step 3 — right-angled routes over dagre's placement; pure |
 | `public/js/services/flowchart/layout/tracks.js` | step 4 — the order of the runs in each gap; pure |
+| `public/js/services/flowchart/layout/jog-heights.js` | step 4 — each gap's margins and room, and the height each run takes; pure |
 | `public/js/services/flowchart/layout/line-jumps.js` | step 5 — where routes cross; pure |
 | `public/js/services/flowchart/layout/ports.js` | step 6 — where on a side each arrow meets a box, and merged trunks; pure |
 | `public/js/services/flowchart/layout/straighten.js` | stage 2 — a straight link's lanes slid onto one of its ports; pure |

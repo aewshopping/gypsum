@@ -12,14 +12,18 @@ const HOP = 5;    // a hop's radius
 /** The arrowhead's length, in drawing units: a little larger than the line needs, so it stands out. */
 export const ARROWHEAD = 13;
 
+/** How far short of the box an arrowhead stops. A line leaving a box starts right on it. */
+const ARROW_GAP = 4;
+
 /**
  * The path's `d`.
  *
- * @param {number[][]} points - The route, as `[x, y]` pairs.
+ * @param {number[][]} route - The route, as `[x, y]` pairs, ending on the box its arrow points at.
  * @param {number[][]} [hops] - Points on its horizontal runs to bridge.
  * @returns {string}
  */
-export function edgePath(points, hops = []) {
+export function edgePath(route, hops = []) {
+    const points = withGapAtHead(route);
     const parts = [`M${points[0][0]},${points[0][1]}`];
     const corners = points.map((point, k) => cornerCut(points, k));
 
@@ -34,6 +38,12 @@ export function edgePath(points, hops = []) {
         }
     }
     return parts.join(' ');
+}
+
+/** The route with its last point pulled back along its last run, leaving the gap before the box. */
+function withGapAtHead(points) {
+    const end = points.length - 1;
+    return [...points.slice(0, end), shifted(points[end], points[end - 1], ARROW_GAP)];
 }
 
 /**

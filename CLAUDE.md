@@ -1092,7 +1092,10 @@ to bottom, left to right and merged through one checker.
   this: it is what the "no run through a box" and "label on its own route" rules rest on.
 - **Bends along a row share a height**: `tracks.js` orders a gap's jogs to cross least, then packs
   each onto the highest track where it overlaps nothing above it, so jogs that do not overlap bend
-  together and the chart scans in rows.
+  together and the chart scans in rows. `jog-heights.js` puts the tracks between two margins, the
+  larger `ARROW_ROOM` on a side an arrowhead lands on, so a head never sits on a bend.
+- **An arrowhead stops short of its box** (`ARROW_GAP` in `edge-path.js`); a line leaving a box starts
+  on it. The route itself still ends on the outline — the gap is drawing.
 - **Ports divide a side evenly, and that comes before a straight line** (`ports.js`): one arrow at a
   side's middle, two at its thirds, three at its quarters, out or in, as in the reference picture —
   over the share of the side the shape can take (`portWidth`/`portHeight` from `node-shape.js`), all of
@@ -1207,7 +1210,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/layout/dagre-layout.js` | The contract: the layout's steps, in order |
 | `public/js/services/flowchart/layout/dagre-place.js` | dagre's placement: boxes, groups, each link's lanes and label |
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | A link as a right-angled route through its lanes |
-| `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `ranks.js` | Where arrows meet a box; the heights of sideways runs in a gap; the rows and widening a gap |
+| `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `jog-heights.js`, `ranks.js` | Where arrows meet a box; the order of sideways runs in a gap, and their heights; the rows and widening a gap |
 | `public/js/services/flowchart/layout/straighten.js` | A straight link's lanes slid onto one of its ports, saving a bend |
 | `public/js/services/flowchart/layout/compact-columns.js`, `transpose.js`, `chart-frame.js` | Narrowing empty strips; left to right; the drawing's frame |
 | `public/js/services/flowchart/layout/line-jumps.js` | Where routes cross, so the drawing can bridge |

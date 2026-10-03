@@ -4,6 +4,7 @@ import { rankBands, rowShifts } from './ranks.js';
 import { assignPorts } from './ports.js';
 import { straightenLinks } from './straighten.js';
 import { assignTracks } from './tracks.js';
+import { gapNeeds, jogHeights } from './jog-heights.js';
 import { linkWaypoints, linkJogs, routePoints, routeMidpoint } from './orthogonal-routes.js';
 import { compactColumns } from './compact-columns.js';
 import { withUnlinkedAbove } from './unlinked-block.js';
@@ -22,7 +23,8 @@ import { atOrigin, withNamesAbove } from './chart-frame.js';
  *    straight column has the column slid onto its port where that is safe (straighten.js).
  * 3. Each link's **jogs** — where it turns sideways between two rows — are found, and given **tracks**
  *    in their gap, ordered to cross as little as possible (orthogonal-routes.js, tracks.js).
- * 4. A gap with more tracks than room is **widened**, every row below moving down (ranks.js).
+ * 4. A gap with more tracks, or arrowheads, than room is **widened**, every row below moving down
+ *    (jog-heights.js, ranks.js), and each jog given its height.
  * 5. The **routes** are drawn right-angled from all of that, and links to themselves as loops.
  * 6. Strips empty from top to bottom are **narrowed** (compact-columns.js).
  * 7. **Left to right** is the same chart laid out on its side and mirrored (transpose.js), each group
@@ -36,12 +38,6 @@ import { atOrigin, withNamesAbove } from './chart-frame.js';
 
 /** How tall a group's name may be, drawn in the strip inside its top edge. */
 export const GROUP_NAME_HEIGHT = 20;
-
-/**
- * The least room between two tracks in a gap, and between a track and the rows either side — which is
- * also the shortest run an arrowhead lands on, so it must leave room for the head and a corner.
- */
-const TRACK_SPACING = 18;
 
 /**
  * Lays the boxes out top to bottom and routes every edge.
@@ -86,26 +82,24 @@ function chartInRanks(charted, edges, merge, nameHeight) {
     if (!merge) straightenLinks(placement, ports);
 
     const waypoints = new Map(placement.links.map(link => [link.i, linkWaypoints(link, ports.get(link.i), placement.boxes, rankOf)]));
-    const jogs = placement.links.flatMap(link => linkJogs(waypoints.get(link.i))
-        .map(jog => ({ ...jog, link, unit: merge ? mergeUnit(link, jog, waypoints.get(link.i)) : `${link.i}` })));
+    const jogs = placement.links.flatMap(link => {
+        const lastStep = waypoints.get(link.i).xs.length - 2;
+        return linkJogs(waypoints.get(link.i)).map(jog => ({
+            ...jog, link, unit: merge ? mergeUnit(link, jog, waypoints.get(link.i)) : `${link.i}`,
+            headAbove: link.turned && jog.step === 0, headBelow: !link.turned && jog.step === lastStep,
+        }));
+    });
     const tracks = assignTracks(jogs);
 
-    const needs = [];
-    jogs.forEach((jog, n) => { needs[jog.gap] = Math.max(needs[jog.gap] ?? 0, (tracks[n].count + 1) * TRACK_SPACING); });
-    const shifts = rowShifts(bands, needs);
+    const shifts = rowShifts(bands, gapNeeds(jogs, tracks));
     const down = y => y + shifts[rankOf(y)];
-
-    const jogYs = new Map(placement.links.map(link => [link.i, new Map()]));
-    jogs.forEach((jog, n) => {
-        const top = bands[jog.gap].bottom + shifts[jog.gap], bottom = bands[jog.gap + 1].top + shifts[jog.gap + 1];
-        jogYs.get(jog.link.i).set(jog.step, top + (tracks[n].index + 1) * (bottom - top) / (tracks[n].count + 1));
-    });
+    const jogYs = jogHeights(jogs, tracks, bands, shifts);
 
     const placed = new Map([...placement.boxes].map(([key, box]) => [key, { ...box, y: box.y + shifts[rankOf(box.rankY)] }]));
     const routes = new Array(edges.length);
     for (const link of placement.links) {
         const upper = placed.get(link.upper), lower = placed.get(link.lower);
-        const points = routePoints(waypoints.get(link.i).xs, jogYs.get(link.i), upper.y + upper.height, lower.y, link.turned);
+        const points = routePoints(waypoints.get(link.i).xs, jogYs.get(link.i) ?? new Map(), upper.y + upper.height, lower.y, link.turned);
         const label = link.label;
         routes[link.i] = { points, labelAt: label ? [label.x + label.width / 2, down(label.y + label.height / 2)] : routeMidpoint(points) };
     }
