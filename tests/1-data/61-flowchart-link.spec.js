@@ -13,9 +13,9 @@ const LINKED = {
 const note = (page, name) => page.evaluate(n => window.__files[n], name);
 const box = (page, label) => page.locator(`.flowchart-node[aria-label="${label}"]`);
 
-async function openChart(page, roles = {}) {
+async function openChart(page, roles = {}, files = LINKED) {
   await page.setViewportSize({ width: 1200, height: 900 });
-  await setupMockCellWritingFolder(page, LINKED);
+  await setupMockCellWritingFolder(page, files);
   await page.goto('/');
   await loadFolder(page);
   await page.selectOption('#view-select', 'flowchart');
@@ -189,9 +189,9 @@ test('filtered out, a new note is still on the chart as a stub, and a stub opens
   await page.press('#searchbox', 'Enter');
   await expect(page.locator('.flowchart-node')).toHaveCount(1);
 
-  // one.md is filtered out: a stub, which takes a dragged link — refused here only because Start
-  // already links to it.
-  const stub = page.locator('.flowchart-stub[aria-label="one.md"]');
+  // one.md is filtered out: a stub, labelled as its box would be, which takes a dragged link —
+  // refused here only because Start already links to it.
+  const stub = page.locator('.flowchart-stub.is-filtered[aria-label="One"]');
   // The filter's row grows in above the chart a moment later, and the drawing scales with the
   // viewer: a drag aimed before that ends is aimed at where the boxes were.
   await page.evaluate(() => Promise.all(document.getAnimations().map(animation => animation.finished)));
@@ -205,8 +205,37 @@ test('filtered out, a new note is still on the chart as a stub, and a stub opens
 
   await dragToEmpty(page, 'Start');
   await page.click('#flowchart-new-note-confirm');
-  await expect(page.locator('.flowchart-stub[aria-label="note-1.txt"]')).toBeVisible();
+  await expect(page.locator('.flowchart-stub.is-filtered[aria-label="note-1.txt"]')).toBeVisible();
 
   await stub.click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
+});
+
+test('a press on a note that does not exist creates it where its link looks, and writes no note', async ({ page }) => {
+  await openChart(page, {}, { ...LINKED, 'two.md': '# Two\n\nSee [[idea]].\n' });
+  const before = await note(page, 'two.md');
+
+  // Its stub is an empty outline reading "+ idea", and the link into it is dashed.
+  const stub = page.locator('.flowchart-stub.is-missing[aria-label="idea"]');
+  await expect(stub).toContainText('+ idea');
+  await expect(page.locator('.flowchart-edge.is-missing')).toHaveCount(1);
+
+  await stub.click();
+  await expect(page.locator('#flowchart-new-note-title')).toHaveText('Create linked note');
+  // The name is the one the link finds, and cannot be changed.
+  await expect(page.locator('#flowchart-new-note-name')).toHaveValue('idea.txt');
+  await expect(page.locator('#flowchart-new-note-name')).toHaveJSProperty('readOnly', true);
+  await expect(page.locator('#flowchart-new-note-forecast')).toContainText('which “Two” links to already');
+  await page.click('#flowchart-new-note-confirm');
+
+  await expect.poll(() => note(page, 'idea.txt')).toBe('');
+  expect(await note(page, 'two.md')).toBe(before);
+  await expect(page.locator('#output-report')).toContainText('created idea.txt');
+  // The link now finds a note: drawn as a box, nothing missing, and nothing opened.
+  await expect(box(page, 'idea.txt')).toBeVisible();
+  await expect(page.locator('.flowchart-edge.is-missing')).toHaveCount(0);
+  await expect(page.locator('#file-content-modal')).not.toBeVisible();
+  // The dialog's other use is back to normal: an editable name.
+  await dragToEmpty(page, 'Start');
+  await expect(page.locator('#flowchart-new-note-name')).toHaveJSProperty('readOnly', false);
 });

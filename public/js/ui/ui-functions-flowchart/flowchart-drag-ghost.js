@@ -6,8 +6,8 @@ import { shapeOutline } from './node-shape.js';
  * `+` in it, saying that letting go here makes a new note. The line ends at its edge rather than at
  * the pointer, so it reads as a link to it.
  *
- * Drawn as a stub (`.flowchart-stub`, with no note id) so it looks like the box a new note would be
- * while it is filtered out, and like nothing that can be pressed. It takes no pointer events, so the
+ * Drawn as the stub of a note that does not exist yet (`.flowchart-stub.is-missing`), which is what it
+ * stands for, with no action, so it is like nothing that can be pressed. It takes no pointer events, so the
  * drag's own hit test still finds the chart beneath it.
  */
 
@@ -27,7 +27,7 @@ const GHOST = shapeOutline('round', 0, LINE_HEIGHT);
 export function placeDragGhost(drawing, at, from) {
     let ghost = drawing.querySelector('.flowchart-drag-ghost');
     if (!ghost) {
-        ghost = svgElement('g', { class: 'flowchart-stub flowchart-drag-ghost' });
+        ghost = svgElement('g', { class: 'flowchart-stub is-missing flowchart-drag-ghost' });
         ghost.append(svgElement(GHOST.tag, { class: 'flowchart-shape', ...GHOST.attributes }));
         ghost.append(centredText(['+'], GHOST.width / 2, GHOST.height / 2, LINE_HEIGHT));
         drawing.append(ghost);

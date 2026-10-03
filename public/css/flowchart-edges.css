@@ -15,6 +15,11 @@
     vector-effect: non-scaling-stroke;
 }
 
+/* A link to a note that does not exist: the chart's broken link. */
+.flowchart-edge.is-missing .flowchart-edge-line {
+    stroke-dasharray: 4 3;
+}
+
 /* Invisible and wide, under the drawn line, so a thin line is easy to hit. */
 .flowchart-edge-hit {
     fill: none;

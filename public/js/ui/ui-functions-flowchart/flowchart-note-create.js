@@ -1,5 +1,8 @@
 import { appState } from '../../services/store.js';
-import { readRoles, nodeLabel } from '../../services/flowchart/node-content.js';
+import { readRoles, nodeLabel, valueFor } from '../../services/flowchart/node-content.js';
+import { toList, linkTarget } from '../../services/internal-links/link-targets.js';
+import { linkTargetToFilepath } from '../../services/internal-links/link-target-path.js';
+import { checkFileErrors } from '../../services/file-parsing/file-errors.js';
 import { linkProperty, planFlowchartLink } from '../../services/flowchart/plan-flowchart-link.js';
 import { addFlowchartLink } from '../../editing/add-flowchart-link.js';
 import { createEmptyNote, findUnusedFilename } from '../../services/create-note.js';
@@ -27,9 +30,17 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
  * the link is one undo entry like any other. The note does not open, and no text is written into it:
  * its box shows its filename, the node text's fallback. Filtered out, it is still on the chart — its
  * source links to it, so it is drawn as a stub, which opens it.
+ *
+ * **The same dialog creates the note a link already names**, from a press on a missing note's stub.
+ * Then the folder and name are the ones the link finds (linkTargetToFilepath, as the editor's own
+ * create-from-link uses) and cannot be edited — another name would leave the link still broken — and
+ * nothing is written into any note: the link is already there. The line says which notes link to it,
+ * since creating it mends every one of those links. It does not open either.
  */
 
 let _source = null;
+let _missing = null;  // where the note a link names goes, while the dialog is creating one
+let _linkers = [];    // the notes whose links name it
 
 const elements = () => ({
     dialog: document.getElementById('modal-flowchart-new-note'),
@@ -60,12 +71,65 @@ export async function offerNewLinkedNote(fromId) {
     const filename = await findUnusedFilename(await resolveTargetDir(folder));
 
     _source = source;
+    _missing = null;
+    const els = showDialog('New linked note', 'create and link', folder, filename);
+    selectStem(els.name);
+}
+
+/**
+ * Opens the dialog for the note a link names but no note is, at the path the link will find — or
+ * nothing, when no note could be made there (the stub then has no action, so this is a backstop).
+ *
+ * @param {string} target - The link as written, from the stub's `data-target`.
+ * @returns {void}
+ */
+export function offerMissingNote(target) {
+    const path = linkTargetToFilepath(target);
+    if (!path || appState.bulkWriteInFlight) return;
+
+    const roles = readRoles();
+    const lower = path.filepath.toLowerCase();
+    _linkers = appState.myFiles.filter(file => toList(valueFor(file, roles.connectors))
+        .some(item => linkTargetToFilepath(linkTarget(item))?.filepath.toLowerCase() === lower));
+    _source = null;
+    _missing = path;
+    showDialog('Create linked note', 'create note', path.folder, path.filename).confirm.focus();
+}
+
+/**
+ * A release on a missing note's stub: offers to create it, when the press began there and did not
+ * become a drag — the rule a box's release follows (flowchart-note-open.js).
+ *
+ * @param {MouseEvent} event - The mouseup event.
+ * @param {SVGGElement} target - The stub, carrying `data-target`.
+ * @returns {void}
+ */
+export function handleMissingNotePress(event, target) {
+    const press = appState.flowchartView.press;
+    appState.flowchartView.press = null;
+    if (event.button !== 0 || !press || press.moved || press.missing !== target.dataset.target) return;
+    offerMissingNote(target.dataset.target);
+}
+
+/**
+ * Fills the dialog for one of its two uses and opens it.
+ * @param {string} title
+ * @param {string} button - What the confirm button says.
+ * @param {string} folder
+ * @param {string} filename
+ * @returns {ReturnType<typeof elements>}
+ */
+function showDialog(title, button, folder, filename) {
     const els = elements();
+    document.getElementById('flowchart-new-note-title').textContent = title;
+    els.confirm.textContent = button;
     els.folder.value = folder;
     els.name.value = filename;
+    // A note a link names must have the name the link finds.
+    els.folder.readOnly = els.name.readOnly = _missing !== null;
     paint();
     els.dialog.showModal();
-    selectStem(els.name);
+    return els;
 }
 
 /**
@@ -115,6 +179,14 @@ export async function handleFlowchartNewNoteConfirm() {
         note = await createEmptyNote(folder, filename);
     } catch (error) {
         reportFailure(`${filepath} could not be created: ${error.message}`);
+        return;
+    }
+
+    if (_missing) {
+        // Their links resolve now: re-checked, so the broken-link marks go with the stub.
+        _linkers.forEach(checkFileErrors);
+        renderFiles();
+        reportAction(`created ${filepath}`);
         return;
     }
 
@@ -175,6 +247,19 @@ function paint() {
     if (!check.ok) return;
 
     const filepath = check.normalizedFolder ? `${check.normalizedFolder}/${check.normalizedName}` : check.normalizedName;
+    if (_missing) {
+        forecast.textContent = `Creates ${filepath}, empty, which ${linkersPhrase()} already. The new note does not open.`;
+        return;
+    }
     const property = linkProperty(readRoles());
     forecast.textContent = `Creates ${filepath}, empty, and adds [[${filepath}]] to ${property} in ${_source.filepath}. The new note does not open.`;
+}
+
+/** @returns {string} Who links to the note being created, by the names their boxes show. */
+function linkersPhrase() {
+    const roles = readRoles();
+    const names = _linkers.slice(0, 3).map(file => `“${nodeLabel(file, roles)}”`);
+    if (_linkers.length > 3) names.push(`${_linkers.length - 3} more`);
+    const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
+    return `${list} link${_linkers.length === 1 ? 's' : ''} to`;
 }

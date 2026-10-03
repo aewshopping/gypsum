@@ -19,7 +19,7 @@ import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flo
 import { handleFlowchartNoteOpen, handleFlowchartPress } from './ui-functions-flowchart/flowchart-note-open.js';
 import { handleFlowchartLinkHover } from './ui-functions-flowchart/flowchart-link-hover.js';
 import { handleFlowchartNewNoteInput, handleFlowchartNewNoteKeydown, handleFlowchartNewNoteCancel,
-         handleFlowchartNewNoteConfirm } from './ui-functions-flowchart/flowchart-note-create.js';
+         handleFlowchartNewNoteConfirm, handleMissingNotePress } from './ui-functions-flowchart/flowchart-note-create.js';
 import { handleFileContentInput } from './ui-functions-click/file-content-input.js';
 import { handleColumnStick, handleColumnUnstick } from './ui-functions-click/column-stick.js';
 import { handleColumnMenuOpen, handleColumnSortAsc, handleColumnSortDesc, handleColumnSearch, handleColumnHeaderClickOutside, handleColumnHide, handleColumnChangeType, handleColumnMenuDelete } from './ui-functions-click/column-menu.js';
@@ -364,6 +364,7 @@ const pointerDownActionHandlers = {
     'open-flowchart-note': handleFlowchartPress,
     'open-flowchart-link': handleFlowchartPress,
     'open-flowchart-stub': handleFlowchartPress,
+    'create-flowchart-note': handleFlowchartPress,
     'flowchart-press': handleFlowchartPress,
 };
 
@@ -373,6 +374,7 @@ const mouseUpActionHandlers = {
     'open-flowchart-note': handleFlowchartNoteOpen,
     'open-flowchart-link': handleFlowchartNoteOpen, // the note the link is written in
     'open-flowchart-stub': handleFlowchartNoteOpen, // a note the chart does not draw in full
+    'create-flowchart-note': handleMissingNotePress, // a note a link names that does not exist
 };
 
 const keyUpActionHandlers = {

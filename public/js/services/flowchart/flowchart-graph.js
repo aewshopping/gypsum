@@ -2,6 +2,7 @@ import { appState } from '../store.js';
 import { nodeLabel, nodeShape, valueFor } from './node-content.js';
 import { resolveNoteName } from '../internal-links/note-name-index.js';
 import { toList, linkTarget } from '../internal-links/link-targets.js';
+import { linkTargetToFilepath } from '../internal-links/link-target-path.js';
 
 /**
  * @file The visible files as a graph: a node per note, a node per link target that is not drawn,
@@ -23,9 +24,12 @@ const nodeKey = (kind, id) => `${kind}:${id}`;
 /**
  * The files as nodes and edges.
  *
- * A link whose target is not one of these files — it names no loaded note, or one filtered out or
- * on another page — points at a **stub**, labelled with the target as written. A stub naming a
- * loaded note carries that note as `file`, which is what lets it be pressed open and dragged onto.
+ * A link whose target is not one of these files points at a **stub**, of one of two kinds. A note
+ * filtered out or on another page is a stub carrying that `file`, labelled and shaped as its box would
+ * be — which is what lets it be pressed open and dragged onto. A target naming no loaded note is a
+ * stub with `file: null`, labelled with the target as written, and `path` where a note would have to
+ * be created for the link to find it — null when no note could be (linkTargetToFilepath). Its edges
+ * say `missing`, so the chart can draw a link that leads nowhere differently.
  * Links to the same target share one stub — keyed by the note when there is one, so two spellings of
  * it are one stub — and stubs come in the order they are first linked to.
  *
@@ -35,10 +39,9 @@ const nodeKey = (kind, id) => `${kind}:${id}`;
  *
  * @param {object[]} files - The files being drawn, in order.
  * @param {object} roles - What readRoles returned.
- * @returns {{nodes: object[], edges: object[]}} Nodes `{key, kind, file?, label, shape?}` — a stub's
- *   `file` is null when it names no loaded note — notes
- *   first in file order and then stubs; edges `{from, to, text, file}`, keys of nodes, in link order,
- *   `file` being the note the link is written in.
+ * @returns {{nodes: object[], edges: object[]}} Nodes `{key, kind, file, label, shape?, path?}`, notes
+ *   first in file order and then stubs; edges `{from, to, text, file, missing}`, keys of nodes, in link
+ *   order, `file` being the note the link is written in.
  */
 export function buildFlowchartGraph(files, roles) {
     const drawn = new Set(files.map(file => file.internalId));
@@ -60,11 +63,24 @@ export function buildFlowchartGraph(files, roles) {
                 to = nodeKey('note', resolved);
             } else {
                 to = nodeKey('stub', resolved ?? target);
-                if (!stubs.has(to)) stubs.set(to, { key: to, kind: 'stub', label: target, file: filesById.get(resolved) ?? null });
+                if (!stubs.has(to)) stubs.set(to, stubFor(filesById.get(resolved), target, to, roles));
             }
-            edges.push({ from: nodeKey('note', file.internalId), to, text: texts[index] ?? '', file });
+            edges.push({ from: nodeKey('note', file.internalId), to, text: texts[index] ?? '', file, missing: resolved === null });
         });
     }
 
     return { nodes: [...nodes, ...stubs.values()], edges };
+}
+
+/**
+ * A link target that is not drawn: a loaded note, shown as its box would be, or a name no note has.
+ * @param {object|undefined} file - The note it names, if any.
+ * @param {string} target - The target as written.
+ * @param {string} key
+ * @param {object} roles - What readRoles returned.
+ * @returns {object} A stub node.
+ */
+function stubFor(file, target, key, roles) {
+    if (file) return { key, kind: 'stub', file, label: nodeLabel(file, roles), shape: nodeShape(file, roles) };
+    return { key, kind: 'stub', file: null, label: target, path: linkTargetToFilepath(target) };
 }

@@ -45,7 +45,9 @@ export function drawFlowchart(svg, files) {
 
     const boxes = graph.nodes.map(node => {
         const shape = node.shape?.value ?? 'round';
-        const { lines, width } = wrapLabel(node.label, `${NODE_FONT_SIZE}px ${fontFamily}`, shapeTextWidth(shape), NODE_MAX_LINES);
+        // A note that does not exist yet reads `+ name`: a press makes it, as the + on a drag does.
+        const text = node.kind === 'stub' && !node.file ? `+ ${node.label}` : node.label;
+        const { lines, width } = wrapLabel(text, `${NODE_FONT_SIZE}px ${fontFamily}`, shapeTextWidth(shape), NODE_MAX_LINES);
         return { key: node.key, lines, ...shapeOutline(shape, width, lines.length * NODE_LINE_HEIGHT) };
     });
     const labels = graph.edges.map(edge => !edge.text ? null

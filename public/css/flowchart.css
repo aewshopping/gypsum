@@ -71,23 +71,33 @@ body:has(.flowchart-viewer) main,
     }
 }
 
-/* A link target that is not drawn — filtered out, on another page, or not written yet. Faded, and
-   dashed so it reads as a placeholder rather than a note. One naming a loaded note opens it and takes
-   a dragged link, and says so as a box does: a solid stroke on hover or as a drop target. */
+/* A link target that is not drawn. Both kinds are faded and dashed, which is what says "not here":
+   a note outside the filter or the page (.is-filtered) is painted in its own colour, like a dimmed
+   box, and a note that does not exist (.is-missing) is an empty outline. Either one a press can act
+   on — open the note, or create it — says so as a box does: a solid stroke on hover, or where a
+   dragged link would land. */
 .flowchart-stub {
     opacity: 0.5;
-    color: var(--colour-contr);
     .flowchart-shape {
-        fill: var(--colour-neutral-alt);
         stroke: var(--colour-contr);
         stroke-width: 1;
         stroke-dasharray: 4 3;
         vector-effect: non-scaling-stroke;
     }
-    &[data-file-id] {
+    &.is-filtered .flowchart-shape {
+        /* --colour-bg from .color-dynamic, as a box's fill. */
+        fill: var(--colour-bg);
+    }
+    &.is-missing {
+        color: var(--colour-contr);
+        .flowchart-shape {
+            fill: transparent;
+        }
+    }
+    &[data-action] {
         cursor: pointer;
     }
-    &[data-file-id]:hover, &.is-drop-target {
+    &[data-action]:hover, &.is-drop-target {
         opacity: 0.8;
         .flowchart-shape {
             stroke-width: 2;
@@ -101,4 +111,12 @@ body:has(.flowchart-viewer) main,
    a link's children too, since its hit line asks for pointer events of its own. */
 .pz-container:has(.pz-panzoom-check:checked) :is(.flowchart-node, .flowchart-stub, .flowchart-edge, .flowchart-edge *, .flowchart-edge-label) {
     pointer-events: none;
+}
+
+/* The new note dialog creating the note a link already names: the name is the link's, so the boxes
+   are read-only, and look it — no fill, a dashed edge, the stub's own way of saying "fixed". */
+#modal-flowchart-new-note input:read-only {
+    background: transparent;
+    border-style: dashed;
+    cursor: default;
 }

@@ -24,12 +24,13 @@ import { openFileContent } from '../ui-functions-click/open-file-content-view-tr
  * Records a press in the chart: which note it began on, if any, and where.
  *
  * @param {PointerEvent} event - The pointerdown event.
- * @param {Element} target - A note's box, a link, or the chart's `<svg>`.
+ * @param {Element} target - A note's box, a stub, a link, or the chart's `<svg>`.
  * @returns {void}
  */
 export function handleFlowchartPress(event, target) {
     appState.flowchartView.press = {
         fileId: target.dataset.fileId ?? null,
+        missing: target.dataset.target ?? null, // the link text of a note that does not exist
         fromNote: target.dataset.action === 'open-flowchart-note',
         x: event.clientX, y: event.clientY, moved: false,
     };

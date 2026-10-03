@@ -55,7 +55,8 @@ function linkAttributes(edge, index) {
  * @returns {SVGGElement}
  */
 export function drawFlowchartEdge(edge, index, route) {
-    const group = svgElement('g', { class: 'flowchart-edge', ...linkAttributes(edge, index) });
+    // A link to a note that does not exist is dashed: the chart's broken link.
+    const group = svgElement('g', { class: `flowchart-edge${edge.missing ? ' is-missing' : ''}`, ...linkAttributes(edge, index) });
     const d = route.points.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ');
     group.append(svgElement('path', { class: 'flowchart-edge-hit', d }));
     group.append(svgElement('path', { class: 'flowchart-edge-line', d, 'marker-end': 'url(#flowchart-arrowhead)' }));

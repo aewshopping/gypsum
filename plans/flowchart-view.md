@@ -276,6 +276,16 @@ As built:
   the note the drag began on. A link cannot be dragged *from* a stub: that would write into a note the
   filter hides. A stub naming nothing stays inert. Stubs are keyed by the note they name, so two
   spellings of one target are one stub.
+- **The two kinds of stub look different, and both read "not here"** — faded and dashed. A note
+  outside the filter or the page is painted in its own colour and labelled and shaped as its box
+  would be (`.is-filtered`). A note that does not exist is an empty outline reading `+ name`, and the
+  link into it is dashed — the chart's broken link (`.is-missing`, edges `missing` in the graph). Each
+  says which in a tooltip.
+- **A press on a missing note's stub creates it**, through the same dialog with the folder and name
+  fixed to what the link finds (`linkTargetToFilepath`, as the editor's create-from-link uses): another
+  name would leave the link broken. Nothing is written into any note — the link is already there —
+  and the line names the notes that link to it, whose broken-link marks are re-checked. It does not
+  open. A target no note could be made for (a hidden folder, say) has a stub that presses for nothing.
 - **Undo, redo and the history are in the flowchart's control row** — the table's three buttons,
   drawn by `ui-functions-render/render-undo-buttons.js` for both rows — and Ctrl+Z reaches the
   flowchart as it reaches the table.
