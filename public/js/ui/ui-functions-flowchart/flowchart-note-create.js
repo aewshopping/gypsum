@@ -97,17 +97,19 @@ export function offerMissingNote(target) {
 }
 
 /**
- * A release on a missing note's stub: offers to create it, when the press began there and did not
- * become a drag — the rule a box's release follows (flowchart-note-open.js).
+ * A click on a missing note's stub: offers to create it.
  *
- * @param {MouseEvent} event - The mouseup event.
+ * **On click, not on release** as a box opens. A dialog opened in a `mouseup` is shut at once by the
+ * `click` the browser fires next — it lands on the backdrop, and the dialog closes on a click outside
+ * it (`closedby="any"`) — so the press did nothing visible at all. Opening in the click itself leaves
+ * no event after it. A missing note's stub cannot begin a drag, so it needs none of the press tracking
+ * either: a click only fires where the press began and ended on the same element.
+ *
+ * @param {MouseEvent} event - The click event.
  * @param {SVGGElement} target - The stub, carrying `data-target`.
  * @returns {void}
  */
-export function handleMissingNotePress(event, target) {
-    const press = appState.flowchartView.press;
-    appState.flowchartView.press = null;
-    if (event.button !== 0 || !press || press.moved || press.missing !== target.dataset.target) return;
+export function handleMissingNoteClick(event, target) {
     offerMissingNote(target.dataset.target);
 }
 

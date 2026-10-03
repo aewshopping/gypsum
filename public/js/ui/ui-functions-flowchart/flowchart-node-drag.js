@@ -116,7 +116,7 @@ function endDrag(svg, x, y) {
     const press = appState.flowchartView.press;
     if (!press) return;
     if (!press.moved) {
-        const opener = x !== null && document.elementFromPoint(x, y)?.closest('[data-action^="open-flowchart"], [data-action="create-flowchart-note"]');
+        const opener = x !== null && document.elementFromPoint(x, y)?.closest('[data-action^="open-flowchart"]');
         if (!opener) appState.flowchartView.press = null;
         return;
     }

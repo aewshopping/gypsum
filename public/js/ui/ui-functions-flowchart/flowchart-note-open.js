@@ -30,7 +30,6 @@ import { openFileContent } from '../ui-functions-click/open-file-content-view-tr
 export function handleFlowchartPress(event, target) {
     appState.flowchartView.press = {
         fileId: target.dataset.fileId ?? null,
-        missing: target.dataset.target ?? null, // the link text of a note that does not exist
         fromNote: target.dataset.action === 'open-flowchart-note',
         x: event.clientX, y: event.clientY, moved: false,
     };

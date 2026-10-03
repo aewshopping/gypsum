@@ -7,7 +7,7 @@ import { svgElement, centredText } from './svg-element.js';
  * what opens it on release and paints it in its colour. A stub — a link target that is not drawn —
  * is `.flowchart-stub`, faded and dashed, and one of two kinds. A note filtered out or on another
  * page (`.is-filtered`) is painted in its own colour, carries its id and opens on a press like a box,
- * and takes a dragged link. A note that does not exist (`.is-missing`) is an empty outline; a press
+ * and takes a dragged link. A note that does not exist (`.is-missing`) is an empty outline; a click
  * offers to create it at the path its link names (`data-action="create-flowchart-note"`), unless no
  * note could be made there, when it presses for nothing. Each says which it is in a tooltip.
  *

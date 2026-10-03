@@ -281,7 +281,9 @@ As built:
   would be (`.is-filtered`). A note that does not exist is an empty outline reading `+ name`, and the
   link into it is dashed — the chart's broken link (`.is-missing`, edges `missing` in the graph). Each
   says which in a tooltip.
-- **A press on a missing note's stub creates it**, through the same dialog with the folder and name
+- **A click on a missing note's stub creates it** — on `click`, not on release as a box opens: a
+  dialog opened in a `mouseup` was shut at once by the click that follows, which lands outside it
+  (`closedby="any"`), so the press seemed to do nothing. Through the same dialog with the folder and name
   fixed to what the link finds (`linkTargetToFilepath`, as the editor's create-from-link uses): another
   name would leave the link broken. Nothing is written into any note — the link is already there —
   and the line names the notes that link to it, whose broken-link marks are re-checked. It does not
