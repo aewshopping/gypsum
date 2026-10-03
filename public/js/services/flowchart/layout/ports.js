@@ -7,7 +7,7 @@
  * **divide the side evenly**: two arrows meet it at its thirds, three at its quarters. That is the
  * reference picture's rule, and it comes before keeping a line straight — a link whose lanes do not
  * meet its port bends in the gap rather than the port moving to meet it. Step 6 of
- * plans/flowchart-dagre-elk-layout.md.
+ * plans/completed/flowchart-dagre-elk-layout.md.
  *
  * **Merging** gives every arrow on a side one port, at its middle — arrowheads and tails together, as
  * mermaid's elk drawing does — so they join into one trunk before the box, a line running both ways,

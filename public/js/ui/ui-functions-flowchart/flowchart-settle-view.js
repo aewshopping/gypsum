@@ -1,6 +1,6 @@
 /**
  * @file Where the view goes when a chart is redrawn after a write: held still, then moved out to show
- * a note just made. Stage 3 of plans/flowchart-dagre-elk-layout.md, beside flowchart-settle.js.
+ * a note just made. Stage 3 of plans/completed/flowchart-dagre-elk-layout.md, beside flowchart-settle.js.
  *
  * Worked out after the new drawing is in the SVG and before pan and zoom are attached, so the answer
  * is handed to attachPanZoom as the state to start from and the pan and zoom code never disagrees

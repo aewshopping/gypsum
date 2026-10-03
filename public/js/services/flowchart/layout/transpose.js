@@ -1,7 +1,7 @@
 /**
  * @file Left to right, as top to bottom turned on its side. Pure: no DOM.
  *
- * *Direction* in plans/flowchart-dagre-elk-layout.md: rather than routing twice, the chart is laid out
+ * *Direction* in plans/completed/flowchart-dagre-elk-layout.md: rather than routing twice, the chart is laid out
  * top to bottom with every box and label turned on its side — width for height — and the picture is
  * then mirrored across its diagonal, every x for its y. Rows become columns, a route's vertical runs
  * become horizontal ones, and a label still sits on the run its link takes along the chart.

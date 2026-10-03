@@ -1,7 +1,7 @@
 /**
  * @file A link as a right-angled route: straight down each lane, sideways only in the gaps. Pure.
  *
- * Step 3 of plans/flowchart-dagre-elk-layout.md. A link runs down from its upper box's bottom to its
+ * Step 3 of plans/completed/flowchart-dagre-elk-layout.md. A link runs down from its upper box's bottom to its
  * lower box's top (dagre-place.js turns upward links round for the layout, and they are turned back
  * here), through one **lane** in every row it passes — the points dagre kept clear for it, its label's
  * row among them. Between two rows it goes straight down if the lanes line up, and otherwise **jogs**:

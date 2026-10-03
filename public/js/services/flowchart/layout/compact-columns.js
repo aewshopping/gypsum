@@ -2,7 +2,7 @@
  * @file Takes back the width dagre left loose: a strip empty from the top of the drawing to the bottom
  * is narrowed. Pure: no DOM.
  *
- * *Who has the last word* in plans/flowchart-dagre-elk-layout.md allows sliding a box along its row,
+ * *Who has the last word* in plans/completed/flowchart-dagre-elk-layout.md allows sliding a box along its row,
  * never past a neighbour. This does it for everything at once: a strip that no box, label, group or
  * vertical line crosses is narrowed to `MAX_GAP`, and everything to its right moves left by what was
  * taken. Only horizontal runs cross such a strip, and they get shorter; nothing changes order, nothing

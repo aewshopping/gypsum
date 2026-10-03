@@ -5,7 +5,7 @@
  * It was written so the SVG could be got right before anything decided where a note belongs
  * (plans/completed/flowchart-view.md). The chart now draws from layout/dagre-layout.js; this stays as
  * the statement of what any layout must return, and as the fallback a new layout can be compared with
- * (plans/flowchart-dagre-elk-layout.md).
+ * (plans/completed/flowchart-dagre-elk-layout.md).
  *
  * **The contract is what a layout has to keep**, and it is all the drawing code knows:
  *

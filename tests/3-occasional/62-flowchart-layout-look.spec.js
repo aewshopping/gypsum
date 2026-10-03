@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { loadFolder, setupMockCellWritingFolder } = require('../helpers');
 
 /**
- * The flowchart's layout, looked at: plans/flowchart-dagre-elk-layout.md.
+ * The flowchart's layout, looked at: plans/completed/flowchart-dagre-elk-layout.md.
  *
  * Nothing here asserts pixels. Each test draws a chart and attaches a screenshot, to be compared by
  * eye with plans/reference/flowchart-layout-mockup.png at each of the plan's pauses — what can be said

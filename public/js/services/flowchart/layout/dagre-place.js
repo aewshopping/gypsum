@@ -5,7 +5,7 @@ import { upwardLinks } from './upward-links.js';
 /**
  * @file Where dagre puts things: the boxes, the groups, each link's lanes and its label. Pure: no DOM.
  *
- * Stage 1 of plans/flowchart-dagre-elk-layout.md. Nothing here routes a line — the routing is stage 2's
+ * Stage 1 of plans/completed/flowchart-dagre-elk-layout.md. Nothing here routes a line — the routing is stage 2's
  * (dagre-layout.js and the modules it calls). What dagre hands back for a link is used as lanes: one
  * point for every row the link passes, which dagre has kept clear for it, the label's row included.
  *

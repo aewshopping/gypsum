@@ -1,6 +1,6 @@
 # Plan: flowchart layout — dagre, then elk-like routing of our own
 
-Status: **stages 1, 2 and 3 built (steps 1–8, direction and merging); stage 3 waiting to be tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
+Status: **done — stages 1, 2 and 3 built (steps 1–8, direction and merging) and tried by hand.** Follows `plans/completed/flowchart-view.md`, which built the SVG, its
 interactions and drawing links, all against placeholder positions.
 Bump the manifest's minor version with each step that changes code.
 
@@ -420,7 +420,7 @@ change is made followable instead (`ui-functions-flowchart/flowchart-settle.js`)
 - **"Animate view changes" off** means no glide; the view still holds still, which is not animation.
   A render that moves nothing animates nothing, so an autosave does not flicker the lines.
 
-**Pause: stage 3 is tried by hand.**
+**Stage 3 was tried by hand, and the plan is done.**
 
 ---
 

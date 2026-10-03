@@ -3,7 +3,7 @@ import { viewMatrix, linksOf } from './flowchart-settle-view.js';
 
 /**
  * @file A chart redrawn after a write, settled from the one before it rather than jumping to it.
- * Stage 3 of plans/flowchart-dagre-elk-layout.md.
+ * Stage 3 of plans/completed/flowchart-dagre-elk-layout.md.
  *
  * Every render lays the chart out afresh, so a link added or a note made can move boxes. After a
  * write the change is made followable instead:

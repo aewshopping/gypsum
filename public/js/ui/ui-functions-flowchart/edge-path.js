@@ -1,7 +1,7 @@
 /**
  * @file A route as an SVG path: rounded corners, and a hop where it bridges another line. Pure.
  *
- * Steps 3 and 5 of plans/flowchart-dagre-elk-layout.md. The layout says where a route goes and where it
+ * Steps 3 and 5 of plans/completed/flowchart-dagre-elk-layout.md. The layout says where a route goes and where it
  * hops (line-jumps.js); how a bend and a hop look is decided here. Both are in drawing units, so they
  * grow and shrink with zoom like everything else.
  */

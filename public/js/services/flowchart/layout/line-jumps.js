@@ -1,7 +1,7 @@
 /**
  * @file Where two routes cross, so the drawing can bridge one over the other. Pure: no DOM.
  *
- * Step 5 of plans/flowchart-dagre-elk-layout.md. Routes are right-angled, so a crossing is always one
+ * Step 5 of plans/completed/flowchart-dagre-elk-layout.md. Routes are right-angled, so a crossing is always one
  * route's horizontal run meeting another's vertical one, and **the horizontal one hops**. A meeting
  * exactly at the end of either run is a corner or a shared port, not a crossing, and is left alone; so
  * is a run lying along another, which is a merged trunk.

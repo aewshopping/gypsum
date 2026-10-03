@@ -8,7 +8,7 @@
  * along a jog above it in that order — so **jogs that do not overlap share a height**, and the bends
  * along a row line up, as the reference picture's do. Two jogs that do not overlap cannot cross,
  * whatever their heights, so sharing loses nothing the order won. Step 4 of
- * plans/flowchart-dagre-elk-layout.md.
+ * plans/completed/flowchart-dagre-elk-layout.md.
  *
  * Jogs that share a `unit` — merged arrows on their way into one port — share a track, which is what
  * makes them meet in a trunk.

@@ -7,7 +7,7 @@ import { appState } from '../store.js';
  * Not roles: a role points a part of the chart at a property (flowchart-options.js), and these hold
  * a word and a yes or no. So they have a store, a key in the layouts file (`flowchartLayout`, beside
  * `flowchart`) and a writer of their own, in the same shape as the roles': an unknown value is dropped
- * rather than corrected, and absent means the default. See plans/flowchart-dagre-elk-layout.md,
+ * rather than corrected, and absent means the default. See plans/completed/flowchart-dagre-elk-layout.md,
  * *Layout settings*.
  */
 

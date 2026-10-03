@@ -403,7 +403,7 @@ test.describe('touch', () => {
   });
 });
 
-// Stage 3 of plans/flowchart-dagre-elk-layout.md: a chart redrawn after a write settles from the one
+// Stage 3 of plans/completed/flowchart-dagre-elk-layout.md: a chart redrawn after a write settles from the one
 // before — the note nearest the middle holds its place and size on screen, and the rest glide — while
 // any other render lays it out afresh. The window is tall enough that the new link's two notes are in
 // view already, so nothing has to move to show them.

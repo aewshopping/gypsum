@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { appModule } = require('../helpers');
 
 /**
- * The flowchart's layout, on its own: plans/flowchart-dagre-elk-layout.md.
+ * The flowchart's layout, on its own: plans/completed/flowchart-dagre-elk-layout.md.
  *
  * Every layout module is pure, so these run in node with no browser. They share one invariant checker
  * and one set of fixtures, and each stage of the plan is meant to add a line to the checker rather than

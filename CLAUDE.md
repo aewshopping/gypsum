@@ -1061,7 +1061,7 @@ layouts, and adding them would be a new plan rather than a new key.
 ### The flowchart's layout
 
 **dagre places the boxes and the plan's own routing has the last word.** See
-`plans/flowchart-dagre-elk-layout.md`, which is built in stages with a pause for trying each by hand.
+`plans/completed/flowchart-dagre-elk-layout.md`, built in three stages, each tried by hand.
 `layout/dagre-layout.js` is the order the steps run in and nothing else; each step is a module of its
 own in `layout/`, all pure, and the layout test (`62-flowchart-layout.spec.js`) runs every fixture top
 to bottom, left to right and merged through one checker.

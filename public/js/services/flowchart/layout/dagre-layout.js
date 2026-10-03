@@ -16,7 +16,7 @@ import { atOrigin, withNamesAbove } from './chart-frame.js';
 /**
  * @file The layout contract (placeholder-layout.js states it): dagre places, stage 2 routes. Pure.
  *
- * plans/flowchart-dagre-elk-layout.md. Each step is a module of its own, and this is the order they
+ * plans/completed/flowchart-dagre-elk-layout.md. Each step is a module of its own, and this is the order they
  * run in:
  *
  * 1. **dagre places** the linked boxes, the groups, each link's lanes and its label (dagre-place.js),

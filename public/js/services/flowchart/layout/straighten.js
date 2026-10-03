@@ -4,7 +4,7 @@
  * dagre keeps a lane for a link in every row it passes, but where it puts that lane need not line up
  * with the link's ports, which divide each side evenly (ports.js): a long link's lane often runs right
  * along a box's edge, so the route jogs just after leaving and again just before arriving.
- * *Who has the last word* in plans/flowchart-dagre-elk-layout.md makes dagre's points a hint, so a
+ * *Who has the last word* in plans/completed/flowchart-dagre-elk-layout.md makes dagre's points a hint, so a
  * link whose lanes form one straight column has the column — label and all — slid onto one of its
  * ports, saving that end's jog, and onto both when they line up, so it runs straight. Only when:
  *

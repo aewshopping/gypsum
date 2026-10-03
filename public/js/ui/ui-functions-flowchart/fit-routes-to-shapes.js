@@ -3,7 +3,7 @@ import { outlineEdgeAt, outlineSideAt } from './node-shape.js';
 /**
  * @file Routes ended on each box's real outline rather than its bounding box.
  *
- * The layout works in bounding boxes and knows nothing of shapes (plans/flowchart-dagre-elk-layout.md,
+ * The layout works in bounding boxes and knows nothing of shapes (plans/completed/flowchart-dagre-elk-layout.md,
  * *Not duplicated, by decision*). A route meets a box square on — at its top or bottom, or left to
  * right at its sides — so its end can simply be moved along that last run to where node-shape.js says
  * the outline is: down onto a diamond's slope, into a circle's curve.

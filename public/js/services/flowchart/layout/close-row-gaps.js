@@ -4,7 +4,7 @@
  * dagre spaces a row to suit every row at once, so a row with little in it can be spread as wide as
  * the busiest one: in a chart all in one subgraph, the second note and the line beside it sat against
  * the group's two edges. compact-columns.js cannot help there, since it only narrows a strip empty
- * from top to bottom. *Who has the last word* in plans/flowchart-dagre-elk-layout.md lets stage 2
+ * from top to bottom. *Who has the last word* in plans/completed/flowchart-dagre-elk-layout.md lets stage 2
  * slide things along their row, never past a neighbour, so this does: each box, and each link's lane,
  * is pulled towards the middle of what it links to above and below, as far as its neighbours in the
  * row allow.
