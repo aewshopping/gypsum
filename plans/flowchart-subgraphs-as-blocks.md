@@ -408,3 +408,12 @@ Level 1: nothing — no part of this writes a note.
   marked with `edgeObj` and `rank`) with it, or the result crosses (5 crossings against 0, measured).
 - dagre honours an edge's `minlen`, which is how a stand-in is pinned to a row (3.4).
 - ELK puts a cut link's centre label on its outermost piece (3.2).
+- **Groups are never link ends in gypsum** — a link always runs note to note; a subgraph is only a
+  property of a note. So no route ever *ends* on a group's frame (mermaid allows that, and its adapter
+  carries a comment about such edges leaving from a frame's corner), and every stand-in is a
+  pass-through to a real note. Together with "groups never nest" this means only a thin slice of ELK's
+  hierarchy handling is needed. **It does not remove the split itself**: a note in one group linking
+  to a note outside it, or in another group (the reference chart's 009 → 012), still crosses a border,
+  and everything in 3.2–3.8 is for exactly those links. Only if links could never cross a border would
+  each group be a separate piece of the chart, laid out alone and packed — roughly 100–150 lines
+  rather than 300–400 — and that is not gypsum's model.
