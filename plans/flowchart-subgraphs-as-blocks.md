@@ -316,7 +316,7 @@ Nothing calls dagre's compound mode any more, so these become dead and should go
 | `CLAUDE.md` | changed | *The flowchart's layout*: rewrite "Subgraphs are placed by dagre, in the same run…"; add the split, stand-ins, fixed ports; file map rows for the three new modules | — |
 
 **New code: about 300–400 lines** in modules, **plus 100–140 lines of tests**; **50–100 lines removed**
-in the last stage. Net growth of the layout (about 1,550 lines today) roughly 250–300.
+in the last stage. Net growth of the layout (about 1,600 lines today) roughly 250–300.
 
 ---
 
