@@ -1,6 +1,7 @@
 # Plan: flowchart — each subgraph laid out on its own, as a block (ELK's way)
 
 Status: **done — stages 0–6 built, tried by screenshot after each; see *As built* at the end.**
+To go back to dagre's compound mode, see *How to reverse this change*, the last section.
 
 Follows `plans/completed/flowchart-dagre-elk-layout.md` (the layout as built) and
 `plans/completed/flowchart-vertical-alignment.md` (boxes stay where dagre puts them, sibling order,
@@ -466,3 +467,93 @@ outside take. The two-pass border order is the approximation the plan expected; 
 about half of each comments), small additions to `dagre-place.js`, `ports.js`, `orthogonal-routes.js`,
 `sibling-order.js`, `line-jumps.js`; the compound code removed from `dagre-place.js`, `ranks.js`,
 `close-row-gaps.js`, `straighten.js` and `compact-columns.js`.
+
+---
+
+## How to reverse this change
+
+Going back means going back to **dagre's compound mode**: every group laid out in the same run as
+everything else, with the walls that made this plan (§1, §2.3). There is no switch for it. Stage 6
+took the compound code out of the layout, so the old path is not lying unused beside the new one; it
+has to be put back.
+
+**The commits.** On branch `claude/serene-ride-otgjgs`, oldest first:
+
+| Commit | What it did | Reverse? |
+|---|---|---|
+| `1a72f2a` | Stage 0: the three-subgraph fixtures in the look spec | Optional. They are useful under either layout |
+| `ebe6dd3` | Stage 3: `split-links.js`, `nested-layout.js`, `stitch-routes.js`; `fixed` ports; `minlen`, `anchor` and `turnedLinks` in `dagre-place.js`; hops in order; the CLAUDE.md rule rewritten | Yes |
+| `cfebc0e` | Stage 4: border order, and `followRows` / `inRowOrder` in `sibling-order.js` | Yes |
+| `07e1e5f` | Stage 5: merging shares border boxes | Yes |
+| `ceff16b` | Stage 6: compound mode removed from `dagre-place.js`, `ranks.js`, `close-row-gaps.js`, `straighten.js`, `compact-columns.js`; borders tried one side at a time | Yes. This is the one that brings compound mode back |
+| `88d8ce7` | The `nested:` tests, the two new layout cases, CLAUDE.md file map, this plan moved here | Yes, except keep this plan |
+
+The commit hashes are the ones on that branch. If it was squash-merged, take the same changes from the
+merge commit instead.
+
+**The quick way, if nothing has touched `layout/` since.** Check `git log 1a72f2a..HEAD -- public/js/services/flowchart/layout`
+first. If it lists only the commits above:
+
+```bash
+git revert --no-commit 88d8ce7 ceff16b 07e1e5f cfebc0e ebe6dd3   # newest first
+git checkout HEAD -- plans/completed/flowchart-subgraphs-as-blocks.md  # keep the record
+```
+
+Or take the files straight from the commit before the change:
+
+```bash
+git checkout 1a72f2a -- public/js/services/flowchart/layout tests/2-behaviour/62-flowchart-layout.spec.js
+git rm public/js/services/flowchart/layout/{split-links,nested-layout,stitch-routes}.js
+```
+
+Then put CLAUDE.md back by hand, as described below.
+
+**By hand, if the layout has moved on since.** Everything the change touched is listed here. Whatever
+later work has built on it decides how much of the list still applies.
+
+1. **Put compound mode back in `dagre-place.js`**, as it is at `1a72f2a`: `compound: true` on the
+   graph, a node per group, `setParent` for each member, and `groups` in what it returns. Then follow
+   it outwards:
+   - `chartInRanks` in `dagre-layout.js` takes `nameHeight` again and maps the groups into the
+     contract;
+   - `rankBands` in `ranks.js` takes back the rows kept for a group's name;
+   - `close-row-gaps.js` takes back `contentsOf`, `groupBounds`, `fitGroup` and `besideOf`;
+   - `straighten.js` takes back the group check in `laneFree`;
+   - `compact-columns.js` takes back moving the groups;
+   - `siblingOrders` takes back its `groupOf` argument.
+2. **Make `chartWithGroups` in `dagre-layout.js` call `chartInRanks` for every chart**, and delete
+   `split-links.js`, `nested-layout.js` and `stitch-routes.js`. Nothing else imports them.
+3. **These are harmless to leave in.** They do nothing without the nested layout, and taking them out
+   is optional tidying:
+   - the `fixed` argument of `assignPorts` in `ports.js`, and the `…Fixed` handling in
+     `orthogonal-routes.js`;
+   - the `minlen`, `anchor`/`reach` and `rows` parts of `placeWithDagre`, and `turnedLinks`;
+   - `inRowOrder` and `followRows` in `sibling-order.js`, and the `rows` argument of `inNoteOrder`.
+
+   Keep the hop sorting in `line-jumps.js` in any case. It is a correctness fix for any route with two
+   hops on one run.
+4. **Put CLAUDE.md back.** Under *The flowchart's layout*, replace the bullet "Each subgraph is laid
+   out on its own, and is one box in the chart around it" and its sub-bullets with the old one,
+   "Subgraphs are placed by dagre, in the same run … One run, never one per group" (`git show
+   1a72f2a:CLAUDE.md`). In the file map, remove the rows for `nested-layout.js`, `split-links.js` and
+   `stitch-routes.js`, and restore the `dagre-place.js`, `close-row-gaps.js` and `sibling-order.js`
+   rows.
+5. **Tests** (`tests/2-behaviour/62-flowchart-layout.spec.js`):
+   - Remove the three `nested:` tests. They assert this layout's results: a symmetry as narrow as with
+     no group, a chart with groups less than 1.15× the width of one without, and links cut at borders.
+   - Remove the two cases "a group linked both ways with a note outside" and "a link from one group to
+     another past a note", or keep them if compound mode passes the general checker on them.
+   - Put the sibling-order test back to its `1a72f2a` form, since `siblingOrders` takes `groupOf`
+     again.
+   - The general checker tests (no run through a box, label on its own route, and so on) apply to
+     either layout and stay.
+6. **Bump the manifest's minor version.** Run `npm test tests/2-behaviour/62-flowchart-layout.spec.js`,
+   then the look spec (`tests/3-occasional/62-flowchart-layout-look.spec.js`), and compare its
+   screenshots with the *Before* column of the widths table above. The two-subgraph mockup should be
+   about 968 wide again.
+
+**What is lost by reversing**, so it is a choice made knowingly: a symmetry inside a group goes back
+to being pushed out to the group's walls (±285 rather than ±74 on the reference chart). Charts with
+groups get wider again (the widths table). Links between groups lose the border ordering and its
+crossing reduction.
+
