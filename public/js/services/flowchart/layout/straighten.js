@@ -26,7 +26,6 @@
  * Every lane is moved only when:
  *
  * - nothing else in the rows the lane passes comes within `CLEAR` of it, or of its label;
- * - the lane does not move into or out of a group.
  *
  * **Ports never move here**: where an arrow meets its box comes first, and a line bends to suit it.
  * It changes the placement's lanes and labels in place, before any route is drawn.
@@ -95,9 +94,8 @@ function mirrorOf(placement, link, port, [below, above], mirrored) {
     return null;
 }
 
-/** Whether the link's lanes can move to x: clear of everything in their rows, and of group edges. */
+/** Whether the link's lanes can move to x: clear of everything in their rows. */
 function laneFree(placement, link, x) {
-    const column = link.lanes[0][0];
     const rows = new Set(link.lanes.map(([, y]) => Math.round(y)));
     const labelRow = link.label && Math.round(link.label.y + link.label.height / 2);
     const reach = row => (row === labelRow ? link.label.width / 2 : 0) + CLEAR;
@@ -113,10 +111,5 @@ function laneFree(placement, link, x) {
         if (rows.has(row) && left < x + reach(row) && right > x - reach(row)) return false;
     }
 
-    const ys = link.lanes.map(([, y]) => y);
-    return placement.groups.every(group => {
-        if (Math.max(...ys) < group.y || Math.min(...ys) > group.y + group.height) return true;
-        const inside = v => v > group.x && v < group.x + group.width;
-        return inside(column) === inside(x);
-    });
+    return true;
 }

@@ -13,7 +13,7 @@
  *   positions they hold in their row — each taking with it the links to it from the note, which in
  *   the rows between are dagre's placeholder nodes (one per row, the label's among them). Nothing else
  *   moves, and dagre places the boxes from that order.
- * - **Only three or more in one row of one group**, and a note none of whose branches another note has
+ * - **Only three or more in one row**, and a note none of whose branches another note has
  *   already ordered, notes asked in key order. Two branches need no order for balance: the note is
  *   centred over both either way, and ordering them made dagre cross the two chains below them.
  * - **Stable under the table's sort**, as key order was: the order is inside one note, so only editing
@@ -32,15 +32,14 @@ export const MIN_BRANCHES = 3;
  * @param {{i: number, from: string, to: string}[]} links - The links dagre lays out, none to itself;
  *   `i` is the link's place in the graph's edges, which within a note is the order it mentions them.
  * @param {function(string): number} rowOf - A box's row, from a layout without them.
- * @param {function(string): string} groupOf - A box's group, '' for none.
  * @returns {{from: string, keys: string[]}[]} The note, and its branches' box keys left to right; no
  *   key in more than one list.
  */
-export function siblingOrders(links, rowOf, groupOf) {
+export function siblingOrders(links, rowOf) {
     const branches = new Map();
     for (const link of [...links].sort((a, b) => a.i - b.i)) {
         if (rowOf(link.to) <= rowOf(link.from)) continue;
-        const id = `${link.from}\n${rowOf(link.to)}\n${groupOf(link.to)}`;
+        const id = `${link.from}\n${rowOf(link.to)}`;
         if (!branches.has(id)) branches.set(id, { from: link.from, targets: [] });
         const { targets } = branches.get(id);
         if (!targets.includes(link.to)) targets.push(link.to);

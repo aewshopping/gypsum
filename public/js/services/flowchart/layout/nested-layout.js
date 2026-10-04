@@ -19,8 +19,8 @@ import { routeHops } from './line-jumps.js';
  * 3. **The chart around them is laid out with each group as one box**, its ports fixed where the border
  *    boxes are (ports.js), so a route outside meets the route inside.
  * 4. **The pieces are stitched** into one route per link (stitch-routes.js).
- * 5. **The border boxes are put in the order their links go outside**, and all of it laid out again —
- *    kept only when it crosses no more lines (`borderRows`).
+ * 5. **The border boxes are put in the order their links go outside**, along each group's top, its
+ *    bottom, or both, and all of it laid out again — the one that crosses least kept (`borderRows`).
  *
  * Rows do not carry across a border: a group is one box in one row of the chart around it, as mermaid
  * draws a subgraph.
@@ -41,10 +41,18 @@ const PIN_TRIES = 4;  // layouts tried to get every border box onto its group's 
 export function nestedLayout(charted, edges, merge, nameHeight) {
     const split = splitLinks(charted, edges, merge);
     const first = laidOut(split, charted, merge, nameHeight, new Map());
-    const rows = borderRows(split, first.outer);
-    if (rows.size === 0) return first.chart;
-    const second = laidOut(split, charted, merge, nameHeight, rows);
-    return hopCount(second.chart) <= hopCount(first.chart) ? second.chart : first.chart;
+    // Reordering both edges of every group at once can swap both ends of a link between two groups, and
+    // leave it crossing as before; reordering one edge lets the other follow. So all three are tried, and
+    // the one that crosses least is kept — the first layout on a tie.
+    let best = { chart: first.chart, hops: hopCount(first.chart) };
+    for (const sides of [['top'], ['bottom'], ['top', 'bottom']]) {
+        const rows = borderRows(split, first.outer, sides);
+        if (rows.size === 0) continue;
+        const chart = laidOut(split, charted, merge, nameHeight, rows).chart;
+        const hops = hopCount(chart);
+        if (hops < best.hops) best = { chart, hops };
+    }
+    return best.chart;
 }
 
 /** Every group laid out alone, the chart around them, and the two stitched together. */
@@ -62,7 +70,7 @@ function laidOut(split, charted, merge, nameHeight, rows) {
         anchor: inside.borderAt.length ? inside.borderAt.reduce((sum, { x }) => sum + x, 0) / inside.borderAt.length : undefined,
     }));
     const boxes = [...charted.filter(box => !box.group), ...blocks].sort((a, b) => byText(a.key, b.key));
-    const outer = chartInRanks(boxes, split.outer.edges, merge, 0, fixed);
+    const outer = chartInRanks(boxes, split.outer.edges, merge, fixed);
     return { outer, chart: stitchRoutes(split, outer, insides) };
 }
 
@@ -73,7 +81,7 @@ function laidOut(split, charted, merge, nameHeight, rows) {
  * cross there. ELK orders both sides together (its hierarchy-aware `LayerSweepCrossingMinimizer`); this
  * is the cheap version: lay out once, read where each link goes, and lay out again in that order.
  */
-function borderRows(split, outer) {
+function borderRows(split, outer, sides) {
     const rows = new Map();
     for (const name of split.names) {
         const { borders } = split.inner.get(name);
@@ -81,7 +89,7 @@ function borderRows(split, outer) {
             const { points } = outer.routes[border.outer];
             return (split.outer.edges[border.outer].from === blockKey(name) ? points.at(-1) : points[0])[0];
         };
-        const lists = ['top', 'bottom']
+        const lists = sides
             .map(side => [...new Set(borders.filter(border => border.side === side)
                 .map(border => [border.key, farX(border)]).sort((a, b) => a[1] - b[1]).map(([key]) => key))])
             .filter(keys => keys.length > 1);
@@ -124,7 +132,7 @@ function insideOf({ members, edges, borders }, merge, nameHeight, rows) {
  * to reach past the last of them, and any that still falls short is lengthened and laid out again.
  */
 function pinnedChart(members, edges, allBorders, merge, rows) {
-    if (allBorders.length === 0) return chartInRanks(members, edges, merge, 0);
+    if (allBorders.length === 0) return chartInRanks(members, edges, merge);
     // Merged, several links can share one border box; it is pinned once.
     const borders = [...new Map(allBorders.map(border => [border.key, border])).values()];
     const isBorder = new Set(borders.map(border => border.key));
@@ -143,7 +151,7 @@ function pinnedChart(members, edges, allBorders, merge, rows) {
 
     let chart;
     for (let tries = 0; tries < PIN_TRIES; tries++) {
-        chart = chartInRanks(boxes, lengthened(), merge, 0, new Map(), rows);
+        chart = chartInRanks(boxes, lengthened(), merge, new Map(), rows);
         const short = shortBorders(chart, members, borders);
         if (short.length === 0) break;
         short.forEach(key => minlen.set(key, minlen.get(key) + 1));

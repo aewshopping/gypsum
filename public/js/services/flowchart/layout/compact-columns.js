@@ -25,7 +25,6 @@ export function compactColumns(layout, sizes, labels) {
         ...[...layout.positions].map(([key, p]) => [p.x, p.x + sizes.get(key).width]),
         ...layout.routes.flatMap((route, i) => labels[i]
             ? [[route.labelAt[0] - labels[i].width / 2, route.labelAt[0] + labels[i].width / 2]] : []),
-        ...layout.groups.map(group => [group.x, group.x + group.width]),
         ...layout.routes.flatMap(route => route.points.slice(1)
             .filter((end, k) => Math.abs(end[0] - route.points[k][0]) < 0.01)
             .map(([x]) => [x, x])),
@@ -44,7 +43,7 @@ export function compactColumns(layout, sizes, labels) {
     return {
         positions: new Map([...layout.positions].map(([key, p]) => [key, { x: at(p.x), y: p.y }])),
         routes: layout.routes.map(route => ({ ...route, points: route.points.map(move), labelAt: move(route.labelAt) })),
-        groups: layout.groups.map(group => ({ ...group, x: at(group.x), width: at(group.x + group.width) - at(group.x) })),
+        groups: layout.groups,
         width: at(layout.width),
         height: layout.height,
     };

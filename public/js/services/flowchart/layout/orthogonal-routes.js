@@ -35,6 +35,9 @@ export function linkWaypoints(link, port, boxes, rankOf) {
     // A lane within half a unit of the one before is taken as the same, or the run between them would
     // lean by that much rather than jog.
     xs.forEach((x, j) => { if (j > 1 && j < n && Math.abs(x - xs[j - 1]) <= 0.5) xs[j] = xs[j - 1]; });
+    // And a step that small at a fixed end is no step either — two groups' fixed ports a fraction apart
+    // would otherwise be joined by a line that leans. The lower end gives way; the stitch takes it up.
+    if (n > 0 && Math.abs(xs[n] - xs[n - 1]) <= 0.5) xs[n] = xs[n - 1];
     return {
         xs,
         rows: [rankOf(boxes.get(link.upper).rankY), ...link.lanes.map(([, y]) => rankOf(y)), rankOf(boxes.get(link.lower).rankY)],

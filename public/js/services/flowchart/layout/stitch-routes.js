@@ -42,16 +42,41 @@ export function stitchRoutes(split, outer, insides) {
             const points = route.points.map(([x, y]) => [x + dx, y + dy]);
             return { points: piece.reversed ? points.reverse() : points, labelAt: [route.labelAt[0] + dx, route.labelAt[1] + dy] };
         });
-        return { points: joined(laid.map(piece => piece.points)), labelAt: (laid.find(piece => piece.outer) ?? laid[0]).labelAt };
+        return { points: joined(laid), labelAt: (laid.find(piece => piece.outer) ?? laid[0]).labelAt };
     });
     return { positions, routes, groups, width: outer.width, height: outer.height };
 }
 
-/** Polylines joined end to start, with a point repeated at a join dropped and any run left straight
- * through a point made one. */
-function joined(lines) {
+/** Pieces' polylines joined end to start, with a point repeated at a join dropped and any run left
+ * straight through a point made one. Pieces meeting a fraction apart across — a fixed port that gave
+ * way by up to half a unit (orthogonal-routes.js) — are made to meet by moving the inner piece's
+ * vertical run at the join, so no segment leans and the outer piece's label stays on its route. */
+function joined(pieces) {
     const points = [];
-    for (const point of lines.flat()) {
+    let lastOuter = false;
+    for (const { points: line, outer } of pieces) {
+        const next = line.map(point => [...point]);
+        const last = points.at(-1);
+        const dx = last ? next[0][0] - last[0] : 0;
+        if (Math.abs(dx) > 0.01 && Math.abs(dx) < 1) {
+            if (lastOuter) moveRun(next, 0, 1, last[0]);
+            else moveRun(points, points.length - 1, -1, next[0][0]);
+        }
+        points.push(...next);
+        lastOuter = Boolean(outer);
+    }
+    return tidied(points);
+}
+
+/** The vertical run starting at points[from], walking by `step`, moved across to x. */
+function moveRun(points, from, step, x) {
+    const was = points[from][0];
+    for (let k = from; k >= 0 && k < points.length && Math.abs(points[k][0] - was) < 0.01; k += step) points[k] = [x, points[k][1]];
+}
+
+function tidied(all) {
+    const points = [];
+    for (const point of all) {
         const last = points.at(-1);
         if (last && Math.abs(last[0] - point[0]) < 0.01 && Math.abs(last[1] - point[1]) < 0.01) continue;
         const before = points.at(-2);

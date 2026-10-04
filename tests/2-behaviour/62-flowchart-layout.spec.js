@@ -359,13 +359,12 @@ test('sibling order: two branches ask for nothing, and a branch another note has
   const { siblingOrders } = await appModule('services/flowchart/layout/sibling-order.js');
   const rows = { p: 0, q: 0, a: 1, b: 1, c: 1, d: 1, e: 1 };
   const link = (from, to, i) => ({ from, to, i });
-  const ask = links => siblingOrders(links, key => rows[key], () => '');
+  const ask = links => siblingOrders(links, key => rows[key]);
   expect(ask([link('p', 'a', 0), link('p', 'b', 1)])).toEqual([]);
   expect(ask([link('q', 'e', 0), link('q', 'b', 1), link('q', 'd', 2), link('p', 'c', 3), link('p', 'b', 4), link('p', 'a', 5)]))
     .toEqual([{ from: 'p', keys: ['c', 'b', 'a'] }]);
-  // A link back up, and branches in another group, are not counted among a row's three.
-  expect(siblingOrders([link('p', 'a', 0), link('p', 'b', 1), link('a', 'p', 2), link('p', 'c', 3)],
-    key => rows[key], key => key === 'c' ? 'g' : '')).toEqual([]);
+  // A link back up is not counted among a row's three.
+  expect(ask([link('p', 'a', 0), link('p', 'b', 1), link('a', 'p', 2)])).toEqual([]);
 });
 
 test('dagre: notes with no links sit in a block above the chart, a subgraph keeping its own', async () => {
