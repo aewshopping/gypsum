@@ -1090,9 +1090,20 @@ to bottom, left to right and merged through one checker.
   (`ranks.js`). So nothing in a row — box, label, group name — is ever crossed sideways, and a label
   stays where dagre kept its place, on its own route. Do not move labels or boxes in a way that breaks
   this: it is what the "no run through a box" and "label on its own route" rules rest on.
-- **Rows are drawn together after dagre** (`close-row-gaps.js`): dagre spaces a row to suit every row
-  at once, so a sparse row inside one wide subgraph was spread to the group's edges. Each box and lane
-  slides towards what it links to — order, dagre's spacing and group edges all kept.
+- **Boxes stay where dagre put them; only lanes are drawn together after it** (`close-row-gaps.js`).
+  dagre lines a chain of notes up in one column and balances a note over what it branches to, and
+  pulling boxes towards their neighbours bent both — mermaid's elk renderer, the reference, never
+  moves a box after ELK either. Lanes still slide towards what they link to, which takes back the
+  width dagre leaves loose — order, dagre's spacing and group edges all kept. Do not give boxes a pull
+  of their own again: see `plans/completed/flowchart-vertical-alignment.md`.
+- **A note's three or more branches in one row go left to right in the order the note gives them**
+  (`sibling-order.js`), so the branch the story carries on down can be the middle one, under its
+  note — mermaid does the same with the source's order. Through dagre's `customOrder`, never its
+  `constraints`, which 3.1.1 drops once it has merged two of the notes they name. The chart is laid
+  out twice when any note has such branches, and the ordered one kept only if it crosses no more
+  lines. Two branches are not ordered: the note is centred over both either way, and ordering them
+  made dagre cross the chains below. This is the one thing in the picture that follows a note's text
+  rather than the files' keys.
 - **Bends along a row share a height**: `tracks.js` orders a gap's jogs to cross least, then packs
   each onto the highest track where it overlaps nothing above it, so jogs that do not overlap bend
   together and the chart scans in rows. `jog-heights.js` puts the tracks between two margins, the
@@ -1105,7 +1116,10 @@ to bottom, left to right and merged through one checker.
   a rectangle's. Do not move a port to save a bend; the one exception is `NUDGE` in
   `orthogonal-routes.js`, a port within 5 of its lane meeting it, since a step that small reads as a
   glitch. `straighten.js` slides a straight link's lanes onto one of its ports where that is safe, never
-  the other way. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
+  the other way — **onto the port at the end where the link is alone on its side**, so arrows sharing a
+  side bend together there and each label sits on the straight run into its own note, as in the
+  reference picture (001 → 002 and 001 → 003 both turn just under 001); the upper port first when
+  both ends are shared or neither is. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
   learns about shapes.
 - **Direction and merging are layout settings, not roles**: `appState.flowchartLayout`, the
   `flowchartLayout` key of the layouts file, `setFlowchartLayoutSetting()` the one writer
@@ -1230,7 +1244,8 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | A link as a right-angled route through its lanes |
 | `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `jog-heights.js`, `ranks.js` | Where arrows meet a box; the order of sideways runs in a gap, and their heights; the rows and widening a gap |
 | `public/js/services/flowchart/layout/straighten.js` | A straight link's lanes slid onto one of its ports, saving a bend |
-| `public/js/services/flowchart/layout/close-row-gaps.js` | Each row's boxes and lanes pulled towards what they link to, never past a neighbour or a group's edge |
+| `public/js/services/flowchart/layout/close-row-gaps.js` | Each row's lanes pulled towards what they link to, never past a neighbour or a group's edge; boxes stay where dagre put them |
+| `public/js/services/flowchart/layout/sibling-order.js` | A note's three or more branches in the order it gives them, through dagre's `customOrder`, and the crossing count that guards it |
 | `public/js/services/flowchart/layout/compact-columns.js`, `transpose.js`, `chart-frame.js` | Narrowing empty strips; left to right; the drawing's frame |
 | `public/js/services/flowchart/layout/line-jumps.js` | Where routes cross, so the drawing can bridge |
 | `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |

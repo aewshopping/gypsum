@@ -1,14 +1,17 @@
 /**
- * @file Things in a row drawn closer to what they link to, closing the gaps dagre left. Pure: no DOM.
+ * @file Lanes in a row drawn closer to what they link to, closing the gaps dagre left. Pure: no DOM.
  *
  * dagre spaces a row to suit every row at once, so a row with little in it can be spread as wide as
- * the busiest one: in a chart all in one subgraph, the second note and the line beside it sat against
- * the group's two edges. compact-columns.js cannot help there, since it only narrows a strip empty
- * from top to bottom. *Who has the last word* in plans/completed/flowchart-dagre-elk-layout.md lets stage 2
- * slide things along their row, never past a neighbour, so this does: each box, and each link's lane,
- * is pulled towards the middle of what it links to above and below, as far as its neighbours in the
- * row allow.
+ * the busiest one: in a chart all in one subgraph, the line beside the second note sat against the
+ * group's edge. compact-columns.js cannot help there, since it only narrows a strip empty from top to
+ * bottom. *Who has the last word* in plans/completed/flowchart-dagre-elk-layout.md lets stage 2 slide
+ * things along their row, never past a neighbour, so this does: each link's lane is pulled towards the
+ * middle of what it links to above and below, as far as its neighbours in the row allow.
  *
+ * - **Boxes stay where dagre put them.** dagre's positioning already lines a chain of notes up in one
+ *   column and centres a note over what it branches to; pulling boxes towards their neighbours bent
+ *   both. Mermaid's elk renderer never moves a box after ELK places it either.
+ *   plans/completed/flowchart-vertical-alignment.md measured it: lanes alone take back nearly all the width.
  * - **Order never changes, and spacing never drops below dagre's own** (`NODE_SPACING` between boxes
  *   and labels, `EDGE_SPACING` between plain lanes, the mean of the two between one of each) — or the
  *   gap dagre left, when that was already less.
@@ -17,7 +20,7 @@
  * - **Nothing crosses a group's edge.** Whatever was inside a group stays inside it, by the padding
  *   dagre gave it, and whatever was outside stays outside; each group is then fitted to what it holds.
  *
- * It changes the placement in place — boxes, lanes, labels and groups — before ports are assigned.
+ * It changes the placement in place — lanes, labels and groups — before ports are assigned.
  */
 
 import { NODE_SPACING, EDGE_SPACING } from './dagre-place.js';
@@ -25,7 +28,7 @@ import { NODE_SPACING, EDGE_SPACING } from './dagre-place.js';
 const SWEEPS = 40;
 
 /**
- * Pulls every row's contents together.
+ * Pulls every row's lanes together.
  *
  * @param {{boxes: Map, links: object[], groups: object[]}} placement - From placeWithDagre.
  * @param {function(number): number} rankOf - Row index of a y (ranks.js).
@@ -62,14 +65,15 @@ export function closeRowGaps(placement, rankOf) {
     contents.forEach(fitGroup);
 }
 
-/** The boxes and lanes as things that move, each with the cells it fills in its rows. */
+/** The lanes as things that move, and the boxes as things that do not, each with the cells it fills in its rows. */
 function rowItems(placement, rankOf) {
     const boxItems = new Map();
     placement.boxes.forEach((box, key) => {
         const item = {
-            shift: 0, cells: [], wanted: null,
-            centre: () => box.x + box.width / 2 + item.shift,
-            apply: () => { box.x += item.shift; box.right += item.shift; },
+            shift: 0, cells: [],
+            wanted: () => null,
+            centre: () => box.x + box.width / 2,
+            apply: () => {},
         };
         item.cells.push(cell(item, rankOf(box.rankY), box.rankY, box.x, box.right, 'node'));
         boxItems.set(key, item);
@@ -113,16 +117,6 @@ function rowItems(placement, rankOf) {
             item.wanted = () => (above(first) + below(last)) / 2;
         }
     }
-    // What each box is linked to: the first thing along each of its links.
-    const neighbours = new Map([...boxItems.keys()].map(key => [key, []]));
-    for (const { link, lanes } of links) {
-        neighbours.get(link.upper).push(() => lanes.length ? lanes[0].centre() : boxCentre(link.lower));
-        neighbours.get(link.lower).push(() => lanes.length ? lanes.at(-1).centre() : boxCentre(link.upper));
-    }
-    boxItems.forEach((item, key) => {
-        const near = neighbours.get(key);
-        item.wanted = () => near.length ? near.reduce((sum, at) => sum + at(), 0) / near.length : null;
-    });
 
     return [...boxItems.values(), ...laneItems];
 }

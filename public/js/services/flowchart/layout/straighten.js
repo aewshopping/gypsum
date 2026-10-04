@@ -6,7 +6,14 @@
  * along a box's edge, so the route jogs just after leaving and again just before arriving.
  * *Who has the last word* in plans/completed/flowchart-dagre-elk-layout.md makes dagre's points a hint, so a
  * link whose lanes form one straight column has the column — label and all — slid onto one of its
- * ports, saving that end's jog, and onto both when they line up, so it runs straight. Only when:
+ * ports, saving that end's jog, and onto both when they line up, so it runs straight.
+ *
+ * **The end a link is alone at is the one it runs straight into**, so it bends where its siblings do.
+ * 001 → 002 and 001 → 003 share 001's underside: both turn in the gap just under 001, side by side,
+ * and each label sits on the straight run into its own note, as in the reference picture. Slid onto
+ * 001's port instead, 001 → 002 ran straight through its label and turned just above 002 — one arrow
+ * of the pair bending above its text, the other below. Where both ends are shared, or neither, the
+ * upper port is tried first. Only when:
  *
  * - nothing else in the rows the lane passes comes within `CLEAR` of it, or of its label;
  * - the lane does not move into or out of a group.
@@ -26,6 +33,11 @@ const CLEAR = 10;  // the least room left between a slid lane, or its label, and
  * @returns {void}
  */
 export function straightenLinks(placement, ports) {
+    const arrows = new Map(); // a box's side -> how many arrows meet it
+    const count = side => arrows.set(side, (arrows.get(side) ?? 0) + 1);
+    placement.links.forEach(link => { count(`${link.upper}\nbottom`); count(`${link.lower}\ntop`); });
+    const alone = side => arrows.get(side) === 1;
+
     for (const link of [...placement.links].sort((a, b) => a.i - b.i)) {
         if (link.lanes.length === 0) continue;
         const column = link.lanes[0][0];
@@ -33,7 +45,8 @@ export function straightenLinks(placement, ports) {
 
         const port = ports.get(link.i);
         if (Math.abs(port.upper - column) < 0.5 && Math.abs(port.lower - column) < 0.5) continue;
-        for (const x of [port.upper, port.lower]) {
+        const lowerFirst = alone(`${link.lower}\ntop`) && !alone(`${link.upper}\nbottom`);
+        for (const x of lowerFirst ? [port.lower, port.upper] : [port.upper, port.lower]) {
             if (laneFree(placement, link, x)) {
                 const shift = x - column;
                 link.lanes = link.lanes.map(([, y]) => [x, y]);
