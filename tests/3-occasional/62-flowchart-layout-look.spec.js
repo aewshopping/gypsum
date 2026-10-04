@@ -56,6 +56,20 @@ const ALIGNMENT = {
   '012.md': part('012 at the chevin', '', 'part2'),
 };
 
+// Three subgraphs linked to each other and to notes in none, one link climbing back up.
+const ch = (chapter, title, links) => `---\nchapter: ${chapter}\n---\n# ${title}\n\n${links}\n`;
+const THREE = {
+  'a.md': ch('setup', 'Arrive', '[[b.md|look round]] [[c.md|go in]]'),
+  'b.md': ch('setup', 'Look round', '[[d.md|find a key]]'),
+  'c.md': ch('middle', 'The hall', '[[e.md|upstairs]] [[d.md|cellar]]'),
+  'd.md': ch('middle', 'The cellar', '[[e.md|climb]] [[g.md|tunnel]]'),
+  'e.md': ch('middle', 'Upstairs', '[[f.md|the attic]]'),
+  'f.md': ch('ending', 'The attic', '[[g.md|jump]]'),
+  'g.md': ch('ending', 'Outside', '[[a.md|start again]]'),
+  'x.md': '# A side room\n\n[[c.md|back to the hall]]\n',
+  'y.md': '# A note\n\n[[f.md|up]] [[x.md]]\n',
+};
+
 // The awkward cases together: a link to itself, two links to one note, a diamond, a missing note.
 const AWKWARD = {
   'loop.md': '---\nshape: diamond\n---\n# Goes round\n\n[[loop.md|again]] [[next.md|once]] [[next.md|twice]]\n',
@@ -118,6 +132,10 @@ test('the mockup chart left to right', async ({ page }, testInfo) => {
 
 test('the mockup chart with arrows merged', async ({ page }, testInfo) => {
   await screenshotChart(page, MOCKUP, testInfo, {}, null, { merge: 'true' });
+});
+
+test('three subgraphs linked to each other and to notes in none', async ({ page }, testInfo) => {
+  await screenshotChart(page, THREE, testInfo, { subgraph: 'chapter' });
 });
 
 test('subgraphs left to right', async ({ page }, testInfo) => {
