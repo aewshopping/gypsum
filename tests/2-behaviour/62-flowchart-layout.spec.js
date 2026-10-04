@@ -261,6 +261,18 @@ test('dagre: the mockup routes with no crossings, as the reference draws it', as
   expect(crossings(layout)).toBe(0);
 });
 
+test('dagre: arrows sharing a side bend together, each label on the straight run into its own note', async () => {
+  // 001's underside has two arrows; 002's top has one. Both turn in the gap under 001, and
+  // 001 → 002 then runs straight through its label into 002 rather than turning just above it.
+  const { routes } = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges);
+  const toTwo = routes[MOCKUP_LINKS.findIndex(([from, to]) => from === '001' && to === '002')];
+  const [x, y] = toTwo.points.at(-1);
+  expect(toTwo.labelAt[0]).toBeCloseTo(x, 0);
+  const turn = toTwo.points.findLastIndex(([px]) => Math.abs(px - x) > 0.5);
+  expect(toTwo.points[turn][1]).toBeLessThan(toTwo.labelAt[1]);
+  expect(y).toBeGreaterThan(toTwo.labelAt[1]);
+});
+
 test('dagre: left to right puts each link\'s rows side by side', async () => {
   const { positions } = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges, { direction: 'LR' });
   const x = key => positions.get(key).x;

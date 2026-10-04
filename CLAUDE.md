@@ -1116,7 +1116,10 @@ to bottom, left to right and merged through one checker.
   a rectangle's. Do not move a port to save a bend; the one exception is `NUDGE` in
   `orthogonal-routes.js`, a port within 5 of its lane meeting it, since a step that small reads as a
   glitch. `straighten.js` slides a straight link's lanes onto one of its ports where that is safe, never
-  the other way. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
+  the other way — **onto the port at the end where the link is alone on its side**, so arrows sharing a
+  side bend together there and each label sits on the straight run into its own note, as in the
+  reference picture (001 → 002 and 001 → 003 both turn just under 001); the upper port first when
+  both ends are shared or neither is. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
   learns about shapes.
 - **Direction and merging are layout settings, not roles**: `appState.flowchartLayout`, the
   `flowchartLayout` key of the layouts file, `setFlowchartLayoutSetting()` the one writer
