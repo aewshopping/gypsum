@@ -1147,12 +1147,16 @@ to bottom, left to right and merged through one checker.
   says where a route hops (`line-jumps.js`: the horizontal run bridges the vertical one).
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
   used to draw the box and to ask the layout for room for it.
-- **Subgraphs are placed by dagre, in the same run** — a compound graph, each group a parent node —
-  because which group a note is in decides where it goes, and stage 2 never moves a box between rows.
-  One run, never one per group: links between groups would go unplanned. The group is in the graph
-  (`groupOf()` in `flowchart-graph.js`), read by the mermaid source and the SVG alike; a stub is in
-  none. The name sits in the strip dagre leaves inside a group's top edge, `GROUP_NAME_HEIGHT` tall,
-  and the box takes no presses, so a drop inside a group is a drop on empty chart.
+- **Each subgraph is laid out on its own, and is one box in the chart around it** — ELK's way, not
+  dagre's compound mode (`nested-layout.js`; `plans/flowchart-subgraphs-as-blocks.md`). dagre's
+  compound mode pushed whatever it was not lining up out against a group's walls, so groups came out
+  wide and loose. A link crossing a border is cut (`split-links.js`): inside the group it runs to a
+  border box of no size, pinned to the group's top or bottom row with `minlen`; outside it runs from
+  the group's box, whose ports are fixed where the border boxes are (`ports.js`) and which dagre lines
+  up by those ports (`anchor`, in `dagre-place.js`); `stitch-routes.js` joins the pieces into one
+  route. The label goes on the outer piece. **Rows do not carry across a border**, as in mermaid. The
+  group's name sits in the strip `GROUP_NAME_HEIGHT` tall inside its top edge, and the box takes no
+  presses, so a drop inside a group is a drop on empty chart.
 
 ### A view's own control row
 

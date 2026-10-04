@@ -35,9 +35,11 @@ export const EDGE_SPACING = 20;
 /**
  * dagre's placement of the linked boxes, in dagre's own coordinates.
  *
- * @param {{key: string, width: number, height: number, group?: string}[]} charted - The boxes dagre
- *   lays out, sorted by key.
- * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - All of them.
+ * @param {{key: string, width: number, height: number, group?: string, anchor?: number}[]} charted -
+ *   The boxes dagre lays out, sorted by key; `anchor`, the point across a box dagre should line up,
+ *   from its left, when not its middle.
+ * @param {{from: string, to: string, label: ?{width: number, height: number}, minlen?: number}[]} edges -
+ *   All of them; `minlen`, the fewest rows a link spans, 1 when absent.
  * @returns {{
  *   boxes: Map<string, {x: number, y: number, width: number, height: number, rankY: number, top: number, bottom: number, right: number}>,
  *   links: {i: number, upper: string, lower: string, turned: boolean, lanes: number[][], label: ?{x: number, y: number, width: number, height: number}}[],
@@ -53,10 +55,7 @@ export function placeWithDagre(charted, edges) {
         if (box.group && !groupKeys.has(box.group)) groupKeys.set(box.group, `group:${groupKeys.size}`);
     });
 
-    const links = edges.map((edge, i) => ({ ...edge, i }))
-        .filter(edge => edge.from !== edge.to)
-        .sort((a, b) => byText(a.from, b.from) || byText(a.to, b.to) || a.i - b.i);
-    const upward = upwardLinks(charted.map(box => box.key), links);
+    const { links, upward } = turnedLinks(charted, edges);
     const ends = edge => upward.has(edge.i) ? [edge.to, edge.from] : [edge.from, edge.to];
 
     const laidOut = orders => {
@@ -65,13 +64,15 @@ export function placeWithDagre(charted, edges) {
         groupKeys.forEach(key => graph.setNode(key, {}));
         charted.forEach(box => {
             const room = rooms.get(box.key) ?? { right: 0, top: 0 };
-            graph.setNode(box.key, { width: box.width + room.right, height: box.height + room.top });
+            graph.setNode(box.key, { width: reach(box) * 2 + room.right, height: box.height + room.top });
             if (box.group) graph.setParent(box.key, groupKeys.get(box.group));
         });
         links.forEach(edge => {
             const [upper, lower] = ends(edge);
-            graph.setEdge(upper, lower,
-                edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}, String(edge.i));
+            graph.setEdge(upper, lower, {
+                minlen: edge.minlen ?? 1,
+                ...(edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}),
+            }, String(edge.i));
         });
         dagre.layout(graph, orders.length ? { customOrder: inNoteOrder(orders) } : {});
         return graph;
@@ -94,8 +95,9 @@ export function placeWithDagre(charted, edges) {
     const boxes = new Map(charted.map(box => {
         const { x, y, width, height } = graph.node(box.key);
         const top = rooms.get(box.key)?.top ?? 0;
+        const left = x - width / 2 + reach(box) - (box.anchor ?? box.width / 2);
         return [box.key, {
-            x: x - width / 2, y: y - height / 2 + top, width: box.width, height: box.height,
+            x: left, y: y - height / 2 + top, width: box.width, height: box.height,
             rankY: y, top: y - height / 2, bottom: y + height / 2, right: x + width / 2,
         }];
     }));
@@ -126,6 +128,37 @@ export function placeWithDagre(charted, edges) {
             return { name, x: x - width / 2, y: y - height / 2, width, height };
         }),
     };
+}
+
+/**
+ * How far a box reaches either side of the point dagre centres it on: half its width, or more when
+ * it has an `anchor` off its middle — a group's block, whose links meet it where its inside put them
+ * (nested-layout.js). dagre lines boxes up by their centres, so the block goes in grown on one side,
+ * centred on that point, as a loop's room is reserved by growing a box to the right.
+ * @param {{width: number, anchor?: number}} box
+ * @returns {number}
+ */
+function reach(box) {
+    const anchor = box.anchor ?? box.width / 2;
+    return Math.max(anchor, box.width - anchor);
+}
+
+/**
+ * The links dagre lays out, sorted, and which of them go in turned round so every link runs down.
+ * Exported so a caller that needs to know which way a link will run can ask the same question
+ * placeWithDagre does (nested-layout.js, deciding which edge of a group a link leaves by).
+ *
+ * @param {{key: string}[]} charted - Sorted by key.
+ * @param {{from: string, to: string, tie?: string}[]} edges - `tie` orders links between the same two
+ *   boxes before their index does: two groups' blocks can be linked by several notes' links.
+ * @returns {{links: object[], upward: Set<number>}} The links between different boxes, each with `i`,
+ *   its index in `edges`; and the `i` of each that points up.
+ */
+export function turnedLinks(charted, edges) {
+    const links = edges.map((edge, i) => ({ ...edge, i }))
+        .filter(edge => edge.from !== edge.to)
+        .sort((a, b) => byText(a.from, b.from) || byText(a.to, b.to) || byText(a.tie ?? '', b.tie ?? '') || a.i - b.i);
+    return { links, upward: upwardLinks(charted.map(box => box.key), links) };
 }
 
 /**

@@ -22,13 +22,16 @@ export function routeHops(routes) {
         const hops = [];
         for (const [a, b] of runsAcross) {
             const y = a[1];
+            const onRun = [];
             down.forEach((runsDown, other) => {
                 if (other === r) return;
                 for (const [c, d] of runsDown) {
                     const x = c[0];
-                    if (inside(x, a[0], b[0]) && inside(y, c[1], d[1])) hops.push([x, y]);
+                    if (inside(x, a[0], b[0]) && inside(y, c[1], d[1])) onRun.push([x, y]);
                 }
             });
+            // In the order the run meets them, not the order the other routes arrive in.
+            hops.push(...onRun.sort((p, q) => (p[0] - q[0]) * Math.sign(b[0] - a[0])));
         }
         return hops;
     });
