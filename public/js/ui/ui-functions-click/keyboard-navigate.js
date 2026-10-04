@@ -2,8 +2,9 @@
  * @file Keyboard navigation for keyboard-navigable file cards.
  * Arrow keys move focus spatially; Enter/Space opens the focused card.
  * PageDown/PageUp jump by one screenful of rows (with one row of overlap).
- * Column count and rows-on-screen are derived from element Y-positions and
- * cached via ResizeObserver on #output.
+ * Column count and rows-on-screen are measured from the elements on every press, never cached:
+ * hiding, showing or removing a table column changes the count without resizing anything a
+ * ResizeObserver could watch, and a cached count sent ArrowDown one column off.
  *
  * In the table, a cell arrived at is also the cell selected, because selection follows focus —
  * cell-expand.js does that, and moving focus is this file's whole job. Shift moves a range's far
@@ -12,9 +13,6 @@
 
 import { extendRange, rangeAnchor, rangeExtent, clearRange } from '../ui-functions-cell/cell-range.js';
 import { revealCell } from '../ui-functions-table/table-focus-scroll.js';
-
-let _cachedCols = 0;
-let _cachedRowsOnScreen = 0;
 
 /**
  * Computes the number of columns by finding the first element (after index 0)
@@ -46,12 +44,6 @@ function computeRowsOnScreen(els, cols) {
     return Math.ceil((window.innerHeight - stickyHeight) / rowHeight);
 }
 
-new ResizeObserver(() => {
-    const els = [...document.querySelectorAll('.keyboard-navigable')];
-    _cachedCols = computeColumnCount(els);
-    _cachedRowsOnScreen = computeRowsOnScreen(els, _cachedCols);
-}).observe(document.getElementById('output'));
-
 /**
  * Handles arrow-key, Ctrl+arrow, Enter/Space, and PageDown/PageUp navigation
  * for keyboard-navigable file cards, and Shift with any of the moves to extend a table range.
@@ -80,7 +72,7 @@ export function handleKeyboardNavigate(evt) {
     if (key === 'Enter' || key === ' ') { focused.click(); return; }
 
     const els = [...document.querySelectorAll('.keyboard-navigable')];
-    const cols = _cachedCols || computeColumnCount(els);
+    const cols = computeColumnCount(els);
 
     // Shift in the table moves a range's far corner rather than focus, and carries on from wherever
     // that corner already is — so a range can be grown across several presses of Shift, and after a
@@ -151,7 +143,7 @@ function targetIndex(key, ctrl, idx, els, cols) {
 
     // PageDown/PageUp: jump by (rowsOnScreen - 1) rows, preserving column.
     // The -1 gives one row of overlap with the previous view (standard paging behaviour).
-    const rowsOnScreen = _cachedRowsOnScreen || computeRowsOnScreen(els, cols);
+    const rowsOnScreen = computeRowsOnScreen(els, cols);
     const pageDelta = cols * (rowsOnScreen - 1);
 
     if (key === 'PageDown') {
