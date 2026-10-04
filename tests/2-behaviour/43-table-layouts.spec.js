@@ -475,6 +475,22 @@ test('delete column in the menu removes it from the saved layout, the same as th
   expect(columns.map(c => c.order)).toEqual(columns.map((_, i) => i));
 });
 
+// The arrow keys' column count used to be cached and refreshed only when #output changed size,
+// which removing a column does not do — so ArrowDown landed one column off. See keyboard-navigate.js.
+test('after a column is removed from the layout, ArrowDown stays in its column', async ({ page }) => {
+  await openTableWithLayout(page, deadLayout);
+  const title = page.locator('.list-table .note-table-cell[data-prop="title"]');
+  await title.first().click();
+  await openColumnMenu(page, 'ghost');
+  await menuDelete(page).click();
+  await page.click('[data-action="warning-proceed"]');
+  await expect(headerFor(page, 'ghost')).toHaveCount(0);
+
+  await title.first().click();
+  await page.keyboard.press('ArrowDown');
+  await expect(title.nth(1)).toBeFocused();
+});
+
 /**
  * A folder whose notes can be written to, with a layout already saved — setupMockDirectoryWithLayouts
  * hands out read-only file handles, so a cell edit cannot reach a note in it.

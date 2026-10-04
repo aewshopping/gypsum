@@ -394,3 +394,33 @@ test('Ctrl+V in an open cell is the browser\'s own paste, not the range', async 
   await expect(cellAt(page, 1, 'a')).toContainText('typed');
   await expect(cellAt(page, 2, 'a')).not.toContainText('typed');
 });
+
+// The column count the arrow keys step by used to be cached, and the cache was refreshed only when
+// #output changed size. Hiding or showing a column changes the count without changing that size, so
+// ArrowDown went on stepping by the old count and landed one column off.
+test('ArrowDown stays in its column after the table is reshaped', async ({ page }) => {
+  await openTable(page);
+  const down = async (prop) => {
+    await cellAt(page, 1, prop).click();
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedAt(page), `after reshaping, down from ${prop}`).toBe(`2:${prop}`);
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedAt(page)).toBe(`1:${prop}`);
+  };
+  await down('b');
+
+  // One fewer column, from the column menu.
+  const header = page.locator('.note-table-cell-header[data-property="a"]');
+  await header.click();
+  await header.click();
+  await page.click('#column-menu [data-action="column-hide"]');
+  await expect(page.locator('.note-table-cell-header[data-property="a"]')).toHaveCount(0);
+  await down('b');
+
+  // One more, from the column picker.
+  await page.click('[data-action="open-column-picker"]');
+  await page.locator('#column-picker-list .info-modal-row').filter({ hasText: /^a$/ }).locator('input.toggle').check();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.note-table-cell-header[data-property="a"]')).toHaveCount(1);
+  await down('b');
+});
