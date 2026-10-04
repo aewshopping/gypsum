@@ -13,7 +13,17 @@
  * and each label sits on the straight run into its own note, as in the reference picture. Slid onto
  * 001's port instead, 001 → 002 ran straight through its label and turned just above 002 — one arrow
  * of the pair bending above its text, the other below. Where both ends are shared, or neither, the
- * upper port is tried first. Only when:
+ * upper port is tried first.
+ *
+ * **Where both ends are shared, a link mirrors its sibling rather than running straight.** 001 sits
+ * over 003, so 001 → 003 could run straight down between their ports — and did, beside 001 → 002, which
+ * bends out to 002 and back in to 003: one path a hook, the other a line. The reference picture draws
+ * the pair as mirror images, and symmetry comes first: a link shared at both ends, with exactly one
+ * sibling at one of them, has its lanes placed as far the other side of that box's centre as the
+ * sibling heads, bending out under its upper box and back in above its lower one. Where that lane is
+ * not free, or the sibling is placed the same way, the ports are tried as before.
+ *
+ * Every lane is moved only when:
  *
  * - nothing else in the rows the lane passes comes within `CLEAR` of it, or of its label;
  * - the lane does not move into or out of a group.
@@ -25,7 +35,7 @@
 const CLEAR = 10;  // the least room left between a slid lane, or its label, and anything beside it
 
 /**
- * Slides each straight link's lanes onto a port where it safely can — the upper one first.
+ * Slides each straight link's lanes onto a port, or mirrors its sibling's, where it safely can.
  *
  * @param {{boxes: Map, links: object[], groups: object[]}} placement - From placeWithDagre; its links'
  *   lanes and labels are moved.
@@ -33,28 +43,56 @@ const CLEAR = 10;  // the least room left between a slid lane, or its label, and
  * @returns {void}
  */
 export function straightenLinks(placement, ports) {
-    const arrows = new Map(); // a box's side -> how many arrows meet it
-    const count = side => arrows.set(side, (arrows.get(side) ?? 0) + 1);
-    placement.links.forEach(link => { count(`${link.upper}\nbottom`); count(`${link.lower}\ntop`); });
-    const alone = side => arrows.get(side) === 1;
+    const sides = new Map(); // a box's side -> the links meeting it
+    const meet = (side, link) => sides.set(side, [...(sides.get(side) ?? []), link]);
+    placement.links.forEach(link => { meet(`${link.upper}\nbottom`, link); meet(`${link.lower}\ntop`, link); });
+    const shared = link => [`${link.upper}\nbottom`, `${link.lower}\ntop`].map(side => sides.get(side));
+    const alone = side => sides.get(side).length === 1;
+    const mirrored = link => shared(link).every(side => side.length > 1) && shared(link).some(side => side.length === 2);
 
-    for (const link of [...placement.links].sort((a, b) => a.i - b.i)) {
-        if (link.lanes.length === 0) continue;
-        const column = link.lanes[0][0];
-        if (link.lanes.some(([x]) => Math.abs(x - column) > 0.5)) continue;
-
+    const straight = [...placement.links].sort((a, b) => a.i - b.i).filter(link => {
+        if (link.lanes.length === 0) return false;
+        return link.lanes.every(([x]) => Math.abs(x - link.lanes[0][0]) <= 0.5);
+    });
+    // Mirrored links last, so the sibling they mirror has its own lane already.
+    for (const link of [...straight.filter(link => !mirrored(link)), ...straight.filter(mirrored)]) {
         const port = ports.get(link.i);
-        if (Math.abs(port.upper - column) < 0.5 && Math.abs(port.lower - column) < 0.5) continue;
+        const mirror = mirrored(link) ? mirrorOf(placement, link, port, shared(link), mirrored) : null;
         const lowerFirst = alone(`${link.lower}\ntop`) && !alone(`${link.upper}\nbottom`);
-        for (const x of lowerFirst ? [port.lower, port.upper] : [port.upper, port.lower]) {
+        const tries = lowerFirst ? [port.lower, port.upper] : [port.upper, port.lower];
+        if (mirror === null && Math.abs(port.upper - link.lanes[0][0]) < 0.5 && Math.abs(port.lower - link.lanes[0][0]) < 0.5) continue;
+        for (const x of mirror === null ? tries : [mirror, ...tries]) {
+            if (Math.abs(x - link.lanes[0][0]) < 0.5) break;
             if (laneFree(placement, link, x)) {
-                const shift = x - column;
+                const shift = x - link.lanes[0][0];
                 link.lanes = link.lanes.map(([, y]) => [x, y]);
                 if (link.label) link.label = { ...link.label, x: link.label.x + shift };
                 break;
             }
         }
     }
+}
+
+/**
+ * Where a link's lanes mirror its one sibling's about the box they share: the far side of its
+ * centre from where the sibling heads, as far out. The upper box first, then the lower; null when the
+ * sibling is mirrored too, or when the mirror is on the other side from the link's own port, which
+ * would cross the two.
+ */
+function mirrorOf(placement, link, port, [below, above], mirrored) {
+    const centre = key => placement.boxes.get(key).x + placement.boxes.get(key).width / 2;
+    const ends = [
+        { side: below, centre: centre(link.upper), port: port.upper, heads: other => other.lanes[0]?.[0] ?? centre(other.lower) },
+        { side: above, centre: centre(link.lower), port: port.lower, heads: other => other.lanes.at(-1)?.[0] ?? centre(other.upper) },
+    ];
+    for (const { side, centre: c, port: at, heads } of ends) {
+        if (side.length !== 2) continue;
+        const sibling = side.find(other => other !== link);
+        if (mirrored(sibling)) return null;
+        const x = 2 * c - heads(sibling);
+        if (Math.abs(x - c) > 0.5 && Math.sign(x - c) === Math.sign(at - c)) return x;
+    }
+    return null;
 }
 
 /** Whether the link's lanes can move to x: clear of everything in their rows, and of group edges. */

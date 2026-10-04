@@ -1119,7 +1119,10 @@ to bottom, left to right and merged through one checker.
   the other way — **onto the port at the end where the link is alone on its side**, so arrows sharing a
   side bend together there and each label sits on the straight run into its own note, as in the
   reference picture (001 → 002 and 001 → 003 both turn just under 001); the upper port first when
-  both ends are shared or neither is. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
+  both ends are shared or neither is. **Symmetry comes before a straight line**: a link shared at
+  both ends, with exactly one sibling at one of them, has its lane placed as the mirror of where that
+  sibling heads about the box they share — so 001 → 003, with 001 right over 003, bends out and back
+  in as the mirror of 001 → 002 → 003 rather than running straight down beside it. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
   learns about shapes.
 - **Direction and merging are layout settings, not roles**: `appState.flowchartLayout`, the
   `flowchartLayout` key of the layouts file, `setFlowchartLayoutSetting()` the one writer

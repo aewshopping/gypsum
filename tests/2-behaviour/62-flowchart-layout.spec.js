@@ -273,6 +273,17 @@ test('dagre: arrows sharing a side bend together, each label on the straight run
   expect(y).toBeGreaterThan(toTwo.labelAt[1]);
 });
 
+test('dagre: a link shared at both ends mirrors its sibling rather than running straight', async () => {
+  // 001 is over 003, so 001 → 003 could run straight down; the reference draws it as the mirror of
+  // 001 → 002 → 003 instead, bending out under 001 and back in above 003.
+  const layout = (await dagreLayout())(REFERENCE.boxes, REFERENCE.edges);
+  const x = key => centreX(layout, key);
+  expect(x('001')).toBeCloseTo(x('003'), 0);
+  const route = layout.routes[REFERENCE_LINKS.findIndex(([from, to]) => from === '001' && to === '003')];
+  expect(route.labelAt[0]).toBeCloseTo(2 * x('001') - x('002'), 0);
+  expect(route.points.length).toBeGreaterThan(2);
+});
+
 test('dagre: left to right puts each link\'s rows side by side', async () => {
   const { positions } = (await dagreLayout())(MOCKUP.boxes, MOCKUP.edges, { direction: 'LR' });
   const x = key => positions.get(key).x;
