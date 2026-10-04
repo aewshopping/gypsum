@@ -17,6 +17,7 @@ import { finishOpenCell } from '../ui-functions-cell/cell-expand.js';
 import { clearRange, selectAllCells } from '../ui-functions-cell/cell-range.js';
 import { clearHeaderSelection } from './column-menu.js';
 import { handleOpenSettings } from './settings-modal.js';
+import { selectViewByNumber } from './view-select-shortcut.js';
 import { handleToggleRecentPanel } from './recent-panel-toggle.js';
 import { reverseCellEdits, canReverse } from './undo-cell-edit.js';
 import { appState } from '../../services/store.js';
@@ -129,6 +130,14 @@ export function handleKeyboardShortcuts(evt) {
     if (evt.altKey && noModalAltActions[evt.key] && !document.querySelector('dialog[open]')) {
         evt.preventDefault();
         noModalAltActions[evt.key]();
+    }
+
+    // Alt+1 to Alt+n picks a view by its number in the view select. Matched on evt.code rather than
+    // evt.key, because the digit is not what every layout types: Option+1 is ¡ on macOS, and AZERTY's
+    // digits are shifted. Ctrl is refused for the reason undoTableKey gives — Ctrl+Alt is AltGr.
+    const viewNumber = evt.code?.match(/^Digit([1-9])$/)?.[1];
+    if (evt.altKey && !evt.ctrlKey && !evt.metaKey && viewNumber && !document.querySelector('dialog[open]')) {
+        if (selectViewByNumber(Number(viewNumber))) evt.preventDefault();
     }
 
     const contentModalAltActions = {

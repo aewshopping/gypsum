@@ -105,3 +105,33 @@ test('list view draws what the file holds, whatever the table is set to', async 
   await expect(valueOf('people')).toHaveText('John Smith, "Doe, Jane"');
   await expect(valueOf('people')).toHaveAttribute('data-list', '');
 });
+
+// Alt+number picks the view of that number in the select, whose labels carry the same numbers —
+// both counted from the order of VIEWS, so they cannot disagree.
+test('Alt+number switches to the numbered view, but not while a dialog is open', async ({ page }) => {
+  await setupMockFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+
+  const options = await page.locator('#view-select option').allTextContents();
+  expect(options[0]).toBe('1. table view');
+  options.forEach((label, i) => expect(label).toMatch(new RegExp(`^${i + 1}\\. `)));
+  await expect(page.locator('#shortcut-last-view')).toHaveText(String(options.length));
+
+  await page.keyboard.press('Alt+1');
+  await expect(page.locator('#view-select')).toHaveValue('table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+
+  await page.keyboard.press('Alt+2');
+  await expect(page.locator('#view-select')).toHaveValue('cards');
+  await expect(page.locator('.note-table-header')).toHaveCount(0);
+
+  // A number past the last view does nothing.
+  await page.keyboard.press(`Alt+${options.length + 1}`);
+  await expect(page.locator('#view-select')).toHaveValue('cards');
+
+  await page.keyboard.press('?');
+  await expect(page.locator('#modal-settings')).toBeVisible();
+  await page.keyboard.press('Alt+1');
+  await expect(page.locator('#view-select')).toHaveValue('cards');
+});
