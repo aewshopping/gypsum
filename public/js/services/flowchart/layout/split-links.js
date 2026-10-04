@@ -3,12 +3,12 @@ import { turnedLinks, byText } from './dagre-place.js';
 /**
  * @file A chart with groups as the pieces nested-layout.js lays out one at a time. Pure: no DOM.
  *
- * plans/flowchart-subgraphs-as-blocks.md §3.2–3.3, after ELK's `CompoundGraphPreprocessor`. Each group
- * is laid out on its own and becomes one box — a **block** — in the chart around it, so a link between
- * a note inside a group and one outside it, or in another group, is seen whole by no single layout. It
- * is cut where it crosses a border: inside the group it runs to a **border** box (a stand-in of no size,
- * pinned to the group's top or bottom row), and outside it runs from the group's block. Stitched back
- * together afterwards (stitch-routes.js), the pieces are one route.
+ * plans/completed/flowchart-subgraphs-as-blocks.md §3.2–3.3, after ELK's `CompoundGraphPreprocessor`.
+ * Each group is laid out on its own and becomes one box — a **block** — in the chart around it, so a
+ * link between a note inside a group and one outside it, or in another group, is seen whole by no
+ * single layout. It is cut where it crosses a border: inside the group it runs to a **border** box (a
+ * stand-in of no size, pinned to the group's top or bottom row), and outside it runs from the group's
+ * block. Stitched back together afterwards (stitch-routes.js), the pieces are one route.
  *
  * - **A link's label goes on its outer piece**, as ELK puts a centre label on the outermost segment.
  * - **Which border a piece crosses is decided by the chart outside**: a link leaves a group through its

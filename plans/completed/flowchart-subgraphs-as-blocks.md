@@ -1,8 +1,6 @@
 # Plan: flowchart — each subgraph laid out on its own, as a block (ELK's way)
 
-Status: **written up, not started, not decided.** The owner is trying the current layout over time
-before deciding whether this is worth building. Nothing here has been implemented; everything marked
-*measured* below was run against the code as it stood at manifest 1.398.0.
+Status: **done — stages 0–6 built, tried by screenshot after each; see *As built* at the end.**
 
 Follows `plans/completed/flowchart-dagre-elk-layout.md` (the layout as built) and
 `plans/completed/flowchart-vertical-alignment.md` (boxes stay where dagre puts them, sibling order,
@@ -417,3 +415,54 @@ Level 1: nothing — no part of this writes a note.
   and everything in 3.2–3.8 is for exactly those links. Only if links could never cross a border would
   each group be a separate piece of the chart, laid out alone and packed — roughly 100–150 lines
   rather than 300–400 — and that is not gypsum's model.
+
+---
+
+## As built
+
+Every stage as planned, each checked by the look spec's screenshots; levels 1 and 2 pass. Where the
+build departed from the plan, and why:
+
+- **Members had to go in with their group cleared.** Stage 3's first screenshot still showed the
+  reference chart's symmetry at ±285: a group's members carried their `group` into their own layout,
+  and `placeWithDagre` put compound mode — walls and all — straight back. Cleared, it is ±74, the same
+  as with no group at all.
+- **A block is lined up by its ports, not its middle (`anchor`).** dagre lines boxes up by their
+  centres, so the part2 block sat under part1's middle instead of under 009, whose port is off-centre.
+  The block goes in to dagre grown on one side so that its centre is the mean of its ports — the same
+  trick as a loop's room — and the spine runs straight through both groups. Not in the plan; ELK gets
+  the same from placing on port positions.
+- **Order independence needed three things the plan did not list**: border boxes named by the notes they
+  join rather than by an index; every graph's links sorted by the box and note they leave (keeping a
+  note's own order, which sibling order reads from the index); and a route's hops listed in the order
+  it meets them (`line-jumps.js`), since two hops on one run came out in the other routes' order.
+- **Stage 4 needed two more steps than planned.** Swapping a group's border boxes alone only moved a
+  crossing inside the group (the mixed chart: *Chop onions* stayed left of the border box now on the
+  right). So after the border rows are ordered, every other row is swept to follow (`followRows`, the
+  barycentre step) — what ELK's hierarchy-aware crossing reduction does. And reordering the borders of
+  every group at once swapped *both* ends of a link between two groups, so it still crossed (the
+  two-subgraph mockup); top only, bottom only and both are now tried, and the fewest crossings kept.
+- **Two fixed ports a fraction apart.** dagre's placement left two blocks' ports 0.25 apart, which a
+  fixed port cannot be nudged across, so the route leaned. The lower end now gives way by up to half a
+  unit (`orthogonal-routes.js`), and the stitch moves the inner piece's run to meet it, never the
+  outer piece's, which carries the label.
+- **Merging (stage 5)** as proposed: one border box per note and side, shared by every link through it.
+
+**Widths now** (same fixtures as §1; "before" is compound mode):
+
+| Fixture | Before | Now | No groups at all |
+|---|---|---|---|
+| mockup, two subgraphs | 968 | 700 | 783 |
+| mixed (kitchen, garden) | 721 | 599 | 596 |
+| alignment reference | 842 | 831 | 783 |
+| mockup, one subgraph | 842 | 831 | 783 |
+
+**Still open, seen in the screenshots**: the three-group look fixture keeps one crossing just above the
+`middle` group, where two links entering it go to notes in the other order from the one their sources
+outside take. The two-pass border order is the approximation the plan expected; ELK's
+`LayerSweepCrossingMinimizer` is the reference if it needs to go further.
+
+**Code**: three new modules (`split-links.js` 119 lines, `nested-layout.js` 176, `stitch-routes.js` 88,
+about half of each comments), small additions to `dagre-place.js`, `ports.js`, `orthogonal-routes.js`,
+`sibling-order.js`, `line-jumps.js`; the compound code removed from `dagre-place.js`, `ranks.js`,
+`close-row-gaps.js`, `straighten.js` and `compact-columns.js`.

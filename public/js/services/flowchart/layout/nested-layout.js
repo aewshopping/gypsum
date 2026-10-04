@@ -8,10 +8,10 @@ import { routeHops } from './line-jumps.js';
  * @file A chart with groups, laid out as ELK lays out a compound graph: each group on its own, then the
  * chart around them with each group as one box. Pure: no DOM.
  *
- * plans/flowchart-subgraphs-as-blocks.md. dagre's compound mode lays groups out in the same run as
- * everything else, and its placement pushes whatever it is not lining up out against a group's walls:
- * the reference chart's two sides of a symmetry sat ±285 from the middle where plain dagre and ELK put
- * them ±74 and ±82. Here no run has walls:
+ * plans/completed/flowchart-subgraphs-as-blocks.md. dagre's compound mode lays groups out in the same
+ * run as everything else, and its placement pushes whatever it is not lining up out against a group's
+ * walls: the reference chart's two sides of a symmetry sat ±285 from the middle where plain dagre and
+ * ELK put them ±74 and ±82. Here no run has walls:
  *
  * 1. **The links are cut** where they cross a border (split-links.js).
  * 2. **Each group's inside is laid out alone**, with a border box of no size for each cut link, pinned

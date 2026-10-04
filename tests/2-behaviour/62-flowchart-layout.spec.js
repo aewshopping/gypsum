@@ -79,6 +79,15 @@ const CASES = {
     ['a', 'b', 'over'], ['b', 'c', 'back'], ['c', 'd'], ['d', 'e', 'over again'], ['a', 'e'], ['f', 'a', 'in'],
     ['e', 'a', 'up'], ['c', 'c', 'round'],
   ], { a: 'one', c: 'one', e: 'one', b: 'two', d: 'two' }),
+  // A note outside linked into a group and back out of it: collapsed to one box, the group and the note
+  // make a loop that no two notes made (plans/completed/flowchart-subgraphs-as-blocks.md §3.3).
+  'a group linked both ways with a note outside': fixture(['out', 'u', 'w', 'z'], [
+    ['out', 'u', 'in'], ['u', 'w'], ['w', 'out', 'back out'], ['w', 'z'],
+  ], { u: 'g', w: 'g' }),
+  // A link from one group to another, with a note outside in the rows between.
+  'a link from one group to another past a note': fixture(['u', 'mid', 'v'], [
+    ['u', 'mid', 'down'], ['mid', 'v'], ['u', 'v', 'skip'],
+  ], { u: 'top', v: 'bottom' }),
   // A long link from top to bottom with a group in the rows between, and links in and out of it.
   'a link passing a group by': fixture(['top', 'g1', 'g2', 'g3', 'bottom', 'side'], [
     ['top', 'bottom', 'the long way'], ['top', 'g1', 'in'], ['g1', 'g2'], ['g2', 'g3', 'on'], ['g3', 'bottom', 'out'],
@@ -282,6 +291,41 @@ test('dagre: a link shared at both ends mirrors its sibling rather than running 
   const route = layout.routes[REFERENCE_LINKS.findIndex(([from, to]) => from === '001' && to === '003')];
   expect(route.labelAt[0]).toBeCloseTo(2 * x('001') - x('002'), 0);
   expect(route.points.length).toBeGreaterThan(2);
+});
+
+test('nested: inside a group, a symmetry is as narrow as with no group at all', async () => {
+  // dagre's compound mode put 002 and 001 → 003's lane ±285 from 001; laid out on its own, the group's
+  // inside has no walls to push them out to (plans/completed/flowchart-subgraphs-as-blocks.md §1).
+  const layout = (await dagreLayout())(REFERENCE.boxes, REFERENCE.edges);
+  const x = key => centreX(layout, key);
+  const lane = layout.routes[REFERENCE_LINKS.findIndex(([from, to]) => from === '001' && to === '003')].labelAt[0];
+  expect(Math.abs(x('002') - x('001'))).toBeLessThan(BOX.width / 2 + 20);
+  expect(lane - x('001')).toBeCloseTo(x('001') - x('002'), 0);
+});
+
+test('nested: a chart with groups is not much wider than the same chart with none', async () => {
+  const layout = await dagreLayout();
+  const ungrouped = REFERENCE.boxes.map(box => ({ ...box, group: '' }));
+  expect(layout(REFERENCE.boxes, REFERENCE.edges).width).toBeLessThan(layout(ungrouped, REFERENCE.edges).width * 1.15);
+});
+
+test('nested: a link is cut at each border it crosses, its pieces running from its note to its note', async () => {
+  const { splitLinks } = await appModule('services/flowchart/layout/split-links.js');
+  const box = (key, group = '') => ({ key, width: 10, height: 10, group });
+  const charted = [box('a'), box('u', 'g'), box('v', 'h'), box('w', 'g')];
+  const split = splitLinks(charted, [
+    { from: 'u', to: 'w', label: null },  // inside g
+    { from: 'u', to: 'v', label: null },  // g down to h
+    { from: 'a', to: 'u', label: null },  // in from above
+  ]);
+  expect(split.pieces[0]).toEqual([{ graph: 'g', index: expect.any(Number) }]);
+  expect(split.pieces[1].map(piece => piece.graph)).toEqual(['g', null, 'h']);
+  expect(split.pieces[1].map(piece => piece.reversed)).toEqual([false, undefined, false]);
+  const sides = name => split.inner.get(name).borders.map(border => border.side).sort();
+  expect(sides('g')).toEqual(['bottom', 'top']);
+  expect(sides('h')).toEqual(['top']);
+  // The label goes on the outer piece; inner pieces have none.
+  expect(split.inner.get('g').edges.every(edge => edge.label === null)).toBe(true);
 });
 
 test('dagre: left to right puts each link\'s rows side by side', async () => {

@@ -3,11 +3,11 @@ import { blockKey } from './split-links.js';
 /**
  * @file The pieces nested-layout.js laid out, put back together as the layout contract. Pure: no DOM.
  *
- * plans/flowchart-subgraphs-as-blocks.md §3.8, after ELK's `CompoundGraphPostprocessor`. Each group's
- * inside is moved into its block; each link's pieces are joined end to start, which meet because a
- * border box has no size and the block's port is fixed at it (ports.js). Where a link enters through a
- * group's top, the route runs on down through the strip kept for the group's name, to the border row
- * below it.
+ * plans/completed/flowchart-subgraphs-as-blocks.md §3.8, after ELK's `CompoundGraphPostprocessor`. Each
+ * group's inside is moved into its block; each link's pieces are joined end to start, which meet
+ * because a border box has no size and the block's port is fixed at it (ports.js). Where a link enters
+ * through a group's top, the route runs on down through the strip kept for the group's name, to the
+ * border row below it.
  */
 
 /**
