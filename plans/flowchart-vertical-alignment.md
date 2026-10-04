@@ -1,6 +1,6 @@
 # Plan: flowchart — alignment and balance
 
-Status: **options, not started.** Follows `plans/completed/flowchart-dagre-elk-layout.md`; every rule
+Status: **recommendation made (§7), not started.** Follows `plans/completed/flowchart-dagre-elk-layout.md`; every rule
 in its *Who has the last word* still holds unless an option below says otherwise.
 
 The look to aim for is `plans/reference/flowchart-layout-mockup-2-vertical-alignment.png`, which is
@@ -215,7 +215,7 @@ decision**; the rule in *Who has the last word* that reserves reordering a row f
     safer form is to constrain only the branches of a note that are reached from nowhere else in their
     row. Try it on real folders both ways.
 
-### Option D — keep the columns dagre drew (`close-row-gaps.js`)
+### Option D — keep the columns dagre drew (`close-row-gaps.js`) — superseded by §7 step 1
 
 **Revised after §3.** The first draft found chains by counting links (one down, one up). Mermaid's
 lesson is that Brandes–Köpf has already decided what lines up with what, and the mistake is undoing it
@@ -262,53 +262,126 @@ it if A's three-line titles turn out to be common.
 
 ---
 
-## 5. Recommendation
+## 5. Is the process wrong, or one step in it?
 
-**C, then D, then A**, each tried by hand against the reference before the next, as the layout plan
-was. C and D are the two halves of what mermaid does, and together they reproduce the reference chart
-in the node experiment. A then changes how the boxes look; it is not needed for the alignment.
+**One step.** Gypsum's process is mermaid's: a layered layout decides rows and order, Brandes–Köpf
+decides where along a row, link labels are placeholder nodes in the graph, and a pass afterwards draws
+the routes. The reference picture depends only on where the boxes are, and §3.3 shows dagre already
+puts them there. There is one difference, and it is the cause: **mermaid never moves a box after ELK
+has placed it, and gypsum's `close-row-gaps.js` does.** The way forward is to narrow what that step may
+do, and to tell dagre the order the note gives. Nothing gets replaced.
 
-| | Code | Complexity | Alignment | Balance |
+## 6. Tried in the app
+
+To weigh the options, each was prototyped in place (none committed), and the reference chart and the
+existing one-subgraph chart (`ONE_GROUP` in `62-flowchart-layout-look.spec.js`) were drawn and
+measured. The figure is the width of the main subgraph.
+
+| Variant | Reference chart | One subgraph | What the reference chart looks like |
+|---|---|---|---|
+| Today | 777 | 730 | chains jog, nothing centred, spine broken |
+| `closeRowGaps` off | 842 | 741 | chains straight, 006 and 009 centred, 009 → 012 straight; 006 still at the end |
+| **Boxes stay put, lanes still move** | 842 | 741 | the same as off |
+| Boxes stay put + note order for every note | 754 | 754 | spine straight, but **008 → 010 and 007 → 011 cross** |
+| **Boxes stay put + note order for 3+ branches** | **754** | 754 | **the reference**: spine straight, both chains straight, 006 and 009 centred, no crossing; only 007 and 008 swapped |
+
+The last row passes all 38 existing tests in `62-flowchart-layout.spec.js` unchanged.
+
+Three findings settle the choice:
+
+1. **Option D is not needed.** With the boxes left where dagre put them, the lanes alone recover
+   nearly all the width `close-row-gaps.js` was saving: 1.5% wider on the one-subgraph chart. On the
+   reference chart, adding the note order makes it **narrower than today** (754 against 777), because
+   a balanced chart is a compact one. Keeping the step's power to move boxes, and teaching it which
+   boxes not to move (D, ~40–60 lines), buys almost nothing over not moving boxes at all.
+2. **dagre's `constraints` are binding, where ELK's model order is only a tie-break,** and that
+   matters. Constraining 006's two branches to the note's order (008 before 007) made dagre cross the
+   two chains below them rather than reorder that row. Constraining only notes with **three or more**
+   branches, where order decides which one is in the middle, avoided it. A note with two branches
+   needs no order for balance: it is centred over both either way.
+3. Labels, routes, ports and tracks needed no change for any of this.
+
+## 7. Recommendation
+
+**Two steps, about 45–60 lines of new code in all, and a slightly smaller `close-row-gaps.js`.**
+
+### Step 1 — boxes stay where dagre put them
+
+In `close-row-gaps.js`, boxes stop moving: they stay in the rows as fixed things the lanes cannot pass,
+and as what the lanes are pulled towards, but no longer get a wanted position of their own. Lanes
+still close up as before.
+
+- **Code: net about −10 lines.** The `neighbours` block in `rowItems()` and the box's `apply()` go;
+  `wanted` is `null` for a box. The module header, and CLAUDE.md's *"Rows are drawn together after
+  dagre … Each box and lane slides towards what it links to"*, are rewritten to say boxes keep dagre's
+  place, which is mermaid's rule.
+- **Complexity: lower than today.** One fewer thing moves after dagre.
+- **Benefit on its own:** both chains and 009 → 012 straight, 006 and 009 centred. Cost: 8% wider
+  on the reference chart until step 2, 1.5% on the one-subgraph chart.
+
+### Step 2 — a note's branches in the order the note gives them, when there are three or more
+
+Option C, scoped by the finding above. For each note with three or more links into one row of one
+group, pass dagre `constraints` placing them left to right in the order the note mentions them.
+
+- **Code: ~25–35 lines** — `layout/sibling-order.js` (pure: links in note order, and dagre's turned
+  links, in; constraint pairs out) and one argument to `dagre.layout` in `dagre-place.js`.
+- **Plus a guard, ~15–20 lines, recommended:** count crossings between rows in dagre's result, and if
+  the constrained run has more than an unconstrained one, use the unconstrained one. This is mermaid's
+  own rule for its line straightening (`straightenEdgeTerminals` keeps a change only if it adds no
+  crossing). It costs a second dagre run, only on charts where some note has three or more branches.
+  Without it, step 2 is safe on every chart tried, but the 006 case shows how a constraint can cross
+  lines elsewhere.
+- **Complexity: low.** One rule, the author's order, in one module.
+- **Benefit:** the spine, and the narrowest chart of every variant tried.
+- **What users see change:** a note with three or more links draws them left to right in the order
+  it mentions them. Today the order comes from internal ids, which nobody can see, so this replaces
+  an order nobody chose with one the author chose.
+
+### Not now
+
+- **A (wrap titles sooner)** changes the look rather than the alignment. Worth a separate try by eye,
+  one constant, once steps 1 and 2 are in.
+- **D (keep dagre's columns)** is superseded by step 1. Revisit only if a real folder shows a row
+  left loose that lanes alone do not close.
+- **B, E, F** stay rejected; **tops in line** only if A brings three-line titles.
+
+| Step | New code | Removed | Complexity | Gives |
 |---|---|---|---|---|
-| A — wrap sooner | 1–2 constants | none | indirect | indirect |
-| B — dagre `align` | 1 line | none | yes | **lost** |
-| C — siblings in note order | ~30–40 | low | the spine | order |
-| D — keep dagre's columns | ~40–60 (+10) | moderate–low | **yes** | kept from dagre |
-| E — priority pass | ~150–200 | high | yes | partly |
-| F — another placement | 400+ | very high | yes | worse here |
-| tops in line | ~10–20 | low | rows | — |
+| 1 — boxes stay put | ~0 | ~10 | lower | alignment, balance from dagre |
+| 2 — note order, 3+ branches | ~25–35 | — | low | the spine, a narrower chart |
+| 2's guard | ~15–20 | — | low | no new crossings, ever |
+| tests | ~50–70 | — | — | the rules held |
 
-C + D is about **70–100 lines**, one new pure module, and no new idea a reader has to learn that
-mermaid does not also use. One behaviour changes for users: **a note's links are drawn in the order
-the note gives them**, which is worth a line in the flowchart's help text when it lands.
+Try each step by hand against the reference before the next, as the layout plan was.
 
-## 6. Testing
+## 8. Testing
 
 - **Level 2**, in `tests/2-behaviour/62-flowchart-layout.spec.js`: node tests, milliseconds. The
   reference chart becomes a fixture beside `MOCKUP`, its links in the reference's order, run through
   the existing `checkLayout` and `checkRoutes` in every variant (top to bottom, left to right,
   merged). New assertions, each a rule a later change could silently break:
-  - 003, 006, 009 and 012 share one column, and so do 007/011 and 008/010 (D);
-  - a note's branches in one row are left to right in the order the note gives them (C), and the
-    order the files arrive in still changes nothing;
-  - 006 and 009 are centred on their branches to within a pixel.
+  - 003, 006, 009 and 012 share one column, and so do 007/011 and 008/010 (step 1);
+  - 006 and 009 are centred on their branches to within a pixel (step 1);
+  - a note with three branches has them left to right in the order it gives them (step 2), and the
+    order the *files* arrive in still changes nothing;
+  - the guard: a fixture where the constraint would cross lines, as 006's did, draws without the
+    crossing. The 006 case itself can be that fixture, with the scope lowered to two in the test.
 
-  About 40–60 lines. A node test of dagre's `constraints` inside a compound graph comes first, as
-  the risk in C.
+  About 50–70 lines. A node test of dagre's `constraints` inside a compound graph comes first.
 - **Level 3**: the reference chart added to `62-flowchart-layout-look.spec.js` as one more screenshot,
   to compare with the reference picture by eye. ~15 lines.
-- **Level 1**: nothing — no option here writes a note.
+- **Level 1**: nothing — nothing here writes a note.
 
-## 7. Where the code goes
+## 9. Where the code goes
 
-| Option | Files |
+| Step | Files |
 |---|---|
-| C | new `services/flowchart/layout/sibling-order.js`; `dagre-place.js` |
-| D | `close-row-gaps.js` |
-| A | `ui/ui-functions-flowchart/node-shape.js` (`WIDE`), maybe `render-svg.js` (`LABEL_WIDTH`) |
-| tops in line | `dagre-place.js`, `ranks.js` |
+| 1 | `services/flowchart/layout/close-row-gaps.js` |
+| 2 | new `services/flowchart/layout/sibling-order.js`; `dagre-place.js` |
+| later: A | `ui/ui-functions-flowchart/node-shape.js` (`WIDE`), maybe `render-svg.js` (`LABEL_WIDTH`) |
 
-Each step that changes code bumps the manifest's minor version, and CLAUDE.md's *The flowchart's
-layout* gains a line for each rule that lands: a note's links are drawn in its own order, and what
-dagre drew straight stays straight. The existing line *"The picture does not follow the sort"* stays
-true, and should say that sibling order is the one thing that now follows each note's own text.
+Each step bumps the manifest's minor version. CLAUDE.md's *The flowchart's layout* is updated for
+each: boxes keep the place dagre gives them (the close-row-gaps line rewritten), and a note's three or
+more branches are drawn in its own order. *"The picture does not follow the sort"* stays true, and
+should say that this order follows each note's own text and nothing else.
