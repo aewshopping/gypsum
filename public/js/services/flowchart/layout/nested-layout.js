@@ -2,6 +2,7 @@ import { chartInRanks } from './dagre-layout.js';
 import { placeWithDagre, byText } from './dagre-place.js';
 import { splitLinks, blockKey } from './split-links.js';
 import { stitchRoutes } from './stitch-routes.js';
+import { routeHops } from './line-jumps.js';
 
 /**
  * @file A chart with groups, laid out as ELK lays out a compound graph: each group on its own, then the
@@ -18,6 +19,8 @@ import { stitchRoutes } from './stitch-routes.js';
  * 3. **The chart around them is laid out with each group as one box**, its ports fixed where the border
  *    boxes are (ports.js), so a route outside meets the route inside.
  * 4. **The pieces are stitched** into one route per link (stitch-routes.js).
+ * 5. **The border boxes are put in the order their links go outside**, and all of it laid out again —
+ *    kept only when it crosses no more lines (`borderRows`).
  *
  * Rows do not carry across a border: a group is one box in one row of the chart around it, as mermaid
  * draws a subgraph.
@@ -37,7 +40,17 @@ const PIN_TRIES = 4;  // layouts tried to get every border box onto its group's 
  */
 export function nestedLayout(charted, edges, merge, nameHeight) {
     const split = splitLinks(charted, edges);
-    const insides = new Map(split.names.map(name => [name, insideOf(split.inner.get(name), merge, nameHeight)]));
+    const first = laidOut(split, charted, merge, nameHeight, new Map());
+    const rows = borderRows(split, first.outer);
+    if (rows.size === 0) return first.chart;
+    const second = laidOut(split, charted, merge, nameHeight, rows);
+    return hopCount(second.chart) <= hopCount(first.chart) ? second.chart : first.chart;
+}
+
+/** Every group laid out alone, the chart around them, and the two stitched together. */
+function laidOut(split, charted, merge, nameHeight, rows) {
+    const insides = new Map(split.names.map(name =>
+        [name, insideOf(split.inner.get(name), merge, nameHeight, rows.get(name) ?? [])]));
 
     const fixed = new Map();
     for (const [name, inside] of insides) {
@@ -50,15 +63,44 @@ export function nestedLayout(charted, edges, merge, nameHeight) {
     }));
     const boxes = [...charted.filter(box => !box.group), ...blocks].sort((a, b) => byText(a.key, b.key));
     const outer = chartInRanks(boxes, split.outer.edges, merge, 0, fixed);
-    return stitchRoutes(split, outer, insides);
+    return { outer, chart: stitchRoutes(split, outer, insides) };
+}
+
+/**
+ * The order a group's border boxes should take along its top and bottom: the order of where their
+ * links go outside it. A group's inside is laid out before anything outside is known, so dagre puts its
+ * border boxes in whatever order suits the inside, and links that swap places just past the border
+ * cross there. ELK orders both sides together (its hierarchy-aware `LayerSweepCrossingMinimizer`); this
+ * is the cheap version: lay out once, read where each link goes, and lay out again in that order.
+ */
+function borderRows(split, outer) {
+    const rows = new Map();
+    for (const name of split.names) {
+        const { borders } = split.inner.get(name);
+        const farX = border => {
+            const { points } = outer.routes[border.outer];
+            return (split.outer.edges[border.outer].from === blockKey(name) ? points.at(-1) : points[0])[0];
+        };
+        const lists = ['top', 'bottom']
+            .map(side => borders.filter(border => border.side === side)
+                .map(border => [border.key, farX(border)]).sort((a, b) => a[1] - b[1]).map(([key]) => key))
+            .filter(keys => keys.length > 1);
+        if (lists.length) rows.set(name, lists);
+    }
+    return rows;
+}
+
+/** How many times routes cross, counted as the hops the drawing would bridge them with. */
+function hopCount(chart) {
+    return routeHops(chart.routes).reduce((sum, hops) => sum + hops.length, 0);
 }
 
 /**
  * One group laid out alone: its chart, where that sits inside the group's box, the box's size, and
  * where across the box each cut link meets its border.
  */
-function insideOf({ members, edges, borders }, merge, nameHeight) {
-    const chart = pinnedChart(members, edges, borders, merge);
+function insideOf({ members, edges, borders }, merge, nameHeight, rows) {
+    const chart = pinnedChart(members, edges, borders, merge, rows);
     const top = borders.some(border => border.side === 'top');
     const bottom = borders.some(border => border.side === 'bottom');
     const offset = { x: PAD, y: nameHeight + (top ? 0 : PAD) };
@@ -81,14 +123,14 @@ function insideOf({ members, edges, borders }, merge, nameHeight) {
  * `minlen`: the members are laid out alone to find their rows, each border's link is made long enough
  * to reach past the last of them, and any that still falls short is lengthened and laid out again.
  */
-function pinnedChart(members, edges, borders, merge) {
+function pinnedChart(members, edges, borders, merge, rows) {
     if (borders.length === 0) return chartInRanks(members, edges, merge, 0);
     const isBorder = new Set(borders.map(border => border.key));
     const plain = placeWithDagre(members, edges.filter(edge => !isBorder.has(edge.from) && !isBorder.has(edge.to)));
-    const rows = [...new Set([...plain.boxes.values()].map(box => Math.round(box.rankY)))].sort((a, b) => a - b);
-    const rowOf = key => rows.indexOf(Math.round(plain.boxes.get(key).rankY));
+    const ranks = [...new Set([...plain.boxes.values()].map(box => Math.round(box.rankY)))].sort((a, b) => a - b);
+    const rankOf = key => ranks.indexOf(Math.round(plain.boxes.get(key).rankY));
     const minlen = new Map(borders.map(border => [border.key,
-        border.side === 'bottom' ? rows.length - rowOf(border.member) : rowOf(border.member) + 1]));
+        border.side === 'bottom' ? ranks.length - rankOf(border.member) : rankOf(border.member) + 1]));
 
     const boxes = [...members, ...borders.map(border => ({ key: border.key, width: 0, height: 0, group: '' }))]
         .sort((a, b) => byText(a.key, b.key));
@@ -99,7 +141,7 @@ function pinnedChart(members, edges, borders, merge) {
 
     let chart;
     for (let tries = 0; tries < PIN_TRIES; tries++) {
-        chart = chartInRanks(boxes, lengthened(), merge, 0);
+        chart = chartInRanks(boxes, lengthened(), merge, 0, new Map(), rows);
         const short = shortBorders(chart, members, borders);
         if (short.length === 0) break;
         short.forEach(key => minlen.set(key, minlen.get(key) + 1));

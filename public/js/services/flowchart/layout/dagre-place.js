@@ -40,6 +40,8 @@ export const EDGE_SPACING = 20;
  *   from its left, when not its middle.
  * @param {{from: string, to: string, label: ?{width: number, height: number}, minlen?: number}[]} edges -
  *   All of them; `minlen`, the fewest rows a link spans, 1 when absent.
+ * @param {string[][]} [rows] - Boxes each list of which shares a row, to go left to right in that order
+ *   (sibling-order.js `inRowOrder`).
  * @returns {{
  *   boxes: Map<string, {x: number, y: number, width: number, height: number, rankY: number, top: number, bottom: number, right: number}>,
  *   links: {i: number, upper: string, lower: string, turned: boolean, lanes: number[][], label: ?{x: number, y: number, width: number, height: number}}[],
@@ -48,7 +50,7 @@ export const EDGE_SPACING = 20;
  * }} `boxes` are the real boxes' top-left and size, with the centre, extent and right edge dagre gave
  *   the grown box (`right` reaches over a loop's room); each link runs `upper` to `lower`, down, through `lanes`, one `[x, y]` per row between.
  */
-export function placeWithDagre(charted, edges) {
+export function placeWithDagre(charted, edges, rows = []) {
     const rooms = loopRooms(edges);
     const groupKeys = new Map(); // group name -> its node's key, in the order groups are first met
     charted.forEach(box => {
@@ -74,7 +76,7 @@ export function placeWithDagre(charted, edges) {
                 ...(edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}),
             }, String(edge.i));
         });
-        dagre.layout(graph, orders.length ? { customOrder: inNoteOrder(orders) } : {});
+        dagre.layout(graph, orders.length || rows.length ? { customOrder: inNoteOrder(orders, rows) } : {});
         return graph;
     };
     const lines = laid => links.map(edge => {

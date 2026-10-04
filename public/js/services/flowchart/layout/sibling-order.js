@@ -63,11 +63,17 @@ export function siblingOrders(links, rowOf, groupOf) {
  * note's links to them likewise.
  *
  * @param {{from: string, keys: string[]}[]} orders - From siblingOrders.
+ * @param {string[][]} [rows] - Boxes in one row each, to be put left to right in this order first
+ *   (inRowOrder).
  * @returns {function(object, function(object): void): void}
  */
-export function inNoteOrder(orders) {
+export function inNoteOrder(orders, rows = []) {
     return (graph, order) => {
         order(graph);
+        if (rows.length) {
+            for (const keys of rows) inRowOrder(graph, keys);
+            followRows(graph, rows);
+        }
         for (const { from, keys } of orders) {
             reorder(graph, keys.map(key => [key]));
             const rows = new Map(); // row -> per branch, its placeholders there
@@ -81,6 +87,58 @@ export function inNoteOrder(orders) {
             rows.forEach(branches => reorder(graph, branches));
         }
     };
+}
+
+/**
+ * Boxes of one row put left to right in the order given, among the positions they hold, and in every
+ * other row the placeholder nodes of each one's links likewise — a group's border boxes, sorted by
+ * where their links go outside the group (nested-layout.js), each taking its link with it.
+ */
+function inRowOrder(graph, keys) {
+    reorder(graph, keys.map(key => [key]));
+    const rows = new Map(); // row -> per box, the placeholders of its links there
+    for (const v of graph.nodes()) {
+        const link = graph.node(v).edgeObj;
+        const k = link ? [link.v, link.w].findIndex(end => keys.includes(end)) : -1;
+        if (k === -1) continue;
+        const row = graph.node(v).rank;
+        if (!rows.has(row)) rows.set(row, keys.map(() => []));
+        rows.get(row)[keys.indexOf([link.v, link.w][k])].push(v);
+    }
+    rows.forEach(chains => reorder(graph, chains));
+}
+
+/**
+ * Every other row made to follow the rows put in order: swept down from a top row and up from a bottom
+ * one, each row's nodes sorted by the mean place of their neighbours in the row before — the barycentre
+ * step of crossing reduction, and the one thing ELK does across a group's border, so the notes inside
+ * follow the order their links take outside. The rows put in order keep it.
+ */
+function followRows(graph, rows) {
+    const fixed = new Set(rows.flat());
+    const byRank = new Map();
+    for (const v of graph.nodes()) {
+        const { rank } = graph.node(v);
+        if (rank === undefined) continue;
+        if (!byRank.has(rank)) byRank.set(rank, []);
+        byRank.get(rank).push(v);
+    }
+    const ranks = [...byRank.keys()].sort((a, b) => a - b);
+    const fixedRanks = ranks.filter(rank => byRank.get(rank).some(v => fixed.has(v)));
+    const sweep = (list, neighbours) => list.forEach(rank => {
+        const free = byRank.get(rank).filter(v => !fixed.has(v));
+        const mean = v => {
+            const near = neighbours(v).map(u => graph.node(u).order);
+            return near.length ? near.reduce((sum, o) => sum + o, 0) / near.length : graph.node(v).order;
+        };
+        const places = free.map(v => graph.node(v).order).sort((a, b) => a - b);
+        free.map(v => [v, mean(v), graph.node(v).order])
+            .sort((a, b) => a[1] - b[1] || a[2] - b[2])
+            .forEach(([v], k) => { graph.node(v).order = places[k]; });
+    });
+    const top = fixedRanks[0], bottom = fixedRanks.at(-1);
+    if (top !== undefined && top === ranks[0]) sweep(ranks.filter(rank => rank > top), v => graph.predecessors(v));
+    if (bottom !== undefined && bottom === ranks.at(-1)) sweep(ranks.filter(rank => rank < bottom).reverse(), v => graph.successors(v));
 }
 
 /** Groups of one row's nodes given the positions they hold between them, group after group, each keeping its own order. */

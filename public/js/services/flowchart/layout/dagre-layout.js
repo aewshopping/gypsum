@@ -95,10 +95,11 @@ function chartWithGroups(charted, edges, merge, nameHeight) {
  * @param {boolean} merge
  * @param {number} nameHeight - The strip kept for a group's name inside its top edge; 0 for none.
  * @param {Map<number, Object<string, number>>} [fixed] - Ports a link must meet a box at (ports.js).
+ * @param {string[][]} [rows] - Boxes to go left to right in a row in the order given (dagre-place.js).
  * @returns {{positions: Map, routes: object[], groups: object[], width: number, height: number}}
  */
-export function chartInRanks(charted, edges, merge, nameHeight, fixed = new Map()) {
-    const placement = placeWithDagre(charted, edges);
+export function chartInRanks(charted, edges, merge, nameHeight, fixed = new Map(), rows = []) {
+    const placement = placeWithDagre(charted, edges, rows);
     const { bands, rankOf } = rankBands(placement, nameHeight);
     closeRowGaps(placement, rankOf);
     const ports = assignPorts(placement, new Map(charted.map(box => [box.key, box.portWidth ?? box.width])), merge, fixed);
