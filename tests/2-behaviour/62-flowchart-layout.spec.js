@@ -40,9 +40,31 @@ const MOCKUP_LINKS = [
 ];
 const MOCKUP = fixture(MOCKUP_NOTES, MOCKUP_LINKS);
 
+/**
+ * The chart in plans/reference/flowchart-layout-mockup-2-vertical-alignment.png, each note's links in
+ * the order it gives them: two chains (008 → 010, 007 → 011) and a spine (003 → 006 → 009 → 012).
+ */
+const REFERENCE_LINKS = [
+  ['001', '002', 'other presents first'], ['001', '003', 'try to fix'],
+  ['002', '003', 'try to fix the robot'],
+  ['003', '005', 'open chest panel'], ['003', '006', 'press silver button'], ['003', '004', 'screwdriver in belly button'],
+  ['004', '003', 'try to fix robot'],
+  ['005', '003', 'try to fix robot'],
+  ['006', '008', 'brush teeth'], ['006', '007', 'tidy room'],
+  ['007', '011', 'brush teeth'],
+  ['008', '010', 'robo clean'],
+  ['009', '012', 'go to the chevin'],
+  ['010', '009', 'secret message'],
+  ['011', '009', 'secret message'],
+];
+const REFERENCE_NOTES = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011', '012'];
+const REFERENCE = fixture(REFERENCE_NOTES, REFERENCE_LINKS,
+  Object.fromEntries(REFERENCE_NOTES.map(key => [key, key === '012' ? 'part2' : 'part1'])));
+
 // Each one makes a single awkward case.
 const CASES = {
   mockup: MOCKUP,
+  'the alignment reference': REFERENCE,
   'a link to itself': fixture(['a', 'b'], [['a', 'a', 'again'], ['a', 'b']]),
   'two links between the same notes': fixture(['a', 'b'], [['a', 'b', 'first'], ['a', 'b', 'second'], ['b', 'a']]),
   'a link spanning two rows': fixture(['a', 'b', 'c'], [['a', 'b'], ['b', 'c'], ['a', 'c', 'the long way']]),
@@ -254,14 +276,73 @@ test('dagre: the same graph gives the same picture every time', async () => {
   expect(again.routes).toEqual(once.routes);
 });
 
-test('dagre: the order notes and links arrive in changes nothing', async () => {
+test('dagre: the order the files arrive in changes nothing', async () => {
   const layout = await dagreLayout();
-  const graph = CASES['two groups linked across their borders, and a link to itself in one'];
-  const once = layout(graph.boxes, graph.edges);
-  const order = graph.edges.map((edge, i) => i).reverse();
-  const again = layout([...graph.boxes].reverse(), order.map(i => graph.edges[i]));
-  expect([...again.positions].sort()).toEqual([...once.positions].sort());
-  order.forEach((i, j) => expect(again.routes[j]).toEqual(once.routes[i]));
+  for (const graph of [CASES['two groups linked across their borders, and a link to itself in one'], REFERENCE]) {
+    const once = layout(graph.boxes, graph.edges);
+    // Files reversed, each note's own links kept in the order it gives them.
+    const froms = [...new Set(graph.edges.map(edge => edge.from))].reverse();
+    const order = froms.flatMap(from => graph.edges.flatMap((edge, i) => edge.from === from ? [i] : []));
+    const again = layout([...graph.boxes].reverse(), order.map(i => graph.edges[i]));
+    expect([...again.positions].sort()).toEqual([...once.positions].sort());
+    order.forEach((i, j) => expect(again.routes[j]).toEqual(once.routes[i]));
+  }
+});
+
+// plans/completed/flowchart-vertical-alignment.md: dagre lines chains up and centres forks, and nothing after
+// it moves a box; a note's three or more branches go in the order it gives them.
+const centreX = (layout, key) => layout.positions.get(key).x + BOX.width / 2;
+
+for (const [variant, options] of Object.entries({ '': {}, 'merged, ': { merge: true } })) {
+  test(`dagre: ${variant}a chain is one column, and a fork is centred on its branches`, async () => {
+    const layout = (await dagreLayout())(REFERENCE.boxes, REFERENCE.edges, options);
+    const x = key => centreX(layout, key);
+    for (const column of [['003', '006', '009', '012'], ['007', '011'], ['008', '010']]) {
+      for (const key of column.slice(1)) expect(x(key), `${key} under ${column[0]}`).toBeCloseTo(x(column[0]), 0);
+    }
+    // dagre balances rather than centres: close to the middle, not exactly on it. Before boxes stayed
+    // where dagre put them, both were further off than this and the chains jogged.
+    expect(Math.abs(x('006') - (x('007') + x('008')) / 2)).toBeLessThan(BOX.width / 4);
+    expect(Math.abs(x('009') - (x('010') + x('011')) / 2)).toBeLessThan(BOX.width / 4);
+    expect(crossings(layout)).toBe(0);
+  });
+}
+
+test('dagre: a note\'s three branches go left to right in the order it gives them', async () => {
+  const layout = await dagreLayout();
+  const across = (graph, keys) => keys.sort((a, b) => centreX(graph, a) - centreX(graph, b));
+  const branches = ['004', '005', '006'];
+  expect(across(layout(REFERENCE.boxes, REFERENCE.edges), branches)).toEqual(['005', '006', '004']);
+
+  // The same chart with 003's links written the other way round.
+  const reordered = fixture(REFERENCE_NOTES, [
+    ...REFERENCE_LINKS.filter(([from]) => from !== '003'),
+    ['003', '004', 'screwdriver in belly button'], ['003', '005', 'open chest panel'], ['003', '006', 'press silver button'],
+  ]);
+  expect(across(layout(reordered.boxes, reordered.edges), branches)).toEqual(['004', '005', '006']);
+});
+
+test('dagre: two notes asking for opposite orders get neither when honouring them would cross lines', async () => {
+  // x orders c, b, a; y orders a2, b2, c2 — the row below a, b and c, each linked to its own.
+  const graph = fixture(['x', 'y', 'a', 'b', 'c', 'a2', 'b2', 'c2'], [
+    ['x', 'c'], ['x', 'b'], ['x', 'a'], ['a', 'a2'], ['b', 'b2'], ['c', 'c2'], ['y', 'a2'], ['y', 'b2'], ['y', 'c2'],
+  ]);
+  const layout = (await dagreLayout())(graph.boxes, graph.edges);
+  const inOrder = keys => keys.every((key, k) => k === 0 || centreX(layout, keys[k - 1]) < centreX(layout, key));
+  expect(inOrder(['c', 'b', 'a']) && inOrder(['a2', 'b2', 'c2'])).toBe(false);
+});
+
+test('sibling order: two branches ask for nothing, and a branch another note has ordered is left to it', async () => {
+  const { siblingOrders } = await appModule('services/flowchart/layout/sibling-order.js');
+  const rows = { p: 0, q: 0, a: 1, b: 1, c: 1, d: 1, e: 1 };
+  const link = (from, to, i) => ({ from, to, i });
+  const ask = links => siblingOrders(links, key => rows[key], () => '');
+  expect(ask([link('p', 'a', 0), link('p', 'b', 1)])).toEqual([]);
+  expect(ask([link('q', 'e', 0), link('q', 'b', 1), link('q', 'd', 2), link('p', 'c', 3), link('p', 'b', 4), link('p', 'a', 5)]))
+    .toEqual([{ from: 'p', keys: ['c', 'b', 'a'] }]);
+  // A link back up, and branches in another group, are not counted among a row's three.
+  expect(siblingOrders([link('p', 'a', 0), link('p', 'b', 1), link('a', 'p', 2), link('p', 'c', 3)],
+    key => rows[key], key => key === 'c' ? 'g' : '')).toEqual([]);
 });
 
 test('dagre: notes with no links sit in a block above the chart, a subgraph keeping its own', async () => {

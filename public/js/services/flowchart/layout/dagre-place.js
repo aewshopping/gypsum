@@ -1,6 +1,7 @@
 import dagre from '../../../dagre/dagre.esm.js';
 import { LOOP } from './placeholder-layout.js';
 import { upwardLinks } from './upward-links.js';
+import { siblingOrders, inNoteOrder, crossings } from './sibling-order.js';
 
 /**
  * @file Where dagre puts things: the boxes, the groups, each link's lanes and its label. Pure: no DOM.
@@ -21,6 +22,8 @@ import { upwardLinks } from './upward-links.js';
  *   would reshuffle the chart. They go in sorted by key, and which links of a loop point back up is
  *   chosen first (upward-links.js); those links go in turned round, so every link in the graph runs
  *   down, and `turned` says which to turn back.
+ * - **A note's three or more branches in one row go in the order the note gives them**, when that
+ *   crosses no more lines (sibling-order.js) — so it is laid out twice when any note has them.
  * - **A note with no links is not dagre's** unless its group needs it: the caller sets those apart.
  */
 
@@ -50,26 +53,43 @@ export function placeWithDagre(charted, edges) {
         if (box.group && !groupKeys.has(box.group)) groupKeys.set(box.group, `group:${groupKeys.size}`);
     });
 
-    const graph = new dagre.graphlib.Graph({ multigraph: true, compound: groupKeys.size > 0 });
-    graph.setGraph({ rankdir: 'TB', nodesep: NODE_SPACING, ranksep: RANK_SPACING, edgesep: EDGE_SPACING });
-    groupKeys.forEach(key => graph.setNode(key, {}));
-    charted.forEach(box => {
-        const room = rooms.get(box.key) ?? { right: 0, top: 0 };
-        graph.setNode(box.key, { width: box.width + room.right, height: box.height + room.top });
-        if (box.group) graph.setParent(box.key, groupKeys.get(box.group));
-    });
-
     const links = edges.map((edge, i) => ({ ...edge, i }))
         .filter(edge => edge.from !== edge.to)
         .sort((a, b) => byText(a.from, b.from) || byText(a.to, b.to) || a.i - b.i);
     const upward = upwardLinks(charted.map(box => box.key), links);
-    links.forEach(edge => {
-        const [upper, lower] = upward.has(edge.i) ? [edge.to, edge.from] : [edge.from, edge.to];
-        graph.setEdge(upper, lower,
-            edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}, String(edge.i));
+    const ends = edge => upward.has(edge.i) ? [edge.to, edge.from] : [edge.from, edge.to];
+
+    const laidOut = orders => {
+        const graph = new dagre.graphlib.Graph({ multigraph: true, compound: groupKeys.size > 0 });
+        graph.setGraph({ rankdir: 'TB', nodesep: NODE_SPACING, ranksep: RANK_SPACING, edgesep: EDGE_SPACING });
+        groupKeys.forEach(key => graph.setNode(key, {}));
+        charted.forEach(box => {
+            const room = rooms.get(box.key) ?? { right: 0, top: 0 };
+            graph.setNode(box.key, { width: box.width + room.right, height: box.height + room.top });
+            if (box.group) graph.setParent(box.key, groupKeys.get(box.group));
+        });
+        links.forEach(edge => {
+            const [upper, lower] = ends(edge);
+            graph.setEdge(upper, lower,
+                edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}, String(edge.i));
+        });
+        dagre.layout(graph, orders.length ? { customOrder: inNoteOrder(orders) } : {});
+        return graph;
+    };
+    const lines = laid => links.map(edge => {
+        const [upper, lower] = ends(edge);
+        return laid.edge({ v: upper, w: lower, name: String(edge.i) }).points;
     });
 
-    dagre.layout(graph);
+    // Laid out once to find each box's row, and again with the note's own order where it has one to
+    // give — kept only when it crosses no more lines (sibling-order.js).
+    let graph = laidOut([]);
+    const groupOf = new Map(charted.map(box => [box.key, box.group ?? '']));
+    const orders = siblingOrders(links, key => Math.round(graph.node(key).y), key => groupOf.get(key));
+    if (orders.length) {
+        const ordered = laidOut(orders);
+        if (crossings(lines(ordered)) <= crossings(lines(graph))) graph = ordered;
+    }
 
     const boxes = new Map(charted.map(box => {
         const { x, y, width, height } = graph.node(box.key);
@@ -92,7 +112,7 @@ export function placeWithDagre(charted, edges) {
         boxes,
         links: links.map(edge => {
             const turned = upward.has(edge.i);
-            const [upper, lower] = turned ? [edge.to, edge.from] : [edge.from, edge.to];
+            const [upper, lower] = ends(edge);
             const laid = graph.edge({ v: upper, w: lower, name: String(edge.i) });
             return {
                 i: edge.i, upper, lower, turned,

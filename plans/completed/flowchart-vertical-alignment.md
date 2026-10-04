@@ -1,6 +1,6 @@
 # Plan: flowchart — alignment and balance
 
-Status: **recommendation made (§7), not started.** Follows `plans/completed/flowchart-dagre-elk-layout.md`; every rule
+Status: **done — §7's steps 1 and 2 built, with the tests of §8; see *As built* at the end.** Follows `plans/completed/flowchart-dagre-elk-layout.md`; every rule
 in its *Who has the last word* still holds unless an option below says otherwise.
 
 The look to aim for is `plans/reference/flowchart-layout-mockup-2-vertical-alignment.png`, which is
@@ -385,3 +385,39 @@ Each step bumps the manifest's minor version. CLAUDE.md's *The flowchart's layou
 each: boxes keep the place dagre gives them (the close-row-gaps line rewritten), and a note's three or
 more branches are drawn in its own order. *"The picture does not follow the sort"* stays true, and
 should say that this order follows each note's own text and nothing else.
+
+---
+
+## As built
+
+Steps 1 and 2 as recommended, with three findings along the way that changed how step 2 is done.
+
+- **dagre's `constraints` are broken for three or more.** Told 004 < 005 and 005 < 006, dagre 3.1.1
+  drew 006, 004, 005: once its crossing reduction has merged two of the notes a constraint names, it
+  skips that constraint. The reference chart only came out right in §6 by luck. Step 2 uses dagre's
+  `customOrder` hook instead: dagre's own ordering runs first, then the branches swap places among
+  the positions they already hold in their row (`inNoteOrder()` in `sibling-order.js`). dagre then
+  places the boxes from that order. Since no constraint is handed to dagre, nothing can form a cycle:
+  a note whose branches another note has already ordered is left alone (notes asked in key order).
+- **A branch's placeholders move with it.** dagre splits a link into a placeholder node in each row it
+  crosses, the label's row among them. Moving the three boxes alone left their links' placeholders
+  where they were, and the guard rejected the result (5 crossings against 0). Each branch now takes
+  the note's links to it along, row by row.
+- **Balance is dagre's, and close rather than exact.** On the level 2 fixture (180-wide boxes, labels
+  of differing widths), 006 is 19 off the middle of 007 and 008; in the app it is about 4. ELK
+  centred exactly on this chart. The test asks for within a quarter of a box. The chains and the spine
+  are exact columns. The ~10-line span-centring extra from option D was not built: it would move boxes
+  again, which step 1 exists to stop.
+
+Measured in the look spec's charts against the old code:
+
+- **The alignment reference** matches the picture: spine, both chains, 005 and 004 either side of 006.
+- **The first mockup** now draws 006 in the middle under 003 as well, top to bottom, left to right and
+  merged.
+- **The mixed chart** (`MIXED`, notes in and out of two subgraphs) gains two straight runs (Start
+  here → The plan, Chop onions → Cook dinner) and is about **19% wider**. This is the cost of step 1 on
+  a chart where moving boxes used to close space. Worth watching on real folders. If it matters, the
+  answer is option D's "move a column of boxes as one", not a pull on single boxes.
+
+Not done, as §7 says: option A (wrapping titles sooner), which changes the look rather than the
+alignment.

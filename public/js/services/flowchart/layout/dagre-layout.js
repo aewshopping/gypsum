@@ -20,7 +20,9 @@ import { atOrigin, withNamesAbove } from './chart-frame.js';
  * run in:
  *
  * 1. **dagre places** the linked boxes, the groups, each link's lanes and its label (dagre-place.js),
- *    and each row is then **drawn together**, every box and lane nearer what it links to (close-row-gaps.js).
+ *    a note's three or more branches in the order it gives them (sibling-order.js); each row's lanes
+ *    are then **drawn together**, nearer what they link to, the boxes kept where dagre put them
+ *    (close-row-gaps.js).
  * 2. **Ports** spread each box's arrows along its top and bottom (ports.js), and a link that runs in one
  *    straight column has the column slid onto its port where that is safe (straighten.js).
  * 3. Each link's **jogs** — where it turns sideways between two rows — are found, and given **tracks**

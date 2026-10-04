@@ -39,6 +39,23 @@ const MIXED = {
   'eat.md': '# Eat\n\n[[start.md|tomorrow]]\n',
 };
 
+// plans/reference/flowchart-layout-mockup-2-vertical-alignment.png, in two subgraphs: two chains and a spine.
+const part = (title, links, chapter = 'part1') => `---\nchapter: ${chapter}\n---\n# ${title}\n\n${links}\n`;
+const ALIGNMENT = {
+  '001.md': part('001 The best birthday', '[[002.md|other presents first]] [[003.md|try to fix]]'),
+  '002.md': part('002 The robot can wait', '[[003.md|try to fix the robot]]'),
+  '003.md': part('003 Robot fix', '[[005.md|open chest panel]] [[006.md|press silver button]] [[004.md|screwdriver in belly button]]'),
+  '004.md': part('004 Bodge job', '[[003.md|try to fix robot]]'),
+  '005.md': part('005 Gibberish', '[[003.md|try to fix robot]]'),
+  '006.md': part('006 Activating the robot', '[[008.md|brush teeth]] [[007.md|tidy room]]'),
+  '007.md': part('007 robo clean', '[[011.md|brush teeth]]'),
+  '008.md': part('008 teeth brush', '[[010.md|robo clean]]'),
+  '009.md': part('009 secret message', '[[012.md|go to the chevin]]'),
+  '010.md': part('010 robo clean', '[[009.md|secret message]]'),
+  '011.md': part('011 brush teeth', '[[009.md|secret message]]'),
+  '012.md': part('012 at the chevin', '', 'part2'),
+};
+
 // The awkward cases together: a link to itself, two links to one note, a diamond, a missing note.
 const AWKWARD = {
   'loop.md': '---\nshape: diamond\n---\n# Goes round\n\n[[loop.md|again]] [[next.md|once]] [[next.md|twice]]\n',
@@ -67,6 +84,10 @@ async function screenshotChart(page, files, testInfo, roles = {}, theme = null, 
 
 test('the mockup chart', async ({ page }, testInfo) => {
   await screenshotChart(page, MOCKUP, testInfo);
+});
+
+test('the alignment reference: chains in columns, a spine down the middle', async ({ page }, testInfo) => {
+  await screenshotChart(page, ALIGNMENT, testInfo, { subgraph: 'chapter' });
 });
 
 test('a link to itself, two links to one note, a diamond and a missing note', async ({ page }, testInfo) => {
