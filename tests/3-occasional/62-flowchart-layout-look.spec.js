@@ -138,6 +138,10 @@ test('three subgraphs linked to each other and to notes in none', async ({ page 
   await screenshotChart(page, THREE, testInfo, { subgraph: 'chapter' });
 });
 
+test('three subgraphs with arrows merged', async ({ page }, testInfo) => {
+  await screenshotChart(page, THREE, testInfo, { subgraph: 'chapter' }, null, { merge: 'true' });
+});
+
 test('subgraphs left to right', async ({ page }, testInfo) => {
   await screenshotChart(page, MIXED, testInfo, { subgraph: 'chapter' }, null, { direction: 'LR' });
 });

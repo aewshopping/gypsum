@@ -39,7 +39,7 @@ const PIN_TRIES = 4;  // layouts tried to get every border box onto its group's 
  * @returns {{positions: Map, routes: object[], groups: object[], width: number, height: number}}
  */
 export function nestedLayout(charted, edges, merge, nameHeight) {
-    const split = splitLinks(charted, edges);
+    const split = splitLinks(charted, edges, merge);
     const first = laidOut(split, charted, merge, nameHeight, new Map());
     const rows = borderRows(split, first.outer);
     if (rows.size === 0) return first.chart;
@@ -82,8 +82,8 @@ function borderRows(split, outer) {
             return (split.outer.edges[border.outer].from === blockKey(name) ? points.at(-1) : points[0])[0];
         };
         const lists = ['top', 'bottom']
-            .map(side => borders.filter(border => border.side === side)
-                .map(border => [border.key, farX(border)]).sort((a, b) => a[1] - b[1]).map(([key]) => key))
+            .map(side => [...new Set(borders.filter(border => border.side === side)
+                .map(border => [border.key, farX(border)]).sort((a, b) => a[1] - b[1]).map(([key]) => key))])
             .filter(keys => keys.length > 1);
         if (lists.length) rows.set(name, lists);
     }
@@ -123,8 +123,10 @@ function insideOf({ members, edges, borders }, merge, nameHeight, rows) {
  * `minlen`: the members are laid out alone to find their rows, each border's link is made long enough
  * to reach past the last of them, and any that still falls short is lengthened and laid out again.
  */
-function pinnedChart(members, edges, borders, merge, rows) {
-    if (borders.length === 0) return chartInRanks(members, edges, merge, 0);
+function pinnedChart(members, edges, allBorders, merge, rows) {
+    if (allBorders.length === 0) return chartInRanks(members, edges, merge, 0);
+    // Merged, several links can share one border box; it is pinned once.
+    const borders = [...new Map(allBorders.map(border => [border.key, border])).values()];
     const isBorder = new Set(borders.map(border => border.key));
     const plain = placeWithDagre(members, edges.filter(edge => !isBorder.has(edge.from) && !isBorder.has(edge.to)));
     const ranks = [...new Set([...plain.boxes.values()].map(box => Math.round(box.rankY)))].sort((a, b) => a - b);

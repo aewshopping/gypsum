@@ -30,6 +30,7 @@ export const blockKey = name => `block:${name}`;
  *
  * @param {{key: string, width: number, height: number, group?: string}[]} charted - Sorted by key.
  * @param {{from: string, to: string, label: ?object}[]} edges
+ * @param {boolean} [merge] - Links into one note through one side of its group share a border box.
  * @returns {{
  *   names: string[],
  *   outer: {keys: string[], edges: object[]},
@@ -39,7 +40,7 @@ export const blockKey = name => `block:${name}`;
  *   block per group, the blocks unsized; each piece names its graph (null for the outer one) and its
  *   index there, and an edge's pieces run from its `from` to its `to`.
  */
-export function splitLinks(charted, edges) {
+export function splitLinks(charted, edges, merge = false) {
     const groupOf = new Map(charted.map(box => [box.key, box.group ?? '']));
     const names = [...new Set(charted.map(box => box.group).filter(Boolean))];
     const outerEnd = key => groupOf.get(key) ? blockKey(groupOf.get(key)) : key;
@@ -66,6 +67,7 @@ export function splitLinks(charted, edges) {
     const borders = new Map(names.map(name => [name, []]));
     const { upward } = turnedLinks(outer.keys.map(key => ({ key })), outer.edges);
     const seen = new Map(); // how many earlier links ran between the same two notes
+    const shares = new Map(); // border key -> what to do, for each link crossing there, once it is placed
     for (const [i, index] of cut.sort((a, b) => a[1] - b[1])) {
         const edge = edges[i];
         const pair = `${edge.from}\n${edge.to}`;
@@ -75,15 +77,24 @@ export function splitLinks(charted, edges) {
             const name = groupOf.get(edge[at]);
             if (!name) continue;
             const side = upper === blockKey(name) ? 'bottom' : 'top';
-            const key = `border:${name}\n${pair}\n${seen.get(pair)}`;
-            const [a, b] = side === 'bottom' ? [edge[at], key] : [key, edge[at]];
+            // Merged, every link reaching one note through one side of its group shares a border box,
+            // so they cross the border as one trunk, as mermaid's `mergeHierarchyEdges` draws them.
+            const key = merge ? `border:${name}\n${edge[at]}\n${side}` : `border:${name}\n${pair}\n${seen.get(pair)}`;
             const reversed = (at === 'from') !== (side === 'bottom');
-            lists.get(name).push([{ from: a, to: b, label: null, tie: '' }, i, piece => {
+            const placed = piece => {
                 const entry = { graph: name, index: piece, reversed };
                 if (at === 'from') pieces[i].unshift(entry);
                 else pieces[i].push(entry);
                 borders.get(name).push({ key, side, outer: index, edge: piece, member: edge[at] });
-            }]);
+            };
+            const shared = shares.get(key);
+            if (shared) {
+                shared.push(placed);
+                continue;
+            }
+            shares.set(key, [placed]);
+            const [a, b] = side === 'bottom' ? [edge[at], key] : [key, edge[at]];
+            lists.get(name).push([{ from: a, to: b, label: null, tie: '' }, i, piece => shares.get(key).forEach(then => then(piece))]);
         }
     }
 
