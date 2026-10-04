@@ -563,6 +563,8 @@ async function setupMockFilesWithLinks(page) {
         makeFile('ambig.md', '# Ambig\n\nThe .md one.'),
         // Both faults at once, so fileIssues carries a yaml and a links segment together.
         // Appended, never prepended: myFiles[0] is what registers the properties.
+        // The one broken target is linked three ways — plain, then with two different texts — which
+        // is two links (the plain one takes the first text) and still one broken target.
         makeFile('both-faults.md', [
           '---',
           'a line with no colon',
@@ -571,6 +573,7 @@ async function setupMockFilesWithLinks(page) {
           '# Both Faults',
           '',
           'A broken link to [[also-missing.md]] here.',
+          'The same, [[also-missing.md|one way]] and [[also-missing.md|another way]].',
         ].join('\n')),
         // Every front matter shape a link can be written in, plus the two that must NOT be
         // read as one. Appended, never prepended, for the same reason as both-faults.md.

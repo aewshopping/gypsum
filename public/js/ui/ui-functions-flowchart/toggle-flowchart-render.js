@@ -1,5 +1,6 @@
 import { appState } from '../../services/store.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { rememberChartView } from './flowchart-view-memory.js';
 
 /**
  * Switches the flowchart view between its mermaid code and its SVG.
@@ -12,6 +13,7 @@ import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
  * @returns {void}
  */
 export function handleToggleFlowchartRender(event, target) {
+    rememberChartView();
     appState.flowchartView.showSvg = target.checked;
     renderFiles(true, true);
     document.querySelector('[data-action="toggle-flowchart-render"]')?.focus();

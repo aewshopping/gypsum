@@ -3,6 +3,12 @@
    (flowchart-link-hover.js) — the line thickens, the text is outlined — and outlines the note the
    link is written in, in flowchart.css. */
 
+/* A link's line, and a note's border, which matches it: one width, and one when hovered. */
+.flowchart-svg {
+    --flowchart-line: 1.5;
+    --flowchart-line-hover: 3.5;
+}
+
 .flowchart-edge, .flowchart-edge-label {
     cursor: pointer;
     color: var(--colour-contr);
@@ -11,8 +17,7 @@
 .flowchart-edge-line {
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.5;
-    vector-effect: non-scaling-stroke;
+    stroke-width: var(--flowchart-line);
 }
 
 /* A link to a note that does not exist: the chart's broken link. */
@@ -37,7 +42,6 @@
         fill: var(--colour-neutral);
         stroke: var(--colour-neutral-alt);
         stroke-width: 1;
-        vector-effect: non-scaling-stroke;
     }
     text {
         /* LABEL_FONT_SIZE in ui-functions-flowchart/render-svg.js, which measures the lines in this font. */
@@ -48,15 +52,16 @@
     }
 }
 
-.flowchart-edge.is-hovered .flowchart-edge-line { stroke-width: 3.5; }
+.flowchart-edge.is-hovered .flowchart-edge-line { stroke-width: var(--flowchart-line-hover); }
 .flowchart-edge-label.is-hovered rect { stroke: var(--colour-contr); stroke-width: 2; }
 
-/* The line a drag from a note's box draws to the pointer, before it is a link. */
+/* The line a drag from a note's box draws to the pointer, before it is a link: drawn as one, at a
+   link's width, and dashed because it is not one yet. */
 .flowchart-drag-line {
+    fill: none;
     stroke: var(--colour-contr);
-    stroke-width: 2;
+    stroke-width: var(--flowchart-line);
     stroke-dasharray: 6 4;
-    vector-effect: non-scaling-stroke;
     pointer-events: none;
 }
 

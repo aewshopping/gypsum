@@ -1,7 +1,7 @@
 # Plan: the flowchart view
 
 Status: **complete** — all six steps built (manifest `1.366.0`). Real layout is the next plan,
-`plans/flowchart-dagre-elk-layout.md`.
+`plans/completed/flowchart-dagre-elk-layout.md`.
 Branch: `claude/flowchart-svg-first-plan`. Bump the manifest's minor version with each step that
 changes code.
 
@@ -299,7 +299,7 @@ As built:
 Not to be designed for now — listed so nothing above closes them off.
 
 - **Layout.** Replace `placeholder-layout.js` with real positions — now its own plan,
-  `plans/flowchart-dagre-elk-layout.md`.
+  `plans/completed/flowchart-dagre-elk-layout.md`.
 - **Which way the mermaid source runs.** Either the SVG is laid out from the source (so hand-edits
   count, and nodes need a `%% gypsum:<id> <path>` comment to know which note they are), or the SVG is
   primary and the source is generated from it for export. Decide once the SVG exists.

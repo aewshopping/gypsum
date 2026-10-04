@@ -599,14 +599,21 @@ never meet, which is the point: reading text would make `related: [[a, b]]` a br
   free.
 
 **`internalLink` and `internalLinkText` are one Map read twice, and that is what aligns them.**
-`tagState.links` is a `Map<target, text>`; the file object takes its `keys()` and its `values()`, so
-index *i* of each array is the same link and no code path has to keep them in step. `addLink()` in
-`file-info.js` is the only writer, called from all three places links are found — the body scan, the
-H1 re-scan and the front matter merge.
+`tagState.links` is a `Map<target, text[]>`; the file object takes both arrays from it in one pass
+(`linkLists()`), each target once per link to it, so index *i* of each array is the same link and no
+code path has to keep them in step. `addLink()` in `file-info.js` is the only writer, called from all
+three places links are found — the body scan, the H1 re-scan and the front matter merge.
 
-- **A target linked twice keeps its first position, and the first non-empty text fills the slot.**
-  `[[shopping.txt]]` and later `[[shopping.txt|groceries]]` is one link, labelled; text already
-  given is never overwritten.
+- **One link per distinct text.** `[[b|open the door]]` and `[[b|walk away]]` are two links to `b`,
+  and the flowchart draws two arrows. A mention with no text is never a link of its own once `b` has
+  one: `[[shopping.txt]]` and later `[[shopping.txt|groceries]]` is one link, labelled, and a target
+  written in front matter and again in the body does not double up. A later text fills an empty slot
+  before it adds one; text already given is never overwritten. A target's links keep the position
+  of its first mention.
+- **So `internalLink` can name a target twice.** The broken-link count asks of the distinct targets,
+  so a broken target linked two ways is still `links: 1 broken`. Dragging a link on the flowchart
+  onto a note already linked is still refused: a second, differently labelled arrow is made by
+  writing its text in the note.
 - **No `|` means `''`, never the target** — even though the target is what such a link renders as.
   `''` is falsy, which is what `render-file-list-flowchart.js` tests to decide whether an edge is
   labelled.
@@ -1051,6 +1058,85 @@ layouts, and adding them would be a new plan rather than a new key.
   length. Read the text by index and treat `undefined` as an unlabelled edge.
 - **Open a dialog or popover from a `click`, never a `mouseup`** — the click that follows lands outside it and a `closedby="any"` dialog shuts unseen (`flowchart-note-open.js`).
 
+### The flowchart's layout
+
+**dagre places the boxes and the plan's own routing has the last word.** See
+`plans/completed/flowchart-dagre-elk-layout.md`, built in three stages, each tried by hand.
+`layout/dagre-layout.js` is the order the steps run in and nothing else; each step is a module of its
+own in `layout/`, all pure, and the layout test (`62-flowchart-layout.spec.js`) runs every fixture top
+to bottom, left to right and merged through one checker.
+
+- **The contract is the seam**, stated at the top of `layout/placeholder-layout.js`: boxes and edges
+  (with each label's size) in, positions, routes, width and height out. Drawing, hover, press, drag
+  and the link writing know nothing else, so a better layout changes none of them.
+- **One drawing style, and it is the elk-inspired one** — there is no dagre-or-elk switch, and the
+  inspiration for every feature here is [mermaid.live/edit](https://mermaid.live/edit), the first place
+  to look before inventing an answer.
+- **dagre is copied in, minified, at `public/js/dagre/`**, as svg-pan-zoom has its own folder. Its
+  version is in the header comment; replacing it is replacing that one file.
+- **A link to itself is not dagre's.** dagre 3.1.1 routes one to points nowhere near its box, so
+  `dagre-layout.js` leaves it out of the graph, reserves room for it by growing the box it hands dagre,
+  and draws the placeholder's loop.
+- **The picture does not follow the sort.** The files arrive newest first by default, so a layout
+  that followed their order would reshuffle whenever a note was edited. dagre is handed notes and
+  links sorted by key, and **which links of a loop point back up is chosen before dagre sees them**
+  (`upward-links.js`: the fewest a depth-first walk from each note can find, ties to filename order),
+  turned round going in and turned back after. dagre's own `greedy` option was tried and did worse.
+- **A note with no links is set in a block above the chart** (`unlinked-block.js`), not left to
+  stretch dagre's first row — unless it is in a subgraph, which needs it inside.
+- **Routes run in dagre's lanes and turn only between rows.** dagre gives a link a point in every row
+  it passes, kept clear for it; a route goes straight down each and jogs sideways only in the gap below
+  (`orthogonal-routes.js`), on a track of its own (`tracks.js`), the gap widened when it needs the room
+  (`ranks.js`). So nothing in a row — box, label, group name — is ever crossed sideways, and a label
+  stays where dagre kept its place, on its own route. Do not move labels or boxes in a way that breaks
+  this: it is what the "no run through a box" and "label on its own route" rules rest on.
+- **Rows are drawn together after dagre** (`close-row-gaps.js`): dagre spaces a row to suit every row
+  at once, so a sparse row inside one wide subgraph was spread to the group's edges. Each box and lane
+  slides towards what it links to — order, dagre's spacing and group edges all kept.
+- **Bends along a row share a height**: `tracks.js` orders a gap's jogs to cross least, then packs
+  each onto the highest track where it overlaps nothing above it, so jogs that do not overlap bend
+  together and the chart scans in rows. `jog-heights.js` puts the tracks between two margins, the
+  larger `ARROW_ROOM` on a side an arrowhead lands on, so a head never sits on a bend.
+- **An arrowhead stops short of its box** (`ARROW_GAP` in `edge-path.js`); a line leaving a box starts
+  on it. The route itself still ends on the outline — the gap is drawing.
+- **Ports divide a side evenly, and that comes before a straight line** (`ports.js`): one arrow at a
+  side's middle, two at its thirds, three at its quarters, out or in, as in the reference picture —
+  over the share of the side the shape can take (`portWidth`/`portHeight` from `node-shape.js`), all of
+  a rectangle's. Do not move a port to save a bend; the one exception is `NUDGE` in
+  `orthogonal-routes.js`, a port within 5 of its lane meeting it, since a step that small reads as a
+  glitch. `straighten.js` slides a straight link's lanes onto one of its ports where that is safe, never
+  the other way. `fit-routes-to-shapes.js` then moves each end onto the real outline. The layout never
+  learns about shapes.
+- **Direction and merging are layout settings, not roles**: `appState.flowchartLayout`, the
+  `flowchartLayout` key of the layouts file, `setFlowchartLayoutSetting()` the one writer
+  (`services/flowchart/flowchart-layout-settings.js`). Left to right is the top to bottom chart laid
+  out on its side and mirrored (`transpose.js`), so there is one router, not two.
+- **Merging is one port per side, in and out together** (`ports.js`), and every jog meeting it on one
+  track — a two-way trunk, as mermaid's elk drawing has; each link keeps its own branch and label.
+- **After a write the chart settles rather than jumps** (`ui-functions-flowchart/flowchart-settle.js`):
+  every render lays it out afresh, since the router cannot route around held boxes, so a render that
+  follows a write (`flowchartView.settle`) keeps the note nearest the middle where it was on screen,
+  at the same size, and glides every note and link text from its old place — a new note from where
+  it was dropped. The notes a change was about stay in view, the view zooming out if they would not:
+  both ends of every link the redraw gained or lost, found by comparing the links drawn before and
+  after (`data-link` on each edge), so a drawn link, a new note, an undo and a link typed into a note
+  are all covered with nothing passed from the action that caused them. Where the view goes is
+  `flowchart-settle-view.js`, worked out before pan and zoom are attached so the slider agrees.
+  Web Animations, not a view transition, which would crossfade the SVG as one picture. A filter, a
+  sort, a view change or the options dialog lays out afresh with nothing held.
+- **Pan and zoom outlive the chart going off screen** (`flowchart-view-memory.js`): the code switch
+  and a view change put them by, and the next drawing takes them back if every box is where it was.
+- **Corners and hops are drawing**, in `edge-path.js`, in drawing units so they zoom; the layout only
+  says where a route hops (`line-jumps.js`: the horizontal run bridges the vertical one).
+- **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
+  used to draw the box and to ask the layout for room for it.
+- **Subgraphs are placed by dagre, in the same run** — a compound graph, each group a parent node —
+  because which group a note is in decides where it goes, and stage 2 never moves a box between rows.
+  One run, never one per group: links between groups would go unplanned. The group is in the graph
+  (`groupOf()` in `flowchart-graph.js`), read by the mermaid source and the SVG alike; a stub is in
+  none. The name sits in the strip dagre leaves inside a group's top edge, `GROUP_NAME_HEIGHT` tall,
+  and the box takes no presses, so a drop inside a group is a drop on empty chart.
+
 ### A view's own control row
 
 **`.output-controls` is the row a view draws above its output**, shared by the table and the
@@ -1136,8 +1222,26 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/services/flowchart/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |
-| `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links — shared by the mermaid source and the SVG |
-| `public/js/services/flowchart/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), and a grid that keeps it until a real layout replaces it |
+| `public/js/services/flowchart/flowchart-graph.js` | The visible files as nodes, stubs and links, and each note's subgraph — shared by the mermaid source and the SVG |
+| `public/js/services/flowchart/layout/` | Where the flowchart's boxes and lines go — pure; see *The flowchart's layout* |
+| `public/js/services/flowchart/layout/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), stated, and a grid that keeps it — the fallback |
+| `public/js/services/flowchart/layout/dagre-layout.js` | The contract: the layout's steps, in order |
+| `public/js/services/flowchart/layout/dagre-place.js` | dagre's placement: boxes, groups, each link's lanes and label |
+| `public/js/services/flowchart/layout/orthogonal-routes.js` | A link as a right-angled route through its lanes |
+| `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `jog-heights.js`, `ranks.js` | Where arrows meet a box; the order of sideways runs in a gap, and their heights; the rows and widening a gap |
+| `public/js/services/flowchart/layout/straighten.js` | A straight link's lanes slid onto one of its ports, saving a bend |
+| `public/js/services/flowchart/layout/close-row-gaps.js` | Each row's boxes and lanes pulled towards what they link to, never past a neighbour or a group's edge |
+| `public/js/services/flowchart/layout/compact-columns.js`, `transpose.js`, `chart-frame.js` | Narrowing empty strips; left to right; the drawing's frame |
+| `public/js/services/flowchart/layout/line-jumps.js` | Where routes cross, so the drawing can bridge |
+| `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |
+| `public/js/ui/ui-functions-flowchart/edge-path.js` | A route as a path: rounded corners and hops |
+| `public/js/ui/ui-functions-flowchart/fit-routes-to-shapes.js` | Route ends moved onto a shape's real outline |
+| `public/js/ui/ui-functions-flowchart/flowchart-settle.js` | A chart redrawn after a write: notes and link texts glided from where they were, the lines faded |
+| `public/js/ui/ui-functions-flowchart/flowchart-view-memory.js` | The chart's pan and zoom kept while it is off screen, given back to the same layout |
+| `public/js/ui/ui-functions-flowchart/flowchart-settle-view.js` | Where the view goes after a write: held still, or zoomed out to keep both ends of a changed link in view |
+| `public/js/services/flowchart/layout/upward-links.js` | Which links of a loop point back up the chart |
+| `public/js/services/flowchart/layout/unlinked-block.js` | Notes with no links, set in a block above the chart |
+| `public/js/dagre/` | dagre, copied in with its licence — knows nothing of notes |
 | `public/js/services/flowchart/plan-flowchart-link.js` | What a link drawn on the flowchart writes into its note, or why it cannot — pure |
 | `public/js/editing/add-flowchart-link.js` | A drawn link into its note: always a list, through `applyRawEdits`, one undo entry |
 | `public/js/services/flowchart/node-content.js` | A note's label and shape, read through the flowchart options — shared by the mermaid source and the SVG |
@@ -1177,7 +1281,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/ui-functions-render/render-internal-link.js` | A `[[link]]` as HTML: the anchor, and the scan that finds them in a value |
 | `public/js/ui/ui-functions-click/column-stick.js` | How many leading columns stick left while the table scrolls sideways |
 | `public/js/ui/ui-functions-click/linked-column-*.js` | The linked column dialog: keeping it up to date, save, delete |
-| `public/js/ui/ui-functions-render/render-undo-buttons.js` | Undo, redo and the undo history buttons, shared by the table's and the flowchart's control rows |
+| `public/js/ui/ui-functions-render/render-undo-buttons.js` | Undo, redo and the undo history buttons for the table's control row; the history button alone for the flowchart's |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

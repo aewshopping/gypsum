@@ -1,23 +1,30 @@
 /**
- * @file Somewhere to put each node, and a route for each edge, until the flowchart has a real layout.
+ * @file The layout contract, stated, and the simplest layout that keeps it: boxes in a grid and edges as
+ * straight lines between them.
  *
- * Boxes go in a grid and edges are straight lines between them. It exists so the SVG can be got
- * right before anything decides where a note belongs, and is to be replaced. See
- * plans/completed/flowchart-view.md.
+ * It was written so the SVG could be got right before anything decided where a note belongs
+ * (plans/completed/flowchart-view.md). The chart now draws from layout/dagre-layout.js; this stays as
+ * the statement of what any layout must return, and as the fallback a new layout can be compared with
+ * (plans/completed/flowchart-dagre-elk-layout.md).
  *
- * **The contract is what a replacement has to keep**, and it is all the drawing code knows:
+ * **The contract is what a layout has to keep**, and it is all the drawing code knows:
  *
- * - in: `boxes` — `{key, width, height}` per node — and `edges` — `{from, to}`, node keys;
+ * - in: `boxes` — `{key, width, height, group}` per node, `group` naming its subgraph or '' — and
+ *   `edges` — `{from, to, label}`, node keys and the size of the box the edge's text is drawn in,
+ *   `{width, height}`, or null when it has none;
  * - out: `positions`, a Map of key to the box's top-left `{x, y}`; `routes`, one per edge in the
- *   same order, each `{points, labelAt}` — a polyline as `[x, y]` pairs, ending where the arrowhead
- *   goes, and where its text sits; and the `width` and `height` of the whole drawing.
+ *   same order, each `{points, labelAt, hops}` — a polyline as `[x, y]` pairs, ending where the
+ *   arrowhead goes; where its text sits; and the points on it where it bridges another route, which
+ *   this layout, drawing straight lines, leaves out; `groups`, one box per subgraph, `{name, x, y, width, height}`,
+ *   holding its members with its name in a strip along its top edge; and the `width` and `height` of
+ *   the whole drawing.
  *
- * A layered engine returns exactly this — node positions and an edge's bend points — so it can
- * take this module's place without the drawing changing.
+ * This one ignores a label's size and draws no groups: its straight lines put the text at their
+ * middle whatever its size, and a grid has no way to keep a group's members together.
  */
 
 const REVERSE_OFFSET = 10; // how far apart A→B and B→A are drawn, so they do not overlap
-const LOOP = 24;           // how far a note's link to itself loops out from its box
+export const LOOP = 24;    // how far a note's link to itself loops out from its box
 
 /**
  * The point where a line from a box's centre towards `toward` crosses the box's edge.
@@ -25,7 +32,7 @@ const LOOP = 24;           // how far a note's link to itself loops out from its
  * @param {number[]} toward - `[x, y]`.
  * @returns {number[]} `[x, y]`.
  */
-function edgeOfBox(box, toward) {
+export function edgeOfBox(box, toward) {
     const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
     const dx = toward[0] - cx, dy = toward[1] - cy;
     const scale = Math.min(Math.abs(box.width / 2 / dx) || Infinity, Math.abs(box.height / 2 / dy) || Infinity);
@@ -50,15 +57,17 @@ function straightRoute(from, to, offset) {
 
 /**
  * A note's link to itself: out of its right side, over the top, and back down into it.
+ * @param {{x: number, y: number, width: number, height: number}} box
+ * @param {number} [size] - How far the loop reaches out from the box.
  * @returns {{points: number[][], labelAt: number[]}}
  */
-function loopRoute(box) {
+export function loopRoute(box, size = LOOP) {
     const right = box.x + box.width, top = box.y;
     const points = [
-        [right, top + box.height * 0.35], [right + LOOP, top + box.height * 0.35],
-        [right + LOOP, top - LOOP], [right - box.width * 0.3, top - LOOP], [right - box.width * 0.3, top],
+        [right, top + box.height * 0.35], [right + size, top + box.height * 0.35],
+        [right + size, top - size], [right - box.width * 0.3, top - size], [right - box.width * 0.3, top],
     ];
-    return { points, labelAt: [right + LOOP, top - LOOP] };
+    return { points, labelAt: [right + size, top - size] };
 }
 
 /**
@@ -68,9 +77,9 @@ function loopRoute(box) {
  * different sizes neither overlap nor leave uneven gaps.
  *
  * @param {{key: string, width: number, height: number}[]} boxes - One per node, in drawing order.
- * @param {{from: string, to: string}[]} edges - Node keys.
+ * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - Node keys; the label's size is ignored.
  * @param {number} gap - Space between neighbouring boxes.
- * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[]}[], width: number, height: number}}
+ * @returns {{positions: Map<string, {x: number, y: number}>, routes: {points: number[][], labelAt: number[]}[], groups: [], width: number, height: number}}
  */
 export function placeholderLayout(boxes, edges, gap) {
     const columns = Math.max(1, Math.ceil(Math.sqrt(boxes.length)));
@@ -104,6 +113,7 @@ export function placeholderLayout(boxes, edges, gap) {
     return {
         positions,
         routes,
+        groups: [],
         width: Math.max(0, usedColumns * (columnWidth + gap) - gap),
         height: Math.max(0, y - gap),
     };

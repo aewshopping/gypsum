@@ -3,6 +3,7 @@ import { svgElement } from './svg-element.js';
 import { linkNotes } from './flowchart-link-add.js';
 import { offerNewLinkedNote } from './flowchart-note-create.js';
 import { placeDragGhost, removeDragGhost } from './flowchart-drag-ghost.js';
+import { edgePath } from './edge-path.js';
 
 /**
  * @file Dragging from one note's box to another's draws a link between them.
@@ -56,8 +57,30 @@ function clearDragMarks(svg) {
 }
 
 /**
+ * The drag's line as a route a link could take, right angles only and rounded by edgePath like every
+ * link: out of the box's bottom or top, to halfway, across, and on to the pointer — or, when the
+ * pointer is level with the box, out of its side, to halfway, up or down, and across.
+ * @param {SVGGElement} source - The box the drag began on.
+ * @param {DOMPoint} centre - Its centre, in the drawing's units.
+ * @param {DOMPoint} to - The pointer, or the ghost it rides on, in the drawing's units.
+ * @param {DOMMatrix} toDrawing - Screen to drawing.
+ * @returns {number[][]}
+ */
+function dragRoute(source, centre, to, toDrawing) {
+    const rect = source.getBoundingClientRect();
+    const a = new DOMPoint(rect.left, rect.top).matrixTransform(toDrawing);
+    const b = new DOMPoint(rect.right, rect.bottom).matrixTransform(toDrawing);
+    if (to.y < a.y || to.y > b.y) {
+        const y = to.y < a.y ? a.y : b.y, middle = (y + to.y) / 2;
+        return [[centre.x, y], [centre.x, middle], [to.x, middle], [to.x, to.y]];
+    }
+    const x = to.x < centre.x ? a.x : b.x, middle = (x + to.x) / 2;
+    return [[x, centre.y], [middle, centre.y], [middle, to.y], [to.x, to.y]];
+}
+
+/**
  * Carries a press from a note's box to a point on screen: past the threshold it becomes a drag,
- * drawn as a line from the box's centre to the point.
+ * drawn as a link is: down (or up) from the box, across, and on to the point, with rounded bends.
  *
  * @param {SVGSVGElement} svg - The chart.
  * @param {number} x - Client coordinates.
@@ -79,20 +102,20 @@ function moveDrag(svg, x, y, threshold) {
     // Both ends in the drawing's own units, which pan and zoom have moved away from the screen's.
     const toDrawing = drawing.getScreenCTM().inverse();
     const box = source.getBoundingClientRect();
-    const from = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(toDrawing);
+    const centre = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(toDrawing);
     let to = new DOMPoint(x, y).matrixTransform(toDrawing);
 
     // Over the background, letting go makes a note: the ghost says so, and the line ends on it.
-    if (onBackground(svg, x, y)) to = placeDragGhost(drawing, to, from);
+    if (onBackground(svg, x, y)) to = placeDragGhost(drawing, to, centre);
     else removeDragGhost(drawing);
 
     let line = drawing.querySelector('.flowchart-drag-line');
     if (!line) {
-        line = svgElement('line', { class: 'flowchart-drag-line', 'marker-end': 'url(#flowchart-arrowhead)' });
-        drawing.append(line);
+        line = svgElement('path', { class: 'flowchart-drag-line', 'marker-end': 'url(#flowchart-arrowhead)' });
+        // Under the boxes, as a link's line is.
+        drawing.insertBefore(line, drawing.querySelector(':scope > [data-key]'));
     }
-    line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
-    line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
+    line.setAttribute('d', edgePath(dragRoute(source, centre, to, toDrawing)));
 
     const over = boxAt(x, y);
     const marked = drawing.querySelector('.is-drop-target');
@@ -125,7 +148,7 @@ function endDrag(svg, x, y) {
     appState.flowchartView.press = null;
     if (x === null) return;
     if (onBackground(svg, x, y)) {
-        offerNewLinkedNote(press.fileId);
+        offerNewLinkedNote(press.fileId, { x, y });
         return;
     }
     const over = boxAt(x, y);

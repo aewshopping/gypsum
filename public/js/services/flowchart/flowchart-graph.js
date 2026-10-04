@@ -39,8 +39,11 @@ const nodeKey = (kind, id) => `${kind}:${id}`;
  *
  * @param {object[]} files - The files being drawn, in order.
  * @param {object} roles - What readRoles returned.
- * @returns {{nodes: object[], edges: object[]}} Nodes `{key, kind, file, label, shape?, path?}`, notes
- *   first in file order and then stubs; edges `{from, to, text, file, missing}`, keys of nodes, in link
+ * A note's **group** is the subgraph it is drawn in, '' for none (groupOf). A stub's is always '': it
+ * stands for a link's far end, not for a note being drawn here, so it belongs to no group.
+ *
+ * @returns {{nodes: object[], edges: object[]}} Nodes `{key, kind, file, label, group, shape?, path?}`,
+ *   notes first in file order and then stubs; edges `{from, to, text, file, missing}`, keys of nodes, in link
  *   order, `file` being the note the link is written in.
  */
 export function buildFlowchartGraph(files, roles) {
@@ -48,7 +51,7 @@ export function buildFlowchartGraph(files, roles) {
     const filesById = new Map(appState.myFiles.map(file => [file.internalId, file]));
     const nodes = files.map(file => ({
         key: nodeKey('note', file.internalId), kind: 'note', file,
-        label: nodeLabel(file, roles), shape: nodeShape(file, roles),
+        label: nodeLabel(file, roles), shape: nodeShape(file, roles), group: groupOf(file, roles.subgraph),
     }));
     const stubs = new Map();
     const edges = [];
@@ -73,6 +76,26 @@ export function buildFlowchartGraph(files, roles) {
 }
 
 /**
+ * The subgraph a file belongs to, as the text of its group.
+ *
+ * A list uses its first item, because mermaid puts a node in one subgraph and no more — so
+ * `tags: [chapter-one, draft]` means chapter-one, and groups never nest. Empty, absent and blank all
+ * come back as '', which is the ungrouped bucket, so one predicate covers null, undefined, [], ['']
+ * and '   '.
+ *
+ * Groups are matched exactly after trimming, so `Chapter 1` and `chapter 1` are two groups. That is
+ * decided rather than left to fall out: the alternative is a chart that silently merges two names
+ * somebody meant to keep apart.
+ *
+ * @param {object} file - A file object.
+ * @param {?string} property - The property the subgraph role resolved to.
+ * @returns {string} The group's text, or '' for ungrouped.
+ */
+function groupOf(file, property) {
+    return String(toList(valueFor(file, property))[0] ?? '').trim();
+}
+
+/**
  * A link target that is not drawn: a loaded note, shown as its box would be, or a name no note has.
  * @param {object|undefined} file - The note it names, if any.
  * @param {string} target - The target as written.
@@ -81,6 +104,6 @@ export function buildFlowchartGraph(files, roles) {
  * @returns {object} A stub node.
  */
 function stubFor(file, target, key, roles) {
-    if (file) return { key, kind: 'stub', file, label: nodeLabel(file, roles), shape: nodeShape(file, roles) };
-    return { key, kind: 'stub', file: null, label: target, path: linkTargetToFilepath(target) };
+    if (file) return { key, kind: 'stub', file, label: nodeLabel(file, roles), shape: nodeShape(file, roles), group: '' };
+    return { key, kind: 'stub', file: null, label: target, group: '', path: linkTargetToFilepath(target) };
 }

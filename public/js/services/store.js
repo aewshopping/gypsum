@@ -60,6 +60,9 @@ export const appState = {
   flowchartView: {
     showSvg: true,    // true = the view draws its SVG, false = its mermaid code; the code / chart switch
     press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
+    settle: false,    // the next chart render follows a write: it glides from the last (flowchart-settle.js)
+    arrival: null,    // where a note just made came from on screen: {fileId, x, y} in client units, or null
+    lastView: null,   // the chart's pan and zoom while it is off screen, and the layout it was for
   },
 
   editSession: {
@@ -119,6 +122,12 @@ export const appState = {
   // services/flowchart/flowchart-options.js rather than reading this directly; the role's default is the
   // other half of the answer.
   flowchartOptions: new Map(),
+
+  // How the flowchart is laid out, read from the same file's `flowchartLayout` object: `direction`
+  // ('TB' or 'LR') and `merge` (true or false), each absent while it is the default. Not roles, so not
+  // in flowchartOptions. Ask flowchartLayoutSetting() in services/flowchart/flowchart-layout-settings.js;
+  // setFlowchartLayoutSetting() is the one writer.
+  flowchartLayout: {},
 
   // The table's linked columns, read from the same file's `linkedProperties` object.
   // Map<'linked:<n>', {label: string|null, via: string, read: string}> — "show `read` of the note

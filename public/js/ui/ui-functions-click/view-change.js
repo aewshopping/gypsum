@@ -1,5 +1,6 @@
 import { renderFiles } from "../ui-functions-render/a-render-all-files.js";
 import { appState } from '../../services/store.js';
+import { rememberChartView } from '../ui-functions-flowchart/flowchart-view-memory.js';
 
 /**
  * Handles the change event for the view selector dropdown.
@@ -9,6 +10,9 @@ import { appState } from '../../services/store.js';
  * @returns {void}
  */
 export function handleViewSelect(evt, selectElement) {
+
+    // Leaving the flowchart keeps its pan and zoom for coming back to the same layout.
+    rememberChartView();
 
     const viewSelectElem = document.querySelector('[data-action="view-select"]');
     appState.viewState = viewSelectElem.value;

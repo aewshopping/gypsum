@@ -1,10 +1,11 @@
 // Open, close and change for the flowchart options modal: which property fills each part of the
 // chart.
 
-import { renderFlowchartOptionsList, flowchartOptionsNote } from './flowchart-options-list.js';
+import { renderFlowchartOptionsList, renderFlowchartLayoutRows, flowchartOptionsNote } from './flowchart-options-list.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { setFlowchartOption } from '../../services/flowchart/flowchart-options.js';
-import { saveFlowchartOptions } from '../../table-layouts/layout-file.js';
+import { saveFlowchartOptions, saveFlowchartLayout } from '../../table-layouts/layout-file.js';
+import { setFlowchartLayoutSetting } from '../../services/flowchart/flowchart-layout-settings.js';
 
 const dialog = document.getElementById('modal-flowchart-options');
 
@@ -18,7 +19,7 @@ const dialog = document.getElementById('modal-flowchart-options');
  */
 export function handleOpenFlowchartOptions() {
     document.getElementById('flowchart-options-note').textContent = flowchartOptionsNote();
-    document.getElementById('flowchart-options-list').innerHTML = renderFlowchartOptionsList();
+    document.getElementById('flowchart-options-list').innerHTML = renderFlowchartOptionsList() + renderFlowchartLayoutRows();
     dialog.showModal();
 }
 
@@ -49,6 +50,19 @@ export function handleCloseFlowchartOptions() {
 export function handleFlowchartOptionChange(evt, target) {
     setFlowchartOption(target.dataset.role, target.value);
     saveFlowchartOptions();
+}
+
+/**
+ * Records a layout setting — direction, or merging — and writes it, as a role's choice is: at once,
+ * with the redraw left to the dialog's close.
+ *
+ * @param {Event} evt - The change event.
+ * @param {HTMLElement} target - The select that changed.
+ * @returns {void}
+ */
+export function handleFlowchartLayoutChange(evt, target) {
+    setFlowchartLayoutSetting(target.dataset.setting, target.value);
+    saveFlowchartLayout();
 }
 
 /**

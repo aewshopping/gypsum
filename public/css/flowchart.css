@@ -1,3 +1,24 @@
+/* The copy button sits over the code block's top right corner. */
+.flowchart-code-block {
+    position: relative;
+}
+.flowchart-code-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+/* For a moment after a copy, a tick in the corner the copy drawing moves out of — as the table's copy
+   button wears its cross, moved and never scaled. */
+.flowchart-code-copy .copied-badge {
+    display: none;
+}
+.flowchart-code-copy[data-copied] .copied-badge {
+    display: inline;
+}
+.flowchart-code-copy[data-copied] .copy-mark {
+    transform: translate(-4px, -4px);
+}
+
 .flowchart-code {
     background-color: var(--colour-neutral-alt);
     color: var(--colour-contr);
@@ -18,25 +39,31 @@
    #output each pass the height left over down to the viewer. So the chart always ends at the foot of
    the window, however much sits above it and whatever moves there — a filter removed, the panel
    opened — with no measuring in JS. Every other view lays the page out as before. The body's
-   margins become padding, which looks the same and lets min-height include them. */
-body:has(.flowchart-viewer) {
+   margins become padding, which looks the same and lets min-height include them. The code view takes
+   the same column, so switching between code and chart moves nothing above them: a flex column does
+   not collapse margins, and a page laid out one way for each shifted the control row. */
+body:has(.flowchart-viewer, .flowchart-code-block) {
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
     margin-block: 0;
     padding-block: 8px;
 }
-body:has(.flowchart-viewer) main,
+body:has(.flowchart-viewer, .flowchart-code-block) main,
 #output:has(> .flowchart-viewer) {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
+/* No border, and a background between the page's two neutrals, so the chart reads as a panel of the
+   page rather than a box drawn on it. Rounded still. */
 .flowchart-viewer {
     flex: 1;
     min-height: 300px;
     user-select: none;
+    border: none;
+    background-color: color-mix(in srgb, var(--colour-neutral) 60%, var(--colour-neutral-alt));
 }
 .flowchart-viewer:fullscreen {
     height: 100%;
@@ -46,18 +73,18 @@ body:has(.flowchart-viewer) main,
 
 .flowchart-node {
     /* .color-dynamic (colors.css) reads data-color into --colour-bg and the contrasting text colour
-       into `color`, as a card's does; a box paints with them. */
+       into `color`, as a card's does; a box fills with them. Its border is a link's line, in colour
+       and width (flowchart-edges.css). */
     .flowchart-shape {
         fill: var(--colour-bg);
-        stroke: var(--colour-bg);
-        stroke-width: 2;
-        vector-effect: non-scaling-stroke;
+        stroke: var(--colour-contr);
+        stroke-width: var(--flowchart-line);
     }
     cursor: pointer;
     /* Hovered, the note a hovered link is written in (flowchart-link-hover.js), or where a link being
-       dragged would land (flowchart-node-drag.js) — one look for all three. */
+       dragged would land (flowchart-node-drag.js) — one look for all three, the hovered link's width. */
     &:hover .flowchart-shape, &.is-link-source .flowchart-shape, &.is-drop-target .flowchart-shape {
-        stroke: var(--colour-contr);
+        stroke-width: var(--flowchart-line-hover);
     }
 }
 
@@ -82,7 +109,6 @@ body:has(.flowchart-viewer) main,
         stroke: var(--colour-contr);
         stroke-width: 1;
         stroke-dasharray: 4 3;
-        vector-effect: non-scaling-stroke;
     }
     &.is-filtered .flowchart-shape {
         /* --colour-bg from .color-dynamic, as a box's fill. */
@@ -104,6 +130,12 @@ body:has(.flowchart-viewer) main,
             stroke-dasharray: none;
         }
     }
+}
+
+/* The chart before a write, fading out over the one after it (flowchart-settle.js): there to be seen
+   going, never to be pressed. */
+.flowchart-leaving {
+    pointer-events: none;
 }
 
 /* While pan is on the chart is for moving, so a press on a box or a link must not open it: they take

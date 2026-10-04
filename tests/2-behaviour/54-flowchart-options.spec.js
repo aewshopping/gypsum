@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule, setupMockDirectoryWithFlowchart } = require('../helpers');
+const { loadFolder, appModule, setupMockDirectoryWithFlowchart, setupMockCellWritingFolder } = require('../helpers');
 
 // The chart is one block of text, so the assertions here are the text itself rather than a count of
 // things on screen. Pinning it whole is what makes the two-pass ordering — every node declared
@@ -63,6 +63,16 @@ test('the default chart draws from title and links, and writes nothing', async (
 // The reason the source is built in two passes at all. Mermaid puts a node in the first subgraph it
 // is *mentioned* in, so with the edges interleaved "Deeper still" — linked to from inside s1 before
 // its own group is reached — would be drawn inside s1 instead of s2.
+test('the code view is read only, and its button copies the mermaid source', async ({ page }) => {
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openFlowchart(page);
+  await expect(page.locator('.flowchart-code')).not.toHaveAttribute('contenteditable');
+  await page.click('[data-action="copy-flowchart-code"]');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await source(page));
+  await expect(page.locator('.flowchart-code-copy .copied-badge')).toBeVisible();
+  await expect(page.locator('.flowchart-code-copy .copied-badge')).toBeHidden();
+});
+
 test('a subgraph groups its nodes, and a link from another group does not steal one', async ({ page }) => {
   await openFlowchart(page);
   await setRole(page, 'subgraph', 'chapter');
@@ -130,8 +140,10 @@ test('connectors can be pointed at a property holding the links as written', asy
   await setRole(page, 'connectors', 'related');
   await setRole(page, 'connectorText', 'why');
 
+  // Polled: the code is redrawn by the dialog's close, which a busy machine can finish after Escape
+  // returns — read at once, it was sometimes the text from before the second choice.
+  await expect.poll(() => source(page)).toContain('  1 -->|"push the heavy door"| 2');
   const text = await source(page);
-  expect(text).toContain('  1 -->|"push the heavy door"| 2');
   expect(text).toContain('  1 -->|"walk on down the road"| 3');
   // a target naming no loaded file is still its own node, declared where it is first met
   expect(text).toContain('  3 --> u1("missing.md")');
@@ -155,6 +167,22 @@ test('a choice is written at once, and choosing the default takes it back out', 
   // Polled like the file above: the chart is redrawn by the dialog's close, which a busy machine
   // can finish after the file is written.
   await expect.poll(() => source(page)).not.toContain('subgraph');
+});
+
+// Direction and merging are not roles: they go to their own key, beside `flowchart`, and survive a
+// role being written after them — the trap a key readLayouts() does not name would fall into.
+test('a layout setting is written at once to its own key, and kept when a role is written', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('[data-action="open-flowchart-options"]');
+  await page.selectOption('#flowchart-layout-direction', 'LR');
+  await expect.poll(async () => (await layoutsFile(page)).flowchartLayout).toEqual({ direction: 'LR' });
+
+  await page.selectOption('#flowchart-role-subgraph', 'chapter');
+  await expect.poll(async () => (await layoutsFile(page)).flowchart).toEqual({ subgraph: 'chapter' });
+  expect((await layoutsFile(page)).flowchartLayout).toEqual({ direction: 'LR' });
+
+  await page.selectOption('#flowchart-layout-direction', 'TB');
+  await expect.poll(async () => (await layoutsFile(page)).flowchartLayout).toEqual({});
 });
 
 // Assigning a select a value none of its options carries silently blanks it, which is the trap
@@ -373,4 +401,157 @@ test.describe('touch', () => {
     await expect(page.locator('#modal-unsaved-warning')).toBeVisible();
     expect(await page.evaluate(() => window.__prevented)).toContain(true);
   });
+});
+
+// Stage 3 of plans/completed/flowchart-dagre-elk-layout.md: a chart redrawn after a write settles from the one
+// before — the note nearest the middle holds its place and size on screen, and the rest glide — while
+// any other render lays it out afresh. The window is tall enough that the new link's two notes are in
+// view already, so nothing has to move to show them.
+test('after a link is drawn the chart settles from where it was; a fresh render does not animate', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 1000 });
+  await setupMockCellWritingFolder(page, {
+    'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n\n[[c.md|to c]]\n', 'c.md': '# Cherry\n', 'd.md': '# Date\n\n[[a.md|to a]]\n',
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-panzoom-check');
+  await page.evaluate(() => { document.getElementById('view-transitions-enabled').checked = true; });
+
+  const chartAnimations = () => page.evaluate(() =>
+    document.getAnimations().filter(a => a.effect?.target?.closest?.('.flowchart-svg')).length);
+  const boxOf = label => page.locator(`.flowchart-node[aria-label="${label}"]`).boundingBox();
+  const apple = await boxOf('Apple');
+  const [date, cherry] = [await boxOf('Date'), await boxOf('Cherry')];
+  await page.mouse.move(date.x + date.width / 2, date.y + date.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(cherry.x + cherry.width / 2, cherry.y + cherry.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#modal-unsaved-warning-proceed');
+
+  // The old drawing fades out over the new one while the notes glide, and is gone after.
+  await expect(page.locator('.flowchart-leaving')).toHaveCount(1);
+  expect(await chartAnimations()).toBeGreaterThan(0);
+  await expect(page.locator('.flowchart-leaving')).toHaveCount(0);
+  const after = await boxOf('Apple');
+  expect(Math.abs(after.x - apple.x)).toBeLessThan(1);
+  expect(Math.abs(after.y - apple.y)).toBeLessThan(1);
+  expect(Math.abs(after.width - apple.width)).toBeLessThan(1);
+
+  // Closing the options dialog lays the chart out afresh: nothing glides.
+  await page.click('[data-action="open-flowchart-options"]');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  expect(await chartAnimations()).toBe(0);
+});
+
+test('a note made where it lands out of sight is brought into view', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await setupMockCellWritingFolder(page, {
+    'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n\n[[c.md|to c]]\n', 'c.md': '# Cherry\n', 'd.md': '# Date\n\n[[a.md|to a]]\n',
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-panzoom-check');
+
+  // Cherry is the bottom row, so a note linked from it is laid out below the bottom of the viewer.
+  const cherry = await page.locator('.flowchart-node[aria-label="Cherry"]').boundingBox();
+  await page.mouse.move(cherry.x + cherry.width / 2, cherry.y + cherry.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(1000, 300, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#flowchart-new-note-confirm');
+
+  const made = page.locator('.flowchart-node[aria-label="note-1.txt"]');
+  await expect(made).toBeVisible();
+  const [note, viewer] = [await made.boundingBox(), await page.locator('svg.pz-svg').boundingBox()];
+  expect(note.y).toBeGreaterThanOrEqual(viewer.y);
+  expect(note.y + note.height).toBeLessThanOrEqual(viewer.y + viewer.height);
+});
+
+test('the chart keeps its zoom and pan across the code view and another view, when its layout has not changed', async ({ page }) => {
+  await openFlowchart(page);
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.locator('.pz-zoom-input').fill('2.5');
+  const zoomed = await page.locator('.flowchart-node').first().boundingBox();
+
+  await page.click('label[for="flowchart_render_toggle"]');
+  await page.click('label[for="flowchart_render_toggle"]');
+  await expect(page.locator('.pz-zoom-input')).toHaveValue('2.5');
+  expect(await page.locator('.flowchart-node').first().boundingBox()).toEqual(zoomed);
+
+  await page.selectOption('#view-select', 'table');
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.pz-zoom-input')).toHaveValue('2.5');
+});
+
+test('a link taken away keeps both its notes in view', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 750 });
+  await setupMockCellWritingFolder(page, {
+    'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n\n[[c.md|to c]]\n', 'c.md': '# Cherry\n', 'd.md': '# Date\n\n[[a.md|to a]]\n',
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-panzoom-check');
+  const boxOf = label => page.locator(`.flowchart-node[aria-label="${label}"]`).boundingBox();
+
+  const [date, cherry] = [await boxOf('Date'), await boxOf('Cherry')];
+  await page.mouse.move(date.x + date.width / 2, date.y + date.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(cherry.x + cherry.width / 2, cherry.y + cherry.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#modal-unsaved-warning-proceed');
+  await expect(page.locator('.flowchart-edge')).toHaveCount(4);
+
+  // Zoomed in so far that Date and Cherry cannot both be seen, then the link undone.
+  await page.locator('.pz-zoom-input').fill('3');
+  await page.click('#table-undo-list-btn');
+  await page.locator('#undo-list .undo-list-row').first().click();
+  await expect(page.locator('.flowchart-edge')).toHaveCount(3);
+
+  const viewer = await page.locator('svg.pz-svg').boundingBox();
+  for (const label of ['Date', 'Cherry']) {
+    const note = await boxOf(label);
+    expect(note.y).toBeGreaterThanOrEqual(viewer.y);
+    expect(note.y + note.height).toBeLessThanOrEqual(viewer.y + viewer.height);
+  }
+});
+
+test('the code says the direction the chart is drawn in', async ({ page }) => {
+  await openFlowchart(page);
+  expect((await source(page)).split('\n')[0]).toBe('flowchart TD');
+  await page.click('[data-action="open-flowchart-options"]');
+  await page.selectOption('#flowchart-layout-direction', 'LR');
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => (await source(page)).split('\n')[0]).toBe('flowchart LR');
+});
+
+test('the chart stays full screen when a note is made by dragging', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 750 });
+  await setupMockCellWritingFolder(page, { 'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n' });
+  await page.goto('/');
+  await loadFolder(page);
+  await page.selectOption('#view-select', 'flowchart');
+  await expect(page.locator('.flowchart-node').first()).toBeVisible();
+  await page.click('.pz-fullscreen');
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement?.className)).toContain('pz-container');
+  await page.click('.pz-panzoom');  // full screen turns pan on; off, a drag reaches the notes
+
+  const apple = await page.locator('.flowchart-node[aria-label="Apple"]').boundingBox();
+  await page.mouse.move(apple.x + apple.width / 2, apple.y + apple.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(apple.x + 400, apple.y + 20, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#flowchart-new-note-confirm');
+
+  await expect(page.locator('.flowchart-node[aria-label="note-1.txt"]')).toBeVisible();
+  expect(await page.evaluate(() => document.fullscreenElement?.className)).toContain('pz-container');
+  await expect(page.locator('.pz-fullscreen-check')).toBeChecked();
+  await expect(page.locator('#output-report')).not.toContainText('created');
 });

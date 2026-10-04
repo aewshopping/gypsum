@@ -159,6 +159,10 @@ async function renderRefreshed(fullRender, resort) {
     // One render either way. The filters are re-run first and processSeachResults does the
     // rendering, because it renders anyway — rendering before it meant two full renders and,
     // where a view transition ran, two of those interrupting each other.
+    // A chart redrawn after a write settles from the one before rather than jumping to it — a filter,
+    // a sort or a view change lays it out afresh. flowchart-settle.js.
+    appState.flowchartView.settle = true;
+
     let drawn;
     if (appState.search.filters.size > 0) {
         const filterIds = [...appState.search.filters.keys()];

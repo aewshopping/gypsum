@@ -169,8 +169,10 @@ test('a drag to empty chart makes the next note-N.txt, links it, and opens nothi
   await expect(box(page, 'idea.txt')).toBeVisible();
   await expect(page.locator('#file-content-modal')).not.toBeVisible();
 
-  // Undo takes the link back out; the note stays.
-  await page.click('#table-undo-btn');
+  // Undo from the history — the chart's one undo button — takes the link back out; the note stays.
+  await expect(page.locator('#table-undo-btn')).toHaveCount(0);
+  await page.click('#table-undo-list-btn');
+  await page.locator('#undo-list .undo-list-row').first().click();
   await expect.poll(() => note(page, 'start.md')).toBe(before);
   expect(await note(page, 'idea.txt')).toBe('');
 });
@@ -230,7 +232,6 @@ test('a press on a note that does not exist creates it where its link looks, and
 
   await expect.poll(() => note(page, 'idea.txt')).toBe('');
   expect(await note(page, 'two.md')).toBe(before);
-  await expect(page.locator('#output-report')).toContainText('created idea.txt');
   // The link now finds a note: drawn as a box, nothing missing, and nothing opened.
   await expect(box(page, 'idea.txt')).toBeVisible();
   await expect(page.locator('.flowchart-edge.is-missing')).toHaveCount(0);

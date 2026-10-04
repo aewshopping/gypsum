@@ -20,7 +20,7 @@ Each entry in `appState.myFiles` is a plain object. Most of it is written by `ge
 | `contentPeek` | `string` | Body preview, ~100 chars, front matter and title excluded |
 | `tags` | `Map<string, {count: number, parents: Set<string>}>` | See below |
 | `color` | `string \| null` | The front matter `color:` value, used as a CSS colour verbatim, or `null` |
-| `internalLink` | `string[]` | Link targets found in the body, deduped. `[]` when there are none — never absent |
+| `internalLink` | `string[]` | Link targets found in the body and front matter values, one per link: a target appears once per distinct link text (CLAUDE.md, *Front matter is data, not prose*). `[]` when there are none — never absent |
 | `lastModified` | `Date` | File modification date |
 | `fileIssues` | `string \| null` | What is wrong with the file, one ` \| `-joined segment per check (`yaml:`, `links:`, `undo:`), or `null`. Column label "issues" |
 | `internalId` | `string` | Internal unique ID, currently equal to `filepath`. Named `internalId` (not `id`) so it never clashes with a user's own YAML `id:` frontmatter property |
@@ -315,6 +315,20 @@ and an empty property deletes the entry rather than storing `''`.
 
 ---
 
+## Flowchart layout settings (`appState.flowchartLayout`)
+
+```js
+{ direction?: 'LR', merge?: true }   // each absent while it is the default: 'TB', false
+```
+
+How the flowchart is laid out: top to bottom or left to right, and whether the arrows on one side of a note,
+in and out, merge into one trunk. Not roles, so not in `flowchartOptions`: they are saved in the layouts file's own
+`flowchartLayout` key. Ask `flowchartLayoutSetting(name)` in
+`services/flowchart/flowchart-layout-settings.js`; `setFlowchartLayoutSetting()` is the one writer, and
+drops a name or value it does not know.
+
+---
+
 ## Saved layouts (`appState.tableLayouts` and `TABLE_VIEW_COLUMNS.columnLayout`)
 
 ```js
@@ -508,6 +522,9 @@ opening its anchor and the redraw that writes it.
 appState.flowchartView = {
   showSvg: false,   // the code / chart switch: the SVG when true, the mermaid code when false
   press: null,      // the current press in the chart: {fileId, fromNote, x, y, moved}, or null
+  settle: false,    // the next chart render follows a write, and glides from the chart on screen
+  arrival: null,    // where a note just made came from on screen: {fileId, x, y} in client units
+  lastView: null,   // pan and zoom while the chart is off screen: {state, layout}
 }
 ```
 
@@ -518,6 +535,16 @@ the note a box or a link stands for, or `null` on empty chart — and marked `mo
 `flowchart-node-drag.js` once a press from a box has gone far enough to be a drag. A release opens
 the note only when it is the same note and the press never moved; a drag released over another box
 offers a link instead.
+
+`settle` is set by the write's refresh (`editing/refresh-file-state.js`) and by
+`flowchart-note-create.js`, and `arrival` by the latter alone — the drop point, or the centre of the
+missing note's stub that was pressed. The flowchart renderer reads both and clears them on every
+render, whichever it is, so a filter, a sort or a view change after a write still lays the chart out
+afresh. See `ui-functions-flowchart/flowchart-settle.js`.
+
+`lastView` is written by `flowchart-view-memory.js` when the code switch or a view change takes the
+chart off screen, and read when it is drawn again: its pan and zoom come back only if `layout` — each
+box's key and place — matches the new drawing.
 
 ---
 
@@ -535,4 +562,4 @@ offers a link instead.
 | value spans | `file-parsing/yaml-parse.js` → `parseYaml(…, spans)` | Only in `editing/plan-file-edits.js`, on a fresh read |
 | `appState.paginationState` | `ui-functions-render/a-render-all-files.js` | Every render |
 | `appState.tableRange` | `ui-functions-cell/cell-range.js` | On a drag across cells, and on Shift+arrow in the table |
-| `appState.flowchartView` | `ui-functions-flowchart/` — the switch and the press handlers | On the switch, and on each press and release in the chart |
+| `appState.flowchartView` | `ui-functions-flowchart/` — the switch and the press handlers; `settle` also by the write's refresh | On the switch, on each press and release in the chart, and after a write |

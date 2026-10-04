@@ -114,7 +114,11 @@ function toggleFullscreen() {
     }
   }
 }
-// leaving full screen some other way (Escape) undoes what the button would have: not in the original
+// leaving full screen some other way (Escape) undoes what the button would have: not in the original.
+// The container outlives a redraw of what is inside it (render-file-list-flowchart.js keeps it, since
+// it is what is full screen), so the listener a previous attach left on it is taken off first.
+svgcontainer.pzListeners?.abort();
+svgcontainer.pzListeners = new AbortController();
 svgcontainer.addEventListener("fullscreenchange", (event) => {
   if (!document.fullscreenElement && fullscreencheck.checked) {
     fullscreencheck.checked = false;
@@ -123,7 +127,7 @@ svgcontainer.addEventListener("fullscreenchange", (event) => {
       panzoomon = false;
     }
   }
-});
+}, { signal: svgcontainer.pzListeners.signal });
 // add a reset back to initial values option
 var mapreset = container.querySelector('.pz-reset');
 mapreset.addEventListener("click", (event) => {

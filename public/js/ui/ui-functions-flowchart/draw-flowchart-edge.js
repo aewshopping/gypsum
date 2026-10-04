@@ -1,9 +1,10 @@
 import { svgElement, centredText } from './svg-element.js';
+import { edgePath, ARROWHEAD } from './edge-path.js';
 
 /**
  * @file A link, drawn: its line, its arrowhead, and its text in a small box.
  *
- * The route is the layout's (placeholder-layout.js says what one is), so nothing here decides where
+ * The route is the layout's (layout/placeholder-layout.js says what one is), so nothing here decides where
  * a line goes — a different layout draws through the same code.
  *
  * **Two elements, not one**: the line is drawn under the boxes and the text over them, so a box
@@ -18,16 +19,17 @@ const LABEL_PADDING_X = 6;
 const LABEL_PADDING_Y = 3;
 
 /**
- * The arrowhead every edge's line ends in, sized in the drawing's own units so a line thickened on
- * hover keeps the same head.
+ * The arrowhead every edge's line ends in: an equilateral triangle, `ARROWHEAD` long and so 2/√3 of
+ * that across, sized in the drawing's own units so a line thickened on hover keeps the same head.
  * @returns {SVGDefsElement}
  */
 export function arrowheadDefs() {
+    const length = ARROWHEAD, base = ARROWHEAD * 2 / Math.sqrt(3);
     const marker = svgElement('marker', {
-        id: 'flowchart-arrowhead', viewBox: '0 0 10 10', refX: 10, refY: 5,
-        markerWidth: 10, markerHeight: 10, markerUnits: 'userSpaceOnUse', orient: 'auto',
+        id: 'flowchart-arrowhead', viewBox: `0 0 ${length} ${base}`, refX: length, refY: base / 2,
+        markerWidth: length, markerHeight: base, markerUnits: 'userSpaceOnUse', orient: 'auto',
     });
-    marker.append(svgElement('path', { class: 'flowchart-arrowhead', d: 'M0,0 L10,5 L0,10 z' }));
+    marker.append(svgElement('path', { class: 'flowchart-arrowhead', d: `M0,0 L${length},${base / 2} L0,${base} z` }));
     const defs = svgElement('defs');
     defs.append(marker);
     return defs;
@@ -51,16 +53,31 @@ function linkAttributes(edge, index) {
  *
  * @param {object} edge - A graph edge.
  * @param {number} index - Its number in the graph.
- * @param {{points: number[][]}} route - From the layout.
+ * @param {{points: number[][], hops?: number[][]}} route - From the layout.
  * @returns {SVGGElement}
  */
 export function drawFlowchartEdge(edge, index, route) {
     // A link to a note that does not exist is dashed: the chart's broken link.
-    const group = svgElement('g', { class: `flowchart-edge${edge.missing ? ' is-missing' : ''}`, ...linkAttributes(edge, index) });
-    const d = route.points.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ');
+    // Named, with its two ends, so a redraw can tell which links came or went (flowchart-settle-view.js).
+    const group = svgElement('g', {
+        class: `flowchart-edge${edge.missing ? ' is-missing' : ''}`, ...linkAttributes(edge, index),
+        'data-link': `${edge.from}>${edge.to}>${edge.text}`, 'data-from': edge.from, 'data-to': edge.to,
+    });
+    const d = edgePath(route.points, route.hops);
     group.append(svgElement('path', { class: 'flowchart-edge-hit', d }));
     group.append(svgElement('path', { class: 'flowchart-edge-line', d, 'marker-end': 'url(#flowchart-arrowhead)' }));
     return group;
+}
+
+/**
+ * The size of the box an edge's text is drawn in: its measured text and the padding round it. The
+ * layout is handed this, so the room it leaves is the room the box takes.
+ * @param {{lines: string[], width: number}} label - Its text, measured.
+ * @param {number} lineHeight
+ * @returns {{width: number, height: number}}
+ */
+export function labelBoxSize(label, lineHeight) {
+    return { width: label.width + 2 * LABEL_PADDING_X, height: label.lines.length * lineHeight + 2 * LABEL_PADDING_Y };
 }
 
 /**
@@ -74,10 +91,13 @@ export function drawFlowchartEdge(edge, index, route) {
  * @returns {SVGGElement}
  */
 export function drawFlowchartEdgeLabel(edge, index, route, label, lineHeight) {
-    const width = label.width + 2 * LABEL_PADDING_X;
-    const height = label.lines.length * lineHeight + 2 * LABEL_PADDING_Y;
+    const { width, height } = labelBoxSize(label, lineHeight);
     const [x, y] = route.labelAt;
-    const group = svgElement('g', { class: 'flowchart-edge-label', ...linkAttributes(edge, index) });
+    // Named by its two notes and its words, which is what a redraw can find it by again
+    // (flowchart-settle.js): the index moves when links are added before it.
+    const group = svgElement('g', {
+        class: 'flowchart-edge-label', ...linkAttributes(edge, index), 'data-link-key': `${edge.from}>${edge.to}>${edge.text}`,
+    });
     group.append(svgElement('rect', { x: x - width / 2, y: y - height / 2, width, height, rx: 4 }));
     group.append(centredText(label.lines, x, y, lineHeight));
     return group;
