@@ -4,7 +4,7 @@ import { upwardLinks } from './upward-links.js';
 import { siblingOrders, inNoteOrder, crossings } from './sibling-order.js';
 
 /**
- * @file Where dagre puts things: the boxes, the groups, each link's lanes and its label. Pure: no DOM.
+ * @file Where dagre puts things: the boxes, each link's lanes and its label. Pure: no DOM.
  *
  * Stage 1 of plans/completed/flowchart-dagre-elk-layout.md. Nothing here routes a line — the routing is stage 2's
  * (dagre-layout.js and the modules it calls). What dagre hands back for a link is used as lanes: one
@@ -15,8 +15,8 @@ import { siblingOrders, inNoteOrder, crossings } from './sibling-order.js';
  * - **A link to itself is not dagre's**: dagre 3.1.1 routes one nowhere near its box. It is left out,
  *   and the room for its loop and label is reserved by handing dagre the box grown to the right and
  *   upwards; the box goes back in the bottom-left of that space.
- * - **Groups are dagre's too, in the same run** — a compound graph, each group a parent node — so links
- *   between groups are planned with everything else. Compound only when some box has a group.
+ * - **Never a compound graph.** dagre's compound mode pushed a group's contents out against its walls;
+ *   each group is laid out on its own instead (nested-layout.js), so every box here is in none.
  * - **The order things arrive in does not matter.** dagre's answer depends on the order nodes and edges
  *   are added, and the files come in the table's sort, newest first by default — so editing a note
  *   would reshuffle the chart. They go in sorted by key, and which links of a loop point back up is
@@ -35,45 +35,41 @@ export const EDGE_SPACING = 20;
 /**
  * dagre's placement of the linked boxes, in dagre's own coordinates.
  *
- * @param {{key: string, width: number, height: number, group?: string}[]} charted - The boxes dagre
- *   lays out, sorted by key.
- * @param {{from: string, to: string, label: ?{width: number, height: number}}[]} edges - All of them.
+ * @param {{key: string, width: number, height: number, anchor?: number}[]} charted -
+ *   The boxes dagre lays out, sorted by key; `anchor`, the point across a box dagre should line up,
+ *   from its left, when not its middle.
+ * @param {{from: string, to: string, label: ?{width: number, height: number}, minlen?: number}[]} edges -
+ *   All of them; `minlen`, the fewest rows a link spans, 1 when absent.
+ * @param {string[][]} [rows] - Boxes each list of which shares a row, to go left to right in that order
+ *   (sibling-order.js `inRowOrder`).
  * @returns {{
  *   boxes: Map<string, {x: number, y: number, width: number, height: number, rankY: number, top: number, bottom: number, right: number}>,
  *   links: {i: number, upper: string, lower: string, turned: boolean, lanes: number[][], label: ?{x: number, y: number, width: number, height: number}}[],
- *   loops: {i: number, key: string, reach: number}[],
- *   groups: {name: string, x: number, y: number, width: number, height: number}[]
+ *   loops: {i: number, key: string, reach: number}[]
  * }} `boxes` are the real boxes' top-left and size, with the centre, extent and right edge dagre gave
  *   the grown box (`right` reaches over a loop's room); each link runs `upper` to `lower`, down, through `lanes`, one `[x, y]` per row between.
  */
-export function placeWithDagre(charted, edges) {
+export function placeWithDagre(charted, edges, rows = []) {
     const rooms = loopRooms(edges);
-    const groupKeys = new Map(); // group name -> its node's key, in the order groups are first met
-    charted.forEach(box => {
-        if (box.group && !groupKeys.has(box.group)) groupKeys.set(box.group, `group:${groupKeys.size}`);
-    });
 
-    const links = edges.map((edge, i) => ({ ...edge, i }))
-        .filter(edge => edge.from !== edge.to)
-        .sort((a, b) => byText(a.from, b.from) || byText(a.to, b.to) || a.i - b.i);
-    const upward = upwardLinks(charted.map(box => box.key), links);
+    const { links, upward } = turnedLinks(charted, edges);
     const ends = edge => upward.has(edge.i) ? [edge.to, edge.from] : [edge.from, edge.to];
 
     const laidOut = orders => {
-        const graph = new dagre.graphlib.Graph({ multigraph: true, compound: groupKeys.size > 0 });
+        const graph = new dagre.graphlib.Graph({ multigraph: true });
         graph.setGraph({ rankdir: 'TB', nodesep: NODE_SPACING, ranksep: RANK_SPACING, edgesep: EDGE_SPACING });
-        groupKeys.forEach(key => graph.setNode(key, {}));
         charted.forEach(box => {
             const room = rooms.get(box.key) ?? { right: 0, top: 0 };
-            graph.setNode(box.key, { width: box.width + room.right, height: box.height + room.top });
-            if (box.group) graph.setParent(box.key, groupKeys.get(box.group));
+            graph.setNode(box.key, { width: reach(box) * 2 + room.right, height: box.height + room.top });
         });
         links.forEach(edge => {
             const [upper, lower] = ends(edge);
-            graph.setEdge(upper, lower,
-                edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}, String(edge.i));
+            graph.setEdge(upper, lower, {
+                minlen: edge.minlen ?? 1,
+                ...(edge.label ? { width: edge.label.width, height: edge.label.height, labelpos: 'c' } : {}),
+            }, String(edge.i));
         });
-        dagre.layout(graph, orders.length ? { customOrder: inNoteOrder(orders) } : {});
+        dagre.layout(graph, orders.length || rows.length ? { customOrder: inNoteOrder(orders, rows) } : {});
         return graph;
     };
     const lines = laid => links.map(edge => {
@@ -84,8 +80,7 @@ export function placeWithDagre(charted, edges) {
     // Laid out once to find each box's row, and again with the note's own order where it has one to
     // give — kept only when it crosses no more lines (sibling-order.js).
     let graph = laidOut([]);
-    const groupOf = new Map(charted.map(box => [box.key, box.group ?? '']));
-    const orders = siblingOrders(links, key => Math.round(graph.node(key).y), key => groupOf.get(key));
+    const orders = siblingOrders(links, key => Math.round(graph.node(key).y));
     if (orders.length) {
         const ordered = laidOut(orders);
         if (crossings(lines(ordered)) <= crossings(lines(graph))) graph = ordered;
@@ -94,8 +89,9 @@ export function placeWithDagre(charted, edges) {
     const boxes = new Map(charted.map(box => {
         const { x, y, width, height } = graph.node(box.key);
         const top = rooms.get(box.key)?.top ?? 0;
+        const left = x - width / 2 + reach(box) - (box.anchor ?? box.width / 2);
         return [box.key, {
-            x: x - width / 2, y: y - height / 2 + top, width: box.width, height: box.height,
+            x: left, y: y - height / 2 + top, width: box.width, height: box.height,
             rankY: y, top: y - height / 2, bottom: y + height / 2, right: x + width / 2,
         }];
     }));
@@ -121,11 +117,38 @@ export function placeWithDagre(charted, edges) {
             };
         }),
         loops,
-        groups: [...groupKeys].map(([name, key]) => {
-            const { x, y, width, height } = graph.node(key);
-            return { name, x: x - width / 2, y: y - height / 2, width, height };
-        }),
     };
+}
+
+/**
+ * How far a box reaches either side of the point dagre centres it on: half its width, or more when
+ * it has an `anchor` off its middle — a group's block, whose links meet it where its inside put them
+ * (nested-layout.js). dagre lines boxes up by their centres, so the block goes in grown on one side,
+ * centred on that point, as a loop's room is reserved by growing a box to the right.
+ * @param {{width: number, anchor?: number}} box
+ * @returns {number}
+ */
+function reach(box) {
+    const anchor = box.anchor ?? box.width / 2;
+    return Math.max(anchor, box.width - anchor);
+}
+
+/**
+ * The links dagre lays out, sorted, and which of them go in turned round so every link runs down.
+ * Exported so a caller that needs to know which way a link will run can ask the same question
+ * placeWithDagre does (nested-layout.js, deciding which edge of a group a link leaves by).
+ *
+ * @param {{key: string}[]} charted - Sorted by key.
+ * @param {{from: string, to: string, tie?: string}[]} edges - `tie` orders links between the same two
+ *   boxes before their index does: two groups' blocks can be linked by several notes' links.
+ * @returns {{links: object[], upward: Set<number>}} The links between different boxes, each with `i`,
+ *   its index in `edges`; and the `i` of each that points up.
+ */
+export function turnedLinks(charted, edges) {
+    const links = edges.map((edge, i) => ({ ...edge, i }))
+        .filter(edge => edge.from !== edge.to)
+        .sort((a, b) => byText(a.from, b.from) || byText(a.to, b.to) || byText(a.tie ?? '', b.tie ?? '') || a.i - b.i);
+    return { links, upward: upwardLinks(charted.map(box => box.key), links) };
 }
 
 /**

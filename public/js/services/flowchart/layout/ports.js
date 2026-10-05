@@ -23,10 +23,13 @@
  * @param {{boxes: Map, links: object[]}} placement - From placeWithDagre.
  * @param {Map<string, number>} portWidths - Box key to the width its ports divide.
  * @param {boolean} merge - Every arrow on one side of a box shares one port.
- * @returns {Map<number, {upper: number, lower: number, upperShared?: boolean, lowerShared?: boolean}>}
- *   Link index to the two ports' x, and whether each is shared with another link.
+ * @param {Map<number, Object<string, number>>} [fixed] - Link index to, per box key, where across that
+ *   box the link must meet it, from its left: a group's box, whose ports are where its inside put them
+ *   (nested-layout.js). Such a port is never divided or nudged.
+ * @returns {Map<number, {upper: number, lower: number, upperShared?: boolean, lowerShared?: boolean, upperFixed?: boolean, lowerFixed?: boolean}>}
+ *   Link index to the two ports' x, and whether each is shared with another link or fixed.
  */
-export function assignPorts(placement, portWidths, merge) {
+export function assignPorts(placement, portWidths, merge, fixed = new Map()) {
     const centre = key => placement.boxes.get(key).x + placement.boxes.get(key).width / 2;
     const sides = new Map();
     const addEnd = (box, side, end) => {
@@ -51,6 +54,15 @@ export function assignPorts(placement, portWidths, merge) {
             ports.get(end.link.i)[end.which] = xs[j];
             ports.get(end.link.i)[`${end.which}Shared`] = unit.length > 1;
         }));
+    }
+    for (const link of placement.links) {
+        const at = fixed.get(link.i);
+        if (!at) continue;
+        for (const which of ['upper', 'lower']) {
+            if (at[link[which]] === undefined) continue;
+            ports.get(link.i)[which] = placement.boxes.get(link[which]).x + at[link[which]];
+            ports.get(link.i)[`${which}Fixed`] = true;
+        }
     }
     return ports;
 }

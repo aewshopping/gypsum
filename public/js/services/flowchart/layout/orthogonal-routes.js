@@ -15,8 +15,9 @@ const NUDGE = 5; // how far a port may move to meet the lane beside it
  * Where a link goes: the x it holds in each row from its upper box to its lower one, and those rows.
  *
  * @param {{upper: string, lower: string, lanes: number[][]}} link - From placeWithDagre.
- * @param {{upper: number, lower: number, upperShared?: boolean, lowerShared?: boolean}} port - Its
- *   ports' x (ports.js); a shared one stays put, or the trunk it holds would split.
+ * @param {{upper: number, lower: number, upperShared?: boolean, lowerShared?: boolean, upperFixed?: boolean, lowerFixed?: boolean}} port -
+ *   Its ports' x (ports.js); a shared one stays put, or the trunk it holds would split, and a fixed one
+ *   does not move at all, or its route would not meet the piece inside the group.
  * @param {Map<string, {rankY: number}>} boxes - The placement's boxes.
  * @param {function(number): number} rankOf - Row index of a y (ranks.js).
  * @returns {{xs: number[], rows: number[]}}
@@ -28,11 +29,15 @@ export function linkWaypoints(link, port, boxes, rankOf) {
     // lean the run, since the trunk it holds would split.
     const xs = [port.upper, ...link.lanes.map(([x]) => x), port.lower];
     const n = xs.length - 1;
-    if (Math.abs(xs[0] - xs[1]) <= (port.upperShared ? 0.5 : NUDGE)) xs[0] = xs[1];
-    if (Math.abs(xs[n] - xs[n - 1]) <= (port.lowerShared ? 0.5 : NUDGE)) xs[n] = xs[n - 1];
+    const reach = which => port[`${which}Fixed`] ? 0 : port[`${which}Shared`] ? 0.5 : NUDGE;
+    if (Math.abs(xs[0] - xs[1]) <= reach('upper')) xs[0] = xs[1];
+    if (Math.abs(xs[n] - xs[n - 1]) <= reach('lower')) xs[n] = xs[n - 1];
     // A lane within half a unit of the one before is taken as the same, or the run between them would
     // lean by that much rather than jog.
     xs.forEach((x, j) => { if (j > 1 && j < n && Math.abs(x - xs[j - 1]) <= 0.5) xs[j] = xs[j - 1]; });
+    // And a step that small at a fixed end is no step either — two groups' fixed ports a fraction apart
+    // would otherwise be joined by a line that leans. The lower end gives way; the stitch takes it up.
+    if (n > 0 && Math.abs(xs[n] - xs[n - 1]) <= 0.5) xs[n] = xs[n - 1];
     return {
         xs,
         rows: [rankOf(boxes.get(link.upper).rankY), ...link.lanes.map(([, y]) => rankOf(y)), rankOf(boxes.get(link.lower).rankY)],

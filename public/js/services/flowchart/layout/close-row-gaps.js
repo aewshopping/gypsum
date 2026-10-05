@@ -17,10 +17,9 @@
  *   gap dagre left, when that was already less.
  * - **A link's lanes that ran in one straight column move as one**, so a straight line stays straight.
  *   Lanes that jogged move one by one.
- * - **Nothing crosses a group's edge.** Whatever was inside a group stays inside it, by the padding
- *   dagre gave it, and whatever was outside stays outside; each group is then fitted to what it holds.
  *
- * It changes the placement in place — lanes, labels and groups — before ports are assigned.
+ * It changes the placement in place — lanes and labels — before ports are assigned. A group is never
+ * in the placement: each is laid out on its own (nested-layout.js).
  */
 
 import { NODE_SPACING, EDGE_SPACING } from './dagre-place.js';
@@ -30,7 +29,7 @@ const SWEEPS = 40;
 /**
  * Pulls every row's lanes together.
  *
- * @param {{boxes: Map, links: object[], groups: object[]}} placement - From placeWithDagre.
+ * @param {{boxes: Map, links: object[]}} placement - From placeWithDagre.
  * @param {function(number): number} rankOf - Row index of a y (ranks.js).
  * @returns {void}
  */
@@ -49,9 +48,6 @@ export function closeRowGaps(placement, rankOf) {
             cell.after = cells[k + 1];
         });
     }
-    const contents = placement.groups.map(group => contentsOf(group, items));
-    items.forEach(item => item.cells.forEach(c => { c.bounds = groupBounds(c, contents); }));
-
     for (let sweep = 0; sweep < SWEEPS; sweep++) {
         for (const item of items) {
             const want = item.wanted();
@@ -62,7 +58,6 @@ export function closeRowGaps(placement, rankOf) {
     }
 
     for (const item of items) item.apply();
-    contents.forEach(fitGroup);
 }
 
 /** The lanes as things that move, and the boxes as things that do not, each with the cells it fills in its rows. */
@@ -132,60 +127,12 @@ function spacing(a, b) {
     return (NODE_SPACING + EDGE_SPACING) / 2;
 }
 
-/** How far an item may shift from where dagre put it: every cell clear of its neighbours, and within its bounds. */
+/** How far an item may shift from where dagre put it: every cell clear of its neighbours. */
 function room(item) {
     let lo = -Infinity, hi = Infinity;
     for (const c of item.cells) {
         if (c.before) lo = Math.max(lo, c.before.right + c.before.item.shift + c.gapBefore - c.left);
         if (c.after) hi = Math.min(hi, c.after.left + c.after.item.shift - c.after.gapBefore - c.right);
-        lo = Math.max(lo, c.bounds[0] - c.left);
-        hi = Math.min(hi, c.bounds[1] - c.right);
     }
     return [lo, hi];
-}
-
-/** Whether a group reaches the height of a cell's row. */
-function besideOf(group, c) {
-    return c.y >= group.y - 0.5 && c.y <= group.y + group.height + 0.5;
-}
-
-/** The cells a group holds, and the padding between them and its edges. */
-function contentsOf(group, items) {
-    const right = group.x + group.width;
-    const cells = items.flatMap(item => item.cells)
-        .filter(c => besideOf(group, c) && c.left >= group.x - 0.5 && c.right <= right + 0.5);
-    const padLeft = cells.length ? Math.min(...cells.map(c => c.left)) - group.x : 0;
-    const padRight = cells.length ? right - Math.max(...cells.map(c => c.right)) : 0;
-    return { group, cells, padLeft, padRight };
-}
-
-/**
- * Where a cell's left and right edges may go, as far as groups go: inside a group it was in, no nearer
- * its edges than the group's nearest content was; outside one it was beside, no nearer its edge than it
- * was or 20, whichever is less — groups only shrink, so it stays outside.
- */
-function groupBounds(c, contents) {
-    let lo = -Infinity, hi = Infinity;
-    for (const { group, cells, padLeft, padRight } of contents) {
-        if (!besideOf(group, c)) continue;
-        const right = group.x + group.width;
-        if (cells.includes(c)) {
-            lo = Math.max(lo, group.x + padLeft);
-            hi = Math.min(hi, right - padRight);
-        } else if (c.right <= group.x) {
-            hi = Math.min(hi, group.x - Math.min(group.x - c.right, 20));
-        } else if (c.left >= right) {
-            lo = Math.max(lo, right + Math.min(c.left - right, 20));
-        }
-    }
-    return [lo, hi];
-}
-
-/** A group fitted round what it holds, now moved, by the padding it had. */
-function fitGroup({ group, cells, padLeft, padRight }) {
-    if (cells.length === 0) return;
-    const left = Math.min(...cells.map(c => c.left + c.item.shift)) - padLeft;
-    const right = Math.max(...cells.map(c => c.right + c.item.shift)) + padRight;
-    group.x = left;
-    group.width = right - left;
 }

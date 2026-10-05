@@ -12,6 +12,7 @@ import { withUnlinkedAbove } from './unlinked-block.js';
 import { routeHops } from './line-jumps.js';
 import { sidewaysBox, sidewaysEdge, mirrored } from './transpose.js';
 import { atOrigin, withNamesAbove } from './chart-frame.js';
+import { nestedLayout } from './nested-layout.js';
 
 /**
  * @file The layout contract (placeholder-layout.js states it): dagre places, stage 2 routes. Pure.
@@ -19,7 +20,9 @@ import { atOrigin, withNamesAbove } from './chart-frame.js';
  * plans/completed/flowchart-dagre-elk-layout.md. Each step is a module of its own, and this is the order they
  * run in:
  *
- * 1. **dagre places** the linked boxes, the groups, each link's lanes and its label (dagre-place.js),
+ * 0. **A chart with groups is laid out a group at a time** (nested-layout.js), each group's inside and
+ *    then the chart around them each going through the steps below on its own.
+ * 1. **dagre places** the linked boxes, each link's lanes and its label (dagre-place.js),
  *    a note's three or more branches in the order it gives them (sibling-order.js); each row's lanes
  *    are then **drawn together**, nearer what they link to, the boxes kept where dagre put them
  *    (close-row-gaps.js).
@@ -63,11 +66,27 @@ export function dagreLayout(boxes, edges, options = {}) {
     const unlinked = ordered.filter(box => !linked.has(box.key) && !box.group);
 
     const chart = options.direction === 'LR'
-        ? withNamesAbove(mirrored(chartInRanks(charted.map(sidewaysBox), edges.map(sidewaysEdge), options.merge, 0)), GROUP_NAME_HEIGHT)
-        : chartInRanks(charted, edges, options.merge, GROUP_NAME_HEIGHT);
+        ? withNamesAbove(mirrored(chartWithGroups(charted.map(sidewaysBox), edges.map(sidewaysEdge), options.merge, 0)), GROUP_NAME_HEIGHT)
+        : chartWithGroups(charted, edges, options.merge, GROUP_NAME_HEIGHT);
     const whole = withUnlinkedAbove(chart, unlinked, { across: NODE_SPACING, down: RANK_SPACING });
     const hops = routeHops(whole.routes);
     return { ...whole, routes: whole.routes.map((route, i) => ({ ...route, hops: hops[i] })) };
+}
+
+/**
+ * The charted boxes laid out top to bottom: in one run when nothing is in a group, and otherwise each
+ * group on its own and the chart around it with each group as one box (nested-layout.js).
+ *
+ * @param {object[]} charted - Sorted by key.
+ * @param {object[]} edges
+ * @param {boolean} merge
+ * @param {number} nameHeight - The strip kept for a group's name inside its top edge; 0 for none.
+ * @returns {{positions: Map, routes: object[], groups: object[], width: number, height: number}}
+ */
+function chartWithGroups(charted, edges, merge, nameHeight) {
+    return charted.some(box => box.group)
+        ? nestedLayout(charted, edges, merge, nameHeight)
+        : chartInRanks(charted, edges, merge);
 }
 
 /**
@@ -76,14 +95,15 @@ export function dagreLayout(boxes, edges, options = {}) {
  * @param {object[]} charted - The boxes dagre lays out, sorted by key.
  * @param {object[]} edges - All of them.
  * @param {boolean} merge
- * @param {number} nameHeight - The strip kept for a group's name inside its top edge; 0 for none.
+ * @param {Map<number, Object<string, number>>} [fixed] - Ports a link must meet a box at (ports.js).
+ * @param {string[][]} [rows] - Boxes to go left to right in a row in the order given (dagre-place.js).
  * @returns {{positions: Map, routes: object[], groups: object[], width: number, height: number}}
  */
-function chartInRanks(charted, edges, merge, nameHeight) {
-    const placement = placeWithDagre(charted, edges);
-    const { bands, rankOf } = rankBands(placement, nameHeight);
+export function chartInRanks(charted, edges, merge, fixed = new Map(), rows = []) {
+    const placement = placeWithDagre(charted, edges, rows);
+    const { bands, rankOf } = rankBands(placement);
     closeRowGaps(placement, rankOf);
-    const ports = assignPorts(placement, new Map(charted.map(box => [box.key, box.portWidth ?? box.width])), merge);
+    const ports = assignPorts(placement, new Map(charted.map(box => [box.key, box.portWidth ?? box.width])), merge, fixed);
     if (!merge) straightenLinks(placement, ports);
 
     const waypoints = new Map(placement.links.map(link => [link.i, linkWaypoints(link, ports.get(link.i), placement.boxes, rankOf)]));
@@ -110,13 +130,9 @@ function chartInRanks(charted, edges, merge, nameHeight) {
     }
     for (const loop of placement.loops) routes[loop.i] = loopRoute(placed.get(loop.key), loop.reach);
 
-    const groups = placement.groups.map(group => {
-        const top = down(group.y), bottom = down(group.y + group.height);
-        return { ...group, y: top, height: bottom - top };
-    });
 
     const sizes = new Map(charted.map(box => [box.key, box]));
-    return compactColumns(atOrigin(placed, routes, groups, edges), sizes, edges.map(edge => edge.label));
+    return compactColumns(atOrigin(placed, routes, [], edges), sizes, edges.map(edge => edge.label));
 }
 
 /**

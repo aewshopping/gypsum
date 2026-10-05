@@ -1094,7 +1094,7 @@ to bottom, left to right and merged through one checker.
   dagre lines a chain of notes up in one column and balances a note over what it branches to, and
   pulling boxes towards their neighbours bent both — mermaid's elk renderer, the reference, never
   moves a box after ELK either. Lanes still slide towards what they link to, which takes back the
-  width dagre leaves loose — order, dagre's spacing and group edges all kept. Do not give boxes a pull
+  width dagre leaves loose — order and dagre's spacing kept. Do not give boxes a pull
   of their own again: see `plans/completed/flowchart-vertical-alignment.md`.
 - **A note's three or more branches in one row go left to right in the order the note gives them**
   (`sibling-order.js`), so the branch the story carries on down can be the middle one, under its
@@ -1147,12 +1147,37 @@ to bottom, left to right and merged through one checker.
   says where a route hops (`line-jumps.js`: the horizontal run bridges the vertical one).
 - **A label's size goes in padded** — `labelBoxSize()` in `draw-flowchart-edge.js` is the one answer,
   used to draw the box and to ask the layout for room for it.
-- **Subgraphs are placed by dagre, in the same run** — a compound graph, each group a parent node —
-  because which group a note is in decides where it goes, and stage 2 never moves a box between rows.
-  One run, never one per group: links between groups would go unplanned. The group is in the graph
-  (`groupOf()` in `flowchart-graph.js`), read by the mermaid source and the SVG alike; a stub is in
-  none. The name sits in the strip dagre leaves inside a group's top edge, `GROUP_NAME_HEIGHT` tall,
-  and the box takes no presses, so a drop inside a group is a drop on empty chart.
+- **Each subgraph is laid out on its own, and is one box in the chart around it** — ELK's way, never
+  dagre's compound mode (`nested-layout.js`; `plans/completed/flowchart-subgraphs-as-blocks.md`).
+  Compound mode pushed whatever dagre was not lining up out against a group's walls: the reference
+  chart's symmetry sat ±285 from its middle where plain dagre puts it ±74. So **nothing hands dagre a
+  compound graph any more**, and a group's members go in to their own layout with their group cleared
+  — leaving it on put compound mode, and its walls, straight back.
+  - **A link crossing a border is cut** (`split-links.js`): inside the group it runs to a border box
+    of no size, pinned to the group's top or bottom row with `minlen` (dagre has no row constraints;
+    `pinnedChart` lengthens a link until its box lands there); outside it runs from the group's box.
+    **Which border it crosses is decided by the chart outside**, with the same `turnedLinks` dagre-place
+    asks, since collapsing a group can make a loop no two notes made. `stitch-routes.js` joins the
+    pieces into one route; the label goes on the outer piece.
+  - **A group's box meets its links where its inside put them**: ports fixed (`ports.js` `fixed`, never
+    nudged), and the box lined up by dagre on the mean of those ports, not its middle — handed to dagre
+    grown on one side (`anchor`, `reach()` in `dagre-place.js`), as a loop's room is. Without it the
+    block below 009 sat under part1's middle instead of under 009.
+  - **The border boxes go in the order their links take outside, and the inside follows**: laid out
+    once, each group's top and bottom rows are sorted by where their links go, the group laid out
+    again with every other row swept to follow (`followRows` in `sibling-order.js`, the barycentre
+    step ELK does across a border), and the chart around it again. Top only, bottom only and both are
+    tried, the one with fewest crossings kept — reordering both ends of a link between two groups at
+    once swapped both and left it crossing.
+  - **Merged, links into one note through one side of its group share a border box**, so they cross the
+    border as one trunk, as mermaid's `mergeHierarchyEdges` draws them.
+  - **Nothing depends on the order the files arrive in**: every graph gets its links sorted by the box
+    and the note they leave, a note's own order kept (sibling order reads it from the index); border
+    boxes are named by the notes they join; a route's hops are listed in the order it meets them.
+  - **Rows do not carry across a border**, as in mermaid: a group is one box in one row outside. The
+    group's name sits in the strip `GROUP_NAME_HEIGHT` tall inside its top edge (a link entering from
+    above runs down through it to the border row), and the box takes no presses, so a drop inside a
+    group is a drop on empty chart.
 
 ### A view's own control row
 
@@ -1243,12 +1268,15 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/flowchart/layout/` | Where the flowchart's boxes and lines go — pure; see *The flowchart's layout* |
 | `public/js/services/flowchart/layout/placeholder-layout.js` | The layout contract the SVG draws from (positions and edge routes), stated, and a grid that keeps it — the fallback |
 | `public/js/services/flowchart/layout/dagre-layout.js` | The contract: the layout's steps, in order |
-| `public/js/services/flowchart/layout/dagre-place.js` | dagre's placement: boxes, groups, each link's lanes and label |
+| `public/js/services/flowchart/layout/dagre-place.js` | dagre's placement: boxes (a group's box lined up by its ports), each link's lanes and label — never a compound graph |
 | `public/js/services/flowchart/layout/orthogonal-routes.js` | A link as a right-angled route through its lanes |
 | `public/js/services/flowchart/layout/ports.js`, `tracks.js`, `jog-heights.js`, `ranks.js` | Where arrows meet a box; the order of sideways runs in a gap, and their heights; the rows and widening a gap |
 | `public/js/services/flowchart/layout/straighten.js` | A straight link's lanes slid onto one of its ports, saving a bend |
-| `public/js/services/flowchart/layout/close-row-gaps.js` | Each row's lanes pulled towards what they link to, never past a neighbour or a group's edge; boxes stay where dagre put them |
-| `public/js/services/flowchart/layout/sibling-order.js` | A note's three or more branches in the order it gives them, through dagre's `customOrder`, and the crossing count that guards it |
+| `public/js/services/flowchart/layout/close-row-gaps.js` | Each row's lanes pulled towards what they link to, never past a neighbour; boxes stay where dagre put them |
+| `public/js/services/flowchart/layout/sibling-order.js` | A note's three or more branches in the order it gives them, through dagre's `customOrder`, a row's boxes in a given order with the rest swept to follow, and the crossing count that guards it |
+| `public/js/services/flowchart/layout/nested-layout.js` | A chart with groups: each group laid out alone with its border boxes pinned, the chart around them with each group as one box, and the border order tried |
+| `public/js/services/flowchart/layout/split-links.js` | Groups collapsed to boxes, and every link cut where it crosses a border — which border decided by the chart outside |
+| `public/js/services/flowchart/layout/stitch-routes.js` | Each group's inside moved into its box, and the pieces of each link joined into one route |
 | `public/js/services/flowchart/layout/compact-columns.js`, `transpose.js`, `chart-frame.js` | Narrowing empty strips; left to right; the drawing's frame |
 | `public/js/services/flowchart/layout/line-jumps.js` | Where routes cross, so the drawing can bridge |
 | `public/js/services/flowchart/flowchart-layout-settings.js` | Direction and merging, and the one writer for them |
