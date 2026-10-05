@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFilesYamlShapes, setupMockFilesFalsyTags, loadFolder, appModule } = require('../helpers');
+const { setupMockFilesYamlShapes, setupMockFilesFalsyTags, loadFolder, appModule, chooseView } = require('../helpers');
 
 /**
  * Parses a front matter block and returns the result, the recorded errors and, when asked, the
@@ -404,10 +404,10 @@ test('a tags key holding false or null still leaves the TagMap in place', async 
   ]);
 
   // The two views that read the Map without checking it is one. Both drew nothing and threw.
-  await page.selectOption('#view-select', 'list');
+  await chooseView(page, 'list');
   await expect(page.locator('.list-view > li')).toHaveCount(3);
 
-  await page.selectOption('#view-select', 'cards');
+  await chooseView(page, 'cards');
   await expect(page.locator('.note-grid')).toHaveCount(3);
 
   expect(errors).toEqual([]);

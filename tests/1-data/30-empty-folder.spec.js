@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockEmptyDirectoryWithCreate, loadFolder, showFilenames } = require('../helpers');
+const { setupMockEmptyDirectoryWithCreate, loadFolder, showFilenames, chooseView } = require('../helpers');
 
 test('an empty folder loads without crashing, and its controls stay usable', async ({ page }) => {
   const pageErrors = [];
@@ -41,12 +41,12 @@ test('creating and then deleting the first note brings the list to life and back
   // properties are registered from myFiles[0] at load, which never ran for an empty folder;
   // without registering on create, the sort dropdown and table columns stay empty
   expect(await page.locator('#sort-select option').allInnerTexts()).toContain('filename');
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('#output .note-table-cell-header')).not.toHaveCount(0);
   await expect(page.locator('#output .note-table-header')).toContainText('filename');
 
   // delete from inside the open note: file options → delete → confirm
-  await page.selectOption('#view-select', 'cards');
+  await chooseView(page, 'cards');
   await page.locator('.note-grid').first().click();
   await expect(page.locator('#file-content-modal')).toBeVisible();
   await page.click('#file-options-btn');

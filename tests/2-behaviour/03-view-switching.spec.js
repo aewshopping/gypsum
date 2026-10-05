@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, loadFolder, showFilenames } = require('../helpers');
+const { setupMockFiles, loadFolder, showFilenames, chooseView } = require('../helpers');
 
 // Search and view switching share one folder load — both are cheap reads over the same state.
 test('searching filters the list, and the table view renders headers', async ({ page }) => {
@@ -17,7 +17,7 @@ test('searching filters the list, and the table view renders headers', async ({ 
   await expect(page.locator('.note-grid')).toHaveCount(1);
   await expect(page.locator('.note-grid').first()).toContainText('meeting-notes');
 
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
 
   await expect(page.locator('.note-table-header')).toBeVisible();
   await expect(page.locator('.note-grid')).toHaveCount(0);
@@ -33,7 +33,7 @@ test('the control row shares the count line, survives a partial render, and leav
   await loadFolder(page);
   await expect(page.locator('.output-header .output-controls')).toHaveCount(0);
 
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
   await expect(page.locator('.output-header .output-controls')).toHaveCount(1);
   await expect(page.locator('#output .output-controls')).toHaveCount(0);
@@ -42,7 +42,7 @@ test('the control row shares the count line, survives a partial render, and leav
   await page.selectOption('#sort-select', 'title');
   await expect(page.locator('.output-header .output-controls')).toHaveCount(1);
 
-  await page.selectOption('#view-select', 'cards');
+  await chooseView(page, 'cards');
   await expect(page.locator('.note-grid').first()).toBeVisible();
   await expect(page.locator('.output-header .output-controls')).toHaveCount(0);
 });
@@ -67,7 +67,7 @@ test('list view draws what the file holds, whatever the table is set to', async 
   await setupValueFiles(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'list');
+  await chooseView(page, 'list');
   await page.locator('.list-view summary').first().click();
 
   const valueOf = (prop) => page.locator(`.list-view [data-prop="${prop}"]`).first();
@@ -93,45 +93,61 @@ test('list view draws what the file holds, whatever the table is set to', async 
   // **And a column's type cannot reach this view.** It is the table's fact, about how a column
   // sorts and what its cells offer; this view asks the value what it is. Retyping the list column
   // to text used to turn the line into `John Smith, Doe, Jane` and take its item marks away.
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await page.click('[data-action="open-column-picker"]');
   await page.locator('.info-modal-row[data-property="people"] .column-picker-type').click();
   await page.locator('[data-action="column-type-set"][data-value="string"]').click();
   await page.keyboard.press('Escape');
   await page.click('[data-action="close-column-picker"]');
 
-  await page.selectOption('#view-select', 'list');
+  await chooseView(page, 'list');
   await page.locator('.list-view summary').first().click();
   await expect(valueOf('people')).toHaveText('John Smith, "Doe, Jane"');
   await expect(valueOf('people')).toHaveAttribute('data-list', '');
 });
 
-// Alt+number picks the view of that number in the select, whose labels carry the same numbers —
+// Alt+number picks the view of that number in the side panel, whose labels carry the same numbers —
 // both counted from the order of VIEWS, so they cannot disagree.
 test('Alt+number switches to the numbered view, but not while a dialog is open', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
   await loadFolder(page);
 
-  const options = await page.locator('#view-select option').allTextContents();
-  expect(options[0]).toBe('1. table view');
-  options.forEach((label, i) => expect(label).toMatch(new RegExp(`^${i + 1}\\. `)));
-  await expect(page.locator('#shortcut-last-view')).toHaveText(String(options.length));
+  const buttons = page.locator('[data-action="select-view"]');
+  const current = page.locator('[data-action="select-view"][aria-pressed="true"]');
+  const labels = await buttons.allTextContents();
+  expect(labels[0].trim()).toBe('1. table');
+  expect(labels.at(-1).trim()).toBe('6. flowchart');
+  labels.forEach((label, i) => expect(label.trim()).toMatch(new RegExp(`^${i + 1}\\. `)));
+  await expect(page.locator('#shortcut-last-view')).toHaveText(String(labels.length));
 
   await page.keyboard.press('Alt+1');
-  await expect(page.locator('#view-select')).toHaveValue('table');
+  await expect(current).toHaveAttribute('data-view', 'table');
+  await expect(current).toHaveCount(1);
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   await page.keyboard.press('Alt+2');
-  await expect(page.locator('#view-select')).toHaveValue('cards');
+  await expect(current).toHaveAttribute('data-view', 'cards');
   await expect(page.locator('.note-table-header')).toHaveCount(0);
 
   // A number past the last view does nothing.
-  await page.keyboard.press(`Alt+${options.length + 1}`);
-  await expect(page.locator('#view-select')).toHaveValue('cards');
+  await page.keyboard.press(`Alt+${labels.length + 1}`);
+  await expect(current).toHaveAttribute('data-view', 'cards');
 
   await page.keyboard.press('?');
   await expect(page.locator('#modal-settings')).toBeVisible();
   await page.keyboard.press('Alt+1');
-  await expect(page.locator('#view-select')).toHaveValue('cards');
+  await expect(current).toHaveAttribute('data-view', 'cards');
+});
+
+test('the side panel\'s view buttons switch the view and mark the one on screen', async ({ page }) => {
+  await setupMockFiles(page);
+  await page.goto('/');
+  await loadFolder(page);
+
+  await page.click('#btn-recent-toggle');
+  await page.click('[data-action="select-view"][data-view="table"]');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+  await expect(page.locator('[data-view="table"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-view="peek"]')).toHaveAttribute('aria-pressed', 'false');
 });

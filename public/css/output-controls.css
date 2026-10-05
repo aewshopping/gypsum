@@ -5,7 +5,7 @@
    on top for anything that really is its own; neither of them needs one today.
 
    Named for #output rather than for a view, because that is the output it belongs to. `.view-controls`
-   was taken by the view <select> in the page itself, and `.list-controls` would read as belonging to
+   was taken by the view <select> the page once had, and `.list-controls` would read as belonging to
    list view.
 
    Deliberately NOT sticky, and deliberately outside the table's .table-chrome: these are set-up

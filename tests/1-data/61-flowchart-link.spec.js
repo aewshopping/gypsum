@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockCellWritingFolder } = require('../helpers');
+const { loadFolder, setupMockCellWritingFolder, chooseView } = require('../helpers');
 
 // A link drawn on the flowchart is written into the note it is dragged from, after a dialog that
 // says exactly what will be written; drawn onto empty chart it makes a new note to link to. See
@@ -18,7 +18,7 @@ async function openChart(page, roles = {}, files = LINKED) {
   await setupMockCellWritingFolder(page, files);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   if (Object.keys(roles).length) {
     await page.click('[data-action="open-flowchart-options"]');
     for (const [role, property] of Object.entries(roles)) await page.selectOption(`#flowchart-role-${role}`, property);
@@ -70,6 +70,39 @@ test('with the default connectors, a drag writes the link into flowChartLink —
     await reverseBatch('undo', appState.undoStack.length - 1);
   });
   await expect.poll(() => note(page, 'start.md')).toBe(before);
+});
+
+// The chart is laid out by key, so the sort never moves it — but the other views are sorted by last
+// modified, and a link drawn here is a write like any other. It used to skip the re-sort, so the
+// note stayed where it was in every other view until something else sorted the list.
+test('a drawn link puts the note where the sort says, and an undo does too', async ({ page }) => {
+  await openChart(page);
+  const order = () => page.evaluate(() => window.appState.myFiles.map(file => file.filepath));
+  expect(await page.evaluate(() => window.appState.sortState)).toMatchObject({ property: 'lastModified', direction: 'desc' });
+  // Spaced out, so no two notes share a modified time and the order says which was written last.
+  await page.waitForTimeout(20);
+  const labels = { 'start.md': 'Start', 'one.md': 'One', 'two.md': 'Two' };
+  const source = (await order()).filter(path => path in labels).at(-1);
+  const sourceLabel = labels[source];
+  const targetLabel = sourceLabel === 'Two' ? 'One' : 'Two';
+
+  await drag(page, sourceLabel, targetLabel);
+  await page.click('#modal-unsaved-warning-proceed');
+  await expect.poll(async () => (await order())[0]).toBe(source);
+
+  // A second link from another note puts that note first; undoing the first link brings it back.
+  const second = sourceLabel === 'Start' ? 'One' : 'Start';
+  await page.waitForTimeout(20);
+  await drag(page, second, sourceLabel);
+  await page.click('#modal-unsaved-warning-proceed');
+  await expect.poll(async () => (await order())[0]).not.toBe(source);
+  await page.waitForTimeout(20);
+  await page.evaluate(async () => {
+    const { reverseBatch } = await import('/public/js/table-undo/undo-stacks.js');
+    const { appState } = await import('/public/js/services/store.js');
+    await reverseBatch('undo', appState.undoStack.length - 2);
+  });
+  await expect.poll(async () => (await order())[0]).toBe(source);
 });
 
 test('a property of the user\'s own: a single value becomes a list, and no text list is touched', async ({ page }) => {

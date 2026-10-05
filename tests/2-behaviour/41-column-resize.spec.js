@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, showFilenames } = require('../helpers');
+const { loadFolder, showFilenames, chooseView } = require('../helpers');
 
 async function setupFiles(page) {
   await page.addInitScript(() => {
@@ -20,7 +20,7 @@ async function openTable(page, width = 1000) {
   await page.goto('/');
   await loadFolder(page);
   await showFilenames(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -95,8 +95,8 @@ test('a dragged width survives a re-render', async ({ page }) => {
   await expect.poll(() => titleWidth(page)).toBeCloseTo(dragged, 0);
 
   // and so does switching away and back
-  await page.selectOption('#view-select', 'cards');
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'cards');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
   await expect.poll(() => titleWidth(page)).toBeCloseTo(dragged, 0);
 });

@@ -14,6 +14,9 @@ import { REFUSALS } from './flowchart-link-add.js';
 import { reportFailure } from '../ui-functions-render/output-report.js';
 import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { whileWriting } from '../ui-functions-table/bulk-write-busy.js';
+import { sortAppStateFiles } from '../../services/file-object-sort.js';
+import { propertyType } from '../../services/property-type.js';
 
 /**
  * @file A drag from a note's box released on empty chart: a dialog for the new note's folder and
@@ -190,6 +193,11 @@ export async function handleFlowchartNewNoteConfirm() {
         reportFailure(`${filepath} could not be created: ${error.message}`);
         return;
     }
+    // Where the sort puts it, as the new-note button does: the other views list it by date, and
+    // the chart is laid out by key, so the sort does not move it there.
+    const { property, direction } = appState.sortState;
+    sortAppStateFiles(property, propertyType(property), direction);
+
     // The chart redrawn after this glides from the one on screen, and the new box from where it came.
     appState.flowchartView.settle = true;
     if (_from) appState.flowchartView.arrival = { fileId: note.internalId, ..._from };
@@ -212,7 +220,7 @@ export async function handleFlowchartNewNoteConfirm() {
 
     let records = [];
     try {
-        records = await addFlowchartLink(source, note, plan.edits);
+        records = await whileWriting(false, '', () => addFlowchartLink(source, note, plan.edits));
     } catch {
         // Reported below, as a write that changed nothing.
     }

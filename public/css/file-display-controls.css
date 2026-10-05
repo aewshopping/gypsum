@@ -35,14 +35,14 @@
     padding-top: 10px;
 }
 
-.sort-controls, .view-controls {
+.sort-controls {
     display: flex;
     align-items: center;
     gap: 2px;
     padding:4px;
 }
 
-#view-select, #sort-select, .controls-panel-btn {
+#sort-select, .controls-panel-btn {
     border:none;
     cursor:pointer;
     min-width: 80px;
@@ -52,10 +52,6 @@
     &:hover {
         background-color: revert;
     }
-}
-
-#view-select {
-    background-color: transparent;
 }
 
 /* The text buttons in the controls panel — "tags" and "types". One class rather than one

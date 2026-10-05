@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockDirectoryWithLayouts } = require('../helpers');
+const { loadFolder, setupMockDirectoryWithLayouts, chooseView } = require('../helpers');
 
 // Narrow, so the table has somewhere to scroll sideways to.
 async function openTable(page) {
@@ -7,7 +7,7 @@ async function openTable(page) {
   await setupMockDirectoryWithLayouts(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

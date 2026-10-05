@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, chooseView } = require('../helpers');
 const { RENAME_NOTES, setupPropertyFolder } = require('../fixtures/property-notes');
 
 /**
@@ -38,7 +38,7 @@ async function openTable(page, notes, layouts) {
   await page.goto('/');
   if (layouts) await page.evaluate((text) => { window.__saved['table_layouts.gypsum'] = text; }, JSON.stringify(layouts));
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

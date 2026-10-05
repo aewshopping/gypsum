@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, chooseView } = require('../helpers');
 
 // What each note is for:
 //   a.md — a real date, a list, and a value holding markup. The markup one is the whole point of
@@ -31,7 +31,7 @@ async function openTable(page, width = 1400) {
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

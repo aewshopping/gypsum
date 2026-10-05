@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, showFilenames } = require('../helpers');
+const { loadFolder, showFilenames, chooseView } = require('../helpers');
 
 // Titles long enough that a cell cannot show them at its column width.
 async function setupLongTitles(page) {
@@ -24,7 +24,7 @@ async function openTable(page) {
   await page.goto('/');
   await loadFolder(page);
   await showFilenames(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -94,7 +94,7 @@ async function openLinkTable(page) {
   await setupLinkCells(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

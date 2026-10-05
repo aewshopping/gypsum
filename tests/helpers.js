@@ -1014,7 +1014,18 @@ async function loadFolder(page) {
  * @param {import('@playwright/test').Page} page
  */
 async function showFilenames(page) {
-  await page.selectOption('#view-select', 'cards');
+  await chooseView(page, 'cards');
+}
+
+/**
+ * Switches to a view by pressing its button in the side panel. Dispatched rather than clicked:
+ * the tests run with the panel shut, where the button sits off-screen.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} view - A value from VIEWS: 'table', 'cards', 'flowchart'…
+ */
+async function chooseView(page, view) {
+  await page.locator(`[data-action="select-view"][data-view="${view}"]`).dispatchEvent('click');
 }
 
 
@@ -1292,4 +1303,4 @@ async function setupMockCellWritingFolder(page, extra = {}) {
   }, extra);
 }
 
-module.exports = { setupMockCellWritingFolder, loadFolder, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };
+module.exports = { setupMockCellWritingFolder, loadFolder, chooseView, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };

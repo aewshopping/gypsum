@@ -19,12 +19,12 @@ export const regex_tag = /#(?:(\w+)\/)?(\w+)/;
 export const regex_internal_link = /\[\[([^\[\]\n|]+?)(?:\|([^\[\]\n]*))?\]\]/;
 
 export const VIEWS = {
-    TABLE:  { value: "table",  label: "table view"  },
-    CARDS:  { value: "cards",  label: "cards view"  },
-    LIST:   { value: "list",   label: "list view"   },
-    PEEK:   { value: "peek",   label: "peek view"   },
-    SEARCH: { value: "search", label: "search view" },
-    FLOWCHART: { value: "flowchart", label: "flowchart view" }
+    TABLE:  { value: "table",  label: "table"  },
+    CARDS:  { value: "cards",  label: "cards"  },
+    LIST:   { value: "list",   label: "list"   },
+    PEEK:   { value: "peek",   label: "peek"   },
+    SEARCH: { value: "search", label: "search" },
+    FLOWCHART: { value: "flowchart", label: "flowchart" }
 };
 
 /**

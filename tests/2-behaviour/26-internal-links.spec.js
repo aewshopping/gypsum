@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFilesWithLinks, loadFolder, setViewTransitions } = require('../helpers');
+const { setupMockFilesWithLinks, loadFolder, setViewTransitions, chooseView } = require('../helpers');
 
 // setupMockFilesWithLinks: hub.md links to shopping.txt, subdir/nested.md, a missing
 // file, and an extensionless name; plus fenced/inline-code links that must stay literal.
@@ -275,7 +275,7 @@ test.describe('internal links — in table cells', () => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
     await loadFolder(page);
-    await page.selectOption('#view-select', 'table');
+    await chooseView(page, 'table');
     await expect(page.locator('.note-table-header')).toBeVisible();
   }
 
@@ -361,7 +361,7 @@ test.describe('internal links — a cell opened and left alone', () => {
     await setupMockFilesWithLinks(page);
     await page.goto('/');
     await loadFolder(page);
-    await page.selectOption('#view-select', 'table');
+    await chooseView(page, 'table');
     await expect(page.locator('.note-table-header')).toBeVisible();
   }
 
@@ -442,7 +442,7 @@ test.describe('internal links — opening one from a table cell', () => {
     await page.goto('/');
     await loadFolder(page);
     await setViewTransitions(page, true);   // the default outside tests, and what the bug needed
-    await page.selectOption('#view-select', 'table');
+    await chooseView(page, 'table');
     await expect(page.locator('.note-table-header')).toBeVisible();
   }
 

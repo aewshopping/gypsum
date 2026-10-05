@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, chooseView } = require('../helpers');
 
 /**
  * The table's "last modified" column, after an edit made from the table.
@@ -56,7 +56,7 @@ const cell = (page, prop) => page.locator(`.list-table .note-table-cell[data-pro
 
 async function openTable(page) {
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(cell(page, 'note')).toBeVisible();
 }
 

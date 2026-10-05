@@ -1,0 +1,12 @@
+/* The Views section of the side panel: one .btn-menu per view, the one on screen marked the way
+   the open file is marked in the recent list below it. */
+
+#sidebar-views {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* the same spacing as the folder buttons above */
+}
+
+#sidebar-views .btn-menu[aria-pressed="true"] {
+    box-shadow: inset 4px 0 0 0 currentColor;
+}
