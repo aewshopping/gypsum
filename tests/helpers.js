@@ -1021,11 +1021,19 @@ async function showFilenames(page) {
  * Switches to a view by pressing its button in the side panel. Dispatched rather than clicked:
  * the tests run with the panel shut, where the button sits off-screen.
  *
+ * The table and the flowchart draw their own controls into the controls panel, which is shut by
+ * default — so for those two the panel is opened too, with the sliders button, as a person would
+ * before pressing any of them.
+ *
  * @param {import('@playwright/test').Page} page
  * @param {string} view - A value from VIEWS: 'table', 'cards', 'flowchart'…
  */
 async function chooseView(page, view) {
   await page.locator(`[data-action="select-view"][data-view="${view}"]`).dispatchEvent('click');
+  if (view !== 'table' && view !== 'flowchart') return;
+  if (await page.locator('#file-display-controls-panel.open').count() === 0) {
+    await page.click('[data-action="toggle-file-controls"]');
+  }
 }
 
 
