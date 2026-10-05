@@ -172,9 +172,13 @@
     animation-timing-function: ease-in-out;
 }
 
-/* The file currently open in the modal. */
-.sidebar-recent-item[data-current] {
-    box-shadow: inset 4px 0 0 0 currentColor;
+/* The file currently open in the modal, and the view on screen in the Views section above — one
+   mark for "this is the one you are on". An inset shadow rather than a border or an outline: it is
+   paint only, so nothing around it moves and nothing inside it is squeezed, and it leaves the
+   focus ring's outline free. */
+.sidebar-recent-item[data-current],
+#sidebar-views .btn-menu[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1.5px currentColor;
 }
 
 .sidebar-recent-empty {
