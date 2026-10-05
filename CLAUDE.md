@@ -1187,16 +1187,15 @@ what keeps view-conditional logic out of the app entirely: the row exists while 
 rendered, and so does every dialog reachable from it. Add a view's own class beside it for anything
 genuinely its own; neither row needs one today.
 
-**It shares a line with `#output-report`, in `.output-header`.** The file count and the undo
-message sit at the left of that line and the view's row at the right, past a `.flexgrow` — which
-is the spacer that used to sit *inside* the table's row, holding undo and redo apart from the
-layout buttons. One gap on that line means something now, and it is the one between the sentence
-and the controls. The group wraps, so a viewport too narrow for both puts the row on its own line.
+**It is the second line of the controls panel**, under tags, types and sort — the panel the
+sliders button opens. The panel is one wrapping flex row; `.view-controls-row` takes the full width,
+which is what puts it underneath, and a `.flexgrow` inside it pushes the view's row to the right. It
+is hidden while `#output-controls` is empty, so a view with no row costs the panel no line. The
+panel's own 14.3px interface font is set on its own controls only, so the view's row keeps its size.
 
-- **The row goes into `#output-controls`, never into `#output`.** `#output-report` has to outlive
-  the renders that replace the file list — `reportFileCount()` writes it *before* the view draws —
-  so it cannot live inside `#output`, and the two can only share a line by the row coming out to
-  meet it. The slot is a bare wrapper in `index.html`; a view with no control row leaves it empty.
+- **The row goes into `#output-controls`, never into `#output`.** The slot has to outlive the renders
+  that replace the file list, and it sits in the panel, outside `#output`. It is a bare wrapper in
+  `index.html`; a view with no control row leaves it empty.
 - **`renderFiles` empties the slot, and only on a full render.** Emptying it there is what saves the
   four renderers that have no row, and the two empty states that draw no view at all, from each
   having to know. The guard is the other half: a partial render replaces the table's rows and

@@ -19,8 +19,7 @@ import { renderUndoButtons } from '../ui-functions-render/render-undo-buttons.js
  * what the table is showing, and what can be done to the table.
  *
  * **Undo and redo simply follow the layout controls**, with no spacer between. The row is one run
- * of controls at the right-hand end of .output-header now, and the only gap that means anything on
- * that line is the one between the file count and the whole row. Their glyphs are the content
+ * of controls at the right-hand end of the controls panel's second line. Their glyphs are the content
  * modal's own undo and redo, reached from the shared sprite so that one drawing serves both
  * places — see plans/completed/table-undo-stack.md §10.1.
  *
@@ -28,10 +27,8 @@ import { renderUndoButtons } from '../ui-functions-render/render-undo-buttons.js
  * the same stack.
  *
  * **What an undo did is not said here.** It is said in #output-report, which belongs to every view
- * rather than to the table — see ui-functions-render/output-report.js. The two now share a line,
- * but not an element: the row is a run of controls and that report is a sentence, and inside the row
- * it would jump the row's height as it appeared and wrap the buttons rather than itself at phone
- * width.
+ * rather than to the table — see ui-functions-render/output-report.js. Inside the row it would jump
+ * the row's height as it appeared and wrap the buttons rather than itself at phone width.
  *
  * The name is a button in the app's understated fill rather than a bordered one: it is a place to
  * look before it is a thing to press, and it sits next to an icon button that a border would crowd.

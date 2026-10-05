@@ -1,4 +1,5 @@
-/* The row of controls a view puts at the right-hand end of .output-header, above its own output.
+/* The row of controls a view puts in the controls panel, on the line under tags, types and sort,
+   pushed to the right — see .view-controls-row in file-display-controls.css.
 
    Shared rather than per-view: the table row and the flowchart row are the same shape doing the
    same job, and a second copy of these rules would drift. A view's renderer may add its own class
@@ -9,15 +10,11 @@
    list view.
 
    Deliberately NOT sticky, and deliberately outside the table's .table-chrome: these are set-up
-   controls reached once, not something wanted underfoot for the length of a long file list. The
-   chrome slides over the row on the way down, which is why the row carries no background of its
-   own — it sits on the page.
+   controls reached once, not something wanted underfoot for the length of a long file list. It
+   carries no background of its own — it sits on the page.
 
-   It is fit-content rather than full width, and its own flex is now only about the controls in it.
-   The gap that used to hold the layout buttons apart from undo and redo is .output-header's, and it
-   holds the whole row apart from the file count instead — the two ends of the line are the sentence
-   and the controls, not two kinds of control. It draws no background and no border, so nothing is
-   visibly plated; the controls simply stop huddling. */
+   It is fit-content rather than full width, and its own flex is only about the controls in it. It
+   draws no background and no border, so nothing is visibly plated. */
 .output-controls {
     display: flex;
     align-items: center;

@@ -23,28 +23,28 @@ test('searching filters the list, and the table view renders headers', async ({ 
   await expect(page.locator('.note-grid')).toHaveCount(0);
 });
 
-// The view's control row is drawn into #output-controls, on .output-header beside the file count,
-// rather than into #output. That element outlives the render, so something has to empty it — and a
+// The view's control row is drawn into #output-controls, the controls panel's second line, rather
+// than into #output. That element outlives the render, so something has to empty it — and a
 // partial render, which replaces the table's rows and nothing else, has to leave it alone or a
 // press on undo would lose the button under it.
-test('the control row shares the count line, survives a partial render, and leaves with its view', async ({ page }) => {
+test('the control row sits under the general controls, survives a partial render, and leaves with its view', async ({ page }) => {
   await setupMockFiles(page);
   await page.goto('/');
   await loadFolder(page);
-  await expect(page.locator('.output-header .output-controls')).toHaveCount(0);
+  await expect(page.locator('.view-controls-row .output-controls')).toHaveCount(0);
 
   await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
-  await expect(page.locator('.output-header .output-controls')).toHaveCount(1);
+  await expect(page.locator('.view-controls-row .output-controls')).toHaveCount(1);
   await expect(page.locator('#output .output-controls')).toHaveCount(0);
 
   // The sort dropdown renders the rows only — the row above them must still be there afterwards.
   await page.selectOption('#sort-select', 'title');
-  await expect(page.locator('.output-header .output-controls')).toHaveCount(1);
+  await expect(page.locator('.view-controls-row .output-controls')).toHaveCount(1);
 
   await chooseView(page, 'cards');
   await expect(page.locator('.note-grid').first()).toBeVisible();
-  await expect(page.locator('.output-header .output-controls')).toHaveCount(0);
+  await expect(page.locator('.view-controls-row .output-controls')).toHaveCount(0);
 });
 
 /**

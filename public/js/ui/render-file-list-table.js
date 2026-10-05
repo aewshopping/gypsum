@@ -50,9 +50,9 @@ export function renderFileList_table(renderEverything, fullRender = true) {
         // Generate the dynamic rows
         const rowsHtml = renderTableRows(TABLE_VIEW_COLUMNS.current_props, renderEverything);
 
-        // The control row goes up onto .output-header, beside the file count, rather than into
-        // #output — one line above the list instead of two. It is still this view's own HTML and
-        // still exists only while this view is drawn: renderFiles empties the slot on every full
+        // The control row goes into the controls panel, under tags, types and sort, rather than
+        // into #output. It is still this view's own HTML and still exists only while this view is
+        // drawn: renderFiles empties the slot on every full
         // render, and only the view that has a row fills it.
         document.getElementById('output-controls').innerHTML = renderTableControls();
 

@@ -420,6 +420,13 @@
               <input type="checkbox" id="sort-direction" data-action="sort-direction-toggle" data-tip="reverse sort direction">
             </label>
           </div>
+          <!-- The second line of the panel: what the showing view offers, pushed to the right. The
+               view's own control row is drawn into #output-controls and is empty in the views that
+               have none, when the line takes no room. -->
+          <div class="view-controls-row">
+            <div class="flexgrow"></div>
+            <div id="output-controls"></div>
+          </div>
         </div>
       </div>
 
@@ -428,13 +435,9 @@
 
     <div id="tag-taxonomy-container"></div>
 
-    <!-- One line above the file list: what is showing on the left, what the showing view offers on
-         the right. The view's own control row is drawn into #output-controls and is empty in the
-         views that have none. -->
+    <!-- One line above the file list: what is showing, and what the last undo did. -->
     <div class="output-header">
       <div id="output-report" class="progress-bar" role="status"></div>
-      <div class="flexgrow"></div>
-      <div id="output-controls"></div>
     </div>
 
     <div id="output">

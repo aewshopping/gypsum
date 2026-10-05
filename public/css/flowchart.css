@@ -31,8 +31,8 @@
 
 /* The flowchart view's control row has nothing of its own: .output-controls is the whole of it.
    It used to be padded to line its button up with the code block's text below, which stopped
-   meaning anything once the row moved to the right-hand end of .output-header — the left edge it
-   was aligning with is no longer the edge the button sits at. */
+   meaning anything once the row moved to the right-hand end of a line — the left edge it was
+   aligning with is no longer the edge the button sits at. */
 
 /* The chart fills the window below the control row, so it can be used without going full screen. */
 /* While the chart is drawn, the page is a column the chart grows to the bottom of: body, main and
