@@ -9,8 +9,8 @@ import { appState, TABLE_VIEW_COLUMNS } from './store.js';
 /**
  * The properties a select may offer, in the order the sort modal lists them.
  *
- * **Not** filtered the way the types modal does: isTypeSettable would throw out `title`, `internalLink` and `internalLinkText`, which a chart
- * or a linked column may well want to read. What does come out is what cannot be read as a value at
+ * **Not** filtered by isTypeSettable: that would throw out `title`, `internalLink` and
+ * `internalLinkText`, which a sort, a chart or a linked column may well want to read. What does come out is what cannot be read as a value at
  * all — `handle` and `contentPeek`, and `internalId`, whose cell is a link to a file rather than
  * anything that could be drawn.
  *

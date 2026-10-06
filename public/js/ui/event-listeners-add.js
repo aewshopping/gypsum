@@ -46,13 +46,12 @@ import { handleRangePasteButton } from './ui-functions-click/range-paste-button.
 import { handleRangeCopy } from './ui-functions-cell/cell-range-copy.js';
 import { handleRangePaste } from './ui-functions-cell/cell-range-paste.js';
 import { handleOpenColumnPicker, handleCloseColumnPicker, handleColumnToggle, handleResetColumns, handleShowAllColumns, handleHideAllColumns, handleColumnDelete, handleColumnPickerClose } from './ui-functions-click/column-picker.js';
-import { handleOpenPropertyTypes, handleClosePropertyTypes, handlePropertyTypesClose,
-         handlePropertyTypeDelete } from './ui-functions-click/property-types.js';
 import { handleOpenFlowchartOptions, handleCloseFlowchartOptions, handleFlowchartOptionChange,
          handleFlowchartOptionsClose, handleFlowchartLayoutChange } from './ui-functions-flowchart/flowchart-options-modal.js';
 import { handleColumnReorderStart, handleColumnReorderMove, handleColumnReorderEnd } from './ui-functions-table/column-picker-reorder.js';
 import { handleColumnTypeMenuOpen, handleColumnTypeSet, handleColumnSearchTypeSet, handleCloseColumnType } from './ui-functions-click/column-type-set.js';
-import { handleOpenSortModal, handleCloseSortModal, handleSortByProperty, handleSortReverse, handleSortTypeOpen } from './ui-functions-click/sort-modal.js';
+import { handleOpenSortModal, handleCloseSortModal, handleSortByProperty, handleSortReverse, handleSortTypeOpen,
+         handleSortTypeForget } from './ui-functions-click/sort-modal.js';
 import { handleContentSearchToggle } from './ui-functions-click/search-content-toggle.js';
 import { handleFullscreenToggle } from './ui-functions-click/fullscreen-toggle.js';
 import { handleSearchBoxEnterPress } from './ui-functions-click/searchbox-search-click.js';
@@ -182,12 +181,7 @@ export function addActionHandlers() {
     // all reach, which is why the dialog is read there rather than from a "done" button.
     document.getElementById('modal-columns').addEventListener('close', handleColumnPickerClose);
 
-    // The types modal finishes the same three ways, and for the same reason reads them all at
-    // close. Nothing of its own is saved there — a type is written when it is set — but the
-    // table has to be redrawn for it.
-    document.getElementById('modal-property-types').addEventListener('close', handlePropertyTypesClose);
-
-    // And the flowchart options modal, which is the same arrangement again: a choice is written the
+    // The flowchart options modal finishes the same three ways: a choice is written the
     // moment it is made, and the close is what redraws the chart it changed.
     document.getElementById('modal-flowchart-options').addEventListener('close', handleFlowchartOptionsClose);
 
@@ -240,13 +234,12 @@ const clickActionHandlers = {
     'layout-delete': handleLayoutDelete,
     'layout-clear': handleLayoutClear,
     'open-column-picker': handleOpenColumnPicker,
-    'open-property-types': handleOpenPropertyTypes,
     'open-sort-modal': handleOpenSortModal,
     'close-sort-modal': handleCloseSortModal,
     'sort-by-property': handleSortByProperty,
     'sort-reverse': handleSortReverse,
     'sort-type-open': handleSortTypeOpen,
-    'close-property-types': handleClosePropertyTypes,
+    'sort-type-forget': handleSortTypeForget,
     'open-flowchart-options': handleOpenFlowchartOptions,
     'close-flowchart-options': handleCloseFlowchartOptions,
     'copy-flowchart-code': handleCopyFlowchartCode,
@@ -259,7 +252,6 @@ const clickActionHandlers = {
     'show-all-columns': handleShowAllColumns,
     'hide-all-columns': handleHideAllColumns,
     'column-delete': handleColumnDelete,
-    'property-type-delete': handlePropertyTypeDelete,
     'column-type-open': handleColumnTypeMenuOpen,
     'column-hide': handleColumnHide,
     'column-stick': handleColumnStick,

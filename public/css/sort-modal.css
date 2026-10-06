@@ -69,9 +69,12 @@
     opacity: 0.6;
 }
 
-/* "A to Z": the two ends either side of "to", reversed by flex-direction. sort-list-sync.js glides
-   them across when it flips, since flex-direction itself does not animate. Stretched to its track
-   and centred, so the "to" sits roughly in one column down the list. */
+/* "A to Z": the two ends either side of "to", reversed by flex-direction. Stretched to its track and
+   centred, so it sits in one column with the glyphs.
+
+   Drawn on every row but shown only on the sorted one: the others keep its place, so the glyphs
+   still line up, and hidden rather than faded so they are neither seen nor pressed. The fill is the
+   selected row's 12% mix again, laid over that row, so it reads as a step darker than the row. */
 .sort-row-direction {
     justify-self: stretch;
     display: flex;
@@ -79,16 +82,16 @@
     gap: 0.35em;
 
     padding: 2px 8px;
-    border: 1px solid color-mix(in srgb, var(--colour-contr) 35%, transparent);
+    border: none;
     border-radius: 8px;
-    background: none;
+    background-color: color-mix(in srgb, var(--colour-contr) 12%, transparent);
     font: inherit;
     color: var(--colour-contr);
     white-space: nowrap;
     cursor: pointer;
 
     &:hover {
-        border-color: var(--colour-contr);
+        background-color: color-mix(in srgb, var(--colour-contr) 22%, transparent);
     }
 
     &:focus-visible {
@@ -100,6 +103,28 @@
     }
 }
 
+.sort-row:not(.is-active) .sort-row-direction {
+    visibility: hidden;
+}
+
 .sort-to {
     opacity: 0.6;
+}
+
+/* A type saved for a property the folder no longer has: nothing to sort, so no fill on hover and no
+   pointer, and the name faded at the weight an empty column's header uses. The bin sits in the
+   direction button's track, at its start. */
+.sort-row[data-dead] {
+    &:hover {
+        background-color: transparent;
+    }
+
+    & .sort-row-name {
+        cursor: default;
+        opacity: 0.45;
+    }
+}
+
+.sort-row-forget {
+    justify-self: start;
 }

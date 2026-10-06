@@ -416,56 +416,52 @@ test('a list column is searched by part of its text', async ({ page }) => {
   await expect(page.locator('.note-table')).toContainText('Alpha');
 });
 
-// The types modal: the same type dialog, reached without going to table view first, and listing
-// only the properties whose type is the user's to set.
+// The sort modal: the same type dialog, reached without going to table view first, offered only on
+// the properties whose type is the user's to set.
 
-const typesRow = (page, property) => page.locator(`#property-types-list .info-modal-row[data-property="${property}"]`);
+const typesRow = (page, property) => page.locator(`#sort-list .sort-row[data-property="${property}"]`);
 
 async function openTypesModal(page) {
   await page.click('[data-action="toggle-file-controls"]');
-  await page.click('[data-action="open-property-types"]');
-  await expect(page.locator('#modal-property-types')).toBeVisible();
+  await page.click('[data-action="open-sort-modal"]');
+  await expect(page.locator('#modal-sort')).toBeVisible();
 }
 
-test('the types modal lists the user\'s own properties and nothing else', async ({ page }) => {
+test('the sort modal offers a type only where the type is the user\'s', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
   await openTypesModal(page);
 
-  await expect(page.locator('#property-types-note'))
-    .toHaveText('types are used when sorting, searching, and when showing values in table view');
-
   for (const property of ['published', 'revisions', 'due', 'people']) {
-    await expect(typesRow(page, property)).toHaveCount(1);
+    await expect(typesRow(page, property).locator('[data-action="sort-type-open"]')).toBeEnabled();
   }
-  // Everything the app fills in itself, whether it is an info column or simply not front matter
-  for (const property of ['title', 'tags', 'filename', 'lastModified', 'sizeInBytes', 'internalId']) {
-    await expect(typesRow(page, property)).toHaveCount(0);
+  for (const property of ['title', 'tags', 'filename', 'lastModified', 'sizeInBytes']) {
+    await expect(typesRow(page, property).locator('[data-action="sort-type-open"]')).toBeDisabled();
   }
 });
 
-// The point of the modal: a type set from it is the same write as one set from the picker, so it
-// has to survive the modal closing and reach the table's cells.
-test('a type set from the types modal sticks and reaches the table', async ({ page }) => {
+// A type set from the modal is the same write as one set from the picker, so it has to survive the
+// modal closing and reach the table's cells.
+test('a type set from the sort modal sticks and reaches the table', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
   await openTypesModal(page);
 
-  // The row is the button, so this is a click on the label end of it, not on the glyph.
-  await typesRow(page, 'revisions').click();
+  await typesRow(page, 'revisions').locator('[data-action="sort-type-open"]').click();
   await expect(typeDialog(page)).toBeVisible();
   await typeOption(page, 'number').click();
   await page.click('[data-action="close-column-type"]');
-  await page.click('[data-action="close-property-types"]');
-  await expect(page.locator('#modal-property-types')).not.toBeVisible();
+  await expect(typesRow(page, 'revisions').locator('.sort-row-direction')).toHaveText('lowtohigh');
+  await page.click('[data-action="close-sort-modal"]');
+  await expect(page.locator('#modal-sort')).not.toBeVisible();
 
-  await openTypesModal(page);
+  await page.click('[data-action="open-sort-modal"]');
   await expect(typesRow(page, 'revisions')).toHaveAttribute('data-type', 'number');
-  await page.click('[data-action="close-property-types"]');
+  await page.click('[data-action="close-sort-modal"]');
 
   // The header is the other half of it: the column now reads as a number wherever it is drawn.
   await chooseView(page, 'table');
@@ -474,26 +470,8 @@ test('a type set from the types modal sticks and reaches the table', async ({ pa
     .toHaveAttribute('href', '#icon-type-number');
 });
 
-// An empty folder is the case the note exists for: nothing in the list, so the dialog has to say
-// something rather than open blank.
-test('the types modal explains itself when there are no user properties', async ({ page }) => {
-  await page.setViewportSize({ width: 1200, height: 900 });
-  await page.addInitScript(() => {
-    window.showDirectoryPicker = async () => ({
-      kind: 'directory', name: 'root', values: async function* () {},
-    });
-  });
-  await page.goto('/');
-  await loadFolder(page);
-  await openTypesModal(page);
-
-  await expect(page.locator('#property-types-list .info-modal-row')).toHaveCount(0);
-  await expect(page.locator('#property-types-note'))
-    .toHaveText("your files don't have any user properties, feel free to add some in frontmatter YAML format :-)");
-});
-
 // An abandoned type: one the layouts file still holds for a property no loaded file carries. It
-// used to be unreachable — not listed here, not a column anywhere, read back on every load and
+// used to be unreachable — not listed anywhere, not a column anywhere, read back on every load and
 // written out on every save with nothing on screen to say so.
 
 /** The layouts mock, seeded with a type for a property its notes do not have. */
@@ -519,7 +497,7 @@ test('an abandoned type is listed as dead, and only it is offered a bin', async 
   const dead = typesRow(page, 'food');
   await expect(dead).toHaveCount(1);
   await expect(dead).toHaveAttribute('data-dead', '');
-  await expect(dead.locator('[data-action="property-type-delete"]')).toHaveCount(1);
+  await expect(dead.locator('[data-action="sort-type-forget"]')).toHaveCount(1);
   // The glyph still draws the type it holds, but says it cannot be changed from here.
   await expect(dead.locator('.info-modal-row-btn[disabled]')).toBeDisabled();
   await expect(dead.locator('.type-glyph use')).toHaveAttribute('href', '#icon-type-number');
@@ -527,15 +505,15 @@ test('an abandoned type is listed as dead, and only it is offered a bin', async 
   // A property the folder still has is untouched: no fade, no bin, and it still opens the dialog.
   const live = typesRow(page, 'people');
   await expect(live).not.toHaveAttribute('data-dead', '');
-  await expect(live.locator('[data-action="property-type-delete"]')).toHaveCount(0);
-  await expect(live).toHaveAttribute('data-action', 'column-type-open');
+  await expect(live.locator('[data-action="sort-type-forget"]')).toHaveCount(0);
+  await expect(live.locator('[data-action="sort-type-open"]')).toBeEnabled();
 });
 
 test('the bin forgets an abandoned type, on screen and in the file', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await setupAbandonedType(page);
 
-  await typesRow(page, 'food').locator('[data-action="property-type-delete"]').click();
+  await typesRow(page, 'food').locator('[data-action="sort-type-forget"]').click();
   await page.click('[data-action="warning-proceed"]');
 
   await expect(typesRow(page, 'food')).toHaveCount(0);
@@ -570,10 +548,11 @@ test('forgetting a type takes the row with it when the key left the notes this s
   await openTypesModal(page);
   await expect(typesRow(page, 'people')).toHaveAttribute('data-dead', '');
 
-  await typesRow(page, 'people').locator('[data-action="property-type-delete"]').click();
+  await typesRow(page, 'people').locator('[data-action="sort-type-forget"]').click();
   await page.click('[data-action="warning-proceed"]');
 
-  await expect(typesRow(page, 'people')).toHaveCount(0);
+  // The dead row goes; the property is still registered, so it stays a plain sortable row.
+  await expect(page.locator('#sort-list .sort-row[data-dead]')).toHaveCount(0);
   await expect.poll(() => page.evaluate(
     () => JSON.parse(window.__layoutsFileContent || '{}').propertyTypes
   )).toEqual({});

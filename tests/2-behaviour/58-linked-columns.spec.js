@@ -393,7 +393,7 @@ test('copy column: the dialog says what will happen, the column appears, and it 
   await expect(confirm).toHaveText('copy into 2 files');
   await page.keyboard.press('Enter');
   await expect(copyDialog).toBeHidden();
-  await expect(page.locator('#output-report')).toContainText('copied\u00A0 project → status to project_status in 2 files');
+  await expect(page.locator('#output-report')).toContainText('copied\u00A0 to project_status');
 
   // Shown last and visible, in the saved layout too, and nothing pending was saved by it.
   expect((await headings(page)).at(-1)).toBe('project_status');

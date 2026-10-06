@@ -393,7 +393,7 @@ test('while a delete runs the table is inert and the bar shows, and afterwards t
   // The load's bar, not a counting number: only --load-pct moves while it runs.
   await expect(page.locator('#output-report')).toHaveClass(/progress-bar.*loading|loading.*progress-bar/);
 
-  await expect(page.locator('#output-report')).toContainText('deleted people from 4 files, 1 skipped');
+  await expect(page.locator('#output-report')).toContainText('deleted people, 1 skipped');
   await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
   const skipped = page.locator('#output-report .load-error-nudge');
   await expect(skipped).toHaveText('1 skipped');
@@ -410,7 +410,7 @@ test('an emptied column offers no delete', async ({ page }) => {
   await openMenuFor(page, headerFor(page, 'people'));
   await deleteItem(page).click();
   await page.click('[data-action="warning-proceed"]');
-  await expect(page.locator('#output-report')).toContainText('deleted people from 2 files');
+  await expect(page.locator('#output-report')).toContainText('deleted people');
   await expect(headerFor(page, 'people')).toHaveAttribute('data-empty', '');
 
   await openMenuFor(page, headerFor(page, 'people'));

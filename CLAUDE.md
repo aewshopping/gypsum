@@ -135,22 +135,21 @@ point. These rules follow, and they are the ones to hold:
   columns back to the app's defaults. There is no migration code for an older file: the app is still in development, so a
   version 1 file loses its types and is deleted rather than upgraded. `layoutVersion` is stamped on
   write so a later shape change has something to branch on.
-- **The way out for one type is the bin in the types modal**, which is the whole reason that modal
-  lists a property the folder no longer has. A type outlives the values it was set on: it is not part
+- **The way out for one type is the bin in the sort modal**, which is the whole reason that modal
+  lists, faded and at the end, a typed property the folder no longer has. A type outlives the values it was set on: it is not part
   of a layout, so removing the column it was drawn as leaves it in the file — and "remove from
   layout" is not offered at all under the app's defaults. Left alone it was read back on every load and written
-  out on every save with nothing on screen to say so. `property-types-list.js` asks
-  `propertiesInFiles()` — the same question, of the same source, as a column's `dead`. **A row
-  survives on one of two grounds: a file carries the key, or a type is saved for it** — never because
-  `myFilesProperties` still remembers it, since that Map only grows. So every dead row has a bin, and
-  pressing it removes the last thing holding the row up: the row goes on the repaint rather than
+  out on every save with nothing on screen to say so. `render-sort-list.js` asks
+  `propertiesInFiles()` — the same question, of the same source, as a column's `dead` — never
+  `myFilesProperties`, since that Map only grows. So every dead row has a bin, and
+  pressing it removes the last thing holding the dead row up: it goes on the repaint rather than
   lingering, un-typed and un-binnable, until the folder is reloaded. `setPropertyType(name)`
   with no type is the forget path, so the one writer stays the one writer. **Neither removing nor
   deleting a column forgets a type**, and must not start to: the property may be a column in another layout, and it
   comes back with its type intact the moment a note carries the key again.
 - **Setting a type never writes a note.** It changes how cells look and how the column sorts, and
   nothing else. That is what makes a wrong type a column that looks odd rather than an accident,
-  so no confirmation is needed anywhere — except forgetting one from the types modal, which asks,
+  so no confirmation is needed anywhere — except forgetting one from the sort modal, which asks,
   because it is the same press as the column picker's bin and a bin that asks in one dialog and not
   the other is worse than an unnecessary question. See `plans/completed/table-value-types.md` §1.2.
 - **A value that does not fit its column shows its text, and the cell is marked.** `typeMismatch()`
@@ -203,7 +202,7 @@ disappears out from under the person who cleared it.
   layout, and it offers "delete column", the tool that removes those keys — but it has nothing to
   show, so it fades. `blank` on a resolved column drives `data-empty`, the fade: no note holds a value
   that draws anything, and `null`, `''` and `[]` all draw a blank cell. `dead` drives `data-keyless`,
-  which is what the column menu, the column picker and the types modal read. See
+  which is what the column menu and the column picker read. See
   `plans/completed/bare-keys-as-null.md`.
 - **`dead` is asked of `appState.myFiles`, never of `myFilesProperties`.** That Map only ever grows —
   nothing unregisters a property when its last value goes — so it would go on claiming the column had
@@ -1187,7 +1186,7 @@ what keeps view-conditional logic out of the app entirely: the row exists while 
 rendered, and so does every dialog reachable from it. Add a view's own class beside it for anything
 genuinely its own; neither row needs one today.
 
-**It is the second line of the controls panel**, under tags, types and sort — the panel the
+**It is the second line of the controls panel**, under tags and sort — the panel the
 sliders button opens. The panel is one wrapping flex row; `.view-controls-row` takes the full width,
 which is what puts it underneath, and a `.flexgrow` inside it pushes the view's row to the right. It
 is hidden while `#output-controls` is empty, so a view with no row costs the panel no line. The
@@ -1327,8 +1326,8 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/ui/ui-functions-click/column-stick.js` | How many leading columns stick left while the table scrolls sideways |
 | `public/js/ui/ui-functions-click/linked-column-*.js` | The linked column dialog: keeping it up to date, save, delete |
 | `public/js/ui/ui-functions-render/render-undo-buttons.js` | Undo, redo and the undo history buttons for the table's control row; the history button alone for the flowchart's |
-| `public/js/ui/ui-functions-click/sort-modal.js` | The sort modal: a row per sortable property — sort by it, set its type, reverse the direction. A UI over `applySortAndRender`; it stores nothing |
-| `public/js/ui/ui-functions-render/sort-list-sync.js` | Keeps the open sort modal in step with `sortState`, gliding each direction button's two ends past each other |
+| `public/js/ui/ui-functions-click/sort-modal.js` | The sort modal: a row per sortable property — sort by it, set its type, reverse the direction — and a bin per abandoned type. A UI over `applySortAndRender`; it stores nothing |
+| `public/js/ui/ui-functions-render/sort-list-sync.js` | Keeps the open sort modal in step with `sortState`: the marked row and its direction button |
 | `public/js/ui/ui-functions-render/type-glyph.js` | The type-and-padlock mark, for the header and the picker |
 | `public/js/ui/ui-functions-render/view-transition.js` | Whether an animation is wanted, and running an update without one |
 | `public/js/ui/render-file-list-*.js` | View-specific renderers (grid/table/list/search) |

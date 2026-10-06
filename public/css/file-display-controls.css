@@ -32,7 +32,7 @@
     height: auto;
 }
 
-/* Two lines: the controls every view has (tags, types, sort), and under them the showing view's
+/* Two lines: the controls every view has (tags, sort), and under them the showing view's
    own row. One wrapping flex row rather than two blocks, so the general controls still wrap among
    themselves at phone width; the view's line is full width, which is what puts it underneath. */
 .file-display-controls-panel-inner {
@@ -70,9 +70,8 @@
     }
 }
 
-/* The text buttons in the controls panel — "tags" and "types". One class rather than one
-   per button: they are the same control, and sit side by side. Sized to their words plus padding
-   rather than to a minimum width, so tags, types and sort fit one line on a phone 375px wide. */
+/* The text button in the controls panel — "tags". Sized to its word plus padding rather than to a
+   minimum width, so the panel's first line fits a phone 375px wide. */
 .controls-panel-btn {
     padding-block: 3px;
     padding-inline: 6px;

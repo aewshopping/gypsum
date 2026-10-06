@@ -71,7 +71,7 @@ test('the dialog counts a bare key, and a note without the key is not read', asy
   await page.locator('#column-menu [data-action="column-delete-property"]').click();
   await expect(page.locator('#modal-unsaved-warning-text')).toContainText('Delete "people" from 7 files?');
   await page.click('[data-action="warning-proceed"]');
-  await expect(reportLine(page)).toContainText('deleted people from 7 files, 3 skipped');
+  await expect(reportLine(page)).toContainText('deleted people, 3 skipped');
 
   const reads = await page.evaluate(() => ({ ...window.__reads }));
   for (const name of ['lookalike.md', 'none.md', 'nokey.md']) expect(reads[name], name).toBeUndefined();
@@ -95,7 +95,7 @@ test('a delete: exact bytes, untouched notes, journal first, load refused, and a
   });
   const pickerCalls = await page.evaluate(() => window.__pickerCalls);
   await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 7 files, 3 skipped');
+  await expect(reportLine(page)).toContainText('deleted people, 3 skipped');
 
   const after = await files(page);
   for (const [name, text] of Object.entries(AFTER)) expect(after[name], name).toBe(text);
@@ -123,16 +123,16 @@ test('a delete: exact bytes, untouched notes, journal first, load refused, and a
   expect(await page.evaluate(() => window.__pickerCalls)).toBe(pickerCalls);
 
   await page.locator('#table-undo-btn').click();
-  await expect(reportLine(page)).toContainText('undo: people column delete in 7 files');
+  await expect(reportLine(page)).toContainText('undone: people column delete');
   expect(await files(page)).toEqual(NOTES);
 
   await page.locator('#table-redo-btn').click();
-  await expect(reportLine(page)).toContainText('redo: people column delete in 7 files');
+  await expect(reportLine(page)).toContainText('redone: people column delete');
   const redone = await files(page);
   for (const [name, text] of Object.entries(AFTER)) expect(redone[name], name).toBe(text);
 
   await page.locator('#table-undo-btn').click();
-  await expect(reportLine(page)).toContainText('undo: people column delete');
+  await expect(reportLine(page)).toContainText('undone: people column delete');
   expect(await files(page)).toEqual(NOTES);
 });
 
@@ -157,7 +157,7 @@ test('a write that throws after others went through skips that note and carries 
     for (const name of ['last.md', 'bare.md']) window.__throwLater.add(name);
   });
   await deletePeople(page);
-  await expect(reportLine(page)).toContainText('people from 4 files, 6 skipped');
+  await expect(reportLine(page)).toContainText('people, 6 skipped');
 
   const after = await files(page);
   for (const name of ['flow.md', 'block.md', 'only.md', 'crlf.md']) expect(after[name]).toBe(AFTER[name]);
@@ -174,7 +174,7 @@ test('a verify that throws after the write landed still counts the note, and und
   await openTable(page);
   await page.evaluate(() => { window.__throwVerify.add('last.md'); });
   await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 7 files');
+  await expect(reportLine(page)).toContainText('deleted people');
   expect((await files(page))['last.md']).toBe(AFTER['last.md']);
 
   const ids = await page.evaluate(() => window.appState.undoStack.at(-1).edits.map(edit => edit.internalId));
@@ -193,7 +193,7 @@ test('a note changed between the passes is refused, and a failed verify is not r
     };
   });
   await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 5 files, 5 skipped');
+  await expect(reportLine(page)).toContainText('deleted people, 5 skipped');
   expect((await files(page))['flow.md']).toContain('people: [ann, bob, cat]');
 
   // Neither is in the entry, so a later undo cannot "restore" a note that was never changed.
@@ -213,7 +213,7 @@ test('a pass that writes nothing leaves no entry', async ({ page }) => {
   });
   const before = await page.evaluate(() => window.appState.undoStack.length);
   await deletePeople(page);
-  await expect(reportLine(page)).toContainText('deleted people from 0 files');
+  await expect(reportLine(page)).toContainText('deleted people');
   expect(await page.evaluate(() => window.appState.undoStack.length)).toBe(before);
   expect(JSON.parse(await page.evaluate(() => window.__saved['undo.gypsum'])).undo).toHaveLength(before);
 });
@@ -239,7 +239,7 @@ test('a delete undone from the list keeps a later edit, and refuses a note that 
   });
 
   await undoFromList(page, 'people column delete');
-  await expect(reportLine(page)).toContainText('undo: people column delete in 7 files — 6 values, 1 fail');
+  await expect(reportLine(page)).toContainText('undone: people column delete, 1 not undone');
 
   const after = await files(page);
   expect(after['flow.md']).toBe('---\nstatus: later\npeople: [ann, bob]\nnote: x\n---\n# Flow\n');
@@ -261,7 +261,7 @@ test('a delete is undone from the list after the folder is loaded again, and cle
   // A fresh visit: the key does not reach back past it, and the list does.
   await expect(page.locator('#table-undo-btn')).toBeDisabled();
   await undoFromList(page, 'people column delete');
-  await expect(reportLine(page)).toContainText('undo: people column delete');
+  await expect(reportLine(page)).toContainText('undone: people column delete');
   const undone = await files(page);
   for (const name of Object.keys(AFTER)) expect(undone[name], name).toBe(NOTES[name]);
 
@@ -288,7 +288,7 @@ test('a refused undo keeps the value it would have restored, through a reload, u
   });
 
   await page.locator('#table-undo-btn').click();
-  await expect(reportLine(page)).toContainText('2 fail');
+  await expect(reportLine(page)).toContainText('2 not undone');
   const issues = () => page.evaluate(() => Object.fromEntries(window.appState.myFiles
     .filter(file => file.fileIssues?.includes('undo:')).map(file => [file.filename, file.fileIssues])));
   const expected = {

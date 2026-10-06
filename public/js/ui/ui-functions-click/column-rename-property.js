@@ -32,7 +32,7 @@ export async function handleColumnRenameConfirm() {
         const { renamed, skipped, layoutSaved } = await renameProperty(from, to, onProgress);
         setBulkWriteBusy(false);
         reportProgressEnd();
-        reportRename(from, to, renamed, skipped, layoutSaved);
+        reportRename(from, to, skipped, layoutSaved);
         if (renamed > 0) focusOn = to;
     } catch (err) {
         console.error(`Renaming ${from} failed:`, err);
