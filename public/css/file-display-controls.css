@@ -31,7 +31,7 @@
     height: auto;
 }
 
-/* One line: the sort button every view has, and the showing view's own row. */
+/* One line: the showing view's own row. */
 .file-display-controls-panel-inner {
     display: flex;
     flex-direction: row;
@@ -42,11 +42,26 @@
     padding-top: 10px;
 }
 
-/* The flexgrow pushes sort and the view's row to the right. It wraps, so a row wider than the
-   screen breaks onto a further line rather than running off the edge. */
+/* The flexgrow pushes the view's row to the right. It wraps, so a row wider than the screen breaks
+   onto a further line rather than running off the edge. */
 .view-controls-row {
     flex-basis: 100%;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+}
+
+/* A view with no control row has nothing to show: the panel cannot open, and the sliders button
+   says so the way a disabled undo does — faded, the default cursor, and no press. Asked of the slot
+   itself, so it follows every render with no code. */
+.file-display-controls:has(#output-controls:empty) {
+    & .file-display-controls-panel {
+        display: none;
+    }
+
+    & [data-action="toggle-file-controls"] {
+        opacity: 0.25;
+        cursor: default;
+        pointer-events: none;
+    }
 }

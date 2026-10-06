@@ -107,10 +107,6 @@
     visibility: hidden;
 }
 
-.sort-to {
-    opacity: 0.6;
-}
-
 /* A type saved for a property the folder no longer has: nothing to sort, so no fill on hover and no
    pointer, and the name faded at the weight an empty column's header uses. The bin sits in the
    direction button's track, at its start. */

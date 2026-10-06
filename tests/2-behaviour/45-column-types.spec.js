@@ -422,7 +422,6 @@ test('a list column is searched by part of its text', async ({ page }) => {
 const typesRow = (page, property) => page.locator(`#sort-list .sort-row[data-property="${property}"]`);
 
 async function openTypesModal(page) {
-  await page.click('[data-action="toggle-file-controls"]');
   await page.click('[data-action="open-sort-modal"]');
   await expect(page.locator('#modal-sort')).toBeVisible();
 }

@@ -331,10 +331,11 @@ Pasting into one is *Pasting into a range*, below. See `ui-functions-cell/cell-r
   with nothing between them, copy as a comma-joined list; the file column copies a count, 1 on the
   first copied row. Not `copy-source-value.js`: its values are right for writing into a note, but a
   `Date` (`lastModified`, or a date reached through a linked column) comes out raw.
-- **The copy and paste buttons are always drawn and only seen while a closed cell has focus** — one
+- **The copy and paste buttons are always shown and only usable while a closed cell has focus** — one
   cell or a range. One CSS rule says so (`css/range-buttons.css`, a `body:has(…:focus-within)`), which
-  is the question both handlers ask before acting, so neither shows when pressing it would be refused,
-  and no code keeps it in step. `visibility: hidden` otherwise, so the control row never moves. Paste
+  is the question both handlers ask before acting, so neither looks pressable when pressing it would
+  be refused, and no code keeps it in step. Otherwise faded as a disabled undo is — 0.25, the default
+  cursor, `pointer-events: none` — and out of the tab order. Paste
   cannot show only when the clipboard holds something: a page cannot look without permission. The
   copy button opens a popover of "copy" and "copy with headers", the one place headers are offered.
   Neither button nor the menu's items may take focus (their `mousedown` is cancelled), and all are
@@ -370,7 +371,7 @@ What was copied from the table is outlined, dashed, **for as long as it is on th
 - **Not Escape.** Escape cannot safely empty the clipboard — gypsum cannot see whether another app has
   replaced its copy — and an outline left off while the copy is still there would be untrue.
 - **The copy button wears a × badge while cells are copied** (`data-copied`, from state, since the
-  cells may be on another page), stays visible without a selected cell, and its menu gains the clear
+  cells may be on another page), stays usable without a selected cell, and its menu gains the clear
   item. The badge is composed as the lock badge is: the copy drawing moved aside, never scaled.
 
 ### Pasting into a range
@@ -1186,11 +1187,12 @@ what keeps view-conditional logic out of the app entirely: the row exists while 
 rendered, and so does every dialog reachable from it. Add a view's own class beside it for anything
 genuinely its own; neither row needs one today.
 
-**It shares the controls panel's one line with the sort button** — the panel the sliders button
-opens. `.view-controls-row` holds a `.flexgrow` that pushes sort and the view's row to the right, the
-view's row set apart by a short rule its own `::before` draws, and wraps when the screen is too
-narrow. The tags button is not here: it sits at
-the right of the count line above the file list (`.output-header`).
+**It is the controls panel's one line** — the panel the sliders button opens. `.view-controls-row`
+holds a `.flexgrow` that pushes the view's row to the right, and wraps when the screen is too
+narrow. **A view with no row has no panel**: while `#output-controls` is empty the panel is
+`display: none` and the sliders button fades as a disabled undo does, both by one `:has()` rule in
+`file-display-controls.css`. The tags button sits beside the sliders button, at the right of the
+screen; the sort button at the right of the count line above the file list (`.output-header`).
 
 - **The row goes into `#output-controls`, never into `#output`.** The slot has to outlive the renders
   that replace the file list, and it sits in the panel, outside `#output`. It is a bare wrapper in
