@@ -924,7 +924,7 @@ test('a rename carries the column, type, flowchart role and sort with it, and it
   });
 
   await page.locator('#table-undo-btn').click();
-  await expect(page.locator('#output-report')).toContainText('undo: people column rename to attendees in 2 files');
+  await expect(page.locator('#output-report')).toContainText('undone: people column rename to attendees');
   await expect.poll(names).toEqual(before);
   expect((await headers()).indexOf('people')).toBe(onScreen);
   const undone = await saved();

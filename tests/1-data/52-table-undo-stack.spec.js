@@ -164,13 +164,13 @@ test('redo puts it back again, and the pair can be cycled', async ({ page }) => 
   await undoBtn(page).click();
   await expect(cellFor(page, 'Alpha', 'status')).toHaveText('draft');
   // the count the line opens with is the render's, not the undo's, and is there either way
-  await expect(reportLine(page)).toHaveText('count: 2 | undo: status edit in 1 file — 1 values');
+  await expect(reportLine(page)).toHaveText('count: 2 | undone: status edit');
   await expect(report(page)).not.toHaveClass(/has-failures/);
 
   await redoBtn(page).click();
   await expect(cellFor(page, 'Alpha', 'status')).toHaveText('published');
   await expect.poll(() => fileText(page, 'alpha.md')).toContain('status: published');
-  await expect(report(page)).toHaveText('redo: status edit in 1 file — 1 values');
+  await expect(report(page)).toHaveText('redone: status edit');
 
   // and round again, because the record the write hands back is oriented for the next reversal
   await undoBtn(page).click();
@@ -211,7 +211,7 @@ test('an entry the file has moved past is refused, and says so', async ({ page }
   await undoBtn(page).click();
 
   // nothing written, and the hand-typed value still there
-  await expect(report(page)).toHaveText('undo: status edit in 1 file — 0 values, 1 fail');
+  await expect(report(page)).toHaveText('undone: status edit, 1 not undone');
   await expect(report(page)).toHaveClass(/has-failures/);
 
   // the warning colour is the undo half's alone — the count beside it did not fail

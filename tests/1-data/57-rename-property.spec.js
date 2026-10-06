@@ -81,11 +81,11 @@ test('a rename: only carrying notes read, journal first, load refused, exact byt
   for (const name of [...LOCKED, ...WITHOUT]) expect(after[name], name).toBe(RENAME_NOTES[name]);
 
   await page.locator('#table-undo-btn').click();
-  await expect(page.locator('#output-report')).toContainText('undo: people column rename to attendees in 10 files — 10 notes');
+  await expect(page.locator('#output-report')).toContainText('undone: people column rename to attendees');
   expect(await files(page)).toEqual(RENAME_NOTES);
 
   await page.locator('#table-redo-btn').click();
-  await expect(page.locator('#output-report')).toContainText('redo: people column rename to attendees in 10 files');
+  await expect(page.locator('#output-report')).toContainText('redone: people column rename to attendees');
   const redone = await files(page);
   for (const name of CARRYING) expect(redone[name], name).toBe(renamed(name));
   for (const name of [...LOCKED, ...WITHOUT]) expect(redone[name], name).toBe(RENAME_NOTES[name]);

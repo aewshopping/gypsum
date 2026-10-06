@@ -91,7 +91,7 @@ test('a front matter copy: journal first, exact bytes, matching and locked notes
   }
 
   await page.locator('#table-undo-btn').click();
-  await expect(page.locator('#output-report')).toContainText('undo: people column copy to status in 9 files');
+  await expect(page.locator('#output-report')).toContainText('undone: people column copy to status');
   expect(await files(page)).toEqual({ ...NOTES, 'last.md': EDITED });
 });
 

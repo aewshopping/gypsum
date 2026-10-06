@@ -8,10 +8,8 @@ import { flowchartLayoutChoices, flowchartLayoutSetting } from '../../services/f
 /**
  * @file The rows of the flowchart options modal: one per part of the chart a property can fill.
  *
- * A sibling of ui-functions-table/property-types-list.js rather than a branch inside it. It shares
- * the row classes, so a row here is visibly the same control as a row there, but what it holds is
- * a <select> over properties rather than a glyph opening a dialog — and the two lists answer
- * different questions about different things.
+ * Built from the shared row classes, so a row here is visibly the same control as a column picker
+ * row, but what it holds is a <select> over properties rather than a glyph opening a dialog.
  */
 
 /**

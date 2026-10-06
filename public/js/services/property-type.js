@@ -85,8 +85,8 @@ export function isInfoColumn(name) {
  * - **a linked column** — its type is LINKED_TYPE, and its glyph opens its own dialog instead.
  *
  * **Here rather than beside any one caller**, because four ask: type-glyph.js draws the padlock, the
- * column menu and the picker decide whether to offer the type dialog, the types modal decides which
- * properties to list, and propertyType() decides whether to read the user's choice at all. A padlock
+ * column menu and the picker decide whether to offer the type dialog, the sort modal decides which
+ * abandoned types to list, and propertyType() decides whether to read the user's choice at all. A padlock
  * over a column whose type you could still change would be a small lie told at scale.
  *
  * **This is no longer the same question as isPropertyEditable() below.** It was until `title` and

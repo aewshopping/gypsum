@@ -200,19 +200,22 @@ test('Ctrl+C copies the range as TSV of what each cell shows, counting rows in t
   await expect(page.locator('#output-report')).toContainText('copied 8 cells');
 });
 
-test('copy and paste show while a closed cell is selected, and copy with headers leaves the range', async ({ page }) => {
+test('copy and paste are usable while a closed cell is selected, and copy with headers leaves the range', async ({ page }) => {
   await openTable(page);
   const copyBtn = page.locator('#range-copy-btn');
   const pasteBtn = page.locator('#range-paste-btn');
-  await expect(copyBtn).toBeHidden();
-  await expect(pasteBtn).toBeHidden();
+  // Always drawn; faded and unpressable, as a disabled undo is, until they can act.
+  const usable = btn => btn.evaluate(b => getComputedStyle(b).pointerEvents !== 'none');
+  await expect(copyBtn).toBeVisible();
+  await expect.poll(() => usable(copyBtn)).toBe(false);
+  await expect.poll(() => usable(pasteBtn)).toBe(false);
 
   await cellAt(page, 1, 'a').click();
-  await expect(copyBtn).toBeVisible();
-  await expect(pasteBtn).toBeVisible();
+  await expect.poll(() => usable(copyBtn)).toBe(true);
+  await expect.poll(() => usable(pasteBtn)).toBe(true);
 
   await page.keyboard.press('Shift+ArrowRight');
-  await expect(pasteBtn).toBeVisible();
+  await expect.poll(() => usable(pasteBtn)).toBe(true);
   await copyBtn.click();
   await page.click('#range-copy-menu [data-headers="true"]');
 
@@ -238,8 +241,8 @@ test('copy and paste show while a closed cell is selected, and copy with headers
   // An open cell's copy and paste are the browser's, so neither button is offered — except that the
   // copy button stays while there is an outline to clear.
   await page.keyboard.press('F2');
-  await expect(pasteBtn).toBeHidden();
-  await expect(copyBtn).toBeVisible();
+  await expect.poll(() => usable(pasteBtn)).toBe(false);
+  await expect.poll(() => usable(copyBtn)).toBe(true);
   await page.keyboard.press('Escape');
 
   // Clearing takes the outline off and empties the clipboard.

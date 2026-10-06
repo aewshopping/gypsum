@@ -264,7 +264,7 @@ Note that `"personal"` appears in `"orphan"` because it only ever appears as a p
 ## Which properties exist (`appState.myFilesProperties`)
 
 `Map<string, object>` of every property name actually seen across the loaded files, seeded from
-`CORE_FILE_PROPERTIES` so that an empty folder still has a sort dropdown and a table header. Built
+`CORE_FILE_PROPERTIES` so that an empty folder still has a sort modal and a table header. Built
 up per file by `updateMyFilesProperties()` in `services/file-props.js` as each note is parsed.
 
 Distinct from `FILE_PROPERTIES` in `store.js`, which is the *schema* — a fixed map of what the app

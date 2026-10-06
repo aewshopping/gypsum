@@ -225,6 +225,8 @@
     <symbol id="icon-filter-clear" viewBox="3 3 48 48"><g stroke="currentColor" fill="none" stroke-width="4" stroke-linecap="round"><g transform="translate(14.8 13.2)"><path d="M0 0C0 4.5-1.8 21.9 0 27.1C1.8 32.3 7.3 31.1 11 31.2C14.8 31.2 20.6 32.7 22.5 27.5C24.5 22.4 22.7 4.6 22.8 0M0 0C0 4.5-1.8 21.9 0 27.1C1.8 32.3 7.3 31.1 11 31.2C14.8 31.2 20.6 32.7 22.5 27.5C24.5 22.4 22.7 4.6 22.8 0"/></g><g transform="translate(42.6 13.3)"><path d="M0 0C-2.7-0.1-10.8-0.7-16.2-0.6C-21.7-0.6-29.9 0.2-32.7 0.4M0 0C-2.7-0.1-10.8-0.7-16.2-0.6C-21.7-0.6-29.9 0.2-32.7 0.4"/></g><g transform="translate(22.1 20.1)"><path d="M0 0C0 1-0 3.6 0 6.2C0 8.7 0.2 13.9 0.2 15.4M0 0C0 1-0 3.6 0 6.2C0 8.7 0.2 13.9 0.2 15.4"/></g><g transform="translate(30.1 20.5)"><path d="M0 0C0 1.3 0.2 5.1 0.2 7.6C0.2 10.1-0.1 13.6-0.2 14.8M0 0C0 1.3 0.2 5.1 0.2 7.6C0.2 10.1-0.1 13.6-0.2 14.8"/></g><g transform="translate(30.3 10)"><path d="M0 0C-1.5 0-7.5 0.2-9 0.2M0 0C-1.5 0-7.5 0.2-9 0.2"/></g></g></symbol>
     <!-- The file controls panel: two sliders. -->
     <symbol id="icon-sliders" viewBox="2 5 47 33"><g stroke="currentColor" fill="currentColor" stroke-width="4" stroke-linecap="round"><path d="M10.5 13.1c.9 0 4.6.1 5.5.1M38.5 29.1c.7 0 3.7 0 4.4 0M24.6 13.2c1.2-.1 4.2-.5 7.3-.5 3 0 9.2.4 11.1.4M10 29.6c1.7.1 6.7.6 10.2.6 3.4-.1 8.8-.5 10.5-.6M22.6 16.3c0-1.1-.1-5.3-.2-6.3M37.4 32.5c0-1.1-.1-5.5-.1-6.7" fill="none"/></g></symbol>
+    <!-- Sorting: rows shortening down the page, and an arrow beside them. -->
+    <symbol id="icon-sort" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M8 13h20M8 25h14M8 37h8M37 10v29M30 32l7 7 7-7"/></g></symbol>
     <!-- A clock, for file history. -->
     <symbol id="icon-clock" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"><circle cx="25" cy="25" r="16"/><path d="M25 15v10l7 5"/></g></symbol>
     <!-- Importing into the browser file system: an arrow going in. -->
@@ -405,24 +407,16 @@
         <button class="svg-wrapper-style" data-action="toggle-file-controls" data-tip="controls">
           <svg viewBox="0 0 47 33" width="106" height="85"><use href="#icon-sliders"></use></svg>
         </button>
+        <button class="svg-wrapper-style" data-action="render-tag-taxonomy" data-tip="show all tags">
+          <svg viewBox="0 0 50 50"><use href="#icon-hash"></use></svg>
+        </button>
       </div>
 
       <div class="file-display-controls-panel" id="file-display-controls-panel">
         <div class="file-display-controls-panel-inner">
-          <button data-tip="show all tags" class="controls-panel-btn" data-action="render-tag-taxonomy">tags</button>
-          <button data-tip="set how your own properties are read" class="controls-panel-btn" data-action="open-property-types">types</button>
-          <div class="sort-controls">
-            sort:
-            <label for="sort-select">
-              <select id="sort-select" data-action="sort-select" data-tip="change sort order"></select>
-            </label>
-            <label class="sort-direction-label" for="sort-direction">
-              <input type="checkbox" id="sort-direction" data-action="sort-direction-toggle" data-tip="reverse sort direction">
-            </label>
-          </div>
-          <!-- The second line of the panel: what the showing view offers, pushed to the right. The
-               view's own control row is drawn into #output-controls and is empty in the views that
-               have none, when the line takes no room. -->
+          <!-- What the showing view offers, pushed to the right. Drawn into #output-controls, which
+               is empty in the views that have none — and then the panel cannot open and the sliders
+               button is faded (file-display-controls.css). -->
           <div class="view-controls-row">
             <div class="flexgrow"></div>
             <div id="output-controls"></div>
@@ -435,9 +429,14 @@
 
     <div id="tag-taxonomy-container"></div>
 
-    <!-- One line above the file list: what is showing, and what the last undo did. -->
+    <!-- One line above the file list: what is showing and what the last undo did on the left, the
+         sort button on the right. -->
     <div class="output-header">
       <div id="output-report" class="progress-bar" role="status"></div>
+      <div class="flexgrow"></div>
+      <button class="svg-wrapper-style" data-action="open-sort-modal" data-tip="sort">
+        <svg viewBox="0 0 50 50"><use href="#icon-sort"></use></svg>
+      </button>
     </div>
 
     <div id="output">
@@ -804,17 +803,6 @@
 
   </dialog>
 
-  <dialog id="modal-property-types" class="info-modal" closedby="any">
-    <button class="modal-close-btn svg-wrapper-style" data-action="close-property-types" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
-
-    <h2 class="menu-title">Types</h2>
-
-    <p class="info-modal-note" id="property-types-note"></p>
-
-    <div id="property-types-list"></div>
-
-  </dialog>
-
   <!-- How a column's values are read. Opened from the type glyph on a column picker row, and from
        "change type" in the table's column menu.
 
@@ -976,6 +964,17 @@
          "clear all history". -->
     <button id="layout-clear-btn" class="layout-clear-btn" data-action="layout-clear"
             data-tip="delete every saved layout, every column type, every flowchart option and every linked column you have set">delete all layouts</button>
+  </dialog>
+
+  <!-- Which property the files are sorted by, which way, and what type it is read as. Opened from
+       the sort button in the controls panel; the rows are the layouts modal's, and are filled on
+       open, being the loaded folder's properties. -->
+  <dialog id="modal-sort" class="info-modal" closedby="any">
+    <button class="modal-close-btn svg-wrapper-style" data-action="close-sort-modal" data-tip="close"><svg viewBox="0 0 66.3 64.5"><use href="#icon-close"></use></svg></button>
+
+    <h2 class="menu-title">Sort</h2>
+
+    <div id="sort-list"></div>
   </dialog>
 
   <!-- Which property fills each part of the flowchart. Opened from the flowchart view's own

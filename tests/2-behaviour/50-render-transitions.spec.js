@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setViewTransitions, chooseView } = require('../helpers');
+const { loadFolder, setViewTransitions, chooseView, sortBy } = require('../helpers');
 
 /**
  * A view transition captures the whole page twice and then animates every named group for a
@@ -87,12 +87,6 @@ const cellFor = (page, title, prop) => page.locator('.note-table').filter({ hasT
  */
 const commit = (page) => page.locator('#searchbox').click();
 
-/** Sorts by a property through the controls above the table, which a wide table pushes offscreen. */
-const sortBy = (page, property) => page.evaluate((property) => {
-  const select = document.getElementById('sort-select');
-  select.value = property;
-  select.dispatchEvent(new Event('change', { bubbles: true }));
-}, property);
 
 test('editing a cell draws the same rows, so no view transition runs', async ({ page }) => {
   await openTable(page);
@@ -120,9 +114,27 @@ test('a sort moves the rows, so it still runs one', async ({ page }) => {
   await openTable(page);
   await countTransitions(page);
 
-  await sortBy(page, 'status');
+  // As the column menu sorts: with no dialog open.
+  await page.evaluate(async () => {
+    const { applySortAndRender } = await import('/public/js/ui/ui-functions-click/sort-object.js');
+    applySortAndRender('status', 'asc');
+  });
 
   await expect.poll(() => transitions(page)).toBe(1);
+});
+
+// The sort modal sorts the rows behind it, and a transition's snapshots are painted over an open
+// dialog — the rows flashed up on top of it. So a sort from there runs none.
+test('a sort from the open sort modal runs none', async ({ page }) => {
+  await openTable(page);
+  await countTransitions(page);
+  const first = () => page.locator('.note-table .note-table-cell[data-prop="title"]').first().textContent();
+  const before = await first();
+
+  await sortBy(page, 'title', 'asc');
+
+  await expect.poll(first).not.toBe(before);
+  expect(await transitions(page)).toBe(0);
 });
 
 // ---------------------------------------------------------------- one render, one page

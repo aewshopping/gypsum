@@ -1,25 +1,28 @@
 /* The copy and paste buttons at the start of the table's control row.
 
-   Both are there while a closed table cell has focus — one cell or a range, since a range always has
-   its focused cell inside it — and at no other time. That is the same question cell-range-copy.js and
-   cell-range-paste.js ask before acting, so a button never shows when pressing it would be refused,
-   and asking it here follows focus with no code: clicking away to the page, opening a cell (whose own
-   paste is the browser's) and a dialog taking focus all hide them. Paste cannot wait for something to
-   be on the clipboard instead: a page cannot look without asking permission.
+   Always there, and usable while a closed table cell has focus — one cell or a range, since a range
+   always has its focused cell inside it. That is the same question cell-range-copy.js and
+   cell-range-paste.js ask before acting, so a button never looks pressable when pressing it would be
+   refused, and asking it here follows focus with no code: clicking away to the page, opening a cell
+   (whose own paste is the browser's) and a dialog taking focus all fade them. Paste cannot wait for
+   something to be on the clipboard instead: a page cannot look without asking permission.
 
-   Their space is always kept, so nothing in the row moves as they come and go. visibility rather than
-   opacity or disabled: it also takes them out of the tab order, out of reach of a press, and out of
-   what a screen reader reads.
+   Faded the way a disabled undo is (output-controls.css): 0.25, the default cursor, and no press —
+   not `disabled`, which would need code to keep in step with focus.
 
-   The copy button also stays while cells are copied (data-copied), since its menu is the one way to
-   clear the outline — and those cells may be on another page. */
+   The copy button is also usable while cells are copied (data-copied), since its menu is the one way
+   to clear the outline — and those cells may be on another page. */
 
 #range-copy-btn,
 #range-paste-btn {
-    visibility: hidden;
+    opacity: 0.25;
+    cursor: default;
+    pointer-events: none;
 }
 
 body:has(.list-table .note-table-cell:not(.is-expanded):focus-within) :is(#range-copy-btn, #range-paste-btn),
 #range-copy-btn[data-copied] {
-    visibility: visible;
+    opacity: 1;
+    cursor: pointer;
+    pointer-events: auto;
 }

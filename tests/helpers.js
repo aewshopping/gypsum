@@ -1036,6 +1036,36 @@ async function chooseView(page, view) {
   }
 }
 
+/**
+ * Opens the sort modal. Dispatched rather than clicked: its button is in the controls panel, which
+ * the tests run with shut.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openSortModal(page) {
+  await page.locator('[data-action="open-sort-modal"]').dispatchEvent('click');
+  await page.locator('#modal-sort[open]').waitFor();
+}
+
+/**
+ * Sorts through the sort modal and closes it: the row's name, then its direction button if the
+ * sort is not yet the way asked.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} property
+ * @param {'asc'|'desc'} [direction] - Left as the sort has it when omitted.
+ */
+async function sortBy(page, property, direction) {
+  await openSortModal(page);
+  const row = page.locator(`#sort-list .sort-row[data-property="${property}"]`);
+  await row.locator('.sort-row-name').click();
+  if (direction && await row.locator('.sort-row-direction').getAttribute('data-direction') !== direction) {
+    await row.locator('.sort-row-direction').click();
+  }
+  await page.keyboard.press('Escape');
+  await page.locator('#modal-sort[open]').waitFor({ state: 'detached' });
+}
+
 
 /**
  * Directory mock with layout support: .gypsum/table_layouts.gypsum is readable and writable,
@@ -1311,4 +1341,4 @@ async function setupMockCellWritingFolder(page, extra = {}) {
   }, extra);
 }
 
-module.exports = { setupMockCellWritingFolder, loadFolder, chooseView, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };
+module.exports = { setupMockCellWritingFolder, loadFolder, chooseView, openSortModal, sortBy, setViewTransitions, appModule, showFilenames, setupMockFiles, setupMockFilesBrokenYaml, setupMockFilesYamlShapes, setupMockFilesFalsyTags, setupMockFilesUnreadable, setupMockFilesAllUnreadable, setupMockFilesShadowingYaml, setupMockEmptyDirectoryWithCreate, setupMockFilesLongName, setupMockDirectoryWithWrite, setupMockDirectoryWithHistory, setupMockDirectoryWithHistoryLinePool, setupMockDirectoryWithSaveSupport, setupMockDirectoryWithHistoryAndSave, setupMockDirectoryWithDeleteSupport, setupMockDirectoryForColorExisting, setupMockFilesWithLinks, setupMockDirectoryWithNoteCreation, setupMockDirectoryWithLayouts, setupMockDirectoryWithFlowchart };

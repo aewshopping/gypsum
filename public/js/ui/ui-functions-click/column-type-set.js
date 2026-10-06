@@ -188,13 +188,9 @@ function markCurrent() {
 }
 
 /**
- * Redraws the host's glyph for what the column is now, and its tooltip where it has one — a
- * header cell's tooltip belongs to the column menu, so it gets none here.
- *
- * Where the tip lives differs by caller, so the question asked is whether the host holds one itself:
- * a picker row keeps its tip on the glyph button inside it, while a types modal row *is* the button
- * and carries the tip. Asking the element rather than naming a second class is what stops the two
- * lists drifting apart.
+ * Redraws the host's glyph for what the column is now, and a picker row's tooltip — a header
+ * cell's tooltip belongs to the column menu, and a sort modal row is repainted when the dialog
+ * closes, so neither gets one here.
  *
  * The symbol's id is built from the stored type name, the same way the picker and the table header
  * build it, so none of the three can draw a different glyph for the same type.
@@ -205,7 +201,7 @@ function updateGlyph() {
 
     _host.querySelector('.type-glyph use').setAttribute('href', `#icon-type-${_host.dataset.type}`);
 
-    const tipHost = _host.matches('[data-tip]') ? _host : _host.querySelector('.column-picker-type');
+    const tipHost = _host.querySelector('.column-picker-type');
     if (tipHost) {
         tipHost.dataset.tip = _host.dataset.type === VALUE_TYPES.ARRAY.value
             ? `${typeLabel}, ${labelFor(SEARCH_TYPES, _host.dataset.searchType)}`

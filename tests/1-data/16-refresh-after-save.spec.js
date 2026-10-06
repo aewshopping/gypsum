@@ -115,7 +115,6 @@ test.describe('a manual save refreshes appState and the UI', () => {
     await setupWithContent(page, '# Original Title\nContent here');
     await page.goto('/');
     // The taxonomy has to be on screen before the save, or there is nothing to re-render.
-    await page.click('[data-action="toggle-file-controls"]');
     await page.click('[data-action="render-tag-taxonomy"]');
     await openModal(page);
     await switchToTxt(page);
@@ -142,7 +141,6 @@ test.describe('a manual save refreshes appState and the UI', () => {
     // Load files, show taxonomy, and apply a filter for the tag
     await loadFolder(page);
     await expect(page.locator('.note-grid')).toHaveCount(1);
-    await page.click('[data-action="toggle-file-controls"]');
     await page.click('[data-action="render-tag-taxonomy"]');
     await page.click('details.taxon summary:has(code:text("orphan"))');
     await page.click('[data-action="tag-filter"][data-tag="searchtag"]');

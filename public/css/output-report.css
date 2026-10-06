@@ -16,6 +16,7 @@
     color: var(--colour-contr);
 
     padding-inline: 8px;   /* lines up with the list below it */
+    min-width: 0;          /* wraps its own text rather than overflowing a screen narrower than it */
 
     /* The room around it belongs to .output-header. */
 

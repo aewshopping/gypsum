@@ -176,8 +176,9 @@ export function renderFiles(fullRender = true, keepPage = false) {
 
     // Card transitions only run when the modal is closed — the ::backdrop pseudo-element
     // is not captured by the View Transitions API, so it disappears behind the overlay
-    // whenever a card transition fires while the modal is open.
-    const modalOpen = ['file-content-modal', 'modal-settings', 'modal-layouts', 'modal-columns']
+    // whenever a card transition fires while the modal is open. The sort modal sorts the files
+    // behind it, so without it here every press flashed the rows up over the dialog.
+    const modalOpen = ['file-content-modal', 'modal-settings', 'modal-layouts', 'modal-columns', 'modal-sort']
         .some(id => document.getElementById(id)?.open);
     // The flowchart draws one block of text rather than a row or card per note, so there is nothing
     // for a transition to morph: it captures the whole page twice and then crossfades one <pre> onto

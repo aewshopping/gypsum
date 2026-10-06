@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, loadFolder, showFilenames, chooseView } = require('../helpers');
+const { setupMockFiles, loadFolder, showFilenames, chooseView, sortBy } = require('../helpers');
 
 // Search and view switching share one folder load — both are cheap reads over the same state.
 test('searching filters the list, and the table view renders headers', async ({ page }) => {
@@ -38,8 +38,8 @@ test('the control row sits under the general controls, survives a partial render
   await expect(page.locator('.view-controls-row .output-controls')).toHaveCount(1);
   await expect(page.locator('#output .output-controls')).toHaveCount(0);
 
-  // The sort dropdown renders the rows only — the row above them must still be there afterwards.
-  await page.selectOption('#sort-select', 'title');
+  // A sort renders the rows only — the row above them must still be there afterwards.
+  await sortBy(page, 'title');
   await expect(page.locator('.view-controls-row .output-controls')).toHaveCount(1);
 
   await chooseView(page, 'cards');

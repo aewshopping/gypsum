@@ -33,7 +33,7 @@ export async function handleColumnCopyConfirm() {
         const result = await copyProperty(source, target, onProgress);
         setBulkWriteBusy(false);
         reportProgressEnd();
-        reportCopy(heading, target, result);
+        reportCopy(target, result);
         if (result.copied > 0) focusOn = target;
     } catch (err) {
         console.error(`Copying ${heading} failed:`, err);

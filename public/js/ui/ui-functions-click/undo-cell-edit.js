@@ -4,7 +4,7 @@ import { reverseBatch } from '../../table-undo/undo-stacks.js';
 import { flashUndoneCells } from '../ui-functions-table/undo-cell-flash.js';
 import { reportUndo } from '../ui-functions-render/output-report.js';
 import { whileWriting } from '../ui-functions-table/bulk-write-busy.js';
-import { describeBatch } from '../../table-undo/describe-batch.js';
+import { describeBatch, describeAction } from '../../table-undo/describe-batch.js';
 
 /**
  * @file Undo and redo a table cell edit.
@@ -80,12 +80,12 @@ export async function reverseCellEdits(direction, index) {
         // the cells the marks are about actually exist. §10.2.
         flashUndoneCells(applied, refused);
     });
-    // A rename is two edits per note, taken or refused together, so "20 values" would be twice the
-    // notes it reached. It counts notes. plans/completed/table-rename-column.md §6.2.
-    const perNote = pending.kind === 'rename-property';
-    const count = (edits) => perNote ? new Set(edits.map(edit => edit.internalId)).size : edits.length;
-    reportUndo(direction, name, count(applied), count(refused),
-        { unit: perNote ? 'notes' : 'values', layoutUnsaved: layoutSaved === false });
+    // A rename is two edits per note, taken or refused together, so its refusals count notes.
+    // plans/completed/table-rename-column.md §6.2.
+    const refusedCount = pending.kind === 'rename-property'
+        ? new Set(refused.map(edit => edit.internalId)).size
+        : refused.length;
+    reportUndo(direction, describeAction(pending), refusedCount, layoutSaved === false);
 }
 
 /**

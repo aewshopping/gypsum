@@ -145,13 +145,13 @@ test('the list shows newest first, divides this visit from earlier, and a row pr
   await listBtn(page).click();
   await rows.nth(1).click();
   await expect(list(page)).toBeHidden();
-  await expect(page.locator('#output-report')).toContainText('undo: status edit in 1 file — 1 values');
+  await expect(page.locator('#output-report')).toContainText('undone: status edit');
   expect(await page.evaluate(() => window.__files['alpha.md'])).toContain('status: draft');
   expect(await page.evaluate(() => window.__files['beta.md'])).toContain('note: three');
 
   // And redo, straight after, redoes exactly that.
   await page.locator('#table-redo-btn').click();
-  await expect(page.locator('#output-report')).toContainText('redo: status edit in 1 file');
+  await expect(page.locator('#output-report')).toContainText('redone: status edit');
 });
 
 // ---------------------------------------------------------------- a refusal marks the note, §10.5
@@ -170,7 +170,7 @@ test('a refused undo marks the note with the value it would have restored, and t
 
   await undoBtn(page).click();   // beta's edit: applied
   await undoBtn(page).click();   // alpha's: refused
-  await expect(page.locator('#output-report')).toContainText('undo: status edit in 1 file — 0 values, 1 fail');
+  await expect(page.locator('#output-report')).toContainText('undone: status edit, 1 not undone');
   expect(await issuesOf(page, 'alpha.md')).toBe('undo: status was "draft" (status edit)');
   expect(await issuesOf(page, 'beta.md')).toBe(null);
 
@@ -190,7 +190,7 @@ test('a refused undo marks the note with the value it would have restored, and t
 
   // A later undo that refuses nothing leaves it: the value is wanted until someone puts it back.
   await undoBtn(page).click();   // the note edit, applied cleanly
-  await expect(page.locator('#output-report')).toContainText('undo: note edit');
+  await expect(page.locator('#output-report')).toContainText('undone: note edit');
   expect(await issuesOf(page, 'alpha.md')).toBe('undo: status was "draft" (status edit)');
 });
 
@@ -234,7 +234,7 @@ test('the buttons name their batch, and a multi-file undo and redo show the bar 
   await expect(report).toHaveClass(/loading/);
   await expect(page.locator('#output')).toHaveAttribute('inert', '');
 
-  await expect(report).toContainText('undo: status edit in 2 files');
+  await expect(report).toContainText('undone: status edit');
   await expect(report).not.toHaveClass(/loading/);
   await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
   await expect(page.locator('#table-redo-btn')).toHaveAttribute('data-tip', 'redo status edit in 2 files | Ctrl+Y');
@@ -242,7 +242,7 @@ test('the buttons name their batch, and a multi-file undo and redo show the bar 
   await page.locator('#table-redo-btn').click();
   await expect(report).toContainText('redoing status edit in 2 files…');
   await expect(report).toHaveClass(/loading/);
-  await expect(report).toContainText('redo: status edit in 2 files');
+  await expect(report).toContainText('redone: status edit');
 });
 
 // ---------------------------------------------------------------- when the key and buttons answer

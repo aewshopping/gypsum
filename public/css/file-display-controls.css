@@ -5,10 +5,9 @@
     margin-bottom: 20px;
 }
 
-/* The panel's own controls, in the interface font at 14.3px. Set on them rather than on the whole
-   panel, so the view's row on the panel's second line keeps the size and font it is drawn in
-   everywhere else. */
-.file-display-controls-top, .controls-panel-btn, .sort-controls {
+/* The sliders row, in the interface font at 14.3px. Set on it rather than on the whole panel, so
+   the view's row in the panel keeps the size and font it is drawn in everywhere else. */
+.file-display-controls-top {
     font: 0.89375em var(--fontfam-app-input);
 }
 
@@ -32,9 +31,7 @@
     height: auto;
 }
 
-/* Two lines: the controls every view has (tags, types, sort), and under them the showing view's
-   own row. One wrapping flex row rather than two blocks, so the general controls still wrap among
-   themselves at phone width; the view's line is full width, which is what puts it underneath. */
+/* One line: the showing view's own row. */
 .file-display-controls-panel-inner {
     display: flex;
     flex-direction: row;
@@ -45,81 +42,26 @@
     padding-top: 10px;
 }
 
-/* The flexgrow inside it pushes the row to the right. It wraps too, so a row wider than the screen
-   breaks onto a further line rather than running off the edge. Gone while the view has no row, so
-   the panel does not hold an empty line and a gap for it. */
+/* The flexgrow pushes the view's row to the right. It wraps, so a row wider than the screen breaks
+   onto a further line rather than running off the edge. */
 .view-controls-row {
     flex-basis: 100%;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+}
 
-    &:has(#output-controls:empty) {
+/* A view with no control row has nothing to show: the panel cannot open, and the sliders button
+   says so the way a disabled undo does — faded, the default cursor, and no press. Asked of the slot
+   itself, so it follows every render with no code. */
+.file-display-controls:has(#output-controls:empty) {
+    & .file-display-controls-panel {
         display: none;
     }
-}
 
-.sort-controls {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding:4px;
-}
-
-#sort-select, .controls-panel-btn {
-    border:none;
-    cursor:pointer;
-    /* font: 1em var(--fontfam-app-input); */
-    color: var(--colour-contr);
-    background-color: var(--colour-neutral-alt);
-    &:hover {
-        background-color: revert;
+    & [data-action="toggle-file-controls"] {
+        opacity: 0.25;
+        cursor: default;
+        pointer-events: none;
     }
-}
-
-/* The text buttons in the controls panel — "tags" and "types". One class rather than one
-   per button: they are the same control, and sit side by side. The block padding is what lands
-   them on the same height as the select beside them. Sized to their words plus padding rather
-   than to a minimum width, so tags, types and sort fit one line on a phone 375px wide. */
-.controls-panel-btn {
-    padding-block: 3px;
-    padding-inline: 6px;
-    border-radius: 8px;
-}
-
-#sort-select {
-    min-width: 140px;
-}
-
-#sort-direction {
-    display:none;
-}
-
-.sort-direction-label {
-    position:relative;
-    cursor:pointer;
-    width:20px;
-    height:20px;
-    rotate:90deg;
-    transition:0.2s rotate;
-    border:1.5px solid transparent;
-    border-radius:50%;
-
-    &::after {
-        content: "➜"; /* U+0279C */
-        position:absolute;
-        color: var(--colour-contr);
-        top:50%;
-        left:50%;
-        transform: translate(-50%, -50%);
-        padding-bottom:2px;
-    }
-
-    &:hover {
-        border:1.5px solid var(--colour-compl-contr);
-    }
-}
-
-.sort-direction-label:has(#sort-direction:checked) {
-    rotate:-90deg;
 }

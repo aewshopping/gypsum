@@ -1,3 +1,5 @@
+import { appState } from '../../services/store.js';
+import { VIEWS } from '../../constants.js';
 import { startProgress, stepProgress, endProgress } from './progress-bar.js';
 
 /**
@@ -41,25 +43,24 @@ export function reportFileCount(count) {
 }
 
 /**
- * Says what an undo or redo just did, after the count, named as its button named it.
+ * Says what an undo or redo just did, named as its button named it but without the file count.
  *
- * Counts rather than names the cells. A refusal on a row that is filtered out or on another page
- * shows nothing on screen, so a refusal out of view is a number — and the number filters to the
- * notes it counts. §13.3 of plans/completed/table-undo-stack.md, §10.5 of plans/completed/table-delete-column.md.
+ * **Short, and only the refusals counted.** The line is there to say something happened that the
+ * screen may not show, not to log it. A refusal is the part worth a number — one on a row that is
+ * filtered out or on another page shows nothing on screen — and the number filters to the notes it
+ * counts. §13.3 of plans/completed/table-undo-stack.md, §10.5 of plans/completed/table-delete-column.md.
  *
- * @param {'undo'|'redo'} direction - Which word this half opens with.
- * @param {string} name - What the batch was, from describeBatch — the same name its button showed.
- * @param {number} applied - How many values were put back.
+ * @param {'undo'|'redo'} direction
+ * @param {string} name - What the batch did, from describeAction: `people column delete`.
  * @param {number} failed - How many the check refused because the file had moved on.
- * @param {{unit?: 'values'|'notes', layoutUnsaved?: boolean}} [options] - `unit` is what the two
- *   counts count: notes for a rename, whose two edits per note are taken or refused together.
- *   `layoutUnsaved` says a rename's name could not be written into the layouts file.
+ * @param {boolean} layoutUnsaved - A rename's name could not be written into the layouts file.
  * @returns {void}
  */
-export function reportUndo(direction, name, applied, failed, { unit = 'values', layoutUnsaved = false } = {}) {
-    const parts = [`${direction}: ${name} — ${applied} ${unit}`];
+export function reportUndo(direction, name, failed, layoutUnsaved) {
+    const done = direction === 'undo' ? 'undone' : 'redone';
+    const parts = [`${done}: ${name}`];
     if (failed > 0) {
-        parts.push(', ', nudge(`${failed} fail`, 'undo',
+        parts.push(', ', nudge(`${failed} not ${done}`, 'undo',
             `show the ${failed} note${failed === 1 ? '' : 's'} the ${direction} left alone`));
     }
     if (layoutUnsaved) parts.push(LAYOUT_UNSAVED);
@@ -68,7 +69,7 @@ export function reportUndo(direction, name, applied, failed, { unit = 'values', 
 
 /** Said after a rename, or its undo or redo, whose layouts file could not be written: the notes are
  * right, but after a reload the columns will not be. plans/completed/table-rename-column.md §10.1. */
-const LAYOUT_UNSAVED = '; the table layout could not be saved';
+const LAYOUT_UNSAVED = ', layout not saved';
 
 /**
  * Says a folder-wide write has begun — a column delete, a rename, or an undo or redo across many
@@ -105,17 +106,17 @@ export function reportProgressEnd() {
 }
 
 /**
- * Says what a column delete did. The skipped count is a nudge to the notes whose front matter did
- * not read, which are the ones a delete leaves alone — the same filter as the load message's.
+ * Says what a column delete did: the property, and the notes it left alone — the skipped count, a
+ * nudge to the notes whose front matter did not read, the same filter as the load message's. How
+ * many notes lost the key is not said; the dialog counted them before the press.
  * @param {string} property
- * @param {number} deleted - Notes that lost the key.
  * @param {number} skipped - Notes that carried it and were left alone.
  * @returns {void}
  */
-export function reportDelete(property, deleted, skipped) {
+export function reportDelete(property, skipped) {
     // Two spaces, so "deleted" lines up with the "deleting" it replaces and the property name does
     // not shift left under the eye. A non-breaking space first, or the line would collapse the pair.
-    const parts = [`deleted\u00A0 ${property} from ${deleted} file${deleted === 1 ? '' : 's'}`];
+    const parts = [`deleted\u00A0 ${property}`];
     if (skipped > 0) {
         parts.push(', ', nudge(`${skipped} skipped`, 'yaml',
             `show the notes with front matter that could not be read`));
@@ -127,14 +128,13 @@ export function reportDelete(property, deleted, skipped) {
  * Says what a rename did, as reportDelete says what a delete did.
  * @param {string} from
  * @param {string} to
- * @param {number} renamed - Notes renamed.
  * @param {number} skipped - Notes that carried `from` and were left alone.
  * @param {boolean} layoutSaved - Whether the layouts file took the new name.
  * @returns {void}
  */
-export function reportRename(from, to, renamed, skipped, layoutSaved) {
+export function reportRename(from, to, skipped, layoutSaved) {
     // Two spaces for reportDelete's reason: "renamed" lines up with the "renaming" it replaces.
-    const parts = [`renamed\u00A0 ${from} to ${to} in ${renamed} file${renamed === 1 ? '' : 's'}`];
+    const parts = [`renamed\u00A0 ${from} → ${to}`];
     if (skipped > 0) {
         parts.push(', ', nudge(`${skipped} skipped`, 'yaml',
             `show the notes with front matter that could not be read`));
@@ -144,17 +144,15 @@ export function reportRename(from, to, renamed, skipped, layoutSaved) {
 }
 
 /**
- * Says what a copy did, as reportDelete says what a delete did.
- * @param {string} source - The copied column's heading.
+ * Says what a copy did, as reportDelete says what a delete did. What it created, overwrote and found
+ * already matching is not repeated: the dialog said all three before the press.
  * @param {string} target
- * @param {{copied: number, overwritten: number, matched: number, skipped: number, layoutSaved: boolean}} result
+ * @param {{skipped: number, layoutSaved: boolean}} result
  * @returns {void}
  */
-export function reportCopy(source, target, { copied, overwritten, matched, skipped, layoutSaved }) {
+export function reportCopy(target, { skipped, layoutSaved }) {
     // Two spaces for reportDelete's reason: "copied" lines up with the "copying" it replaces.
-    const parts = [`copied\u00A0 ${source} to ${target} in ${copied} file${copied === 1 ? '' : 's'}`];
-    if (overwritten > 0) parts.push(`, ${overwritten} overwritten`);
-    if (matched > 0) parts.push(`, ${matched} already matched`);
+    const parts = [`copied\u00A0 to ${target}`];
     if (skipped > 0) {
         parts.push(', ', nudge(`${skipped} skipped`, 'yaml',
             `show the notes with front matter that could not be read`));
@@ -170,7 +168,7 @@ export function reportCopy(source, target, { copied, overwritten, matched, skipp
  * @returns {void}
  */
 export function reportCopied(cells, headers) {
-    say([`copied ${cells} cell${cells === 1 ? '' : 's'}${headers ? ' with headers' : ''}`], false, true);
+    say([`copied ${cells} cell${cells === 1 ? '' : 's'}${headers ? ' + headers' : ''}`], false, true);
 }
 
 /**
@@ -224,6 +222,12 @@ function nudge(text, value, tip) {
  * @returns {void}
  */
 function say(parts, failed, linger) {
+    // **The flowchart says what it did by drawing it**: a new note, a new link and an undo all move
+    // the chart. So a result there clears the line rather than writing it — clears, because it may
+    // be replacing a progress line that would otherwise stay. Only a refusal is still said, being
+    // the one outcome nothing on the chart shows.
+    if (linger && !failed && appState.viewState === VIEWS.FLOWCHART.value) parts = [];
+
     actionParts = parts;
     actionFailed = failed;
     paint();

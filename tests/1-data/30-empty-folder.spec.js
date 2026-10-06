@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockEmptyDirectoryWithCreate, loadFolder, showFilenames, chooseView } = require('../helpers');
+const { setupMockEmptyDirectoryWithCreate, loadFolder, showFilenames, chooseView, openSortModal } = require('../helpers');
 
 test('an empty folder loads without crashing, and its controls stay usable', async ({ page }) => {
   const pageErrors = [];
@@ -15,9 +15,11 @@ test('an empty folder loads without crashing, and its controls stay usable', asy
   await expect(page.locator('#fileCountElement')).toContainText('files: 0');
 
   await expect(page.locator('#btn-new-note')).toBeEnabled();
-  // an empty select is a dead control — the default sort property must survive
-  expect((await page.locator('#sort-select option').allInnerTexts()).length).toBeGreaterThan(0);
-  expect(await page.locator('#sort-select').inputValue()).toBe('lastModified');
+  // an empty list is a dead control — the default sort property must survive
+  await openSortModal(page);
+  expect(await page.locator('#sort-list .sort-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#sort-list .sort-row.is-active')).toHaveAttribute('data-property', 'lastModified');
+  await page.keyboard.press('Escape');
 });
 
 test('creating and then deleting the first note brings the list to life and back', async ({ page }) => {
@@ -39,8 +41,10 @@ test('creating and then deleting the first note brings the list to life and back
   await expect(page.locator('.note-grid').first()).toContainText('note-1.txt');
 
   // properties are registered from myFiles[0] at load, which never ran for an empty folder;
-  // without registering on create, the sort dropdown and table columns stay empty
-  expect(await page.locator('#sort-select option').allInnerTexts()).toContain('filename');
+  // without registering on create, the sort modal and table columns stay empty
+  await openSortModal(page);
+  await expect(page.locator('#sort-list .sort-row[data-property="filename"]')).toHaveCount(1);
+  await page.keyboard.press('Escape');
   await chooseView(page, 'table');
   await expect(page.locator('#output .note-table-cell-header')).not.toHaveCount(0);
   await expect(page.locator('#output .note-table-header')).toContainText('filename');

@@ -12,7 +12,7 @@ const dialog = document.getElementById('modal-flowchart-options');
 /**
  * Opens the options modal, built fresh from the loaded folder.
  *
- * Built on open rather than at startup, as the column picker and the types modal are: the options
+ * Built on open rather than at startup, as the column picker and the sort modal are: the options
  * are the properties of whichever folder is loaded, and one of them may be a property only the
  * saved choices still remember.
  * @returns {void}
@@ -72,7 +72,7 @@ export function handleFlowchartLayoutChange(evt, target) {
  * Nothing is written here; a choice reaches the disk when it is made. The re-render is for what a
  * choice changes on screen, which is the whole chart.
  *
- * The list is emptied afterwards, the same reason the picker and the types modal empty theirs —
+ * The list is emptied afterwards, the same reason the picker empties its own —
  * nothing in the app holds rendered state between renders, and a row left over from a previous
  * folder would look exactly like a real one.
  * @returns {void}

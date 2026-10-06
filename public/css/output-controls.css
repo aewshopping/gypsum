@@ -1,5 +1,5 @@
-/* The row of controls a view puts in the controls panel, on the line under tags, types and sort,
-   pushed to the right — see .view-controls-row in file-display-controls.css.
+/* The row of controls a view puts in the controls panel, pushed to the right — see
+   .view-controls-row in file-display-controls.css.
 
    Shared rather than per-view: the table row and the flowchart row are the same shape doing the
    same job, and a second copy of these rules would drift. A view's renderer may add its own class

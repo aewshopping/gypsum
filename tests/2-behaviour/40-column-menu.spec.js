@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, showFilenames, chooseView } = require('../helpers');
+const { loadFolder, showFilenames, chooseView, openSortModal } = require('../helpers');
 
 // Titles that sort into an obvious, non-alphabetical-by-filename order.
 async function setupFiles(page) {
@@ -59,14 +59,20 @@ const menuGap = page => page.evaluate(() => {
                   Math.abs(Math.round(m.left - c.left)));
 });
 
-test('sorting from the menu also updates the sort dropdown and direction', async ({ page }) => {
+test('sorting from the menu is what the sort modal opens on', async ({ page }) => {
   await openTable(page);
   const header = titleHeader(page);
   const firstTitle = () => page.locator('.note-table .note-table-cell[data-prop="title"]').first().textContent();
-  const controls = () => page.evaluate(() => ({
-    select: document.getElementById('sort-select').value,
-    ascChecked: document.getElementById('sort-direction').checked,
-  }));
+  const controls = async () => {
+    await openSortModal(page);
+    const active = page.locator('#sort-list .sort-row.is-active');
+    const result = {
+      select: await active.getAttribute('data-property'),
+      ascChecked: await active.locator('.sort-row-direction').getAttribute('data-direction') === 'asc',
+    };
+    await page.keyboard.press('Escape');
+    return result;
+  };
 
   await openMenuFor(page, header);
   await page.locator('[data-action="column-sort-asc"]').click();
@@ -79,6 +85,32 @@ test('sorting from the menu also updates the sort dropdown and direction', async
   await page.locator('[data-action="column-sort-desc"]').click();
   await expect.poll(async () => (await firstTitle()).trim()).toBe('Zebra note');
   expect(await controls()).toEqual({ select: 'title', ascChecked: false });
+});
+
+// The sort modal's three controls in one row: the name sorts, the direction button reverses — for
+// every row at once, since there is one direction — and it is worded by the property's type.
+test('the sort modal sorts by a row, and its direction button reverses the sort', async ({ page }) => {
+  await openTable(page);
+  const firstTitle = () => page.locator('.note-table .note-table-cell[data-prop="title"]').first().textContent();
+  const row = prop => page.locator(`#sort-list .sort-row[data-property="${prop}"]`);
+  const directions = () => page.locator('#sort-list .sort-row-direction')
+    .evaluateAll(buttons => [...new Set(buttons.map(b => b.dataset.direction))]);
+
+  await openSortModal(page);
+  await expect(row('lastModified')).toHaveClass(/is-active/);
+  await expect(row('title').locator('.sort-row-direction')).toHaveText('AtoZ');
+  await expect(row('lastModified').locator('.sort-row-direction')).toHaveText('oldtonew');
+
+  await row('title').locator('.sort-row-name').click();
+  await expect(row('title')).toHaveClass(/is-active/);
+  await expect(row('lastModified')).not.toHaveClass(/is-active/);
+  await expect.poll(async () => (await firstTitle()).trim()).toBe('Zebra note');
+  expect(await directions()).toEqual(['desc']);
+
+  await row('title').locator('.sort-row-direction').click();
+  await expect.poll(async () => (await firstTitle()).trim()).toBe('Alpha note');
+  expect(await directions()).toEqual(['asc']);
+  await expect(page.locator('#modal-sort')).toBeVisible();   // the modal stays open to keep working in
 });
 
 test('the sort items are named after the ends of the column\'s own sort', async ({ page }) => {
@@ -361,7 +393,7 @@ test('while a delete runs the table is inert and the bar shows, and afterwards t
   // The load's bar, not a counting number: only --load-pct moves while it runs.
   await expect(page.locator('#output-report')).toHaveClass(/progress-bar.*loading|loading.*progress-bar/);
 
-  await expect(page.locator('#output-report')).toContainText('deleted people from 4 files, 1 skipped');
+  await expect(page.locator('#output-report')).toContainText('deleted people, 1 skipped');
   await expect(page.locator('#output')).not.toHaveAttribute('inert', '');
   const skipped = page.locator('#output-report .load-error-nudge');
   await expect(skipped).toHaveText('1 skipped');
@@ -378,7 +410,7 @@ test('an emptied column offers no delete', async ({ page }) => {
   await openMenuFor(page, headerFor(page, 'people'));
   await deleteItem(page).click();
   await page.click('[data-action="warning-proceed"]');
-  await expect(page.locator('#output-report')).toContainText('deleted people from 2 files');
+  await expect(page.locator('#output-report')).toContainText('deleted people');
   await expect(headerFor(page, 'people')).toHaveAttribute('data-empty', '');
 
   await openMenuFor(page, headerFor(page, 'people'));

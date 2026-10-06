@@ -9,7 +9,6 @@ import { renderTagTaxonomy } from '../render-tag-taxonmy.js';
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { appState } from '../../services/store.js';
 import { propertyType } from '../../services/property-type.js';
-import { populateSortSelect } from '../ui-elements-load/sort-select-load.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { addActionHandlers } from '../event-listeners-add.js';
 import { loadUndoStacks } from '../../table-undo/undo-stacks.js';
@@ -113,7 +112,6 @@ async function postLoad() {
     if (appState.tagTaxonomyVisible) renderTagTaxonomy();
     const sortProp = appState.sortState.property;
     sortAppStateFiles(sortProp, propertyType(sortProp), appState.sortState.direction);
-    populateSortSelect();
     renderFiles();
     addActionHandlers();
 }
