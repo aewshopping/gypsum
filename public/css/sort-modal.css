@@ -1,0 +1,105 @@
+/* The sort modal: one row per property, the sorted one filled. The rows are the layouts modal's —
+   the arrow gutter, the fill, the hover — written out here rather than borrowed, since those classes
+   belong to table-layouts.css. */
+
+#modal-sort {
+    max-width: min(400px, calc(100vw - var(--sidebar-width) - 32px));
+}
+
+/* Each row is a subgrid of the list's three tracks, so the type glyphs and the direction buttons
+   line up down the list whatever a property is called or how long its sort's words are. */
+#sort-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+/* .info-modal-row's vertical padding is replaced by the name button's own, so the whole height of
+   the row is that button and a press anywhere along the name sorts. */
+.sort-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    column-gap: 10px;
+
+    box-sizing: border-box;
+    margin-block: 2px;
+    margin-inline: -8px;
+    padding: 0 8px;
+    border-radius: 5px;
+}
+
+.sort-row:hover {
+    background-color: var(--colour-neutral-alt);
+}
+
+.sort-row.is-active,
+.sort-row.is-active:hover {
+    background-color: color-mix(in srgb, var(--colour-contr) 12%, transparent);
+}
+
+.sort-row-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 8px 0;
+    font: inherit;
+    color: var(--colour-contr);
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+}
+
+/* The arrow the layouts modal marks the layout in use with, in a gutter that is there either way
+   so the names line up. */
+.sort-row-name::before {
+    content: "\279C";   /* U+279C ➜ */
+    display: inline-block;
+    width: 1.3em;
+    opacity: 0;
+}
+
+.sort-row-name[aria-current="true"]::before {
+    opacity: 0.6;
+}
+
+/* "A to Z": the two ends either side of "to", reversed by flex-direction. sort-list-sync.js glides
+   them across when it flips, since flex-direction itself does not animate. Stretched to its track
+   and centred, so the "to" sits roughly in one column down the list. */
+.sort-row-direction {
+    justify-self: stretch;
+    display: flex;
+    justify-content: center;
+    gap: 0.35em;
+
+    padding: 2px 8px;
+    border: 1px solid color-mix(in srgb, var(--colour-contr) 35%, transparent);
+    border-radius: 8px;
+    background: none;
+    font: inherit;
+    color: var(--colour-contr);
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--colour-contr);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--colour-contr);
+    }
+
+    &[data-direction="desc"] {
+        flex-direction: row-reverse;
+    }
+}
+
+.sort-to {
+    opacity: 0.6;
+}

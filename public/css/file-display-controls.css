@@ -8,7 +8,7 @@
 /* The panel's own controls, in the interface font at 14.3px. Set on them rather than on the whole
    panel, so the view's row on the panel's second line keeps the size and font it is drawn in
    everywhere else. */
-.file-display-controls-top, .controls-panel-btn, .sort-controls {
+.file-display-controls-top, .controls-panel-btn {
     font: 0.89375em var(--fontfam-app-input);
 }
 
@@ -59,14 +59,7 @@
     }
 }
 
-.sort-controls {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding:4px;
-}
-
-#sort-select, .controls-panel-btn {
+.controls-panel-btn {
     border:none;
     cursor:pointer;
     /* font: 1em var(--fontfam-app-input); */
@@ -78,48 +71,10 @@
 }
 
 /* The text buttons in the controls panel — "tags" and "types". One class rather than one
-   per button: they are the same control, and sit side by side. The block padding is what lands
-   them on the same height as the select beside them. Sized to their words plus padding rather
-   than to a minimum width, so tags, types and sort fit one line on a phone 375px wide. */
+   per button: they are the same control, and sit side by side. Sized to their words plus padding
+   rather than to a minimum width, so tags, types and sort fit one line on a phone 375px wide. */
 .controls-panel-btn {
     padding-block: 3px;
     padding-inline: 6px;
     border-radius: 8px;
-}
-
-#sort-select {
-    min-width: 140px;
-}
-
-#sort-direction {
-    display:none;
-}
-
-.sort-direction-label {
-    position:relative;
-    cursor:pointer;
-    width:20px;
-    height:20px;
-    rotate:90deg;
-    transition:0.2s rotate;
-    border:1.5px solid transparent;
-    border-radius:50%;
-
-    &::after {
-        content: "➜"; /* U+0279C */
-        position:absolute;
-        color: var(--colour-contr);
-        top:50%;
-        left:50%;
-        transform: translate(-50%, -50%);
-        padding-bottom:2px;
-    }
-
-    &:hover {
-        border:1.5px solid var(--colour-compl-contr);
-    }
-}
-
-.sort-direction-label:has(#sort-direction:checked) {
-    rotate:-90deg;
 }

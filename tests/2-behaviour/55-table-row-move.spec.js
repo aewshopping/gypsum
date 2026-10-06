@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockCellWritingFolder, chooseView } = require('../helpers');
+const { loadFolder, setupMockCellWritingFolder, chooseView, sortBy } = require('../helpers');
 
 /**
  * The table around a cell edit, rather than the bytes it writes — which are
@@ -42,19 +42,11 @@ const focusedCell = (page) => page.evaluate(() => {
 // ---------------------------------------------------------------- the row stays put
 
 /**
- * Sorts by status ascending through the controls above the table: the column's own header is off to
- * the right of a table this wide, and both controls are styled into labels that a click cannot
- * reach headlessly — so the change event they answer to is dispatched directly.
+ * Sorts by status ascending through the sort modal: the column's own header is off to the right of
+ * a table this wide.
  */
 async function sortByStatus(page) {
-  await page.evaluate(() => {
-    const direction = document.getElementById('sort-direction');
-    direction.checked = true;
-    direction.dispatchEvent(new Event('change', { bubbles: true }));
-    const select = document.getElementById('sort-select');
-    select.value = 'status';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  });
+  await sortBy(page, 'status', 'asc');
 }
 
 const titles = (page) => page.evaluate(() => [...document.querySelectorAll('.note-table[data-vt-id]')]

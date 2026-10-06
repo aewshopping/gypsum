@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule, setupMockDirectoryWithLayouts, chooseView } = require('../helpers');
+const { loadFolder, appModule, setupMockDirectoryWithLayouts, chooseView, openSortModal } = require('../helpers');
 
 // Four front matter keys the app knows nothing about, chosen for what they catch:
 // `published` and `revisions` hold false and 0, which the cell renderer used to throw away;
@@ -317,8 +317,10 @@ test('the file column offers no type, no sort and no search', async ({ page }) =
   }
   await page.keyboard.press('Escape');
 
-  // nor from the sort dropdown
-  await expect(page.locator('[data-action="sort-select"] option[value="internalId"]')).toHaveCount(0);
+  // nor from the sort modal
+  await openSortModal(page);
+  await expect(page.locator('#sort-list .sort-row[data-property="internalId"]')).toHaveCount(0);
+  await page.keyboard.press('Escape');
 
   // nor by typing it into the search box, where it behaves like a property the folder lacks
   await page.fill('#searchbox', 'internalId:a.md');
@@ -345,9 +347,10 @@ test('an info column keeps the type underneath, and still renders and sorts by i
   await expect(rowFor(page, 'Alpha').locator('.note-table-cell[data-prop="lastModified"]'))
     .toHaveText(/^\d+\/\d+\/\d+ \d+:\d+(\s?[AP]M)?$/);
 
-  // and both are still offered in the sort dropdown
-  await expect(page.locator('[data-action="sort-select"] option[value="sizeInBytes"]')).toHaveCount(1);
-  await expect(page.locator('[data-action="sort-select"] option[value="lastModified"]')).toHaveCount(1);
+  // and both are still offered in the sort modal
+  await openSortModal(page);
+  await expect(page.locator('#sort-list .sort-row[data-property="sizeInBytes"]')).toHaveCount(1);
+  await expect(page.locator('#sort-list .sort-row[data-property="lastModified"]')).toHaveCount(1);
 });
 
 // The app owns these columns, so a hand-edited layout file cannot quietly change what one sorts by.

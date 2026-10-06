@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setViewTransitions, chooseView } = require('../helpers');
+const { loadFolder, setViewTransitions, chooseView, sortBy } = require('../helpers');
 
 /**
  * A view transition captures the whole page twice and then animates every named group for a
@@ -87,12 +87,6 @@ const cellFor = (page, title, prop) => page.locator('.note-table').filter({ hasT
  */
 const commit = (page) => page.locator('#searchbox').click();
 
-/** Sorts by a property through the controls above the table, which a wide table pushes offscreen. */
-const sortBy = (page, property) => page.evaluate((property) => {
-  const select = document.getElementById('sort-select');
-  select.value = property;
-  select.dispatchEvent(new Event('change', { bubbles: true }));
-}, property);
 
 test('editing a cell draws the same rows, so no view transition runs', async ({ page }) => {
   await openTable(page);

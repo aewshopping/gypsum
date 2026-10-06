@@ -1,3 +1,5 @@
+import { appState } from '../../services/store.js';
+import { VIEWS } from '../../constants.js';
 import { startProgress, stepProgress, endProgress } from './progress-bar.js';
 
 /**
@@ -224,6 +226,12 @@ function nudge(text, value, tip) {
  * @returns {void}
  */
 function say(parts, failed, linger) {
+    // **The flowchart says what it did by drawing it**: a new note, a new link and an undo all move
+    // the chart. So a result there clears the line rather than writing it — clears, because it may
+    // be replacing a progress line that would otherwise stay. Only a refusal is still said, being
+    // the one outcome nothing on the chart shows.
+    if (linger && !failed && appState.viewState === VIEWS.FLOWCHART.value) parts = [];
+
     actionParts = parts;
     actionFailed = failed;
     paint();
