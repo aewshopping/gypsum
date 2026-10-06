@@ -42,8 +42,8 @@
     padding-top: 10px;
 }
 
-/* Sort on the left, and the flexgrow pushing the view's row to the right. It wraps, so a row wider
-   than the screen breaks onto a further line rather than running off the edge. */
+/* The flexgrow pushes sort and the view's row to the right. It wraps, so a row wider than the
+   screen breaks onto a further line rather than running off the edge. */
 .view-controls-row {
     flex-basis: 100%;
     display: flex;

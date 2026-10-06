@@ -1,5 +1,5 @@
-/* The row of controls a view puts in the controls panel, on the line under tags, types and sort,
-   pushed to the right — see .view-controls-row in file-display-controls.css.
+/* The row of controls a view puts in the controls panel, after the sort button and pushed right
+   with it — see .view-controls-row in file-display-controls.css.
 
    Shared rather than per-view: the table row and the flowchart row are the same shape doing the
    same job, and a second copy of these rules would drift. A view's renderer may add its own class
@@ -23,6 +23,16 @@
     padding-inline: 8px;
     border-radius: 6px;
     border: none;
+}
+
+/* A short rule at the row's start, so the view's own controls read as a group apart from the sort
+   button beside them. Drawn by the row, so a view with no row draws none. */
+.output-controls::before {
+    content: "";
+    width: 1px;
+    height: 1.4em;
+    margin-right: 4px;
+    background-color: color-mix(in srgb, var(--colour-contr) 30%, transparent);
 }
 
 /* Undo, redo and the undo history say when there is nothing to press, because otherwise a dead

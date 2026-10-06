@@ -411,14 +411,14 @@
 
       <div class="file-display-controls-panel" id="file-display-controls-panel">
         <div class="file-display-controls-panel-inner">
-          <!-- One line: sort, which every view has, on the left, and what the showing view offers
-               pushed to the right. The view's own control row is drawn into #output-controls and
-               is empty in the views that have none. -->
+          <!-- One line, pushed to the right: sort, which every view has, then what the showing view
+               offers. The view's own control row is drawn into #output-controls and is empty in
+               the views that have none. -->
           <div class="view-controls-row">
+            <div class="flexgrow"></div>
             <button class="svg-wrapper-style" data-action="open-sort-modal" data-tip="sort">
               <svg viewBox="0 0 50 50"><use href="#icon-sort"></use></svg>
             </button>
-            <div class="flexgrow"></div>
             <div id="output-controls"></div>
           </div>
         </div>

@@ -1187,8 +1187,9 @@ rendered, and so does every dialog reachable from it. Add a view's own class bes
 genuinely its own; neither row needs one today.
 
 **It shares the controls panel's one line with the sort button** — the panel the sliders button
-opens. `.view-controls-row` holds sort on the left, then a `.flexgrow` that pushes the view's row to
-the right, and wraps when the screen is too narrow for both. The tags button is not here: it sits at
+opens. `.view-controls-row` holds a `.flexgrow` that pushes sort and the view's row to the right, the
+view's row set apart by a short rule its own `::before` draws, and wraps when the screen is too
+narrow. The tags button is not here: it sits at
 the right of the count line above the file list (`.output-header`).
 
 - **The row goes into `#output-controls`, never into `#output`.** The slot has to outlive the renders
