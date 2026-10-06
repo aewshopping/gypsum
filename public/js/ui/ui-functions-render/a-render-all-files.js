@@ -36,9 +36,11 @@ import { reportFileCount } from "./output-report.js";
  *
  * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render.
  * @param {boolean} [keepPage=false] - When true, stays on the current page instead of resetting to page 1.
+ * @param {{animate?: boolean}} [options] - `animate: false` draws with no view transition — a sort,
+ *   which is pressed from the sort modal, and a transition's snapshots are painted over the dialog.
  * @returns {{updateCallbackDone: Promise<void>}} Resolved once the rows on screen are the new ones.
  */
-export function renderFiles(fullRender = true, keepPage = false) {
+export function renderFiles(fullRender = true, keepPage = false, { animate = true } = {}) {
 
     // check if no active filters applied
     const activeFilterCount = countActiveFilters();
@@ -186,7 +188,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
     // options dialog, every close of which re-renders the view.
     const flowchartView = appState.viewState === VIEWS.FLOWCHART.value;
 
-    if (viewTransitionsWanted() && !modalOpen && !nothingMoved && !flowchartView) {
+    if (animate && viewTransitionsWanted() && !modalOpen && !nothingMoved && !flowchartView) {
         const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
             el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
         );

@@ -110,13 +110,18 @@ test('editing a cell draws the same rows, so no view transition runs', async ({ 
   expect(await transitions(page)).toBe(0);
 });
 
-test('a sort moves the rows, so it still runs one', async ({ page }) => {
+// A sort is pressed from the sort modal, and a transition's snapshots of the page were painted over
+// it — the rows flashed up on top of the dialog. So a sort draws with none, though its rows move.
+test('a sort moves the rows but runs none', async ({ page }) => {
   await openTable(page);
   await countTransitions(page);
+  const first = () => page.locator('.note-table .note-table-cell[data-prop="title"]').first().textContent();
+  const before = await first();
 
-  await sortBy(page, 'status');
+  await sortBy(page, 'title', 'asc');
 
-  await expect.poll(() => transitions(page)).toBe(1);
+  await expect.poll(first).not.toBe(before);
+  expect(await transitions(page)).toBe(0);
 });
 
 // ---------------------------------------------------------------- one render, one page
