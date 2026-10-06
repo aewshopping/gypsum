@@ -1,10 +1,12 @@
-/* The one line above the file list: how many files are showing, and what the last undo did. The
-   view's own control row used to share it, at the right; it is in the controls panel now — see
-   .view-controls-row in file-display-controls.css. */
+/* The one line above the file list: how many files are showing and what the last undo did, with
+   the tags button pushed to the right by the flexgrow between them. The report takes the room it
+   needs, so a long one shrinks the gap; wrapping puts the button on a line of its own on a screen
+   too narrow for both. */
 .output-header {
     display: flex;
     flex-wrap: wrap;
-    align-items: end;
+    align-items: center;
+    column-gap: 10px;
 
     /* Room to breathe, inherited from the count line, which carried it for both of them: this sits
        between the tag taxonomy and the file list, and both crowd it. Margin rather than padding so

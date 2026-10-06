@@ -1186,11 +1186,10 @@ what keeps view-conditional logic out of the app entirely: the row exists while 
 rendered, and so does every dialog reachable from it. Add a view's own class beside it for anything
 genuinely its own; neither row needs one today.
 
-**It is the second line of the controls panel**, under tags and sort — the panel the
-sliders button opens. The panel is one wrapping flex row; `.view-controls-row` takes the full width,
-which is what puts it underneath, and a `.flexgrow` inside it pushes the view's row to the right. It
-is hidden while `#output-controls` is empty, so a view with no row costs the panel no line. The
-panel's own 14.3px interface font is set on its own controls only, so the view's row keeps its size.
+**It shares the controls panel's one line with the sort button** — the panel the sliders button
+opens. `.view-controls-row` holds sort on the left, then a `.flexgrow` that pushes the view's row to
+the right, and wraps when the screen is too narrow for both. The tags button is not here: it sits at
+the right of the count line above the file list (`.output-header`).
 
 - **The row goes into `#output-controls`, never into `#output`.** The slot has to outlive the renders
   that replace the file list, and it sits in the panel, outside `#output`. It is a bare wrapper in

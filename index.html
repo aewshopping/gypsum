@@ -411,14 +411,13 @@
 
       <div class="file-display-controls-panel" id="file-display-controls-panel">
         <div class="file-display-controls-panel-inner">
-          <button data-tip="show all tags" class="controls-panel-btn" data-action="render-tag-taxonomy">tags</button>
-          <button class="svg-wrapper-style sort-btn" data-action="open-sort-modal" data-tip="sort">
-            <svg viewBox="0 0 50 50"><use href="#icon-sort"></use></svg>
-          </button>
-          <!-- The second line of the panel: what the showing view offers, pushed to the right. The
-               view's own control row is drawn into #output-controls and is empty in the views that
-               have none, when the line takes no room. -->
+          <!-- One line: sort, which every view has, on the left, and what the showing view offers
+               pushed to the right. The view's own control row is drawn into #output-controls and
+               is empty in the views that have none. -->
           <div class="view-controls-row">
+            <button class="svg-wrapper-style" data-action="open-sort-modal" data-tip="sort">
+              <svg viewBox="0 0 50 50"><use href="#icon-sort"></use></svg>
+            </button>
             <div class="flexgrow"></div>
             <div id="output-controls"></div>
           </div>
@@ -430,9 +429,14 @@
 
     <div id="tag-taxonomy-container"></div>
 
-    <!-- One line above the file list: what is showing, and what the last undo did. -->
+    <!-- One line above the file list: what is showing and what the last undo did on the left, the
+         tags button on the right. -->
     <div class="output-header">
       <div id="output-report" class="progress-bar" role="status"></div>
+      <div class="flexgrow"></div>
+      <button class="svg-wrapper-style" data-action="render-tag-taxonomy" data-tip="show all tags">
+        <svg viewBox="0 0 50 50"><use href="#icon-hash"></use></svg>
+      </button>
     </div>
 
     <div id="output">

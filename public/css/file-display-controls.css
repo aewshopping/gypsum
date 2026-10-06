@@ -5,10 +5,9 @@
     margin-bottom: 20px;
 }
 
-/* The panel's own controls, in the interface font at 14.3px. Set on them rather than on the whole
-   panel, so the view's row on the panel's second line keeps the size and font it is drawn in
-   everywhere else. */
-.file-display-controls-top, .controls-panel-btn {
+/* The sliders row, in the interface font at 14.3px. Set on it rather than on the whole panel, so
+   the view's row in the panel keeps the size and font it is drawn in everywhere else. */
+.file-display-controls-top {
     font: 0.89375em var(--fontfam-app-input);
 }
 
@@ -32,9 +31,7 @@
     height: auto;
 }
 
-/* Two lines: the controls every view has (tags, sort), and under them the showing view's
-   own row. One wrapping flex row rather than two blocks, so the general controls still wrap among
-   themselves at phone width; the view's line is full width, which is what puts it underneath. */
+/* One line: the sort button every view has, and the showing view's own row. */
 .file-display-controls-panel-inner {
     display: flex;
     flex-direction: row;
@@ -45,35 +42,11 @@
     padding-top: 10px;
 }
 
-/* The flexgrow inside it pushes the row to the right. It wraps too, so a row wider than the screen
-   breaks onto a further line rather than running off the edge. Gone while the view has no row, so
-   the panel does not hold an empty line and a gap for it. */
+/* Sort on the left, and the flexgrow pushing the view's row to the right. It wraps, so a row wider
+   than the screen breaks onto a further line rather than running off the edge. */
 .view-controls-row {
     flex-basis: 100%;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-
-    &:has(#output-controls:empty) {
-        display: none;
-    }
-}
-
-.controls-panel-btn {
-    border:none;
-    cursor:pointer;
-    /* font: 1em var(--fontfam-app-input); */
-    color: var(--colour-contr);
-    background-color: var(--colour-neutral-alt);
-    &:hover {
-        background-color: revert;
-    }
-}
-
-/* The text button in the controls panel — "tags". Sized to its word plus padding rather than to a
-   minimum width, so the panel's first line fits a phone 375px wide. */
-.controls-panel-btn {
-    padding-block: 3px;
-    padding-inline: 6px;
-    border-radius: 8px;
 }
