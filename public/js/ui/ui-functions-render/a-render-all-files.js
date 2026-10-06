@@ -36,11 +36,9 @@ import { reportFileCount } from "./output-report.js";
  *
  * @param {boolean} [fullRender=true] - A flag to indicate whether to perform a full render.
  * @param {boolean} [keepPage=false] - When true, stays on the current page instead of resetting to page 1.
- * @param {{animate?: boolean}} [options] - `animate: false` draws with no view transition — a sort,
- *   which is pressed from the sort modal, and a transition's snapshots are painted over the dialog.
  * @returns {{updateCallbackDone: Promise<void>}} Resolved once the rows on screen are the new ones.
  */
-export function renderFiles(fullRender = true, keepPage = false, { animate = true } = {}) {
+export function renderFiles(fullRender = true, keepPage = false) {
 
     // check if no active filters applied
     const activeFilterCount = countActiveFilters();
@@ -178,8 +176,9 @@ export function renderFiles(fullRender = true, keepPage = false, { animate = tru
 
     // Card transitions only run when the modal is closed — the ::backdrop pseudo-element
     // is not captured by the View Transitions API, so it disappears behind the overlay
-    // whenever a card transition fires while the modal is open.
-    const modalOpen = ['file-content-modal', 'modal-settings', 'modal-layouts', 'modal-columns']
+    // whenever a card transition fires while the modal is open. The sort modal sorts the files
+    // behind it, so without it here every press flashed the rows up over the dialog.
+    const modalOpen = ['file-content-modal', 'modal-settings', 'modal-layouts', 'modal-columns', 'modal-sort']
         .some(id => document.getElementById(id)?.open);
     // The flowchart draws one block of text rather than a row or card per note, so there is nothing
     // for a transition to morph: it captures the whole page twice and then crossfades one <pre> onto
@@ -188,7 +187,7 @@ export function renderFiles(fullRender = true, keepPage = false, { animate = tru
     // options dialog, every close of which re-renders the view.
     const flowchartView = appState.viewState === VIEWS.FLOWCHART.value;
 
-    if (animate && viewTransitionsWanted() && !modalOpen && !nothingMoved && !flowchartView) {
+    if (viewTransitionsWanted() && !modalOpen && !nothingMoved && !flowchartView) {
         const nameCards = () => document.querySelectorAll('#output [data-vt-id]').forEach(
             el => el.style.setProperty('view-transition-name', fileTransitionName(el.dataset.vtId))
         );

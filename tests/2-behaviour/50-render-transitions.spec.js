@@ -110,9 +110,22 @@ test('editing a cell draws the same rows, so no view transition runs', async ({ 
   expect(await transitions(page)).toBe(0);
 });
 
-// A sort is pressed from the sort modal, and a transition's snapshots of the page were painted over
-// it — the rows flashed up on top of the dialog. So a sort draws with none, though its rows move.
-test('a sort moves the rows but runs none', async ({ page }) => {
+test('a sort moves the rows, so it still runs one', async ({ page }) => {
+  await openTable(page);
+  await countTransitions(page);
+
+  // As the column menu sorts: with no dialog open.
+  await page.evaluate(async () => {
+    const { applySortAndRender } = await import('/public/js/ui/ui-functions-click/sort-object.js');
+    applySortAndRender('status', 'asc');
+  });
+
+  await expect.poll(() => transitions(page)).toBe(1);
+});
+
+// The sort modal sorts the rows behind it, and a transition's snapshots are painted over an open
+// dialog — the rows flashed up on top of it. So a sort from there runs none.
+test('a sort from the open sort modal runs none', async ({ page }) => {
   await openTable(page);
   await countTransitions(page);
   const first = () => page.locator('.note-table .note-table-cell[data-prop="title"]').first().textContent();

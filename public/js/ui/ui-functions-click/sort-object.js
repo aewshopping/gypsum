@@ -15,9 +15,7 @@ import { markSortedColumn } from '../ui-functions-table/render-table-header.js';
  */
 export function applySortAndRender(sortProp, sortDirection) {
     sortAppStateFiles(sortProp, propertyType(sortProp), sortDirection);
-    // No view transition: its snapshots of the page are painted over the open sort modal, so the
-    // rows flashed up on top of it.
-    renderFiles(false, false, { animate: false });
+    renderFiles(false);
     Object.assign(appState.sortState, { property: sortProp, direction: sortDirection });
     syncSortControls();
     markSortedColumn();

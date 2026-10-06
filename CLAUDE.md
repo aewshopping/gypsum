@@ -892,10 +892,8 @@ worth asking before starting one — `ui-functions-render/view-transition.js` is
 - **A render that draws the same notes in the same order does not start one.** Nothing moves, so
   there is nothing to animate — that is every cell edit and every autosave. `renderFiles` compares
   the ids it is about to draw (`paginationState.pageFileIds`, already worked out) with the ids in
-  the DOM, before rendering, because that is when the answer is needed. A filter, a page change and a
-  view switch all still animate; **a sort does not** — it is pressed from the sort modal, and the
-  transition's snapshots of the page were painted over the dialog, so the rows flashed up on top of
-  it. `applySortAndRender()` passes `{ animate: false }`.
+  the DOM, before rendering, because that is when the answer is needed. A sort, a filter, a page
+  change and a view switch all still animate.
 - **"Animate view changes" off means no transition is started**, not a transition with a zero-length
   animation. The CSS in `view-transitions-off.css` does the second thing and stays as a backstop;
   `viewTransitionsWanted()` does the first, which is the one that saves the snapshots. Both read the
