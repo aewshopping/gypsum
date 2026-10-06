@@ -7,6 +7,11 @@ import { pushUndoBatch } from '../table-undo/undo-stacks.js';
  * one writer every table edit goes through — a verified, span-preserving front matter splice, the
  * refresh that redraws the chart, and one undo entry.
  *
+ * **Re-sorted like any other write**, unlike the table cell it was modelled on: a cell holds its row
+ * still while focus is in it, but a chart has no rows to hold, and the file's last modified time has
+ * moved — so the other views must find it where the sort puts it. The chart itself is laid out by
+ * key, so the sort does not move it.
+ *
  * Always written as a list, whatever the property's type says: a property nobody has typed reads as
  * text, and writing a list as text would join it into one string. A single value already there is
  * turned into a list. The note's own list style is kept where it has one.
@@ -22,7 +27,7 @@ export async function addFlowchartLink(source, target, edits) {
         property: edit.property,
         raw: (shape) => toYamlList(edit.items, shape),
         items: edit.items,
-    })), { resort: false });
+    })));
     pushUndoBatch(records, { kind: 'add-link', property: edits[0].property, to: target.filepath });
     return records;
 }

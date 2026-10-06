@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, loadFolder } = require('../helpers');
+const { setupMockFiles, loadFolder, chooseView } = require('../helpers');
 
 // setupMockFiles has files with: #work/project, #personal, #color/coral
 
@@ -165,7 +165,7 @@ test.describe('note picker — table cell', () => {
     await setupCells(page);
     await page.goto('/');
     await loadFolder(page);
-    await page.selectOption('#view-select', 'table');
+    await chooseView(page, 'table');
     await expect(page.locator('.note-table-header')).toBeVisible();
   }
 

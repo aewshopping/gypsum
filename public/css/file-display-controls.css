@@ -3,7 +3,13 @@
     flex-direction: column;
     gap: 0;
     margin-bottom: 20px;
-    font: 0.89375em var(--fontfam-app-input); /* size replicating 14.3px */
+}
+
+/* The panel's own controls, in the interface font at 14.3px. Set on them rather than on the whole
+   panel, so the view's row on the panel's second line keeps the size and font it is drawn in
+   everywhere else. */
+.file-display-controls-top, .controls-panel-btn, .sort-controls {
+    font: 0.89375em var(--fontfam-app-input);
 }
 
 .file-display-controls-top {
@@ -26,8 +32,12 @@
     height: auto;
 }
 
+/* Two lines: the controls every view has (tags, types, sort), and under them the showing view's
+   own row. One wrapping flex row rather than two blocks, so the general controls still wrap among
+   themselves at phone width; the view's line is full width, which is what puts it underneath. */
 .file-display-controls-panel-inner {
     display: flex;
+    flex-direction: row;
     justify-content: flex-end;
     align-items: center;
     flex-wrap: wrap;
@@ -35,17 +45,30 @@
     padding-top: 10px;
 }
 
-.sort-controls, .view-controls {
+/* The flexgrow inside it pushes the row to the right. It wraps too, so a row wider than the screen
+   breaks onto a further line rather than running off the edge. Gone while the view has no row, so
+   the panel does not hold an empty line and a gap for it. */
+.view-controls-row {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    &:has(#output-controls:empty) {
+        display: none;
+    }
+}
+
+.sort-controls {
     display: flex;
     align-items: center;
     gap: 2px;
     padding:4px;
 }
 
-#view-select, #sort-select, .controls-panel-btn {
+#sort-select, .controls-panel-btn {
     border:none;
     cursor:pointer;
-    min-width: 80px;
     /* font: 1em var(--fontfam-app-input); */
     color: var(--colour-contr);
     background-color: var(--colour-neutral-alt);
@@ -54,15 +77,13 @@
     }
 }
 
-#view-select {
-    background-color: transparent;
-}
-
 /* The text buttons in the controls panel — "tags" and "types". One class rather than one
    per button: they are the same control, and sit side by side. The block padding is what lands
-   them on the same height as the select beside them. */
+   them on the same height as the select beside them. Sized to their words plus padding rather
+   than to a minimum width, so tags, types and sort fit one line on a phone 375px wide. */
 .controls-panel-btn {
     padding-block: 3px;
+    padding-inline: 6px;
     border-radius: 8px;
 }
 

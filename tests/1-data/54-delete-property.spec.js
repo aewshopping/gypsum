@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, chooseView } = require('../helpers');
 const { NOTES, setupPropertyFolder: setupFiles } = require('../fixtures/property-notes');
 
 /**
@@ -41,7 +41,7 @@ async function openTable(page, notes) {
   await setupFiles(page, notes);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -257,7 +257,7 @@ test('a delete is undone from the list after the folder is loaded again, and cle
   });
 
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   // A fresh visit: the key does not reach back past it, and the list does.
   await expect(page.locator('#table-undo-btn')).toBeDisabled();
   await undoFromList(page, 'people column delete');
@@ -303,7 +303,7 @@ test('a refused undo keeps the value it would have restored, through a reload, u
     .toEqual({ 'block.md': '\n    - ann\n    - bob', 'flow.md': ' [ann, bob]' });
 
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect.poll(issues).toEqual(expected);
 
   await page.locator('#table-undo-list-btn').click();

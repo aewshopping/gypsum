@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule, setupMockDirectoryWithLayouts } = require('../helpers');
+const { loadFolder, appModule, setupMockDirectoryWithLayouts, chooseView } = require('../helpers');
 
 // Four front matter keys the app knows nothing about, chosen for what they catch:
 // `published` and `revisions` hold false and 0, which the cell renderer used to throw away;
@@ -25,7 +25,7 @@ async function openTable(page, width = 1200) {
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -465,7 +465,7 @@ test('a type set from the types modal sticks and reaches the table', async ({ pa
   await page.click('[data-action="close-property-types"]');
 
   // The header is the other half of it: the column now reads as a number wherever it is drawn.
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
   await expect(header(page, 'revisions').locator('.header-type-glyph use'))
     .toHaveAttribute('href', '#icon-type-number');

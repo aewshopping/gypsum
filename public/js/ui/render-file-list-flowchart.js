@@ -28,8 +28,8 @@ import { recalledView } from './ui-functions-flowchart/flowchart-view-memory.js'
  *
  * The control row is drawn by this renderer rather than toggled on and off, which is how the
  * table's row works too: a view's controls exist while the view is rendered and not otherwise, so
- * nothing needs to know which view is showing. It goes into #output-controls, on the line the file
- * count is on, which renderFiles empties before any view draws.
+ * nothing needs to know which view is showing. It goes into #output-controls, the second line
+ * of the controls panel, which renderFiles empties before any view draws.
  *
  * `renderEverything` is unused, as it is in the grid and list renderers — it is the uniform
  * signature the switch in ui-functions-render/a-render-all-files.js calls every view with.
@@ -42,8 +42,7 @@ export function renderFileList_flowchart(renderEverything) {
     const drawnFiles = appState.myFiles.filter(file => checkFileOnPage(file.internalId));
     const output = document.getElementById('output');
 
-    // The control row goes up onto .output-header, beside the file count, exactly as the table's
-    // does — one line above the output instead of two.
+    // The control row goes into the controls panel, under tags, types and sort, as the table's does.
     document.getElementById('output-controls').innerHTML = renderFlowchartControls();
 
     // A render after a write settles from the chart on screen (flowchart-settle.js); any other lays it

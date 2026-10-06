@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, chooseView } = require('../helpers');
 const { RENAME_NOTES, setupPropertyFolder } = require('../fixtures/property-notes');
 
 /**
@@ -24,7 +24,7 @@ async function openTable(page) {
   await page.addInitScript(() => { window.__betweenPassesKind = 'rename-property'; });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -170,7 +170,7 @@ test('a rename with a linked column defined renames the notes and re-points the 
     });
   });
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   expect(await renameThroughService(page)).toEqual({ renamed: 1, skipped: 0, layoutSaved: true });

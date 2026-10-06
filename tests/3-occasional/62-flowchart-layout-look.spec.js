@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockCellWritingFolder } = require('../helpers');
+const { loadFolder, setupMockCellWritingFolder, chooseView } = require('../helpers');
 
 /**
  * The flowchart's layout, looked at: plans/completed/flowchart-dagre-elk-layout.md.
@@ -82,7 +82,7 @@ async function screenshotChart(page, files, testInfo, roles = {}, theme = null, 
   await setupMockCellWritingFolder(page, files);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   if (Object.keys(roles).length || Object.keys(layout).length) {
     await page.click('[data-action="open-flowchart-options"]');
     for (const [role, property] of Object.entries(roles)) await page.selectOption(`#flowchart-role-${role}`, property);

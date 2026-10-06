@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithHistory, loadFolder } = require('../helpers');
+const { setupMockDirectoryWithHistory, loadFolder, chooseView } = require('../helpers');
 
 async function waitForHistoryOptions(page, count) {
   await page.waitForFunction((n) => {
@@ -76,7 +76,7 @@ async function openTable(page) {
   });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -102,8 +102,8 @@ test('undo goes dark after a view change, and the history button stays lit', asy
   await expect(undoBtn(page)).toBeEnabled();
   await expect(listBtn(page)).toBeEnabled();
 
-  await page.selectOption('#view-select', 'cards');
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'cards');
+  await chooseView(page, 'table');
   await expect(undoBtn(page)).toBeDisabled();
   await expect(listBtn(page)).toBeEnabled();
 
@@ -120,8 +120,8 @@ test('undo goes dark after a view change, and the history button stays lit', asy
 test('the list shows newest first, divides this visit from earlier, and a row press closes it', async ({ page }) => {
   await openTable(page);
   await edit(page, 'alpha.md', 'status', 'done');
-  await page.selectOption('#view-select', 'cards');
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'cards');
+  await chooseView(page, 'table');
   await edit(page, 'beta.md', 'note', 'three');
 
   await listBtn(page).click();
@@ -306,7 +306,7 @@ test('the buttons follow the stacks, and the key is not ours in another view, a 
   await page.keyboard.press('Escape');
 
   // another view
-  await page.selectOption('#view-select', 'cards');
+  await chooseView(page, 'cards');
   await page.keyboard.press('Control+z');
   await page.waitForTimeout(200);
   expect(await fileText()).toContain('status: published');

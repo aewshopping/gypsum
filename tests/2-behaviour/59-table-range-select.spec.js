@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, chooseView } = require('../helpers');
 const { setupPropertyFolder } = require('../fixtures/property-notes');
 
 // Ten notes with three short front matter values each, a date (whose editor puts focus on an input of
@@ -26,7 +26,7 @@ async function openTable(page) {
   });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -322,7 +322,7 @@ async function openWritableTable(page) {
   await setupPropertyFolder(page, notes);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

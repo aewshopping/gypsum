@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, showFilenames } = require('../helpers');
+const { loadFolder, showFilenames, chooseView } = require('../helpers');
 
 // A narrow viewport and plenty of columns, so the table scrolls sideways.
 async function setupFiles(page) {
@@ -23,7 +23,7 @@ test('the table keeps its horizontal scroll position when it re-renders', async 
   await page.goto('/');
   await loadFolder(page);
   await showFilenames(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   const scroller = page.locator('.list-table');
@@ -112,7 +112,7 @@ test('opening a note from a row below the fold keeps the page where it was', asy
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   // Down to the last row, which is well past the fold at this height.
@@ -143,7 +143,7 @@ test('pressing the top scrollbar track beside the thumb pages the table towards 
   await page.goto('/');
   await loadFolder(page);
   await showFilenames(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('#top-scrollbar-container[data-scrollable]')).toBeVisible();
 
   const scroller = page.locator('.list-table');

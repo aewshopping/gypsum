@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockCellWritingFolder } = require('../helpers');
+const { loadFolder, setupMockCellWritingFolder, chooseView } = require('../helpers');
 
 /**
  * The table around a cell edit, rather than the bytes it writes — which are
@@ -13,7 +13,7 @@ async function openTable(page, extra) {
   await setupMockCellWritingFolder(page, extra);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

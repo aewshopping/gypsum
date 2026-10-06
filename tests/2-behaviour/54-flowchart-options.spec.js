@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule, setupMockDirectoryWithFlowchart, setupMockCellWritingFolder } = require('../helpers');
+const { loadFolder, appModule, setupMockDirectoryWithFlowchart, setupMockCellWritingFolder, chooseView } = require('../helpers');
 
 // The chart is one block of text, so the assertions here are the text itself rather than a count of
 // things on screen. Pinning it whole is what makes the two-pass ordering — every node declared
@@ -14,7 +14,7 @@ async function openFlowchart(page) {
   await setupMockDirectoryWithFlowchart(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   // The chart is the default; these tests read the mermaid source, and the chart tests switch back.
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
   await page.click('label[for="flowchart_render_toggle"]');
@@ -198,7 +198,7 @@ test('a stored property the folder does not carry is still in the select', async
   });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   await page.click('[data-action="open-flowchart-options"]');
 
   const select = page.locator('#flowchart-role-subgraph');
@@ -235,8 +235,8 @@ test('the chart switch draws a box per note, and is remembered across views', as
     'The crossroads', 'The cave', 'The long road', 'Deeper still', 'A note with no chapter',
   ]);
 
-  await page.selectOption('#view-select', 'table');
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'table');
+  await chooseView(page, 'flowchart');
   await expect(page.locator('.flowchart-node')).toHaveCount(5);
 
   await page.click('label[for="flowchart_render_toggle"]');
@@ -364,7 +364,7 @@ test.describe('touch', () => {
     await setupMockDirectoryWithFlowchart(page);
     await page.goto('/');
     await loadFolder(page);
-    await page.selectOption('#view-select', 'flowchart');
+    await chooseView(page, 'flowchart');
     await page.locator('.pz-panzoom-check').tap();
     await page.locator('.pz-container').evaluate(el => el.scrollIntoView({ block: 'end' }));
     await page.evaluate(() => {
@@ -414,7 +414,7 @@ test('after a link is drawn the chart settles from where it was; a fresh render 
   });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
   await page.click('.pz-panzoom-check');
   await page.evaluate(() => { document.getElementById('view-transitions-enabled').checked = true; });
@@ -453,7 +453,7 @@ test('a note made where it lands out of sight is brought into view', async ({ pa
   });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
   await page.click('.pz-panzoom-check');
 
@@ -484,8 +484,8 @@ test('the chart keeps its zoom and pan across the code view and another view, wh
   await expect(page.locator('.pz-zoom-input')).toHaveValue('2.5');
   expect(await page.locator('.flowchart-node').first().boundingBox()).toEqual(zoomed);
 
-  await page.selectOption('#view-select', 'table');
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'table');
+  await chooseView(page, 'flowchart');
   await expect(page.locator('.pz-zoom-input')).toHaveValue('2.5');
 });
 
@@ -496,7 +496,7 @@ test('a link taken away keeps both its notes in view', async ({ page }) => {
   });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
   await page.click('.pz-panzoom-check');
   const boxOf = label => page.locator(`.flowchart-node[aria-label="${label}"]`).boundingBox();
@@ -537,7 +537,7 @@ test('the chart stays full screen when a note is made by dragging', async ({ pag
   await setupMockCellWritingFolder(page, { 'a.md': '# Apple\n\n[[b.md|to b]]\n', 'b.md': '# Banana\n' });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'flowchart');
+  await chooseView(page, 'flowchart');
   await expect(page.locator('.flowchart-node').first()).toBeVisible();
   await page.click('.pz-fullscreen');
   await expect.poll(() => page.evaluate(() => document.fullscreenElement?.className)).toContain('pz-container');

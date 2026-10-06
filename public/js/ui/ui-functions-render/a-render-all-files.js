@@ -85,7 +85,7 @@ export function renderFiles(fullRender = true, keepPage = false) {
         // Remove stale pagination nav (required for the table fullRender=false path)
         document.querySelector('.pagination')?.remove();
 
-        // The control row on .output-header belongs to whichever view is about to draw, so it is
+        // The control row in the controls panel belongs to whichever view is about to draw, so it is
         // emptied here rather than by the four renderers that have none — and by the two empty
         // states below, which draw no view at all.
         //

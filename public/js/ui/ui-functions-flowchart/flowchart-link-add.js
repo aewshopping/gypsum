@@ -5,6 +5,7 @@ import { addFlowchartLink } from '../../editing/add-flowchart-link.js';
 import { showWarningModal } from '../ui-functions-click/warning-modal.js';
 import { reportAction, reportFailure } from '../ui-functions-render/output-report.js';
 import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
+import { whileWriting } from '../ui-functions-table/bulk-write-busy.js';
 
 /** What the report line says when a plan refuses, by its reason. */
 export const REFUSALS = {
@@ -27,7 +28,7 @@ export const REFUSALS = {
 export async function linkNotes(fromId, toId) {
     const source = appState.myFiles.find(file => file.internalId === fromId);
     const target = appState.myFiles.find(file => file.internalId === toId);
-    if (!source || !target) return;
+    if (!source || !target || appState.bulkWriteInFlight) return;
 
     const roles = readRoles();
     const from = nodeLabel(source, roles), to = nodeLabel(target, roles);
@@ -44,7 +45,8 @@ export async function linkNotes(fromId, toId) {
     if (!ok) return;
 
     try {
-        const records = await addFlowchartLink(source, target, plan.edits);
+        // Locked against a second write starting, as a one-cell paste is: one note, so no bar.
+        const records = await whileWriting(false, '', () => addFlowchartLink(source, target, plan.edits));
         markUndoState();
         if (records.length) reportAction(`linked ${from} → ${to}`);
         else reportFailure(`${source.filepath} could not be written`);

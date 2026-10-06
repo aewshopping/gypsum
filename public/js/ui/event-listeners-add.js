@@ -216,6 +216,7 @@ const clickActionHandlers = {
     'open-file-content-modal': handleOpenFileContent,
     'open-internal-link': handleInternalLinkClick,
     'open-recent-file': handleRecentFileClick,
+    'select-view': handleViewSelect,
     'toggle-recent-panel': handleToggleRecentPanel,
     'close-recent-panel': handleCloseRecentPanel,
     'close-file-content-modal': handleCloseModal,
@@ -332,7 +333,6 @@ const clickActionHandlers = {
 
 const changeActionHandlers = {
     // Only elements that emit a change event should use these data-actions
-    'view-select': handleViewSelect,
     'toggle-filter-mode': handleFilterModeToggle,
     'toggle-content-search': handleContentSearchToggle,
     'toggle-fullscreen': handleFullscreenToggle,

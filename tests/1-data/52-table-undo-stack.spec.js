@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule } = require('../helpers');
+const { loadFolder, appModule, chooseView } = require('../helpers');
 
 /**
  * plans/completed/table-undo-stack.md, end to end: edit a cell, put it back, watch the note on disk go with it.
@@ -100,7 +100,7 @@ async function openTable(page) {
 /** Loads the mock folder and shows the table — again after a reload, which keeps the folder. */
 async function showTable(page) {
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

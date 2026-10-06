@@ -1,10 +1,9 @@
 import { VIEWS } from '../../constants.js';
-import { handleViewSelect } from './view-change.js';
+import { switchView } from './view-change.js';
 
 /**
- * Switches to the nth view, counting from 1 in the order of VIEWS — which is the order the view
- * select lists them in, and where their numbers come from. Through the select and its own handler,
- * so a view chosen by key is a view chosen in every way the dropdown would have.
+ * Switches to the nth view, counting from 1 in the order of VIEWS — which is the order the side
+ * panel lists them in, and where their numbers come from.
  * @param {number} n
  * @returns {boolean} Whether there was an nth view to switch to.
  */
@@ -12,10 +11,6 @@ export function selectViewByNumber(n) {
     const view = Object.values(VIEWS)[n - 1];
     if (!view) return false;
 
-    const viewSelectElem = document.querySelector('[data-action="view-select"]');
-    if (viewSelectElem.value !== view.value) {
-        viewSelectElem.value = view.value;
-        handleViewSelect();
-    }
+    switchView(view.value);
     return true;
 }

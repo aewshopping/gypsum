@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockDirectoryForColorExisting } = require('../helpers');
+const { loadFolder, setupMockDirectoryForColorExisting, chooseView } = require('../helpers');
 
 // One note carries a front matter key the app knows nothing about. The picker's whole point is
 // that its rows come from the loaded folder, so a property like this has to appear.
@@ -21,7 +21,7 @@ async function openTable(page) {
   await setupFiles(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -70,7 +70,7 @@ test('a column switched on gets a width it can be seen at', async ({ page }) => 
   await setupMockDirectoryForColorExisting(page, 'coral');
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   await page.click('[data-action="open-column-picker"]');

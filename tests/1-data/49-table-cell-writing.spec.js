@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule, setupMockCellWritingFolder } = require('../helpers');
+const { loadFolder, appModule, setupMockCellWritingFolder, chooseView } = require('../helpers');
 
 /**
  * plans/completed/table-cell-writing.md, end to end: type in a cell, watch the note on disk change, watch
@@ -16,7 +16,7 @@ async function openTable(page, extra) {
   await setupFiles(page, extra);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

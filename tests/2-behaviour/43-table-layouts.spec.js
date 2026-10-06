@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setupMockDirectoryWithLayouts, appModule } = require('../helpers');
+const { loadFolder, setupMockDirectoryWithLayouts, appModule, chooseView } = require('../helpers');
 const { setupPropertyFolder } = require('../fixtures/property-notes');
 
 async function openTable(page) {
@@ -7,7 +7,7 @@ async function openTable(page) {
   await setupMockDirectoryWithLayouts(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -190,7 +190,7 @@ test('a saved layout is restored when the folder is reopened', async ({ page }) 
 
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   await expect(layoutName(page)).toContainText('review');
@@ -234,7 +234,7 @@ test('a wonky hand-edited order still loads, in the order it asks for', async ({
 
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   const order = await page.locator('.note-table-cell-header').evaluateAll(
@@ -307,7 +307,7 @@ async function openTableWithLayout(page, doc, options) {
 
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -540,7 +540,7 @@ async function openWritableTableWithLayout(page, doc, files) {
 
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -697,7 +697,7 @@ test('a type set under the app defaults comes back when the folder is reloaded',
   await page.addInitScript(content => { window.__layoutsFileContent = content; }, saved);
   await page.reload();
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   await expect(layoutName(page)).toContainText('default');
@@ -721,7 +721,7 @@ test('a type left on a column by an older file is ignored; the propertyTypes obj
   });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   // the schema's answer, not the file's
@@ -878,7 +878,7 @@ test('a rename carries the column, type, flowchart role and sort with it, and it
   await page.addInitScript(() => { window.__betweenPassesKind = 'rename-property'; });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   await page.evaluate(async () => {

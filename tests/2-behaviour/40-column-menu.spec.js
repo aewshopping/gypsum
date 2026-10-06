@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, showFilenames } = require('../helpers');
+const { loadFolder, showFilenames, chooseView } = require('../helpers');
 
 // Titles that sort into an obvious, non-alphabetical-by-filename order.
 async function setupFiles(page) {
@@ -21,7 +21,7 @@ async function openTable(page) {
   await page.goto('/');
   await loadFolder(page);
   await showFilenames(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -195,7 +195,7 @@ async function openListTable(page) {
   await setupListFiles(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -277,7 +277,7 @@ async function openPeopleTable(page, notes) {
   }, notes);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

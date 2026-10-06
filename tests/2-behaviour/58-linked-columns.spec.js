@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule, setupMockCellWritingFolder } = require('../helpers');
+const { loadFolder, appModule, setupMockCellWritingFolder, chooseView } = require('../helpers');
 
 /**
  * plans/completed/table-linked-properties.md: a table column showing a property of the note a link points at.
@@ -39,7 +39,7 @@ async function openTable(page, layoutsFile, notes = NOTES) {
   }
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 

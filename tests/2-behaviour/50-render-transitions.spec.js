@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, setViewTransitions } = require('../helpers');
+const { loadFolder, setViewTransitions, chooseView } = require('../helpers');
 
 /**
  * A view transition captures the whole page twice and then animates every named group for a
@@ -63,7 +63,7 @@ async function openTable(page) {
   // loadFolder turns animation off for the sake of the rest of the suite; this is the one spec
   // that is about it, and the only one that has to put it back.
   await setViewTransitions(page, true);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 }
 
@@ -244,7 +244,7 @@ test('the table animates a note out of its row, not out of the link inside it', 
 
 test('list view still animates out of its own open control', async ({ page }) => {
   await openTable(page);
-  await page.selectOption('#view-select', 'list');
+  await chooseView(page, 'list');
   await expect(page.locator('.list-view')).toBeVisible();
   await page.waitForTimeout(1500);   // the view change animates, and holds the page still while it does
   await watchMovingElements(page);

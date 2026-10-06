@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, appModule } = require('../helpers');
+const { loadFolder, appModule, chooseView } = require('../helpers');
 const { setupPropertyFolder } = require('../fixtures/property-notes');
 
 /**
@@ -39,7 +39,7 @@ async function openTable(page) {
   await page.addInitScript(() => { window.__betweenPassesKind = 'paste'; });
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
   await page.evaluate(async () => {
     const { appState } = await import('/public/js/services/store.js');

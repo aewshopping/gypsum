@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockDirectoryWithNoteCreation, loadFolder } = require('../helpers');
+const { setupMockDirectoryWithNoteCreation, loadFolder, chooseView } = require('../helpers');
 
 // Pressing Enter with the caret right after the ']]' of a link that resolves to nothing
 // offers to create that note, and a second Enter creates it and opens it.
@@ -129,7 +129,7 @@ test('Enter after an unresolved link in a table cell creates nothing', async ({ 
   await setupMockDirectoryWithNoteCreation(page);
   await page.goto('/');
   await loadFolder(page);
-  await page.selectOption('#view-select', 'table');
+  await chooseView(page, 'table');
   await expect(page.locator('.note-table-header')).toBeVisible();
 
   const before = await createdFiles(page);
