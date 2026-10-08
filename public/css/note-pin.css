@@ -1,0 +1,29 @@
+/* The pin on a card — see plans/completed/note-pinning.md. Imported after button-base.css, whose
+   .svg-wrapper-style sets the position and display this file overrides. */
+
+.note-grid,
+.search-view-item { position: relative; } /* the pin's corner */
+
+.note-pin {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    display: none;
+}
+
+/* Only where a hover can happen. A narrow desktop window keeps its pin; a phone never gets one. */
+@media (hover: hover) and (pointer: fine) {
+    :is(.note-grid, .search-view-item):hover .note-pin { display: block; }
+}
+
+/* Pinned is a state, so it shows on every device — and on a phone pressing it is the way to unpin. */
+.note-pin[data-pinned] { display: block; }
+.note-pin[data-pinned] > svg { opacity: 1; } /* reads as "on", not as a faded affordance */
+
+/* The mark beside the open link in table and list view. In em, so it follows the table's font size. */
+.pin-mark {
+    height: 1em;
+    width: 1em;
+    vertical-align: -0.125em;
+    margin-left: 0.3em;
+}

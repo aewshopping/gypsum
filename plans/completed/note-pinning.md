@@ -1,6 +1,6 @@
 # Plan: pinning a note to the top of the order
 
-Status: **not started**
+Status: **done**
 
 ---
 

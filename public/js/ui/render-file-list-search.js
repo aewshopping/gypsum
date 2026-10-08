@@ -1,6 +1,7 @@
 
 import { appState } from '../services/store.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
+import { renderPinButton } from './ui-functions-render/render-pin.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 
@@ -107,6 +108,7 @@ export function renderFileList_search(renderEverything) {
             }
             file_html += `
                     </div>
+                    ${renderPinButton(file)}
                 </div>`; // close the item div
         }
     }

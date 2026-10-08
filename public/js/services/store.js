@@ -50,6 +50,9 @@ export const appState = {
   // What is on the clipboard from the table, outlined until it is not — see ui-functions-cell/cell-range-copy.js.
   // Null, or { ids, props }: Sets of the copied rows' file ids and the copied columns.
   copiedCells: null,
+  // Notes pinned to the top of the order, by internalId — see services/pins.js. Session only: never
+  // written, cleared on a folder load. Ask isPinned() rather than reading this.
+  pinnedIds: new Set(),
   paginationState: {
     currentPage: 1,
     pageFileIds: new Set(),

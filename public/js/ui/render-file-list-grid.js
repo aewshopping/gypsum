@@ -6,6 +6,7 @@ import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
+import { renderPinButton } from './ui-functions-render/render-pin.js';
 
 /**
  * Renders the list of files as a grid of cards.
@@ -46,6 +47,7 @@ export function renderFileList_grid(renderEverything) {
 
             <div data-prop="tags">${tag_pills_html}</div>
 
+            ${renderPinButton(file)}
         </div>
         `
        }
