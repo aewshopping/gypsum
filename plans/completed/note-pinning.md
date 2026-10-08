@@ -15,8 +15,8 @@ back to where the current sort puts it.
 - Pinned notes are not moved to a separate part of the page. They are just first in the one list.
 - A pin is for this session only. It is never written to a note and does not survive a reload or
   a folder load.
-- On hover, an unpinned card shows the pin in its bottom right corner. A device with no hover (a
-  phone or tablet) shows it all the time, faintly, so a note can be pinned there too.
+- On hover, an unpinned card shows the pin in its bottom right corner — on every device alike,
+  touch screens included. No device shows an unpinned pin without a hover.
 - In **table** view, a pinned note's row shows a mini pin in its file column, so it is clear why
   that row is at the top. The mini pin is a mark, not a button.
 - In **list** view, the same mini pin sits in the entry's summary, after the file name and before
@@ -266,21 +266,17 @@ New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`.
     display: none;
 }
 
-/* Shown on hover; and always where nothing can hover, or a phone would have no way to pin. */
+/* Shown on hover, on every device alike: no separate rule for touch screens. */
 :is(.note-grid, .search-view-item):hover .note-pin { display: block; }
-
-@media (hover: none) {
-    .note-pin { display: block; }
-}
 
 .note-pin[data-pinned] { display: block; }
 .note-pin:not([data-pinned]):not(:hover) > svg { opacity: 0.3; }  /* pinned rests at the toolbar icons' 0.6; unpinned fainter */
 ```
 
-- **Pinning works on a phone too (changed after the first build).** It was first limited to
-  `(hover: hover) and (pointer: fine)`, so a phone could unpin but never pin. Now the hover rule
-  applies everywhere, and `(hover: none)` shows every card's pin all the time, at the faint 0.3 an
-  unpinned pin has. A tap cannot hover a card first: the tap would open the note.
+- **No device-specific rule (decided after the first build).** It was first limited to
+  `(hover: hover) and (pointer: fine)`; that guard is gone, so a touch screen behaves as a desktop
+  does — the pin shows only on hover. Whether that suits a phone is being judged by use; a
+  `(hover: none)` rule showing every pin was tried and reverted.
 - **A pinned pin is shown on every device.** It describes the note's state, and a note pinned on
   desktop and then opened on a touch screen still shows why it is at the top.
 - `display: none` rather than `opacity: 0`, so an unpinned card's pin cannot be pressed or found by
@@ -455,7 +451,7 @@ is the honest one. It is also one test rather than two.
 **Not tested automatically:** the hover and touch visibility. That is appearance, and
 emulating `hover: none` costs a separate browser context. Check it once by screenshot (CLAUDE.md
 asks for screenshots of new features): one desktop screenshot hovering a card, one with a pinned
-card not hovered, and one with Playwright's `hasTouch`/`isMobile` context showing every card's pin, faint.
+card not hovered, and one with Playwright's `hasTouch`/`isMobile` context showing the same hover-only pin.
 
 While working, run `npm test tests/2-behaviour/63-note-pin.spec.js`, and also
 `tests/2-behaviour/55-table-row-move.spec.js` because `pending-row-move.js` changes.
@@ -469,7 +465,7 @@ Taken after reviewing the plan against the code.
 1. **Storage (§2):** the `Set`. Pins are temporary.
 2. **Where the pin shows:** the pin button on cards, peek cards and search view items (§5.1, §5.6);
    a mini pin, which is a mark and not a button, in table view's file column (§5.4) and in list view's
-   summary, after the file name (§5.5). Pinning works on touch devices too (§5.3). Flowchart view gets nothing.
+   summary, after the file name (§5.5). The pin shows on hover only, on every device (§5.3). Flowchart view gets nothing.
 3. **List view's open link** becomes the table's `renderOpenFileLink()`, but list view does not
    replace the `internalId` property with it as the table does (§5.5).
 4. **`isPinned()` and `togglePin()` live in `services/pins.js`** (§2.2), not in the sort module.
