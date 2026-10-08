@@ -17,17 +17,20 @@ where the current sort puts it.
   a folder load.
 - On hover, an unpinned card shows the pin in its bottom right corner. A device with no hover (a
   phone or tablet) never shows the hover pin.
+- In **table** view, a pinned note's row shows a mini pin in its file column, so it is clear why
+  that row is at the top. The mini pin is a mark, not a button.
 
-**Out of scope:** pinning from table, list, search or flowchart view; keeping pins across a
-reload; any mark in views other than cards and peek (see §8, open question 2).
+**Out of scope:** pinning or unpinning from table, list, search or flowchart view; keeping pins
+across a reload; a mark in list, search or flowchart view.
 
 ---
 
 ## 2. Where the pin is stored, and why it is not a `pin` property on the file object
 
-The brief says to set `pin: "true"` on the file object. **This plan stores the pins in
-`appState.pinnedIds`, a `Set` of `internalId`s, instead.** A property on the file object would
-break in three ways:
+**Decided: the pins live in `appState.pinnedIds`, a `Set` of `internalId`s.** The pins are
+temporary on purpose. Two other places were considered and rejected.
+
+A `pin` property on the file object (the original brief) would break in three ways:
 
 1. **Any save would unpin the note.** `rereadFile()` in `editing/refresh-file-state.js` replaces the
    file object with a freshly parsed one after every write: a cell edit, an undo, a paste, and
@@ -44,6 +47,12 @@ break in three ways:
    not drawn as a column. If it were registered, it would be an ordinary front matter column with
    a caret. Typing in that column would write `pin:` into the note, which goes against "never
    written to the file".
+
+Writing `pin: true` into the note's front matter, through the cell-edit path, was also
+considered. It would make pins permanent, and it fails "unpin puts it back" under the default sort.
+That sort is last modified, newest first, and every pin or unpin is a write, so the note always
+becomes the newest. It would also leave an empty `---` block behind on a note that had no front
+matter, because removing a key removes only its line.
 
 A `Set` keyed by `internalId` has none of these problems. `internalId` is what `rereadFile` keeps,
 so a pin survives every save. No note can supply one. It also fits the rule that state lives in
@@ -153,9 +162,10 @@ want it. It is left out of this plan.
 
 ## 5. Drawing the pin
 
-### 5.1 One renderer, used by both views
+### 5.1 One module for both pins
 
-New file: **`ui/ui-functions-render/render-pin-button.js`**
+New file: **`ui/ui-functions-render/render-pin.js`**. It exports the card's button (here) and the
+table's mark (§5.4). Both draw `#icon-pin` and both ask `isPinned()`, so they live together.
 
 ```js
 export function renderPinButton(file) {
@@ -222,6 +232,50 @@ New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`.
 - **Check with a screenshot** that the pin does not cover the last tag pill in peek view. If it does,
   give `.note-grid` some `padding-bottom` in this file.
 
+### 5.4 The mini pin in table view
+
+```js
+// render-pin.js
+export function renderPinMark(fileId) {
+    return isPinned(fileId)
+        ? `<svg class="pin-mark" viewBox="0 0 50 50" aria-hidden="true"><use href="#icon-pin"></use></svg>`
+        : '';
+}
+```
+
+In `ui-functions-table/render-cell-value.js`, the file column's line becomes
+`renderOpenFileLink(file.internalId, file.color) + renderPinMark(file.internalId)`.
+
+- **The file column (`internalId`)** is the right cell for three reasons, all already true of it:
+  1. It is `shown_always`, so the mark cannot be hidden along with a column.
+  2. It never takes a caret. The cell's text is never written back to a note, so the mark can
+     never reach a note.
+  3. Copying a range copies this column as a row count (`cell-range-copy.js`), not as its text, so
+     the mark never reaches the clipboard either.
+- **A mark, not a button.** In a table cell, the first press selects the cell, and the file column
+  already has the "open" link. A second pressable thing in that cell would get in its way.
+  Unpinning stays something you do on a card.
+- **`aria-hidden`, and no `data-tip`.** The "open" link in the same cell already has a tooltip,
+  and a second one beside it would compete with it. The mark is only there to explain why the row
+  is first.
+- **Its CSS goes in `note-pin.css`**, the pin's one stylesheet, not in `note-table.css`:
+
+```css
+.pin-mark {
+    height: 1em;
+    width: 1em;
+    vertical-align: -0.125em;
+    margin-left: 0.3em;
+}
+```
+
+  It is sized in `em` so that it follows the table's font size setting. It uses `currentColor`
+  through the symbol, so it follows a coloured row's text colour as the "open" link does.
+- **The table needs no other change.** The rows come from `appState.myFiles`, which
+  `fileComparator` has already put in order, so pinned rows are first. The open file column's
+  width (`column_width` of `internalId`) may need a few pixels more to fit "open" plus the mark
+  without an ellipsis. Check this with a screenshot.
+
 ---
 
 ## 6. Files touched
@@ -234,8 +288,9 @@ New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`.
 | `public/js/services/directory-handler.js`, `public/js/backup/opfs-import.js` | `appState.pinnedIds.clear()` |
 | `public/js/ui/ui-functions-click/pin-toggle.js` | **new**: the action |
 | `public/js/ui/event-listeners-add.js` | register `pin-toggle` |
-| `public/js/ui/ui-functions-render/render-pin-button.js` | **new**: the button |
+| `public/js/ui/ui-functions-render/render-pin.js` | **new**: the card's button and the table's mark |
 | `public/js/ui/render-file-list-grid.js`, `render-file-list-peek.js` | one line each |
+| `public/js/ui/ui-functions-table/render-cell-value.js` | the file column adds `renderPinMark()` |
 | `public/css/note-pin.css` | **new** |
 | `index.html` | `#icon-pin` symbol, stylesheet link |
 | `manifest.json` | minor version bump |
@@ -243,7 +298,8 @@ New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`.
 | `CLAUDE.md` | short *Pinning* section: the Set rather than a property and why; `fileComparator` is the comparator for file lists |
 
 No helper is created for one use only, and no CSS is duplicated: the button's look comes from
-`.svg-wrapper-style`, and both views share `.note-grid`.
+`.svg-wrapper-style`, both card views share `.note-grid`, and everything the pin needs from CSS is
+in `note-pin.css`.
 
 ---
 
@@ -263,9 +319,11 @@ mock folder with three or four notes whose sort order is known:
    check that both pinned notes come first in the new order and the rest follow in the new order.
    This one test covers both the comparator and "a later sort keeps the pin".
 3. **Unpin goes back.** Unpin and check that the original order is restored.
-4. **A save does not unpin.** Pin a note, edit a cell in table view (or open the note and let it
-   save), and check that the note is still first. This guards §2's main reason against someone
-   later "simplifying" the Set back into a file property.
+4. **A save does not unpin, and the table shows the mark.** Pin a note, switch to table view, and
+   check that its row is first and its file cell holds `.pin-mark` while no other row does. Then
+   edit a cell in that row and check that it is still first with the mark. This guards §2's main
+   reason against someone later "simplifying" the Set back into a file property. Checking the mark
+   here costs nothing extra, since the test is in table view already.
 
 Add the comparator's own cases to test 2 rather than writing a separate node test. A node test
 through `appModule()` would also work, but `fileComparator` reads `appState`, so the browser test
@@ -281,12 +339,8 @@ While working, run `npm test tests/2-behaviour/63-note-pin.spec.js`, and also
 
 ---
 
-## 8. Open questions
+## 8. Decisions
 
-1. **Storage (§2).** This plan departs from the brief. Please confirm the `Set`, or ask for the file
-   property, in which case `rereadFile` must carry it over and the front matter clash (§2, point 2) needs
-   a decision.
-2. **Should pinned notes be marked in the other views?** The sort is global, so in table and list
-   view a pinned note sits at the top with nothing to show why. A small pin glyph by the filename,
-   reusing `#icon-pin`, would explain it. Without it, "why is this first?" has no answer on screen
-   in those views.
+1. **Storage (§2):** the `Set`. Pins are temporary.
+2. **Marking pinned notes outside the cards (§5.4):** a mini pin in table view's file column. List,
+   search and flowchart view get no mark.
