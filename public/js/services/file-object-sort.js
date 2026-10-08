@@ -2,6 +2,7 @@
 import { appState } from './store.js';
 import { isDateType } from '../constants.js';
 import { readsAsDate } from './property-type.js';
+import { isPinned } from './pins.js';
 
 /**
  * Converts a date string into a numerical timestamp.
@@ -122,6 +123,22 @@ export function compareByProperty(property, dataType, sortOrder = 'asc') {
 }
 
 /**
+ * The comparator for a list of notes: pinned notes first, and the sort inside each group. The pinned
+ * term only breaks the pinned/unpinned tie, so a missing value still goes last — within its group.
+ * Every sort of `appState.myFiles` uses this, including pending-row-move.js's trial sort, which must
+ * agree with the real one about where a row goes.
+ *
+ * @param {string} property The name of the property to sort by.
+ * @param {string} dataType The data type of the property.
+ * @param {string} [sortOrder='asc'] 'asc' or 'desc'.
+ * @returns {(a: object, b: object) => number} Comparator function.
+ */
+export function fileComparator(property, dataType, sortOrder = 'asc') {
+    const compare = compareByProperty(property, dataType, sortOrder);
+    return (a, b) => (isPinned(b.internalId) - isPinned(a.internalId)) || compare(a, b);
+}
+
+/**
  * Sorts the `appState.myFiles` array in place based on a specified property and data type.
  * @param {string} property The name of the property on the file objects to sort by.
  * @param {string} dataType The data type of the property ('string', 'number', 'date', 'datetime', 'array').
@@ -135,7 +152,7 @@ export function sortAppStateFiles(property, dataType, sortOrder = 'asc') {
         return;
     }
 
-    dataArray.sort(compareByProperty(property, dataType, sortOrder));
+    dataArray.sort(fileComparator(property, dataType, sortOrder));
 
     // Whatever was waiting to move has moved: a row held back by ui-functions-table/pending-row-move.js
     // is in its place now, whether this sort was the one that let it go, an undo's, or a column

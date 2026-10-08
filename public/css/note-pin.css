@@ -1,0 +1,34 @@
+/* The pin on a card — see plans/completed/note-pinning.md. Imported after button-base.css, whose
+   .svg-wrapper-style sets the position and display this file overrides. */
+
+.note-grid,
+.search-view-item { position: relative; } /* the pin's corner */
+
+.note-pin {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    display: none;
+}
+
+/* Shown on hover; and always where nothing can hover, or a phone would have no way to pin. */
+:is(.note-grid, .search-view-item):hover .note-pin { display: block; }
+
+@media (hover: none) {
+    .note-pin { display: block; }
+}
+
+/* Pinned is a state, so it shows on every device — and on a phone pressing it is the way to unpin.
+   A pinned pin rests at .svg-wrapper-style's own opacity, as the page's toolbar icons do; an unpinned
+   one, shown only because the card is hovered, is fainter again. Pointing at either brings it to 1. */
+.note-pin[data-pinned] { display: block; }
+.note-pin:not([data-pinned]):not(:hover) > svg { opacity: 0.3; }
+
+/* The mark beside the open link in table and list view. In em, so it follows the table's font size. */
+.pin-mark {
+    height: 1em;
+    width: 1em;
+    vertical-align: -0.125em;
+    margin-left: 0.3em;
+    opacity: 0.6; /* the toolbar icons' resting opacity, as a pinned card's pin */
+}

@@ -1203,6 +1203,25 @@ screen; the sort button at the right of the count line above the file list (`.ou
   nothing else, and taking the row apart under one would drop focus off a button mid-press — the
   same reason `markUndoState()` moves undo and redo by hand rather than waiting for a render.
 
+### Pinning a note
+
+A pin on a card (cards, peek and search view) moves the note to the top of the order — shown on hover,
+and always on a device that cannot hover. Table view marks a pinned note beside its open link, list
+view after the file name in its summary. See `plans/completed/note-pinning.md`.
+
+- **The pins are a `Set` of ids, `appState.pinnedIds`, never a property on the file object.**
+  `rereadFile()` rebuilds the file object after every save, and front matter is spread into it, so a
+  `pin` property would be lost on the first keystroke and could be supplied by a note. Session only,
+  cleared on a folder load. `isPinned()` and `togglePin()` in `services/pins.js` are the one reader
+  and the one writer.
+- **`fileComparator()` is the comparator for a list of notes**: pinned first, the current sort inside
+  each group. `sortAppStateFiles` and `pending-row-move.js`'s trial sort both use it — they must
+  agree about where a row goes. `compareByProperty` stays pin-free for lists that are not notes.
+- **The pin is a button inside a card that opens on click**, and that is deliberate: the click
+  delegate and the tooltip both use `closest()`, so the pin's own action and tooltip win.
+- **The table's mark lives in the file column**, which takes no caret and copies as a count, so the
+  mark can reach neither a note nor the clipboard.
+
 ### Linked columns
 
 A table column can show a property **of the note a link points at**: "show `status` of the note
@@ -1261,6 +1280,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/services/file-parsing/` | Metadata extraction: title, tags, YAML |
 | `public/js/services/file-parsing/front-matter-links.js` | The `[[links]]` written into front matter values |
 | `public/js/services/file-object-sort.js` | Type-aware, null-safe sorting |
+| `public/js/services/pins.js` | Which notes are pinned: `isPinned()` and `togglePin()`, the one reader and writer of `appState.pinnedIds` |
 | `public/js/services/property-type.js` | What type a property is, and the one writer for that choice |
 | `public/js/services/flowchart/flowchart-options.js` | Which property fills each part of the flowchart, and the one writer for that choice |
 | `public/js/services/flowchart/mermaid-source.js` | The visible files as mermaid source: subgraphs declared first, then every edge |

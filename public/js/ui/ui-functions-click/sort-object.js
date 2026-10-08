@@ -11,12 +11,13 @@ import { markSortedColumn } from '../ui-functions-table/render-table-header.js';
  * column menu and the sort modal both arrive here.
  * @param {string} sortProp - The file property key to sort by.
  * @param {string} sortDirection - 'asc' or 'desc'.
- * @returns {void}
+ * @returns {{updateCallbackDone: Promise<void>}} The render's view transition, or its stand-in.
  */
 export function applySortAndRender(sortProp, sortDirection) {
     sortAppStateFiles(sortProp, propertyType(sortProp), sortDirection);
-    renderFiles(false);
+    const transition = renderFiles(false);
     Object.assign(appState.sortState, { property: sortProp, direction: sortDirection });
     syncSortControls();
     markSortedColumn();
+    return transition;
 }

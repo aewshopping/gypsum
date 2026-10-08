@@ -14,6 +14,7 @@ import { handleRecentFileClick } from './ui-functions-click/recent-file-click.js
 import { handleToggleRecentPanel, handleCloseRecentPanel } from './ui-functions-click/recent-panel-toggle.js';
 import { handleWarningProceed, handleWarningCancel } from './ui-functions-click/warning-modal.js';
 import { handleDeleteFile } from './ui-functions-click/delete-file-click.js';
+import { handlePinToggle } from './ui-functions-click/pin-toggle.js';
 import { handleToggleRenderText } from './ui-functions-click/toggle-render-text.js';
 import { handleToggleFlowchartRender } from './ui-functions-flowchart/toggle-flowchart-render.js';
 import { handleCopyFlowchartCode } from './ui-functions-flowchart/copy-flowchart-code.js';
@@ -208,6 +209,7 @@ const clickActionHandlers = {
     'property-filter': handlePropertyFilterClick,
     'clear-all-filters': handleClearFilters,
     'open-file-content-modal': handleOpenFileContent,
+    'pin-toggle': handlePinToggle,
     'open-internal-link': handleInternalLinkClick,
     'open-recent-file': handleRecentFileClick,
     'select-view': handleViewSelect,

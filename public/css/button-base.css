@@ -122,9 +122,10 @@
     }
 
     /* This button has a label, so its glyph is not the thing being hovered — the whole row is.
-       Holding it at full strength alongside the text is what keeps the two reading as one. */
+       Held at the toolbar icons' resting opacity whatever is hovered, so it neither brightens on its
+       own nor reads differently from the icons elsewhere on the page. */
     & .svg-wrapper-style > svg {
-        opacity: 1;
+        opacity: 0.6;
     }
 
 

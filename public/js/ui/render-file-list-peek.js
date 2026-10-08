@@ -5,6 +5,7 @@
 import { appState } from '../services/store.js';
 import { renderTags } from './ui-functions-render/render-tags.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
+import { renderPinButton } from './ui-functions-render/render-pin.js';
 
 /**
  * Renders the list of files as a grid of cards showing title, content peek, and tags.
@@ -40,6 +41,7 @@ export function renderFileList_peek(renderEverything) {
 
             <div data-prop="tags">${tag_pills_html}</div>
 
+            ${renderPinButton(file)}
         </div>`;
         }
     }

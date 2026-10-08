@@ -111,6 +111,7 @@ async function populateAppStateFromOPFS(opfsRoot, outerStartTime = null, mtimeMa
     TABLE_VIEW_COLUMNS.current_props.length = 0;
     TABLE_VIEW_COLUMNS.columnLayout.clear();
     appState.myFilesProperties.clear();
+    appState.pinnedIds.clear();
     appState.propertyTypes.clear();
     seedCoreFileProperties();
     appState.dirHandle = opfsRoot;

@@ -14,7 +14,7 @@
 
 import { appState } from '../../services/store.js';
 import { propertyType } from '../../services/property-type.js';
-import { compareByProperty, sortAppStateFiles } from '../../services/file-object-sort.js';
+import { fileComparator, sortAppStateFiles } from '../../services/file-object-sort.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
 import { clearCopiedCells } from '../ui-functions-cell/cell-range-copy.js';
 
@@ -48,7 +48,7 @@ const PENDING = 'move-pending';
 export function holdRowMove(internalIds) {
     const written = new Set([...(appState.pendingRowMove?.written ?? []), ...internalIds]);
     const { property, direction } = appState.sortState;
-    const sorted = [...appState.myFiles].sort(compareByProperty(property, propertyType(property), direction));
+    const sorted = [...appState.myFiles].sort(fileComparator(property, propertyType(property), direction));
     const at = (files, id) => files.findIndex(file => file.internalId === id);
     const moving = new Set([...written].filter(id => at(sorted, id) !== at(appState.myFiles, id)));
 

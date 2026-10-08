@@ -19,6 +19,8 @@ import { renderTags } from './ui-functions-render/render-tags.js';
 import { escapeHtml } from './ui-functions-render/escape-html.js';
 import { renderValue } from './ui-functions-render/render-value.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
+import { renderOpenFileLink } from './ui-functions-render/render-filename.js';
+import { renderPinMark } from './ui-functions-render/render-pin.js';
 import { PAGINATION_SIZE } from '../constants.js';
 
 /** Properties with nothing to show: a file handle, and the flag the search leaves on a file. */
@@ -74,9 +76,9 @@ export function renderFileList_list(renderEverything) {
             file_html += `
                 <li data-vt-id="${file.internalId}">
                     <details>
-                        <summary><span data-prop="filename">${filename_html}</span> ${tag_pills_html}</summary>
+                        <summary><span data-prop="filename">${filename_html}</span>${renderPinMark(file.internalId)} ${tag_pills_html}</summary>
                         <ul>
-                        <li><span class="show-content-tag color-dynamic" data-color="${file.color}" data-file-id="${file.internalId}" data-action="open-file-content-modal" data-tip="open file">open</span></li>
+                        <li>${renderOpenFileLink(file.internalId, file.color)}</li>
                         ${properties}
                         </ul>
                     </details>

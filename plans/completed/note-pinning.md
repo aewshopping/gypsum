@@ -1,14 +1,14 @@
 # Plan: pinning a note to the top of the order
 
-Status: **not started**
+Status: **done**
 
 ---
 
 ## 1. What this delivers
 
-A pin on each card in **cards** and **peek** view. Pressing it pins the note: it moves to the top
-of the order and the pin stays drawn on it. Pressing it again unpins it and the note goes back to
-where the current sort puts it.
+A pin on each card in **cards**, **peek** and **search** view. Pressing it pins the note: it moves
+to the top of the order and the pin stays drawn on it. Pressing it again unpins it and the note goes
+back to where the current sort puts it.
 
 - Pinned notes come first. **Among the pinned notes, and among the rest, the current sort still
   applies.** Every later sort keeps that rule.
@@ -16,12 +16,14 @@ where the current sort puts it.
 - A pin is for this session only. It is never written to a note and does not survive a reload or
   a folder load.
 - On hover, an unpinned card shows the pin in its bottom right corner. A device with no hover (a
-  phone or tablet) never shows the hover pin.
+  phone or tablet) shows it all the time, faintly, so a note can be pinned there too.
 - In **table** view, a pinned note's row shows a mini pin in its file column, so it is clear why
   that row is at the top. The mini pin is a mark, not a button.
+- In **list** view, the same mini pin sits in the entry's summary, after the file name and before
+  the tags; the "open" link becomes the same link the table draws (§5.5).
 
-**Out of scope:** pinning or unpinning from table, list, search or flowchart view; keeping pins
-across a reload; a mark in list, search or flowchart view.
+**Out of scope:** pinning or unpinning from table, list or flowchart view; keeping pins across a
+reload; a mark in flowchart view; a way to clear every pin at once (unpin each card, or reload).
 
 ---
 
@@ -73,10 +75,43 @@ pinnedIds: new Set(),
 ```
 
 Clear it where `myFilesProperties` is cleared: `directory-handler.js` (`loadDirectoryFileHandles`)
-and `backup/opfs-import.js`. A stale id left by a deleted note is harmless because nothing will
-match it, so deleting a file needs no cleanup.
+and `backup/opfs-import.js`. Deleting a file needs no cleanup: a stale id left by a deleted note
+matches nothing.
+
+**Accepted edge cases (decided):**
+
+- **A stale id can come back to life.** If a pinned note is deleted and a note is then made at the
+  same path (history's "recreate", or a new note given the same name), it arrives pinned. That is
+  acceptable; it is not worth a `pinnedIds.delete()` in `delete-file-click.js`.
+- **Renaming a note unpins it.** A rename gives the note a new `internalId`
+  (`editing/rename-file.js` sets it to the new filepath), so the pin no longer matches. This is
+  left as it is. `renameInUndoStacks()` is where a fix would go if it is ever wanted.
 
 Add one line to `DATA-STRUCTURES.md` under `appState`.
+
+---
+
+### 2.2 `services/pins.js`: the one reader and the one writer
+
+**Decided: a small service module of its own**, rather than `isPinned()` living in
+`file-object-sort.js`. The renderers would otherwise import a sort module to ask a state question,
+and the click handler would write the `Set` itself, which is logic in a handler.
+
+```js
+// services/pins.js
+/** @param {string} fileId @returns {boolean} Whether the note is pinned. */
+export function isPinned(fileId) {
+    return appState.pinnedIds.has(fileId);
+}
+
+/** @param {string} fileId @returns {void} Pins the note if it is not pinned, and unpins it if it is. */
+export function togglePin(fileId) {
+    if (!appState.pinnedIds.delete(fileId)) appState.pinnedIds.add(fileId);
+}
+```
+
+Every reader asks `isPinned()`: the comparator (§3), the card button and the mini pin (§5). The
+only writer is `togglePin()`, apart from the `clear()` on a folder load.
 
 ---
 
@@ -88,8 +123,7 @@ Add one line to `DATA-STRUCTURES.md` under `appState`.
 // services/file-object-sort.js
 export function fileComparator(property, dataType, sortOrder) {
     const compare = compareByProperty(property, dataType, sortOrder);
-    const pinned = appState.pinnedIds;
-    return (a, b) => (pinned.has(b.internalId) - pinned.has(a.internalId)) || compare(a, b);
+    return (a, b) => (isPinned(b.internalId) - isPinned(a.internalId)) || compare(a, b);
 }
 ```
 
@@ -130,24 +164,41 @@ New file: **`ui/ui-functions-click/pin-toggle.js`**, one file for one action, as
 pattern requires.
 
 ```js
-export function handlePinToggle(evt, target) {
-    const id = target.closest('[data-file-id]').dataset.fileId;
-    appState.pinnedIds.has(id) ? appState.pinnedIds.delete(id) : appState.pinnedIds.add(id);
+export async function handlePinToggle(evt, target) {
+    const card = target.closest('[data-file-id]');
+    const id = card.dataset.fileId;
+    togglePin(id);
     const { property, direction } = appState.sortState;
-    applySortAndRender(property, direction);
+    await applySortAndRender(property, direction).updateCallbackDone;
+    if (card.matches('.keyboard-navigable')) {
+        document.querySelector(`#output .keyboard-navigable[data-file-id="${CSS.escape(id)}"]`)?.focus();
+    }
 }
 ```
 
 - **Reuse `applySortAndRender()`** (`sort-object.js`). It is already the one path every sort shares.
   It re-sorts, renders and keeps the sort controls in step, so the click handler stays thin and
-  holds no logic.
+  holds no logic. It gains one word: `return renderFiles(false)`, so the caller can wait for the
+  render (see focus, below).
+- **Focus goes back to the card that was pinned (decided).** Chrome focuses a clicked `<button>`
+  even with `tabindex="-1"`, and the render then replaces every card, so without this focus drops to
+  the body and the arrow keys stop working until a card is clicked. The handler waits for
+  `updateCallbackDone`, because inside a view transition the new cards are drawn after
+  `startViewTransition` returns; with animation off, `renderFiles` returns an already-resolved
+  stand-in, so the same line works either way. Only cards and peek cards are `keyboard-navigable`.
+  A search view item takes no focus, so there is nothing to put back there. This also makes a
+  keyboard `p` shortcut (§4.2) a small addition later, since focus would stay on the card.
 - Register `'pin-toggle'` in the click action map in `event-listeners-add.js`. The delegate uses
   `evt.target.closest('[data-action]')`, so a press on the pin finds the pin's own action rather
   than the card's `open-file-content-modal`. **The note does not open.** A test should check this
   (§7).
 - `applySortAndRender` calls `renderFiles(false)`, which goes back to page 1. Pinning from page 3
-  therefore shows page 1 with the note at the top, which is where you want to look. Unpinning can
-  send a note to a later page. That is the sort doing its job, so nothing extra is needed.
+  therefore shows page 1 with the note at the top, which is where you want to look. Unpinning also
+  goes to page 1, and **that is decided as fine**: a pinned note is almost always on page 1 anyway,
+  so no page-keeping code is added. Unpinning can send a note to a later page. That is the sort
+  doing its job.
+- **The number-key shortcuts follow the new order.** `open file | 1…9` uses `data-index`, so
+  after a pin, "1" opens the pinned note, because it is now the first card. That is correct.
 - The order changes, so `renderFiles`' existing `nothingMoved` check starts a view transition and
   the card glides to its new place, honouring "animate view changes".
 
@@ -165,7 +216,8 @@ want it. It is left out of this plan.
 ### 5.1 One module for both pins
 
 New file: **`ui/ui-functions-render/render-pin.js`**. It exports the card's button (here) and the
-table's mark (§5.4). Both draw `#icon-pin` and both ask `isPinned()`, so they live together.
+mini pin (§5.4). Both draw `#icon-pin` and both ask `isPinned()` from `services/pins.js`, so they
+live together.
 
 ```js
 export function renderPinButton(file) {
@@ -178,8 +230,12 @@ export function renderPinButton(file) {
 
 `render-file-list-grid.js` and `render-file-list-peek.js` each add `${renderPinButton(file)}` as the
 last child of `.note-grid`. Both views draw `.note-grid`, so the markup and the CSS are written once.
-`isPinned(id)` is a one-line export beside `fileComparator` in `file-object-sort.js`, so the renderer
-does not read the Set directly.
+`render-file-list-search.js` adds it as the last child of `.search-view-item` (§5.6).
+
+**The button inside a card that opens on click is deliberate.** Each card (and each search view
+item) carries `data-action="open-file-content-modal"` and its own `data-tip`. The click delegate and
+the tooltip both use `closest()`, so a press or hover on the pin finds the pin's action and tooltip
+first. Do not "fix" this by moving the pin outside the card.
 
 The card's own `data-pinned` attribute is not needed. The button carries it, and CSS can test the
 card with `:has()` if that is ever wanted.
@@ -200,7 +256,8 @@ of its own.
 New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`. It holds only:
 
 ```css
-.note-grid { position: relative; }            /* the pin's corner */
+.note-grid,
+.search-view-item { position: relative; }     /* the pin's corner */
 
 .note-pin {
     position: absolute;
@@ -209,24 +266,23 @@ New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`.
     display: none;
 }
 
-/* Only where a hover can happen: the narrow-desktop case keeps its pin, a phone never gets one. */
-@media (hover: hover) and (pointer: fine) {
-    .note-grid:hover .note-pin { display: block; }
+/* Shown on hover; and always where nothing can hover, or a phone would have no way to pin. */
+:is(.note-grid, .search-view-item):hover .note-pin { display: block; }
+
+@media (hover: none) {
+    .note-pin { display: block; }
 }
 
 .note-pin[data-pinned] { display: block; }
-.note-pin[data-pinned] > svg { opacity: 1; }  /* pinned reads as "on", not as a faded affordance */
+.note-pin:not([data-pinned]):not(:hover) > svg { opacity: 0.3; }  /* pinned rests at the toolbar icons' 0.6; unpinned fainter */
 ```
 
-- **`(hover: hover) and (pointer: fine)`, not the screen width.** That is what makes a narrow
-  desktop window keep the pin. `(pointer: coarse)` alone would also work, but a touch laptop
-  reports `fine` as its primary pointer and can hover, so testing for hover states what is
-  actually needed. The app already uses `@media (pointer: coarse)` in `output-controls.css` and
-  `note-table-cell.css`.
-- **A pinned pin is shown on every device**, including a phone. It describes the note's state
-  rather than offering an action, and a note pinned on desktop and then opened on a narrower touch
-  screen should still show why it is at the top. On a phone, pressing it unpins. That gives you a
-  way to undo a pin there, but no way to add one, which is what the brief asks for.
+- **Pinning works on a phone too (changed after the first build).** It was first limited to
+  `(hover: hover) and (pointer: fine)`, so a phone could unpin but never pin. Now the hover rule
+  applies everywhere, and `(hover: none)` shows every card's pin all the time, at the faint 0.3 an
+  unpinned pin has. A tap cannot hover a card first: the tap would open the note.
+- **A pinned pin is shown on every device.** It describes the note's state, and a note pinned on
+  desktop and then opened on a touch screen still shows why it is at the top.
 - `display: none` rather than `opacity: 0`, so an unpinned card's pin cannot be pressed or found by
   a pointer.
 - **Check with a screenshot** that the pin does not cover the last tag pill in peek view. If it does,
@@ -266,6 +322,7 @@ In `ui-functions-table/render-cell-value.js`, the file column's line becomes
     width: 1em;
     vertical-align: -0.125em;
     margin-left: 0.3em;
+    opacity: 0.6;
 }
 ```
 
@@ -276,6 +333,62 @@ In `ui-functions-table/render-cell-value.js`, the file column's line becomes
   width (`column_width` of `internalId`) may need a few pixels more to fit "open" plus the mark
   without an ellipsis. Check this with a screenshot.
 
+### 5.5 List view: the table's open link, and the mini pin in the summary
+
+**Decided: list view shows the mini pin**, in the entry's `<summary>`, just after the file name and
+before the tags, so it shows while the entry is collapsed. (It first sat beside the open link inside
+the entry, which hid it until the entry was opened.) The "open" button becomes the table's open link
+while we are there.
+
+In `render-file-list-list.js`, the first `<li>` inside each entry's `<ul>` is today:
+
+```html
+<li><span class="show-content-tag color-dynamic" data-color="…" data-file-id="…"
+    data-action="open-file-content-modal" data-tip="open file">open</span></li>
+```
+
+It becomes:
+
+```js
+`<li>${renderOpenFileLink(file.internalId, file.color)}</li>`
+```
+
+and the summary becomes:
+
+```js
+`<summary><span data-prop="filename">${filename_html}</span>${renderPinMark(file.internalId)} ${tag_pills_html}</summary>`
+```
+
+- **`renderOpenFileLink()`** (`render-filename.js`) is the link the table's file column draws, so
+  the two views open a note with the same element, and the same tooltip.
+- **The `internalId` property row is left alone.** In the table, the `internalId` column's cell *is*
+  the open link: the id is replaced by it. List view does not do that. Its property list goes on
+  showing `internalId: <the id>` as plain text, like every other property, and the open link stays
+  in its own `<li>` above the properties.
+- **`.show-content-tag` is then used nowhere**, so its rules in `note-table.css` (the block marked
+  "Also used in list view", and the `.show-content-tag` rule nested in the row's `:hover`) are
+  deleted. Check with `grep -rn show-content-tag public` before deleting.
+- **The mark's CSS is `.pin-mark` from §5.4**, unchanged. It is sized in `em`, so it fits list
+  view's text without a rule of its own.
+- **Check with a screenshot** that the open link reads as a link in list view. The table gives its
+  link no styling of its own, so list view should look the same as the table's file cell.
+
+### 5.6 Search view: the card's pin
+
+**Decided: search view shows the same pin button as the cards**, in the bottom right corner of each
+`.search-view-item`, hovering to show and staying drawn while pinned. Pinning from search view
+works the same as from a card.
+
+- `render-file-list-search.js` adds `${renderPinButton(file)}` as the last child of
+  `.search-view-item`. The CSS is the §5.3 rules, which already name `.search-view-item`.
+- **`.search-view-item` is a subgrid row** (`grid-template-columns: subgrid`). An absolutely
+  positioned child takes no grid cell, so the pin sits over the item's bottom right corner, which is
+  the bottom right of the matches column. **Check with a screenshot** that it does not cover the
+  last line of a match snippet. If it does, give `.search-view-matches` some `padding-bottom` in
+  `note-pin.css`.
+- A search view item is not `keyboard-navigable` and takes no focus, so §4.1's focus line does
+  nothing here. That is correct: there was no focused card to return to.
+
 ---
 
 ## 6. Files touched
@@ -283,22 +396,27 @@ In `ui-functions-table/render-cell-value.js`, the file column's line becomes
 | File | Change |
 |------|--------|
 | `public/js/services/store.js` | `pinnedIds: new Set()` |
-| `public/js/services/file-object-sort.js` | `fileComparator()`, `isPinned()`, and `sortAppStateFiles` using the comparator |
+| `public/js/services/pins.js` | **new**: `isPinned()` and `togglePin()` |
+| `public/js/services/file-object-sort.js` | `fileComparator()`, and `sortAppStateFiles` using the comparator |
+| `public/js/ui/ui-functions-click/sort-object.js` | `applySortAndRender` returns `renderFiles`' result |
 | `public/js/ui/ui-functions-table/pending-row-move.js` | `compareByProperty` → `fileComparator` |
 | `public/js/services/directory-handler.js`, `public/js/backup/opfs-import.js` | `appState.pinnedIds.clear()` |
-| `public/js/ui/ui-functions-click/pin-toggle.js` | **new**: the action |
+| `public/js/ui/ui-functions-click/pin-toggle.js` | **new**: the action, and focus back on the card |
 | `public/js/ui/event-listeners-add.js` | register `pin-toggle` |
-| `public/js/ui/ui-functions-render/render-pin.js` | **new**: the card's button and the table's mark |
-| `public/js/ui/render-file-list-grid.js`, `render-file-list-peek.js` | one line each |
+| `public/js/ui/ui-functions-render/render-pin.js` | **new**: the card's button and the mini pin |
+| `public/js/ui/render-file-list-grid.js`, `render-file-list-peek.js`, `render-file-list-search.js` | `renderPinButton()`, one line each |
+| `public/js/ui/render-file-list-list.js` | the open link becomes `renderOpenFileLink()`; `renderPinMark()` in the summary |
 | `public/js/ui/ui-functions-table/render-cell-value.js` | the file column adds `renderPinMark()` |
 | `public/css/note-pin.css` | **new** |
+| `public/css/note-table.css` | the unused `.show-content-tag` rules deleted |
 | `index.html` | `#icon-pin` symbol, stylesheet link |
 | `manifest.json` | minor version bump |
 | `DATA-STRUCTURES.md` | `pinnedIds` |
 | `CLAUDE.md` | short *Pinning* section: the Set rather than a property and why; `fileComparator` is the comparator for file lists |
 
 No helper is created for one use only, and no CSS is duplicated: the button's look comes from
-`.svg-wrapper-style`, both card views share `.note-grid`, and everything the pin needs from CSS is
+`.svg-wrapper-style`, both card views share `.note-grid`, search view shares the card rules through
+one selector list, table and list view share `renderPinMark()`, and everything the pin needs from CSS is
 in `note-pin.css`.
 
 ---
@@ -309,7 +427,7 @@ in `note-pin.css`.
 reaching a note, and storing pins in the Set (§2) makes that impossible by construction. A level 1
 test would cost time on every run and protect nothing.
 
-**Level 2: one new spec, `tests/2-behaviour/63-note-pin.spec.js`, with about four tests.** Load a
+**Level 2: one new spec, `tests/2-behaviour/63-note-pin.spec.js`, with five tests.** Load a
 mock folder with three or four notes whose sort order is known:
 
 1. **Pin moves to the top, and the note does not open.** Hover a card in cards view, press its pin,
@@ -318,21 +436,26 @@ mock folder with three or four notes whose sort order is known:
 2. **Sort is kept inside both groups.** Pin two notes, change the sort from the sort modal, and
    check that both pinned notes come first in the new order and the rest follow in the new order.
    This one test covers both the comparator and "a later sort keeps the pin".
-3. **Unpin goes back.** Unpin and check that the original order is restored.
+3. **Unpin goes back.** Unpin and check that the original order is restored. Give the notes
+   distinct sort keys, so the stable-sort tie in §3.2 cannot make this test flaky.
 4. **A save does not unpin, and the table shows the mark.** Pin a note, switch to table view, and
    check that its row is first and its file cell holds `.pin-mark` while no other row does. Then
    edit a cell in that row and check that it is still first with the mark. This guards §2's main
    reason against someone later "simplifying" the Set back into a file property. Checking the mark
-   here costs nothing extra, since the test is in table view already.
+   here costs nothing extra, since the test is in table view already. Then switch to list view and
+   check that the pinned entry holds `.pin-mark` in its summary, after the file name, and no other entry does.
+5. **Search view pins too, and focus returns to a card.** In search view, press an item's pin and
+   check that it moves first without opening the note. In cards view, focus a card, press its pin,
+   and check that `document.activeElement` is that card, now first.
 
 Add the comparator's own cases to test 2 rather than writing a separate node test. A node test
 through `appModule()` would also work, but `fileComparator` reads `appState`, so the browser test
 is the honest one. It is also one test rather than two.
 
-**Not tested automatically:** the hover and coarse-pointer visibility. That is appearance, and
+**Not tested automatically:** the hover and touch visibility. That is appearance, and
 emulating `hover: none` costs a separate browser context. Check it once by screenshot (CLAUDE.md
 asks for screenshots of new features): one desktop screenshot hovering a card, one with a pinned
-card not hovered, and one with Playwright's `hasTouch`/`isMobile` context showing no hover pin.
+card not hovered, and one with Playwright's `hasTouch`/`isMobile` context showing every card's pin, faint.
 
 While working, run `npm test tests/2-behaviour/63-note-pin.spec.js`, and also
 `tests/2-behaviour/55-table-row-move.spec.js` because `pending-row-move.js` changes.
@@ -341,6 +464,19 @@ While working, run `npm test tests/2-behaviour/63-note-pin.spec.js`, and also
 
 ## 8. Decisions
 
+Taken after reviewing the plan against the code.
+
 1. **Storage (§2):** the `Set`. Pins are temporary.
-2. **Marking pinned notes outside the cards (§5.4):** a mini pin in table view's file column. List,
-   search and flowchart view get no mark.
+2. **Where the pin shows:** the pin button on cards, peek cards and search view items (§5.1, §5.6);
+   a mini pin, which is a mark and not a button, in table view's file column (§5.4) and in list view's
+   summary, after the file name (§5.5). Pinning works on touch devices too (§5.3). Flowchart view gets nothing.
+3. **List view's open link** becomes the table's `renderOpenFileLink()`, but list view does not
+   replace the `internalId` property with it as the table does (§5.5).
+4. **`isPinned()` and `togglePin()` live in `services/pins.js`** (§2.2), not in the sort module.
+5. **Focus goes back to the pinned card** after the render (§4.1).
+6. **Unpinning goes to page 1**, like pinning. Nothing keeps the page, since a pinned note is
+   almost always on page 1 (§4.1).
+7. **Renaming a pinned note unpins it**, and **a deleted pinned note's id is not cleared**, so a
+   note recreated at the same path comes back pinned. Both are accepted (§2.1).
+8. **The number-key shortcuts follow the pinned order** (§4.1). Accepted as correct.
+9. **No "clear all pins".** Unpin each note, or reload the folder.

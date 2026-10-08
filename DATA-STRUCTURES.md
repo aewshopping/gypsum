@@ -497,6 +497,15 @@ the same notes in the same order — every cell edit, every autosave — starts 
 
 ---
 
+## Pinned notes (`appState.pinnedIds`)
+
+A `Set` of `internalId`s: the notes pinned to the top of the order. Session only — never written to a
+note, cleared on a folder load. Read through `isPinned()` and written only by `togglePin()`, both in
+`services/pins.js`. `fileComparator()` in `file-object-sort.js` puts these first and applies the
+current sort inside each group. A rename gives a note a new id, so it unpins it.
+
+---
+
 ## The table's range (`appState.tableRange`)
 
 ```js

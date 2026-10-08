@@ -2,6 +2,7 @@ import { VALUE_TYPES, LINKED_TYPE, labelFor } from '../../constants.js';
 import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
 import { renderTags } from '../ui-functions-render/render-tags.js';
+import { renderPinMark } from '../ui-functions-render/render-pin.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
 import { linkifyText, renderInternalLink } from '../ui-functions-render/render-internal-link.js';
 import { joinFlowItems } from '../../services/file-parsing/flow-list.js';
@@ -138,7 +139,7 @@ export function renderCellValue(prop, file, mismatch, value = file[prop.name]) {
 
     switch (prop.type) {
         case VALUE_TYPES.STRING.value:
-            if (prop.name === 'internalId') return renderOpenFileLink(file.internalId, file.color);
+            if (prop.name === 'internalId') return renderOpenFileLink(file.internalId, file.color) + renderPinMark(file.internalId);
             // the full path from the root, now that folders are loaded
             if (prop.name === 'filename') return renderFilename(file.filepath || '');
             return linkifyText(String(value ?? ''));
