@@ -45,7 +45,7 @@
     --colour-contr-emph: RoyalBlue;  /* h1 */
     --colour-contr-warning: #cd3158;
 
-    --colour-compl: PaleTurquoise;  /* btn */
+    --colour-compl: lightblue;  /* btn */
     --colour-compl-emph-light: LightYellow;  /* btn hover */
     --colour-compl-emph: #FFD480; /* btn select */ /*gold*/
     --colour-compl-contr: DarkSlateGray; /* btn text */
