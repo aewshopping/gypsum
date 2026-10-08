@@ -11,12 +11,8 @@
     display: none;
 }
 
-/* Shown on hover; and always where nothing can hover, or a phone would have no way to pin. */
+/* Shown on hover, on every device alike: no separate rule for touch screens. */
 :is(.note-grid, .search-view-item):hover .note-pin { display: block; }
-
-@media (hover: none) {
-    .note-pin { display: block; }
-}
 
 /* Pinned is a state, so it shows on every device — and on a phone pressing it is the way to unpin.
    A pinned pin rests at .svg-wrapper-style's own opacity, as the page's toolbar icons do; an unpinned
