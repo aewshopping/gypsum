@@ -28,4 +28,5 @@
     width: 1em;
     vertical-align: -0.125em;
     margin-left: 0.3em;
+    opacity: 0.6; /* the toolbar icons' resting opacity, as a pinned card's pin */
 }

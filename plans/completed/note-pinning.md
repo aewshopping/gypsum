@@ -323,6 +323,7 @@ In `ui-functions-table/render-cell-value.js`, the file column's line becomes
     width: 1em;
     vertical-align: -0.125em;
     margin-left: 0.3em;
+    opacity: 0.6;
 }
 ```
 
