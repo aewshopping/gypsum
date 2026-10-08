@@ -1205,8 +1205,9 @@ screen; the sort button at the right of the count line above the file list (`.ou
 
 ### Pinning a note
 
-A pin on a card (cards, peek and search view) moves the note to the top of the order; table and list
-view mark a pinned note beside its open link. See `plans/completed/note-pinning.md`.
+A pin on a card (cards, peek and search view) moves the note to the top of the order — shown on hover,
+and always on a device that cannot hover. Table view marks a pinned note beside its open link, list
+view after the file name in its summary. See `plans/completed/note-pinning.md`.
 
 - **The pins are a `Set` of ids, `appState.pinnedIds`, never a property on the file object.**
   `rereadFile()` rebuilds the file object after every save, and front matter is spread into it, so a

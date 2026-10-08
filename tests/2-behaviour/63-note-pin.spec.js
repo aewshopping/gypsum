@@ -86,7 +86,7 @@ test('a save does not unpin, and table and list view mark the pinned note', asyn
 
   await chooseView(page, 'list');
   const entry = page.locator('.list-view > li').filter({ hasText: 'gamma.md' });
-  await expect(entry.locator('a[data-action="open-file-content-modal"] + .pin-mark')).toHaveCount(1);
+  await expect(entry.locator('summary [data-prop="filename"] + .pin-mark')).toHaveCount(1);
   await expect(page.locator('.list-view .pin-mark')).toHaveCount(1);
 });
 

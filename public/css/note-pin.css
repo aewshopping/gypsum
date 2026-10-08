@@ -11,9 +11,11 @@
     display: none;
 }
 
-/* Only where a hover can happen. A narrow desktop window keeps its pin; a phone never gets one. */
-@media (hover: hover) and (pointer: fine) {
-    :is(.note-grid, .search-view-item):hover .note-pin { display: block; }
+/* Shown on hover; and always where nothing can hover, or a phone would have no way to pin. */
+:is(.note-grid, .search-view-item):hover .note-pin { display: block; }
+
+@media (hover: none) {
+    .note-pin { display: block; }
 }
 
 /* Pinned is a state, so it shows on every device — and on a phone pressing it is the way to unpin.

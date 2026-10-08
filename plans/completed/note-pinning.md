@@ -16,11 +16,11 @@ back to where the current sort puts it.
 - A pin is for this session only. It is never written to a note and does not survive a reload or
   a folder load.
 - On hover, an unpinned card shows the pin in its bottom right corner. A device with no hover (a
-  phone or tablet) never shows the hover pin.
+  phone or tablet) shows it all the time, faintly, so a note can be pinned there too.
 - In **table** view, a pinned note's row shows a mini pin in its file column, so it is clear why
   that row is at the top. The mini pin is a mark, not a button.
-- In **list** view, the same mini pin sits beside the note's "open" link, which becomes the same
-  link the table draws (§5.5).
+- In **list** view, the same mini pin sits in the entry's summary, after the file name and before
+  the tags; the "open" link becomes the same link the table draws (§5.5).
 
 **Out of scope:** pinning or unpinning from table, list or flowchart view; keeping pins across a
 reload; a mark in flowchart view; a way to clear every pin at once (unpin each card, or reload).
@@ -266,24 +266,23 @@ New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`.
     display: none;
 }
 
-/* Only where a hover can happen: the narrow-desktop case keeps its pin, a phone never gets one. */
-@media (hover: hover) and (pointer: fine) {
-    :is(.note-grid, .search-view-item):hover .note-pin { display: block; }
+/* Shown on hover; and always where nothing can hover, or a phone would have no way to pin. */
+:is(.note-grid, .search-view-item):hover .note-pin { display: block; }
+
+@media (hover: none) {
+    .note-pin { display: block; }
 }
 
 .note-pin[data-pinned] { display: block; }
 .note-pin:not([data-pinned]):not(:hover) > svg { opacity: 0.3; }  /* pinned rests at the toolbar icons' 0.6; unpinned fainter */
 ```
 
-- **`(hover: hover) and (pointer: fine)`, not the screen width.** That is what makes a narrow
-  desktop window keep the pin. `(pointer: coarse)` alone would also work, but a touch laptop
-  reports `fine` as its primary pointer and can hover, so testing for hover states what is
-  actually needed. The app already uses `@media (pointer: coarse)` in `output-controls.css` and
-  `note-table-cell.css`.
-- **A pinned pin is shown on every device**, including a phone. It describes the note's state
-  rather than offering an action, and a note pinned on desktop and then opened on a narrower touch
-  screen should still show why it is at the top. On a phone, pressing it unpins. That gives you a
-  way to undo a pin there, but no way to add one, which is what the brief asks for.
+- **Pinning works on a phone too (changed after the first build).** It was first limited to
+  `(hover: hover) and (pointer: fine)`, so a phone could unpin but never pin. Now the hover rule
+  applies everywhere, and `(hover: none)` shows every card's pin all the time, at the faint 0.3 an
+  unpinned pin has. A tap cannot hover a card first: the tap would open the note.
+- **A pinned pin is shown on every device.** It describes the note's state, and a note pinned on
+  desktop and then opened on a touch screen still shows why it is at the top.
 - `display: none` rather than `opacity: 0`, so an unpinned card's pin cannot be pressed or found by
   a pointer.
 - **Check with a screenshot** that the pin does not cover the last tag pill in peek view. If it does,
@@ -334,10 +333,12 @@ In `ui-functions-table/render-cell-value.js`, the file column's line becomes
   width (`column_width` of `internalId`) may need a few pixels more to fit "open" plus the mark
   without an ellipsis. Check this with a screenshot.
 
-### 5.5 List view: the table's open link, and the mini pin beside it
+### 5.5 List view: the table's open link, and the mini pin in the summary
 
-**Decided: list view shows the mini pin, the same way table view does**, and its "open" button
-becomes the table's open link while we are there.
+**Decided: list view shows the mini pin**, in the entry's `<summary>`, just after the file name and
+before the tags, so it shows while the entry is collapsed. (It first sat beside the open link inside
+the entry, which hid it until the entry was opened.) The "open" button becomes the table's open link
+while we are there.
 
 In `render-file-list-list.js`, the first `<li>` inside each entry's `<ul>` is today:
 
@@ -349,7 +350,13 @@ In `render-file-list-list.js`, the first `<li>` inside each entry's `<ul>` is to
 It becomes:
 
 ```js
-`<li>${renderOpenFileLink(file.internalId, file.color)}${renderPinMark(file.internalId)}</li>`
+`<li>${renderOpenFileLink(file.internalId, file.color)}</li>`
+```
+
+and the summary becomes:
+
+```js
+`<summary><span data-prop="filename">${filename_html}</span>${renderPinMark(file.internalId)} ${tag_pills_html}</summary>`
 ```
 
 - **`renderOpenFileLink()`** (`render-filename.js`) is the link the table's file column draws, so
@@ -398,7 +405,7 @@ works the same as from a card.
 | `public/js/ui/event-listeners-add.js` | register `pin-toggle` |
 | `public/js/ui/ui-functions-render/render-pin.js` | **new**: the card's button and the mini pin |
 | `public/js/ui/render-file-list-grid.js`, `render-file-list-peek.js`, `render-file-list-search.js` | `renderPinButton()`, one line each |
-| `public/js/ui/render-file-list-list.js` | the open link becomes `renderOpenFileLink()` + `renderPinMark()` |
+| `public/js/ui/render-file-list-list.js` | the open link becomes `renderOpenFileLink()`; `renderPinMark()` in the summary |
 | `public/js/ui/ui-functions-table/render-cell-value.js` | the file column adds `renderPinMark()` |
 | `public/css/note-pin.css` | **new** |
 | `public/css/note-table.css` | the unused `.show-content-tag` rules deleted |
@@ -436,7 +443,7 @@ mock folder with three or four notes whose sort order is known:
    edit a cell in that row and check that it is still first with the mark. This guards §2's main
    reason against someone later "simplifying" the Set back into a file property. Checking the mark
    here costs nothing extra, since the test is in table view already. Then switch to list view and
-   check that the pinned entry holds `.pin-mark` beside its open link and no other entry does.
+   check that the pinned entry holds `.pin-mark` in its summary, after the file name, and no other entry does.
 5. **Search view pins too, and focus returns to a card.** In search view, press an item's pin and
    check that it moves first without opening the note. In cards view, focus a card, press its pin,
    and check that `document.activeElement` is that card, now first.
@@ -445,10 +452,10 @@ Add the comparator's own cases to test 2 rather than writing a separate node tes
 through `appModule()` would also work, but `fileComparator` reads `appState`, so the browser test
 is the honest one. It is also one test rather than two.
 
-**Not tested automatically:** the hover and coarse-pointer visibility. That is appearance, and
+**Not tested automatically:** the hover and touch visibility. That is appearance, and
 emulating `hover: none` costs a separate browser context. Check it once by screenshot (CLAUDE.md
 asks for screenshots of new features): one desktop screenshot hovering a card, one with a pinned
-card not hovered, and one with Playwright's `hasTouch`/`isMobile` context showing no hover pin.
+card not hovered, and one with Playwright's `hasTouch`/`isMobile` context showing every card's pin, faint.
 
 While working, run `npm test tests/2-behaviour/63-note-pin.spec.js`, and also
 `tests/2-behaviour/55-table-row-move.spec.js` because `pending-row-move.js` changes.
@@ -461,8 +468,8 @@ Taken after reviewing the plan against the code.
 
 1. **Storage (§2):** the `Set`. Pins are temporary.
 2. **Where the pin shows:** the pin button on cards, peek cards and search view items (§5.1, §5.6);
-   a mini pin, which is a mark and not a button, in table view's file column (§5.4) and beside list
-   view's open link (§5.5). Flowchart view gets nothing.
+   a mini pin, which is a mark and not a button, in table view's file column (§5.4) and in list view's
+   summary, after the file name (§5.5). Pinning works on touch devices too (§5.3). Flowchart view gets nothing.
 3. **List view's open link** becomes the table's `renderOpenFileLink()`, but list view does not
    replace the `internalId` property with it as the table does (§5.5).
 4. **`isPinned()` and `togglePin()` live in `services/pins.js`** (§2.2), not in the sort module.

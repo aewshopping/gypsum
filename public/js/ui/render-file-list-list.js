@@ -76,9 +76,9 @@ export function renderFileList_list(renderEverything) {
             file_html += `
                 <li data-vt-id="${file.internalId}">
                     <details>
-                        <summary><span data-prop="filename">${filename_html}</span> ${tag_pills_html}</summary>
+                        <summary><span data-prop="filename">${filename_html}</span>${renderPinMark(file.internalId)} ${tag_pills_html}</summary>
                         <ul>
-                        <li>${renderOpenFileLink(file.internalId, file.color)}${renderPinMark(file.internalId)}</li>
+                        <li>${renderOpenFileLink(file.internalId, file.color)}</li>
                         ${properties}
                         </ul>
                     </details>
