@@ -272,7 +272,7 @@ New file: **`css/note-pin.css`**, linked in `index.html` beside `note-grid.css`.
 }
 
 .note-pin[data-pinned] { display: block; }
-.note-pin[data-pinned] > svg { opacity: 1; }  /* pinned reads as "on", not as a faded affordance */
+.note-pin:not([data-pinned]):not(:hover) > svg { opacity: 0.3; }  /* pinned rests at the toolbar icons' 0.6; unpinned fainter */
 ```
 
 - **`(hover: hover) and (pointer: fine)`, not the screen width.** That is what makes a narrow

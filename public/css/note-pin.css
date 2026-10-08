@@ -16,9 +16,11 @@
     :is(.note-grid, .search-view-item):hover .note-pin { display: block; }
 }
 
-/* Pinned is a state, so it shows on every device — and on a phone pressing it is the way to unpin. */
+/* Pinned is a state, so it shows on every device — and on a phone pressing it is the way to unpin.
+   A pinned pin rests at .svg-wrapper-style's own opacity, as the page's toolbar icons do; an unpinned
+   one, shown only because the card is hovered, is fainter again. Pointing at either brings it to 1. */
 .note-pin[data-pinned] { display: block; }
-.note-pin[data-pinned] > svg { opacity: 1; } /* reads as "on", not as a faded affordance */
+.note-pin:not([data-pinned]):not(:hover) > svg { opacity: 0.3; }
 
 /* The mark beside the open link in table and list view. In em, so it follows the table's font size. */
 .pin-mark {
