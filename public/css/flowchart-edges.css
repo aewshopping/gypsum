@@ -1,7 +1,7 @@
 /* The flowchart's links (ui-functions-flowchart/draw-flowchart-edge.js): a line and arrowhead under
    the boxes, and the link's text in a small box over them. Hovering either marks both .is-hovered
    (flowchart-link-hover.js) — the line thickens, the text is outlined — and outlines the note the
-   link is written in, in flowchart.css. */
+   link is written in, in flowchart.css. Hovering a note marks every link written in it the same way. */
 
 /* A link's line, and a note's border, which matches it: one width, and one when hovered. */
 .flowchart-svg {
