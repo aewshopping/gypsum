@@ -34,13 +34,17 @@
     grid-row: 1 / span 1; /* both lines: an out-of-flow item reads an auto end as the grid's edge */
     /* Bottom right, but clear of the type glyph and its padlock badge, which sit hard against the
        heading's right edge and take the corner itself: the heading's 6px padding and the glyph's
-       1.6em, which is the same em here because the font is the heading's own. */
-    right: calc(6px + 1.6em);
+       1.6em of the heading's font, which is this one's over 0.85.
+
+       Kept small, and in the heading's lower half: in the 90px file column a full-size + reached the
+       heading's middle, so a press meant for the column menu made a note instead. */
+    right: calc(6px + 1.6em / 0.85);
     bottom: 1px;
     padding: 0 2px;
     border: none;
     background: none;
     font: inherit;
+    font-size: 0.85em;
     line-height: 1;
     color: color-mix(in srgb, var(--colour-contr) var(--new-note-mix), transparent);
     cursor: pointer;
@@ -50,7 +54,8 @@
         &::after {
             content: '';
             position: absolute;
-            inset: -10px;
+            /* Wider and lower, never higher, for the same reason it is kept small. */
+            inset: 0 -4px -1px -8px;
         }
     }
 }

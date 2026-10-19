@@ -368,3 +368,7 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
    (*The selected cell gives its right edge back*, CLAUDE.md), which in the 90px file column covers
    the pin — so the click landed on the cell and nothing unpinned. `position: relative; z-index: 1`
    on `.pin-mark-button`.
+4. **The `+` is 0.85em and stays in the heading's lower half.** Full size in the 90px file column it
+   reached the heading's middle, so a press meant for the column menu made a note — found by
+   `40-column-menu.spec.js`, whose click on the heading's centre landed on it. Its touch target
+   grows sideways and down, never up, for the same reason.
