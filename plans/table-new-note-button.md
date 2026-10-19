@@ -38,7 +38,8 @@ unpin from the table (see §4.4).
 | A key typed into a note with no block | `editing/front-matter-splice.js` — block at byte 0, blank line after | as is: the new note is empty, which is exactly this case |
 | Report line | `reportAction()` / `reportFailure()` in `ui-functions-render/output-report.js` | for the filtered-out case and a failed create |
 
-**Nothing below the click handler is new**, except one three-line function in `pins.js` (§3).
+**Nothing below the click handler is new**, except two small functions in `pins.js` so that a pin
+leaves with its note (§4.5).
 Disk, parsing, registration, sorting and rendering are all shared with the floating button and
 with the flowchart's new note (`ui-functions-flowchart/flowchart-note-create.js`, which already
 creates a note without opening it — the precedent for this).
@@ -51,7 +52,9 @@ creates a note without opening it — the precedent for this).
 |---|---|---|
 | Click handler | `public/js/ui/ui-functions-click/create-table-note-click.js` | One file per click action, beside `create-new-note-click.js` |
 | Wiring | `event-listeners-add.js`: import, and `'create-table-note': handleCreateTableNote` in `clickActionHandlers`, next to `'create-new-note'` | The normal way |
-| `pinNote(fileId)` | `public/js/services/pins.js`, beside `togglePin()` | `pins.js` is the one writer of `appState.pinnedIds`. A toggle is wrong here: a deleted note's pin is not cleared, so a new note reusing its name would be *unpinned* by a toggle |
+| `unpin(fileId)` and `movePin(fromId, toId)` | `public/js/services/pins.js`, beside `togglePin()` | `pins.js` is the one writer of `appState.pinnedIds`. Called from the delete and the rename (§4.5) |
+| A pin cleared on delete | one line, `unpin(fileId)`, in `handleDeleteFileConfirmed()` in `ui-functions-click/delete-file-click.js`, in Phase B beside the other `appState` clean-up | §4.5 |
+| A pin moved on rename | one line, `movePin(oldFilepath, newFilepath)`, in `renameFile()` in `editing/rename-file.js`, beside `renameInUndoStacks()` | §4.5 |
 | Markup | a small private `newNoteButton()` in `ui-functions-table/render-table-header.js`, appended after the header cells | See §4.1 — it is a grid item of the header |
 | CSS | `public/css/table-new-note.css`, `@import`ed in `public/style.css` beside `button-new-note.css` | A new component gets its own file |
 | Header strip clipping | one rule in `note-table.css`: `overflow: clip` → `overflow: clip visible`, as a table row already has | So the button can hang below the header's edge. The clip is there for the sideways direction only (§4.1) |
@@ -138,7 +141,7 @@ handleCreateTableNote():
     return if no dirHandle, or appState.bulkWriteInFlight
     filename = await findUnusedFilename(appState.dirHandle)
     note = await createEmptyNote('', filename)      // a throw → reportFailure, stop
-    pinNote(note.internalId)
+    togglePin(note.internalId)   // a new id is never pinned once §4.5 is in
     sort with the current sortState; renderFiles()  // back to page 1
     if !checkFileOnPage(note.internalId):
         reportAction(`created ${filename}, hidden by the current filter`)
@@ -174,8 +177,37 @@ handleCreateTableNote():
   mark but has no unpin control. Unpinning means switching to cards, or reloading the folder. If
   that grates in use, the options are a press on the table's pin mark to unpin, or unpinning the
   note once its row has been edited and left. Both are deliberately left out until it is tried.
-- **A deleted note's pin is not cleared** — a pre-existing gap, harmless except to a toggle, which
-  is why `pinNote()` adds rather than toggles.
+- **Only this button pins.** The pin is written in `handleCreateTableNote()` and nowhere else. The
+  floating new-note button, Alt+N, a note made from a `[[link]]` and the flowchart's new note are
+  not changed at all. Alt+Shift+N pins too, because it calls this button's handler.
+
+### 4.5 A pin leaves with its note
+
+Pins are kept by `internalId`, which is the note's path. Two things leave a pin on a path that no
+note has any more. Both are gaps today, and this button makes them matter, because it creates
+`note-N.txt` names that a deleted or renamed note may just have freed:
+
+- **Delete.** `handleDeleteFileConfirmed()` removes the note from `myFiles`, its handle and its
+  search results, but not its pin. A new note given the same name would arrive already pinned —
+  and the toggle in §4.2 would then *unpin* it, so the new row would not go to the top.
+- **Rename.** `renameFile()` changes `internalId` but not the pin. The renamed note loses its pin
+  without being asked, and the old name keeps it, ready for the next note given that name. This is
+  also needed for `plans/table-rename-filename.md`, where a note made by this button is the one
+  most likely to be renamed straight after.
+
+Fix: two functions in `pins.js`, beside `togglePin()`, so that `pins.js` stays the only module that
+writes `appState.pinnedIds`:
+
+- `unpin(fileId)` — `appState.pinnedIds.delete(fileId)`. Called in the delete's Phase B, beside the
+  other `appState` clean-up.
+- `movePin(fromId, toId)` — if `fromId` is pinned, unpin it and pin `toId`. Called in `renameFile()`
+  beside `renameInUndoStacks()`, which does the same job for the undo history.
+
+With both in, a new note's id is never already pinned, so the new button can use `togglePin()` and
+needs no "pin, whatever" function of its own.
+
+**Restoring a deleted note** from history (`history-recreate-click.js`) brings it back unpinned.
+That is correct: a pin is session state, and delete was the user saying they were done with it.
 
 ---
 
@@ -204,6 +236,20 @@ where focus sits; a new spec file is for a new area and this is not one):
   note and wears the pin mark, and focus is not in a cell. Then Alt+Shift+N makes a second, also
   pinned, also at the top; switch to cards, and Alt+Shift+N makes a third, first there too, with no modal.
 
+**The pins — no new tests, a line or two added to tests that already do the act:**
+
+- `tests/1-data/21-delete-file.spec.js`, "confirming moves the file to trash…": pin the note first
+  (through `togglePin` in a `page.evaluate`), and after the delete assert it is no longer in
+  `appState.pinnedIds`.
+- `tests/1-data/52-table-undo-stack.spec.js`, the test that already calls `renameFile()` in a
+  `page.evaluate`: pin the note before the rename, and assert the pin is on the new path and not on
+  the old one.
+- `tests/1-data/30-empty-folder.spec.js`, "creating and then deleting the first note…": after the
+  floating button makes `note-1.txt`, assert `appState.pinnedIds` is empty. That holds the "only the
+  table's button pins" rule (§4.4) for one line.
+
+These run at level 1 only because those tests already live there. They add no page loads.
+
 The filtered-out report line, and the appearance, are checked by hand and by screenshot during the
 work, not by tests.
 
@@ -215,15 +261,17 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 
 1. `table-new-note.css`, its `@import`, the strip's overflow rule, and the button in the header
    renderer. Screenshots as listed in §4.1.
-2. `pinNote()`, the click handler, its wiring, and Alt+Shift+N beside Alt+N. Screenshot after a press.
-3. The two tests. Manifest bump.
+2. `unpin()` and `movePin()`, and their calls in the delete and the rename (§4.5).
+3. The click handler, its wiring, and Alt+Shift+N beside Alt+N. Screenshot after a press.
+4. The two tests and the added assertions. Manifest bump.
 
 ---
 
 ## 7. Decisions
 
 1. **Prompts, not a template.** The note is created empty; only the cells filled in become keys.
-2. **Pinned** to put it at the top, to be judged in use (§4.4).
+2. **Pinned** to put it at the top, to be judged in use (§4.4). Only this button pins. A pin is
+   cleared when its note is deleted and follows it when it is renamed (§4.5).
 3. **Focus is not moved.**
 4. **Under the file column's heading, centred in that column.**
 5. **Alt+N unchanged; Alt+Shift+N for this button**, wherever and under the same guard as Alt+N.
