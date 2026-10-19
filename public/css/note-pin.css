@@ -28,3 +28,21 @@
     margin-left: 0.3em;
     opacity: 0.6; /* the toolbar icons' resting opacity, as a pinned card's pin */
 }
+
+/* In the table the mark is a button that unpins: the browser's plate taken off, so it looks exactly
+   like the mark, and full strength under the pointer. */
+.pin-mark-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    /* Above the selected cell's press strip (note-table-cell.css), which in the narrow file column
+       covers the pin: the press that selects the cell would otherwise be released on the strip. */
+    position: relative;
+    z-index: 1;
+}
+
+.pin-mark-button:hover > .pin-mark { opacity: 1; }

@@ -7,6 +7,7 @@ import { handleKeyboardNavigate } from './keyboard-navigate.js';
 import { handleSaveFileCopy } from './save-file-copy.js';
 import { handleFileOptionsOpen } from './file-options-click.js';
 import { handleCreateNewNote } from './create-new-note-click.js';
+import { handleCreateTableNote } from './create-table-note-click.js';
 import { handleClearFilters } from './clear-filters.js';
 import { handleEditorColorPick } from './editor-color-pick.js';
 import { handleToggleRenderText } from './toggle-render-text.js';
@@ -119,17 +120,24 @@ export function handleKeyboardShortcuts(evt) {
         }
     }
 
+    // Looked up by the lower-cased key, with Shift asked separately, for the reason the undo keys
+    // above give: with Caps Lock on, a plain Alt+N arrives as 'N', and would otherwise have made a
+    // pinned unopened note when an opened one was asked for.
     const noModalAltActions = {
-        'n': () => handleCreateNewNote(evt, document.getElementById('btn-new-note')),
+        // Alt+Shift+N is the table's + — a pinned note, not opened — in every view, as Alt+N is.
+        'n': () => evt.shiftKey
+            ? handleCreateTableNote()
+            : handleCreateNewNote(evt, document.getElementById('btn-new-note')),
         'x': () => handleClearFilters(),
         // Going through the button rather than the handler is deliberate: a click from a
         // keydown keeps the user activation showDirectoryPicker needs.
         'o': () => document.getElementById('btn_loadDirectoryHandles').click(),
         'b': () => handleToggleRecentPanel(),
     };
-    if (evt.altKey && noModalAltActions[evt.key] && !document.querySelector('dialog[open]')) {
+    const altKey = evt.key?.toLowerCase();
+    if (evt.altKey && Object.hasOwn(noModalAltActions, altKey) && !document.querySelector('dialog[open]')) {
         evt.preventDefault();
-        noModalAltActions[evt.key]();
+        noModalAltActions[altKey]();
     }
 
     // Alt+1 to Alt+n picks a view by its number in the view select. Matched on evt.code rather than

@@ -1,6 +1,6 @@
 # Plan: renaming a note from the table's filename cell
 
-Status: **placeholder — to follow `plans/table-new-note-button.md`**
+Status: **placeholder — to follow `plans/completed/table-new-note-button.md`**
 
 ---
 

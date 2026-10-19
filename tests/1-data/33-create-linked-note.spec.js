@@ -146,3 +146,44 @@ test('Enter after an unresolved link in a table cell creates nothing', async ({ 
   await expect(page.locator('.ac-picker-popup')).not.toBeVisible();
   expect(await createdFiles(page)).toEqual(before);
 });
+
+// The table's + (plans/completed/table-new-note-button.md): the same creator as the floating button, so the only
+// new thing touching a file is which button calls it.
+test.describe("the table's new-note button", () => {
+
+  test('pressing + writes an empty note-1.txt and leaves every other file as it was', async ({ page }) => {
+    await setupMockDirectoryWithNoteCreation(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await chooseView(page, 'table');
+    const before = await page.evaluate(() => Object.fromEntries(window.__createdFiles));
+
+    await page.locator('.table-new-note').click();
+
+    await expect.poll(() => page.evaluate(() => window.__createdFiles.get('note-1.txt'))).toBe('');
+    const after = await page.evaluate(() => Object.fromEntries(window.__createdFiles));
+    for (const [path, text] of Object.entries(before)) expect(after[path]).toBe(text);
+    await expect(page.locator('#file-content-modal')).not.toBeVisible();
+  });
+
+  // The shortcut moves no focus, so nothing but the handler finishing the cell stands between the
+  // render it runs and what was typed.
+  test('Alt+Shift+N with a cell open writes what was typed as well as making the note', async ({ page }) => {
+    await setupMockDirectoryWithNoteCreation(page);
+    await page.goto('/');
+    await loadFolder(page);
+    await chooseView(page, 'table');
+
+    const cell = page.locator('.note-table[data-vt-id="hub.md"] .note-table-cell[data-prop="title"]');
+    await cell.click();
+    await cell.click();
+    await expect(cell).toHaveClass(/is-expanded/);
+    await page.keyboard.press('Control+A');
+    await page.keyboard.type('Hubbub');
+    await page.keyboard.press('Alt+Shift+N');
+
+    await expect.poll(() => page.evaluate(() => window.__createdFiles.get('note-1.txt'))).toBe('');
+    await expect.poll(() => page.evaluate(() => window.__createdFiles.get('hub.md'))).toContain('title: Hubbub');
+  });
+
+});

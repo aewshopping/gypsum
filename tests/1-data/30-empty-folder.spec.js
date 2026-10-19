@@ -39,6 +39,8 @@ test('creating and then deleting the first note brings the list to life and back
   await expect(page.locator('.note-grid')).toHaveCount(1);
   await showFilenames(page);
   await expect(page.locator('.note-grid').first()).toContainText('note-1.txt');
+  // Only the table's + pins a new note.
+  expect(await page.evaluate(() => window.appState.pinnedIds.size)).toBe(0);
 
   // properties are registered from myFiles[0] at load, which never ran for an empty folder;
   // without registering on create, the sort modal and table columns stay empty

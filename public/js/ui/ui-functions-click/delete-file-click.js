@@ -7,6 +7,7 @@ import { invalidateTagCache } from '../../autocomplete/tag-cache.js';
 import { invalidateNoteNameIndex } from '../../services/internal-links/note-name-index.js';
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
 import { SAVE_FOLDER } from '../../constants.js';
+import { unpin } from '../../services/pins.js';
 
 const TRASH_FOLDER = `${SAVE_FOLDER}/trash`;
 
@@ -63,6 +64,7 @@ async function handleDeleteFileConfirmed() {
     const idx = appState.myFiles.indexOf(file);
     if (idx !== -1) appState.myFiles.splice(idx, 1);
     appState.myFileHandlesMap?.delete(fileId);
+    unpin(fileId);
 
     for (const resultMap of appState.search.results.values()) {
         resultMap.delete(fileId);

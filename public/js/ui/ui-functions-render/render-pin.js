@@ -1,5 +1,6 @@
 /**
- * @file The pin, drawn two ways: a button on a card, and a mark beside a table or list view's open link.
+ * @file The pin, drawn three ways: a button on a card, a button beside the table's open link that
+ * unpins, and a mark beside list view's.
  */
 
 import { isPinned } from '../../services/pins.js';
@@ -24,5 +25,21 @@ export function renderPinButton(file) {
 export function renderPinMark(fileId) {
     return isPinned(fileId)
         ? `<svg class="pin-mark" viewBox="0 0 50 50" aria-hidden="true"><use href="#icon-pin"></use></svg>`
+        : '';
+}
+
+/**
+ * The table's pin: the mark, as a button that unpins. Shown only on a pinned row, so it never pins.
+ *
+ * It carries its own data-file-id because handlePinToggle finds the note with closest(), which
+ * includes the element itself — a table row has no data-file-id of its own. `tabindex="-1"` keeps Tab
+ * moving cell to cell. List view keeps renderPinMark: there it is inside a <summary>, where a press
+ * would also open and close the note.
+ * @param {string} fileId - The file's internalId.
+ * @returns {string} The button's HTML, or '' when the note is not pinned.
+ */
+export function renderPinMarkButton(fileId) {
+    return isPinned(fileId)
+        ? `<button type="button" class="pin-mark-button" data-action="pin-toggle" data-file-id="${fileId}" tabindex="-1" data-tip="unpin"><svg class="pin-mark" viewBox="0 0 50 50" aria-hidden="true"><use href="#icon-pin"></use></svg></button>`
         : '';
 }

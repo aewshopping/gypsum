@@ -71,12 +71,28 @@ export function renderTableHeader(current_props) {
                      `<span class="header-label flexgrow">${escapeHtml(prop.label ?? prop.name)}</span>` +
                      `<span class="column-sort-indicator">➜</span>` +
                      typeGlyph(prop, 'header-type-glyph', 'set by the app') +
-                   `</button>`;
+                   `</button>` +
+                   (prop.name === 'internalId' ? newNoteButton(column, stickyCount) : '');
         })
         .join('');
 
     // The strip clips the header horizontally; the header itself is full track width.
     return `<div class="note-table-header-strip"><div class="note-table-header">${headerCellsHtml}</div></div>`;
+}
+
+/**
+ * The table's new-note button, in the bottom-right corner of the file column's heading — see
+ * plans/completed/table-new-note-button.md. A sibling of the heading rather than a child: the heading is a
+ * button, and the parser would close it at a second one. Written straight after it, so Tab reaches it
+ * there. Absolutely positioned in the file column's grid area (css/table-new-note.css), so it takes
+ * no cell and moves no heading; it sticks when its column does.
+ * @param {number} column - The file column's position among the shown columns, from 0.
+ * @param {number} stickyCount - How many leading columns stick.
+ * @returns {string} The button's HTML.
+ */
+function newNoteButton(column, stickyCount) {
+    const sticky = column < stickyCount ? ' is-sticky' : '';
+    return `<button type="button" class="table-new-note${sticky}" style="grid-column: ${column + 1} / span 1" data-action="create-table-note" data-tip="new pinned note | Alt+Shift+N">+</button>`;
 }
 
 /**

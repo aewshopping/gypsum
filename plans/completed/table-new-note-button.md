@@ -1,6 +1,6 @@
 # Plan: a new-note button on the table
 
-Status: **not started — questions settled (§7)**
+Status: **done** — what the build found is in §8
 Follow-on: `plans/table-rename-filename.md`
 
 ---
@@ -351,3 +351,20 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
    lifts the heading's lower edge by the same variable.
 5. **Alt+N unchanged; Alt+Shift+N for this button**, wherever and under the same guard as Alt+N,
    matched by letter and Shift separately, and listed in the settings modal.
+
+---
+
+## 8. What the build changed
+
+1. **The `+` sits just left of the type glyph, not in the corner itself.** The corner is the glyph's
+   padlock badge, and the `+` landed on it — and at rest, faded, it was lost behind it. It is still
+   on the heading's bottom edge, `right: calc(6px + 1.6em)`: the heading's padding and the glyph's
+   width, the same em because the `+` takes the heading's font (`font: inherit`).
+2. **An out-of-flow grid item needs both lines.** `grid-column: N` alone put the `+` at the far right
+   of the whole header: for an absolutely positioned item an `auto` end line is the grid's edge, not
+   `span 1`. So both are written `N / span 1` and `1 / span 1`.
+3. **The table's pin sits above the selected cell's press strip.** The press that selects the file
+   cell is released on the transparent `::after` that a selected cell lays over its right edge
+   (*The selected cell gives its right edge back*, CLAUDE.md), which in the 90px file column covers
+   the pin — so the click landed on the cell and nothing unpinned. `position: relative; z-index: 1`
+   on `.pin-mark-button`.
