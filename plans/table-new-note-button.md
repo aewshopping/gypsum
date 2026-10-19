@@ -54,7 +54,7 @@ creates a note without opening it — the precedent for this).
 | `pinNote(fileId)` | `public/js/services/pins.js`, beside `togglePin()` | `pins.js` is the one writer of `appState.pinnedIds`. A toggle is wrong here: a deleted note's pin is not cleared, so a new note reusing its name would be *unpinned* by a toggle |
 | Markup | a small private `newNoteButton()` in `ui-functions-table/render-table-header.js`, appended after the header cells | See §4.1 — it is a grid item of the header |
 | CSS | `public/css/table-new-note.css`, `@import`ed in `public/style.css` beside `button-new-note.css` | A new component gets its own file |
-| Header strip clipping | one rule in `note-table.css`: `overflow: clip` → `overflow-x: clip; overflow-y: visible` | So the button can hang below the header's edge (§4.1) |
+| Header strip clipping | one rule in `note-table.css`: `overflow: clip` → `overflow: clip visible`, as a table row already has | So the button can hang below the header's edge. The clip is there for the sideways direction only (§4.1) |
 | Shortcut | one entry, `'N': () => handleCreateTableNote()`, in `noModalAltActions` in `ui-functions-click/keyboard-shortcuts.js`, beside Alt+N's `'n'` | Alt+Shift+N (§4.3) |
 | Manifest | minor bump | Every code change |
 
@@ -94,9 +94,24 @@ it is always there, but can be moved, which is why the position is looked up rat
   The half that hangs over the first row is above every row already: `.table-chrome` is
   `z-index: 6`.
 - **The strip must not clip it vertically.** `.note-table-header-strip` is `overflow: clip`, which
-  would cut the lower half off. `overflow-x: clip; overflow-y: visible` keeps the sideways clip the
-  strip exists for — `clip`, unlike `hidden`, may pair with `visible`. Check by screenshot that
-  nothing else in the header was relying on the vertical clip.
+  would cut the lower half off. Change it to `overflow: clip visible`.
+  - **Why the strip clips at all:** the header is wider than the screen and is moved sideways to
+    follow the table's scroll. The strip cuts it to the visible width. Its comment in `note-table.css`
+    explains why that is `clip` and not `hidden`: `hidden` makes the strip a scroll container, so
+    focusing an off-screen heading made the browser scroll the strip itself, and the header was left
+    over the wrong columns. `clip` gives nothing a scroll range, and `table-focus-scroll.js` scrolls
+    the table instead.
+  - **The vertical clip has no reason of its own.** It comes from the `overflow` shorthand setting
+    both axes. Every reason given is sideways. Nothing in the header reaches below it today: the
+    header is a fixed 35px, each heading clips its own content (`.note-table-cell-header` is
+    `overflow: hidden`), and the column menu and type dialog are in the top layer.
+  - **`clip visible` keeps every part of that.** It is still `clip` sideways, so the strip is still
+    not a scroll container. `clip`, unlike `hidden`, may be paired with `visible` without the other
+    axis turning into `auto`. A table row already does exactly this, `overflow: clip visible`, so an
+    opened cell can grow down past it.
+  - Update the strip's comment to say the vertical axis is left open for the button. Check by
+    screenshot, and by Tab across the headings with the table scrolled sideways (the bug the `clip`
+    fixed), that nothing changed.
 - **When the file column sticks**, the button gets `is-sticky` and the same `sticky-hold` keyframe
   on the same timeline as the sticky headings (`note-table-sticky.css`), so it is held still with
   its column. The no-timeline fallback in `table-scrollbar-sync.js` already moves every `.is-sticky`
