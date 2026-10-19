@@ -55,7 +55,7 @@ creates a note without opening it — the precedent for this).
 | Markup | a small private `newNoteButton()` in `ui-functions-table/render-table-header.js`, appended after the header cells | See §4.1 — it is a grid item of the header |
 | CSS | `public/css/table-new-note.css`, `@import`ed in `public/style.css` beside `button-new-note.css` | A new component gets its own file |
 | Header strip clipping | one rule in `note-table.css`: `overflow: clip` → `overflow-x: clip; overflow-y: visible` | So the button can hang below the header's edge (§4.1) |
-| Shortcut | one entry, `'N'`, in `noModalAltActions` in `ui-functions-click/keyboard-shortcuts.js` | Alt+Shift+N (§4.3) |
+| Shortcut | one entry, `'N': () => handleCreateTableNote()`, in `noModalAltActions` in `ui-functions-click/keyboard-shortcuts.js`, beside Alt+N's `'n'` | Alt+Shift+N (§4.3) |
 | Manifest | minor bump | Every code change |
 
 **Deliberately not done:**
@@ -144,12 +144,13 @@ handleCreateTableNote():
 
 ### 4.3 Keyboard
 
-- **Alt+N** stays as it is everywhere: a new note, opened in the modal.
-- **Alt+Shift+N** presses the table's button: `'N': () => document.querySelector('.table-new-note')?.click()`
-  in `noModalAltActions`. Shift arrives as the capital `N` on the layouts the existing Alt keys
-  already work on, so it needs no other change. Going through the button means it does nothing
-  unless the table is drawn, so no view check is needed. The existing guard against an open dialog
-  applies.
+- **Alt+N** stays as it is: a new note, opened in the modal.
+- **Alt+Shift+N** works wherever Alt+N works, under the same guard (Alt held, no dialog open):
+  `'N': () => handleCreateTableNote()` in `noModalAltActions`, beside `'n'`. It calls the handler
+  rather than pressing the table's button, so it works in every view, as Alt+N does. Outside the table
+  the note is still made pinned and unopened, so it is first in whichever view is showing. Shift
+  arrives as the capital `N` on the layouts the existing Alt keys already work on, so nothing else
+  in the guard changes.
 
 ### 4.4 Things to know, and to judge in use
 
@@ -186,7 +187,7 @@ where focus sits; a new spec file is for a new area and this is not one):
 
 - sorted by something other than last modified, press `+`: no modal opens, the first row is the new
   note and wears the pin mark, and focus is not in a cell. Then Alt+Shift+N makes a second, also
-  pinned, also at the top.
+  pinned, also at the top; switch to cards, and Alt+Shift+N makes a third, first there too, with no modal.
 
 The filtered-out report line, and the appearance, are checked by hand and by screenshot during the
 work, not by tests.
@@ -199,7 +200,7 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 
 1. `table-new-note.css`, its `@import`, the strip's overflow rule, and the button in the header
    renderer. Screenshots as listed in §4.1.
-2. `pinNote()`, the click handler, its wiring, and Alt+Shift+N. Screenshot after a press.
+2. `pinNote()`, the click handler, its wiring, and Alt+Shift+N beside Alt+N. Screenshot after a press.
 3. The two tests. Manifest bump.
 
 ---
@@ -210,4 +211,4 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 2. **Pinned** to put it at the top, to be judged in use (§4.4).
 3. **Focus is not moved.**
 4. **Under the file column's heading, centred in that column.**
-5. **Alt+N unchanged; Alt+Shift+N for this button.**
+5. **Alt+N unchanged; Alt+Shift+N for this button**, wherever and under the same guard as Alt+N.
