@@ -17,11 +17,12 @@ kind should have, so filling in the new row's cells gives the note front matter 
 without opening the editor or remembering the keys. Only the cells filled in become keys.
 
 **In scope:** the button, its CSS, its click handler, pinning the new note, a keyboard shortcut,
-and the case where the new row is filtered out.
+the case where the new row is filtered out, and the table's pin mark becoming a button that unpins
+(§4.6).
 
 **Out of scope:** writing any key into the new note before the user types; a filename other than
-`note-N.txt` (that is the next plan); putting note creation on the table's undo stack; a way to
-unpin from the table (see §4.4).
+`note-N.txt` (that is the next plan); putting note creation on the table's undo stack; pinning an
+unpinned note from the table; list view's pin mark, which stays a mark.
 
 ---
 
@@ -55,6 +56,7 @@ creates a note without opening it — the precedent for this).
 | `unpin(fileId)` and `movePin(fromId, toId)` | `public/js/services/pins.js`, beside `togglePin()` | `pins.js` is the one writer of `appState.pinnedIds`. Called from the delete and the rename (§4.5) |
 | A pin cleared on delete | one line, `unpin(fileId)`, in `handleDeleteFileConfirmed()` in `ui-functions-click/delete-file-click.js`, in Phase B beside the other `appState` clean-up | §4.5 |
 | A pin moved on rename | one line, `movePin(oldFilepath, newFilepath)`, in `renameFile()` in `editing/rename-file.js`, beside `renameInUndoStacks()` | §4.5 |
+| The table's pin as a button | a third function in `ui-functions-render/render-pin.js`, used by `render-cell-value.js`; its CSS in `note-pin.css` | Same pin, same place, the cards' existing `pin-toggle` handler (§4.6) |
 | Markup | a small private `newNoteButton()` in `ui-functions-table/render-table-header.js`, appended after the header cells | See §4.1 — it is a grid item of the header |
 | CSS | `public/css/table-new-note.css`, `@import`ed in `public/style.css` beside `button-new-note.css` | A new component gets its own file |
 | Header strip clipping | one rule in `note-table.css`: `overflow: clip` → `overflow: clip visible`, as a table row already has | So the button can hang below the header's edge. The clip is there for the sideways direction only (§4.1) |
@@ -173,10 +175,8 @@ handleCreateTableNote():
 ### 4.4 Things to know, and to judge in use
 
 - **Not on the undo stack**, the same as the floating button. Deleting the note is the way back.
-- **Pins accumulate.** Each note made this way stays pinned for the session. Table view shows a pin
-  mark but has no unpin control. Unpinning means switching to cards, or reloading the folder. If
-  that grates in use, the options are a press on the table's pin mark to unpin, or unpinning the
-  note once its row has been edited and left. Both are deliberately left out until it is tried.
+- **Pins accumulate.** Each note made this way stays pinned for the session, until its pin is
+  pressed in the table (§4.6) or on its card.
 - **Only this button pins.** The pin is written in `handleCreateTableNote()` and nowhere else. The
   floating new-note button, Alt+N, a note made from a `[[link]]` and the flowchart's new note are
   not changed at all. Alt+Shift+N pins too, because it calls this button's handler.
@@ -209,6 +209,38 @@ needs no "pin, whatever" function of its own.
 **Restoring a deleted note** from history (`history-recreate-click.js`) brings it back unpinned.
 That is correct: a pin is session state, and delete was the user saying they were done with it.
 
+### 4.6 The table's pin mark becomes a button
+
+Today a pinned row shows a pin beside its open link that is only a mark: `renderPinMark()` in
+`ui-functions-render/render-pin.js` deliberately draws it "not a button, so it never competes with
+the open link beside it". With every note this button makes being pinned, the table needs a way to
+unpin, so in the table the mark becomes a button that **calls the same handler as a card's pin**,
+`handlePinToggle()` through `data-action="pin-toggle"`. No new click handler and no new wiring.
+
+- **A third drawing in `render-pin.js`**, beside the card's button and the mark: the mark's SVG and
+  class inside a `<button class="pin-mark-button" data-action="pin-toggle" data-file-id="…"
+  tabindex="-1" data-tip="unpin">`. `render-cell-value.js` uses it for the file column in place of
+  `renderPinMark()`. List view keeps `renderPinMark()`: its mark is inside a `<summary>`, where a
+  press would also open and close the note.
+- **`data-file-id` on the button itself.** `handlePinToggle()` finds the note with
+  `target.closest('[data-file-id]')`, which on a card is the card. A table row carries `data-vt-id`
+  instead, but `closest()` includes the element itself, so the button carrying its own id is found
+  first. The open link beside it already carries its own `data-file-id` the same way. The handler's
+  focus step only runs for a `.keyboard-navigable` target, so in the table it does nothing, and the
+  render's own focus carry (`keep-cell-state.js`) puts focus back in the file cell.
+- **Shown only on a pinned row**, as the mark is, so in the table it unpins and never pins.
+- **Follows on the first press**, like a tag pill and unlike a `[[link]]`. It is small and never
+  fills its cell, so there is always cell left to press to select it. The file cell takes no caret
+  anyway.
+- **`tabindex="-1"`**, as a card's pin, so Tab still moves cell to cell. Its `mousedown` is not
+  cancelled: the press focusing it is what lets the render carry focus back to the file cell.
+- **CSS in `note-pin.css`**, beside `.pin-mark`: undo the browser's button plate (no background,
+  border or padding, `cursor: pointer`), keep the mark's size and resting opacity, full opacity on
+  hover. No new file — it is the same pin in the same place.
+- **Update CLAUDE.md, *Pinning a note***, which says table view "marks" a pinned note: it is now a
+  button there. The rule that the mark lives in the file column so it can reach neither a note nor
+  the clipboard still holds.
+
 ---
 
 ## 5. Tests
@@ -233,7 +265,8 @@ Nothing else at level 1.
 where focus sits; a new spec file is for a new area and this is not one):
 
 - sorted by something other than last modified, press `+`: no modal opens, the first row is the new
-  note and wears the pin mark, and focus is not in a cell. Then Alt+Shift+N makes a second, also
+  note and wears the pin, and focus is not in a cell. Pressing that pin unpins it and its row goes
+  to where the sort puts it. Then Alt+Shift+N makes a second, also
   pinned, also at the top; switch to cards, and Alt+Shift+N makes a third, first there too, with no modal.
 
 **The pins — no new tests, a line or two added to tests that already do the act:**
@@ -261,7 +294,8 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 
 1. `table-new-note.css`, its `@import`, the strip's overflow rule, and the button in the header
    renderer. Screenshots as listed in §4.1.
-2. `unpin()` and `movePin()`, and their calls in the delete and the rename (§4.5).
+2. `unpin()` and `movePin()`, and their calls in the delete and the rename (§4.5). The table's pin
+   as a button (§4.6), and the CLAUDE.md line about it.
 3. The click handler, its wiring, and Alt+Shift+N beside Alt+N. Screenshot after a press.
 4. The two tests and the added assertions. Manifest bump.
 
@@ -271,7 +305,8 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 
 1. **Prompts, not a template.** The note is created empty; only the cells filled in become keys.
 2. **Pinned** to put it at the top, to be judged in use (§4.4). Only this button pins. A pin is
-   cleared when its note is deleted and follows it when it is renamed (§4.5).
+   cleared when its note is deleted and follows it when it is renamed (§4.5). In the table the pin
+   is a button that unpins, through the cards' own handler (§4.6).
 3. **Focus is not moved.**
 4. **Under the file column's heading, centred in that column.**
 5. **Alt+N unchanged; Alt+Shift+N for this button**, wherever and under the same guard as Alt+N.
