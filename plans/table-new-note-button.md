@@ -1,27 +1,27 @@
 # Plan: a new-note button on the table
 
-Status: **not started — open questions in §7 to settle first**
+Status: **not started — questions settled (§7)**
 Follow-on: `plans/table-rename-filename.md`
 
 ---
 
 ## 1. What this delivers
 
-A small, faint `+` sitting on the line between the table's header and its first row. Pressing it
-creates a note exactly as the floating new-note button does — the next free `note-N.txt`, empty, in
-the root of the loaded folder — but **does not open it**. The new row appears at the top of the
-table with a cell selected, so the next thing typed fills in a column.
+A small, faint `+` sitting on the line between the table's header and its first row, centred in
+the file column. Pressing it creates a note exactly as the floating new-note button does — the next
+free `note-N.txt`, empty, in the root of the loaded folder — but **does not open it**. The new note
+is **pinned**, so its row is first in the table whatever the sort. Focus does not move.
 
-**Why:** the active layout becomes a template. Its columns are the properties a note of this kind
-should have, so tabbing along a fresh row and typing is a way to make a note with front matter in
-that shape, without opening the editor or remembering the keys.
+**Why:** the active layout becomes a set of prompts. Its columns are the properties a note of this
+kind should have, so filling in the new row's cells gives the note front matter in that shape,
+without opening the editor or remembering the keys. Only the cells filled in become keys.
 
-**In scope:** the button, its CSS, its click handler, where focus goes afterwards, and the case
-where the new row is not on screen.
+**In scope:** the button, its CSS, its click handler, pinning the new note, a keyboard shortcut,
+and the case where the new row is filtered out.
 
-**Out of scope:** writing any key into the new note before the user types (see §7 Q1), a filename
-other than `note-N.txt` (that is the next plan, renaming from the table), putting note creation on
-the table's undo stack.
+**Out of scope:** writing any key into the new note before the user types; a filename other than
+`note-N.txt` (that is the next plan); putting note creation on the table's undo stack; a way to
+unpin from the table (see §4.4).
 
 ---
 
@@ -31,16 +31,17 @@ the table's undo stack.
 |---|---|---|
 | Next free name, read from the disk | `findUnusedFilename()` in `services/create-note.js` | as is |
 | Empty file written, adopted if it already exists, registered in `appState` | `createEmptyNote()` in `services/create-note.js` | as is |
-| Sort then render | the two lines every creator runs (`sortAppStateFiles(property, propertyType(property), direction)` then `renderFiles()`) | as is |
-| Focusing a cell by row id and column | `elementAt()` in `ui-functions-render/keep-cell-state.js` | as is |
-| A key typed into a note with no block | `editing/front-matter-splice.js` — block at byte 0, blank line after | as is: the new note is empty, and this is exactly that case |
-| A row whose sort place changes while you are in it | `ui-functions-table/pending-row-move.js` | as is: under the default sort an edited new row stays at the top anyway; under another sort it is held until focus leaves |
-| Report line | `reportAction()` / `reportFailure()` in `output-report.js` | for the not-on-screen case |
+| Pinned notes first, the current sort inside each group | `fileComparator()` in `services/file-object-sort.js`, through `sortAppStateFiles()` | as is |
+| The pin mark beside a pinned row's open link | `renderPinMark()` in `ui-functions-render/render-pin.js` | as is |
+| Back to page 1 on render | `renderFiles()` with no arguments resets `currentPage` to 1 | as is |
+| Whether a row was drawn | `checkFileOnPage()` in `ui/pagination/check-file-on-page.js` | as is |
+| A key typed into a note with no block | `editing/front-matter-splice.js` — block at byte 0, blank line after | as is: the new note is empty, which is exactly this case |
+| Report line | `reportAction()` / `reportFailure()` in `ui-functions-render/output-report.js` | for the filtered-out case and a failed create |
 
-**Nothing below the click handler is new.** Disk, parsing, registration, sorting and rendering are
-all shared with the floating button and with the flowchart's new note
-(`ui-functions-flowchart/flowchart-note-create.js`, which already creates a note without opening
-it — the precedent for this).
+**Nothing below the click handler is new**, except one three-line function in `pins.js` (§3).
+Disk, parsing, registration, sorting and rendering are all shared with the floating button and
+with the flowchart's new note (`ui-functions-flowchart/flowchart-note-create.js`, which already
+creates a note without opening it — the precedent for this).
 
 ---
 
@@ -50,8 +51,11 @@ it — the precedent for this).
 |---|---|---|
 | Click handler | `public/js/ui/ui-functions-click/create-table-note-click.js` | One file per click action, beside `create-new-note-click.js` |
 | Wiring | `event-listeners-add.js`: import, and `'create-table-note': handleCreateTableNote` in `clickActionHandlers`, next to `'create-new-note'` | The normal way |
-| Markup | one `<button>` in `render-file-list-table.js`, inside `.table-chrome` after `${headerHtml}` | See §4.1 |
-| CSS | `public/css/table-new-note.css`, `@import`ed in `public/style.css` beside `button-new-note.css` | A new component gets its own file; the floating button's file is about a fixed, shadowed 80px button and shares nothing but the character |
+| `pinNote(fileId)` | `public/js/services/pins.js`, beside `togglePin()` | `pins.js` is the one writer of `appState.pinnedIds`. A toggle is wrong here: a deleted note's pin is not cleared, so a new note reusing its name would be *unpinned* by a toggle |
+| Markup | a small private `newNoteButton()` in `ui-functions-table/render-table-header.js`, appended after the header cells | See §4.1 — it is a grid item of the header |
+| CSS | `public/css/table-new-note.css`, `@import`ed in `public/style.css` beside `button-new-note.css` | A new component gets its own file |
+| Header strip clipping | one rule in `note-table.css`: `overflow: clip` → `overflow-x: clip; overflow-y: visible` | So the button can hang below the header's edge (§4.1) |
+| Shortcut | one entry, `'N'`, in `noModalAltActions` in `ui-functions-click/keyboard-shortcuts.js` | Alt+Shift+N (§4.3) |
 | Manifest | minor bump | Every code change |
 
 **Deliberately not done:**
@@ -59,9 +63,9 @@ it — the precedent for this).
 - No shared CSS with `#btn-new-note`. The "same plus" is the text character `+`, not an icon
   symbol, so there is nothing to share but the glyph and the colour tokens (`--colour-contr` through
   `color-mix`), which every button already uses directly.
-- No change to `handleCreateNewNote`, and no flag on it for "don't open". That function's whole
-  shape is the view transition from the button into the modal; a flag would leave it half one thing
-  and half another. The new handler is about ten lines that call the same two services.
+- No change to `handleCreateNewNote`, and no "don't open" flag on it. That function's whole shape
+  is the view transition from the button into the modal; a flag would make it half one thing and
+  half another. The new handler is about fifteen lines calling the same services.
 - No extracted `resortFiles()` helper. The sort-then-render pair is already written out in six
   places; tidying that is its own change, not this one's.
 
@@ -72,31 +76,45 @@ it — the precedent for this).
 ### 4.1 The button
 
 ```html
-<button type="button" class="table-new-note" data-action="create-table-note" data-tip="new note">+</button>
+<button type="button" class="table-new-note" style="grid-column: N"
+        data-action="create-table-note" data-tip="new pinned note | Alt+Shift+N">+</button>
 ```
 
-- **Inside `.table-chrome`, not inside the header strip.** The strip clips horizontally
-  (`.note-table-header-strip`) and is moved by a transform as the table scrolls sideways; the chrome
-  is neither. So the button is never clipped, stays at the left while the table scrolls sideways,
-  and — the chrome being sticky — rides the header's lower edge down the page while the rows scroll
-  up under it. It is always one press away.
-- **Positioned absolutely on the chrome's bottom edge**: `.table-chrome` gets `position: sticky`
-  already, which is a containing block, so `bottom: 0; translate: 0 50%` centres the button on the
-  line. Chrome's `z-index: 6` puts the half that hangs over the first row above every row.
-- **Horizontally at the left, over the file column** (§7 Q4). The first row's file cell holds the
-  open link; check by screenshot that the button sits clear of it, nudging `left` if not.
-- **Look:** no background, no border, no shadow. Font size around 18px, `line-height: 1`, a small
-  square hit area. Colour `color-mix(in srgb, var(--colour-contr), transparent 70%)`, full
-  `--colour-contr` on `:hover` and `:focus-visible`. Under `@media (pointer: coarse)` there is no
-  hover, so use the middle strength there, and give it a larger hit area (as the selected cell's
-  press target does).
-- **Drawn by the table's own renderer**, so it exists only while the table is drawn, and only on a
-  full render — a partial render replaces `.list-table` and leaves the chrome alone. With no loaded
-  folder or an empty-state message there is no table, so no button; the floating button still
-  covers those.
-- It must not trip the table's own rules: a press on it is outside the cells, so it clears a range
-  (fine — focus is about to move to the new row anyway). Check the click-outside handler does not
-  swallow it.
+**A grid item of `.note-table-header`, in the file column's track** — `N` is the file column's
+position among the shown columns, plus one. The file column (`internalId`) is in `shown_always`, so
+it is always there, but can be moved, which is why the position is looked up rather than assumed.
+
+- **Why the header and not `.table-chrome`:** the header is moved sideways with the table's scroll,
+  so a button in its grid stays under the file column wherever that column is. In the chrome it
+  would stay at the left of the screen while the column scrolled away.
+- **`grid-row: 1` is required.** An item with a column but no row is auto-placed in the first row
+  where that cell is free — row 2, under the header. Row 1 puts it over the file heading, and
+  `align-self: end; justify-self: center; translate: 0 50%` centres it on the header's lower edge.
+- **`position: relative; z-index: 2`**, above the file heading (a sticky heading is `z-index: 1`).
+  The half that hangs over the first row is above every row already: `.table-chrome` is
+  `z-index: 6`.
+- **The strip must not clip it vertically.** `.note-table-header-strip` is `overflow: clip`, which
+  would cut the lower half off. `overflow-x: clip; overflow-y: visible` keeps the sideways clip the
+  strip exists for — `clip`, unlike `hidden`, may pair with `visible`. Check by screenshot that
+  nothing else in the header was relying on the vertical clip.
+- **When the file column sticks**, the button gets `is-sticky` and the same `sticky-hold` keyframe
+  on the same timeline as the sticky headings (`note-table-sticky.css`), so it is held still with
+  its column. The no-timeline fallback in `table-scrollbar-sync.js` already moves every `.is-sticky`
+  in the header, so that needs nothing.
+- **Sticky header:** the chrome sticks to the page, so as the rows scroll up under it the button
+  stays on the header's lower edge, over whichever row is under it. Always one press away.
+- **Look:** no background, border or shadow; about 18px, `line-height: 1`, `padding: 0`. Colour
+  `color-mix(in srgb, var(--colour-contr), transparent 70%)`; full `--colour-contr` on `:hover` and
+  `:focus-visible`. Under `@media (pointer: coarse)` there is no hover, so it rests a step stronger,
+  and a transparent `::after` gives it a larger press target than its drawing.
+- **Check by screenshot** that it sits clear of the first row's open-file link and pin mark, in
+  light and dark, on a coloured first row, scrolled down, scrolled sideways, and with the file
+  column sticky.
+- **Drawn by the header renderer**, so it exists only while the table is drawn, and is redrawn only
+  on a full render. With no folder, or an empty-state message, there is no table and no button; the
+  floating button covers those.
+- A press on it is outside the cells, so it ends a range. That is fine. Check the table's
+  press-outside handlers do not swallow the click.
 
 ### 4.2 The click
 
@@ -104,56 +122,44 @@ it — the precedent for this).
 handleCreateTableNote():
     return if no dirHandle, or appState.bulkWriteInFlight
     filename = await findUnusedFilename(appState.dirHandle)
-    note = await createEmptyNote('', filename)        // failure → reportFailure, stop
-    sort with the current sortState; renderFiles()
-    cell = elementAt({ vtId: note.internalId, prop: <first column that takes a caret> })
-    if cell → cell.focus()                             // selected, not opened — §7 Q2
-    else    → reportAction(`created ${filename} — not shown: …`)   // §4.3
+    note = await createEmptyNote('', filename)      // a throw → reportFailure, stop
+    pinNote(note.internalId)
+    sort with the current sortState; renderFiles()  // back to page 1
+    if !checkFileOnPage(note.internalId):
+        reportAction(`created ${filename}, hidden by the current filter`)
 ```
 
-- **Selected, not opened.** Focus selects (selection follows focus), so one more press, Enter or F2
-  opens it, and Tab walks along the row. Opening it straight away would leave the caret in a column
-  the user may not want first.
-- **Focus goes to the first visible column `isPropertyEditable()` allows**, which is the first
-  front matter column (or `title`/`color`) in layout order; falling back to the file cell if the
-  layout has none. That is the "template" order the user arranged.
-- `renderFiles()` with no arguments, as the other creators call it: a new row changes which rows
-  are drawn, so `nothingMoved` is false and the row slides in by view transition, which is the
-  visible "here it is".
+- **Pinned, so first.** Pins sort ahead of everything, with the current sort inside the group, so
+  the new row is first on page 1 under any sort — or among the pins, ordered by the current sort,
+  if other notes are pinned. Under the default sort (last modified, newest first) that is first.
+- **Focus is not moved.** The press focused the button, and the full render that follows replaces
+  the header, so focus falls to the body. Nothing is selected. Clicking a cell in the new row is
+  how to start filling it in.
+- **Filtered out:** an empty note matches almost no filter, so under one the row is not drawn. The
+  report line says so. The note exists, pinned; clearing the filter shows it at the top.
+- `renderFiles()` with no arguments, as the other creators call it: the rows drawn have changed,
+  so the new row slides in by view transition, which is the visible "here it is".
+- Editing the new row moves its last-modified time, but a pinned row is first among the pins
+  either way, so it does not jump while you fill it in.
 
-### 4.3 When the new row is not on screen
+### 4.3 Keyboard
 
-Under the default sort (`lastModified`, descending) the new note is the newest file and goes to the
-top. It does **not** always land on screen, and the request's assumption needs these exceptions
-stated:
+- **Alt+N** stays as it is everywhere: a new note, opened in the modal.
+- **Alt+Shift+N** presses the table's button: `'N': () => document.querySelector('.table-new-note')?.click()`
+  in `noModalAltActions`. Shift arrives as the capital `N` on the layouts the existing Alt keys
+  already work on, so it needs no other change. Going through the button means it does nothing
+  unless the table is drawn, so no view check is needed. The existing guard against an open dialog
+  applies.
 
-1. **Pinned notes sort first** (`fileComparator()`), so it lands *below* the pins — still on page 1,
-   still visible. Fine as is.
-2. **Another sort** puts an empty note wherever empty values go — often the end, often another page.
-3. **A page other than 1** under the default sort: the note is on page 1, out of view.
-4. **An active filter**: an empty note matches almost no filter, so it is filtered out entirely.
-
-Proposal, smallest that is honest (§7 Q3):
-
-- **Cases 2 and 3:** go to the page the new note is on. That needs its position in the filtered,
-  sorted list divided by the page size — read from wherever pagination already works this out (find
-  it during implementation; if it is not cleanly reachable, fall back to the report line below
-  rather than duplicate the filtering).
-- **Case 4:** do nothing clever. The report line says
-  `created note-4.txt — hidden by the current filter`. The note exists; clearing the filter shows it.
-
-**Rejected:** inserting the row at the top regardless of sort and holding it there with
-`pendingRowMove`. That mechanism holds a row *where it already is*; a row drawn somewhere the sort
-does not put it would need the renderer to special-case one id, which is a second ordering rule in
-the table. Also rejected: disabling the button while a filter is active — a press that does nothing
-visible plus a line saying why is clearer than a button that is mysteriously greyed.
-
-### 4.4 Things that stay as they are
+### 4.4 Things to know, and to judge in use
 
 - **Not on the undo stack**, the same as the floating button. Deleting the note is the way back.
-- **Alt+N keeps opening the note in the modal**, in every view (§7 Q5).
-- The note is written empty. Columns the user leaves blank write nothing — the layout is a template
-  of *prompts*, not of keys.
+- **Pins accumulate.** Each note made this way stays pinned for the session. Table view shows a pin
+  mark but has no unpin control. Unpinning means switching to cards, or reloading the folder. If
+  that grates in use, the options are a press on the table's pin mark to unpin, or unpinning the
+  note once its row has been edited and left. Both are deliberately left out until it is tried.
+- **A deleted note's pin is not cleared** — a pre-existing gap, harmless except to a toggle, which
+  is why `pinNote()` adds rather than toggles.
 
 ---
 
@@ -162,27 +168,28 @@ visible plus a line saying why is clearer than a button that is mysteriously gre
 The write is not new: `createEmptyNote()` and `findUnusedFilename()` are already exercised at
 level 1 by `tests/1-data/30-empty-folder.spec.js` (the floating button) and
 `33-create-linked-note.spec.js`, and the first key typed into a note with no block is
-`49-table-cell-writing.spec.js` "a note with no front matter at all is given a block at byte 0". So
-the only new thing touching a file is *which button* called them.
+`49-table-cell-writing.spec.js`, "a note with no front matter at all is given a block at byte 0".
+So the only new thing touching a file is which button calls them.
 
-**Level 1 — one test, added to `30-empty-folder.spec.js`** (it is the spec about the new-note
-write; the CLAUDE.md rule is that anything writing a file is level 1, and this is the cheapest way
-to honour it):
+**Level 1 — one test, in `33-create-linked-note.spec.js`.** Its mock
+(`setupMockDirectoryWithNoteCreation`) is the one for notes the app creates, and returns an
+existing file untouched, as the real API does. CLAUDE.md puts anything that writes a file at level 1,
+and this is the cheapest way to honour that:
 
-- with a folder already holding `note-1.txt`, pressing the table's `+` writes `note-2.txt`, empty,
-  and `note-1.txt` is byte-for-byte unchanged.
+- in table view, pressing the `+` writes an empty `note-1.txt`, and the folder's other files are
+  byte-for-byte unchanged.
 
-Nothing else at level 1. Typing into the new row is the byte-0 block case, already held.
+Nothing else at level 1.
 
-**Level 2 — one test, added to `55-table-row-move.spec.js`** (the spec about where table rows go
-and where focus sits; a new spec file is for a new area and this is not one):
+**Level 2 — one test, in `55-table-row-move.spec.js`** (the spec about where table rows go and
+where focus sits; a new spec file is for a new area and this is not one):
 
-- press `+` in a populated table: no modal opens, the first row is the new note, and the focused,
-  unexpanded cell is that row's first editable column. Then type a value, Enter, and the row is
-  still first.
+- sorted by something other than last modified, press `+`: no modal opens, the first row is the new
+  note and wears the pin mark, and focus is not in a cell. Then Alt+Shift+N makes a second, also
+  pinned, also at the top.
 
-If §4.3's page jump is built, one more assertion in the same test from page 2 — not a second test.
-The appearance (faint, stronger on hover) is checked by screenshot during the work, not by a test.
+The filtered-out report line, and the appearance, are checked by hand and by screenshot during the
+work, not by tests.
 
 While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 
@@ -190,25 +197,17 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 
 ## 6. Steps
 
-1. CSS file and `@import`; button markup in the table renderer. Screenshot: light, dark, scrolled
-   down, scrolled sideways, a coloured first row.
-2. Click handler and wiring. Screenshot after a press.
-3. §4.3 as settled.
-4. The two tests. Manifest bump.
+1. `table-new-note.css`, its `@import`, the strip's overflow rule, and the button in the header
+   renderer. Screenshots as listed in §4.1.
+2. `pinNote()`, the click handler, its wiring, and Alt+Shift+N. Screenshot after a press.
+3. The two tests. Manifest bump.
 
 ---
 
-## 7. Open questions
+## 7. Decisions
 
-1. **Template, or prompts?** As written, the note is empty and only the cells you fill in become
-   keys. If "the layout is a template" means the note should be *born* with every layout column as a
-   bare key (`status:` etc.), that is a different, bigger feature: a second write, and every empty
-   column would stop being "keyless" and start offering "delete column". Recommend: empty, as asked
-   ("exactly the same way").
-2. **Which cell gets focus** — the first editable column (recommended), the file cell, or nothing?
-   And selected (recommended) or opened with a caret?
-3. **When the row is not on screen** (§4.3) — jump to its page for sort/pagination and say so for a
-   filter (recommended), or only ever say so on the report line (simplest)?
-4. **Horizontal position** — left end over the file column (recommended), or somewhere else?
-5. **Alt+N in table view** — keep it opening the modal everywhere (recommended), or make it do this
-   in table view?
+1. **Prompts, not a template.** The note is created empty; only the cells filled in become keys.
+2. **Pinned** to put it at the top, to be judged in use (§4.4).
+3. **Focus is not moved.**
+4. **Under the file column's heading, centred in that column.**
+5. **Alt+N unchanged; Alt+Shift+N for this button.**
