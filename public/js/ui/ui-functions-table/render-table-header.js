@@ -92,7 +92,7 @@ export function renderTableHeader(current_props) {
  */
 function newNoteButton(column, stickyCount) {
     const sticky = column < stickyCount ? ' is-sticky' : '';
-    return `<button type="button" class="table-new-note${sticky}" style="grid-column: ${column + 1} / span 1" data-action="create-table-note" data-tip="new pinned note | Alt+Shift+N">+</button>`;
+    return `<button type="button" class="table-new-note${sticky}" style="grid-column: ${column + 1} / span 1" data-action="create-table-note" data-tip="new pinned note | Alt+Shift+N"><span class="table-new-note-glyph">+</span></button>`;
 }
 
 /**

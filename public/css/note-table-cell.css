@@ -62,6 +62,13 @@
     text-overflow: ellipsis;
 }
 
+/* Except the file column, whose link is one word and never its whole width, so there is always cell
+   left to press. The padding pushed its pin past the content edge, where the ellipsis took it: the pin
+   vanished as soon as the pointer reached it. */
+.note-table-cell.is-selected:not(.is-expanded)[data-prop="internalId"] {
+    padding-right: var(--table-cell-padding);
+}
+
 /* The press target, and it is deliberately wider than the strip: the strip is what you see, so it
    is kept to 1em and takes only a few characters with it, while the part that takes the press is
    1.5em — the extra overlapping the text, invisible, and still pressable.

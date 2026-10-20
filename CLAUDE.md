@@ -1216,6 +1216,8 @@ file name in its summary, a mark only, since a press inside a `<summary>` also o
   empty and not opened: its row's cells are the prompts. See `plans/completed/table-new-note-button.md`.
 - **A pin leaves with its note**: `unpin()` on a delete, `movePin()` on a rename, so a freed
   `note-N.txt` never arrives already pinned.
+- **A pinned pin is in the tab order; an unpinned one is not**, since it is shown by hover alone.
+  Both pins draw an icon button's focus outline.
 
 - **The pins are a `Set` of ids, `appState.pinnedIds`, never a property on the file object.**
   `rereadFile()` rebuilds the file object after every save, and front matter is spread into it, so a

@@ -372,3 +372,17 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
    reached the heading's middle, so a press meant for the column menu made a note — found by
    `40-column-menu.spec.js`, whose click on the heading's centre landed on it. Its touch target
    grows sideways and down, never up, for the same reason.
+
+### Follow-up
+
+5. **The `+` is 1.275em, with a 0.6 line-height.** 0.85em was too small to read; the short box is
+   what keeps a larger glyph out of the heading's middle (§8.4), since line-height crops the box and
+   not the drawing.
+6. **A pinned pin is in the tab order, in the table and on a card** — §4.6's `tabindex="-1"` is gone
+   from the table's, and a card's keeps it only while unpinned, when it is shown by hover alone. Both
+   draw an icon button's 2px focus outline.
+7. **The selected file cell keeps its ordinary right padding.** The strip's extra 1em pushed the pin
+   past the content edge, and the ellipsis hid it the moment the pointer reached it.
+8. **The glyph takes no presses** (`.table-new-note-glyph`, `pointer-events: none`). The browser
+   hit-tests text by its font's full height rather than the cropped line, so at 1.275em the `+` took
+   presses in the heading's middle even though its box sat below it.
