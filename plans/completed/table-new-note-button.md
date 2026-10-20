@@ -381,8 +381,13 @@ While iterating: `npm test tests/2-behaviour/55-table-row-move.spec.js`.
 6. **A pinned pin is in the tab order, in the table and on a card** — §4.6's `tabindex="-1"` is gone
    from the table's, and a card's keeps it only while unpinned, when it is shown by hover alone. Both
    draw an icon button's 2px focus outline.
-7. **The selected file cell keeps its ordinary right padding.** The strip's extra 1em pushed the pin
-   past the content edge, and the ellipsis hid it the moment the pointer reached it.
+7. **The selected file cell has no ellipsis, and its ordinary right padding.** The strip's extra 1em
+   did not move the pin; it narrowed the content box until the pin overflowed it by 11px. Chrome
+   painted the overflowing pin at rest, but the hover's repaint at full opacity let the ellipsis hide
+   it — invisible, yet still pressable, being still laid out. Measured: keeping the hover at 0.6,
+   starting at 1, or turning the ellipsis off each kept it visible. `text-overflow: clip` is the fix
+   that holds in a narrowed column; the normal padding drops the strip the file column has no use
+   for, and the stray ellipsis dot after "open" with it.
 8. **The glyph takes no presses** (`.table-new-note-glyph`, `pointer-events: none`). The browser
    hit-tests text by its font's full height rather than the cropped line, so at 1.275em the `+` took
    presses in the heading's middle even though its box sat below it.
