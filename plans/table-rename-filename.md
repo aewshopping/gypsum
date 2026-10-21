@@ -21,7 +21,7 @@ options dialog already uses.
   for reading it (§4), one validator.
 - **A name that cannot be used says so while it is typed**, inside the open cell, and closing the
   cell then writes nothing.
-- **Not on the table undo stack** in this plan — see §9 and the open questions in §13.
+- **One Ctrl+Z puts the old name back**, and one redo the new one, like any other table edit — §9.
 
 **Out of scope:** rewriting `[[links]]` in other notes that name the renamed one (§8.3); pasting
 into the filename column (§7.2); the `filepath` column, which stays read-only and hidden by default.
@@ -128,7 +128,7 @@ already gives: copying a filename cell would copy `plan.md` where it now copies 
 pseudo-element cannot be selected, so a folder could not even be copied by hand; and a misspelt
 folder — the commonest reason a path is wrong — would still need the note modal. What B protects
 against is moving a file by typing a `/` — and in A that is visible, said in the open cell before
-it happens (§5.2), reported after (§6.2), and undone by editing the cell again.
+it happens (§5.2), reported after (§6.2), and undone with Ctrl+Z (§9).
 
 So the CLAUDE.md line that keeps `filepath` out of the table — "editing a filepath would move the
 file" — is answered rather than broken: the *filename* cell may move a file, deliberately, because
@@ -315,6 +315,8 @@ render (full: the filter results changed)
 put focus back on the renamed row's filename cell
 report: "renamed note-3.txt to shopping.txt" / "moved plan.md to work/projects/"
         + any warnings, on the same line — not alert()
+pushUndoBatch([record], { kind: 'rename-file', property: oldPath, to: newPath })   // §9
+markUndoState()
 holdRowMove([newId])
 ```
 
@@ -396,20 +398,84 @@ The case this plan exists for, a note just made by the `+`, has no links to it y
 
 ## 9. Undo
 
-**A table rename is not on the undo stack in this plan.** The stack's records are front matter
-splices checked by `expect`; a rename is a different kind of change, with its own refusal
-(the old path taken by another note since) and its own redo. It would need a new batch kind,
-`describeBatch` wording, the undo list's row, `undo.gypsum` round-tripping and an `undo-stacks.js`
-branch — a plan's worth on its own.
+**A table rename goes on the table's undo stack, and is reversed by renaming back.** It fits the
+stack as it stands, which is why it is in this plan: one new batch kind, one branch where a batch
+is reversed, one line of wording. Nothing about the stacks, their file, the horizon, the undo list
+or the buttons changes.
 
-What does hold, and is worth saying in the code:
+### 9.1 The record is already the right shape
 
-- **Ctrl+Z after a rename undoes the edit before it**, on the right note — `renameInUndoStacks`
-  has moved that edit's id to the new path.
-- **The way back is to edit the cell again**, which is one press away, since finishing leaves it
-  selected.
+`undo.gypsum` accepts a batch whose edits each carry string `internalId`, `property`, `before` and
+`after` (`isBatch()` in `undo-file.js`). A rename is exactly that:
 
-See §13 for whether this should be reversed.
+```js
+{ timestamp, kind: 'rename-file', property: 'notes/note-3.txt', to: 'notes/shopping.txt',
+  edits: [{ internalId: 'notes/shopping.txt', property: 'filename',
+            before: 'notes/note-3.txt', after: 'notes/shopping.txt' }] }
+```
+
+So it saves and loads with no change to the file's reader, and `UNDO_VERSION` does not move.
+`before` and `after` are **whole paths**, not names: the reversal has to be able to move a note
+back as well as rename it. One edit per batch, always — a table rename renames one note — and a
+`rename-file` batch never holds a front matter edit, so no batch is ever half of each.
+
+The batch's `property` and `to` are the paths too, so the name survives the reversal: `push()`
+copies them onto the other stack, which is how a redo already keeps the undo's name.
+
+### 9.2 Reversing it: `reverseFileRename()`
+
+`reverseBatch()` gains one branch at the top: a `rename-file` batch goes to a new
+`table-undo/reverse-file-rename.js` instead of `applyRawEdits`, and comes back in the same
+`{ applied, refused, batch }` shape, so `reverseCellEdits()`, the flash and the report line need
+nothing of their own.
+
+```
+reverseFileRename(edit):
+    file = myFiles.find(f => f.internalId === edit.internalId)
+    if !file or edit.internalId !== edit.after:  refuse "notes/shopping.txt is no longer there"
+    { newFolder, newName } = split edit.before at its last '/'
+    check = validateRenameInputs({ currentFile: file, newFolder, newName, myFiles })
+    if !check.ok:  refuse check.reason            // e.g. another note is now called note-3.txt
+    await renameNote(file, folder, name)          // §6.1 — backups, issues, filters, ids followed
+    return the record turned round: { internalId: edit.before, property: 'filename',
+                                      before: edit.after, after: edit.before }
+```
+
+- **The check is the rename's `expect`.** A front matter undo refuses when the note no longer says
+  what the edit left; a rename undo refuses when the note is no longer *where* the edit left it.
+  `renameInUndoStacks()` rewrites `internalId` whenever a note is renamed, and nothing rewrites
+  `after` — so the two disagree exactly when the note has been renamed again since, say from the
+  file options dialog, and that is the case to refuse rather than to undo two renames with one press.
+- **The other refusal is the one the validator already gives**: the old path is now taken, by a
+  note made or renamed into it since. Undo never overwrites a note.
+- **A refused rename is not kept in `undoRefusals`.** Those exist to keep a value that would
+  otherwise be lost; here nothing is lost — both names are on the report line, and the note is
+  intact under its current one. So `reverseCellEdits` reports a refused rename with its reason,
+  through `reportFailure` — "not undone: another note is now called note-3.txt" — rather than the
+  "1 not undone" nudge, which filters to notes carrying a refusal and would find none. As with any
+  refused edit, the batch leaves both stacks.
+- **The disk's own collision check still applies** inside `renameFile`: a file that appeared behind
+  the app's back raises its alert and throws, and the throw is a refusal like the two above.
+- **A folder the rename created stays** when it is undone, empty. The app does not delete folders
+  anywhere, and the dialog's move leaves its old folder in the same state.
+- **Busy and flash as now.** One note, so `whileWriting(false, …)` — the flag, no bar. The returned
+  record names the note where it now is, with `property: 'filename'`, so `flashUndoneCells` finds
+  the right cell; focus is followed by §6.3 like any other rename.
+
+### 9.3 Its name
+
+`describeAction()` gains a line: `rename of note-3.txt to shopping.txt`, or `move of plan.md to
+work/projects/` when the folder changed, from the batch's `property` and `to`. `describeBatch()`
+leaves off its "in 1 file" for this kind — the name already says which file. So the buttons read
+`undo rename of note-3.txt to shopping.txt`, and so does the undo list's row.
+
+### 9.4 What is not on the stack
+
+**A rename from the file options dialog.** It is made from the note modal, and no edit made there
+is on the table's stack — the editor has its own undo. Ctrl+Z reaching back past the table into the
+modal would break the rule that it means "the thing I just did here". The dialog's renames are
+followed all the same: `renameInUndoStacks()` keeps every table entry pointing at the note, and
+§9.2's check turns down an undo the dialog's rename has made stale.
 
 ---
 
@@ -424,14 +490,16 @@ See §13 for whether this should be reversed.
    `isWritable`'s yaml exemption, `isPasteable`, `cellOffersPicker`; `renderFilename` escaped; the
    stem selection.
 4. **The cell commits.** The branch in `commitCellEdit`, `cell-rename-commit.js`.
-5. **The open cell's line** (§5.2): `cell-rename-note.js`, the CSS.
-6. **Docs.** CLAUDE.md: the *Column value types* bullet on `filename`/`filepath`; *What a table cell
+5. **Undo** (§9): the push in `commitRename`, `reverse-file-rename.js` and its branch in
+   `reverseBatch`, the refusal's report in `reverseCellEdits`, the wording.
+6. **The open cell's line** (§5.2): `cell-rename-note.js`, the CSS.
+7. **Docs.** CLAUDE.md: *The undo history* (a rename is reversed by renaming back); the *Column value types* bullet on `filename`/`filepath`; *What a table cell
    may contain* (`filename` joins `title` and `color` as a padlocked column that takes a caret,
    with its own writer); `RENAMEABLE_PROPERTY` and `writesFrontMatter` named beside
    `isPropertyEditable`; `store.js`'s comment on `info_columns`; the file map. Manifest minor bump.
    Move this plan to `plans/completed/`.
 
-Screenshots at steps 3 and 5: the opened cell with the stem selected, and each of the three lines.
+Screenshots at steps 3 and 6: the opened cell with the stem selected, and each of the three lines.
 
 ---
 
@@ -469,6 +537,10 @@ rename keeps:
   both disk and state untouched.
 - **A renamed note stays in a filtered list** (the §2.3 fix), from the dialog — the shared path,
   tested where the bug was.
+- **Undo and redo a table rename** (§9), on disk: undo puts the bytes back at the old path and
+  removes the new one, redo the reverse, and `undo.gypsum` holds the batch across a reload. Then the
+  two refusals: renamed again from the dialog, and the old path taken by another note — each leaves
+  both files exactly as they were.
 
 ### 11.3 Level 2 — `tests/2-behaviour/47-table-cell-editors.spec.js`
 
@@ -485,19 +557,17 @@ appear while typing; `[[` opens no picker; a paste into the column is counted as
 - A missing extension keeps the old one; a folder snaps to a loaded folder's case (§3.2).
 - `filename` takes a caret through a new clause, not `WRITABLE_CORE_PROPERTIES` (§4).
 - One `renameNote()` for the dialog and the cell, which also fixes the dialog's two gaps (§6.1).
-- No paste, no picker, no link rewriting, no undo entry (§7, §8.3, §9).
+- No paste, no picker, no link rewriting (§7, §8.3).
+- A table rename is undoable: a `rename-file` batch, reversed by renaming back, refused when the note
+  has moved on or its old path is taken (§9).
 
 ## 13. Open questions for the user
 
-1. **Undo.** Every other table edit is one Ctrl+Z away; a rename would be the exception. Is that
-   acceptable for a first version, with a follow-on plan for a `rename-file` batch kind — or should
-   it be in this plan? *Recommendation: follow-on.* The new-note case is the one this plan is for,
-   and a wrongly typed name there is fixed by typing it again.
-2. **Moving from the cell.** Design A lets a `/` move a file. If moves should stay in the dialog,
+1. **Moving from the cell.** Design A lets a `/` move a file. If moves should stay in the dialog,
    the alternative is A with a refusal — "move it from the file options dialog" — whenever the
    folder differs, which keeps the one-string display and §3.2's reader unchanged. *Recommendation:
    allow it, with §5.2's line.*
-3. **Should the `+` open the new row's filename cell straight away?** The new-note plan decided
+2. **Should the `+` open the new row's filename cell straight away?** The new-note plan decided
    not: focus returns to the `+`, so Enter makes another note. With this plan the obvious next act
    is naming the note. Changing that is a one-line follow-up to the new-note button, and is left
    out of here so this plan does not reopen that one's decision.
