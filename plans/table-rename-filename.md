@@ -561,10 +561,6 @@ appear while typing; `[[` opens no picker; a paste into the column is counted as
 - No paste, no picker, no link rewriting (§7, §8.3).
 - A table rename is undoable: a `rename-file` batch, reversed by renaming back, refused when the note
   has moved on or its old path is taken (§9).
-
-## 13. Open questions for the user
-
-1. **Should the `+` open the new row's filename cell straight away?** The new-note plan decided
-   not: focus returns to the `+`, so Enter makes another note. With this plan the obvious next act
-   is naming the note. Changing that is a one-line follow-up to the new-note button, and is left
-   out of here so this plan does not reopen that one's decision.
+- **The `+` does not open the new note's filename cell**, and focus stays on the `+` as the
+  new-note plan decided. The filename column can be hidden, so the cell may not be there to open;
+  the new row is reached the way any row is.
