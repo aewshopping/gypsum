@@ -214,6 +214,8 @@ written. Today `a&amp;b.md` on disk would draw as `a&b.md`, and committed back w
 - **A note whose front matter did not read still takes a caret in this column.** The `yamlError`
   lock exists because splicing into a block that did not parse writes into a guess; a rename copies
   the bytes untouched. `isWritable()` in `cell-editor.js` skips that test for `filename`.
+  **The renderer must not put the front matter sentence on the filename cell either**: it is drawn
+  by the same `::after` that §5.2's line uses, and a cell has one. It would also be untrue there.
 - **A mismatch cannot arise**: `filename` is a core string whose type the user cannot set.
 - **`isPasteable()` stays false for `filename`** (§7.2), so `isWritable()` and `isPasteable()` part
   company for this one column. The cleanest seam is a second question in `property-type.js`,
@@ -239,14 +241,20 @@ control character, and the validator refuses it.
 On every `input` in an open filename cell, `readPathText` + `validateRenameInputs` run (pure,
 microseconds; `myFiles` is already in memory) and the result is written onto the cell as
 `data-rename-note`, drawn by CSS inside the open cell exactly as the mismatch sentence is
-(`note-table-cell.css`, a pseudo-element, so the commit never captures it). Three things it can say:
+(`note-table-cell.css`, a pseudo-element, so the commit never captures it). Its own attribute
+rather than `data-tip`, which the hover tooltip also reads. The open cell behaves as every other open
+cell does when a line is drawn in it — nothing new about its size or position. Three things it can
+say:
 
 - **a reason** — the validator's sentence, in the warning colour: "A loaded file with that path
   already exists."
-- **a move** — the folder differs from the current one: "moves to work/projects/", in the ordinary
-  colour. This is the line that makes design A (§3.1) safe: no one moves a file by accident without
-  being told so first.
-- nothing — an ordinary rename needs no commentary.
+- **the result, whenever it is not literally the text in the cell** — `→ notes/shopping.txt`, in the
+  ordinary colour. That covers every silent correction §3.2 makes (an extension kept, a folder's
+  case taken from the loaded one, spaces trimmed) and every move, with the folders it will create
+  counted from the same prefix set the case matching uses: `→ top/middle/lower/note-3.txt (2 new
+  folders)`. This is the line that makes design A (§3.1) safe: no one moves a file, or gets a name
+  they did not type, without being told so first.
+- nothing — the text in the cell is exactly the path the note will have.
 
 The handler is `handleFilenameCellInput`, registered beside `handleListCellInput` in the input
 delegate; one file, `ui-functions-cell/cell-rename-note.js`.
