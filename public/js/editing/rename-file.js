@@ -2,6 +2,7 @@ import { appState } from '../services/store.js';
 import { invalidateNoteNameIndex } from '../services/internal-links/note-name-index.js';
 import { extractDirFromFilepath, writeAndVerifyHandle } from '../services/file-save.js';
 import { renameInUndoStacks } from '../table-undo/undo-rename.js';
+import { movePin } from '../services/pins.js';
 
 /**
  * @file Core rename service. Resolves the target parent directory, performs a
@@ -133,6 +134,7 @@ export async function renameFile({ file, newFolder, newName }) {
         file.internalId = newFilepath;
         // The saved undo history names the file by its id, which has just changed.
         renameInUndoStacks(oldFilepath, newFilepath);
+        movePin(oldFilepath, newFilepath);
         invalidateNoteNameIndex(); // internal links resolve by filename/filepath
         // file.lastModified is intentionally left at its original value. The
         // on-disk mtime of the new copy is unavoidably "now" (the File System

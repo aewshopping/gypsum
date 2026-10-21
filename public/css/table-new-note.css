@@ -1,0 +1,87 @@
+/* The table's new-note button, in the bottom-right corner of the file column's heading — see
+   plans/completed/table-new-note-button.md.
+
+   Absolutely positioned with a grid-column (inline) and grid-row: an out-of-flow child of a grid
+   takes that grid area as its containing block, so it sits in the file column's heading wherever
+   the column has been moved, takes no cell, and moves no heading. The header has to be the
+   containing block: its scroll-driven transform already makes it one, and position: relative covers
+   the browsers without scroll timelines. No z-index there, so no new stacking context. */
+.note-table-header {
+    position: relative;
+
+    /* One variable for the + and the heading's lower edge, so the two rise together: the line the
+       new row appears under. */
+    --new-note-mix: 30%;
+}
+
+@media (pointer: coarse) {
+    .note-table-header { --new-note-mix: 50%; } /* no hover to bring it up, so it rests stronger */
+}
+
+.note-table-header:has(> .table-new-note:is(:hover, :focus-visible)) {
+    --new-note-mix: 100%;
+
+    & > .note-table-cell-header[data-property="internalId"] {
+        border-bottom-color: color-mix(in srgb, var(--colour-contr) var(--new-note-mix), transparent);
+    }
+}
+
+/* No z-index while the column scrolls: positioned at auto, it paints over its own heading (not
+   positioned) and under a sticky one (z-index 1), so it slides under the stuck columns with its
+   heading. */
+.table-new-note {
+    position: absolute;
+    grid-row: 1 / span 1; /* both lines: an out-of-flow item reads an auto end as the grid's edge */
+    /* Bottom right, but clear of the type glyph and its padlock badge, which sit hard against the
+       heading's right edge and take the corner itself: the heading's 6px padding, 2px apart, and the glyph's
+       1.6em of the heading's font, which is this one's over 1.275.
+
+       Kept in the heading's lower half: in the 90px file column a + whose box was a full line tall
+       reached the heading's middle, so a press meant for the column menu made a note instead. So the
+       glyph is large and its box short — line-height crops the box, not the drawing, which a
+       character paints centred on its line whatever the line's height. */
+    right: calc(8px + 1.6em / 1.275);
+    bottom: 1px;
+    padding: 0 2px;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 1.275em;
+    line-height: 0.6;
+    color: color-mix(in srgb, var(--colour-contr) var(--new-note-mix), transparent);
+    cursor: pointer;
+    transition: color 0.15s;
+
+    @media (pointer: coarse) {
+        &::after {
+            content: '';
+            position: absolute;
+            /* Wider and lower, never higher, for the same reason it is kept small. */
+            inset: 0 -4px -1px -8px;
+        }
+    }
+}
+
+/* The browser hit-tests text by its font's full height, not by the line box line-height cropped, so the
+   glyph itself would take presses well above the button — in the heading's middle again. It takes
+   none; only the button's own box does. */
+.table-new-note-glyph {
+    pointer-events: none;
+}
+
+.note-table-cell-header[data-property="internalId"] {
+    transition: border-bottom-color 0.15s;
+}
+
+/* Held still with its column, as a sticky heading is (note-table-sticky.css). Where there are no
+   scroll timelines, table-scrollbar-sync.js moves every .is-sticky in the header, this included. */
+.table-new-note.is-sticky {
+    z-index: 2;
+}
+
+@supports (animation-timeline: scroll()) {
+    .table-new-note.is-sticky {
+        animation: sticky-hold linear both;
+        animation-timeline: --table-h-scroll;
+    }
+}

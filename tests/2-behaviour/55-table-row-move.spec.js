@@ -213,3 +213,38 @@ test('arrowing away from an open cell closes it', async ({ page }) => {
   await expect(locked).not.toHaveClass(/is-expanded/);
   await expect(locked).not.toHaveClass(/is-selected/);
 });
+
+// The table's + (plans/completed/table-new-note-button.md): a note made pinned and not opened, first whatever
+// the sort; its pin unpins it; Alt+Shift+N does the same in any view, and Caps Lock does not turn
+// Alt+N into it.
+test('the + makes a pinned note at the top, unopened, and its pin lets it go', async ({ page }) => {
+  await openTable(page);
+  await sortBy(page, 'title', 'asc');
+  const firstRow = () => page.locator('.list-table .note-table').first();
+
+  await page.locator('.table-new-note').click();
+  await expect(firstRow()).toHaveAttribute('data-vt-id', 'note-1.txt');
+  await expect(firstRow().locator('.pin-mark-button')).toHaveCount(1);
+  await expect(page.locator('#file-content-modal')).not.toBeVisible();
+  expect(await page.evaluate(() => document.activeElement.classList.contains('table-new-note'))).toBe(true);
+
+  await firstRow().locator('.pin-mark-button').click();
+  await expect(firstRow()).not.toHaveAttribute('data-vt-id', 'note-1.txt');
+  await expect(page.locator('.pin-mark-button')).toHaveCount(0);
+
+  await page.keyboard.press('Alt+Shift+N');
+  await expect(firstRow()).toHaveAttribute('data-vt-id', 'note-2.txt');
+
+  await chooseView(page, 'cards');
+  await page.keyboard.press('Alt+Shift+N');
+  await expect.poll(() => page.evaluate(() =>
+    [...document.querySelectorAll('#output .note-grid')].slice(0, 2).map(card => card.dataset.fileId).sort()
+  )).toEqual(['note-2.txt', 'note-3.txt']);
+  await expect(page.locator('#file-content-modal')).not.toBeVisible();
+
+  // Caps Lock: Alt+N arriving as 'N' without Shift is still the note that opens.
+  await page.evaluate(() => document.body.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'N', altKey: true, bubbles: true })));
+  await expect(page.locator('#file-content-modal')).toBeVisible();
+  expect(await page.evaluate(() => window.appState.pinnedIds.has('note-4.txt'))).toBe(false);
+});

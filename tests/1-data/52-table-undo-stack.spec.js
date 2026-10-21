@@ -336,15 +336,19 @@ test('quick edits leave the newest stack on disk, a rename keeps its undo, and t
     await applyCellEdits([{ internalId: 'beta.md', property: 'status', text: 'gone' }]);
 
     const alpha = window.appState.myFiles.find(file => file.filename === 'alpha.md');
+    const { togglePin } = await import('/public/js/services/pins.js');
+    togglePin('alpha.md');
     await renameFile({ file: alpha, newFolder: '', newName: 'renamed.md' });
+    const pins = [...window.appState.pinnedIds];
 
     // beta.md goes from disk behind the app's back
     delete window.__files['beta.md'];
     const beta = await reverseBatch('undo');
     const renamed = await reverseBatch('undo');
-    return { beta: beta.refused.length, renamed: renamed.applied.length };
+    return { beta: beta.refused.length, renamed: renamed.applied.length, pins };
   });
-  expect(result).toEqual({ beta: 1, renamed: 1 });
+  // The pin follows the rename, and the old name keeps none.
+  expect(result).toEqual({ beta: 1, renamed: 1, pins: ['renamed.md'] });
   expect(await fileText(page, 'renamed.md')).toContain('status: draft');
   await expect.poll(() => undoFile(page)).not.toContain('"alpha.md"');
 

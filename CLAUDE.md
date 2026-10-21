@@ -1206,8 +1206,18 @@ screen; the sort button at the right of the count line above the file list (`.ou
 ### Pinning a note
 
 A pin on a card (cards, peek and search view) moves the note to the top of the order — shown on hover
-only, on every device alike. Table view marks a pinned note beside its open link, list
-view after the file name in its summary. See `plans/completed/note-pinning.md`.
+only, on every device alike. Table view shows a pinned note's pin beside its open link as a button
+that unpins (`renderPinMarkButton()`, the cards' `pin-toggle` handler); list view marks it after the
+file name in its summary, a mark only, since a press inside a `<summary>` also opens the note. See
+`plans/completed/note-pinning.md`.
+
+- **The table's `+` makes a pinned note, and is the only thing that pins without being asked** — in
+  the bottom of the file column's heading, beside its type glyph, and Alt+Shift+N in every view. The note is
+  empty and not opened: its row's cells are the prompts. See `plans/completed/table-new-note-button.md`.
+- **A pin leaves with its note**: `unpin()` on a delete, `movePin()` on a rename, so a freed
+  `note-N.txt` never arrives already pinned.
+- **A pinned pin is in the tab order; an unpinned one is not**, since it is shown by hover alone.
+  Both pins draw an icon button's focus outline.
 
 - **The pins are a `Set` of ids, `appState.pinnedIds`, never a property on the file object.**
   `rereadFile()` rebuilds the file object after every save, and front matter is spread into it, so a
@@ -1219,8 +1229,8 @@ view after the file name in its summary. See `plans/completed/note-pinning.md`.
   agree about where a row goes. `compareByProperty` stays pin-free for lists that are not notes.
 - **The pin is a button inside a card that opens on click**, and that is deliberate: the click
   delegate and the tooltip both use `closest()`, so the pin's own action and tooltip win.
-- **The table's mark lives in the file column**, which takes no caret and copies as a count, so the
-  mark can reach neither a note nor the clipboard.
+- **The table's pin lives in the file column**, which takes no caret and copies as a count, so the
+  pin can reach neither a note nor the clipboard.
 
 ### Linked columns
 

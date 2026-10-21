@@ -78,6 +78,7 @@ import { handleShowTagTaxonomy, handleHideTagTaxonomy, handleRenderTagTaxonomy }
 import { handleCheckboxToggle } from './ui-functions-click/checkbox-toggle.js';
 import { handleFileOptionsOpen, handleRenameConfirm, handleFileOptionsCancel, handleMoveConfirm } from './ui-functions-click/file-options-click.js';
 import { handleCreateNewNote } from './ui-functions-click/create-new-note-click.js';
+import { handleCreateTableNote } from './ui-functions-click/create-table-note-click.js';
 import { handleBackupContent, handleBackupFull } from './ui-functions-click/backup-click.js';
 import { handleLoadFolder, handleLoadOPFS, handleImportOPFS } from './ui-functions-click/load-files-click.js';
 import { handleButtonSizeChange, handleResetButtonSize } from './ui-functions-click/button-size.js';
@@ -313,6 +314,7 @@ const clickActionHandlers = {
     'file-options-cancel': handleFileOptionsCancel,
     'delete-file': handleDeleteFile,
     'create-new-note': handleCreateNewNote,
+    'create-table-note': handleCreateTableNote,
     'backup-content': handleBackupContent,
     'backup-full': handleBackupFull,
     'load-folder': handleLoadFolder,

@@ -47,9 +47,16 @@ test.describe('delete file', () => {
     await setupMockDirectoryWithDeleteSupport(page);
     await page.goto('/');
     await openFileAndRenameModal(page);
+    // Pinned, so the delete has a pin to take with it: a new note given the freed name must not
+    // arrive already pinned.
+    await page.evaluate(async () => {
+      const { togglePin } = await import('/public/js/services/pins.js');
+      togglePin(window.appState.openFileSnapshot.filepath);
+    });
     await page.click('[data-action="delete-file"]');
     await page.click('[data-action="warning-proceed"]');
     await expect(page.locator('#file-content-modal')).not.toBeVisible();
+    expect(await page.evaluate(() => window.appState.pinnedIds.size)).toBe(0);
 
     const trash = await trashFiles(page);
     expect(trash).toHaveLength(1);

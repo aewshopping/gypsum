@@ -62,6 +62,19 @@
     text-overflow: ellipsis;
 }
 
+/* Except the file column, whose link is one word and never its whole width, so there is always cell
+   left to press and nothing for the strip to do.
+
+   No ellipsis there, either, and that is the part that matters. The strip's padding left the pin
+   overflowing the content box; Chrome painted it anyway at rest, but the hover's repaint at full
+   opacity let the ellipsis hide it — invisible under the pointer, and still pressable, being still
+   laid out. The normal padding is enough while the column is its usual width; clip is what keeps a
+   narrowed column cutting the pin at the cell's edge rather than hiding it. */
+.note-table-cell.is-selected:not(.is-expanded)[data-prop="internalId"] {
+    padding-right: var(--table-cell-padding);
+    text-overflow: clip;
+}
+
 /* The press target, and it is deliberately wider than the strip: the strip is what you see, so it
    is kept to 1em and takes only a few characters with it, while the part that takes the press is
    1.5em — the extra overlapping the text, invisible, and still pressable.

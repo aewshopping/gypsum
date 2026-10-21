@@ -28,3 +28,42 @@
     margin-left: 0.3em;
     opacity: 0.6; /* the toolbar icons' resting opacity, as a pinned card's pin */
 }
+
+/* In the table the mark is a button that unpins: the browser's plate taken off, so it looks exactly
+   like the mark, and full strength under the pointer. */
+.pin-mark-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    line-height: 0; /* the ring hugs the pin rather than the line it sits on */
+    vertical-align: -0.125em;
+    margin-left: 0.3em; /* the mark's own gap, moved outside the ring */
+    cursor: pointer;
+
+    /* Above the selected cell's press strip (note-table-cell.css), which in the narrow file column
+       covers the pin: the press that selects the cell would otherwise be released on the strip. */
+    position: relative;
+    z-index: 1;
+}
+
+.pin-mark-button > .pin-mark {
+    margin-left: 0;
+    vertical-align: 0;
+}
+
+.pin-mark-button:hover > .pin-mark { opacity: 1; }
+
+/* Focus drawn as an icon button's is (button-base.css), on both pins: they are in the tab order while
+   pinned. That rule is :has(), for the icon labels that wrap an input, so a button needs its own. */
+.note-pin:focus-visible,
+.pin-mark-button:focus-visible {
+    outline: 2px solid var(--colour-contr);
+    border-radius: 5px;
+}
+
+.pin-mark-button:focus-visible { outline-offset: 2px; }
+
+.note-pin:focus-visible > svg,
+.pin-mark-button:focus-visible > .pin-mark { opacity: 1; }
