@@ -163,8 +163,21 @@ name is accepted or refused.
    with a `work/` folder loaded becomes `work/plan.md`. On a case-insensitive disk
    (`getDirectoryHandle('Work')` finds `work`) the app would otherwise record a path that does not
    match the disk after a reload; on a case-sensitive one it would make a second folder that looks
-   like a typing slip. Matched segment by segment against the folders `myFiles` holds — the same
-   set `refreshFolderDatalist()` builds.
+   like a typing slip. Matched segment by segment, each prefix against the set of **every folder
+   prefix** the loaded paths hold — `top`, `top/middle` and `top/middle/lower` for
+   `top/middle/lower/a.md`. **Not** the set `refreshFolderDatalist()` builds, which holds only each
+   file's own folder: with nothing loaded directly in `top/`, `Top/other/b.md` would find no `top`
+   to match and go on to make `Top/` beside it. Matching stops at the first segment with no match,
+   since nothing below a new folder can already exist as far as the app knows; those segments keep
+   the case they were typed in.
+
+   That settles case only. **Whether each folder is created or found is `resolveTargetDir()`'s
+   job, unchanged**: it walks the segments from `appState.dirHandle` with
+   `getDirectoryHandle(segment, { create: true })`, which returns a folder that is there and makes
+   one that is not — so `top/middle/lower/file.txt` creates whichever of the three are missing, at
+   any depth, the same way a `[[top/middle/lower/file]]` link creates its note. Folders are not
+   registered anywhere: the app knows a folder only through the paths of the notes in it, so the
+   new path is the whole record, and a folder emptied by a move is left on disk as it is today.
 
 Then, unchanged, `validateRenameInputs({ currentFile, newFolder, newName, myFiles })`.
 
