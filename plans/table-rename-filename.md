@@ -214,8 +214,11 @@ written. Today `a&amp;b.md` on disk would draw as `a&b.md`, and committed back w
 - **A note whose front matter did not read still takes a caret in this column.** The `yamlError`
   lock exists because splicing into a block that did not parse writes into a guess; a rename copies
   the bytes untouched. `isWritable()` in `cell-editor.js` skips that test for `filename`.
-  **The renderer must not put the front matter sentence on the filename cell either**: it is drawn
-  by the same `::after` that §5.2's line uses, and a cell has one. It would also be untrue there.
+  **The renderer needs the same exemption.** `render-table-rows.js` marks a broken note's cells with
+  `isPropertyEditable(prop.name) && hasYamlError(file)`, so making `filename` editable would lock its
+  cell there too, and give it `YAML_ERROR_TIP` on `data-tip`. That sentence is drawn by the open
+  cell's `::after`, the same slot §5.2's line uses, so one would hide the other. The renderer asks
+  `writesFrontMatter(prop.name)` instead.
 - **A mismatch cannot arise**: `filename` is a core string whose type the user cannot set.
 - **`isPasteable()` stays false for `filename`** (§7.2), so `isWritable()` and `isPasteable()` part
   company for this one column. The cleanest seam is a second question in `property-type.js`,
