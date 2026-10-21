@@ -552,7 +552,8 @@ appear while typing; `[[` opens no picker; a paste into the column is counted as
 
 ## 12. Decisions taken
 
-- The whole path is edited as one string (§3.1, design A).
+- The whole path is edited as one string, so a `/` is a folder separator and changing the folder
+  moves the note, creating any folders it needs (§3.1, design A; §3.2).
 - The split is at the last `/`, segments trimmed, never `extractDirFromFilepath` (§3.2).
 - A missing extension keeps the old one; a folder snaps to a loaded folder's case (§3.2).
 - `filename` takes a caret through a new clause, not `WRITABLE_CORE_PROPERTIES` (§4).
@@ -563,11 +564,7 @@ appear while typing; `[[` opens no picker; a paste into the column is counted as
 
 ## 13. Open questions for the user
 
-1. **Moving from the cell.** Design A lets a `/` move a file. If moves should stay in the dialog,
-   the alternative is A with a refusal — "move it from the file options dialog" — whenever the
-   folder differs, which keeps the one-string display and §3.2's reader unchanged. *Recommendation:
-   allow it, with §5.2's line.*
-2. **Should the `+` open the new row's filename cell straight away?** The new-note plan decided
+1. **Should the `+` open the new row's filename cell straight away?** The new-note plan decided
    not: focus returns to the `+`, so Enter makes another note. With this plan the obvious next act
    is naming the note. Changing that is a one-line follow-up to the new-note button, and is left
    out of here so this plan does not reopen that one's decision.
