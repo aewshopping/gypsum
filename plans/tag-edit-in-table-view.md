@@ -24,12 +24,13 @@ the pill stays one clickable filter. A body tag's pill is unchanged. That is wha
 before they open the cell, which of its tags the cell can change.
 
 **In scope:** editing, adding, removing and reordering front matter tags from a `tags` cell;
-pasting into a `tags` cell; undo; the bullet on front matter pills everywhere a pill is drawn.
+pasting into a `tags` cell; undo; the bullet on front matter pills everywhere a pill is drawn;
+completing existing tag names while typing in a `tags` cell.
 
 **Out of scope:** writing a body `#tag` from the table (adding, removing or renaming one), moving a
 tag between body and front matter, "rename column" / "delete column" on `tags` (it stays out of
 `isPropertyUserOwned()`), making the `tags` *type* settable (it stays the app's: list, search exact
-match), and the note picker for tags (see §6, open question 4).
+match), and parent/child tags in front matter (see §3.7).
 
 ---
 
@@ -109,8 +110,15 @@ remains one element, one `data-action`, one filter target. `data-tag` is unchang
 copying (`cell-range-copy.js`) and anything else reading `data-tag` see the bare name.
 
 A tag is drawn with the bullet when its lowercased, trimmed name is in the note's
-`frontMatterTags` (lowercased, trimmed) — **including a tag that is also in the body** (see §6,
-open question 1). Callers that draw a note's tags (`render-file-list-grid.js`, `-peek.js`,
+`frontMatterTags` (lowercased, trimmed) **and not in the body**. A tag in both is drawn plain: the
+bullet promises that editing or deleting it in the cell changes the pill, and for a tag the body
+also has it would not — the body tag remains. The tag is still in the opened cell's text, since it
+is in the `tags:` list, so it can be removed from front matter there; the plain pill simply stays.
+This needs the body's own tags kept apart from the merge (the TagMap no longer tells them apart once
+a front matter tag is merged in), so `parseFileContent`'s body-only key set is what the renderer
+compares against — carried as a second hidden property, `bodyTags`, beside `frontMatterTags`, or
+derived at render as "TagMap keys not added by the front matter merge" if the merge records them.
+Callers that draw a note's tags (`render-file-list-grid.js`, `-peek.js`,
 `-search.js`, `render-value.js`, `render-cell-value.js`) pass the flag; callers that draw a tag
 without a note (the tag panel, filter chips, counts) do not, and stay unchanged.
 
@@ -159,9 +167,12 @@ text (unchanged rule: opened-but-not-typed writes nothing), and splices the `tag
 `refreshFileAfterSave` re-reads the file, so the TagMap, `frontMatterTags`, the bullets, the tag
 panel counts and any active tag filter all come from what the file now says.
 
-**Items are written as typed.** The TagMap lowercases on read; the writer must not lowercase on
-write — the note's own spelling is the user's (CLAUDE.md: *quote defensively, do not validate
-strictly*). Typing a leading `#` is the one normalisation worth considering (§6, open question 3).
+**Items are written as typed, less one leading `#`.** The TagMap lowercases on read; the writer
+must not lowercase on write — the note's own spelling is the user's (CLAUDE.md: *quote defensively,
+do not validate strictly*). **Decided:** a single leading `#` on an item is stripped before writing,
+since no one means a tag whose name starts with a hash, and `#work` would otherwise be written
+quoted and read back as the tag `#work`. This is done where the cell's text becomes items for the
+`tags` column only — a `#` in any other list column is still the user's text.
 
 **A note whose front matter did not read cleanly stays locked** — the existing `yamlError` check in
 `cell-editor.js` already covers it; nothing new.
@@ -180,10 +191,30 @@ tests rather than treating it as a shape mismatch, since the app has always read
   The pasted text is the cell's new front matter list; body tags are untouched. Covered by the
   existing journalled two-pass write and one undo.
 - **Copy:** unchanged — still every pill's `data-tag`, body and front matter alike, comma-joined.
-  That means copy then paste into another tags cell turns body tags into front matter tags in the
-  target. Accepted: it is what was asked for, and undo puts it back. (Open question 2.)
+  So copy then paste into another tags cell turns the source's body tags into front matter tags in
+  the target. **Decided: accepted** — it is what was asked for, and undo puts it back.
 - **Copy column…:** `tags` as a target stays refused by `copyTargetProblem()` (app-owned, not
   `title`/`color`) unless decided otherwise — out of scope here.
+
+### 3.7 No parent/child in front matter
+
+**Decided:** a front matter tag is always one flat tag. `a/b` in `tags:` is the tag `a/b`, with no
+parent — which is what the merge already does, since it `set`s the name directly rather than going
+through `processTag()`. Two-level tags remain a body feature (`#parent/child`). Typing `a/b` into a
+cell is not refused; it writes the item `a/b`, which reads back as that flat tag. The CLAUDE.md
+*Known limitations* line on two-level tags gains this. Note this differs from Obsidian, which reads
+`a/b` in front matter as a nested tag exactly as it reads `#a/b` in the body.
+
+### 3.8 Completing tag names
+
+**Decided: in scope.** CLAUDE.md already names the seam: `handleCellAutocomplete` in
+`autocomplete/autocomplete.js` has the detector and the list side by side, and "for a tags cell it
+would be the item the caret is in", found with `itemRangesIn()`. So: for the `tags` column the
+detector is the item under the caret (no `[[` needed — every item is a tag), and the list is the
+folder's tag names (the keys of the app's tag registry, the one the tag panel draws), filtered by
+that item's text and excluding tags already in the cell. Choosing one replaces that item's text.
+`cellOffersPicker` gains `tags`; the popup, keys and session are shared and need nothing. No
+registry of pickers — two lines, as CLAUDE.md asks.
 
 ---
 
@@ -204,11 +235,15 @@ tests rather than treating it as a shape mismatch, since the app has always read
    did not read (refused), a body tag never written into front matter, typed case preserved, undo.
 5. **Paste** — level 1 test that a paste into a tags cell writes front matter only and one undo
    reverts it.
+5a. **Completion** — §3.8. Level 2 test: typing in a tags cell offers matching tag names, choosing
+   one replaces the item under the caret, Escape closes the popup before the cell.
 6. **Docs** — CLAUDE.md: *What a table cell may contain* (the `tags` exception to "three renderers
    that mean their markup belong to columns that refuse a caret" no longer holds — `renderTags` now
    belongs to an editable column, and the open cell's text is replaced rather than flattened),
    *A locked column's type is locked* / `WRITABLE_CORE_PROPERTIES` paragraph (`tags` joins `title`
-   and `color`), and the *Adding a new file property* list if `frontMatterTags` changes it.
+   and `color`), the *Known limitations* two-level tags line (§3.7), the note picker section
+   (a tags cell now completes tag names), and the *Adding a new file property* list if
+   `frontMatterTags` changes it.
    `DATA-STRUCTURES.md`: the new property.
 7. Bump the minor version in `manifest.json`.
 
@@ -227,19 +262,12 @@ tests rather than treating it as a shape mismatch, since the app has always read
 
 ---
 
-## 6. Open questions
+## 6. Decisions
 
-1. **A tag in both body and front matter** — bullet or not? Proposed: bullet, because removing it
-   from the cell removes it from front matter (the pill then stays, plain). The alternative — no
-   bullet, because the cell cannot make it disappear — hides that the cell can change it.
-2. **Copy/paste between tags cells** turns body tags into front matter tags in the target. Accept,
-   or copy only front matter tags from a tags cell?
-3. **A typed `#`** — `#work` in a tags cell: write it as typed (it then reads as the tag `#work`,
-   quoted because of the `#`), or strip a single leading `#`? Proposed: strip, since no one means a
-   tag whose name starts with a hash.
-4. **Completion** — CLAUDE.md already names the seam ("for a tags cell it would be the item the
-   caret is in") in `handleCellAutocomplete`. Offer existing tag names while typing? Proposed as a
-   follow-up, not part of this plan.
-5. **`#parent/child` in front matter** — today a front matter `a/b` is stored as the tag `a/b` with
-   no parent, unlike the body's two-level tags. Unchanged by this plan; worth a decision before
-   people start typing hierarchies into cells.
+1. **A tag in both body and front matter has no bullet** — editing or deleting it in the cell leaves
+   the body tag, so the pill would not change (§3.2).
+2. **Copy/paste between tags cells may turn body tags into front matter tags** in the target —
+   accepted (§3.6).
+3. **A single leading `#` is stripped** from a typed item (§3.4).
+4. **Completion is in scope** (§3.8).
+5. **No parent/child in front matter** — `a/b` is one flat tag (§3.7).
