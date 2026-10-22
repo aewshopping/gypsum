@@ -180,6 +180,12 @@ name is accepted or refused.
    registered anywhere: the app knows a folder only through the paths of the notes in it, so the
    new path is the whole record, and a folder emptied by a move is left on disk as it is today.
 
+   **So a folder holding no notes is invisible to this rule, and that is accepted.** Typed in
+   another case, `Work/` beside an empty `work/` makes a second folder on a case-sensitive disk, and
+   on a case-insensitive one is recorded as `Work/` until the next reload. It needs a folder
+   emptied, then a move back into it in a different case; knowing better would mean the loader
+   keeping every folder it walks, in step with every move.
+
 Then, unchanged, `validateRenameInputs({ currentFile, newFolder, newName, myFiles })`.
 
 ### 3.3 One gap in the validator itself
