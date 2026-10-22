@@ -225,6 +225,8 @@ Naming `note-3.txt` means backspacing over `note-3` first, and that is accepted.
 flattens markup before the caret arrives, and the closing render puts it back. Escaping is not
 optional — a name may legally hold `&` or `<`, and an open cell's `textContent` is what gets
 written. Today `a&amp;b.md` on disk would draw as `a&b.md`, and committed back would be a rename.
+The cards and the search view call `renderFilename()` too, with the path just as raw, so the one
+change fixes all three; none escapes it beforehand, so nothing is escaped twice.
 
 ---
 
@@ -599,7 +601,7 @@ rename keeps:
 One or two tests in the existing spec, not a new one: the caret is before the extension on open, from a click and from Enter; Escape writes
 nothing; focus is where the way out left it — the renamed row's filename cell after Enter, the next
 cell after Tab; the move line and a refusal line
-appear while typing; `[[` opens no picker; a paste into the column is counted as locked.
+appear while typing; `[[` opens no picker; a paste into the column is counted as locked. A name holding `&` and `<` draws as itself in the table and in a card.
 
 ---
 
