@@ -203,8 +203,9 @@ test('arrowing away from an open cell closes it', async ({ page }) => {
   await openTable(page);
 
   // a read-only cell opens to be read and keeps the arrow keys, having no caret to give them to.
-  // filename rather than title, which now takes a caret: the file itself is not editable from here.
-  const locked = cellFor(page, 'Alpha', 'filename');
+  // lastModified, the app's own value: title and then filename were used here, and both now take a
+  // caret — filename renames the note (plans/completed/table-rename-filename.md).
+  const locked = cellFor(page, 'Alpha', 'lastModified');
   await open(locked);
   await expect(locked).toHaveClass(/is-expanded/);
 
