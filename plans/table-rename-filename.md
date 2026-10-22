@@ -561,7 +561,7 @@ today. `readPathText` + `validateRenameInputs` as a table of string → outcome:
 
 ### 11.2 Level 1 — browser, in `tests/1-data/23-rename-shortcut.spec.js`
 
-That spec is the rename's, and has one test. Two more, because they guard files and state the
+That spec is the rename's, and has one test. Three more, because they guard files and state the
 rename keeps:
 
 - **A table rename reaches the disk**: open the filename cell, type, Enter — the new file holds the
