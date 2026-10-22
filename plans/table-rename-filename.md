@@ -136,7 +136,7 @@ file" — is answered rather than broken: the *filename* cell may move a file, d
 the path is what it shows. The `filepath` column stays read-only: one editable copy of a value per
 row is enough, and two would only raise the question of which wins in a paste.
 
-### 3.2 Reading the string: `readPathText(text, currentFile)`
+### 3.2 Reading the string: `readPathText(text, currentFile, myFiles)`
 
 A new pure function in `editing/rename-validate.js`, beside `validateRenameInputs`, which it feeds.
 It returns `{ newFolder, newName }` for the validator, and the validator stays the single place a
@@ -312,7 +312,7 @@ its own history-dropdown step.
 
 ```
 file = appState.myFiles.find(id)
-{ newFolder, newName } = readPathText(text, file)
+{ newFolder, newName } = readPathText(text, file, appState.myFiles)
 check = validateRenameInputs(...)
 if !check.ok:  reportFailure(check.reason); renderFiles(false, true); return   // cell redrawn as it was
 await whileWriting(false, '', () => renameNote(file, check.normalizedFolder, check.normalizedName))
