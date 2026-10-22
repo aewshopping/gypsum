@@ -1,4 +1,4 @@
-# Plan: property picker in the searchbox
+# Plan: property picker in the searchbox, opened with `/`
 
 Status: **not started — brainstorm**
 Related: `public/js/autocomplete/` (the popup session this joins), `plans/completed/table-value-types.md`
@@ -8,17 +8,17 @@ Related: `public/js/autocomplete/` (the popup session this joins), `plans/comple
 
 ## 1. What this delivers
 
-Typing `\` in the searchbox opens the autocomplete picker — the same popup that `tags:` and `[[`
+Typing `/` in the searchbox opens the autocomplete picker — the same popup that `tags:` and `[[`
 already open — listing the property keys a search can be aimed at: `title:`, `filename:`, `status:`,
 `people:` and so on, plus the two that are not properties at all, **`allProperties:`** and
-**`content:`**. Choosing one replaces the `\` and whatever was typed after it with the key and its
+**`content:`**. Choosing one replaces the `/` and whatever was typed after it with the key and its
 colon, leaving the caret ready for the value.
 
 It is not a command palette. Every item is the left-hand side of a `key:value` search, which the
 searchbox already understands; the picker only saves remembering, and spelling, what the folder's
 notes call things.
 
-**In scope:** the `\` trigger, the list, filtering it as you type, inserting the chosen key.
+**In scope:** the `/` trigger, the list, filtering it as you type, inserting the chosen key.
 
 **Out of scope (for now — see §4):** completing the *value* after the colon for anything but
 `tags:`, new operators, a picker opened by a button rather than a key.
@@ -61,10 +61,17 @@ With `#contentsearch` ticked, `parseSearchString(searchString, "content")` ignor
 string and searches the whole text for it, colon included. A key chosen from the picker would be
 silently searched for as text.
 
-### 2.5 `\` is free
+### 2.5 `/` already means something, in three places
 
-`keyboard-shortcuts.js` binds `/` to focus the searchbox; nothing binds `\`, and no search value is
-likely to start with one.
+- **It is the shortcut that focuses the searchbox.** `keyboard-shortcuts.js` maps `/` to
+  `searchbox.focus()` with `preventDefault()`, and only while focus is *not* already in the box — so
+  that press never types a `/`, and a `/` typed inside the box is an ordinary character today.
+- **It is the tag separator.** `tags:parent/child` is a search people already type, and
+  `detectSearchboxTrigger` deliberately allows the `/`.
+- **It is in values.** `filepath:notes/2026`, a date typed `01/03/2026`, a URL in a front matter
+  value.
+
+So the trigger has to be narrow enough to leave all three alone (§3.1).
 
 ---
 
@@ -74,18 +81,30 @@ Each has a recommendation; none is settled until this section is.
 
 ### 3.1 What exactly opens it
 
-- **Recommendation: `\` at the start of the box or after a space**, mirroring `#` in the editor
-  (`detectEditorTrigger` refuses `foo#bar`). A `\` mid-word stays a literal character.
-- Bare `\` opens the full list (as bare `[[` does); `\sta` filters it.
-- The `\` is a trigger, never text: it is replaced on selection and **removed on Escape**? Or left?
+- **Recommendation: `/` as the first character of the box, or straight after a space** — the same
+  shape as `#` in the editor (`detectEditorTrigger` refuses `foo#bar`). That rule is what keeps the
+  three uses in §2.5 safe: `tags:parent/child`, `filepath:notes/a` and `01/03/2026` never have a `/`
+  at the start or after a space. A `/` anywhere else stays a literal character.
+- A search value that genuinely starts with `/` (`/usr`) opens the picker, but `filterItems` finds no
+  key matching `usr` and the popup closes itself (an empty list already dismisses), leaving the text
+  as typed. Harmless; worth a test.
+- Bare `/` opens the full list (as bare `[[` does); `/sta` filters it.
+- **The global shortcut stays as it is: the first `/` focuses the box and types nothing; a `/`
+  typed in the box opens the picker.** So from anywhere in the app the picker is `/` `/`. The
+  alternative — one `/` both focuses and opens the picker — would have to type the `/` for the
+  trigger to have something to anchor to, and then everyone who presses `/` to type a plain search
+  finds `/draft` in the box. **Recommendation: `/` `/`**, and say so in the shortcuts dialog
+  (`index.html`, beside "Go to searchbox"): "Pick a property to search | `/` `/`". The searchbox's
+  `data-tip` ("search files | /") could gain it too.
+- The `/` is a trigger, never text: it is replaced on selection. **On Escape, left or removed?**
   Leaning *left* — Escape in every other picker only closes the popup, and deleting a character the
-  user typed is surprising. Then `\status` with no selection is just a search for `\status`, which
-  matches nothing, harmlessly.
-- Should focusing the box with `/` and then typing `\` be advertised in the shortcuts dialog
-  (`index.html`, "Go to searchbox")? Yes, one line: "Pick a property to search | `\`".
-- Phones: `\` is two layers deep on most soft keyboards. Is a tap target wanted — a button beside
-  the existing `#` tag button (`searchbox-tag-btn`)? **Recommendation: not in this plan**; the `#`
-  button opens the tag taxonomy, not a picker, so a sibling would need its own design.
+  user typed is surprising. Then `/status` with nothing chosen is a search for `/status`, which
+  matches nothing, harmlessly. Note that Escape in the searchbox also blurs it (`keyboard-shortcuts.js`);
+  with a popup open, `handleAutocompleteKeydown` consumes Escape first, so the first Escape closes the
+  picker and the second leaves the box — check this holds.
+- Phones: `/` is on the first symbol layer of most soft keyboards, so no tap target is strictly
+  needed. A button beside the existing `#` tag button (`searchbox-tag-btn`) would be a separate
+  design — the `#` button opens the tag taxonomy, not a picker. **Recommendation: not in this plan.**
 
 ### 3.2 Which keys are listed
 
@@ -173,7 +192,9 @@ hand.
 
 ## 4. Shape of the change (once §3 is settled)
 
-1. `query-detect.js` — `detectSearchboxPropertyTrigger(value, caretPos)`: `(^|\s)\\(\w*)$`.
+1. `query-detect.js` — `detectSearchboxPropertyTrigger(value, caretPos)`: `(^|\s)\/(\w*)$`. It must be asked
+   **before** `detectSearchboxTrigger`, and must not fire inside a `tags:` value — the anchor to the
+   start or a space is what guarantees that.
 2. A source list: a small `services/` function returning the searchable keys in order (§3.2, §3.4),
    with `allProperties` and `content` added. One reader of `myFilesProperties` plus the exclusions —
    so it, and `createFilterObject`, should share the exclusion test.
@@ -184,16 +205,18 @@ hand.
 5. `popup.js` — only if §3.3 chooses object items.
 6. Shortcuts dialog line; manifest minor bump.
 
-Tests: level 2, in `tests/2-behaviour/22-tag-autocomplete.spec.js`, which already covers the searchbox picker — `\` opens it, filtering,
+Tests: level 2, in `tests/2-behaviour/22-tag-autocomplete.spec.js`, which already covers the searchbox picker — `/` at the start and after a space opens it, filtering,
 `allProperties`/`content` present, `internalId`/`handle` absent, choosing inserts `key:` and does
-not search, `\` mid-word does nothing. No level-1 test: nothing here touches a file.
+not search, `tags:parent/child` and `filepath:a/b` do not open it, `/usr` closes itself, and the global `/`
+still focuses without typing. No level-1 test: nothing here touches a file.
 
 ---
 
 ## 5. Open questions for the user
 
-- `\` at the start / after a space only, or anywhere? (§3.1)
-- Leave the `\` on Escape, or remove it? (§3.1)
+- `/` only at the start or after a space? (§3.1)
+- `/` `/` from outside the box, or one `/` that focuses and opens? (§3.1)
+- Leave the `/` on Escape, or remove it? (§3.1)
 - Show labels and hints, accepting the `popup.js` change? (§3.3)
 - Layout order or alphabetical? (§3.4)
 - Untick content search on selection? (§3.5)
