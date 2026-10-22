@@ -1,6 +1,6 @@
 # Plan: renaming a note from the table's filename cell
 
-Status: **planned, not built.** Follows `plans/completed/table-new-note-button.md`.
+Status: **built.** Follows `plans/completed/table-new-note-button.md`.
 
 ---
 
@@ -14,8 +14,9 @@ This plan makes the `filename` cell take a caret, so a note can be named — and
 where it is listed. Closing the cell renames the file on disk through the same code the file
 options dialog already uses.
 
-- **Open the cell and the stem is selected**: `notes/note-3.txt` opens with `note-3` selected, so
-  typing a name and pressing Enter is the whole job — the folder and the extension are kept.
+- **Open the cell and the caret is before the extension**: `notes/note-3|.txt`. Nothing is
+  selected, so nothing can be typed over by accident, and the caret is where a rename happens —
+  the folder and the extension are kept unless someone moves onto them.
 - **The cell is the note's path, and it is edited as one string.** Change the part after the last
   `/` and the note is renamed; change a part before it and the note is moved. One cell, one rule
   for reading it (§4), one validator.
@@ -24,7 +25,8 @@ options dialog already uses.
 - **One Ctrl+Z puts the old name back**, and one redo the new one, like any other table edit — §9.
 
 **Out of scope:** rewriting `[[links]]` in other notes that name the renamed one (§8.3); pasting
-into the filename column (§7.2); the `filepath` column, which stays read-only and hidden by default.
+into the filename column (§7.2); the `filepath` column, which stays read-only and hidden by default;
+a rename that changes only case, which stays refused (§3.3).
 
 ---
 
@@ -135,7 +137,7 @@ file" — is answered rather than broken: the *filename* cell may move a file, d
 the path is what it shows. The `filepath` column stays read-only: one editable copy of a value per
 row is enough, and two would only raise the question of which wins in a paste.
 
-### 3.2 Reading the string: `readPathText(text, currentFile)`
+### 3.2 Reading the string: `readPathText(text, currentFile, myFiles)`
 
 A new pure function in `editing/rename-validate.js`, beside `validateRenameInputs`, which it feeds.
 It returns `{ newFolder, newName }` for the validator, and the validator stays the single place a
@@ -179,6 +181,12 @@ name is accepted or refused.
    registered anywhere: the app knows a folder only through the paths of the notes in it, so the
    new path is the whole record, and a folder emptied by a move is left on disk as it is today.
 
+   **So a folder holding no notes is invisible to this rule, and that is accepted.** Typed in
+   another case, `Work/` beside an empty `work/` makes a second folder on a case-sensitive disk, and
+   on a case-insensitive one is recorded as `Work/` until the next reload. It needs a folder
+   emptied, then a move back into it in a different case; knowing better would mean the loader
+   keeping every folder it walks, in step with every move.
+
 Then, unchanged, `validateRenameInputs({ currentFile, newFolder, newName, myFiles })`.
 
 ### 3.3 One gap in the validator itself
@@ -190,18 +198,37 @@ segment gets the `FORBIDDEN_IN_FILENAME` test, with the reason "Folder names can
 backslashes or control characters." This fixes the dialog and the flowchart's new-note dialog too,
 and changes nothing for any path that worked.
 
-### 3.4 Opening the cell: the stem is selected
+**A rename that changes only case stays refused, and its sentence is reworded.** `renameFile` copies
+and then deletes; on a case-insensitive disk `Shopping.txt` and `shopping.txt` are one file, so the
+copy lands on the original and the delete takes the only copy. The refusal protects the note.
+Supporting it means two renames through a temporary name, with a tab closed between them leaving
+the note under a name the app does not load — a plan of its own. What changes is the sentence,
+which the table shows far more often than the dialog did, since fixing the case of a name in view is
+an obvious thing to try: "Only the case changed — that isn't supported yet." rather than "Rename
+cancelled: path is unchanged (case-only renames are not supported)." — a reason, shown while typing
+(§5.2), not a cancellation. The dialog gets the same sentence.
 
-`selectStem()` in `file-options-click.js` already does this for an `<input>`. A cell is a
-`contenteditable`, so it needs a `Range` over the text node from just after the last `/` to just
-before the last `.`, set where `focusWithCaret()` would put a caret. The common act — naming a new
-note — is then "open, type, Enter", and the folder and extension are untouched unless the user
-moves the caret onto them on purpose.
+### 3.4 Opening the cell: the caret goes before the extension
+
+Every other cell opens with the caret at the end of its text, however it was opened: closed cells
+are `user-select: none`, so the second press leaves no selection inside the cell and
+`focusWithCaret()` puts one at the end — the keyboard and the mouse alike, checked in the browser.
+The end of a filename is the one place nobody types, since anything added there lands after `.txt`.
+So this column puts the caret just before the last `.` instead: one collapsed `Range` on the text
+node, in place of `focusWithCaret()`'s end-of-text caret, for every way of opening the cell. It is a
+second export of `focus-with-caret.js`, beside `focusWithCaret()` — the same question, where the
+caret goes when a cell opens — and `openEditor` calls it for `filename`.
+
+**Nothing is selected.** Selecting the stem, as the dialog's `selectStem()` does, would make naming
+a new note one keystroke shorter and every other rename one keystroke from losing the name.
+Naming `note-3.txt` means backspacing over `note-3` first, and that is accepted.
 
 `renderFilename()` must **escape** the path now (`escapeHtml`), and the `<i>` stays: `openEditor`
 flattens markup before the caret arrives, and the closing render puts it back. Escaping is not
 optional — a name may legally hold `&` or `<`, and an open cell's `textContent` is what gets
 written. Today `a&amp;b.md` on disk would draw as `a&b.md`, and committed back would be a rename.
+The cards and the search view call `renderFilename()` too, with the path just as raw, so the one
+change fixes all three; none escapes it beforehand, so nothing is escaped twice.
 
 ---
 
@@ -209,8 +236,8 @@ written. Today `a&amp;b.md` on disk would draw as `a&b.md`, and committed back w
 
 - **`isPropertyEditable('filename')` becomes true**, by a third clause rather than by adding
   `filename` to `WRITABLE_CORE_PROPERTIES`: that list means "front matter can override this, and a
-  cell edit splices it", and both halves are false here. A new `RENAMEABLE_PROPERTY = 'filename'`
-  beside it, and `isPropertyEditable` reads it.
+  cell edit splices it", and both halves are false here. `|| name === 'filename'`, with a comment
+  saying why: one property, read in one place, so no constant of its own.
 - **A note whose front matter did not read still takes a caret in this column.** The `yamlError`
   lock exists because splicing into a block that did not parse writes into a guess; a rename copies
   the bytes untouched. `isWritable()` in `cell-editor.js` skips that test for `filename`.
@@ -243,24 +270,36 @@ control character, and the validator refuses it.
 
 On every `input` in an open filename cell, `readPathText` + `validateRenameInputs` run (pure,
 microseconds; `myFiles` is already in memory) and the result is written onto the cell as
-`data-rename-note`, drawn by CSS inside the open cell exactly as the mismatch sentence is
-(`note-table-cell.css`, a pseudo-element, so the commit never captures it). Its own attribute
-rather than `data-tip`, which the hover tooltip also reads. The open cell behaves as every other open
-cell does when a line is drawn in it — nothing new about its size or position. Three things it can
-say:
+`data-rename-line`, drawn by CSS inside the open cell as the mismatch sentence is, a pseudo-element
+so the commit never captures it. Its own attribute rather than `data-tip`, which the hover tooltip
+also reads — **but not its own rule.** The mismatch sentence's rule in `note-table-cell.css`
+(`.note-table-cell.is-expanded[data-tip]::after`) gains the new attribute as a second selector, so
+the layout is written once; the only new CSS is the `content: attr(data-rename-line)` line and a
+`rename-refused` class giving a refusal the warning colour. `::after` is free on an open cell: the
+selected cell's press target uses it only while the cell is not expanded. The open cell behaves as every other open
+cell does when a line is drawn in it — nothing new about its size or position. Two things it can
+say, and otherwise it says nothing:
 
 - **a reason** — the validator's sentence, in the warning colour: "A loaded file with that path
   already exists."
-- **the result, whenever it is not literally the text in the cell** — `→ notes/shopping.txt`, in the
-  ordinary colour. That covers every silent correction §3.2 makes (an extension kept, a folder's
-  case taken from the loaded one, spaces trimmed) and every move, with the folders it will create
-  counted from the same prefix set the case matching uses: `→ top/middle/lower/note-3.txt (2 new
-  folders)`. This is the line that makes design A (§3.1) safe: no one moves a file, or gets a name
-  they did not type, without being told so first.
-- nothing — the text in the cell is exactly the path the note will have.
+- **a move** — when the folder the note will be in is not the one it is in: `→ moves to
+  work/projects/`, in the ordinary colour. This is the line that makes design A (§3.1) safe: a typed
+  `/` is never a surprise. The folder named is the normalised one, case taken from a loaded folder,
+  so it is also where a folder correction shows. No count of the folders it will create — that
+  count could only come from the notes the app has loaded, and would overstate for a folder that is
+  on disk with nothing in it (§3.2, rule 6).
+- nothing — every other case, a plain rename included. The extension kept, spaces trimmed and the
+  name itself are what the user expects, and the report line says what happened once it has (§6.2).
+  A line on every keystroke repeating the name being typed was chatter.
+
+**The path typed back as it was is no edit.** `shopping` over `shopping.txt` reads back as the same
+path, and the validator flags that refusal `unchanged`: the open cell says nothing about it and the
+commit writes and reports nothing. Found from the screenshots while building — it had read "Only the
+case changed".
 
 The handler is `handleFilenameCellInput`, registered beside `handleListCellInput` in the input
-delegate; one file, `ui-functions-cell/cell-rename-note.js`.
+delegate; one file, `ui-functions-cell/cell-rename-line.js` — "line", not "note", in an app where a
+note is a file.
 
 ### 5.3 The note picker is not offered
 
@@ -286,34 +325,36 @@ service function, `editing/rename-note.js`:
 renameNote(file, folder, name):
     outcome  = await renameFile({ file, newFolder: folder, newName: name })
     warnings = await migrateBackupsForRename(outcome)
-    for every file: checkFileErrors(file)            // §2.3 — links to and from the old name
-    clear appState.search.results, re-run every filter   // §2.3 — matchingFiles is keyed by id
+    checkAllFileErrors()                             // §2.3 — links to and from the old name
     return { outcome, warnings }
 ```
 
-No DOM, so the service layer stays clean; each caller renders. `checkFileErrors` over every note is
+No DOM, so the service layer stays clean; each caller renders, **and each reports its own way**: the
+dialog keeps its `alert()` for warnings, the table puts them on the report line (§6.2). Moving the
+dialog onto the report line is not part of this plan. `checkFileErrors` over every note is
 the honest answer to "which notes did this rename break or mend" — the cheap targeted one would
 need a reverse link index nobody else wants. Measure it on the 1,000-note fixture while building;
 if it shows, narrow it to the notes whose `internalLink` names the old or new filename or path.
 
-The filter re-run is the `renderRefreshed()` loop (`searchFiles` per filter, then
-`processSeachResults`), which renders. So `renameNote` re-runs the searches and leaves the
-render — `processSeachResults(true, true)` or `renderFiles(true, true)` — to its caller, as
-`renderRefreshed` does. `file-options-click.js` then shrinks to validate, `renameNote`, render, and
-its own history-dropdown step.
+**The render is `renderRefreshed()`, exported, not a second copy of it.** The other §2.3 fix —
+clear the filter results and re-run every filter, since `matchingFiles` is keyed by the old id — is
+exactly the body of `renderRefreshed()` in `editing/refresh-file-state.js`, private today with one
+caller, and it renders in the same step. So it is exported, and every caller finishes a rename with
+`renderRefreshed(true, false)`: a full render, no re-sort. `renameNote` itself stays free of the
+DOM. `file-options-click.js` then shrinks to validate, `renameNote`, `followNoteRename`,
+`renderRefreshed`, and its own history-dropdown step.
 
 ### 6.2 `commitRename(cell, text)`
 
 ```
 file = appState.myFiles.find(id)
-{ newFolder, newName } = readPathText(text, file)
+{ newFolder, newName } = readPathText(text, file, appState.myFiles)
 check = validateRenameInputs(...)
 if !check.ok:  reportFailure(check.reason); renderFiles(false, true); return   // cell redrawn as it was
 await whileWriting(false, '', () => renameNote(file, check.normalizedFolder, check.normalizedName))
-follow the id in table state (§6.3)
-render (full: the filter results changed)
-put focus back on the renamed row's filename cell
-report: "renamed note-3.txt to shopping.txt" / "moved plan.md to work/projects/"
+follow the id in table state and in the row's data-vt-id (§6.3)
+await renderRefreshed(true, false)                 // §6.1 — filters re-run; focus back via keep-cell-state.js
+report: "renamed note-3.txt to shopping.txt" / "moved plan.md to work/projects/plan.md" (§9.3)
         + any warnings, on the same line — not alert()
 pushUndoBatch([record], { kind: 'rename-file', property: oldPath, to: newPath })   // §9
 markUndoState()
@@ -323,6 +364,12 @@ holdRowMove([newId])
 - **`whileWriting(false, …)`** is the one-note form of the table's busy state: it sets
   `appState.bulkWriteInFlight`, which refuses a folder load, and lights no bar. The copy is the
   slow part on a phone, and `renameFile`'s `beforeunload` guard already covers the tab closing.
+- **An edit to the same note while the rename copies is not guarded against, and that is
+  accepted.** The table stays live, so a cell in the same row committed before the copy lands is
+  written to the old file, which the rename then deletes; the cell redraws with its old value.
+  Ordinary cell edits share the gap — two edits to one note are a read-modify-write each, with no
+  queue — and both need someone to finish a whole second cell before the first write lands. Not
+  built for, here or in `applyRawEdits`.
 - **A throw** (the collision `alert`, a failed copy) leaves the old file untouched by
   `renameFile`'s own design; the cell is redrawn from state, which still holds the old path, and the
   error's message goes to `reportFailure`.
@@ -340,18 +387,28 @@ four more, each of which would otherwise point at a note that no longer exists:
 
 | State | Effect if left | Follow |
 |-------|----------------|--------|
-| focus (`keep-cell-state.js`) | `captureCellState()` reads the old `data-vt-id` off the DOM, `elementAt()` finds nothing, focus falls to the body — the "finishing a cell leaves it selected" rule broken | `commitRename` focuses `elementAt({ vtId: newId, prop: 'filename' })` after the render, if focus was in that row |
+| the row's `data-vt-id` | `captureCellState()` reads the old id off the DOM, `elementAt()` finds nothing after the render, focus falls to the body — the "finishing a cell leaves it selected" rule broken | set to the new id **before** the render |
 | `appState.pendingRowMove` | the held outline is on a row that is gone; the hold never releases | rename the id in `written` and `moving` |
 | `appState.copiedCells.ids` | the copy outline loses that row | rename the id |
-| `appState.tableRange` | anchor/extent address a missing row | cleared — a rename is a focus-moving act in all but name, and the range would be cleared by the render anyway when the ids change (`nothingMoved` is false) |
+| `appState.tableRange` | anchor/extent address a missing row | nothing — the render is a full one (§6.2), which clears a range |
 
-The three state renames go in `renameNote`'s neighbour, a small `follow-note-rename.js` in
-`ui-functions-table/` (they are table UI state), so `rename-file.js` stays the file system. The
-dialog calls it too: a rename from the dialog with a copy outline showing should not lose it.
+**Focus is put back by the code that puts it back after every cell edit, and nothing else.**
+`renderFiles` reads the focused cell's address — `{ vtId, prop }` — off the DOM before replacing
+the rows, and focuses it again after (`keep-cell-state.js`). That already covers every way out of a
+cell: Tab and a click leave focus on another cell, often in the same row, and Enter and Escape on
+this one. A rename breaks it only because the address carries the row's old id, so the fix is the
+id, not a focus rule of the rename's own: with `data-vt-id` rewritten first, the address read is
+the new one and the existing restore finds the cell, whichever it is. The rename may finish after
+focus has moved on to another row; the address is read when the render runs, so that is covered too.
 
-**The view transition.** `nothingMoved` compares ids, and one changed, so a rename runs a
-transition and the row crossfades in place. Accepted: the row really did become a different note's
-row, and the transition is skipped anyway with animation off.
+The row's attribute is DOM, which is why these renames go in `renameNote`'s neighbour, a small
+`follow-note-rename.js` in `ui-functions-table/` (they are table UI state), so `rename-file.js`
+stays the file system and `renameNote` stays free of the DOM. The dialog calls it too: a rename
+from the dialog with a copy outline showing should not lose it.
+
+**No view transition.** `nothingMoved` compares the ids on screen with the ids about to be drawn,
+and with the row's id rewritten they match — so a rename starts no transition, like any other cell
+edit.
 
 ---
 
@@ -393,6 +450,15 @@ issues column and the nudge say so at once. That is the dialog's behaviour too, 
 is a feature of its own — every note in the folder scanned, a journalled batch, the bare-name
 resolution rules in `note-name-index.js` to respect — that belongs to both entry points or neither.
 The case this plan exists for, a note just made by the `+`, has no links to it yet.
+
+### 8.4 What the column sorts and searches by
+
+**The name, while the cell shows and edits the path — and this plan leaves that alone.** Sorting
+by filename interleaves folders (`zeta/apple.md` before `alpha/banana.md`), and searching the column
+for `work/` finds nothing, because both read `file.filename`. That has been so since folders were
+loaded, and is more visible once the path is what the cell edits. Making the column the path
+throughout would group a filename sort by folder — a change for anyone sorting by name today, and a
+decision of its own, not part of renaming.
 
 ---
 
@@ -436,7 +502,9 @@ reverseFileRename(edit):
     { newFolder, newName } = split edit.before at its last '/'
     check = validateRenameInputs({ currentFile: file, newFolder, newName, myFiles })
     if !check.ok:  refuse check.reason            // e.g. another note is now called note-3.txt
-    await renameNote(file, folder, name)          // §6.1 — backups, issues, filters, ids followed
+    await renameNote(file, folder, name)          // §6.1 — backups, issues
+    followNoteRename(edit.after, edit.before)     // §6.3
+    await renderRefreshed(true, false)            // §6.1 — filters re-run
     return the record turned round: { internalId: edit.before, property: 'filename',
                                       before: edit.after, after: edit.before }
 ```
@@ -464,8 +532,11 @@ reverseFileRename(edit):
 
 ### 9.3 Its name
 
-`describeAction()` gains a line: `rename of note-3.txt to shopping.txt`, or `move of plan.md to
-work/projects/` when the folder changed, from the batch's `property` and `to`. `describeBatch()`
+`describeAction()` gains a line, from the batch's `property` and `to`. **One rule: the folder
+unchanged is a rename, and names are given; the folder changed is a move, and the whole new path is
+given** — `rename of note-3.txt to shopping.txt`, `move of plan.md to work/projects/plan.md`, and
+`move of x.txt to b/y.txt` when both changed, which no separate "moved to a folder" wording could
+say. The report line after a table rename (§6.2) uses the same rule. `describeBatch()`
 leaves off its "in 1 file" for this kind — the name already says which file. So the buttons read
 `undo rename of note-3.txt to shopping.txt`, and so does the undo list's row.
 
@@ -483,32 +554,36 @@ followed all the same: `renameInUndoStacks()` keeps every table entry pointing a
 
 1. **Validator.** `readPathText()` in `rename-validate.js` (§3.2); the folder-segment check in
    `normaliseFolder()` (§3.3). Pure; node tests first.
-2. **`renameNote()`** (§6.1) and `follow-note-rename.js` (§6.3); rewrite both dialog handlers on top
-   of them. The dialog now keeps a renamed note in a filtered list — a level-1 test for that before
-   anything in the table changes.
-3. **The cell opens.** `RENAMEABLE_PROPERTY`, `writesFrontMatter()`, `isPropertyEditable`,
+2. **`renameNote()`** (§6.1), `renderRefreshed()` exported, and `follow-note-rename.js` (§6.3);
+   rewrite both dialog handlers on top of them.
+3. **The cell opens.** `writesFrontMatter()`, `isPropertyEditable`,
    `isWritable`'s yaml exemption, `isPasteable`, `cellOffersPicker`; `renderFilename` escaped; the
-   stem selection.
+   caret before the extension, in `focus-with-caret.js`.
 4. **The cell commits.** The branch in `commitCellEdit`, `cell-rename-commit.js`.
 5. **Undo** (§9): the push in `commitRename`, `reverse-file-rename.js` and its branch in
    `reverseBatch`, the refusal's report in `reverseCellEdits`, the wording.
-6. **The open cell's line** (§5.2): `cell-rename-note.js`, the CSS.
+6. **The open cell's line** (§5.2): `cell-rename-line.js`, the shared CSS rule.
 7. **Docs.** CLAUDE.md: *The undo history* (a rename is reversed by renaming back); the *Column value types* bullet on `filename`/`filepath`; *What a table cell
    may contain* (`filename` joins `title` and `color` as a padlocked column that takes a caret,
-   with its own writer); `RENAMEABLE_PROPERTY` and `writesFrontMatter` named beside
+   with its own writer); `writesFrontMatter` named beside
    `isPropertyEditable`; `store.js`'s comment on `info_columns`; the file map. Manifest minor bump.
    Move this plan to `plans/completed/`.
 
-Screenshots at steps 3 and 6: the opened cell with the stem selected, and each of the three lines.
+Screenshots at steps 3 and 6: the opened cell with the caret before the extension, a refusal, and a move.
 
 ---
 
 ## 11. Tests
 
+**Level 1 holds only what could damage a note** — lose its bytes, write a stray `filename:` key
+into it, or fail to undo — and most of that is decided by pure code, so it is tested in node, in
+milliseconds. One page load in level 1 and one in level 2, no more. A test that would only restate
+the code is not written.
+
 ### 11.1 Level 1 — node (`appModule`, no browser)
 
-A new `tests/1-data/64-rename-path-text.spec.js` — new because nothing tests the rename validator
-today. `readPathText` + `validateRenameInputs` as a table of string → outcome:
+In `tests/1-data/23-rename-shortcut.spec.js`, the rename's spec — not a new file; `52` already mixes
+node and browser tests. `readPathText` + `validateRenameInputs` as a table of string → outcome:
 
 | Typed, on `work/note-3.txt` | Outcome |
 |-----------------------------|---------|
@@ -525,28 +600,36 @@ today. `readPathText` + `validateRenameInputs` as a table of string → outcome:
 | `../x.txt` | refused |
 | `wo\rk/x.txt` | refused: backslash in a folder (§3.3) |
 | `work/NOTE-3.TXT` | refused: case-only |
-| path of another loaded note, any case | refused: exists |
+| path of another loaded note, any case | refused: exists — and so an undo whose old path is taken (§9.2) |
 
-### 11.2 Level 1 — browser, in `tests/1-data/23-rename-shortcut.spec.js`
+Beside it, one assertion pair: **`writesFrontMatter('filename')` is false and
+`isPropertyEditable('filename')` is true.** That pair guards both ways a `filename:` key could be
+spliced into a note — the commit's routing and a paste.
 
-That spec is the rename's, and has one test. Two more, because they guard files and state the
-rename keeps:
+In `52-table-undo-stack.spec.js`'s existing node test *the undo file is validated at the boundary*,
+one `rename-file` batch that must pass `isBatch` — which is what "it survives a reload" rests on,
+without the reload.
 
-- **A table rename reaches the disk**: open the filename cell, type, Enter — the new file holds the
-  old bytes exactly, the old file is gone, `history.gypsum`'s entries follow, a refused name leaves
-  both disk and state untouched.
-- **A renamed note stays in a filtered list** (the §2.3 fix), from the dialog — the shared path,
-  tested where the bug was.
-- **Undo and redo a table rename** (§9), on disk: undo puts the bytes back at the old path and
-  removes the new one, redo the reverse, and `undo.gypsum` holds the batch across a reload. Then the
-  two refusals: renamed again from the dialog, and the old path taken by another note — each leaves
-  both files exactly as they were.
+### 11.2 Level 1 — browser, one test in `23-rename-shortcut.spec.js`
 
-### 11.3 Level 2 — `tests/2-behaviour/47-table-cell-editors.spec.js`
+One page load, the services driven through `page.evaluate` after the first step, as `52` does:
 
-One or two tests in the existing spec, not a new one: the stem is selected on open; Escape writes
-nothing; focus is on the renamed row's filename cell afterwards; the move line and a refusal line
-appear while typing; `[[` opens no picker; a paste into the column is counted as locked.
+- rename through the filename cell — open, type, Enter: the new file holds the old bytes exactly,
+  with no `filename:` key, the old file is gone, and `history.gypsum`'s entries follow;
+- `reverseBatch('undo')`: the bytes are back at the old path and the new one is gone; then
+  `reverseBatch('redo')`, the reverse;
+- `renameFile` straight to a third name, as the dialog would, then undo: refused, both files as
+  they were.
+
+### 11.3 Level 2 — one test in `tests/2-behaviour/47-table-cell-editors.spec.js`
+
+One page load, a note named `a&b.txt` and a filter active: the name draws escaped; the caret opens
+before the extension; a refusal line, then a move line, appear while typing; after Enter the row is
+still drawn under the filter (§2.3) and focus is back on its cell.
+
+Not tested: a click opening the cell (the same code as Enter), Tab's focus (existing restore code,
+only the id rewrite is new), escaping in a card (the same function), the `[[` picker (the code says
+it plainly), paste counted as locked (11.1's node pair), Escape writing nothing (existing behaviour).
 
 ---
 

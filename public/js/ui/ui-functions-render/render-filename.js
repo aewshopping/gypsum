@@ -1,10 +1,16 @@
+import { escapeHtml } from './escape-html.js';
+
 /**
- * Renders a filename.
+ * Renders a filename — in the table, the note's path, which its cell edits.
+ *
+ * Escaped, because a name may hold `&` or `<`, and an open cell's text is what a rename writes:
+ * unescaped, `a&amp;b.md` drew as `a&b.md` and committing it back renamed the note.
+ *
  * @param {string} filename - The filename to render.
  * @returns {string} The HTML string for the rendered filename.
  */
 export function renderFilename(filename) {
-    return `<i>${filename}</i>`;
+    return `<i>${escapeHtml(filename)}</i>`;
 }
 
 /**

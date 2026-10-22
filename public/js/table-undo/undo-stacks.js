@@ -4,6 +4,7 @@ import { readUndoFile, saveUndoFile } from './undo-file.js';
 import { addRefusals } from './undo-refusals.js';
 import { checkFileErrors } from '../services/file-parsing/file-errors.js';
 import { followPropertyRename } from '../table-layouts/follow-property-rename.js';
+import { reverseFileRename } from './reverse-file-rename.js';
 
 /**
  * @file The two stacks, and putting a batch of cell edits back.
@@ -91,9 +92,9 @@ export function dropUndoBatch(batch, dirHandle) {
  * value. plans/completed/table-rename-column.md §9.2, §10.1.
  *
  * @returns {Promise<{applied: Array<object>, refused: Array<object>, batch: object|undefined,
- *   layoutSaved?: boolean}>} The edits that were written, the edits the check turned down — each
- *   gets its own mark on the cell — the batch they came from, for its name, and for a rename whether
- *   the layouts file took the name.
+ *   layoutSaved?: boolean, reason?: string}>} The edits that were written, the edits the check turned
+ *   down — each gets its own mark on the cell — the batch they came from, for its name, for a rename
+ *   whether the layouts file took the name, and for a note's rename why it was refused.
  */
 export async function reverseBatch(direction, index, onProgress) {
     const from = direction === 'undo' ? appState.undoStack : appState.redoStack;
@@ -104,6 +105,15 @@ export async function reverseBatch(direction, index, onProgress) {
     // left. plans/completed/table-delete-column.md §10.
     const [batch] = from.splice(index ?? from.length - 1, 1);
     if (!batch) return { applied: [], refused: [], batch };
+
+    // A note renamed from the table is renamed back rather than spliced. Its refusal is a reason for
+    // the report line, not a mark: no value is lost. plans/completed/table-rename-filename.md §9.2.
+    if (batch.kind === 'rename-file') {
+        const { applied, reason } = await reverseFileRename(batch.edits[0]);
+        push(onto, applied, { kind: batch.kind, property: batch.property, to: batch.to });
+        saveUndoFile();
+        return { applied, refused: [], batch, reason };
+    }
 
     // What the write left out. Addressed by file and property rather than by position, because the
     // write groups its edits by file and hands back only the ones that changed something — so the

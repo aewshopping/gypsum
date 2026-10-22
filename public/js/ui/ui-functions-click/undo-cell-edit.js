@@ -2,7 +2,7 @@ import { appState } from '../../services/store.js';
 import { VIEWS } from '../../constants.js';
 import { reverseBatch } from '../../table-undo/undo-stacks.js';
 import { flashUndoneCells } from '../ui-functions-table/undo-cell-flash.js';
-import { reportUndo } from '../ui-functions-render/output-report.js';
+import { reportUndo, reportFailure } from '../ui-functions-render/output-report.js';
 import { whileWriting } from '../ui-functions-table/bulk-write-busy.js';
 import { describeBatch, describeAction } from '../../table-undo/describe-batch.js';
 
@@ -73,13 +73,18 @@ export async function reverseCellEdits(direction, index) {
     let applied;
     let refused;
     let layoutSaved;
+    let reason;
     await whileWriting(manyFiles, `${direction === 'undo' ? 'undoing' : 'redoing'} ${name}…`, async onProgress => {
-        ({ applied, refused, layoutSaved } = await reverseBatch(direction, index, onProgress));
+        ({ applied, refused, layoutSaved, reason } = await reverseBatch(direction, index, onProgress));
 
         // After the write, which awaited its own render — so these are the rows on screen now, and
         // the cells the marks are about actually exist. §10.2.
         flashUndoneCells(applied, refused);
     });
+    // A note's rename refused says why, with nothing to count or filter to: the note is whole under
+    // its current name. plans/completed/table-rename-filename.md §9.2.
+    if (reason) return reportFailure(`not ${direction === 'undo' ? 'undone' : 'redone'}: ${reason}`);
+
     // A rename is two edits per note, taken or refused together, so its refusals count notes.
     // plans/completed/table-rename-column.md §6.2.
     const refusedCount = pending.kind === 'rename-property'

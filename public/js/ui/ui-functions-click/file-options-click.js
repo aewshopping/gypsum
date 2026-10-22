@@ -1,9 +1,9 @@
 import { appState } from '../../services/store.js';
 import { extractDirFromFilepath } from '../../services/file-save.js';
 import { validateRenameInputs } from '../../editing/rename-validate.js';
-import { renameFile } from '../../editing/rename-file.js';
-import { migrateBackupsForRename } from '../../editing/rename-backups.js';
-import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { renameNote } from '../../editing/rename-note.js';
+import { renderRefreshed } from '../../editing/refresh-file-state.js';
+import { followNoteRename } from '../ui-functions-table/follow-note-rename.js';
 import { renderHistorySelect } from '../ui-functions-render/render-history-select.js';
 import { setOpenedFileId } from './open-file-content-view-trans.js';
 
@@ -113,6 +113,29 @@ export function handleFileOptionsOpen(evt) {
 }
 
 /**
+ * Renames the dialog's note through the shared path, keeps the modal pointing at it, and redraws the
+ * list behind — the filters re-run, so a renamed note stays in a filtered list.
+ * @param {object} file
+ * @param {{normalizedFolder: string, normalizedName: string}} result - From validateRenameInputs.
+ * @returns {Promise<string[]>} Warnings from carrying the backups along.
+ */
+async function applyRename(file, result) {
+    const { outcome, warnings } = await renameNote(file, result.normalizedFolder, result.normalizedName);
+
+    setOpenedFileId(outcome.newFilepath);
+
+    const historySelect = document.getElementById('file-content-history-select');
+    if (historySelect) {
+        historySelect.innerHTML = renderHistorySelect(outcome.newFilepath, appState.historyEntries ?? []);
+    }
+
+    followNoteRename(outcome.oldFilepath, outcome.newFilepath);
+    await renderRefreshed(true, false);
+    clearError();
+    return warnings;
+}
+
+/**
  * Confirms a folder move: validates the new folder against the current filename,
  * performs the filesystem rename, migrates backups, then re-renders. The dialog
  * stays open so the user can make further changes.
@@ -139,22 +162,7 @@ export async function handleMoveConfirm(evt) {
     }
 
     try {
-        const outcome = await renameFile({
-            file,
-            newFolder: result.normalizedFolder,
-            newName: result.normalizedName,
-        });
-        const warnings = await migrateBackupsForRename(outcome);
-
-        setOpenedFileId(outcome.newFilepath);
-
-        const historySelect = document.getElementById('file-content-history-select');
-        if (historySelect) {
-            historySelect.innerHTML = renderHistorySelect(outcome.newFilepath, appState.historyEntries ?? []);
-        }
-
-        renderFiles(true, true);
-        clearError();
+        const warnings = await applyRename(file, result);
 
         folderInput.value = result.normalizedFolder;
         folderInput.pattern = escapeForPattern(result.normalizedFolder);
@@ -195,22 +203,7 @@ export async function handleRenameConfirm(evt) {
     }
 
     try {
-        const outcome = await renameFile({
-            file,
-            newFolder: result.normalizedFolder,
-            newName: result.normalizedName,
-        });
-        const warnings = await migrateBackupsForRename(outcome);
-
-        setOpenedFileId(outcome.newFilepath);
-
-        const historySelect = document.getElementById('file-content-history-select');
-        if (historySelect) {
-            historySelect.innerHTML = renderHistorySelect(outcome.newFilepath, appState.historyEntries ?? []);
-        }
-
-        renderFiles(true, true);
-        clearError();
+        const warnings = await applyRename(file, result);
 
         nameInput.value = result.normalizedName;
         nameInput.pattern = escapeForPattern(result.normalizedName);

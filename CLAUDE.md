@@ -176,7 +176,8 @@ point. These rules follow, and they are the ones to hold:
 - **`TABLE_VIEW_COLUMNS.info_columns` holds the columns the app fills in itself** — the file link,
   the size, the last modified date and the file's issues (`fileIssues`, labelled "issues"). They wear the info glyph under a padlock, in
   the header and the picker both, no type can be chosen for them, and their cells take no caret. `filename` and `filepath` are deliberately absent:
-  renaming from the table is wanted later, and editing a filepath would move the file.
+  a filename cell renames its note — see *Renaming a note from its filename cell* — and `filepath`
+  stays read-only, one editable copy of the path per row being enough.
   **`info` sits beside a column's type rather than replacing it.** `lastModified` is still a `date`
   and still sorts and renders as one, which is why `INFO_TYPE` lives in `constants.js` *outside*
   `VALUE_TYPES` — that list fills the type dialog and is the set of names a layout file may legally
@@ -522,6 +523,37 @@ reason is the linked column, which lives in no note until it is copied. See
 - **The dialog is its own confirmation**, as the rename's is: the line under the box counts what will
   be created, overwritten and already matches, and the button names an overwrite.
 
+### Renaming a note from its filename cell
+
+The `filename` cell takes a caret, and closing it renames the note on disk — or moves it, when a
+folder is typed — through the file options dialog's own code. See
+`plans/completed/table-rename-filename.md`.
+
+- **The cell is the note's path, edited as one string.** `readPathText()` in
+  `editing/rename-validate.js` takes it apart — split at the last `/`, segments trimmed, a missing
+  extension kept, a folder taking a loaded folder's case — and `validateRenameInputs()` stays the one
+  place a name is accepted. A folder holding no notes is invisible to the case matching; accepted.
+- **No front matter is touched.** `writesFrontMatter()` is false for `filename`, so the commit routes
+  to `cell-rename-commit.js` rather than `applyCellEdits`, a paste counts the cell as locked (a range
+  of them would be a batch rename), the note picker is not offered, and a note whose front matter did
+  not read still takes a caret here — a rename copies the bytes untouched.
+- **It opens with the caret before the extension**, nothing selected (`focusBeforeExtension()`).
+- **The open cell speaks only for a refusal or a move** (`cell-rename-line.js`, `data-rename-line`),
+  drawn by the mismatch sentence's CSS rule. A plain rename says nothing; the report line says what
+  happened afterwards — "renamed" with names, "moved" with the whole new path.
+- **`renameNote()` is the one path** for the dialog, the cell and the undo: `renameFile`, the backups,
+  then every note's issues re-checked. Each caller then runs `followNoteRename()` — which rewrites the
+  row's `data-vt-id` so the ordinary focus restore finds the cell — and `renderRefreshed()`, whose
+  filter re-run keeps a renamed note in a filtered list.
+- **Undo renames back**, a `rename-file` batch of whole paths, and refuses when the note has been
+  renamed since or its old path is taken. A refusal is a reason on the report line, never kept in
+  `undoRefusals`: no value is lost.
+- **A rename that changes only case is refused**: on a case-insensitive disk the copy-then-delete
+  would delete the only copy. **Links to the note are not rewritten**, and the column still sorts and
+  searches by name while it shows the path.
+- **An edit to the same note while its rename copies is not guarded against** — accepted, and shared
+  with two ordinary edits to one note.
+
 ### The undo history
 
 The table's undo stack is saved, named, and reachable entry by entry. See
@@ -531,7 +563,9 @@ The table's undo stack is saved, named, and reachable entry by entry. See
   After a column delete the entry is the only copy of what was removed, since table writes take no
   history snapshot. **A stale entry is safe to keep**: every undo checks the note still says what the
   edit left there and refuses it otherwise. `undo-file.js` keeps one write in flight and the last on
-  disk is always the newest state. A rename rewrites the ids (`undo-rename.js`). Hand-editable, so
+  disk is always the newest state. A rename rewrites the ids (`undo-rename.js`). A rename made from
+  the filename cell is a batch of its own, reversed by renaming back — see *Renaming a note from its
+  filename cell*. Hand-editable, so
   validated at the boundary: anything it cannot read starts empty. It is plain text holding deleted
   values; "clear undo history" is the way to be rid of them, and says so.
 - **Facts, not a sentence.** A batch stores `kind` and `property`; `describeBatch()` words them, and
@@ -752,13 +786,15 @@ the user's choice at all. So the app owns the type of every property it fills in
 type would be the same lie from the other side.
 
 **Whether a cell takes a caret is the narrower question, `isPropertyEditable()`.** It is
-`isTypeSettable()` plus `WRITABLE_CORE_PROPERTIES`, and the two came apart for those columns.
+`writesFrontMatter()` — `isTypeSettable()` plus `WRITABLE_CORE_PROPERTIES` — plus `filename`, and
+the two came apart for those columns. `writesFrontMatter()` is the question beside it: whether typing
+splices the note's block, which a paste, the commit's routing, the note picker and the yaml lock ask.
 **`title` and `color` are editable from the table.** What they have in common is the spread in
 `file-info.js`: both sit in the returned object *above* `...(yamlData)`, so front matter supplies
 them — `title` overriding the note's own `# H1`, `color` filling in a `null`. Either way the note
 already has a place for a typed value, and it is exactly the place a cell edit splices. Nothing else
-in `CORE_FILE_PROPERTIES` does: `filename` and `filepath` are the file itself and have
-`editing/rename-file.js`; `tags` is deleted from `yamlData` before the spread, being merged into the
+in `CORE_FILE_PROPERTIES` does: `filename` and `filepath` are the file itself — `filename` takes a
+caret all the same, with a writer of its own that renames the file; `tags` is deleted from `yamlData` before the spread, being merged into the
 TagMap, so front matter cannot override it; the rest are in `RESERVED_KEYS` and stripped outright.
 
 **Colour is a front matter key and nothing else.** `#color/…` used to set it, which made every
@@ -805,7 +841,7 @@ contain*. The redraw belongs to closing rather than to writing, which is what ma
 
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
-or a `CORE_FILE_PROPERTIES` member other than `title`. Whether this one *cell* can is
+or a `CORE_FILE_PROPERTIES` member other than `title`, `color` and `filename`. Whether this one *cell* can is
 `cell-editor.js`, which adds the two per-cell questions: whether the value's *shape* fits its column — not merely whether it fits —
 and whether the note's front matter read cleanly at all. The first of those is
 `mismatchRefusesCaret()`, in the same service as `isPropertyEditable()`, so one module owns every
@@ -1336,6 +1372,9 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/write-file-edits.js` | A planned note onto disk through the verified save, and what happened when that save throws |
 | `public/js/editing/delete-property.js` | Deleting a property from every note: the two-pass journalled write |
 | `public/js/editing/rename-property.js` | Renaming a property in every note: the three-pass journalled write |
+| `public/js/editing/rename-note.js` | A note renamed or moved, its backups carried along and every note's issues re-checked — for the file options dialog, the filename cell and its undo |
+| `public/js/ui/ui-functions-table/follow-note-rename.js` | The table's state, and the row's `data-vt-id`, following a renamed note to its new id |
+| `public/js/table-undo/reverse-file-rename.js` | Undoing a filename cell's rename: renaming back, or refusing |
 | `public/js/editing/copy-property.js` | Copying a column into every note: the journalled write |
 | `public/js/editing/paste-cells.js` | Pasting into cells: the journalled two-pass write |
 | `public/js/editing/copy-source-value.js` | What one note has to copy, and the text a linked or core value becomes |
@@ -1348,7 +1387,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/front-matter-splice.js` | Where one key's bytes are, and what a note with no block is given — shared by the cell writer and the colour picker |
 | `public/js/ui/event-listeners-add.js` | Delegated event setup + action→handler map |
 | `public/js/ui/ui-functions-click/` | One file per click action |
-| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`, `cell-range-paste.js`) |
+| `public/js/ui/ui-functions-cell/` | Opening a table cell: expand, what the caret gets, the date editor, the commit, a filename cell's rename (`cell-rename-commit.js`, `cell-rename-line.js`) — and a range of cells (`cell-range.js`, `cell-range-drag.js`, `cell-range-autoscroll.js`, `cell-range-copy.js`, `cell-range-paste.js`) |
 | `public/js/ui/ui-functions-flowchart/` | Everything the flowchart view draws and handles — control row, options modal, the SVG's boxes and viewer markup, and its click handlers — kept together rather than in `ui-functions-click/` |
 | `public/js/svg-pan-zoom/svg-pan-zoom.js` | Pan and zoom for an SVG, ported near word for word — knows nothing of notes; see `plans/completed/flowchart-view.md` step 1 |
 | `public/js/ui/ui-functions-search/` | Search orchestration and filter logic |

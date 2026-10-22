@@ -1,5 +1,5 @@
 import { appState } from '../../services/store.js';
-import { typeMismatch, isInfoColumn, isPropertyEditable } from '../../services/property-type.js';
+import { typeMismatch, isInfoColumn, writesFrontMatter } from '../../services/property-type.js';
 import { hasYamlError } from '../../services/file-parsing/file-errors.js';
 import { checkFileOnPage } from '../pagination/check-file-on-page.js';
 import { renderCellValue, mismatchMessage, rendersAsList } from './render-cell-value.js';
@@ -71,8 +71,9 @@ export function renderTableRows(current_props, renderEverything) {
                 // A note whose front matter did not read cleanly has the cells that come from it
                 // locked until it is fixed in the note — writing into a broken block writes into a
                 // key nobody created. Only the cells that would otherwise take a caret are marked,
-                // so a column that is locked anyway says nothing new about it.
-                const brokenYaml = isPropertyEditable(prop.name) && hasYamlError(file);
+                // so a column that is locked anyway says nothing new about it — and only those that
+                // write into the block: a filename's rename copies the bytes as they are.
+                const brokenYaml = writesFrontMatter(prop.name) && hasYamlError(file);
 
                 // Marks the cells whose items list-highlight.js bands after the render. On the cell
                 // for the same reason data-info is: the renderer knows, and asking again later is

@@ -2,6 +2,8 @@ import { applyCellEdits } from '../../editing/save-cell-edit.js';
 import { markUndoState } from '../ui-functions-render/render-undo-buttons.js';
 import { holdRowMove } from '../ui-functions-table/pending-row-move.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
+import { writesFrontMatter } from '../../services/property-type.js';
+import { commitRename } from './cell-rename-commit.js';
 
 /**
  * @file Someone has finished editing a cell.
@@ -66,6 +68,10 @@ export function commitCellEdit(cell) {
 
     // Opened and left alone: nothing to write, and the redraw is what puts the cell's markup back.
     if (cell.textContent === opened) return renderFiles(false, true);
+
+    // The one editable column that is no key in the note: its cell renames the file instead.
+    // Asked of the column, so the routing is one fact. plans/completed/table-rename-filename.md §6.
+    if (!writesFrontMatter(cell.dataset.prop)) return void commitRename(cell, cell.textContent);
 
     const internalId = cell.closest('.note-table').dataset.vtId;
 

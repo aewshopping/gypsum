@@ -282,6 +282,11 @@ test('describeBatch names every kind of batch, and counts only the edits it hold
   // a redo holding only the half of an undo that was applied
   expect(describeBatch({ kind: 'delete-property', property: 'people', edits: people.slice(0, 33) }))
     .toBe('people column delete in 33 files');
+  // a note's rename names its files: names for a rename, the whole new path once the folder changes
+  const renamed = (from, to) => describeBatch({ kind: 'rename-file', property: from, to, edits: [edit(to, 'filename')] });
+  expect(renamed('notes/note-3.txt', 'notes/shopping.txt')).toBe('rename of note-3.txt to shopping.txt');
+  expect(renamed('plan.md', 'work/projects/plan.md')).toBe('move of plan.md to work/projects/plan.md');
+  expect(renamed('a/x.txt', 'b/y.txt')).toBe('move of x.txt to b/y.txt');
 });
 
 // ---------------------------------------------------------------- the saved stack, §8
@@ -375,6 +380,11 @@ test('the undo file is validated at the boundary', async () => {
   expect(parseUndoFile(JSON.stringify({ undoVersion: 2, undo: [batch], redo: [] }))).toEqual({ undo: [], redo: [], refused: [] });
   expect(parseUndoFile(JSON.stringify({ undoVersion: 1, undo: [{ timestamp: 1 }], redo: [] })))
     .toEqual({ undo: [], redo: [], refused: [] });
+
+  // A note's rename is an ordinary batch, so it is kept across a reload with no change to the reader.
+  const rename = { timestamp: 2, kind: 'rename-file', property: 'a.md', to: 'b.md',
+    edits: [{ internalId: 'b.md', property: 'filename', before: 'a.md', after: 'b.md' }] };
+  expect(parseUndoFile(JSON.stringify({ undoVersion: 1, undo: [rename], redo: [] })).undo).toEqual([rename]);
 
   // Refusals are an additive key: kept when well formed, and dropped on their own when not.
   const refusal = { ...batch.edits[0], timestamp: 2, from: { kind: 'edit', property: 'a', values: 1 } };

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, chooseView } = require('../helpers');
+const { loadFolder, chooseView, setupMockDirectoryWithNoteCreation } = require('../helpers');
 
 // What each note is for:
 //   a.md — a real date, a list, and a value holding markup. The markup one is the whole point of
@@ -184,18 +184,17 @@ test('a list cell is one comma-joined line, open and closed', async ({ page }) =
 
 // ---------------------------------------------------------------- what refuses a caret
 
-// filename rather than title: title used to be the exemplar here and is now editable, since a note
-// can override it from front matter and that is where a cell edit writes. A filename is the file
-// itself, so the table has nowhere to put a typed one — renaming is editing/rename-file.js's job.
+// lastModified, the app's own value: title and then filename were the exemplar here, and both now
+// take a caret — title from front matter, filename by renaming the file.
 test('a property that cannot be written back takes no caret', async ({ page }) => {
   await openTable(page);
 
-  const filename = cellFor(page, 'Alpha', 'filename');
-  await open(filename);
-  await expect(filename).toHaveClass(/is-expanded/);                    // it still opens to be read
-  await expect(filename).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
+  const modified = cellFor(page, 'Alpha', 'lastModified');
+  await open(modified);
+  await expect(modified).toHaveClass(/is-expanded/);                    // it still opens to be read
+  await expect(modified).not.toHaveAttribute('contenteditable', /.*/);  // but takes no caret
   // and says nothing about it: nothing is wrong, and there is nothing to do about it
-  expect(await filename.evaluate(el => getComputedStyle(el, '::after').content)).toBe('none');
+  expect(await modified.evaluate(el => getComputedStyle(el, '::after').content)).toBe('none');
 });
 
 test('the title takes a caret, although its column is locked', async ({ page }) => {
@@ -283,3 +282,47 @@ const markedItems = (page, prop) => page.evaluate(prop => {
 }, prop);
 
 // ---------------------------------------------------------------- an opened cell's own spacing
+
+// plans/completed/table-rename-filename.md: the filename cell renames the note. What reaches the
+// disk is tests/1-data/23-rename-shortcut.spec.js; this is what the cell does on screen.
+test('a filename cell opens before its extension, says what is wrong or where it moves, and keeps its place', async ({ page }) => {
+  await setupMockDirectoryWithNoteCreation(page);
+  await page.addInitScript(() => {
+    window.__createdFiles.clear();
+    window.__createdFiles.set('a&b.txt', '# Amp\n#keep');
+    window.__createdFiles.set('other.md', '# Other\nnothing here');
+  });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/');
+  await loadFolder(page);
+  await chooseView(page, 'table');
+  await page.fill('#searchbox', 'tags:keep');
+  await page.press('#searchbox', 'Enter');
+  await expect(page.locator('.note-table[data-vt-id]')).toHaveCount(1);
+
+  const cell = page.locator('.note-table-cell[data-prop="filename"]').first();
+  await expect(cell).toHaveText('a&b.txt');                                // escaped, so drawn as itself
+  await open(cell);
+  await page.keyboard.type('X');
+  await expect(cell).toHaveText('a&bX.txt');                               // the caret sat before .txt
+
+  const retype = async text => { await page.keyboard.press('Control+A'); await page.keyboard.type(text); };
+  await retype('other.md');
+  await expect(cell).toHaveAttribute('data-rename-line', 'A loaded file with that path already exists.');
+  await expect(cell).toHaveClass(/rename-refused/);
+  await retype('lists/a&b');
+  await expect(cell).toHaveAttribute('data-rename-line', '→ moves to lists/');
+  await expect(cell).not.toHaveClass(/rename-refused/);
+  await retype('a&b');
+  await expect(cell).not.toHaveAttribute('data-rename-line');              // typed back as it was
+  await expect(cell).not.toHaveClass(/rename-refused/);
+  await retype('a&c');
+  await expect(cell).not.toHaveAttribute('data-rename-line');              // a plain rename says nothing
+
+  await page.keyboard.press('Enter');
+  // Still drawn under the filter, which was keyed by the old name, and focus is back on the cell
+  const renamed = page.locator('.note-table[data-vt-id="a&c.txt"] .note-table-cell[data-prop="filename"]');
+  await expect(renamed).toHaveText('a&c.txt');
+  await expect(page.locator('.note-table[data-vt-id]')).toHaveCount(1);
+  await expect(renamed).toBeFocused();
+});

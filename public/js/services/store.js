@@ -234,11 +234,11 @@ export const FILE_PROPERTIES = new Map([
  * isTypeSettable() refuses every one of them, and the table header draws the padlock from that
  * answer, so `tags` is always a list and `lastModified` always a date whatever a layout file says.
  *
- * **Writing is the narrower question, and `title` is the exception.** isPropertyEditable() refuses
- * the caret for everything in here *except* title, which a note can override from front matter —
- * which is exactly where a cell edit splices. Making another one editable is an exception there,
- * never a deletion from this list; the writer is the real work and differs per property, since a
- * filename and a filepath already have editing/rename-file.js.
+ * **Writing is the narrower question, and three are the exception.** isPropertyEditable() refuses
+ * the caret for everything in here *except* `title` and `color`, which a note can override from front
+ * matter — which is exactly where a cell edit splices — and `filename`, whose cell renames the file
+ * through editing/rename-note.js. Making another one editable is an exception there, never a
+ * deletion from this list; the writer is the real work and differs per property.
  * @type {string[]}
  */
 export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',
@@ -307,8 +307,9 @@ export const TABLE_VIEW_COLUMNS = {
   // a control column refuses type, sort and search, while these must stay sortable and searchable
   // — sorting by size or by last modified is the point of having them. internalId is in both.
   //
-  // filename and filepath are deliberately absent: renaming from the table is wanted later, and
-  // editing a filepath would move the file, so both may become editable.
+  // filename and filepath are deliberately absent. A filename cell renames its note, and moves it
+  // when a folder is typed — the path is what it shows. filepath stays read-only: one editable copy
+  // of a value per row. plans/completed/table-rename-filename.md §3.1.
   info_columns: ['internalId', 'sizeInBytes', 'lastModified', 'fileIssues'],
   hidden_by_default: ['color', 'filepath', 'internalLink', 'internalLinkText', 'fileIssues'],
   current_props: [],

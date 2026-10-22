@@ -17,8 +17,9 @@ import { formatDateTime } from '../ui-functions-render/render-value.js';
  * plans/completed/table-cell-editors.md §3.4 and §4.2.
  *
  * **Everything from a file is escaped on the way out**, because a cell is what an edit is read back
- * out of. Three of the renderers that mean their markup — renderFilename, renderOpenFileLink,
- * renderTags — belong to columns that refuse a caret.
+ * out of. Two of the renderers that mean their markup — renderOpenFileLink and renderTags — belong
+ * to columns that refuse a caret. renderFilename's `<i>` wraps an escaped path and is flattened
+ * away when the cell opens, as linkifyText's anchors are.
  *
  * **linkifyText is the one that does not, and it is safe for a different reason.** An anchor it
  * writes wraps the note's own `[[...]]` characters rather than replacing them, so the cell's
