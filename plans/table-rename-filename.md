@@ -434,6 +434,15 @@ is a feature of its own — every note in the folder scanned, a journalled batch
 resolution rules in `note-name-index.js` to respect — that belongs to both entry points or neither.
 The case this plan exists for, a note just made by the `+`, has no links to it yet.
 
+### 8.4 What the column sorts and searches by
+
+**The name, while the cell shows and edits the path — and this plan leaves that alone.** Sorting
+by filename interleaves folders (`zeta/apple.md` before `alpha/banana.md`), and searching the column
+for `work/` finds nothing, because both read `file.filename`. That has been so since folders were
+loaded, and is more visible once the path is what the cell edits. Making the column the path
+throughout would group a filename sort by folder — a change for anyone sorting by name today, and a
+decision of its own, not part of renaming.
+
 ---
 
 ## 9. Undo
