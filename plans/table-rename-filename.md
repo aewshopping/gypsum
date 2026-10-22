@@ -326,7 +326,7 @@ if !check.ok:  reportFailure(check.reason); renderFiles(false, true); return   /
 await whileWriting(false, '', () => renameNote(file, check.normalizedFolder, check.normalizedName))
 follow the id in table state and in the row's data-vt-id (§6.3)
 render (full: the filter results changed) — focus comes back through keep-cell-state.js, as after any edit
-report: "renamed note-3.txt to shopping.txt" / "moved plan.md to work/projects/"
+report: "renamed note-3.txt to shopping.txt" / "moved plan.md to work/projects/plan.md" (§9.3)
         + any warnings, on the same line — not alert()
 pushUndoBatch([record], { kind: 'rename-file', property: oldPath, to: newPath })   // §9
 markUndoState()
@@ -493,8 +493,11 @@ reverseFileRename(edit):
 
 ### 9.3 Its name
 
-`describeAction()` gains a line: `rename of note-3.txt to shopping.txt`, or `move of plan.md to
-work/projects/` when the folder changed, from the batch's `property` and `to`. `describeBatch()`
+`describeAction()` gains a line, from the batch's `property` and `to`. **One rule: the folder
+unchanged is a rename, and names are given; the folder changed is a move, and the whole new path is
+given** — `rename of note-3.txt to shopping.txt`, `move of plan.md to work/projects/plan.md`, and
+`move of x.txt to b/y.txt` when both changed, which no separate "moved to a folder" wording could
+say. The report line after a table rename (§6.2) uses the same rule. `describeBatch()`
 leaves off its "in 1 file" for this kind — the name already says which file. So the buttons read
 `undo rename of note-3.txt to shopping.txt`, and so does the undo list's row.
 
