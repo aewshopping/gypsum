@@ -20,7 +20,7 @@ notes call things.
 
 **In scope:** the `/` trigger, the list, filtering it as you type, inserting the chosen key.
 
-**Out of scope (for now — see §4):** completing the *value* after the colon for anything but
+**Out of scope (for now — see §3.7):** completing the *value* after the colon for anything but
 `tags:`, new operators, a picker opened by a button rather than a key.
 
 ---
