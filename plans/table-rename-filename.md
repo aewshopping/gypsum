@@ -14,8 +14,9 @@ This plan makes the `filename` cell take a caret, so a note can be named — and
 where it is listed. Closing the cell renames the file on disk through the same code the file
 options dialog already uses.
 
-- **Open the cell and the stem is selected**: `notes/note-3.txt` opens with `note-3` selected, so
-  typing a name and pressing Enter is the whole job — the folder and the extension are kept.
+- **Open the cell and the caret is before the extension**: `notes/note-3|.txt`. Nothing is
+  selected, so nothing can be typed over by accident, and the caret is where a rename happens —
+  the folder and the extension are kept unless someone moves onto them.
 - **The cell is the note's path, and it is edited as one string.** Change the part after the last
   `/` and the note is renamed; change a part before it and the note is moved. One cell, one rule
   for reading it (§4), one validator.
@@ -190,13 +191,18 @@ segment gets the `FORBIDDEN_IN_FILENAME` test, with the reason "Folder names can
 backslashes or control characters." This fixes the dialog and the flowchart's new-note dialog too,
 and changes nothing for any path that worked.
 
-### 3.4 Opening the cell: the stem is selected
+### 3.4 Opening the cell: the caret goes before the extension
 
-`selectStem()` in `file-options-click.js` already does this for an `<input>`. A cell is a
-`contenteditable`, so it needs a `Range` over the text node from just after the last `/` to just
-before the last `.`, set where `focusWithCaret()` would put a caret. The common act — naming a new
-note — is then "open, type, Enter", and the folder and extension are untouched unless the user
-moves the caret onto them on purpose.
+Every other cell opens with the caret at the end of its text, however it was opened: closed cells
+are `user-select: none`, so the second press leaves no selection inside the cell and
+`focusWithCaret()` puts one at the end — the keyboard and the mouse alike, checked in the browser.
+The end of a filename is the one place nobody types, since anything added there lands after `.txt`.
+So this column puts the caret just before the last `.` instead: one collapsed `Range` on the text
+node, in place of `focusWithCaret()`'s end-of-text caret, for every way of opening the cell.
+
+**Nothing is selected.** Selecting the stem, as the dialog's `selectStem()` does, would make naming
+a new note one keystroke shorter and every other rename one keystroke from losing the name.
+Naming `note-3.txt` means backspacing over `note-3` first, and that is accepted.
 
 `renderFilename()` must **escape** the path now (`escapeHtml`), and the `<i>` stays: `openEditor`
 flattens markup before the caret arrives, and the closing render puts it back. Escaping is not
@@ -503,7 +509,7 @@ followed all the same: `renameInUndoStacks()` keeps every table entry pointing a
    anything in the table changes.
 3. **The cell opens.** `RENAMEABLE_PROPERTY`, `writesFrontMatter()`, `isPropertyEditable`,
    `isWritable`'s yaml exemption, `isPasteable`, `cellOffersPicker`; `renderFilename` escaped; the
-   stem selection.
+   caret before the extension.
 4. **The cell commits.** The branch in `commitCellEdit`, `cell-rename-commit.js`.
 5. **Undo** (§9): the push in `commitRename`, `reverse-file-rename.js` and its branch in
    `reverseBatch`, the refusal's report in `reverseCellEdits`, the wording.
@@ -514,7 +520,7 @@ followed all the same: `renameInUndoStacks()` keeps every table entry pointing a
    `isPropertyEditable`; `store.js`'s comment on `info_columns`; the file map. Manifest minor bump.
    Move this plan to `plans/completed/`.
 
-Screenshots at steps 3 and 6: the opened cell with the stem selected, and each of the three lines.
+Screenshots at steps 3 and 6: the opened cell with the caret before the extension, and each of the three lines.
 
 ---
 
@@ -559,7 +565,7 @@ rename keeps:
 
 ### 11.3 Level 2 — `tests/2-behaviour/47-table-cell-editors.spec.js`
 
-One or two tests in the existing spec, not a new one: the stem is selected on open; Escape writes
+One or two tests in the existing spec, not a new one: the caret is before the extension on open, from a click and from Enter; Escape writes
 nothing; focus is where the way out left it — the renamed row's filename cell after Enter, the next
 cell after Tab; the move line and a refusal line
 appear while typing; `[[` opens no picker; a paste into the column is counted as locked.

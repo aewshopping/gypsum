@@ -7,10 +7,10 @@
  * editable. It ends up editable and focused with no selection inside it, so nothing can be typed and
  * the arrow keys fall through to the page, which scrolls.
  *
- * A mouse click needs no help: the browser puts the selection where the pointer went, which is why
- * the cell last clicked was the only one that could be typed into afterwards — its selection was
- * still sitting in it. So a selection already inside the element is left alone, and the caret only
- * goes to the end when there was nothing to keep.
+ * A selection already inside the element is left alone, and the caret only goes to the end when
+ * there was nothing to keep. **A click does not leave one today**: closed cells are
+ * `user-select: none`, so the press that opens a cell puts no selection in it, and a cell opened
+ * with the mouse gets its caret at the end exactly as one opened from the keyboard does.
  *
  * **That question has to be asked before focusing**, not after: focusing an element that did not
  * have focus puts a caret at the start of it, which is indistinguishable afterwards from the one a
