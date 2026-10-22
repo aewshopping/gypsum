@@ -1,8 +1,8 @@
 import { isDateType } from '../../constants.js';
-import { propertyType, isPropertyEditable, mismatchRefusesCaret } from '../../services/property-type.js';
+import { propertyType, isPropertyEditable, writesFrontMatter, mismatchRefusesCaret } from '../../services/property-type.js';
 import { openDateEditor, closeDateEditor, dateEditorText } from './cell-date-editor.js';
 import { updateListHighlights } from '../ui-functions-highlight/list-highlight.js';
-import { focusWithCaret } from './focus-with-caret.js';
+import { focusWithCaret, focusBeforeExtension } from './focus-with-caret.js';
 import { commitCellEdit } from './cell-edit-commit.js';
 
 /**
@@ -56,7 +56,9 @@ function isEditable(cell) {
  * @returns {boolean}
  */
 export function isPasteable(cell) {
-    return isWritable(cell);
+    // Not into a filename: a paste across a range of them is a batch rename, whose names can collide
+    // with each other as well as with the folder. plans/completed/table-rename-filename.md §7.2.
+    return isWritable(cell) && writesFrontMatter(cell.dataset.prop);
 }
 
 /**
@@ -66,7 +68,8 @@ export function isPasteable(cell) {
  * @returns {boolean}
  */
 function isWritable(cell) {
-    // `in` rather than a truth test: the yaml marker is a bare attribute, so its value is ''.
+    // `in` rather than a truth test: the yaml marker is a bare attribute, so its value is ''. The
+    // renderer only puts it on cells that write front matter — a rename copies the bytes untouched.
     return !('yamlError' in cell.dataset) && isPropertyEditable(cell.dataset.prop);
 }
 
@@ -123,7 +126,8 @@ export function openEditor(cell) {
 
     // plaintext-only keeps pasted markup out of a cell that ultimately stands for text in a file.
     cell.setAttribute('contenteditable', 'plaintext-only');
-    focusWithCaret(cell);
+    if (cell.dataset.prop === 'filename') focusBeforeExtension(cell);
+    else focusWithCaret(cell);
 }
 
 /**

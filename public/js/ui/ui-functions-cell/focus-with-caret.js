@@ -34,3 +34,29 @@ export function focusWithCaret(target) {
     selection.removeAllRanges();
     selection.addRange(range);
 }
+
+/**
+ * Focuses a filename cell with the caret just before its extension — `notes/note-3|.txt`.
+ *
+ * Every other cell opens with the caret at the end, which for a filename is after `.txt`, the one
+ * place nobody types. Nothing is selected, so nothing can be typed over by accident; naming a new
+ * note means backspacing over `note-3` first, and that is accepted.
+ * plans/completed/table-rename-filename.md §3.4.
+ *
+ * @param {HTMLElement} cell - A filename cell that has just been made editable, holding one text node.
+ * @returns {void}
+ */
+export function focusBeforeExtension(cell) {
+    cell.focus();
+    const text = cell.firstChild;
+    const dot = text?.textContent.lastIndexOf('.') ?? -1;
+    if (dot < 0) return focusWithCaret(cell);
+
+    const range = document.createRange();
+    range.setStart(text, dot);
+    range.collapse(true);
+
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+}

@@ -1,6 +1,6 @@
 # Plan: renaming a note from the table's filename cell
 
-Status: **planned, not built.** Follows `plans/completed/table-new-note-button.md`.
+Status: **built.** Follows `plans/completed/table-new-note-button.md`.
 
 ---
 
@@ -291,6 +291,11 @@ say, and otherwise it says nothing:
 - nothing — every other case, a plain rename included. The extension kept, spaces trimmed and the
   name itself are what the user expects, and the report line says what happened once it has (§6.2).
   A line on every keystroke repeating the name being typed was chatter.
+
+**The path typed back as it was is no edit.** `shopping` over `shopping.txt` reads back as the same
+path, and the validator flags that refusal `unchanged`: the open cell says nothing about it and the
+commit writes and reports nothing. Found from the screenshots while building — it had read "Only the
+case changed".
 
 The handler is `handleFilenameCellInput`, registered beside `handleListCellInput` in the input
 delegate; one file, `ui-functions-cell/cell-rename-line.js` — "line", not "note", in an app where a

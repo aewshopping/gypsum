@@ -106,6 +106,7 @@ import { releaseRowMove } from './ui-functions-table/pending-row-move.js';
 import { handleCellEditorKeydown } from './ui-functions-cell/cell-editor.js';
 import { handleCellDatePick, handleCellDateSet } from './ui-functions-cell/cell-date-editor.js';
 import { handleListCellInput } from './ui-functions-highlight/list-highlight.js';
+import { handleFilenameCellInput } from './ui-functions-cell/cell-rename-line.js';
 import { initTooltip } from './tooltip.js';
 
 /**
@@ -508,6 +509,7 @@ function keyUpDelegate(evt) {
  */
 function inputDelegate(evt) {
     handleListCellInput(evt);
+    handleFilenameCellInput(evt);
 
     const actionElement = evt.target.closest('[data-action]');
 

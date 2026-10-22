@@ -156,6 +156,23 @@ export const isPropertyUserOwned = (name) => !CORE_FILE_PROPERTIES.includes(name
  * @returns {boolean}
  */
 export function isPropertyEditable(name) {
+    // `filename` takes a caret with a writer of its own: closing the cell renames the file rather
+    // than splicing front matter, so it is not in the list above, whose two halves are both false
+    // for it. One property, asked here and nowhere else, so no constant of its own.
+    // plans/completed/table-rename-filename.md §4.
+    return writesFrontMatter(name) || name === 'filename';
+}
+
+/**
+ * Whether typing into this column's cells writes into the note's front matter — the narrower
+ * question beside isPropertyEditable. It is false for `filename`, which takes a caret but renames
+ * the file, and it is what a paste, the commit's routing, the note picker and the yaml lock all ask:
+ * each is about splicing a value into the block, which a rename never does.
+ *
+ * @param {string} name - The file property key.
+ * @returns {boolean}
+ */
+export function writesFrontMatter(name) {
     return isTypeSettable(name) || WRITABLE_CORE_PROPERTIES.includes(name);
 }
 

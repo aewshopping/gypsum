@@ -16,7 +16,7 @@ import { textBeforeCaret } from './caret-text.js';
 import { detectCreateOffer } from './create-note-offer.js';
 import { handleSearchBoxClick } from '../ui/ui-functions-click/searchbox-search-click.js';
 import { createNoteFromLink } from '../ui/ui-functions-click/create-linked-note.js';
-import { propertyType } from '../services/property-type.js';
+import { propertyType, writesFrontMatter } from '../services/property-type.js';
 import { VALUE_TYPES } from '../constants.js';
 
 let _popup = null;          // HTMLElement|null
@@ -79,10 +79,14 @@ export function handleEditorAutocomplete(evt) {
  * in a number column. Naming the two types that complete, rather than the three that do not, is
  * what makes giving another column a picker a change to this function and to nothing else.
  *
+ * Only a column that writes front matter: a filename is text, but a link is no part of a name, and
+ * the inserted `[[…]]` would only be refused as one.
+ *
  * @param {HTMLElement} cell - An expanded, editable cell.
  * @returns {boolean}
  */
 function cellOffersPicker(cell) {
+    if (!writesFrontMatter(cell.dataset.prop)) return false;
     const type = propertyType(cell.dataset.prop);
     return type === VALUE_TYPES.STRING.value || type === VALUE_TYPES.ARRAY.value;
 }

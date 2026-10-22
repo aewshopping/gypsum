@@ -198,8 +198,13 @@
    It keeps the column's width like the rest of an opened cell, and wraps. Widening it was tried and
    put back: a cell grows rightward, so on the last column — which is exactly where a newly typed
    property sits — the explanation ran off the edge of the table. The sentences are short enough to
-   wrap tolerably instead. */
-.note-table-cell.is-expanded[data-tip]::after {
+   wrap tolerably instead.
+
+   An open filename cell draws its own line in the same place, from data-rename-line: why a name
+   cannot be used, or that the note will move. Its own attribute because the hover tooltip reads
+   data-tip, but this rule, so the line is laid out once. plans/completed/table-rename-filename.md §5.2. */
+.note-table-cell.is-expanded[data-tip]::after,
+.note-table-cell.is-expanded[data-rename-line]::after {
     content: attr(data-tip);
     display: block;
     margin-top: 6px;
@@ -207,4 +212,12 @@
     border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
     font-size: 0.85em;
     text-wrap: wrap;
+}
+
+.note-table-cell.is-expanded[data-rename-line]::after {
+    content: attr(data-rename-line);
+}
+
+.note-table-cell.rename-refused::after {
+    color: var(--colour-contr-warning);
 }

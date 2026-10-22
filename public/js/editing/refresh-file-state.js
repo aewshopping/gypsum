@@ -146,11 +146,14 @@ async function rereadFile(snapshot, fileIndex) {
  * view transition draws them a frame later. A caller that marks what it changed — an undo, an edit —
  * would otherwise mark elements about to be replaced. See renderFiles.
  *
+ * **A rename finishes here too**, since the filters it has to re-run — their results are keyed by
+ * the note's old id — are the ones re-run here. plans/completed/table-rename-filename.md §6.1.
+ *
  * @param {boolean} fullRender - Whether the header has to be rebuilt as well as the rows.
  * @param {boolean} resort - Whether to put the files back in sort order first.
  * @returns {Promise<void>}
  */
-async function renderRefreshed(fullRender, resort) {
+export async function renderRefreshed(fullRender, resort) {
     if (resort) {
         const { property, direction } = appState.sortState;
         sortAppStateFiles(property, propertyType(property), direction);

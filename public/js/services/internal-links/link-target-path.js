@@ -14,7 +14,7 @@ import { VALID_EXTENSIONS, FORBIDDEN_IN_FILENAME, normaliseFolder } from '../../
  * @param {string} target - Raw link target, already stripped of any '|alias' part.
  * @returns {{folder: string, filename: string, filepath: string}|null} null when the
  *   target names nothing creatable — an empty name, a dot-prefixed (hidden) name or
- *   folder, '.'/'..', or a backslash or control character in the filename.
+ *   folder, '.'/'..', or a backslash or control character in the filename or a folder.
  */
 export function linkTargetToFilepath(target) {
     const segments = (target ?? '').split('/').map(segment => segment.trim()).filter(segment => segment !== '');
