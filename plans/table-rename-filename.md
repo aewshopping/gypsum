@@ -313,12 +313,14 @@ service function, `editing/rename-note.js`:
 renameNote(file, folder, name):
     outcome  = await renameFile({ file, newFolder: folder, newName: name })
     warnings = await migrateBackupsForRename(outcome)
-    for every file: checkFileErrors(file)            // §2.3 — links to and from the old name
+    checkAllFileErrors()                             // §2.3 — links to and from the old name
     clear appState.search.results, re-run every filter   // §2.3 — matchingFiles is keyed by id
     return { outcome, warnings }
 ```
 
-No DOM, so the service layer stays clean; each caller renders. `checkFileErrors` over every note is
+No DOM, so the service layer stays clean; each caller renders, **and each reports its own way**: the
+dialog keeps its `alert()` for warnings, the table puts them on the report line (§6.2). Moving the
+dialog onto the report line is not part of this plan. `checkFileErrors` over every note is
 the honest answer to "which notes did this rename break or mend" — the cheap targeted one would
 need a reverse link index nobody else wants. Measure it on the 1,000-note fixture while building;
 if it shows, narrow it to the notes whose `internalLink` names the old or new filename or path.
