@@ -25,7 +25,8 @@ options dialog already uses.
 - **One Ctrl+Z puts the old name back**, and one redo the new one, like any other table edit — §9.
 
 **Out of scope:** rewriting `[[links]]` in other notes that name the renamed one (§8.3); pasting
-into the filename column (§7.2); the `filepath` column, which stays read-only and hidden by default.
+into the filename column (§7.2); the `filepath` column, which stays read-only and hidden by default;
+a rename that changes only case, which stays refused (§3.3).
 
 ---
 
@@ -196,6 +197,16 @@ which a filename is refused for. Today a backslash in the dialog's folder box re
 segment gets the `FORBIDDEN_IN_FILENAME` test, with the reason "Folder names cannot contain
 backslashes or control characters." This fixes the dialog and the flowchart's new-note dialog too,
 and changes nothing for any path that worked.
+
+**A rename that changes only case stays refused, and its sentence is reworded.** `renameFile` copies
+and then deletes; on a case-insensitive disk `Shopping.txt` and `shopping.txt` are one file, so the
+copy lands on the original and the delete takes the only copy. The refusal protects the note.
+Supporting it means two renames through a temporary name, with a tab closed between them leaving
+the note under a name the app does not load — a plan of its own. What changes is the sentence,
+which the table shows far more often than the dialog did, since fixing the case of a name in view is
+an obvious thing to try: "Only the case changed — that isn't supported yet." rather than "Rename
+cancelled: path is unchanged (case-only renames are not supported)." — a reason, shown while typing
+(§5.2), not a cancellation. The dialog gets the same sentence.
 
 ### 3.4 Opening the cell: the caret goes before the extension
 
