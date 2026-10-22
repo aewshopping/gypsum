@@ -205,6 +205,11 @@ cell is not refused; it writes the item `a/b`, which reads back as that flat tag
 *Known limitations* line on two-level tags gains this. Note this differs from Obsidian, which reads
 `a/b` in front matter as a nested tag exactly as it reads `#a/b` in the body.
 
+**Potential later-stage enhancement:** read `a/b` in front matter as parent and child, the way
+Obsidian does, by sending front matter items through `processTag()` instead of setting them
+directly. Not part of this plan. Note that `frontMatterTags` (§3.1) keeps the note's own text, so
+the cell editor and the writer would need no change for it.
+
 ### 3.8 Completing tag names
 
 **Decided: in scope.** CLAUDE.md already names the seam: `handleCellAutocomplete` in
@@ -270,4 +275,5 @@ registry of pickers — two lines, as CLAUDE.md asks.
    accepted (§3.6).
 3. **A single leading `#` is stripped** from a typed item (§3.4).
 4. **Completion is in scope** (§3.8).
-5. **No parent/child in front matter** — `a/b` is one flat tag (§3.7).
+5. **No parent/child in front matter for now** — `a/b` is one flat tag. Reading it as nested, as
+   Obsidian does, is noted as a potential later-stage enhancement (§3.7).
