@@ -258,18 +258,20 @@ microseconds; `myFiles` is already in memory) and the result is written onto the
 `data-rename-note`, drawn by CSS inside the open cell exactly as the mismatch sentence is
 (`note-table-cell.css`, a pseudo-element, so the commit never captures it). Its own attribute
 rather than `data-tip`, which the hover tooltip also reads. The open cell behaves as every other open
-cell does when a line is drawn in it — nothing new about its size or position. Three things it can
-say:
+cell does when a line is drawn in it — nothing new about its size or position. Two things it can
+say, and otherwise it says nothing:
 
 - **a reason** — the validator's sentence, in the warning colour: "A loaded file with that path
   already exists."
-- **the result, whenever it is not literally the text in the cell** — `→ notes/shopping.txt`, in the
-  ordinary colour. That covers every silent correction §3.2 makes (an extension kept, a folder's
-  case taken from the loaded one, spaces trimmed) and every move, with the folders it will create
-  counted from the same prefix set the case matching uses: `→ top/middle/lower/note-3.txt (2 new
-  folders)`. This is the line that makes design A (§3.1) safe: no one moves a file, or gets a name
-  they did not type, without being told so first.
-- nothing — the text in the cell is exactly the path the note will have.
+- **a move** — when the folder the note will be in is not the one it is in: `→ moves to
+  work/projects/`, in the ordinary colour. This is the line that makes design A (§3.1) safe: a typed
+  `/` is never a surprise. The folder named is the normalised one, case taken from a loaded folder,
+  so it is also where a folder correction shows. No count of the folders it will create — that
+  count could only come from the notes the app has loaded, and would overstate for a folder that is
+  on disk with nothing in it (§3.2, rule 6).
+- nothing — every other case, a plain rename included. The extension kept, spaces trimmed and the
+  name itself are what the user expects, and the report line says what happened once it has (§6.2).
+  A line on every keystroke repeating the name being typed was chatter.
 
 The handler is `handleFilenameCellInput`, registered beside `handleListCellInput` in the input
 delegate; one file, `ui-functions-cell/cell-rename-note.js`.
@@ -526,7 +528,7 @@ followed all the same: `renameInUndoStacks()` keeps every table entry pointing a
    `isPropertyEditable`; `store.js`'s comment on `info_columns`; the file map. Manifest minor bump.
    Move this plan to `plans/completed/`.
 
-Screenshots at steps 3 and 6: the opened cell with the caret before the extension, and each of the three lines.
+Screenshots at steps 3 and 6: the opened cell with the caret before the extension, a refusal, and a move.
 
 ---
 
