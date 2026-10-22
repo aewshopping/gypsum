@@ -310,9 +310,8 @@ file = appState.myFiles.find(id)
 check = validateRenameInputs(...)
 if !check.ok:  reportFailure(check.reason); renderFiles(false, true); return   // cell redrawn as it was
 await whileWriting(false, '', () => renameNote(file, check.normalizedFolder, check.normalizedName))
-follow the id in table state (§6.3)
-render (full: the filter results changed)
-put focus back on the renamed row's filename cell
+follow the id in table state and in the row's data-vt-id (§6.3)
+render (full: the filter results changed) — focus comes back through keep-cell-state.js, as after any edit
 report: "renamed note-3.txt to shopping.txt" / "moved plan.md to work/projects/"
         + any warnings, on the same line — not alert()
 pushUndoBatch([record], { kind: 'rename-file', property: oldPath, to: newPath })   // §9
@@ -323,6 +322,12 @@ holdRowMove([newId])
 - **`whileWriting(false, …)`** is the one-note form of the table's busy state: it sets
   `appState.bulkWriteInFlight`, which refuses a folder load, and lights no bar. The copy is the
   slow part on a phone, and `renameFile`'s `beforeunload` guard already covers the tab closing.
+- **An edit to the same note while the rename copies is not guarded against, and that is
+  accepted.** The table stays live, so a cell in the same row committed before the copy lands is
+  written to the old file, which the rename then deletes; the cell redraws with its old value.
+  Ordinary cell edits share the gap — two edits to one note are a read-modify-write each, with no
+  queue — and both need someone to finish a whole second cell before the first write lands. Not
+  built for, here or in `applyRawEdits`.
 - **A throw** (the collision `alert`, a failed copy) leaves the old file untouched by
   `renameFile`'s own design; the cell is redrawn from state, which still holds the old path, and the
   error's message goes to `reportFailure`.
@@ -340,18 +345,28 @@ four more, each of which would otherwise point at a note that no longer exists:
 
 | State | Effect if left | Follow |
 |-------|----------------|--------|
-| focus (`keep-cell-state.js`) | `captureCellState()` reads the old `data-vt-id` off the DOM, `elementAt()` finds nothing, focus falls to the body — the "finishing a cell leaves it selected" rule broken | `commitRename` focuses `elementAt({ vtId: newId, prop: 'filename' })` after the render, if focus was in that row |
+| the row's `data-vt-id` | `captureCellState()` reads the old id off the DOM, `elementAt()` finds nothing after the render, focus falls to the body — the "finishing a cell leaves it selected" rule broken | set to the new id **before** the render |
 | `appState.pendingRowMove` | the held outline is on a row that is gone; the hold never releases | rename the id in `written` and `moving` |
 | `appState.copiedCells.ids` | the copy outline loses that row | rename the id |
-| `appState.tableRange` | anchor/extent address a missing row | cleared — a rename is a focus-moving act in all but name, and the range would be cleared by the render anyway when the ids change (`nothingMoved` is false) |
+| `appState.tableRange` | anchor/extent address a missing row | nothing — the render is a full one (§6.2), which clears a range |
 
-The three state renames go in `renameNote`'s neighbour, a small `follow-note-rename.js` in
-`ui-functions-table/` (they are table UI state), so `rename-file.js` stays the file system. The
-dialog calls it too: a rename from the dialog with a copy outline showing should not lose it.
+**Focus is put back by the code that puts it back after every cell edit, and nothing else.**
+`renderFiles` reads the focused cell's address — `{ vtId, prop }` — off the DOM before replacing
+the rows, and focuses it again after (`keep-cell-state.js`). That already covers every way out of a
+cell: Tab and a click leave focus on another cell, often in the same row, and Enter and Escape on
+this one. A rename breaks it only because the address carries the row's old id, so the fix is the
+id, not a focus rule of the rename's own: with `data-vt-id` rewritten first, the address read is
+the new one and the existing restore finds the cell, whichever it is. The rename may finish after
+focus has moved on to another row; the address is read when the render runs, so that is covered too.
 
-**The view transition.** `nothingMoved` compares ids, and one changed, so a rename runs a
-transition and the row crossfades in place. Accepted: the row really did become a different note's
-row, and the transition is skipped anyway with animation off.
+The row's attribute is DOM, which is why these renames go in `renameNote`'s neighbour, a small
+`follow-note-rename.js` in `ui-functions-table/` (they are table UI state), so `rename-file.js`
+stays the file system and `renameNote` stays free of the DOM. The dialog calls it too: a rename
+from the dialog with a copy outline showing should not lose it.
+
+**No view transition.** `nothingMoved` compares the ids on screen with the ids about to be drawn,
+and with the row's id rewritten they match — so a rename starts no transition, like any other cell
+edit.
 
 ---
 
@@ -545,7 +560,8 @@ rename keeps:
 ### 11.3 Level 2 — `tests/2-behaviour/47-table-cell-editors.spec.js`
 
 One or two tests in the existing spec, not a new one: the stem is selected on open; Escape writes
-nothing; focus is on the renamed row's filename cell afterwards; the move line and a refusal line
+nothing; focus is where the way out left it — the renamed row's filename cell after Enter, the next
+cell after Tab; the move line and a refusal line
 appear while typing; `[[` opens no picker; a paste into the column is counted as locked.
 
 ---
