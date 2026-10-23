@@ -15,7 +15,7 @@
  */
 
 import { appState } from '../services/store.js';
-import { renderTags } from './ui-functions-render/render-tags.js';
+import { renderNoteTags } from './ui-functions-render/render-tags.js';
 import { escapeHtml } from './ui-functions-render/escape-html.js';
 import { renderValue } from './ui-functions-render/render-value.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
@@ -23,8 +23,11 @@ import { renderOpenFileLink } from './ui-functions-render/render-filename.js';
 import { renderPinMark } from './ui-functions-render/render-pin.js';
 import { PAGINATION_SIZE } from '../constants.js';
 
-/** Properties with nothing to show: a file handle, and the flag the search leaves on a file. */
-const NOT_SHOWN = ['handle', 'show'];
+/**
+ * Properties with nothing to show: a file handle, the flag the search leaves on a file, and the
+ * front matter tags the `tags` row already draws, bulleted.
+ */
+const NOT_SHOWN = ['handle', 'show', 'frontMatterTags'];
 
 /**
  * One `<li>` for a property.
@@ -43,7 +46,7 @@ function renderProperty(name, file) {
     const list = Array.isArray(file[name]) ? ' data-list' : '';
 
     return `<li><strong>${escapeHtml(name)}:</strong> ` +
-           `<span data-prop="${name}"${list}>${renderValue(file[name])}</span></li>`;
+           `<span data-prop="${name}"${list}>${name === 'tags' ? renderNoteTags(file) : renderValue(file[name])}</span></li>`;
 }
 
 /**
@@ -63,10 +66,7 @@ export function renderFileList_list(renderEverything) {
             // as plain text here, since a file is named the same whether or not it is in italics.
             const filename_html = escapeHtml(file.filepath || file.filename || '');
 
-            let tag_pills_html = ""
-            for (const tag of file.tags.keys()) {
-                tag_pills_html += renderTags(tag);
-            }
+            const tag_pills_html = renderNoteTags(file);
 
             const properties = Object.keys(file)
                 .filter(name => !NOT_SHOWN.includes(name))

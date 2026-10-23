@@ -109,10 +109,13 @@ export function isTypeSettable(name) {
  * lands at `title:` or `color:`, the re-read picks it up, and the cell shows what was typed.
  *
  * **Nothing else in CORE_FILE_PROPERTIES works that way.** `filename` and `filepath` are the file
- * itself and have their own writer in `editing/rename-file.js`. `tags` is deleted from `yamlData`
- * before the spread — it is merged into the TagMap instead — so front matter cannot override it and
- * a spliced value would not be what the table then drew. The rest are in RESERVED_KEYS, which
+ * itself and have their own writer in `editing/rename-file.js`. The rest are in RESERVED_KEYS, which
  * file-info.js strips outright.
+ *
+ * **`tags` is here for a different reason.** It is not spread over the file object — the `tags:`
+ * list is merged into the TagMap — but the note has the same place for a typed value, and the cell
+ * opens with that list alone (`frontMatterTags`), never the body's `#tags`. So a splice lands
+ * exactly where the cell's text came from. plans/completed/tag-edit-in-table-view.md §3.3.
  *
  * **Colour has a second writer, and front matter beats it.** The picker in the note editor writes a
  * `#color/…` body tag (`editing/color-pick-apply.js`), which a front matter `color:` silently
@@ -120,7 +123,7 @@ export function isTypeSettable(name) {
  * already true of any note with `color:` in its front matter; the table only makes it easy to reach.
  * The way back is the way in: clearing the cell removes the key, and the body tag applies again.
  */
-export const WRITABLE_CORE_PROPERTIES = ['title', 'color'];
+export const WRITABLE_CORE_PROPERTIES = ['title', 'color', 'tags'];
 
 /**
  * Whether this is a key only the notes define — which is what "delete column" and "rename column"

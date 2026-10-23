@@ -32,6 +32,23 @@ export function detectEditorLinkTrigger(textBeforeCaret) {
 }
 
 /**
+ * Detects the tag being typed in the table's tags cell: the item the caret ends, back to the last
+ * comma, space or start of the line. Every item there is a tag, so nothing has to be typed to start
+ * one — but at least one letter, or every space would open the whole tag list. A `#` typed in front
+ * is left out of the query and stays in the cell; the write takes it off. Nothing is offered inside a
+ * quoted item, which is one the user is spelling out by hand.
+ * @param {string} textBeforeCaret
+ * @returns {{ query: string, triggerStart: number }|null}
+ */
+export function detectCellTagTrigger(textBeforeCaret) {
+    const item = textBeforeCaret.slice(textBeforeCaret.lastIndexOf(',') + 1);
+    if (/["']/.test(item)) return null;
+    const match = textBeforeCaret.match(/(?:^|[\s,])#?([^\s,#"']+)$/);
+    if (!match) return null;
+    return { query: match[1], triggerStart: textBeforeCaret.length - match[1].length };
+}
+
+/**
  * Detects whether the caret sits immediately after the ']]' of a complete internal link.
  * Built from the same regex_internal_link the renderer and the file-load scanner use, so
  * the target read here is exactly the one that would be resolved, anchored with '$' so it

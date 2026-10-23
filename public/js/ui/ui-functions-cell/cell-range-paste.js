@@ -100,8 +100,9 @@ async function pasteText(text, focusAddr, range) {
     const pasteable = targets.filter(target => isPasteable(target.cell));
     const locked = targets.length - pasteable.length;
     // A cell already showing the text has nothing to write. A cell shows its note's own text, so this
-    // is the same test a cell edit makes against the text it opened with.
-    const changing = pasteable.filter(target => target.text !== target.cell.textContent);
+    // is the same test a cell edit makes against the text it opened with — which for the tags cell is
+    // its `data-edit-text`, the note's `tags:` list, rather than every pill run together.
+    const changing = pasteable.filter(target => target.text !== (target.cell.dataset.editText ?? target.cell.textContent));
 
     if (changing.length > 1) {
         const confirmed = await showWarningModal(confirmationText(changing, locked, didNotFit),

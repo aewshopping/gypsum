@@ -7,6 +7,8 @@ import { stickyColumnCount } from './apply-column-widths.js';
 import { isLinkedKey, linkedProperty } from '../../services/linked-properties.js';
 import { filesById, linkedValue } from '../../services/internal-links/linked-value.js';
 import { copiedMarks } from '../ui-functions-cell/cell-range-copy.js';
+import { escapeHtml } from '../ui-functions-render/escape-html.js';
+import { joinTagItems } from '../../services/tag-items.js';
 
 // Said to whoever opens a cell of a note whose front matter did not read cleanly. Every value in
 // that block is a guess, so the fix is the note rather than anything the table can offer.
@@ -94,6 +96,10 @@ export function renderTableRows(current_props, renderEverything) {
                     ? YAML_ERROR_TIP
                     : mismatch ? mismatchMessage(mismatch, prop) : '';
 
+                // The tags cell opens with the note's `tags:` list and nothing else, and shows the
+                // body's tags beside it from CSS — see cell-editor.js and note-table-cell.css.
+                const tagText = prop.name === 'tags' ? tagCellAttributes(file) : '';
+
                 const flag = (mismatch ? ` data-mismatch="${mismatch}"` : '')
                     + (brokenYaml ? ' data-yaml-error' : '')
                     + (tip ? ` data-tip="${tip}"` : '');
@@ -104,11 +110,12 @@ export function renderTableRows(current_props, renderEverything) {
                 const sticky = isSticky ? ` is-sticky${column === stickyCount - 1 ? ' is-sticky-last' : ''}` : '';
                 const stickyLeft = isSticky ? ` style="--sticky-left: var(--sticky-left-${column})"` : '';
 
-                return `<div class="note-table-cell keyboard-navigable${fade}${sticky}${isCopied ? copiedLook.cellClass(column) : ''}"${stickyLeft} data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}>${cellContent}</div>`;
+                return `<div class="note-table-cell keyboard-navigable${fade}${sticky}${isCopied ? copiedLook.cellClass(column) : ''}"${stickyLeft} data-action="expand-cell" tabindex="0" data-index="${index}" data-prop="${prop.name}" data-color="${file.color}"${info}${list}${flag}${tagText}>${cellContent}</div>`;
             }).join('');
 
-            // this is the "wrapper" div that contains the table row elements rendered above
-            const tagList = file.tags instanceof Map ? [...file.tags.keys()].join(" ") : "";
+            // this is the "wrapper" div that contains the table row elements rendered above.
+            // It used to carry the note's tags as classes, which nothing read — and a tag named
+            // `tag`, or a front matter tag `my tag`, gave the row the pill's own class.
 
             // Drawn from state rather than left on the element, so a row holding a move keeps its
             // outline through the renders that happen while it waits — another edit in the same
@@ -119,7 +126,7 @@ export function renderTableRows(current_props, renderEverything) {
             const copied = isCopied ? copiedLook.rowClass : '';
             const copiedAt = isCopied && copiedLook.rowStyle ? ` style="${copiedLook.rowStyle}"` : '';
             rowsHtml += `
-                <div class="note-table ${tagList} color-dynamic-transparent-fallback${pending}${copied}"${copiedAt} data-color="${file.color}" data-vt-id="${file.internalId}">
+                <div class="note-table color-dynamic-transparent-fallback${pending}${copied}"${copiedAt} data-color="${file.color}" data-vt-id="${file.internalId}">
                     ${cellsHtml}
                 </div>
             `;
@@ -127,4 +134,19 @@ export function renderTableRows(current_props, renderEverything) {
     }
 
     return rowsHtml;
+}
+
+/**
+ * The tags cell's two attributes: `data-edit-text`, the `tags:` list the cell opens with, and
+ * `data-body-tags`, the tags that come from the note's text, which the opened cell shows faded
+ * beside it. A tag in both places is the front matter's — the cell is what changes it.
+ * plans/completed/tag-edit-in-table-view.md §3.3.
+ * @param {object} file - The file object, carrying `tags` and `frontMatterTags`.
+ * @returns {string} The attributes, each with its leading space.
+ */
+function tagCellAttributes(file) {
+    const inFrontMatter = new Set(file.frontMatterTags.map(tag => tag.toLowerCase().trim()));
+    const bodyTags = [...file.tags.keys()].filter(tag => !inFrontMatter.has(tag));
+    const body = bodyTags.length > 0 ? ` data-body-tags="${escapeHtml(bodyTags.map(tag => '#' + tag).join(' '))}"` : '';
+    return ` data-edit-text="${escapeHtml(joinTagItems(file.frontMatterTags))}"${body}`;
 }

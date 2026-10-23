@@ -1,6 +1,6 @@
 # Plan: tag edit in table view
 
-Status: **not started**
+Status: **built** — see CLAUDE.md, *The tags cell*
 Related: `plans/completed/table-cell-editors.md`, `plans/completed/table-cell-writing.md`,
 `plans/completed/table-range-paste.md`
 

@@ -105,12 +105,19 @@ export function openEditor(cell) {
     // **What puts the markup back is the render that follows every close**, which
     // cell-edit-commit.js runs whether or not anything was written. So this takes down markup it
     // has no inverse for, and a column that draws markup in an editable cell needs nothing of its
-    // own — tags, if their pills ever take a caret.
+    // own — the tags cell's pills come back the same way.
     //
     // Asked of any element rather than of `.internal-link` for that same reason: the rule is about
     // what a caret may land in, not about links. A cell that refuses a caret has already returned
     // above and keeps its markup — a link in a locked or mismatched cell is still worth clicking.
-    if (cell.firstElementChild) cell.textContent = cell.textContent;
+    //
+    // **The tags cell is the one that is replaced rather than flattened.** Its pills hold every
+    // tag, the body's `#tags` among them, and flattened they would all be written into `tags:` on
+    // the first commit. The renderer left the front matter list on `data-edit-text` instead, and
+    // the body's tags are drawn beside it by CSS from `data-body-tags`, out of the caret's reach.
+    // plans/completed/tag-edit-in-table-view.md §3.3.
+    if ('editText' in cell.dataset) cell.textContent = cell.dataset.editText;
+    else if (cell.firstElementChild) cell.textContent = cell.textContent;
 
     // What the cell opened with, for the commit to compare against. On the cell because that is
     // where a fact about that cell lives, and beside the decision this function already makes about

@@ -1,7 +1,7 @@
 import { VALUE_TYPES, LINKED_TYPE, labelFor } from '../../constants.js';
 import { isInfoColumn, isTypeSettable } from '../../services/property-type.js';
 import { renderFilename, renderOpenFileLink } from '../ui-functions-render/render-filename.js';
-import { renderTags } from '../ui-functions-render/render-tags.js';
+import { renderNoteTags } from '../ui-functions-render/render-tags.js';
 import { renderPinMarkButton } from '../ui-functions-render/render-pin.js';
 import { escapeHtml } from '../ui-functions-render/escape-html.js';
 import { linkifyText, renderInternalLink } from '../ui-functions-render/render-internal-link.js';
@@ -17,9 +17,10 @@ import { formatDateTime } from '../ui-functions-render/render-value.js';
  * plans/completed/table-cell-editors.md §3.4 and §4.2.
  *
  * **Everything from a file is escaped on the way out**, because a cell is what an edit is read back
- * out of. Two of the renderers that mean their markup — renderOpenFileLink and renderTags — belong
- * to columns that refuse a caret. renderFilename's `<i>` wraps an escaped path and is flattened
- * away when the cell opens, as linkifyText's anchors are.
+ * out of. renderOpenFileLink belongs to a column that refuses a caret. renderFilename's `<i>` wraps
+ * an escaped path and is flattened away when the cell opens, as linkifyText's anchors are. The tags
+ * cell's pills are not flattened but **replaced**: they hold every tag, body ones included, so the
+ * cell opens with its `data-edit-text` instead — the front matter list alone. See cell-editor.js.
  *
  * **linkifyText is the one that does not, and it is safe for a different reason.** An anchor it
  * writes wraps the note's own `[[...]]` characters rather than replacing them, so the cell's
@@ -153,9 +154,7 @@ export function renderCellValue(prop, file, mismatch, value = file[prop.name]) {
 
         case VALUE_TYPES.ARRAY.value:
             // The tag map is the only Map that reaches here, and its keys are clickable filters.
-            if (value instanceof Map) {
-                return [...value.keys()].map(tag => renderTags(tag)).join('');
-            }
+            if (value instanceof Map) return renderNoteTags(file);
             // The links column holds targets the app collected — 'shopping.txt', never
             // '[[shopping.txt]]' — so there is nothing here to scan for. It renders as anchors
             // without the brackets a front matter cell keeps, and it may: the brackets are there so

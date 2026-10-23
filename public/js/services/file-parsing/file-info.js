@@ -15,7 +15,7 @@ import { frontMatterLinks } from './front-matter-links.js';
 // is handled separately below, merged into the TagMap rather than dropped.
 export const RESERVED_KEYS = ['handle', 'filename', 'sizeInBytes', 'filepath', 'internalId',
                        'contentPeek', 'internalLink', 'internalLinkText', 'fileIssues',
-                       'lastModified'];
+                       'lastModified', 'frontMatterTags'];
 
 
 /**
@@ -51,8 +51,12 @@ export async function getFileDataAndMetadata(handle, loadOrder, knownText) {
     // merge — so the spread put a boolean over the TagMap and every view that calls
     // `file.tags.keys()` threw. The table row builder happened to be guarded; the list and the
     // grid were not. A bare `tags:` is null, which the merge below skips.
+    let frontMatterTags = [];
     if ('tags' in yamlData) {
         const yamlTags = Array.isArray(yamlData.tags) ? yamlData.tags : [yamlData.tags];
+        // The list as the note wrote it, for the table's tags cell to open with: its spelling and
+        // order are gone from the TagMap below. plans/completed/tag-edit-in-table-view.md §3.1.
+        frontMatterTags = yamlTags.filter(tag => tag !== null && tag !== undefined).map(String);
         for (const yamlTag of yamlTags) {
             // null is missing everywhere else in the app, so it is not a tag either. `false` is a
             // value, and becomes the tag "false" the same way `123` becomes "123" — one sentence
@@ -79,6 +83,8 @@ export async function getFileDataAndMetadata(handle, loadOrder, knownText) {
         title: tagData.titleFirst,
         contentPeek: tagData.contentPeek,
         tags: tagData.tagMap,
+        // Always present, [] with no `tags:` key, for the same reason as the link lists below.
+        frontMatterTags,
         // Front matter's alone, the way `title` is: null here, and the spread below supplies it.
         // The note holds the value CSS wants, so nothing normalises it. A `#color/…` tag no longer
         // means anything — see CLAUDE.md, *What a table cell may contain*.

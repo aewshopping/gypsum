@@ -218,6 +218,22 @@
     content: attr(data-rename-line);
 }
 
+/* An open tags cell holds the note's `tags:` list and nothing else; the tags written in the note's
+   text are shown under it, faded, from data-body-tags — out of the caret's reach for the reason
+   above, since a body tag written into the cell's text would be written into `tags:`. Only on a
+   cell that took a caret: a locked one never opens its pills out, so every tag is already on
+   screen, and its data-tip keeps the slot. plans/completed/tag-edit-in-table-view.md §3.3. */
+.note-table-cell.is-expanded[data-body-tags]:not(.is-readonly)::after {
+    content: 'in the note\'s text: ' attr(data-body-tags);
+    display: block;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    font-size: 0.85em;
+    text-wrap: wrap;
+    opacity: 0.6;
+}
+
 .note-table-cell.rename-refused::after {
     color: var(--colour-contr-warning);
 }

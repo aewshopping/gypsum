@@ -2,6 +2,7 @@ import { VALUE_TYPES } from '../constants.js';
 import { propertyType } from '../services/property-type.js';
 import { toYamlText } from '../services/file-parsing/yaml-value-write.js';
 import { splitFlowItems } from '../services/file-parsing/flow-list.js';
+import { splitTagItems, joinTagItems } from '../services/tag-items.js';
 import { applyRawEdits } from './apply-raw-edits.js';
 import { pushUndoBatch } from '../table-undo/undo-stacks.js';
 
@@ -57,6 +58,10 @@ export async function applyCellEdits(edits, options) {
 export function toRawEdits(edits) {
     return edits.map(edit => {
         const type = propertyType(edit.property);
+        // The tags cell reads its text by rules of its own — spaces separate, a leading `#` comes
+        // off — so it is brought to an ordinary list's text first, and `raw` and `items` below are
+        // then made from the same one. plans/completed/tag-edit-in-table-view.md §3.4.
+        const text = edit.property === 'tags' ? joinTagItems(splitTagItems(edit.text)) : edit.text;
         return {
             internalId: edit.internalId,
             property: edit.property,
@@ -65,8 +70,8 @@ export function toRawEdits(edits) {
             // what keeps every question about format in yaml-value-write.js and every question
             // about bytes here; undo passes a plain string, which is text that came out of a file
             // already.
-            raw: (shape) => toYamlText(edit.text, type, shape),
-            ...(type === VALUE_TYPES.ARRAY.value && { items: splitFlowItems(edit.text) }),
+            raw: (shape) => toYamlText(text, type, shape),
+            ...(type === VALUE_TYPES.ARRAY.value && { items: splitFlowItems(text) }),
         };
     });
 }

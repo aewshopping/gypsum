@@ -19,6 +19,7 @@ Each entry in `appState.myFiles` is a plain object. Most of it is written by `ge
 | `title` | `string` | First markdown H1, or first line (max 180 chars) |
 | `contentPeek` | `string` | Body preview, ~100 chars, front matter and title excluded |
 | `tags` | `Map<string, {count: number, parents: Set<string>}>` | See below |
+| `frontMatterTags` | `string[]` | The `tags:` items as the note wrote them — spelling, order and all, nulls dropped — which is what the table's tags cell opens with and writes back. `[]` with no `tags:` key, never absent. Hidden everywhere as a property (CLAUDE.md, *The tags cell*) |
 | `color` | `string \| null` | The front matter `color:` value, used as a CSS colour verbatim, or `null` |
 | `internalLink` | `string[]` | Link targets found in the body and front matter values, one per link: a target appears once per distinct link text (CLAUDE.md, *Front matter is data, not prose*). `[]` when there are none — never absent |
 | `lastModified` | `Date` | File modification date |
@@ -28,11 +29,11 @@ Each entry in `appState.myFiles` is a plain object. Most of it is written by `ge
 
 **Keys that are never merged in from front matter.** `RESERVED_KEYS` in `file-info.js` strips
 `handle`, `filename`, `sizeInBytes`, `filepath`, `internalId`, `contentPeek`, `internalLink`,
-`fileIssues` and `lastModified` out of the parsed YAML before the spread, because a note writing
+`internalLinkText`, `fileIssues`, `lastModified` and `frontMatterTags` out of the parsed YAML before the spread, because a note writing
 its own `handle:` would replace the thing save, rename, delete and content search all depend on. A
 stripped key is reported in `fileIssues` rather than silently dropped. `tags` is handled
-separately: its items are merged into the TagMap as orphan tags, then the key is deleted so the
-spread cannot overwrite the Map with a plain array.
+separately: its items are kept as written in `frontMatterTags`, merged into the TagMap as orphan
+tags, then the key is deleted so the spread cannot overwrite the Map with a plain array.
 
 **Properties that are always present** are listed in `CORE_FILE_PROPERTIES` (`store.js`). That list
 is what registers columns when a folder holds no files at all — and it is also what makes a
