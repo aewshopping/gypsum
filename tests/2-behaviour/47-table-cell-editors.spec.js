@@ -348,8 +348,8 @@ test('a front matter tag\'s pill carries a bullet, a body-only one does not, and
   const pill = (tag) => cellFor(page, 'Tagged', 'tags').locator(`[data-tag="${tag}"]`);
 
   // inside the one pill, after the name — and `work`, in the body as well, is the front matter's
-  expect(await pill('work').evaluate(el => el.textContent)).toBe('work •');
-  expect(await pill('project').evaluate(el => el.textContent)).toBe('project •');
+  expect(await pill('work').evaluate(el => el.textContent)).toBe('work◦');
+  expect(await pill('project').evaluate(el => el.textContent)).toBe('project◦');
   expect(await pill('idea').evaluate(el => el.textContent)).toBe('idea');
 
   // a bulleted pill is the same filter: `work` is on Tagged alone (Other's is `workshop`)
@@ -382,4 +382,23 @@ test('typing in a tags cell offers the folder\'s tags, and choosing one replaces
   await page.keyboard.press('Escape');
   await expect(popup).not.toBeVisible();
   await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
+});
+
+test('a press on a tag pill filters without selecting its cell, and a selected tags cell clips no pill', async ({ page }) => {
+  await openTagTable(page);
+  const cell = cellFor(page, 'Tagged', 'tags');
+
+  await cell.locator('[data-tag="idea"]').click();
+  await expect(page.locator('.list-table > .note-table')).toHaveCount(1);
+  await expect(cell).not.toHaveClass(/is-selected/);
+  expect(await cell.evaluate(el => el.contains(document.activeElement))).toBe(false);
+
+  // selected from the keyboard: no strip, no ellipsis, nothing laid over the last pill
+  await cell.focus();
+  await expect(cell).toHaveClass(/is-selected/);
+  const look = await cell.evaluate(el => ({
+    overflow: getComputedStyle(el).textOverflow,
+    strip: getComputedStyle(el, '::after').content,
+  }));
+  expect(look).toEqual({ overflow: 'clip', strip: 'none' });
 });

@@ -1,6 +1,7 @@
 # Plan: tag edit in table view
 
-Status: **built** — see CLAUDE.md, *The tags cell*
+Status: **built** — see CLAUDE.md, *The tags cell*. As built, the mark is a hollow bullet `◦`
+straight after the name, with no space: the solid `&nbsp;•` below read as too heavy.
 Related: `plans/completed/table-cell-editors.md`, `plans/completed/table-cell-writing.md`,
 `plans/completed/table-range-paste.md`
 
@@ -163,10 +164,12 @@ tags — the TagMap keys not in `frontMatterTags` (§3.1) — once onto a data a
 `data-body-tags="#idea #later"`) and a rule in
 `note-table-cell.css` draws them in a pseudo-element of the opened cell, faded — the `#tags`
 alone, no label. **As built:** a label ("in the note's text:") was tried and dropped as too wordy;
-instead the line drops in from the row the pills were in, which says where the tags came from. One
-keyframe on the pseudo-element, off with "animate view changes" and under reduced motion. Each tag
-flying from its own pill was ruled out: a pseudo-element has no per-tag boxes, and the pills are
-gone by the time it is drawn. Nothing in JS reads it back. **Decided** over the alternatives —
+a drop-in animation from the pills' row was then tried and taken out — it did not read as intended
+and risked a layout shift as the cell closed. The line simply appears.
+
+**As built, two more:** a press on a pill does not focus or select its cell (its `mousedown` is
+cancelled, unless another cell is open, whose edit is written by focus leaving it); and a selected
+tags cell gives no right edge back — the ellipsis hid the last pill while it stayed pressable. Nothing in JS reads it back. **Decided** over the alternatives —
 body pills kept beside an inner editable span (as the date editor does), a "+2 in the note's text"
 count, or showing nothing: the span needed the commit, the opened-text check, Escape, the list
 highlights and the picker all retargeted, on the write path; this is an attribute and one rule.
