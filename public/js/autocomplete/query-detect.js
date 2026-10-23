@@ -59,6 +59,22 @@ export function detectSearchboxTrigger(value, caretPos) {
 }
 
 /**
+ * Detects a '/property' trigger: a '/' as the very first character of the searchbox, followed by
+ * anything up to the caret that is not an operator. Anchored to the start of the box so a '/' in a
+ * tag, a path or a date never opens it, and spaces are allowed because a key can hold one
+ * (`due date`). Typing the colon yourself ends it, as choosing a key would.
+ * @param {string} value - Full searchbox value.
+ * @param {number} caretPos - selectionStart of the input.
+ * @returns {{ query: string, triggerStart: number }|null}
+ *   triggerStart: always 0, so the '/' itself is replaced along with the query.
+ */
+export function detectSearchboxPropertyTrigger(value, caretPos) {
+    const match = value.slice(0, caretPos).match(/^\/([^:=]*)$/);
+    if (!match) return null;
+    return { query: match[1], triggerStart: 0 };
+}
+
+/**
  * Case-insensitive substring filter over a picker's candidate list, capped at maxResults.
  * Results are sorted so prefix matches come before mid-word matches, both groups alphabetical.
  * Serves the tag list and the internal-link note list alike — both are plain sorted arrays.

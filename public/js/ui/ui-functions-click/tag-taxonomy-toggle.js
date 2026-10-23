@@ -1,6 +1,6 @@
 import { renderTagTaxonomy } from '../render-tag-taxonmy.js';
 import { appState } from '../../services/store.js';
-import { handleContentSearchToggle } from './search-content-toggle.js';
+import { untickContentSearch } from './search-content-toggle.js';
 
 /**
  * Renders the tag taxonomy into the DOM on user request.
@@ -9,11 +9,7 @@ import { handleContentSearchToggle } from './search-content-toggle.js';
  * @returns {void}
  */
 export function handleShowTagTaxonomy() {
-    if (appState.search.depth.searchMode === "fullContent") {
-        const checkbox = document.getElementById("contentsearch");
-        checkbox.checked = false;
-        handleContentSearchToggle(null, checkbox);
-    }
+    if (appState.search.depth.searchMode === "fullContent") untickContentSearch();
     // renderTagTaxonomy();
     const searchbox = document.getElementById('searchbox');
     searchbox.value = '';

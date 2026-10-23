@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { setupMockFiles, loadFolder, chooseView } = require('../helpers');
+const { setupMockFiles, loadFolder, chooseView, appModule } = require('../helpers');
 
 // setupMockFiles has files with: #work/project, #personal, #color/coral
 
@@ -136,6 +136,92 @@ test.describe('tag autocomplete — searchbox', () => {
     await page.fill('#searchbox', 'personal');
     await page.locator('#searchbox').press('Enter');
     await expect(page.locator('.note-grid')).toHaveCount(2);
+  });
+
+});
+
+// The '/' picker: the keys a search can be aimed at. Most of it is pure, so most of it runs in node.
+test.describe('property picker — searchbox', () => {
+
+  test('only a / starting the box opens it, and the query runs up to an operator', async () => {
+    const { detectSearchboxPropertyTrigger } = await appModule('autocomplete/query-detect.js');
+    const fires = { '/': '', '/sta': 'sta', '/due d': 'due d', '/usr/bin': 'usr/bin' };
+    for (const [text, query] of Object.entries(fires)) {
+      expect(detectSearchboxPropertyTrigger(text, text.length), text).toEqual({ query, triggerStart: 0 });
+    }
+    for (const text of ['a /b', ' /b', 'tags:parent/child', '/status:', '/a=b', 'x']) {
+      expect(detectSearchboxPropertyTrigger(text, text.length), text).toBeNull();
+    }
+  });
+
+  test('it lists what search accepts, once per name, alphabetically — and search refuses the rest', async () => {
+    const { appState } = await appModule('services/store.js');
+    const { getPropertyArray } = await appModule('autocomplete/property-source.js');
+    const { createFilterObject } = await appModule('ui/ui-functions-search/a-create-filter-object.js');
+
+    const keys = ['handle', 'contentPeek', 'internalId', 'filename', 'title', 'People', 'people', 'status', 'gone', 'due date'];
+    appState.myFilesProperties = new Map(keys.map(key => [key, {}]));
+    appState.myFiles = [
+      { handle: {}, contentPeek: '', internalId: 'a', filename: 'a', title: 'A', People: ['x'], 'due date': 'soon' },
+      { handle: {}, contentPeek: '', internalId: 'b', filename: 'b', title: 'B', people: ['y'], status: 'done' },
+    ];
+
+    expect(getPropertyArray()).toEqual(['allProperties:', 'content:', 'due date:', 'filename:', 'People:', 'status:', 'title:']);
+
+    const refused = createFilterObject({ property: 'handle', operator: ':', value: 'x' });
+    expect(refused.propertyExists).toBe(false);
+    appState.search.filters.clear();
+  });
+
+  test('/ / opens it; choosing inserts the key, does not search, and unticks content search', async ({ page }) => {
+    await setupMockFiles(page);
+    await page.goto('/');
+    await loadFiles(page);
+    const box = page.locator('#searchbox');
+
+    // The global shortcut focuses and types nothing; a / typed in the box opens the picker.
+    await page.keyboard.press('/');
+    await expect(box).toBeFocused();
+    await expect(box).toHaveValue('');
+    await page.keyboard.type('/');
+    await expect(page.locator(popup)).toContainText('allProperties');
+    await expect(page.locator(popup)).toContainText('content');
+    await expect(page.locator(popup)).not.toContainText('internalId');
+
+    // Escape closes it and leaves the text as typed.
+    await page.keyboard.type('filen');
+    await expect(page.locator(popup)).toContainText('filename');
+    await page.keyboard.press('Escape');
+    await expect(page.locator(popup)).not.toBeVisible();
+    await expect(box).toHaveValue('/filen');
+
+    // Chosen with content search ticked: the key goes in, nothing is searched, the box is unticked.
+    await page.evaluate(() => document.getElementById('contentsearch').click());
+    await expect(box).toHaveAttribute('placeholder', ' content search... (slower) ');
+    await box.fill('/filen');
+    await box.press('ArrowDown');
+    await box.press('Enter');
+    await expect(box).toHaveValue('filename:');
+    await expect(page.locator('.filter-pill')).toHaveCount(0);
+    await expect(page.locator('#contentsearch')).not.toBeChecked();
+    await expect(box).toHaveAttribute('placeholder', ' press / for search ');
+
+    // tags stops at 'tags:' with no popup; a value starting with / closes it by matching nothing.
+    await box.fill('/tags');
+    await box.press('ArrowDown');
+    await box.press('Enter');
+    await expect(box).toHaveValue('tags:');
+    await expect(page.locator(popup)).not.toBeVisible();
+    await box.fill('/usr');
+    await expect(page.locator(popup)).not.toBeVisible();
+
+    // Deleting a filter made under content search unticks it properly, placeholder and all.
+    await page.evaluate(() => document.getElementById('contentsearch').click());
+    await box.fill('shopping');
+    await box.press('Enter');
+    await page.locator('.btn-delete-filter').click();
+    await expect(page.locator('#contentsearch')).not.toBeChecked();
+    await expect(box).toHaveAttribute('placeholder', ' press / for search ');
   });
 
 });

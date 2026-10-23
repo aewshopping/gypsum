@@ -31,16 +31,18 @@ export function replaceEditorLink(query, selectedNote) {
 }
 
 /**
- * Replaces the partial query after 'tags:' in the searchbox with selectedTag.
+ * Replaces the searchbox text from triggerStart to the caret with text, leaving the caret after it.
+ * A tag replaces the partial query after 'tags:'; a property replaces everything from index 0, its
+ * '/' included.
  * @param {HTMLInputElement} inputEl
- * @param {string} selectedTag
- * @param {number} triggerStart - Index of first char of partial query (after 'tags:').
+ * @param {string} text
+ * @param {number} triggerStart - Index of the first char being replaced.
  * @returns {void}
  */
-export function replaceSearchboxTag(inputEl, selectedTag, triggerStart) {
+export function replaceSearchboxQuery(inputEl, text, triggerStart) {
     const before = inputEl.value.slice(0, triggerStart);
     const after  = inputEl.value.slice(inputEl.selectionStart);
-    inputEl.value = before + selectedTag + after;
-    const newCaret = triggerStart + selectedTag.length;
+    inputEl.value = before + text + after;
+    const newCaret = triggerStart + text.length;
     inputEl.setSelectionRange(newCaret, newCaret);
 }
