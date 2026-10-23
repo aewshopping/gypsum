@@ -206,6 +206,23 @@ since that function builds both `raw` and `items` from the same text and strippi
 let them disagree. Doing it there also covers a paste, which shares `toRawEdits()`. **Decided:** an
 item that is only `#` is empty once stripped, and is dropped like an empty item between two commas.
 
+**Decided: in the `tags` column, spaces separate items as well as commas**, so `#one #two` — the
+shape hashtags have when copied out of a note's text — is the two tags `one` and `two`, and so is
+`one two`. Typed or pasted alike, since both go through `toRawEdits()`; the split happens there,
+with the `#` strip, and only for `tags`. Other list columns still split at commas only — `John
+Smith` is one person.
+
+- **A quoted item is kept whole**, as it already is against a comma: `"my tag", work` is two tags.
+  So the split is a tags-specific pass over the *unquoted* items `flowItemRanges()` finds, not a
+  second split of `splitFlowItems()`'s output, which has already thrown the quotes away.
+- **The open cell quotes an existing tag that contains a space.** A front matter tag can hold one
+  (`tags: [my tag]`) though a body tag cannot. `joinFlowItems()` quotes only for commas, quotes and
+  edge whitespace, so the tags cell's opened text must also quote an item with a space inside —
+  otherwise opening such a note and editing any other tag would split `my tag` in two. Keyed on the
+  column, beside the split.
+- Order: split at spaces, then strip one leading `#` from each piece, then drop empty pieces — so
+  `# one` is `one`, and a lone `#` still disappears.
+
 **A note whose front matter did not read cleanly stays locked** — the existing `yamlError` check in
 `cell-editor.js` already covers it; nothing new.
 
@@ -298,7 +315,9 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
    spec covering list cells): edit one item, add, remove, reorder, clear (key removed, body tags
    intact), append to a note with no `tags:`, a note with no front matter, a note whose front matter
    did not read (refused), a body tag never written into front matter, typed case preserved, a
-   leading `#` stripped and a lone `#` dropped, a scalar `tags: work` rewritten as a list, undo.
+   leading `#` stripped and a lone `#` dropped, `#one #two` written as two tags, an existing
+   `"my tag"` surviving an edit to another tag in the same cell, a scalar `tags: work` rewritten as
+   a list, undo.
 5. **Paste** — the "already shows this" comparison for `tags` (§3.6). Level 1 test that a paste
    into a tags cell writes front matter only and one undo reverts it; level 2 test that pasting a
    tags cell's own front matter text back into it counts nothing as changing.
@@ -352,3 +371,7 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
 9. **Body tags in an open cell are a faded line drawn by CSS** (§3.3) — chosen over keeping pills
    beside an editable span, a count, or nothing. Screenshot it when built for the user to judge.
 10. **`frontMatterTags` is hidden everywhere** — columns, sort modal, search (§3.1).
+11. **Spaces separate tags as well as commas**, in the `tags` column only, so `#one #two` is two tags;
+    a quoted item is kept whole, and the open cell quotes an existing tag containing a space (§3.4).
+12. **Paste replaces the front matter list**, as in every other column, and a tag the target note
+    already has in its text is written into front matter anyway. Both considered and kept (§3.6).
