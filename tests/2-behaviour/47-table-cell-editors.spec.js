@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder, chooseView, setupMockDirectoryWithNoteCreation } = require('../helpers');
+const { loadFolder, chooseView, setupMockDirectoryWithNoteCreation, setupMockCellWritingFolder } = require('../helpers');
 
 // What each note is for:
 //   a.md — a real date, a list, and a value holding markup. The markup one is the whole point of
@@ -325,4 +325,61 @@ test('a filename cell opens before its extension, says what is wrong or where it
   await expect(renamed).toHaveText('a&c.txt');
   await expect(page.locator('.note-table[data-vt-id]')).toHaveCount(1);
   await expect(renamed).toBeFocused();
+});
+
+// ---------------------------------------------------------------- the tags cell
+
+// plans/completed/tag-edit-in-table-view.md: a bullet on each tag the note's `tags:` holds, and completion of
+// tag names while typing in the cell. What reaches the disk is tests/1-data/64-table-tag-edit.spec.js.
+async function openTagTable(page) {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await setupMockCellWritingFolder(page, {
+    'tagged.md': '---\ntags: [work, project]\n---\n# Tagged\n\nAlso #idea and #work.\n',
+    'other.md': '---\ntags: [workshop]\n---\n# Other\n',
+  });
+  await page.goto('/');
+  await loadFolder(page);
+  await chooseView(page, 'table');
+  await expect(page.locator('.note-table-header')).toBeVisible();
+}
+
+test('a front matter tag\'s pill carries a bullet, a body-only one does not, and both still filter', async ({ page }) => {
+  await openTagTable(page);
+  const pill = (tag) => cellFor(page, 'Tagged', 'tags').locator(`[data-tag="${tag}"]`);
+
+  // inside the one pill, after the name — and `work`, in the body as well, is the front matter's
+  expect(await pill('work').evaluate(el => el.textContent)).toBe('work •');
+  expect(await pill('project').evaluate(el => el.textContent)).toBe('project •');
+  expect(await pill('idea').evaluate(el => el.textContent)).toBe('idea');
+
+  // a bulleted pill is the same filter: `work` is on Tagged alone (Other's is `workshop`)
+  await pill('work').click();
+  await expect(page.locator('.list-table > .note-table')).toHaveCount(1);
+});
+
+test('typing in a tags cell offers the folder\'s tags, and choosing one replaces the word typed', async ({ page }) => {
+  await openTagTable(page);
+  const cell = cellFor(page, 'Tagged', 'tags');
+  await cell.focus();
+  await page.keyboard.press('Enter');
+  await expect(cell).toHaveText('work, project');
+
+  await page.keyboard.press('End');
+  await page.keyboard.type(' #wor');
+  const popup = page.locator('.ac-picker-popup');
+  await expect(popup).toBeVisible();
+  await expect(popup).toContainText('workshop');
+  // no note picker here: '[[' is not a trigger in this cell
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(popup).not.toBeVisible();
+  await expect(cell).toHaveText('work, project #workshop');
+
+  // Escape closes a popup before it closes the cell
+  await page.keyboard.type(' pro');
+  await expect(popup).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(popup).not.toBeVisible();
+  await expect(cell).toHaveAttribute('contenteditable', 'plaintext-only');
 });

@@ -8,10 +8,10 @@ import { appState } from '../services/store.js';
 import { getTagArray } from './tag-cache.js';
 import { getPropertyArray } from './property-source.js';
 import { getNoteNameArray } from '../services/internal-links/note-name-index.js';
-import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, detectSearchboxPropertyTrigger, filterItems } from './query-detect.js';
+import { detectEditorTrigger, detectEditorLinkTrigger, detectCellTagTrigger, detectSearchboxTrigger, detectSearchboxPropertyTrigger, filterItems } from './query-detect.js';
 import { createPopup, repopulatePopup, destroyPopup, moveActiveItem } from './popup.js';
 import { handlePopupKeydown } from './keyboard-nav.js';
-import { replaceEditorTag, replaceEditorLink, replaceSearchboxQuery } from './replace.js';
+import { replaceEditorTag, replaceEditorLink, replaceCellTag, replaceSearchboxQuery } from './replace.js';
 import { movePopupAnchor } from './popup-anchor.js';
 import { textBeforeCaret } from './caret-text.js';
 import { detectCreateOffer } from './create-note-offer.js';
@@ -23,7 +23,7 @@ import { VALUE_TYPES } from '../constants.js';
 
 let _popup = null;          // HTMLElement|null
 let _context = null;        // 'editor'|'cell'|'searchbox'|null
-let _kind = null;           // 'tag'|'link'|'create-link'|'property'|null — what the popup is completing
+let _kind = null;           // 'tag'|'cell-tag'|'link'|'create-link'|'property'|null — what the popup is completing
 let _triggerStart = null;   // number
 let _query = null;          // string
 let _anchorEl = null;       // HTMLElement
@@ -95,7 +95,8 @@ function cellOffersPicker(cell) {
 }
 
 /**
- * Handles input events from an open table cell, offering the note picker on '[['.
+ * Handles input events from an open table cell, offering the note picker on '[[' — or, in the tags
+ * cell, the folder's tag names for the item under the caret.
  *
  * The same picker the editor gets, in the other place a note name is likely to be wanted: a front
  * matter value. A sibling of the two above rather than a branch inside either, which is the shape
@@ -124,12 +125,14 @@ export function handleCellAutocomplete(evt) {
 
     const caret = sel.getRangeAt(0);
 
-    // Which completion this cell offers, and the list it completes from. One picker today; a tags
-    // column would answer these two lines differently and change nothing else here — though not
-    // quite as cheaply as it looks, since a tag completed with no '#' to type would also need its
-    // own writer: replaceEditorTag extends backwards over the '#' it prepends.
-    const trigger = detectEditorLinkTrigger(textBeforeCaret(cell, caret));
-    const source = getNoteNameArray();
+    // Which completion this cell offers, and the list it completes from. The tags cell completes
+    // tag names instead of note links, never beside them: a `[[note]]` there would be written as a
+    // tag. It needs its own writer too — replaceCellTag — since replaceEditorTag extends backwards
+    // over a '#' that the cell never typed. plans/completed/tag-edit-in-table-view.md §3.8.
+    const isTags = cell.dataset.prop === 'tags';
+    const before = textBeforeCaret(cell, caret);
+    const trigger = isTags ? detectCellTagTrigger(before) : detectEditorLinkTrigger(before);
+    const source = isTags ? getTagArray() : getNoteNameArray();
 
     if (!trigger) { _dismiss(); return; }
 
@@ -151,7 +154,7 @@ export function handleCellAutocomplete(evt) {
     _query = trigger.query;
     _triggerStart = trigger.triggerStart;
     _anchorEl = cell;
-    _kind = 'link';
+    _kind = isTags ? 'cell-tag' : 'link';
 }
 
 /**
@@ -258,6 +261,7 @@ function _applySelection(item) {
     const isProperty = _kind === 'property';
     if (_context === 'searchbox') replaceSearchboxQuery(_anchorEl, item, _triggerStart);
     else if (_kind === 'link') replaceEditorLink(_query, item);
+    else if (_kind === 'cell-tag') replaceCellTag(_query, item);
     else replaceEditorTag(_query, item);
     const anchor = _anchorEl;
     const wasSearchbox = _context === 'searchbox';

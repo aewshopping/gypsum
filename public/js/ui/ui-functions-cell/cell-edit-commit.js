@@ -44,8 +44,8 @@ import { commitRename } from './cell-rename-commit.js';
  *   `[[links]]` came back as dead text until something else redrew the table.
  *
  * So the redraw belongs to closing rather than to writing, and **any column whose cells draw
- * markup is covered by that without doing anything of its own** — the links today, tags if their
- * pills ever take a caret. Rows only, and the page is kept — the pair refreshFilesNow uses, and
+ * markup is covered by that without doing anything of its own** — the links, and the tags cell's
+ * pills. Rows only, and the page is kept — the pair refreshFilesNow uses, and
  * the columns cannot have changed when nothing was written.
  *
  * **The undo button is lit from here**, once the write has landed and pushed its batch. It is a

@@ -218,6 +218,44 @@
     content: attr(data-rename-line);
 }
 
+/* An open tags cell holds the note's `tags:` list and nothing else; the tags written in the note's
+   text are shown under it, faded, from data-body-tags — out of the caret's reach for the reason
+   above, since a body tag written into the cell's text would be written into `tags:`. Only on a
+   cell that took a caret: a locked one never opens its pills out, so every tag is already on
+   screen, and its data-tip keeps the slot. plans/completed/tag-edit-in-table-view.md §3.3.
+
+   **It arrives from the row the pills were in**, which is what says where these tags came from: the
+   line starts over the cell's first line and drops into place as it fades in. The whole line, not
+   each tag from its own pill — a pseudo-element has no per-tag boxes to move, and by the time it is
+   drawn the pills are gone. -100% is its own height and 12px its margin and padding, which together
+   put its top roughly on the first line. One keyframe, no JS. */
+.note-table-cell.is-expanded[data-body-tags]:not(.is-readonly)::after {
+    content: attr(data-body-tags);
+    display: block;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    font-size: 0.85em;
+    text-wrap: wrap;
+    opacity: 0.6;
+    animation: body-tags-drop 220ms ease-out;
+}
+
+@keyframes body-tags-drop {
+    from { transform: translateY(calc(-100% - 12px)); opacity: 0; }
+}
+
+/* The app's one switch for animation, and the system's. */
+html:has(#view-transitions-enabled:not(:checked)) .note-table-cell[data-body-tags]::after {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .note-table-cell.is-expanded[data-body-tags]:not(.is-readonly)::after {
+        animation: none;
+    }
+}
+
 .note-table-cell.rename-refused::after {
     color: var(--colour-contr-warning);
 }

@@ -31,7 +31,7 @@ export const appState = {
         onlyProperties: " press / for search "
       }
     },
-    excludedProperties: ["handle", "contentPeek", "fileIssues"],
+    excludedProperties: ["handle", "contentPeek", "fileIssues", "frontMatterTags"],
     filters: new Map(),
     results: new Map(),
     matchingFiles: new Map()
@@ -242,8 +242,8 @@ export const FILE_PROPERTIES = new Map([
  * @type {string[]}
  */
 export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title', 'contentPeek',
-  'tags', 'color', 'internalLink', 'internalLinkText', 'lastModified', 'fileIssues', 'filepath',
-  'internalId'];
+  'tags', 'frontMatterTags', 'color', 'internalLink', 'internalLinkText', 'lastModified', 'fileIssues',
+  'filepath', 'internalId'];
 
 /**
  * The table view's columns.
@@ -292,7 +292,8 @@ export const CORE_FILE_PROPERTIES = ['handle', 'filename', 'sizeInBytes', 'title
  * columns, so it lives in appState.propertyTypes and is asked for through property-type.js.
  */
 export const TABLE_VIEW_COLUMNS = {
-  hidden_always: ['handle', 'contentPeek'],
+  // frontMatterTags is what the tags cell opens with, not a column of its own.
+  hidden_always: ['handle', 'contentPeek', 'frontMatterTags'],
   shown_always: ['internalId'],
   // Columns whose cell holds a control rather than the property's value: the file column is
   // internalId wearing an open-file link. Its type, its sort order and a search of it would all be

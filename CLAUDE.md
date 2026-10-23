@@ -165,7 +165,9 @@ point. These rules follow, and they are the ones to hold:
   value is a scalar in a scalar column: correcting it splices exactly the span a matching cell
   splices, so it takes a caret like any other — refusing it meant sending someone to the note to do
   by hand the one thing the cell was already able to do. The predicate lives in `property-type.js`
-  beside `isPropertyEditable()`, so every caret-refusal answer stays in one module.
+  beside `isPropertyEditable()`, so every caret-refusal answer stays in one module. **`tags` is the
+  exception:** a single `tags: work` is read as a one-item list and never mismatches, so editing it
+  writes it back as a list — see *The tags cell*.
 - **The explanation is drawn by CSS, not inserted by anyone.** The renderer writes the sentence once
   onto `data-tip`, and `note-table-cell.css` draws it inside any opened cell carrying one —
   a tooltip needs a pointer, and half the people using this have a finger. It has to be a
@@ -666,9 +668,12 @@ Two rules, and the second follows from the first. See `plans/completed/table-cel
 - **Escape everything that came from a file**, with `ui-functions-render/escape-html.js`. That is
   what makes the first rule safe, and together with the caret rules it gives the invariant worth
   keeping: *a cell that takes a caret contains nothing but escaped text* — **once it is open**.
-  Three of the renderers that mean their markup — `renderFilename`, `renderOpenFileLink`,
-  `renderTags` — belong to columns that refuse a caret. `linkifyText` is the one that does not, and
-  the qualification above is what it costs.
+  `renderOpenFileLink` belongs to a column that refuses a caret. `renderFilename`'s `<i>` and
+  `linkifyText`'s anchors are flattened away when their cell opens, and the qualification above is
+  what that costs. `renderTags` draws pills in a column that now takes a caret, and is the one whose
+  markup is **replaced** rather than flattened — see *The tags cell* below.
+- **`renderTags()` escapes the tag name everywhere it writes it.** A body tag is word characters
+  only, but a front matter tag can hold anything, and one typed into the tags cell may hold a quote.
 
 **A `[[link]]` in a cell is an anchor around the note's own text, never in place of it.** See
 `ui-functions-render/render-internal-link.js`. `linkifyText` wraps the whole `[[a.md|label]]`,
@@ -698,7 +703,8 @@ matter the first time anyone opened that cell and clicked away.
   until a sort, a filter or a view switch happened to redraw the table. The flatten therefore has
   no inverse and needs none, which is what makes it general: it is asked of any element rather than
   of `.internal-link`, so **a column whose cells draw markup and take a caret is covered without
-  doing anything of its own** — `tags`, if its pills ever become editable.
+  doing anything of its own**. `tags` is the exception that proves it: its pills hold tags the cell
+  must not write, so it is replaced, not flattened — see *The tags cell* below.
 - **`itemRangesIn()` can no longer assume one text node**, because an anchor splits the line. It
   gathers the text nodes, joins them, and maps each end of an item back to the node it fell in.
 - **The `internalLink` column draws anchors with no brackets**, and may: it holds targets the app
@@ -713,10 +719,11 @@ matter the first time anyone opened that cell and clicked away.
   the cell around it cannot disagree about which press this is. A press the app made itself carries
   `detail === 0` and follows at once. Links in a rendered note are untouched: no cell, one click.
   **A tag pill in the same table follows on the first press, and that asymmetry is deliberate** —
-  two reasons, both real. A pill never fills its cell, so there is always cell left to press; and
-  editing one of these cells is the common act while following the link is the occasional one, so
-  the rule spends the cheap press on the frequent job. Do not tidy it into consistency: that would
-  trade a rare convenience for a frequent detour.
+  filtering from the table stays one press. Now that the tags cell takes a caret, a cell full of
+  pills has no free space to press, and is opened from the keyboard instead: arrow to it, then
+  Enter. That was weighed against making a pill's first press select its cell, as a link's does, and
+  kept (plans/completed/tag-edit-in-table-view.md §3.3). Do not tidy it into consistency without that
+  conversation.
 
 **The selected cell gives its right edge back**, which is what stops a link locking you out of its
 own cell. An anchor takes every press that lands on it, and a cell holding one link is that link end
@@ -773,10 +780,12 @@ column.
   left anchored to a cell that had just collapsed.
 - **A different column wanting a different picker is two lines, not a mechanism.** The seam is not
   "which picker" but *what is being completed at the caret* — for a link that is the `[[` token, and
-  for a tags cell it would be the item the caret is in, since a column where every item is a tag has
-  no non-tag text to protect. Those two lines (the detector and the list) sit adjacent in
-  `handleCellAutocomplete`. `itemRangesIn()` already knows where an item begins. Do not build a
-  registry for it.
+  for the tags cell it is the word the caret ends (`detectCellTagTrigger`), since a column where
+  every item is a tag has no non-tag text to protect. Those two lines (the detector and the list)
+  sit adjacent in `handleCellAutocomplete`. **The tags cell completes tag names instead of note
+  links, never beside them** — a `[[note]]` there would be written as a tag — from every tag in the
+  folder, written lowercase as the tag list has it, through `replaceCellTag` (the cell has no `#` of
+  its own for `replaceEditorTag` to extend over). Do not build a registry for it.
 
 **A locked column's type is locked, and `isTypeSettable()` is that question.** It answers whether
 the header draws a padlock, whether the type dialog is offered, and whether `propertyType()` reads
@@ -789,13 +798,44 @@ type would be the same lie from the other side.
 `writesFrontMatter()` — `isTypeSettable()` plus `WRITABLE_CORE_PROPERTIES` — plus `filename`, and
 the two came apart for those columns. `writesFrontMatter()` is the question beside it: whether typing
 splices the note's block, which a paste, the commit's routing, the note picker and the yaml lock ask.
-**`title` and `color` are editable from the table.** What they have in common is the spread in
+**`title`, `color` and `tags` are editable from the table.** What `title` and `color` have in common is the spread in
 `file-info.js`: both sit in the returned object *above* `...(yamlData)`, so front matter supplies
 them — `title` overriding the note's own `# H1`, `color` filling in a `null`. Either way the note
 already has a place for a typed value, and it is exactly the place a cell edit splices. Nothing else
 in `CORE_FILE_PROPERTIES` does: `filename` and `filepath` are the file itself — `filename` takes a
-caret all the same, with a writer of its own that renames the file; `tags` is deleted from `yamlData` before the spread, being merged into the
-TagMap, so front matter cannot override it; the rest are in `RESERVED_KEYS` and stripped outright.
+caret all the same, with a writer of its own that renames the file; the rest are in `RESERVED_KEYS`
+and stripped outright. `tags` is there for its own reason — see *The tags cell* below.
+
+### The tags cell
+
+The `tags` cell takes a caret, and what is typed or pasted there is the note's `tags:` list. A body
+`#tag` is never written. See `plans/completed/tag-edit-in-table-view.md`.
+
+- **The file object keeps the list as written**, `frontMatterTags` (`[]` with no key), because the
+  TagMap has lowercased it and put the body's tags first. It is in `CORE_FILE_PROPERTIES`,
+  `RESERVED_KEYS`, `hidden_always` and the search's `excludedProperties` — a carrier for the cell,
+  offered nowhere as a property.
+- **A front matter tag's pill ends `&nbsp;•`**, inside the one pill and outside `data-tag`, in every
+  view that draws a note's tags (`renderNoteTags()`). A tag in both places has the bullet: the cell
+  edits front matter, so removing it there takes the bullet off and leaves the pill.
+- **The cell is replaced on opening, not flattened.** Flattened, its pills would put every tag —
+  body ones and bullets included — into `tags:` on the first commit. The renderer writes the list
+  onto `data-edit-text` and `cell-editor.js` opens with that; the body's tags go on
+  `data-body-tags` and `note-table-cell.css` draws them under the text — bare `#tags`, faded, out of
+  the caret's reach — the mismatch sentence's mechanism. The line drops in from the row the pills
+  were in, which is what says where those tags came from: one keyframe on the pseudo-element, off
+  with "animate view changes" and under reduced motion. Only on a cell that took a caret: a locked one keeps its
+  pills, and its `data-tip` keeps the slot. Paste's "already shows this" test reads the same
+  attribute rather than the pills.
+- **Spaces separate tags as well as commas, and one leading `#` comes off** (`services/tag-items.js`),
+  so `#one #two` is two tags. A quoted item is kept whole, and the cell opens with a tag holding a
+  space quoted, so editing its neighbours cannot split it. Done to the text before `toRawEdits()`
+  makes `raw` and `items` from it, so typing and pasting agree. Other list columns are untouched.
+- **A single `tags: work` is rewritten as a list when edited** — the one column where an edit changes
+  a value's shape without being refused. The app has always read `tags:` as a list, so the list is
+  what the user sees.
+- **A row no longer carries its tags as classes.** Nothing read them, and a tag named `tag` — easy to
+  reach once `my tag` splits at its space — gave the row the pill's own class.
 
 **Colour is a front matter key and nothing else.** `#color/…` used to set it, which made every
 colour a tag as well and gave the value two writers — the editor's picker wrote the body tag, the
@@ -841,7 +881,7 @@ contain*. The redraw belongs to closing rather than to writing, which is what ma
 
 **A cell refuses a caret for two kinds of reason, and each has one home.** Whether the *column* can be
 typed into at all is `isPropertyEditable()` in `services/property-type.js` — false for an info column
-or a `CORE_FILE_PROPERTIES` member other than `title`, `color` and `filename`. Whether this one *cell* can is
+or a `CORE_FILE_PROPERTIES` member other than `title`, `color`, `tags` and `filename`. Whether this one *cell* can is
 `cell-editor.js`, which adds the two per-cell questions: whether the value's *shape* fits its column — not merely whether it fits —
 and whether the note's front matter read cleanly at all. The first of those is
 `mismatchRefusesCaret()`, in the same service as `isPropertyEditable()`, so one module owns every
@@ -1383,6 +1423,7 @@ linked in `project`". See `plans/completed/table-linked-properties.md`.
 | `public/js/editing/paste-cells.js` | Pasting into cells: the journalled two-pass write |
 | `public/js/editing/copy-source-value.js` | What one note has to copy, and the text a linked or core value becomes |
 | `public/js/editing/property-forecast.js` | Which notes a delete, a rename or a copy reaches, counted from `appState`, and how a dialog says so |
+| `public/js/services/tag-items.js` | The tags cell's text, both directions: spaces and commas separate, a leading `#` comes off, a tag with a space is quoted |
 | `public/js/services/tsv.js` | Tab-separated text, both directions: copy's field quoting and paste's parser |
 | `public/js/services/property-name.js` | Whether a name can be given to a property: the rename dialog's question, all pure |
 | `public/js/table-layouts/follow-property-rename.js` | What follows a renamed property outside the notes: columns, type, flowchart roles, sort |
@@ -1567,7 +1608,9 @@ the matching browser binary.
 
 These are accepted trade-offs, not bugs:
 
-- **Two-level tags only** — `#parent/child` works; `#a/b/c` does not
+- **Two-level tags only** — `#parent/child` works; `#a/b/c` does not. And only in the body: a front
+  matter tag is always one flat tag, so `tags: [a/b]` is the tag `a/b` with no parent — unlike
+  Obsidian, which nests it. See plans/completed/tag-edit-in-table-view.md §3.7.
 - **No diffing / reactivity** — full re-renders on state change are intentional for simplicity
 - **Do not put comments between the items of a front matter list.** Editing that list from the table
   loses them. A cell hands back a flat list of strings, so an added, removed or reordered item

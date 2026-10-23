@@ -3,7 +3,7 @@ import { appState } from '../services/store.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
 import { renderPinButton } from './ui-functions-render/render-pin.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
-import { renderTags } from './ui-functions-render/render-tags.js';
+import { renderNoteTags } from './ui-functions-render/render-tags.js';
 
 /**
  * Renders the file list as a search result.
@@ -23,10 +23,7 @@ export function renderFileList_search(renderEverything) {
             const filename_html = renderFilename(file.filepath);
 
             // construct the html for the array of tags for this file
-            let tag_pills_html = ""
-            for (const tag of file.tags.keys()) {
-                tag_pills_html += renderTags(tag);
-            }
+            const tag_pills_html = renderNoteTags(file);
 
             const openFileTip = index <= 9 ? `open file | ${index}` : 'open file';
             file_html += `

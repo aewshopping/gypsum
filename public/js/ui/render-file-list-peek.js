@@ -3,7 +3,7 @@
  */
 
 import { appState } from '../services/store.js';
-import { renderTags } from './ui-functions-render/render-tags.js';
+import { renderNoteTags } from './ui-functions-render/render-tags.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
 import { renderPinButton } from './ui-functions-render/render-pin.js';
 
@@ -20,10 +20,7 @@ export function renderFileList_peek(renderEverything) {
         if (checkFileOnPage(file.internalId)) {
             index++;
 
-            let tag_pills_html = '';
-            for (const tag of file.tags.keys()) {
-                tag_pills_html += renderTags(tag);
-            }
+            const tag_pills_html = renderNoteTags(file);
 
             const peekHtml = (file.contentPeek || '')
                 .replace(/&/g, '&amp;')

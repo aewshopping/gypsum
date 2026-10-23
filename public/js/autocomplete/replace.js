@@ -46,3 +46,19 @@ export function replaceSearchboxQuery(inputEl, text, triggerStart) {
     const newCaret = triggerStart + text.length;
     inputEl.setSelectionRange(newCaret, newCaret);
 }
+
+/**
+ * Replaces the tag being typed in a tags cell with the one chosen. Only the typed letters: the cell
+ * has no '#' of its own to put back, unlike replaceEditorTag, and one the user typed stays for the
+ * write to take off.
+ * @param {string} query - What was typed, as detectCellTagTrigger found it.
+ * @param {string} selectedTag
+ * @returns {void}
+ */
+export function replaceCellTag(query, selectedTag) {
+    const sel = window.getSelection();
+    for (let i = 0; i < query.length; i++) {
+        sel.modify('extend', 'backward', 'character');
+    }
+    document.execCommand('insertText', false, selectedTag);
+}

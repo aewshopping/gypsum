@@ -155,7 +155,11 @@ export function copyTargetProblem(source, target, keys, linked = null) {
         return `"${name}" holds this column's links — copying into it would replace them`;
     }
 
-    const problem = textProblem(name) ?? (WRITABLE_CORE_PROPERTIES.includes(name) ? null : appNameProblem(name));
+    // `tags` takes a caret too, but a copy into it is out of scope: the copy writes values rather
+    // than a cell's text, so the tags cell's own rules (spaces, a leading `#`) would never see them.
+    // plans/completed/tag-edit-in-table-view.md §3.6.
+    const copyable = WRITABLE_CORE_PROPERTIES.includes(name) && name !== 'tags';
+    const problem = textProblem(name) ?? (copyable ? null : appNameProblem(name));
     if (problem) return problem;
 
     const spellings = keys.get(name.toLowerCase());
