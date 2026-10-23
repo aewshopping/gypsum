@@ -199,6 +199,13 @@ export function addActionHandlers() {
         if (evt.target.closest('[data-action="editor-undo"], [data-action="editor-redo"], [data-action="cell-date-pick"]')) {
             evt.preventDefault();
         }
+        // A tag pill in a table cell filters and does nothing else, so the press must not focus, and
+        // so select, the cell around it. Not while a cell is open, though: focus leaving that cell is
+        // what writes its edit. plans/completed/tag-edit-in-table-view.md §3.3.
+        if (evt.target.closest('.note-table-cell [data-action="tag-filter"]')
+            && !document.querySelector('.note-table-cell.is-expanded')) {
+            evt.preventDefault();
+        }
         if (evt.target.closest('[data-action="editor-color-pick"]')) {
             captureEditorCursorOffset();
         }

@@ -63,16 +63,25 @@
 }
 
 /* Except the file column, whose link is one word and never its whole width, so there is always cell
-   left to press and nothing for the strip to do.
+   left to press and nothing for the strip to do — and the tags cell, whose pills filter on the first
+   press however the cell is selected, so the strip would only hide a pill that could still be
+   pressed. A tags cell full of pills is opened from the keyboard instead
+   (plans/completed/tag-edit-in-table-view.md §3.3).
 
    No ellipsis there, either, and that is the part that matters. The strip's padding left the pin
    overflowing the content box; Chrome painted it anyway at rest, but the hover's repaint at full
    opacity let the ellipsis hide it — invisible under the pointer, and still pressable, being still
    laid out. The normal padding is enough while the column is its usual width; clip is what keeps a
    narrowed column cutting the pin at the cell's edge rather than hiding it. */
-.note-table-cell.is-selected:not(.is-expanded)[data-prop="internalId"] {
+.note-table-cell.is-selected:not(.is-expanded)[data-prop="internalId"],
+.note-table-cell.is-selected:not(.is-expanded)[data-prop="tags"] {
     padding-right: var(--table-cell-padding);
     text-overflow: clip;
+}
+
+/* And no press target over the tags cell's last pill: a press there is that pill's. */
+.note-table-cell.is-selected:not(.is-expanded)[data-prop="tags"]::after {
+    content: none;
 }
 
 /* The press target, and it is deliberately wider than the strip: the strip is what you see, so it
@@ -222,13 +231,7 @@
    text are shown under it, faded, from data-body-tags — out of the caret's reach for the reason
    above, since a body tag written into the cell's text would be written into `tags:`. Only on a
    cell that took a caret: a locked one never opens its pills out, so every tag is already on
-   screen, and its data-tip keeps the slot. plans/completed/tag-edit-in-table-view.md §3.3.
-
-   **It arrives from the row the pills were in**, which is what says where these tags came from: the
-   line starts over the cell's first line and drops into place as it fades in. The whole line, not
-   each tag from its own pill — a pseudo-element has no per-tag boxes to move, and by the time it is
-   drawn the pills are gone. -100% is its own height and 12px its margin and padding, which together
-   put its top roughly on the first line. One keyframe, no JS. */
+   screen, and its data-tip keeps the slot. plans/completed/tag-edit-in-table-view.md §3.3. */
 .note-table-cell.is-expanded[data-body-tags]:not(.is-readonly)::after {
     content: attr(data-body-tags);
     display: block;
@@ -238,22 +241,6 @@
     font-size: 0.85em;
     text-wrap: wrap;
     opacity: 0.6;
-    animation: body-tags-drop 220ms ease-out;
-}
-
-@keyframes body-tags-drop {
-    from { transform: translateY(calc(-100% - 12px)); opacity: 0; }
-}
-
-/* The app's one switch for animation, and the system's. */
-html:has(#view-transitions-enabled:not(:checked)) .note-table-cell[data-body-tags]::after {
-    animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .note-table-cell.is-expanded[data-body-tags]:not(.is-readonly)::after {
-        animation: none;
-    }
 }
 
 .note-table-cell.rename-refused::after {

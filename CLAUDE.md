@@ -723,7 +723,10 @@ matter the first time anyone opened that cell and clicked away.
   pills has no free space to press, and is opened from the keyboard instead: arrow to it, then
   Enter. That was weighed against making a pill's first press select its cell, as a link's does, and
   kept (plans/completed/tag-edit-in-table-view.md §3.3). Do not tidy it into consistency without that
-  conversation.
+  conversation. **A pill's press neither focuses nor selects its cell** — its `mousedown` is
+  cancelled, unless another cell is open, since focus leaving that one is what writes its edit — and
+  **the tags cell gives no right edge back** when selected: no padding, no ellipsis, no press
+  strip, since a pill hidden under the ellipsis was still laid out and still pressable.
 
 **The selected cell gives its right edge back**, which is what stops a link locking you out of its
 own cell. An anchor takes every press that lands on it, and a cell holding one link is that link end
@@ -822,9 +825,7 @@ The `tags` cell takes a caret, and what is typed or pasted there is the note's `
   body ones and bullets included — into `tags:` on the first commit. The renderer writes the list
   onto `data-edit-text` and `cell-editor.js` opens with that; the body's tags go on
   `data-body-tags` and `note-table-cell.css` draws them under the text — bare `#tags`, faded, out of
-  the caret's reach — the mismatch sentence's mechanism. The line drops in from the row the pills
-  were in, which is what says where those tags came from: one keyframe on the pseudo-element, off
-  with "animate view changes" and under reduced motion. Only on a cell that took a caret: a locked one keeps its
+  the caret's reach — the mismatch sentence's mechanism. Only on a cell that took a caret: a locked one keeps its
   pills, and its `data-tip` keeps the slot. Paste's "already shows this" test reads the same
   attribute rather than the pills.
 - **Spaces separate tags as well as commas, and one leading `#` comes off** (`services/tag-items.js`),
