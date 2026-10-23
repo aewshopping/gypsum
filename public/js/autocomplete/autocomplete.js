@@ -6,26 +6,29 @@
  */
 import { appState } from '../services/store.js';
 import { getTagArray } from './tag-cache.js';
+import { getPropertyArray } from './property-source.js';
 import { getNoteNameArray } from '../services/internal-links/note-name-index.js';
-import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, filterItems } from './query-detect.js';
+import { detectEditorTrigger, detectEditorLinkTrigger, detectSearchboxTrigger, detectSearchboxPropertyTrigger, filterItems } from './query-detect.js';
 import { createPopup, repopulatePopup, destroyPopup, moveActiveItem } from './popup.js';
 import { handlePopupKeydown } from './keyboard-nav.js';
-import { replaceEditorTag, replaceEditorLink, replaceSearchboxTag } from './replace.js';
+import { replaceEditorTag, replaceEditorLink, replaceSearchboxQuery } from './replace.js';
 import { movePopupAnchor } from './popup-anchor.js';
 import { textBeforeCaret } from './caret-text.js';
 import { detectCreateOffer } from './create-note-offer.js';
 import { handleSearchBoxClick } from '../ui/ui-functions-click/searchbox-search-click.js';
+import { untickContentSearch } from '../ui/ui-functions-click/search-content-toggle.js';
 import { createNoteFromLink } from '../ui/ui-functions-click/create-linked-note.js';
 import { propertyType, writesFrontMatter } from '../services/property-type.js';
 import { VALUE_TYPES } from '../constants.js';
 
 let _popup = null;          // HTMLElement|null
 let _context = null;        // 'editor'|'cell'|'searchbox'|null
-let _kind = null;           // 'tag'|'link'|'create-link'|null — what the editor popup is completing
+let _kind = null;           // 'tag'|'link'|'create-link'|'property'|null — what the popup is completing
 let _triggerStart = null;   // number
 let _query = null;          // string
 let _anchorEl = null;       // HTMLElement
 let _pendingNote = null;    // {folder, filename, filepath} the 'create-link' popup would create
+let _tookEnter = false;     // the popup chose an item on this Enter's keydown, so its keyup is ours too
 
 /**
  * Handles input events from the editor pre element.
@@ -158,10 +161,13 @@ export function handleCellAutocomplete(evt) {
  */
 export function handleSearchboxAutocomplete(evt) {
     const input = evt.target;
-    const trigger = detectSearchboxTrigger(input.value, input.selectionStart);
+    // Asked first, as the editor asks '[[' before '#'. Anchored to the start of the box, so it can
+    // never fire inside a 'tags:' value.
+    const property = detectSearchboxPropertyTrigger(input.value, input.selectionStart);
+    const trigger = property ?? detectSearchboxTrigger(input.value, input.selectionStart);
     if (!trigger) { _dismiss(); return; }
 
-    const items = filterItems(getTagArray(), trigger.query);
+    const items = filterItems(property ? getPropertyArray() : getTagArray(), trigger.query);
     if (!items.length) { _dismiss(); return; }
 
     const onSelect = (item) => { _applySelection(item); };
@@ -174,6 +180,7 @@ export function handleSearchboxAutocomplete(evt) {
         repopulatePopup(_popup, items, onSelect, trigger.query);
     }
 
+    _kind = property ? 'property' : 'tag';
     _query = trigger.query;
     _triggerStart = trigger.triggerStart;
     _anchorEl = input;
@@ -210,11 +217,25 @@ export function handleAutocompleteKeydown(evt) {
     }
     if (cmd.action === 'select') {
         evt.preventDefault();
+        _tookEnter = evt.key === 'Enter';
         if (_kind === 'create-link') _createPendingNote();
         else _applySelection(cmd.item);
         return true;
     }
     return false;
+}
+
+/**
+ * Must be called first in keyUpDelegate. The searchbox searches on Enter's keyup, so the keyup of
+ * an Enter the popup used to choose an item would otherwise search as well — and a chosen property
+ * leaves `status:` in the box, which is not a search yet.
+ * @param {KeyboardEvent} evt
+ * @returns {boolean} true if the event was consumed (caller should return early)
+ */
+export function handleAutocompleteKeyup(evt) {
+    if (evt.key !== 'Enter' || !_tookEnter) return false;
+    _tookEnter = false;
+    return true;
 }
 
 /**
@@ -234,14 +255,18 @@ function _applySelection(item) {
     // whether the caret is in the editor or in a table cell, because replace.js works on the
     // selection rather than on an element — so the two editing hosts share, and the searchbox,
     // which is an <input> with no selection API of that kind, is the exception.
-    if (_context === 'searchbox') replaceSearchboxTag(_anchorEl, item, _triggerStart);
+    const isProperty = _kind === 'property';
+    if (_context === 'searchbox') replaceSearchboxQuery(_anchorEl, isProperty ? item + ':' : item, _triggerStart);
     else if (_kind === 'link') replaceEditorLink(_query, item);
     else replaceEditorTag(_query, item);
     const anchor = _anchorEl;
     const wasSearchbox = _context === 'searchbox';
     _dismiss();
     anchor?.focus();
-    if (wasSearchbox) handleSearchBoxClick();
+    // A property has no value yet, so it does not search. It does say which property is meant,
+    // which content search would ignore, so that is unticked.
+    if (isProperty) untickContentSearch();
+    else if (wasSearchbox) handleSearchBoxClick();
 }
 
 function _dismiss() {

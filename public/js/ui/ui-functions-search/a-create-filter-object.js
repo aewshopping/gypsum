@@ -1,4 +1,5 @@
-import { appState, TABLE_VIEW_COLUMNS } from "../../services/store.js";
+import { appState } from "../../services/store.js";
+import { isOfferedProperty } from "../../services/property-options.js";
 import { propertySearchType } from "../../services/property-type.js";
 
 /**
@@ -18,9 +19,10 @@ export function createFilterObject(searchObject) {
     let actualPropertyName = null;
     for (const key of appState.myFilesProperties.keys()) {
         // A control column's cell holds a link rather than the property's value, so searching it
-        // would match an id the user has never been shown. Skipped rather than rejected later, so
-        // it behaves exactly like a property the folder does not have.
-        if (TABLE_VIEW_COLUMNS.control_columns.includes(key)) continue;
+        // would match an id the user has never been shown; a handle searches as `[object …]`. Skipped
+        // rather than rejected later, so each behaves exactly like a property the folder does not
+        // have — and by the same test the searchbox's property picker uses, so the two agree.
+        if (!isOfferedProperty(key)) continue;
         if (key.toLowerCase() === property.toLowerCase()) {
             actualPropertyName = key;
             break; // Stop looking once we find it

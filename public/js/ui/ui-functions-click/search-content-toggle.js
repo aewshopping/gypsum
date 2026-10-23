@@ -24,3 +24,14 @@ export function handleContentSearchToggle(evt, target) {
         searchbox.placeholder = appState.search.depth.prompt[searchMode];
     }
 }
+
+/**
+ * Unticks content search through the toggle's own handler, so the search mode and the placeholder
+ * follow the box. Setting `checked` alone fires no change event and leaves both saying "content".
+ * @returns {void}
+ */
+export function untickContentSearch() {
+    const checkbox = document.getElementById("contentsearch");
+    checkbox.checked = false;
+    handleContentSearchToggle(null, checkbox);
+}

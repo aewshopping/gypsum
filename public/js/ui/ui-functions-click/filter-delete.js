@@ -1,5 +1,6 @@
 import { appState } from '../../services/store.js';
 import { processSeachResults } from '../ui-functions-search/a-search-orchestrator.js';
+import { untickContentSearch } from './search-content-toggle.js';
 
 
 
@@ -22,8 +23,7 @@ export function handleDeleteFilter(evt, target) {
 	searchBox.value = `${filterIdObj.property}${filterIdObj.operator}${filterIdObj.searchValue}`;
 	
 	// untick "content search" option
-	const contentSearchCheckBox = document.getElementById("contentsearch");
-	contentSearchCheckBox.checked = false;
+	untickContentSearch();
 
     deleteFilterAndResults(filterId);
 

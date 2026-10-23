@@ -92,7 +92,7 @@ import {
 } from './ui-functions-click/font-settings.js';
 import { handleToggleFileControls } from './ui-functions-click/handle-toggle-file-controls.js';
 import { handlePaginationSizeChange, handleResetPaginationSize } from './ui-functions-click/pagination-size-settings.js';
-import { handleSearchboxAutocomplete, handleCellAutocomplete, handleAutocompleteKeydown, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
+import { handleSearchboxAutocomplete, handleCellAutocomplete, handleAutocompleteKeydown, handleAutocompleteKeyup, handleAutocompleteClickOutside } from '../autocomplete/autocomplete.js';
 import { initPopupAnchor } from '../autocomplete/popup-anchor.js';
 import { handleOpenLayoutsModal, handleCloseLayoutsModal, handleLayoutSelect, handleLayoutSave,
          handleLayoutSaveAs, handleLayoutEditName, handleLayoutDelete, handleLayoutClear,
@@ -490,6 +490,7 @@ function keyDownDelegate(evt) {
  * @param {Event} evt The keyup event.
  */
 function keyUpDelegate(evt) {
+    if (handleAutocompleteKeyup(evt)) return;
     const actionElement = evt.target.closest('[data-action]');
 
     if (actionElement) {

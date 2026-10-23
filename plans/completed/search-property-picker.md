@@ -1,6 +1,6 @@
 # Plan: property picker in the searchbox, opened with `/`
 
-Status: **not started — design settled**
+Status: **done**
 Related: `public/js/autocomplete/` (the popup session this joins), `plans/completed/table-value-types.md`
 (what a property's search type is)
 
@@ -236,3 +236,18 @@ already covers the searchbox picker:
 
 The regex cases (`a /b`, `tags:parent/child`) are **not** repeated in the browser: test 1 holds them,
 and the existing tag-picker tests already hold `tags:` opening its own list.
+
+---
+
+## 6. What changed in the building
+
+- **Enter's keyup is swallowed after the popup chooses an item.** The searchbox searches on the keyup
+  of Enter (`handleSearchBoxEnterPress`), while the popup takes Enter on keydown, so choosing
+  `status` with Enter left `status:` in the box and the keyup straight after searched it. Not in the
+  plan. `handleAutocompleteKeyup()` in `autocomplete.js` is the keydown arrangement mirrored:
+  `keyUpDelegate` asks it first, and it consumes the keyup of an Enter the popup used. The tag
+  choice used to search twice this way, harmlessly; it now searches once.
+- **The source list reads `myFilesProperties` in its own order through `isOfferedProperty()`**, not
+  through `propertyOptions()`, which sorts by `display_order`. Deduping by case must keep the first
+  name in the Map's order — the one `createFilterObject` resolves to — and `propertyOptions()` has
+  already lost that order. The rule is still the one function.

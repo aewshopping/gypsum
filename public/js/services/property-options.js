@@ -7,6 +7,19 @@ import { appState, TABLE_VIEW_COLUMNS } from './store.js';
  */
 
 /**
+ * Whether a property can be offered as something to read at all: not `handle` or `contentPeek`,
+ * which cannot be read as a value, and not `internalId`, whose cell is a link to a file. The one
+ * answer for the selects below, the search, and the searchbox's property picker, so a key the
+ * picker offers is never one the search then refuses.
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isOfferedProperty(name) {
+    return !TABLE_VIEW_COLUMNS.hidden_always.includes(name)
+        && !TABLE_VIEW_COLUMNS.control_columns.includes(name);
+}
+
+/**
  * The properties a select may offer, in the order the sort modal lists them.
  *
  * **Not** filtered by isTypeSettable: that would throw out `title`, `internalLink` and
@@ -23,8 +36,7 @@ import { appState, TABLE_VIEW_COLUMNS } from './store.js';
  */
 export function propertyOptions(keep = []) {
     const entries = [...appState.myFilesProperties.entries()]
-        .filter(([key]) => !TABLE_VIEW_COLUMNS.hidden_always.includes(key)
-                        && !TABLE_VIEW_COLUMNS.control_columns.includes(key))
+        .filter(([key]) => isOfferedProperty(key))
         .sort(([, a], [, b]) => (a.display_order ?? 99) - (b.display_order ?? 99));
 
     const options = entries.map(([name, props]) => ({ name, label: props.label ?? name }));
