@@ -193,28 +193,46 @@ scalars, dates, how many distinct values before it is useless). **Out of scope.*
 
 ## 4. Shape of the change
 
-1. `query-detect.js` — `detectSearchboxPropertyTrigger(value, caretPos)`: `^\/([^:=]*)$` against the
-   text before the caret. Asked **before** `detectSearchboxTrigger`; anchored to the start of the box, so
-   it can never fire inside a `tags:` value.
-2. A source list: a small `services/` function returning the searchable keys, alphabetical (§3.2,
-   §3.4), with `allProperties` and `content` added, one entry per case-insensitive name (§3.6). It and
-   `createFilterObject` share the exclusion test, which now covers `hidden_always` (§3.2).
-3. `autocomplete.js` — `handleSearchboxAutocomplete` asks the property trigger first (as the editor
-   asks `[[` before `#`), sets `_kind = 'property'`; `_applySelection` inserts, unticks content
-   search, and does not search.
-4. `replace.js` — generalise `replaceSearchboxTag` to take the start and end of the text being
-   replaced, or add `replaceSearchboxProperty(input, key)`; the property one replaces from index 0,
-   `/` included.
-5. `search-content-toggle.js` — `untickContentSearch()`, used by the picker, `filter-delete.js` and
-   `tag-taxonomy-toggle.js` (§3.5a).
-6. Shortcuts dialog line; manifest minor bump.
+**No new module, no new CSS file, no new popup code.** Every piece has a home already, and two of
+the pieces already exist.
 
-Tests: level 2, in `tests/2-behaviour/22-tag-autocomplete.spec.js`, which already covers the
-searchbox picker — `/` at the start opens it and filters, `a /b` and `tags:parent/child` do not,
-`allProperties`/`content` are present and in alphabetical place, `internalId`/`handle` are absent,
-`People`/`people` list once, `/due d` still filters to `due date`, choosing inserts `key:` without
-searching and unticks content search (placeholder back to the properties prompt), choosing `tags`
-stops at `tags:` with no popup, Escape leaves the `/`, `/usr` closes itself, and the global `/` still
-focuses without typing. Beside them: a `handle:` search is refused, and deleting a filter made with
-content search ticked restores the placeholder (§3.5a) — in whichever spec covers filters.
-No level-1 test: nothing here touches a file.
+| What | Where | New or existing |
+|------|-------|-----------------|
+| The trigger | `autocomplete/query-detect.js` — `detectSearchboxPropertyTrigger(value, caretPos)`, `^\/([^:=]*)$` against the text before the caret, beside `detectSearchboxTrigger` | new function |
+| The exclusion rule | `services/property-options.js` — `propertyOptions()` already drops `hidden_always` and `control_columns` inline, for the sort modal, the flowchart options and the linked column dialog. Lift that test out as an exported `isOfferedProperty(name)` and use it there and in `createFilterObject` (§3.2) | extracted, not written |
+| The source list | `autocomplete/property-source.js`, beside `tag-cache.js` — `getPropertyArray()`: the names from `propertyOptions()`, narrowed by `propertiesInFiles()` (exactly what `render-sort-list.js` already combines), deduped by case (§3.6), `allProperties` and `content` added, sorted case-insensitively. In `autocomplete/` rather than `services/` because it reads `propertiesInFiles()` from `ui/ui-functions-table/`, as the sort modal does — a service must not import from `ui/`. **No cache**: `propertiesInFiles` stops at the first file carrying each key, so this is cheap enough per keystroke, and a cache would need invalidating on every cell edit | new, small |
+| Opening and choosing | `autocomplete/autocomplete.js` — `handleSearchboxAutocomplete` asks the property trigger first (as the editor asks `[[` before `#`) and sets `_kind = 'property'`; `_applySelection` branches on it: insert, untick, no search | edited |
+| Inserting | `autocomplete/replace.js` — `replaceSearchboxTag(input, text, triggerStart)` already replaces from `triggerStart` to the caret. Called with `(input, key + ':', 0)` it does exactly the property's job, `/` included. **Renamed `replaceSearchboxQuery`** so the call reads true; its one caller is `autocomplete.js` | renamed, not duplicated |
+| The popup | `autocomplete/popup.js`, `css/ac-picker.css`, the `--ac-picker-search` anchor — all untouched; items are plain strings (§3.3) | existing |
+| Unticking | `ui-functions-click/search-content-toggle.js` — `untickContentSearch()`, beside `handleContentSearchToggle`; used by the picker, `filter-delete.js` and `tag-taxonomy-toggle.js` (§3.5a) | new function, replaces two copies |
+| Shortcut line | `index.html`, under "Go to searchbox": "Pick a property to search" `/` `/` | one line |
+| Version | `manifest.json` minor bump | — |
+
+---
+
+## 5. Tests
+
+**Level 1: none.** Nothing here writes, renames or reads a file, and level 1 runs on every change for
+ever — this would only make it slower.
+
+**Most of it is pure, so most of it runs in node** (`appModule()`, as `58-linked-columns.spec.js`
+does — milliseconds, no page load). In `tests/2-behaviour/22-tag-autocomplete.spec.js`, the spec that
+already covers the searchbox picker:
+
+1. *node* — `detectSearchboxPropertyTrigger` over a table of inputs: `/`, `/sta`, `/due d` fire;
+   `a /b`, `tags:parent/child`, `/status:`, `x` do not. One test, one loop.
+2. *node* — `getPropertyArray()` against a hand-built `appState.myFiles`: `allProperties` and
+   `content` present and in alphabetical place; `internalId`, `handle`, `contentPeek` absent; `People`
+   and `people` listed once; a key no file carries any more absent. One test.
+3. *node* — `createFilterObject` refuses `handle:` (§3.2). A few lines; could join test 2.
+4. *browser, one test* — the whole flow on one page load, since the page load is the cost: the global
+   `/` focuses and types nothing; `/` opens the picker; `sta` filters it; Escape closes it leaving
+   `/sta`; with content search ticked, choosing `status` gives `status:`, no filter chip, the box
+   unticked and the properties placeholder back; clearing and choosing `tags` gives `tags:` and no
+   popup; `/usr` closes itself.
+5. *browser, short* — deleting a filter made with content search ticked puts the properties
+   placeholder back (§3.5a). In `04-tag-filtering.spec.js` if it fits beside its filter-delete tests,
+   or as a step in test 4 to save the page load.
+
+The regex cases (`a /b`, `tags:parent/child`) are **not** repeated in the browser: test 1 holds them,
+and the existing tag-picker tests already hold `tags:` opening its own list.
