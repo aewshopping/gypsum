@@ -136,6 +136,12 @@ Callers that draw a note's tags (`render-file-list-grid.js`, `-peek.js`, `-list.
 `-search.js`, `render-value.js`, `render-cell-value.js`) pass the flag; callers that draw a tag
 without a note (the tag panel, filter chips, counts) do not, and stay unchanged.
 
+**Escape the tag name.** `renderTags()` interpolates `tagname` raw into `data-tag`,
+`data-filterkey`, `data-tip` and the pill's text. A body tag is `\w+` so it never mattered, but a
+front matter tag can hold anything, and once it can be typed into a cell a `"` or `<` would break the
+pill or put markup on the page. Escape it with `escape-html.js` in all four places — CLAUDE.md's
+rule is to escape everything that came from a file. Part of this step, and covered by its test.
+
 The bullet's colour/weight can be styled with a small span inside the pill if wanted, but it must
 remain inside the pill element and outside `data-tag`. No new CSS file is needed unless it is
 styled; if it is, a rule beside the existing tag-pill rules.
@@ -180,6 +186,18 @@ cell (it already stashes `data-opened-text` at open; the tags cell needs its sou
 to `openEditor()` — a `data-edit-text` attribute or a lookup of the row's file object), and
 `cell-editor.js` sets `textContent` to it in place of its usual self-assignment flatten. One branch,
 keyed on the column, in the module that already owns what the caret gets.
+
+**Pressing a pill still filters at once, even in a tags cell that can now be opened. Decided:
+kept.** A cell full of pills therefore has no free space to press, and so cannot be selected or
+opened with the mouse — the selected cell's right-edge strip only exists once it is selected. It is
+opened from the keyboard: arrow to it, then Enter. Making a pill's first press select its cell, as a
+link does, was considered and rejected to keep filtering from the table one press. The CLAUDE.md
+paragraph on the asymmetry keeps its rule but loses its first reason ("a pill never fills its
+cell"), which this plan makes false; step 6 rewords it.
+
+**Editing a tag under a tag filter drops the row**, since the refresh re-runs the filter — remove
+`work` while filtering by `work` and the note leaves the table. **Decided: accepted**, as it is for
+every column edited under a filter on itself.
 
 ### 3.4 Committing
 
@@ -303,7 +321,8 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
    `hidden_always`), `RESERVED_KEYS`, and kept out of the sort modal, the search property list and
    "search everything" (§3.1). Level 1 test: what it holds for flow, block, scalar, bare, null-item
    and absent `tags:`; that the TagMap is unchanged.
-2. **The bullet** — `renderTags()` flag, and each note-drawing caller. Level 2 test: a front matter
+2. **The bullet** — `renderTags()` flag and escaping (§3.2), and each note-drawing caller. A
+   front matter tag holding `"` or `<` draws as text in one intact pill. Level 2 test: a front matter
    tag's pill ends `&nbsp;•` inside the same element, including a tag the body has too; a body-only
    tag's does not; `data-tag` is the bare
    name; a tag filter from a bulleted pill still filters.
@@ -328,7 +347,9 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
    belongs to an editable column, and the open cell's text is replaced rather than flattened),
    *A locked column's type is locked* / `WRITABLE_CORE_PROPERTIES` paragraph (`tags` joins `title`
    and `color`), the *Known limitations* two-level tags line (§3.7), the note picker section
-   (a tags cell now completes tag names, instead of note links), the `mismatchRefusesCaret()`
+   (a tags cell now completes tag names, instead of note links), the tag pill / link asymmetry
+   paragraph (rule kept, its "a pill never fills its cell" reason replaced by "a full tags cell is
+   opened from the keyboard" — §3.3), the `mismatchRefusesCaret()`
    paragraph (a scalar `tags:` is rewritten as a list — §3.5), and the *Adding a new file property*
    list if the new properties change it.
    `DATA-STRUCTURES.md`: the new property.
@@ -345,6 +366,7 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
   (guarded: `data-filterkey` is built from the name), into the written value (guarded: the opened
   text never contains pills), into paste's change count (guarded: §3.6 compares against
   `frontMatterTags`, not the pills' text).
+- **Markup in a tag name.** Guarded by escaping in `renderTags()` (§3.2).
 - **Width.** `&nbsp;•` adds about 1em per front matter pill; the tags column auto-sizes to its
   widest item, so check the fit after step 2.
 
@@ -375,3 +397,9 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
     a quoted item is kept whole, and the open cell quotes an existing tag containing a space (§3.4).
 12. **Paste replaces the front matter list**, as in every other column, and a tag the target note
     already has in its text is written into front matter anyway. Both considered and kept (§3.6).
+14. **Tag names are escaped in `renderTags()`** — a typed front matter tag may hold any character
+    (§3.2).
+15. **A pill's press still filters at once**; a tags cell full of pills is opened from the keyboard
+    (§3.3).
+16. **Removing a tag under that tag's filter drops the row**, as editing any filtered column does
+    (§3.3).
