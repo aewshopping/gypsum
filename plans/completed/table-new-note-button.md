@@ -175,6 +175,8 @@ handleCreateTableNote(evt, target):
   was.
 - **Filtered out:** an empty note matches almost no filter, so under one the row is not drawn. The
   report line says so. The note exists, pinned; clearing the filter shows it at the top.
+  *Superseded:* a pinned note is now shown whatever the filters, so the row is always drawn and the
+  report line was removed — see *Pinning a note* in CLAUDE.md.
 - `renderFiles()` with no arguments, as the other creators call it: the rows drawn have changed,
   so the new row slides in by view transition, which is the visible "here it is".
 - **Filling the row in does not move it.** A cell edit's refresh does not re-sort, and the edited

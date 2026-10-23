@@ -7,6 +7,7 @@ import { renderFileList_search } from "../render-file-list-search.js";
 import { renderFileList_flowchart } from "../render-file-list-flowchart.js";
 import { countActiveFilters } from "../ui-functions-search/a-count-activefilters.js";
 import { checkFilesToShow } from "../ui-functions-search/a-check-files-to-show.js";
+import { isPinned } from "../../services/pins.js";
 import { VIEWS } from "../../constants.js";
 import { PAGINATION_SIZE } from "../../constants.js";
 import { applyHighlights } from "../ui-functions-highlight/apply-highlights.js";
@@ -49,10 +50,12 @@ export function renderFiles(fullRender = true, keepPage = false) {
         appState.paginationState.currentPage = 1;
     }
 
-    // Compute the full visible list for pagination math; appState.myFiles is never mutated
+    // Compute the full visible list for pagination math; appState.myFiles is never mutated.
+    // A pinned note is shown whatever the filters say — so a new note from the table's `+` stays in
+    // view while its cells are filled in. checkFilesToShow() still answers only "does it match".
     const visibleFiles = renderEverything
         ? appState.myFiles
-        : appState.myFiles.filter(f => checkFilesToShow(f.internalId) === true);
+        : appState.myFiles.filter(f => isPinned(f.internalId) || checkFilesToShow(f.internalId) === true);
 
     // Said on every render and in every view, before the early returns below can skip the drawing:
     // the two empty states are themselves answers to "how many", and a line that kept the previous

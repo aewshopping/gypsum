@@ -1250,6 +1250,10 @@ file name in its summary, a mark only, since a press inside a `<summary>` also o
 - **The table's `+` makes a pinned note, and is the only thing that pins without being asked** — in
   the bottom of the file column's heading, beside its type glyph, and Alt+Shift+N in every view. The note is
   empty and not opened: its row's cells are the prompts. See `plans/completed/table-new-note-button.md`.
+- **A pinned note is shown whatever the filters say** — one `isPinned()` beside `checkFilesToShow()`
+  in `renderFiles`, so every view, the count and pagination agree. `checkFilesToShow()` still means
+  "matches", and each filter's own count does not include pins. That is what keeps a note made by the
+  table's `+` on screen under a filter while its cells are filled in.
 - **A pin leaves with its note**: `unpin()` on a delete, `movePin()` on a rename, so a freed
   `note-N.txt` never arrives already pinned.
 - **A pinned pin is in the tab order; an unpinned one is not**, since it is shown by hover alone.

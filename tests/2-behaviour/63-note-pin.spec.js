@@ -101,3 +101,28 @@ test('search view pins too, without opening the note', async ({ page }) => {
   await expect.poll(searchTitles).toEqual(['Gamma', 'Alpha', 'Beta']);
   await expect(page.locator('#file-content-modal')).not.toHaveAttribute('open', '');
 });
+
+test('a pinned note is shown whatever the filters, and first; unpinned, the filter applies again', async ({ page }) => {
+  await openCards(page);
+  await pressPin(card(page, 'Gamma'));
+
+  await page.fill('#searchbox', 'Alpha');
+  await page.press('#searchbox', 'Enter');
+  await expect.poll(() => cardTitles(page)).toEqual(['Gamma', 'Alpha']);
+
+  await pressPin(card(page, 'Gamma'));
+  await expect.poll(() => cardTitles(page)).toEqual(['Alpha']);
+});
+
+test('the table\'s new note stays on screen under a filter', async ({ page }) => {
+  await openCards(page);
+  await chooseView(page, 'table');
+  await page.fill('#searchbox', 'Alpha');
+  await page.press('#searchbox', 'Enter');
+  await page.locator('.table-new-note').click();
+
+  const rowFiles = () => page.evaluate(() => [...document.querySelectorAll('.note-table[data-vt-id]')]
+    .map(row => row.dataset.vtId));
+  await expect.poll(rowFiles).toEqual(['note-1.txt', 'alpha.md']);
+  await expect(page.locator('#output-report')).not.toContainText('hidden by the current filter');
+});
