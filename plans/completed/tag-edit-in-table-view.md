@@ -1,6 +1,7 @@
 # Plan: tag edit in table view
 
-Status: **built** — see CLAUDE.md, *The tags cell*
+Status: **built** — see CLAUDE.md, *The tags cell*. As built, the mark is a hollow bullet `◦`
+straight after the name, with no space: the solid `&nbsp;•` below read as too heavy.
 Related: `plans/completed/table-cell-editors.md`, `plans/completed/table-cell-writing.md`,
 `plans/completed/table-range-paste.md`
 

@@ -818,7 +818,7 @@ The `tags` cell takes a caret, and what is typed or pasted there is the note's `
   TagMap has lowercased it and put the body's tags first. It is in `CORE_FILE_PROPERTIES`,
   `RESERVED_KEYS`, `hidden_always` and the search's `excludedProperties` — a carrier for the cell,
   offered nowhere as a property.
-- **A front matter tag's pill ends `&nbsp;•`**, inside the one pill and outside `data-tag`, in every
+- **A front matter tag's pill ends `◦`**, a hollow bullet straight after the name, inside the one pill and outside `data-tag`, in every
   view that draws a note's tags (`renderNoteTags()`). A tag in both places has the bullet: the cell
   edits front matter, so removing it there takes the bullet off and leaves the pill.
 - **The cell is replaced on opening, not flattened.** Flattened, its pills would put every tag —

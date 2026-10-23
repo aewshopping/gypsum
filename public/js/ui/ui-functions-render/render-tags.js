@@ -28,7 +28,7 @@ export function renderTags(tagname, tagcount = null, hash = "nohash", type = "ta
     const name = escapeHtml(tagname);
     const tag_type = type === "span" ? "" : "tag-pill"; // so we can style the tag differently according to where it is used (default is tag-pill style)
     const tagnamehash = (hash === "showhash") ? "#" + name : name; // for when we want to render tags inside the modal, need to show the # in front
-    const bullet = fromFrontMatter ? '&nbsp;•' : '';
+    const bullet = fromFrontMatter ? '◦' : '';
 
     const spanhtml = `<span class="tag ${tag_type}" data-tag="${name}" data-action="tag-filter" data-filterkey="tags-:-${name}" data-active="${active}" data-tip="filter by #${name}">${tagnamehash}${tagcounter}${bullet}</span>`
 

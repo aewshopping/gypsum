@@ -348,8 +348,8 @@ test('a front matter tag\'s pill carries a bullet, a body-only one does not, and
   const pill = (tag) => cellFor(page, 'Tagged', 'tags').locator(`[data-tag="${tag}"]`);
 
   // inside the one pill, after the name — and `work`, in the body as well, is the front matter's
-  expect(await pill('work').evaluate(el => el.textContent)).toBe('work •');
-  expect(await pill('project').evaluate(el => el.textContent)).toBe('project •');
+  expect(await pill('work').evaluate(el => el.textContent)).toBe('work◦');
+  expect(await pill('project').evaluate(el => el.textContent)).toBe('project◦');
   expect(await pill('idea').evaluate(el => el.textContent)).toBe('idea');
 
   // a bulleted pill is the same filter: `work` is on Tagged alone (Other's is `workshop`)
