@@ -85,35 +85,34 @@ can be routed through it. Nothing in `editing/` needs to learn a new shape.
 
 ### 3.1 Keep the front matter tags, as the note wrote them
 
-Add two properties to the file object, both built in `getFileDataAndMetadata()` beside the existing
-merge and delete, which stay as they are — the TagMap remains the one thing filters, search, the tag
-panel and the taxonomy read:
+Add one property to the file object: **`frontMatterTags`** — an array of the `tags:` items as the
+note wrote them (strings via `String()`, nulls dropped), `[]` when the note has no `tags:` key. Built
+in `getFileDataAndMetadata()` from `yamlData.tags` *before* the existing merge and delete, which stay
+as they are — the TagMap remains the one thing filters, search, the tag panel and the taxonomy read.
+Kept as written, not lowercased or reordered, because it is what the opened cell shows and a cell
+shows the note's own text. (The parser already trims an unquoted item; whitespace inside quotes is
+the note's.)
 
-- **`frontMatterTags`** — an array of the `tags:` items as the note wrote them (strings via
-  `String()`, nulls dropped), `[]` when the note has no `tags:` key. Kept as written, not
-  lowercased or reordered, because it is what the opened cell shows and a cell shows the note's own
-  text. (The parser already trims an unquoted item; whitespace inside quotes is the note's.)
-- **`frontMatterOnlyTags`** — a `Set` of the lowercased names the merge loop *added* to the TagMap
-  (its `!tagData.tagMap.has(lowerTag)` branch). That is exactly "a front matter tag the body does not
-  also have", recorded at the one moment the answer exists — once merged, the TagMap cannot tell the
-  two kinds apart. It answers both questions §3.2 and §3.3 ask: which pills get a bullet (in the set)
-  and which tags are the body's (TagMap keys not in the set).
-
-For both:
-
-- Always present (`[]`, empty `Set`), for the same reason `internalLink` is: properties are
-  registered from `myFiles[0]`.
-- In `CORE_FILE_PROPERTIES` (every file carries them), in `TABLE_VIEW_COLUMNS.hidden_always` (they
-  are carriers for the tags column, not columns of their own), and in `RESERVED_KEYS` so a note's
-  own key of that name cannot shadow them. Note what `RESERVED_KEYS` costs, as it already does for
+- Always present (`[]`), for the same reason `internalLink` is: properties are registered from
+  `myFiles[0]`.
+- In `CORE_FILE_PROPERTIES` (every file carries it), in `TABLE_VIEW_COLUMNS.hidden_always` (it is a
+  carrier for the tags column, not a column of its own), and in `RESERVED_KEYS` so a note's own
+  `frontMatterTags:` key cannot shadow it. Note what `RESERVED_KEYS` costs, as it already does for
   the other names there: `plan-file-edits.js` refuses to write into a note carrying a reserved key,
   so a note with its own `frontMatterTags:` is locked for every column, not just shadowed.
-- **Decided: hidden everywhere, not only from the table.** `hidden_always` keeps them out of the
+- **Decided: hidden everywhere, not only from the table.** `hidden_always` keeps it out of the
   columns and `property-options.js`, but not out of the sort modal (`propertiesInFiles()`), the
   search property list, or "search everything" (`a-search-every-property.js` reads
   `myFilesProperties` less the user's exclusions — it would match every front matter tag twice).
-  Each of those excludes them too. Check `internalLinkText`'s treatment first; if those places
+  Each of those excludes it too. Check `internalLinkText`'s treatment first; if those places
   already have a rule for hidden carriers, join it rather than adding a second.
+
+**Nothing records which tags are in the body only, and nothing needs to.** Both questions the
+renderer asks are answered from `frontMatterTags` and the TagMap: a pill gets a bullet when its name
+is in `frontMatterTags` (lowercased, trimmed), and the body tags shown in an opened cell are the
+TagMap keys that are not. A tag written in both places is therefore treated as a front matter tag —
+see §3.2. A second property recording "front matter only" was considered and dropped: it existed
+only to treat that case differently, and cost a property to hide and a test.
 
 Rejected alternative: flags on the TagMap entries (`inFrontMatter: true`). It answers "draw a
 bullet" but not "what text does the cell open with" — the spelling and order are already gone by
@@ -127,11 +126,12 @@ style — `fromFrontMatter = false`). When true the pill's content becomes
 remains one element, one `data-action`, one filter target. `data-tag` is unchanged, so filtering,
 copying (`cell-range-copy.js`) and anything else reading `data-tag` see the bare name.
 
-A tag is drawn with the bullet when it is in the note's `frontMatterOnlyTags` — in front matter
-**and not in the body**. A tag in both is drawn plain: the
-bullet promises that editing or deleting it in the cell changes the pill, and for a tag the body
-also has it would not — the body tag remains. The tag is still in the opened cell's text, since it
-is in the `tags:` list, so it can be removed from front matter there; the plain pill simply stays.
+A tag is drawn with the bullet when its lowercased, trimmed name is in the note's `frontMatterTags`
+(lowercased, trimmed) — **whether or not the body also has it**. The table edits front matter, so
+the bullet marks what the front matter holds, which is what someone editing the cell expects. The
+one surprise is a tag in both places: removing it from the cell takes the bullet off and leaves the
+pill, because the body's `#tag` remains. **Decided: accepted** — it is the honest picture after the
+edit (the tag is now a body tag only), and the case is rare.
 Callers that draw a note's tags (`render-file-list-grid.js`, `-peek.js`, `-list.js`,
 `-search.js`, `render-value.js`, `render-cell-value.js`) pass the flag; callers that draw a tag
 without a note (the tag panel, filter chips, counts) do not, and stay unchanged.
@@ -153,7 +153,8 @@ frontMatterTags)`, as escaped text. Body tags cannot be in the editable text —
 reaches every descendant, and `cell-edit-commit.js` writes the cell's whole `textContent` into the
 note, so a body tag inside the cell would be written into front matter on the first commit. They
 are shown instead **by CSS**, the same way the mismatch sentence is: the renderer writes the body
-tags once onto a data attribute (e.g. `data-body-tags="#idea #later"`) and a rule in
+tags — the TagMap keys not in `frontMatterTags` (§3.1) — once onto a data attribute (e.g.
+`data-body-tags="#idea #later"`) and a rule in
 `note-table-cell.css` draws them in a pseudo-element of the opened cell, faded, labelled as
 coming from the note's text. Nothing in JS reads it back. **Decided** over the alternatives —
 body pills kept beside an inner editable span (as the date editor does), a "+2 in the note's text"
@@ -281,13 +282,13 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
 
 ## 4. Steps
 
-1. **`frontMatterTags` and `frontMatterOnlyTags` on the file object** — `file-info.js`,
-   `store.js` (`CORE_FILE_PROPERTIES`, `hidden_always`), `RESERVED_KEYS`, and kept out of the sort
-   modal, the search property list and "search everything" (§3.1). Level 1 test: what they hold for
-   flow, block, scalar, bare, null-item and absent `tags:`, and a tag in both body and front matter;
-   that the TagMap is unchanged.
+1. **`frontMatterTags` on the file object** — `file-info.js`, `store.js` (`CORE_FILE_PROPERTIES`,
+   `hidden_always`), `RESERVED_KEYS`, and kept out of the sort modal, the search property list and
+   "search everything" (§3.1). Level 1 test: what it holds for flow, block, scalar, bare, null-item
+   and absent `tags:`; that the TagMap is unchanged.
 2. **The bullet** — `renderTags()` flag, and each note-drawing caller. Level 2 test: a front matter
-   tag's pill ends `&nbsp;•` inside the same element; a body tag's does not; `data-tag` is the bare
+   tag's pill ends `&nbsp;•` inside the same element, including a tag the body has too; a body-only
+   tag's does not; `data-tag` is the bare
    name; a tag filter from a bulleted pill still filters.
 3. **Unlock** — `tags` into `WRITABLE_CORE_PROPERTIES`; the `[[` note picker turned off for
    `tags` (§3.8); `cell-editor.js` opens a tags cell with the front matter list as its text; body
@@ -311,7 +312,7 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
    (a tags cell now completes tag names, instead of note links), the `mismatchRefusesCaret()`
    paragraph (a scalar `tags:` is rewritten as a list — §3.5), and the *Adding a new file property*
    list if the new properties change it.
-   `DATA-STRUCTURES.md`: the two new properties.
+   `DATA-STRUCTURES.md`: the new property.
 7. Bump the minor version in `manifest.json`.
 
 ---
@@ -332,8 +333,10 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
 
 ## 6. Decisions
 
-1. **A tag in both body and front matter has no bullet** — editing or deleting it in the cell leaves
-   the body tag, so the pill would not change (§3.2).
+1. **Every tag in the `tags:` list has a bullet, even if the body has it too** — the table edits
+   front matter, so the bullet marks what front matter holds. Removing such a tag in the cell takes
+   the bullet off and leaves the pill (§3.2). Replaces an earlier decision that a tag in both had no
+   bullet, which needed a second hidden property to tell the cases apart (§3.1).
 2. **Copy/paste between tags cells may turn body tags into front matter tags** in the target —
    accepted (§3.6).
 3. **A single leading `#` is stripped** from a typed item (§3.4).
@@ -348,4 +351,4 @@ need nothing. No registry of pickers — two lines, as CLAUDE.md asks.
 8. **An item that is only `#` is dropped** (§3.4).
 9. **Body tags in an open cell are a faded line drawn by CSS** (§3.3) — chosen over keeping pills
    beside an editable span, a count, or nothing. Screenshot it when built for the user to judge.
-10. **The two new carrier properties are hidden everywhere** — columns, sort modal, search (§3.1).
+10. **`frontMatterTags` is hidden everywhere** — columns, sort modal, search (§3.1).
