@@ -45,7 +45,10 @@ question about whether choosing it searches (it must not: §3.5).
 first character. Anything before it is the property; no operator means `allProperties`.
 `createFilterObject()` matches the property against `appState.myFilesProperties` **case-
 insensitively**, skips `TABLE_VIEW_COLUMNS.control_columns` (`internalId`), and lets two names
-through that are not in that Map: `content` and `allProperties`. Anything else is dropped with a
+through that are not in that Map: `content` and `allProperties`. It does **not** skip
+`hidden_always` today — `handle:` and `contentPeek:` are accepted searches, which this plan changes
+(§3.2). The Map is checked first, so a front matter key literally named `content` or `allProperties`
+wins over the special name (§3.6). Anything else is dropped with a
 `console.log` and nothing on screen — which stays as it is (§3.8).
 
 ### 2.3 The keys are not the column labels
@@ -82,7 +85,11 @@ So the trigger has to be narrow enough to leave all three alone (§3.1).
   what keeps every use in §2.5 safe: no `tags:` value, path or date ever starts the box. Starting the
   box is enough, because a search builds one filter and the box is emptied once it is added
   (`addFilterThenFindMatches`) — the next filter starts at the start again.
-- Bare `/` opens the full list (as bare `[[` does); `/sta` filters it.
+- Bare `/` opens the full list (as bare `[[` does); `/sta` filters it. **The query is anything up to
+  a `:` or `=`**, spaces included: a key can hold spaces, hyphens and accents (`due date`, `due-date`,
+  `café` — gypsum's parser takes everything before the first colon), so `/due d` must go on
+  filtering rather than close the popup. Typing the colon yourself ends the trigger, as choosing
+  would.
 - A search value that genuinely starts with `/` (`/usr`) opens the picker, but `filterItems` finds no
   key matching `usr` and the popup closes itself (an empty list already dismisses), leaving the text
   as typed. Harmless; worth a test.
@@ -115,8 +122,10 @@ key the search would then refuse:
 | a key no loaded note carries any more | **no** | asked of `propertiesInFiles()`, as the sort modal asks, never of `myFilesProperties`, which only grows (CLAUDE.md, *An empty column*) |
 
 The exclusions are the existing `control_columns` and `hidden_always` — no new list in `store.js`.
-`createFilterObject` refuses `hidden_always` too, through the same test, so the picker and the search
-agree from one rule rather than by coincidence.
+**`createFilterObject` is changed to refuse `hidden_always` too**, through the same shared test, so
+the picker and the search agree from one rule rather than by coincidence. That is a deliberate change
+to search: `handle:` and `contentPeek:` stop being accepted. Nothing is lost — a handle only ever
+matched `[object …]`, and the peek is a slice of what `content:` already searches.
 
 ### 3.3 What each item shows
 
@@ -139,17 +148,35 @@ that merely contain a `c`. No recently-used ordering.
   `handleSearchBoxClick()` for this kind — a `_kind === 'property'` branch, the same way the editor
   distinguishes `'tag'` from `'link'`.
 - **Unticks content search** if it is ticked (§2.4): the user has just said which property they
-  mean. Through the same path `toggle-content-search` uses, so the checkbox's icons follow.
-- Choosing `tags` leaves the text ending in `tags:`. If the insert fires an `input` event the tag list
-  opens straight away; that is the behaviour to aim for, since it is the obvious next step.
+  mean. Through `untickContentSearch()` (§4), which sets the box and runs `handleContentSearchToggle`,
+  so `searchMode` and the placeholder follow — not by setting `checked` alone.
+- **Choosing `tags` stops at `tags:`**, with the popup closed. The insert sets the input's value and
+  fires no `input` event, and none is dispatched: the tag list opens when the next character is
+  typed, as it does today.
+
+### 3.5a The other untick, fixed alongside
+
+`filter-delete.js` puts a deleted filter's text back in the box and sets `checked = false` on the
+content checkbox directly. That fires no `change`, so `searchMode` stays `fullContent` and the
+placeholder keeps describing a content search while the box shows unticked. It is fixed here because
+the picker needs the right way to untick anyway: `tag-taxonomy-toggle.js` already does it
+(`checked = false`, then `handleContentSearchToggle(null, checkbox)`), and with the picker and
+filter-delete that is three callers — enough for one `untickContentSearch()` in
+`search-content-toggle.js` that all three use.
 
 ### 3.6 Keys with spaces, colons or odd case
 
-- A front matter key can contain a space (`due date`). `parseSearchString` splits at the first `:`,
-  so `due date:soon` should already work — check, and add a level-2 test if it does.
+- A front matter key can contain a space (`due date`). The trigger lets the query hold one (§3.1),
+  and `parseSearchString` splits at the first `:`, so `due date:soon` should already search — check,
+  and add a level-2 test if it does.
 - A key containing `=` would be split at the `=`. Rare; accepted.
-- Two keys differing only in case (`People`, `people`) are listed once, as the search sees them — it
-  uses whichever it meets first.
+- **Two keys differing only in case (`People`, `people`) are listed once**, spelled as the first match
+  in `myFilesProperties` order — the key `createFilterObject` resolves either spelling to, so the
+  filter that results reads the same as the item chosen. `propertiesInFiles()` returns exact names,
+  so the source list has to do this itself.
+- **A front matter key named `content` or `allProperties`** is listed once, and means what search
+  makes of it: the front matter key, since `createFilterObject` checks the folder's keys before the
+  special names (§2.2). Rare; accepted, and search is not changed for it.
 
 ### 3.7 Values after the colon
 
@@ -166,23 +193,28 @@ scalars, dates, how many distinct values before it is useless). **Out of scope.*
 
 ## 4. Shape of the change
 
-1. `query-detect.js` — `detectSearchboxPropertyTrigger(value, caretPos)`: `^\/(\w*)$` against the text
-   before the caret. Asked **before** `detectSearchboxTrigger`; anchored to the start of the box, so
+1. `query-detect.js` — `detectSearchboxPropertyTrigger(value, caretPos)`: `^\/([^:=]*)$` against the
+   text before the caret. Asked **before** `detectSearchboxTrigger`; anchored to the start of the box, so
    it can never fire inside a `tags:` value.
 2. A source list: a small `services/` function returning the searchable keys, alphabetical (§3.2,
-   §3.4), with `allProperties` and `content` added. It and `createFilterObject` share the exclusion
-   test.
+   §3.4), with `allProperties` and `content` added, one entry per case-insensitive name (§3.6). It and
+   `createFilterObject` share the exclusion test, which now covers `hidden_always` (§3.2).
 3. `autocomplete.js` — `handleSearchboxAutocomplete` asks the property trigger first (as the editor
    asks `[[` before `#`), sets `_kind = 'property'`; `_applySelection` inserts, unticks content
    search, and does not search.
 4. `replace.js` — generalise `replaceSearchboxTag` to take the start and end of the text being
    replaced, or add `replaceSearchboxProperty(input, key)`; the property one replaces from index 0,
    `/` included.
-5. Shortcuts dialog line; manifest minor bump.
+5. `search-content-toggle.js` — `untickContentSearch()`, used by the picker, `filter-delete.js` and
+   `tag-taxonomy-toggle.js` (§3.5a).
+6. Shortcuts dialog line; manifest minor bump.
 
 Tests: level 2, in `tests/2-behaviour/22-tag-autocomplete.spec.js`, which already covers the
 searchbox picker — `/` at the start opens it and filters, `a /b` and `tags:parent/child` do not,
 `allProperties`/`content` are present and in alphabetical place, `internalId`/`handle` are absent,
-choosing inserts `key:` without searching and unticks content search, choosing `tags` opens the tag
-list, Escape leaves the `/`, `/usr` closes itself, and the global `/` still focuses without typing.
+`People`/`people` list once, `/due d` still filters to `due date`, choosing inserts `key:` without
+searching and unticks content search (placeholder back to the properties prompt), choosing `tags`
+stops at `tags:` with no popup, Escape leaves the `/`, `/usr` closes itself, and the global `/` still
+focuses without typing. Beside them: a `handle:` search is refused, and deleting a filter made with
+content search ticked restores the placeholder (§3.5a) — in whichever spec covers filters.
 No level-1 test: nothing here touches a file.
