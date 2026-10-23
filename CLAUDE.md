@@ -821,8 +821,10 @@ The `tags` cell takes a caret, and what is typed or pasted there is the note's `
 - **The cell is replaced on opening, not flattened.** Flattened, its pills would put every tag —
   body ones and bullets included — into `tags:` on the first commit. The renderer writes the list
   onto `data-edit-text` and `cell-editor.js` opens with that; the body's tags go on
-  `data-body-tags` and `note-table-cell.css` draws them under the text, faded, out of the caret's
-  reach — the mismatch sentence's mechanism. Only on a cell that took a caret: a locked one keeps its
+  `data-body-tags` and `note-table-cell.css` draws them under the text — bare `#tags`, faded, out of
+  the caret's reach — the mismatch sentence's mechanism. The line drops in from the row the pills
+  were in, which is what says where those tags came from: one keyframe on the pseudo-element, off
+  with "animate view changes" and under reduced motion. Only on a cell that took a caret: a locked one keeps its
   pills, and its `data-tip` keeps the slot. Paste's "already shows this" test reads the same
   attribute rather than the pills.
 - **Spaces separate tags as well as commas, and one leading `#` comes off** (`services/tag-items.js`),

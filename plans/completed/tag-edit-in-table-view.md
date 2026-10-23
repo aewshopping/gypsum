@@ -161,8 +161,12 @@ note, so a body tag inside the cell would be written into front matter on the fi
 are shown instead **by CSS**, the same way the mismatch sentence is: the renderer writes the body
 tags — the TagMap keys not in `frontMatterTags` (§3.1) — once onto a data attribute (e.g.
 `data-body-tags="#idea #later"`) and a rule in
-`note-table-cell.css` draws them in a pseudo-element of the opened cell, faded, labelled as
-coming from the note's text. Nothing in JS reads it back. **Decided** over the alternatives —
+`note-table-cell.css` draws them in a pseudo-element of the opened cell, faded — the `#tags`
+alone, no label. **As built:** a label ("in the note's text:") was tried and dropped as too wordy;
+instead the line drops in from the row the pills were in, which says where the tags came from. One
+keyframe on the pseudo-element, off with "animate view changes" and under reduced motion. Each tag
+flying from its own pill was ruled out: a pseudo-element has no per-tag boxes, and the pills are
+gone by the time it is drawn. Nothing in JS reads it back. **Decided** over the alternatives —
 body pills kept beside an inner editable span (as the date editor does), a "+2 in the note's text"
 count, or showing nothing: the span needed the commit, the opened-text check, Escape, the list
 highlights and the picker all retargeted, on the write path; this is an attribute and one rule.
