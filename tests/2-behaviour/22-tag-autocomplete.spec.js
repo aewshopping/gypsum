@@ -166,7 +166,7 @@ test.describe('property picker — searchbox', () => {
       { handle: {}, contentPeek: '', internalId: 'b', filename: 'b', title: 'B', people: ['y'], status: 'done' },
     ];
 
-    expect(getPropertyArray()).toEqual(['allProperties', 'content', 'due date', 'filename', 'People', 'status', 'title']);
+    expect(getPropertyArray()).toEqual(['allProperties:', 'content:', 'due date:', 'filename:', 'People:', 'status:', 'title:']);
 
     const refused = createFilterObject({ property: 'handle', operator: ':', value: 'x' });
     expect(refused.propertyExists).toBe(false);

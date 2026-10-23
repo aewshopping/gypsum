@@ -251,3 +251,5 @@ and the existing tag-picker tests already hold `tags:` opening its own list.
   through `propertyOptions()`, which sorts by `display_order`. Deduping by case must keep the first
   name in the Map's order — the one `createFilterObject` resolves to — and `propertyOptions()` has
   already lost that order. The rule is still the one function.
+- **Each item ends in its colon** (`status:`), changing §3.3: the list then reads as the start of a
+  search rather than a menu of commands, and an item is exactly what choosing it inserts.

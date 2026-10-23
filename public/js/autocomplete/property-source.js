@@ -13,9 +13,12 @@ const SPECIAL_KEYS = ['allProperties', 'content'];
  * which is the key createFilterObject resolves either spelling to. `allProperties` and `content`
  * are added unless a note's own key already takes the name, which is then what search reads.
  *
+ * Each ends in its colon, so the list reads as the start of a `key:value` search — what it is
+ * for — and each item is exactly what choosing it puts in the box.
+ *
  * Not cached: propertiesInFiles stops at the first file carrying each key, and a cache would need
  * clearing on every cell edit.
- * @returns {string[]} Sorted case-insensitively, as filterItems expects.
+ * @returns {string[]} Keys with their colon, sorted case-insensitively, as filterItems expects.
  */
 export function getPropertyArray() {
     const names = [...appState.myFilesProperties.keys()].filter(isOfferedProperty);
@@ -26,5 +29,7 @@ export function getPropertyArray() {
         const lower = name.toLowerCase();
         if (!byLowerCase.has(lower)) byLowerCase.set(lower, name);
     }
-    return [...byLowerCase.values()].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    return [...byLowerCase.values()]
+        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+        .map(name => name + ':');
 }

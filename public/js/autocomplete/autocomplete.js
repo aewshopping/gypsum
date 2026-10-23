@@ -256,7 +256,7 @@ function _applySelection(item) {
     // selection rather than on an element — so the two editing hosts share, and the searchbox,
     // which is an <input> with no selection API of that kind, is the exception.
     const isProperty = _kind === 'property';
-    if (_context === 'searchbox') replaceSearchboxQuery(_anchorEl, isProperty ? item + ':' : item, _triggerStart);
+    if (_context === 'searchbox') replaceSearchboxQuery(_anchorEl, item, _triggerStart);
     else if (_kind === 'link') replaceEditorLink(_query, item);
     else replaceEditorTag(_query, item);
     const anchor = _anchorEl;
