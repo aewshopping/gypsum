@@ -4,13 +4,13 @@ import { createEmptyNote, findUnusedFilename } from '../../services/create-note.
 import { pin } from '../../services/pins.js';
 import { sortAppStateFiles } from '../../services/file-object-sort.js';
 import { renderFiles } from '../ui-functions-render/a-render-all-files.js';
-import { reportAction, reportFailure } from '../ui-functions-render/output-report.js';
-import { checkFileOnPage } from '../pagination/check-file-on-page.js';
+import { reportFailure } from '../ui-functions-render/output-report.js';
 import { finishOpenCell } from '../ui-functions-cell/cell-expand.js';
 
 /**
  * The table's `+`, and Alt+Shift+N in any view: a new empty note, pinned so it is first, and not
- * opened — its row's cells are the prompts. See plans/completed/table-new-note-button.md.
+ * opened — its row's cells are the prompts. Being pinned, it is shown whatever the filters. See
+ * plans/completed/table-new-note-button.md.
  *
  * **An open cell is finished first.** The button's press moves focus, which closes and writes the
  * cell on its own; the shortcut moves none, so without this the render below would replace the open
@@ -44,5 +44,4 @@ export async function handleCreateTableNote(event, target) {
     await renderFiles().updateCallbackDone;
 
     if (target) document.querySelector('.table-new-note')?.focus();
-    if (!checkFileOnPage(note.internalId)) reportAction(`created ${filename}, hidden by the current filter`);
 }
