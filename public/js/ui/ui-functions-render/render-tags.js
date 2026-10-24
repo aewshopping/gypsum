@@ -33,11 +33,12 @@ export function renderTags(tagname, tagcount = null, hash = "nohash", type = "ta
 }
 
 /**
- * One note's tags as the table's tags cell draws them: a front matter tag plain, since the cell can
- * change it, and a tag only the note's text holds with a `#` in front, since it is written there and
- * nowhere the cell reaches. A tag in both places is the front matter's. Only the table marks them;
- * every other view draws plain pills. The `#` is outside `data-tag`, so the filter and a copy see
- * the bare name. The TagMap's order, as everywhere. plans/completed/tag-edit-in-table-view.md §3.2.
+ * One note's tags as pills, as every view draws them: a front matter tag plain, and a tag only the
+ * note's text holds with a `#` in front — each the way the note writes it, which is also what the
+ * open note shows, so a tag looks the same whichever view it is in. A tag in both places is the
+ * front matter's, since that is the one the table's tags cell changes. The `#` is outside
+ * `data-tag`, so the filter and a copy see the bare name. The TagMap's order, as everywhere.
+ * plans/completed/tag-edit-in-table-view.md §3.2.
  * @param {object} file - The file object, carrying `tags` and `frontMatterTags`.
  * @returns {string} The HTML for the pills.
  */

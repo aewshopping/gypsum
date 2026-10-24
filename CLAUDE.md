@@ -818,11 +818,13 @@ The `tags` cell takes a caret, and what is typed or pasted there is the note's `
   TagMap has lowercased it and put the body's tags first. It is in `CORE_FILE_PROPERTIES`,
   `RESERVED_KEYS`, `hidden_always` and the search's `excludedProperties` — a carrier for the cell,
   offered nowhere as a property.
-- **In the table, a tag only the note's text holds is drawn `#idea`** — `renderTags()`'s own
-  `showhash`, inside the pill and outside `data-tag` — and a front matter tag plain
-  (`renderNoteTags()`). A tag in both places is the front matter's, so plain: the cell edits
-  front matter, and removing it there gives it the `#`. **Only the table marks tags**; every other
-  view draws plain pills.
+- **A tag only the note's text holds is drawn `#idea`, and a front matter tag plain, in every
+  view** that draws a note's tags — the table, cards, peek, search and list (`renderNoteTags()`,
+  `renderTags()`'s own `showhash`, inside the pill and outside `data-tag`). Each the way the note
+  writes it, which is also how the open note shows them, so a tag looks the same whichever view it
+  is in. A tag in both places is the front matter's, so plain: the tags cell edits front matter,
+  and removing it there gives it the `#`. The tag panel's pills are the folder's, not a note's, and
+  stay plain.
 - **The cell is replaced on opening, not flattened.** Flattened, its pills would put every tag —
   body ones and bullets included — into `tags:` on the first commit. The renderer writes the list
   onto `data-edit-text` and `cell-editor.js` opens with that; the body's tags go on
