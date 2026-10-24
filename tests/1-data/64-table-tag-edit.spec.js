@@ -166,7 +166,8 @@ test('clearing the cell removes the tags: key and leaves the body tags', async (
   await retype(page, 'Both', '');
 
   await expect.poll(() => fileText(page, 'both.md')).toBe('---\nstatus: draft\n---\n# Both\n\nSome #idea and #work here.\n');
-  await expect(tagsCell(page, 'Both').locator('[data-tag]')).toHaveText(['idea', 'work']);
+  // what is left is the body's, so each now wears its #
+  await expect(tagsCell(page, 'Both').locator('[data-tag]')).toHaveText(['#idea', '#work']);
 });
 
 test('a note with no front matter is given a block', async ({ page }) => {

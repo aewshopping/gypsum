@@ -4,7 +4,7 @@
 
 import { appState } from '../services/store.js';
 import { renderFilename } from './ui-functions-render/render-filename.js';
-import { renderNoteTags } from './ui-functions-render/render-tags.js';
+import { renderTags } from './ui-functions-render/render-tags.js';
 import { checkFileOnPage } from './pagination/check-file-on-page.js';
 import { renderPinButton } from './ui-functions-render/render-pin.js';
 
@@ -29,7 +29,7 @@ export function renderFileList_grid(renderEverything) {
             index++;
 
         // construct the html for the array of tags for this file
-        const tag_pills_html = renderNoteTags(file);
+        const tag_pills_html = [...file.tags.keys()].map(tag => renderTags(tag)).join('');
 
         // construct the html for the file as a whole, pulling in file content and tag pills from above.
   //      const tag_list = file.tags.join(" ");
