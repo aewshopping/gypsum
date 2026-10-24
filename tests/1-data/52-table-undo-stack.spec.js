@@ -287,6 +287,11 @@ test('describeBatch names every kind of batch, and counts only the edits it hold
   expect(renamed('notes/note-3.txt', 'notes/shopping.txt')).toBe('rename of note-3.txt to shopping.txt');
   expect(renamed('plan.md', 'work/projects/plan.md')).toBe('move of plan.md to work/projects/plan.md');
   expect(renamed('a/x.txt', 'b/y.txt')).toBe('move of x.txt to b/y.txt');
+  // the report line after one says only what happened
+  const { summariseFileRename } = await appModule('table-undo/describe-batch.js');
+  expect(summariseFileRename('notes/note-3.txt', 'notes/shopping.txt')).toBe('file renamed');
+  expect(summariseFileRename('plan.md', 'work/plan.md')).toBe('file moved');
+  expect(summariseFileRename('a/x.txt', 'b/y.txt')).toBe('file moved and renamed');
 });
 
 // ---------------------------------------------------------------- the saved stack, §8

@@ -53,20 +53,35 @@ export function describeAction(batch) {
     return `${verb} of ${values} value${values === 1 ? '' : 's'}`;
 }
 
+const nameOf = path => path.slice(path.lastIndexOf('/') + 1);
+const folderOf = path => path.slice(0, Math.max(path.lastIndexOf('/'), 0));
+
 /**
- * A note's rename, in words. **One rule: the same folder is a rename, and gives names; another
- * folder is a move, and gives the whole new path** — `note-3.txt to shopping.txt`, `plan.md to
- * work/projects/plan.md`, and `x.txt to b/y.txt` when both changed. The undo entry's name and the
- * report line after a table rename both say it this way. plans/completed/table-rename-filename.md §9.3.
+ * A note's rename, in words, for its undo entry. **One rule: the same folder is a rename, and gives
+ * names; another folder is a move, and gives the whole new path** — `note-3.txt to shopping.txt`,
+ * `plan.md to work/projects/plan.md`, and `x.txt to b/y.txt` when both changed. Names and paths,
+ * because the undo list has to say which note. plans/completed/table-rename-filename.md §9.3.
  *
  * @param {string} from - The note's path before.
  * @param {string} to - Its path after.
  * @returns {{verb: 'rename'|'move', text: string}}
  */
 export function describeFileRename(from, to) {
-    const name = path => path.slice(path.lastIndexOf('/') + 1);
-    const folder = path => path.slice(0, Math.max(path.lastIndexOf('/'), 0));
-    return folder(from) === folder(to)
-        ? { verb: 'rename', text: `${name(from)} to ${name(to)}` }
-        : { verb: 'move', text: `${name(from)} to ${to}` };
+    return folderOf(from) === folderOf(to)
+        ? { verb: 'rename', text: `${nameOf(from)} to ${nameOf(to)}` }
+        : { verb: 'move', text: `${nameOf(from)} to ${to}` };
+}
+
+/**
+ * The report line after a filename cell's rename: what happened, and no more. The row is in front of
+ * the person who typed it, so the names would only repeat the cell.
+ *
+ * @param {string} from - The note's path before.
+ * @param {string} to - Its path after.
+ * @returns {string} `file renamed`, `file moved`, or `file moved and renamed`.
+ */
+export function summariseFileRename(from, to) {
+    const moved = folderOf(from) !== folderOf(to);
+    if (moved && nameOf(from) !== nameOf(to)) return 'file moved and renamed';
+    return moved ? 'file moved' : 'file renamed';
 }
