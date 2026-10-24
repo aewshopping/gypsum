@@ -3,8 +3,8 @@
 Status: **built** — see CLAUDE.md, *The tags cell*. **As built, the marking was turned round:**
 front matter tags are plain and a tag only the note's text holds is drawn `#idea`, in the table
 alone — every other view draws plain pills. A solid `&nbsp;•` on front matter tags (below) and then
-a hollow `◦` were tried first and read as too heavy. The `#` is a `.tag-hash` span sized in
-`tags.css`.
+a hollow `◦` were tried first and read as too heavy. The `#` is full size — 90% and 70% were
+compared — so it is `renderTags()`'s existing `showhash`, with no span or CSS of its own.
 Related: `plans/completed/table-cell-editors.md`, `plans/completed/table-cell-writing.md`,
 `plans/completed/table-range-paste.md`
 

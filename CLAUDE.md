@@ -818,9 +818,9 @@ The `tags` cell takes a caret, and what is typed or pasted there is the note's `
   TagMap has lowercased it and put the body's tags first. It is in `CORE_FILE_PROPERTIES`,
   `RESERVED_KEYS`, `hidden_always` and the search's `excludedProperties` — a carrier for the cell,
   offered nowhere as a property.
-- **In the table, a tag only the note's text holds is drawn `#idea`** — the `#` in its own
-  `.tag-hash` span inside the pill, outside `data-tag`, sized in `tags.css` — and a front matter tag
-  plain (`renderNoteTags()`). A tag in both places is the front matter's, so plain: the cell edits
+- **In the table, a tag only the note's text holds is drawn `#idea`** — `renderTags()`'s own
+  `showhash`, inside the pill and outside `data-tag` — and a front matter tag plain
+  (`renderNoteTags()`). A tag in both places is the front matter's, so plain: the cell edits
   front matter, and removing it there gives it the `#`. **Only the table marks tags**; every other
   view draws plain pills.
 - **The cell is replaced on opening, not flattened.** Flattened, its pills would put every tag —

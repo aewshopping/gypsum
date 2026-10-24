@@ -50,10 +50,3 @@
         color: var(--colour-contr-warning) !important;
     }
 }
-
-
-/* The `#` the table's tags cell puts in front of a tag only the note's text holds — the one the cell
-   cannot change. Its own span so its size is set here. plans/completed/tag-edit-in-table-view.md §3.2. */
-.tag-hash {
-    font-size: 1em;
-}
