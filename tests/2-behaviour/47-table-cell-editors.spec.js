@@ -352,6 +352,13 @@ test('in the table a body-only tag wears a #, a front matter one does not, and b
   expect(await pill('work').evaluate(el => el.textContent)).toBe('work');
   expect(await pill('project').evaluate(el => el.textContent)).toBe('project');
 
+  // and the card view draws the same, so a tag looks alike in every view
+  await chooseView(page, 'cards');
+  const card = page.locator('.note-grid').filter({ hasText: 'Tagged' }).first();
+  expect(await card.locator('[data-tag="idea"]').evaluate(el => el.textContent)).toBe('#idea');
+  expect(await card.locator('[data-tag="work"]').evaluate(el => el.textContent)).toBe('work');
+  await chooseView(page, 'table');
+
   // a front matter pill is the same filter: `work` is on Tagged alone (Other's is `workshop`)
   await pill('work').click();
   await expect(page.locator('.list-table > .note-table')).toHaveCount(1);
