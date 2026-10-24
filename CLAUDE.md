@@ -542,7 +542,8 @@ folder is typed — through the file options dialog's own code. See
 - **It opens with the caret before the extension**, nothing selected (`focusBeforeExtension()`).
 - **The open cell speaks only for a refusal or a move** (`cell-rename-line.js`, `data-rename-line`),
   drawn by the mismatch sentence's CSS rule. A plain rename says nothing; the report line says what
-  happened afterwards — "renamed" with names, "moved" with the whole new path.
+  happened afterwards — `file renamed`, `file moved` or `file moved and renamed`; the undo entry
+  keeps the names, since the undo list has to say which note.
 - **`renameNote()` is the one path** for the dialog, the cell and the undo: `renameFile`, the backups,
   then every note's issues re-checked. Each caller then runs `followNoteRename()` — which rewrites the
   row's `data-vt-id` so the ordinary focus restore finds the cell — and `renderRefreshed()`, whose

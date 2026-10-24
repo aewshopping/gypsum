@@ -3,7 +3,7 @@ import { readPathText, validateRenameInputs } from '../../editing/rename-validat
 import { renameNote } from '../../editing/rename-note.js';
 import { renderRefreshed } from '../../editing/refresh-file-state.js';
 import { pushUndoBatch } from '../../table-undo/undo-stacks.js';
-import { describeFileRename } from '../../table-undo/describe-batch.js';
+import { summariseFileRename } from '../../table-undo/describe-batch.js';
 import { followNoteRename } from '../ui-functions-table/follow-note-rename.js';
 import { whileWriting } from '../ui-functions-table/bulk-write-busy.js';
 import { holdRowMove } from '../ui-functions-table/pending-row-move.js';
@@ -57,8 +57,7 @@ export async function commitRename(cell, text) {
     followNoteRename(oldFilepath, newFilepath);
     await renderRefreshed(true, false);
 
-    const { verb, text: words } = describeFileRename(oldFilepath, newFilepath);
-    const said = `${verb === 'rename' ? 'renamed' : 'moved'} ${words}`;
+    const said = summariseFileRename(oldFilepath, newFilepath);
     if (renamed.warnings.length) reportFailure(`${said}, but: ${renamed.warnings.join(' ')}`);
     else reportAction(said);
 
