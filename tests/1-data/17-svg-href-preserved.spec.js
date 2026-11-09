@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadFolder } = require('../helpers');
+const { loadFolder, appModule } = require('../helpers');
 
 // Mock a file whose body contains inline SVG — with nested groups, sibling <style> blocks of
 // formatted/braced CSS at different nesting depths, an inline style="fill:#ff0000"
@@ -80,3 +80,49 @@ test('SVG href="#id" attributes are not rewritten as tag spans', async ({ page }
   expect(await page.locator('#modal-content-text code .tag').count()).toBe(0);
 });
 
+
+// A '<' that opens no tag must protect nothing. The span used to run from any '<' to the next
+// '>', however far below, so `a <- b` above a list hid every #tag and [[link]] down to a '>'
+// in a later bullet — from the tag panel, the open note and the link check alike.
+test.describe('a "<" that is not markup protects nothing', () => {
+  const protectedText = async (text) => {
+    const { findProtectedSpans } = await appModule('services/file-parsing/protected-spans.js');
+    return findProtectedSpans(text).map(([start, end]) => text.slice(start, end));
+  };
+
+  for (const [name, text] of [
+    ['an arrow',                       'debug <- testing\n\n- This #test tag\n\nThis #test too\n\n- the greater than > symbol'],
+    ['a spaced comparison',            'if a < b then #test is > c'],
+    ['a heart',                        '<3 #test >'],
+    ['letters, then a blank line',     'x <y #test\n\nmore #test >'],
+    ['an apostrophe, then a blank line', "a <b doesn't\n\nhave a #test it's > c"],
+    ['a tag broken by a blank line',   '<svg\n\n  fill="#fff">'],
+  ]) {
+    test(name, async () => {
+      expect(await protectedText(text)).toEqual([]);
+    });
+  }
+
+  test('the tags it used to hide are found and rendered', async () => {
+    const { tagParser } = await appModule('services/file-tagparser.js');
+    const html = tagParser('debug <- testing\n\n- one #test\n\ntwo #test\n\n- the greater than > symbol #test');
+    expect(html.match(/data-tag="test"/g)).toHaveLength(3);
+  });
+});
+
+test.describe('real markup is still protected', () => {
+  for (const text of [
+    '<use href="#petal"/>',
+    '<svg\n  fill="#fff"\n  viewBox="0 0 1 1">',
+    '<a title="a<b>c" href="#x">',
+    '<font color=#ff0000>',
+    '</div>',
+    '<!-- #todo later -->',
+    '<https://example.com/page#section>',
+  ]) {
+    test(JSON.stringify(text), async () => {
+      const { findProtectedSpans } = await appModule('services/file-parsing/protected-spans.js');
+      expect(findProtectedSpans(text)).toEqual([[0, text.length]]);
+    });
+  }
+});
