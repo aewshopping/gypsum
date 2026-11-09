@@ -6,7 +6,20 @@
  * — see file-tagparser.js and constants.js.
  */
 
-const TAG_SPAN_REGEX = /<[^>]*>/g;
+// What counts as markup follows marked's inline HTML: a '<' opens a tag only when a letter (or
+// '/', or '!--') comes straight after it, so 'a < b', '<-' and '<3' open nothing. A tag never
+// crosses a blank line — not between attributes and not inside a quoted value — so a stray '<'
+// cannot reach a '>' paragraphs below and hide every #tag and [[link]] in between. Each
+// alternative inside ATTR starts with a different character, which is what keeps the match
+// linear: a bare '<[^>]*>' scanned to the end of the file from every unclosed '<'.
+const NOT_BLANK_LINE = String.raw`\n(?![ \t]*\n)`;
+const QUOTED = (q) => String.raw`${q}(?:[^${q}\n]|${NOT_BLANK_LINE})*${q}`;
+const ATTRS = String.raw`(?:[ \t]|${NOT_BLANK_LINE})(?:[^<>"'\n]|${NOT_BLANK_LINE}|${QUOTED('"')}|${QUOTED("'")})*`;
+const TAG_SPAN_REGEX = new RegExp([
+    String.raw`<\/?[A-Za-z][\w:-]*(?:${ATTRS})?\/?>`, // <tag attrs>, <tag/>, </tag>
+    String.raw`<!--[\s\S]*?-->`,                      // <!-- comment -->
+    String.raw`<[A-Za-z][\w+.-]{1,31}:[^\s<>]*>`,     // autolink, e.g. <https://a.com/#frag>
+].join('|'), 'g');
 const ELEMENT_BODY_REGEX = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi;
 
 // Mirrors marked.eos.js's own fence tokenizer: opens with 3+ backticks/tildes on their own
@@ -24,7 +37,7 @@ const INLINE_CODE_REGEX = /(`+)([^`]|[^`](?:[^\n]|\n(?!\n)){0,2000}?[^`])\1(?!`)
 
 /**
  * Finds spans of `text` that are HTML markup or markdown code: each individual tag's attribute
- * list (e.g. `<use href="#petal"/>`), the full body of any `<style>`/`<script>` element (so
+ * list (e.g. `<use href="#petal"/>`), HTML comments, `<scheme:…>` autolinks, the full body of any `<style>`/`<script>` element (so
  * embedded CSS like `.cls-1 { fill: #ffffff; }` is protected regardless of formatting), fenced
  * code blocks, and inline backtick code spans. Bails out per category when `text` contains none
  * of the relevant trigger characters, which is the common case for plain notes.
