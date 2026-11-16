@@ -81,4 +81,42 @@ test.describe('contentEditable state in TXT mode', () => {
     expect(html).toMatch(/<p[^>]*>.*paragraph two.*<\/p>/s);
   });
 
+  // A nested item's checkbox used to be mapped to its outermost bullet's line, and the
+  // toggle wrote "[x]" into a line that had no marker.
+  test('a nested task checkbox toggles its own line', async ({ page }) => {
+    await setupMockDirectoryWithHistory(page);
+    await page.goto('/');
+    await openModal(page);
+    await switchToTxt(page);
+
+    const lines = [
+      '- checkbox test',
+      ' - [ ] second level',
+      '   - [ ] third a',
+      '   - [ ] third b',
+      '- [ ] top level',
+    ];
+    await page.evaluate((text) => {
+      const pre = document.querySelector('#modal-content-text pre');
+      pre.textContent = text;
+      pre.dispatchEvent(new Event('input', { bubbles: true }));
+    }, lines.join('\n'));
+    await switchToHtml(page);
+
+    const boxes = page.locator('#modal-content-text input[type="checkbox"][data-action="checkbox-toggle"]');
+    await expect(boxes).toHaveCount(4);
+    for (let i = 0; i < 4; i++) await boxes.nth(i).click();
+
+    await switchToTxt(page);
+    expect(await page.locator('#modal-content-text pre').innerText())
+      .toBe(lines.map(l => l.replace('[ ]', '[x]')).join('\n'));
+
+    await switchToHtml(page);
+    await boxes.nth(2).click();
+    await switchToTxt(page);
+    const expected = lines.map(l => l.replace('[ ]', '[x]'));
+    expected[3] = lines[3];
+    expect(await page.locator('#modal-content-text pre').innerText()).toBe(expected.join('\n'));
+  });
+
 });
