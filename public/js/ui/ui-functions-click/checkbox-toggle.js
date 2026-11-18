@@ -18,6 +18,8 @@ export function handleCheckboxToggle(evt, actionElement) {
 
     const lineText = lines[line - 1];
     const markerIndex = lineText.search(/\[[ xX]\]/);
+    // A line with no marker means the mapping is wrong — refuse rather than corrupt the note.
+    if (markerIndex === -1) return;
     lines[line - 1] = lineText.slice(0, markerIndex)
         + (actionElement.checked ? '[x]' : '[ ]')
         + lineText.slice(markerIndex + 3);

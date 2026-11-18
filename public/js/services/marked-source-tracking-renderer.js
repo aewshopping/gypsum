@@ -71,9 +71,30 @@ export class SourceTrackingRenderer extends Renderer {
         // no token of its own to compute a line from (see below).
         this.currentListItemLine = null;
 
+        // Search cursor for list items nested inside a suppressed block — used only to give a
+        // nested checkbox its own line rather than its outermost ancestor's.
+        this.nestedOffset = 0;
+
+        const lineAt = (offset) => {
+            const rawLine = sourceText.slice(0, offset).split('\n').length;
+            return rawLine + (rawLine > placeholderLine ? lineOffset : 0);
+        };
+
         for (const name of TRACKED_METHODS) {
             const base = Renderer.prototype[name];
             this[name] = (token) => {
+                // A nested item's raw is dedented, but its first line is the source line minus
+                // its indentation, so that still finds it. The <li> stays untagged as before.
+                if (this.suppressed && name === 'listitem') {
+                    const firstLine = token.raw.split('\n')[0];
+                    const nestedAt = sourceText.indexOf(firstLine, this.nestedOffset);
+                    if (nestedAt !== -1) {
+                        this.currentListItemLine = lineAt(nestedAt);
+                        this.nestedOffset = nestedAt + firstLine.length;
+                    }
+                    return base.call(this, token);
+                }
+
                 // Searches forward from nextOffset rather than requiring an exact match there,
                 // because untracked tokens can sit between tracked ones — most commonly the
                 // blank-line "space" token blockTokens emits between blocks, which we don't
@@ -87,12 +108,15 @@ export class SourceTrackingRenderer extends Renderer {
                 }
 
                 const startOffset = foundAt;
-                const rawLine = sourceText.slice(0, startOffset).split('\n').length;
-                const reportedLine = rawLine + (rawLine > placeholderLine ? lineOffset : 0);
+                const reportedLine = lineAt(startOffset);
                 if (name === 'listitem') this.currentListItemLine = reportedLine;
 
                 const isReentrant = REENTRANT_METHODS.has(name);
-                if (isReentrant) this.suppressed = true;
+                if (isReentrant) {
+                    this.suppressed = true;
+                    // The item's own first line is the start; its first nested child comes after.
+                    this.nestedOffset = startOffset + (name === 'listitem' ? token.raw.split('\n')[0].length : 0);
+                }
                 const html = base.call(this, token);
                 if (isReentrant) this.suppressed = false;
 
